@@ -11,8 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Interfaces\" />
-    <Folder Include="Repositories\" />
+    <Folder Include="DTOs\Admin\Request\" />
   </ItemGroup>
 
 </Project>

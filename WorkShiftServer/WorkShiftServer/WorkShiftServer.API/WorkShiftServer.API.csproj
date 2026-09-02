@@ -15,10 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\WorkShiftManagement.BLL\WorkShiftManagement.BLL.csproj" />
     <ProjectReference Include="..\WorkShiftManagement.DAL\WorkShiftManagement.DAL.csproj" />
   </ItemGroup>
