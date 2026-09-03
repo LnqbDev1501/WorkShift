@@ -6,10 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 
 namespace WorkShiftManagement.DAL.Repositories.Admin
 {
-    public class UserRepo
+    public class UserRepo : IUserRepo
     {
         private readonly AppDbContext _context;
 
