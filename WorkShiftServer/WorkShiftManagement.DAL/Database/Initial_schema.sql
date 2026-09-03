@@ -774,9 +774,19 @@ CREATE TABLE public.notifications (
     content text NOT NULL,
     notification_type varchar(50) NOT NULL,
     created_by uuid NOT NULL REFERENCES public.users(user_id) ON DELETE RESTRICT,
+    target_type varchar(20) NOT NULL DEFAULT 'All'
+        CHECK (target_type IN ('All', 'Staff', 'Manager', 'Accountant', 'Region', 'Branch')),
+    target_region_id integer REFERENCES public.regions(region_id) ON DELETE RESTRICT,
+    target_branch_id integer REFERENCES public.branches(branch_id) ON DELETE RESTRICT,
+    channels varchar(20)[] NOT NULL DEFAULT ARRAY['InApp'],
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    is_deleted boolean NOT NULL DEFAULT false
+    is_deleted boolean NOT NULL DEFAULT false,
+    CONSTRAINT ck_notifications_target_scope CHECK (
+        (target_type = 'Region' AND target_region_id IS NOT NULL AND target_branch_id IS NULL)
+        OR (target_type = 'Branch' AND target_branch_id IS NOT NULL AND target_region_id IS NULL)
+        OR (target_type NOT IN ('Region', 'Branch') AND target_region_id IS NULL AND target_branch_id IS NULL)
+    )
 );
 
 CREATE TABLE public.user_notifications (

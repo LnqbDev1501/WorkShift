@@ -22,4 +22,6 @@ public partial class Region
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
 
     public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }
