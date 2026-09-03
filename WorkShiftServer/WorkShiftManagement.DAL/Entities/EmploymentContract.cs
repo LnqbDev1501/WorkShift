@@ -27,9 +27,9 @@ public partial class EmploymentContract
 
     public string EmployeeFullNameSnapshot { get; set; } = null!;
 
-    public string? EmployeePhoneSnapshot { get; set; }
+    public string EmployeePhoneSnapshot { get; set; } = null!;
 
-    public string? EmployeeAddressSnapshot { get; set; }
+    public string EmployeeAddressSnapshot { get; set; } = null!;
 
     public string EmployeeIdentityNoSnapshot { get; set; } = null!;
 
@@ -44,8 +44,6 @@ public partial class EmploymentContract
     public Guid CreatedBy { get; set; }
 
     public DateTime? SentToStaffAt { get; set; }
-
-    public string? StaffDecision { get; set; }
 
     public DateTime? StaffRespondedAt { get; set; }
 
@@ -68,8 +66,6 @@ public partial class EmploymentContract
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
-
-    public bool IsDeleted { get; set; }
 
     public virtual User? ApprovedByNavigation { get; set; }
 

@@ -1,0 +1,212 @@
+-- ============================================================
+-- REMOVE DATA CREATED BY dashboard_sample_data.sql
+-- Run in Supabase SQL Editor.
+-- Only DASH_TEST/DASH_CONTRACT records and the fixed test Auth
+-- account created by the sample script are targeted.
+-- ============================================================
+
+BEGIN;
+
+-- Payroll dependencies.
+DELETE FROM public.payroll_details
+WHERE payroll_id IN (
+    SELECT payroll_id
+    FROM public.payrolls
+    WHERE payroll_period_id IN (
+        SELECT payroll_period_id
+        FROM public.payroll_periods
+        WHERE period_code LIKE 'DASH_TEST_PERIOD_%'
+    )
+);
+
+DELETE FROM public.employee_rewards_penalties
+WHERE payroll_period_id IN (
+    SELECT payroll_period_id
+    FROM public.payroll_periods
+    WHERE period_code LIKE 'DASH_TEST_PERIOD_%'
+);
+
+DELETE FROM public.payrolls
+WHERE payroll_period_id IN (
+    SELECT payroll_period_id
+    FROM public.payroll_periods
+    WHERE period_code LIKE 'DASH_TEST_PERIOD_%'
+);
+
+DELETE FROM public.timesheets
+WHERE payroll_period_id IN (
+    SELECT payroll_period_id
+    FROM public.payroll_periods
+    WHERE period_code LIKE 'DASH_TEST_PERIOD_%'
+);
+
+DELETE FROM public.payroll_periods
+WHERE period_code LIKE 'DASH_TEST_PERIOD_%';
+
+DELETE FROM public.staff_salary_history
+WHERE reason = 'DASH_TEST salary';
+
+DELETE FROM public.contract_change_request_items
+WHERE change_request_id IN (
+    SELECT change_request_id
+    FROM public.contract_change_requests
+    WHERE contract_id IN (
+        SELECT contract_id
+        FROM public.employment_contracts
+        WHERE contract_number LIKE 'DASH_CONTRACT_%'
+    )
+);
+
+DELETE FROM public.contract_change_requests
+WHERE contract_id IN (
+    SELECT contract_id
+    FROM public.employment_contracts
+    WHERE contract_number LIKE 'DASH_CONTRACT_%'
+);
+
+DELETE FROM public.employment_contracts
+WHERE contract_number LIKE 'DASH_CONTRACT_%';
+
+-- Requests created by the dashboard sample.
+DELETE FROM public.leave_request_details
+WHERE request_id IN (
+    SELECT request_id FROM public.employee_requests
+    WHERE reason LIKE 'DASH_TEST request %'
+);
+
+DELETE FROM public.time_adjustment_request_details
+WHERE request_id IN (
+    SELECT request_id FROM public.employee_requests
+    WHERE reason LIKE 'DASH_TEST request %'
+);
+
+DELETE FROM public.salary_increase_request_details
+WHERE request_id IN (
+    SELECT request_id FROM public.employee_requests
+    WHERE reason LIKE 'DASH_TEST request %'
+);
+
+DELETE FROM public.employee_requests
+WHERE reason LIKE 'DASH_TEST request %';
+
+-- Attendance and scheduling dependencies.
+DELETE FROM public.attendance_penalty_records
+WHERE attendance_id IN (
+    SELECT attendance_id
+    FROM public.attendances
+    WHERE rule_snapshot_json ->> 'source' = 'DASH_TEST'
+);
+
+DELETE FROM public.attendances
+WHERE rule_snapshot_json ->> 'source' = 'DASH_TEST';
+
+DELETE FROM public.shift_swap_requests
+WHERE source_assignment_id IN (
+        SELECT assignment_id
+        FROM public.shift_assignments
+        WHERE shift_id IN (
+            SELECT shift_id FROM public.work_shifts
+            WHERE note = 'DASH_TEST attendance'
+        )
+    )
+   OR target_assignment_id IN (
+        SELECT assignment_id
+        FROM public.shift_assignments
+        WHERE shift_id IN (
+            SELECT shift_id FROM public.work_shifts
+            WHERE note = 'DASH_TEST attendance'
+        )
+    );
+
+DELETE FROM public.shift_assignments
+WHERE shift_id IN (
+    SELECT shift_id
+    FROM public.work_shifts
+    WHERE note = 'DASH_TEST attendance'
+);
+
+DELETE FROM public.checklist_results
+WHERE checklist_item_id IN (
+    SELECT checklist_item_id
+    FROM public.checklist_items
+    WHERE checklist_id IN (
+        SELECT checklist_id
+        FROM public.checklists
+        WHERE shift_id IN (
+            SELECT shift_id FROM public.work_shifts
+            WHERE note = 'DASH_TEST attendance'
+        )
+    )
+);
+
+DELETE FROM public.checklist_items
+WHERE checklist_id IN (
+    SELECT checklist_id
+    FROM public.checklists
+    WHERE shift_id IN (
+        SELECT shift_id FROM public.work_shifts
+        WHERE note = 'DASH_TEST attendance'
+    )
+);
+
+DELETE FROM public.checklists
+WHERE shift_id IN (
+    SELECT shift_id FROM public.work_shifts
+    WHERE note = 'DASH_TEST attendance'
+);
+
+DELETE FROM public.work_shifts
+WHERE note = 'DASH_TEST attendance';
+
+DELETE FROM public.work_schedule_weeks
+WHERE branch_id IN (
+    SELECT branch_id FROM public.branches
+    WHERE branch_code LIKE 'DASH_TEST_%'
+);
+
+DELETE FROM public.attendance_rules
+WHERE rule_name = 'DASH_TEST_ATTENDANCE_RULE';
+
+DELETE FROM public.shift_templates
+WHERE shift_name = 'DASH_TEST_DAY_SHIFT';
+
+-- Test organization records.
+DELETE FROM public.branches
+WHERE branch_code LIKE 'DASH_TEST_%';
+
+DELETE FROM public.regions
+WHERE region_code LIKE 'DASH_TEST_%';
+
+-- Remove the public profile only when it was generated by the sample script.
+DELETE FROM public.users
+WHERE full_name = 'Dashboard Test Admin'
+  AND identity_no LIKE 'DASH%';
+
+-- This exact UUID is used only when the sample script had to create auth.users.
+DELETE FROM auth.users
+WHERE id = '10000000-0000-0000-0000-000000000001'::uuid
+  AND email = 'dashboard.admin@workshift.test';
+
+-- Remove MANAGER only if it is the unused role created by the sample script.
+DELETE FROM public.roles role
+WHERE role.role_name = 'MANAGER'
+  AND role.description = 'Branch manager'
+  AND NOT EXISTS (
+      SELECT 1 FROM public.users user_profile
+      WHERE user_profile.role_id = role.role_id
+  );
+
+COMMIT;
+
+-- Verification: every value should be zero.
+SELECT
+    (SELECT count(*) FROM public.regions
+        WHERE region_code LIKE 'DASH_TEST_%') AS test_regions_left,
+    (SELECT count(*) FROM public.branches
+        WHERE branch_code LIKE 'DASH_TEST_%') AS test_branches_left,
+    (SELECT count(*) FROM public.employee_requests
+        WHERE reason LIKE 'DASH_TEST request %') AS test_requests_left,
+    (SELECT count(*) FROM public.payroll_periods
+        WHERE period_code LIKE 'DASH_TEST_PERIOD_%') AS test_payroll_periods_left,
+    (SELECT count(*) FROM public.attendances
+        WHERE rule_snapshot_json ->> 'source' = 'DASH_TEST') AS test_attendances_left;
