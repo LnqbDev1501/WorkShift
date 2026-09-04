@@ -69,9 +69,9 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .FirstOrDefaultAsync(user => user.IdentityNo == identityNo);
         }
 
-        public async Task CreateAsync(User user)
+        public void Create(User user)
         {
-            await _context.Users.AddAsync(user);
+            _context.Users.Add(user);
         }
 
         public async Task SaveChangesAsync()

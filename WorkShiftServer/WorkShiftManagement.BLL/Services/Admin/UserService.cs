@@ -74,7 +74,7 @@ public class UserService : IUserService
                 UpdatedAt = now
             };
 
-            await _userRepo.CreateAsync(user);
+            _userRepo.Create(user);
             await _userRepo.SaveChangesAsync();
 
             return new CreateAdminUserResponse
@@ -88,8 +88,7 @@ public class UserService : IUserService
                 Phone = user.Phone,
                 Status = user.Status,
                 CreatedAt = ConvertToVietnamTime(user.CreatedAt),
-                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt),
-                InvitationSent = true
+                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
             };
         }
         catch
@@ -107,13 +106,13 @@ public class UserService : IUserService
         }
     }
 
-    private static DateTime ConvertToVietnamTime(DateTime dateTime)
+    private static DateTimeOffset ConvertToVietnamTime(DateTime dateTime)
     {
         var utcDateTime = dateTime.Kind == DateTimeKind.Utc
             ? dateTime
             : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 
-        return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, VietnamTimeZone);
+        return TimeZoneInfo.ConvertTime(new DateTimeOffset(utcDateTime), VietnamTimeZone);
     }
 
     private async Task ValidateBranchRuleAsync(int branchId, int roleId, bool isManager)

@@ -2293,6 +2293,10 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.RoleId, e.Status }, "ix_users_role_status");
 
+            entity.HasIndex(e => new { e.BranchId, e.RoleId }, "uq_users_branch_role_active")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACTIVE'::character varying])::text[]))");
+
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
 
             entity.HasIndex(e => e.IdentityNo, "users_identity_no_key").IsUnique();
