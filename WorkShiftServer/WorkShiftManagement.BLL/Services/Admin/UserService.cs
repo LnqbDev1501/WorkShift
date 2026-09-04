@@ -17,6 +17,9 @@ public class UserService : IUserService
     private const string PendingStatus = "PENDING";
     private const string ActiveStatus = "ACTIVE";
     private const string InactiveStatus = "INACTIVE";
+    private const string DefaultAvatarUrl = "https://ui-avatars.com/api/?background=random&name=User";
+    private static readonly TimeZoneInfo VietnamTimeZone =
+        TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
 
     private readonly IUserRepo _userRepo;
     private readonly IAuthService _authService;
@@ -59,7 +62,7 @@ public class UserService : IUserService
                 FullName = request.FullName,
                 Gender = request.Gender,
                 DateOfBirth = request.DateOfBirth!.Value,
-                AvatarUrl = request.AvatarUrl,
+                AvatarUrl = DefaultAvatarUrl,
                 Address = request.Address,
                 IdentityNo = request.IdentityNo,
                 Email = request.Email,
@@ -84,6 +87,8 @@ public class UserService : IUserService
                 Email = user.Email,
                 Phone = user.Phone,
                 Status = user.Status,
+                CreatedAt = ConvertToVietnamTime(user.CreatedAt),
+                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt),
                 InvitationSent = true
             };
         }
@@ -100,6 +105,15 @@ public class UserService : IUserService
             }
             throw;
         }
+    }
+
+    private static DateTime ConvertToVietnamTime(DateTime dateTime)
+    {
+        var utcDateTime = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, VietnamTimeZone);
     }
 
     private async Task ValidateBranchRuleAsync(int branchId, int roleId, bool isManager)
@@ -143,8 +157,7 @@ public class UserService : IUserService
         request.Phone = request.Phone.Trim();
         request.IdentityNo = request.IdentityNo.Trim();
         request.Gender = request.Gender.Trim().ToUpperInvariant();
-        request.Address = string.IsNullOrWhiteSpace(request.Address) ? null : request.Address.Trim();
-        request.AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim();
+        request.Address = request.Address.Trim();
 
         if (request.FullName.Length is 0 or > 150)
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
@@ -166,9 +179,7 @@ public class UserService : IUserService
             throw new ArgumentException("Date of birth must be on or after January 1, 1900.");
         if (request.DateOfBirth.Value > today.AddYears(-18))
             throw new ArgumentException("User must be at least 18 years old.");
-        if (request.Address?.Length > 500)
-            throw new ArgumentException("Address must not exceed 500 characters.");
-        if (request.AvatarUrl?.Length > 500)
-            throw new ArgumentException("Avatar URL must not exceed 500 characters.");
+        if (request.Address.Length is 0 or > 500)
+            throw new ArgumentException("Address must contain between 1 and 500 characters.");
     }
 }

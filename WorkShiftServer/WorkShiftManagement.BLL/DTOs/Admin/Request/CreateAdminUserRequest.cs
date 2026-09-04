@@ -37,9 +37,7 @@ public class CreateAdminUserRequest
     [Required(ErrorMessage = "Date of birth is required.")]
     public DateOnly? DateOfBirth { get; set; }
 
+    [Required(ErrorMessage = "Address is required.")]
     [StringLength(500, ErrorMessage = "Address must not exceed 500 characters.")]
-    public string? Address { get; set; }
-
-    [StringLength(500, ErrorMessage = "Avatar URL must not exceed 500 characters.")]
-    public string? AvatarUrl { get; set; }
+    public string Address { get; set; } = string.Empty;
 }

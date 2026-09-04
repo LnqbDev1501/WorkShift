@@ -19,9 +19,9 @@ public partial class User
 
     public DateOnly DateOfBirth { get; set; }
 
-    public string? AvatarUrl { get; set; }
+    public string AvatarUrl { get; set; } = null!;
 
-    public string? Address { get; set; }
+    public string Address { get; set; } = null!;
 
     public string IdentityNo { get; set; } = null!;
 
