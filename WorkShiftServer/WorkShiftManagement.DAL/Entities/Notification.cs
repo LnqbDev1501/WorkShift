@@ -21,7 +21,19 @@ public partial class Notification
 
     public bool IsDeleted { get; set; }
 
+    public string TargetType { get; set; } = null!;
+
+    public int? TargetRegionId { get; set; }
+
+    public int? TargetBranchId { get; set; }
+
+    public List<string> Channels { get; set; } = null!;
+
     public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual Branch? TargetBranch { get; set; }
+
+    public virtual Region? TargetRegion { get; set; }
 
     public virtual ICollection<UserNotification> UserNotifications { get; set; } = new List<UserNotification>();
 }

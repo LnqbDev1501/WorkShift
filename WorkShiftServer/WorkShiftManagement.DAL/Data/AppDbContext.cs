@@ -109,14 +109,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
-    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    // {
-    //     if (!optionsBuilder.IsConfigured)
-    //     {
-    //         optionsBuilder.UseNpgsql("Name=ConnectionStrings:MyCnn");
-    //     }
-    // }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -1332,6 +1324,10 @@ public partial class AppDbContext : DbContext
             entity.ToTable("notifications");
 
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
+            entity.Property(e => e.Channels)
+                .HasDefaultValueSql("ARRAY['InApp'::text]")
+                .HasColumnType("character varying(20)[]")
+                .HasColumnName("channels");
             entity.Property(e => e.Content).HasColumnName("content");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
@@ -1343,6 +1339,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.NotificationType)
                 .HasMaxLength(50)
                 .HasColumnName("notification_type");
+            entity.Property(e => e.TargetBranchId).HasColumnName("target_branch_id");
+            entity.Property(e => e.TargetRegionId).HasColumnName("target_region_id");
+            entity.Property(e => e.TargetType)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'All'::character varying")
+                .HasColumnName("target_type");
             entity.Property(e => e.Title)
                 .HasMaxLength(200)
                 .HasColumnName("title");
@@ -1354,6 +1356,16 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("notifications_created_by_fkey");
+
+            entity.HasOne(d => d.TargetBranch).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.TargetBranchId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("notifications_target_branch_id_fkey");
+
+            entity.HasOne(d => d.TargetRegion).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.TargetRegionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("notifications_target_region_id_fkey");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -2276,6 +2288,10 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.BranchId, e.Status }, "ix_users_branch_status");
 
             entity.HasIndex(e => new { e.RoleId, e.Status }, "ix_users_role_status");
+
+            entity.HasIndex(e => new { e.BranchId, e.RoleId }, "uq_users_branch_role_active")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACTIVE'::character varying])::text[]))");
 
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
 
