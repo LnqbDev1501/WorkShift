@@ -25,8 +25,6 @@ public partial class User
 
     public string IdentityNo { get; set; } = null!;
 
-    public DateOnly HireDate { get; set; }
-
     public string Email { get; set; } = null!;
 
     public string Phone { get; set; } = null!;
@@ -69,7 +67,9 @@ public partial class User
 
     public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
 
-    public virtual ICollection<ContractChangeRequest> ContractChangeRequests { get; set; } = new List<ContractChangeRequest>();
+    public virtual ICollection<ContractChangeRequest> ContractChangeRequestRequestedByNavigations { get; set; } = new List<ContractChangeRequest>();
+
+    public virtual ICollection<ContractChangeRequest> ContractChangeRequestReviewedByNavigations { get; set; } = new List<ContractChangeRequest>();
 
     public virtual ICollection<EmployeeRequest> EmployeeRequestReviewedByNavigations { get; set; } = new List<EmployeeRequest>();
 
@@ -91,7 +91,7 @@ public partial class User
 
     public virtual ICollection<EmploymentContract> EmploymentContractTerminatedByNavigations { get; set; } = new List<EmploymentContract>();
 
-    public virtual ICollection<EmploymentContract> EmploymentContractUsers { get; set; } = new List<EmploymentContract>();
+    public virtual EmploymentContract? EmploymentContractUser { get; set; }
 
     public virtual FaceProfile? FaceProfile { get; set; }
 
@@ -107,11 +107,11 @@ public partial class User
 
     public virtual ICollection<PayrollPeriod> PayrollPeriodCreatedByNavigations { get; set; } = new List<PayrollPeriod>();
 
-    public virtual ICollection<PayrollPeriod> PayrollPeriodRejectedByNavigations { get; set; } = new List<PayrollPeriod>();
-
     public virtual ICollection<PayrollPeriod> PayrollPeriodSubmittedByNavigations { get; set; } = new List<PayrollPeriod>();
 
-    public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
+    public virtual ICollection<Payroll> PayrollRejectedByNavigations { get; set; } = new List<Payroll>();
+
+    public virtual ICollection<Payroll> PayrollUsers { get; set; } = new List<Payroll>();
 
     public virtual ICollection<PublicHolidayConfig> PublicHolidayConfigs { get; set; } = new List<PublicHolidayConfig>();
 

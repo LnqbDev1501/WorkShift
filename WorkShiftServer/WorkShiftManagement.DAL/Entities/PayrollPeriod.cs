@@ -35,12 +35,6 @@ public partial class PayrollPeriod
 
     public DateTime? ApprovedAt { get; set; }
 
-    public Guid? RejectedBy { get; set; }
-
-    public DateTime? RejectedAt { get; set; }
-
-    public string? RejectReason { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
@@ -56,8 +50,6 @@ public partial class PayrollPeriod
     public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenalties { get; set; } = new List<EmployeeRewardsPenalty>();
 
     public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
-
-    public virtual User? RejectedByNavigation { get; set; }
 
     public virtual User? SubmittedByNavigation { get; set; }
 

@@ -45,6 +45,12 @@ public partial class Payroll
 
     public DateTime? CalculatedAt { get; set; }
 
+    public Guid? RejectedBy { get; set; }
+
+    public DateTime? RejectedAt { get; set; }
+
+    public string? RejectReason { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
@@ -56,6 +62,8 @@ public partial class Payroll
     public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
 
     public virtual PayrollPeriod PayrollPeriod { get; set; } = null!;
+
+    public virtual User? RejectedByNavigation { get; set; }
 
     public virtual StaffSalaryHistory SalaryHistory { get; set; } = null!;
 

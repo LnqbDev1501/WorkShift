@@ -4,6 +4,8 @@ using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftServer.API.Hubs;
+using WorkShiftServer.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -24,6 +27,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
+builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<INotificationRepo, NotificationRepo>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com/");
+});
+builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 
 
 
@@ -43,5 +55,6 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
