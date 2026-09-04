@@ -17,7 +17,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
-
+    
+builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
+builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
 
 
 

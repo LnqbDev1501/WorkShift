@@ -109,6 +109,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
+    // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    // {
+    //     if (!optionsBuilder.IsConfigured)
+    //     {
+    //         optionsBuilder.UseNpgsql("Name=ConnectionStrings:MyCnn");
+    //     }
+    // }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -856,7 +863,13 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
+            entity.Property(e => e.RequestType)
+                .HasMaxLength(30)
+                .HasColumnName("request_type");
             entity.Property(e => e.RequestedBy).HasColumnName("requested_by");
+            entity.Property(e => e.ReviewComment).HasColumnName("review_comment");
+            entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
+            entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
             entity.Property(e => e.StaffComment).HasColumnName("staff_comment");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -872,10 +885,15 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("contract_change_requests_contract_id_fkey");
 
-            entity.HasOne(d => d.RequestedByNavigation).WithMany(p => p.ContractChangeRequests)
+            entity.HasOne(d => d.RequestedByNavigation).WithMany(p => p.ContractChangeRequestRequestedByNavigations)
                 .HasForeignKey(d => d.RequestedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("contract_change_requests_requested_by_fkey");
+
+            entity.HasOne(d => d.ReviewedByNavigation).WithMany(p => p.ContractChangeRequestReviewedByNavigations)
+                .HasForeignKey(d => d.ReviewedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("contract_change_requests_reviewed_by_fkey");
         });
 
         modelBuilder.Entity<ContractChangeRequestItem>(entity =>
@@ -1072,6 +1090,14 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.Status, e.StartDate, e.EndDate }, "ix_contracts_user_status_dates");
 
+            entity.HasIndex(e => e.UserId, "uq_one_active_contract_per_staff")
+                .IsUnique()
+                .HasFilter("((status)::text = 'ACTIVE'::text)");
+
+            entity.HasIndex(e => e.UserId, "uq_one_pending_contract_per_staff")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'PENDING_STAFF'::character varying, 'PENDING_MANAGER_APPROVAL'::character varying])::text[]))");
+
             entity.Property(e => e.ContractId).HasColumnName("contract_id");
             entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
             entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
@@ -1108,9 +1134,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.HourlyRate)
                 .HasPrecision(18, 2)
                 .HasColumnName("hourly_rate");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
             entity.Property(e => e.ManagerRejectionComment).HasColumnName("manager_rejection_comment");
             entity.Property(e => e.RegionId).HasColumnName("region_id");
             entity.Property(e => e.RegionNameSnapshot)
@@ -1120,9 +1143,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
             entity.Property(e => e.ReplacesContractId).HasColumnName("replaces_contract_id");
             entity.Property(e => e.SentToStaffAt).HasColumnName("sent_to_staff_at");
-            entity.Property(e => e.StaffDecision)
-                .HasMaxLength(20)
-                .HasColumnName("staff_decision");
             entity.Property(e => e.StaffRespondedAt).HasColumnName("staff_responded_at");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
@@ -1172,8 +1192,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.EmploymentContractUsers)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
+                .HasForeignKey<EmploymentContract>(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_user_id_fkey");
         });
@@ -1342,24 +1362,19 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("orders");
 
-            entity.HasIndex(e => new { e.BranchId, e.OrderDate }, "ix_orders_branch_date")
-                .IsDescending(false, true)
-                .HasFilter("(is_deleted = false)");
+            entity.HasIndex(e => new { e.BranchId, e.OrderDate }, "ix_orders_branch_date").IsDescending(false, true);
 
             entity.HasIndex(e => e.OrderNumber, "orders_order_number_key").IsUnique();
 
             entity.Property(e => e.OrderId).HasColumnName("order_id");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
+            entity.Property(e => e.BranchNameSnapshot)
+                .HasMaxLength(150)
+                .HasColumnName("branch_name_snapshot");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.DiscountAmount)
-                .HasPrecision(18, 2)
-                .HasColumnName("discount_amount");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
             entity.Property(e => e.Note)
                 .HasMaxLength(500)
                 .HasColumnName("note");
@@ -1376,7 +1391,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("payment_status");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'COMPLETED'::character varying")
+                .HasDefaultValueSql("'DRAFT'::character varying")
                 .HasColumnName("status");
             entity.Property(e => e.Subtotal)
                 .HasPrecision(18, 2)
@@ -1483,6 +1498,9 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasColumnName("net_salary");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.RejectReason).HasColumnName("reject_reason");
+            entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
+            entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
             entity.Property(e => e.SalaryHistoryId).HasColumnName("salary_history_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -1519,6 +1537,11 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_payroll_period_id_fkey");
 
+            entity.HasOne(d => d.RejectedByNavigation).WithMany(p => p.PayrollRejectedByNavigations)
+                .HasForeignKey(d => d.RejectedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("payrolls_rejected_by_fkey");
+
             entity.HasOne(d => d.SalaryHistory).WithMany(p => p.Payrolls)
                 .HasForeignKey(d => d.SalaryHistoryId)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -1529,7 +1552,7 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_timesheet_id_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Payrolls)
+            entity.HasOne(d => d.User).WithMany(p => p.PayrollUsers)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_user_id_fkey");
@@ -1649,9 +1672,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PeriodName)
                 .HasMaxLength(150)
                 .HasColumnName("period_name");
-            entity.Property(e => e.RejectReason).HasColumnName("reject_reason");
-            entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
-            entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
@@ -1682,11 +1702,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_periods_created_by_fkey");
-
-            entity.HasOne(d => d.RejectedByNavigation).WithMany(p => p.PayrollPeriodRejectedByNavigations)
-                .HasForeignKey(d => d.RejectedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("payroll_periods_rejected_by_fkey");
 
             entity.HasOne(d => d.SubmittedByNavigation).WithMany(p => p.PayrollPeriodSubmittedByNavigations)
                 .HasForeignKey(d => d.SubmittedBy)
@@ -2293,7 +2308,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Gender)
                 .HasMaxLength(10)
                 .HasColumnName("gender");
-            entity.Property(e => e.HireDate).HasColumnName("hire_date");
             entity.Property(e => e.IdentityNo)
                 .HasMaxLength(30)
                 .HasColumnName("identity_no");

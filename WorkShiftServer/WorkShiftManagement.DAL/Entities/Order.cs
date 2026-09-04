@@ -13,11 +13,11 @@ public partial class Order
 
     public Guid CreatedBy { get; set; }
 
+    public string BranchNameSnapshot { get; set; } = null!;
+
     public DateTime OrderDate { get; set; }
 
     public decimal Subtotal { get; set; }
-
-    public decimal DiscountAmount { get; set; }
 
     public decimal TotalAmount { get; set; }
 
@@ -32,8 +32,6 @@ public partial class Order
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
-
-    public bool IsDeleted { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
 

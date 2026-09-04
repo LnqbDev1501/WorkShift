@@ -11,11 +11,19 @@ public partial class ContractChangeRequest
 
     public Guid RequestedBy { get; set; }
 
-    public string StaffComment { get; set; } = null!;
+    public string RequestType { get; set; } = null!;
+
+    public string? StaffComment { get; set; }
 
     public string Status { get; set; } = null!;
 
     public DateTime? SubmittedAt { get; set; }
+
+    public Guid? ReviewedBy { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
+
+    public string? ReviewComment { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
@@ -26,4 +34,6 @@ public partial class ContractChangeRequest
     public virtual ICollection<ContractChangeRequestItem> ContractChangeRequestItems { get; set; } = new List<ContractChangeRequestItem>();
 
     public virtual User RequestedByNavigation { get; set; } = null!;
+
+    public virtual User? ReviewedByNavigation { get; set; }
 }
