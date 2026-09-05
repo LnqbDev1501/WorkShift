@@ -23,6 +23,8 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
 
         Task<User?> GetByIdAsync(Guid userId);
 
+        Task<User?> GetDetailByIdAsync(Guid userId);
+
         Task<(IReadOnlyList<User> Items, int TotalItems)> GetPagedAsync(
             int pageNumber,
             int pageSize,

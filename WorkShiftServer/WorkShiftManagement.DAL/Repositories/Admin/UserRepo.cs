@@ -80,6 +80,16 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .FirstOrDefaultAsync(user => user.UserId == userId);
         }
 
+        public async Task<User?> GetDetailByIdAsync(Guid userId)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Include(user => user.Role)
+                .Include(user => user.Branch)
+                .Include(user => user.EmployeeType)
+                .FirstOrDefaultAsync(user => user.UserId == userId);
+        }
+
         public async Task<(IReadOnlyList<User> Items, int TotalItems)> GetPagedAsync(
             int pageNumber,
             int pageSize,

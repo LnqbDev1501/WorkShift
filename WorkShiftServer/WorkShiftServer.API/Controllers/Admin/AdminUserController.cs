@@ -42,6 +42,28 @@ public class AdminUserController : ControllerBase
         }
     }
 
+    [HttpGet("{userId:guid}")]
+    [ProducesResponseType(typeof(AdminUserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AdminUserDetailResponse>> GetAdminUserDetail(Guid userId)
+    {
+        try
+        {
+            return Ok(await _userService.GetAdminUserDetailAsync(userId));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving user {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The user could not be retrieved. Please try again later." });
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(CreateAdminUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

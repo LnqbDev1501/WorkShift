@@ -90,6 +90,42 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<AdminUserDetailResponse> GetAdminUserDetailAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required.");
+
+        var user = await _userRepo.GetDetailByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        return new AdminUserDetailResponse
+        {
+            UserId = user.UserId,
+            FullName = user.FullName,
+            Email = user.Email,
+            Phone = user.Phone,
+            IdentityNo = user.IdentityNo,
+            Gender = user.Gender,
+            DateOfBirth = user.DateOfBirth,
+            AvatarUrl = user.AvatarUrl,
+            Address = user.Address,
+            RoleId = user.RoleId,
+            RoleName = user.Role.RoleName,
+            BranchId = user.BranchId,
+            BranchCode = user.Branch?.BranchCode,
+            BranchName = user.Branch?.BranchName,
+            EmployeeTypeId = user.EmployeeTypeId,
+            EmployeeTypeName = user.EmployeeType?.TypeName,
+            Status = user.Status,
+            PreviousStatus = user.PreviousStatus,
+            DeletedAt = user.DeletedAt.HasValue
+                ? ConvertToVietnamTime(user.DeletedAt.Value)
+                : null,
+            CreatedAt = ConvertToVietnamTime(user.CreatedAt),
+            UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
+        };
+    }
+
     public async Task<CreateAdminUserResponse> CreateAdminUserAsync(CreateAdminUserRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
