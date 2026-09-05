@@ -6,4 +6,5 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin;
 public interface IUserService
 {
     Task<CreateAdminUserResponse> CreateAdminUserAsync(CreateAdminUserRequest request);
+    Task ActivateUserAsync(Guid userId);
 }

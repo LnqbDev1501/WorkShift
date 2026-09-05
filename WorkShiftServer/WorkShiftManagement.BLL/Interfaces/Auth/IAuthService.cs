@@ -4,4 +4,5 @@ public interface IAuthService
 {
     Task<Guid> CreateUserAndSendInviteAsync(string email);
     Task DeleteUserAsync(Guid userId);
+    Task<Guid> SetPasswordAsync(string accessToken, string password);
 }

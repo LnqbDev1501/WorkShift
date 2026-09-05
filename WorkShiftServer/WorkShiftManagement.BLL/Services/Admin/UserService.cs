@@ -106,6 +106,22 @@ public class UserService : IUserService
         }
     }
 
+    public async Task ActivateUserAsync(Guid userId)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The current account status does not allow activation.");
+
+        user.Status = ActiveStatus;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _userRepo.SaveChangesAsync();
+    }
+
     private static DateTimeOffset ConvertToVietnamTime(DateTime dateTime)
     {
         var utcDateTime = dateTime.Kind == DateTimeKind.Utc

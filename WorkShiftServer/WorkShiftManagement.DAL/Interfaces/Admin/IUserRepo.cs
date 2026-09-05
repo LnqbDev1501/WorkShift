@@ -21,6 +21,8 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
 
         Task<User?> GetByIdentityNoAsync(string identityNo);
 
+        Task<User?> GetByIdAsync(Guid userId);
+
         void Create(User user);
 
         Task SaveChangesAsync();

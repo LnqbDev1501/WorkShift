@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 
@@ -45,6 +46,25 @@ public class AuthService : IAuthService
         var body = await response.Content.ReadAsStringAsync();
         throw new HttpRequestException(
             $"Unable to roll back Supabase Auth user: {GetErrorMessage(body)}", null, response.StatusCode);
+    }
+
+    public async Task<Guid> SetPasswordAsync(string accessToken, string password)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, "auth/v1/user")
+        {
+            Content = JsonContent.Create(new { password })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await _httpClient.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to set password: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        return GetUserId(body);
     }
 
     private static Guid GetUserId(string body)

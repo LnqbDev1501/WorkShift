@@ -74,6 +74,12 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             _context.Users.Add(user);
         }
 
+        public async Task<User?> GetByIdAsync(Guid userId)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(user => user.UserId == userId);
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
