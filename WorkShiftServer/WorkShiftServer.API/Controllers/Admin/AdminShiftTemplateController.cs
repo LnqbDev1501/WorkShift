@@ -2,16 +2,33 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
+using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Services.Admin;
 
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/shift-templates")]
-[ShiftTemplateValidation]
 public sealed class AdminShiftTemplateController(ShiftTemplateService service) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResponse<ShiftTemplateListResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAll([FromQuery] ShiftTemplateListQuery query, CancellationToken cancellationToken)
+    {
+        return Ok(await service.GetAllAsync(query, cancellationToken));
+    }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ShiftTemplateResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var template = await service.GetByIdAsync(id, cancellationToken);
+        return template is null ? NotFound() : Ok(template);
+    }
+
     [HttpPost]
+    [ShiftTemplateValidation]
     public async Task<IActionResult> Create(CreateShiftTemplateRequest request, CancellationToken cancellationToken)
     {
         try
