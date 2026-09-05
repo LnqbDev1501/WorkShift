@@ -5,13 +5,13 @@ namespace WorkShiftServer.API.Controllers.Accountant
 {
     [ApiController]
     [Route("api/accountant/payroll-periods")]
-    public class PayrollSubmissionController
+    public class AccountantPayrollSubmissionController
         : ControllerBase
     {
         private readonly IPayrollApprovalService
             _service;
 
-        public PayrollSubmissionController(
+        public AccountantPayrollSubmissionController(
             IPayrollApprovalService service)
         {
             _service = service;
