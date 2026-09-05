@@ -24,7 +24,7 @@ public class AuthService : IAuthService
         return await SendInvitationAsync(email, "create");
     }
 
-    public async Task ResendSetupLinkAsync(Guid userId, string email)
+    public async Task<string?> ResendSetupLinkAsync(Guid userId, string email)
     {
         using var userResponse = await _httpClient.GetAsync($"auth/v1/admin/users/{userId}");
         var userBody = await userResponse.Content.ReadAsStringAsync();
@@ -51,19 +51,25 @@ public class AuthService : IAuthService
             var invitedUserId = await SendInvitationAsync(email, "resend");
             if (invitedUserId != userId)
                 throw new InvalidDataException("Supabase Auth returned a user that does not match the local profile.");
-            return;
+            return null;
         }
 
-        var endpoint = $"auth/v1/recover?redirect_to={Uri.EscapeDataString(_inviteRedirectUrl)}";
-        using var recoveryResponse = await _httpClient.PostAsJsonAsync(endpoint, new { email });
-        if (recoveryResponse.IsSuccessStatusCode)
-            return;
+        using var linkResponse = await _httpClient.PostAsJsonAsync("auth/v1/admin/generate_link", new
+        {
+            type = "recovery",
+            email,
+            redirect_to = _inviteRedirectUrl
+        });
+        var linkBody = await linkResponse.Content.ReadAsStringAsync();
+        if (!linkResponse.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to generate Supabase recovery link: {GetErrorMessage(linkBody)}",
+                null,
+                linkResponse.StatusCode);
+        }
 
-        var recoveryBody = await recoveryResponse.Content.ReadAsStringAsync();
-        throw new HttpRequestException(
-            $"Unable to send Supabase recovery link: {GetErrorMessage(recoveryBody)}",
-            null,
-            recoveryResponse.StatusCode);
+        return GetActionLink(linkBody);
     }
 
     private async Task<Guid> SendInvitationAsync(string email, string operation)
@@ -129,6 +135,23 @@ public class AuthService : IAuthService
         }
 
         throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+    }
+
+    private static string GetActionLink(string body)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            if (document.RootElement.TryGetProperty("action_link", out var actionLink) &&
+                Uri.TryCreate(actionLink.GetString(), UriKind.Absolute, out var uri))
+                return uri.AbsoluteUri;
+        }
+        catch (JsonException)
+        {
+            // Converted to InvalidDataException below.
+        }
+
+        throw new InvalidDataException("Supabase Auth did not return a valid account setup link.");
     }
 
     private static string GetErrorMessage(string body)

@@ -23,12 +23,18 @@ public class UserService : IUserService
 
     private readonly IUserRepo _userRepo;
     private readonly IAuthService _authService;
+    private readonly IAccountSetupEmailSender _accountSetupEmailSender;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(IUserRepo userRepo, IAuthService authService, ILogger<UserService> logger)
+    public UserService(
+        IUserRepo userRepo,
+        IAuthService authService,
+        IAccountSetupEmailSender accountSetupEmailSender,
+        ILogger<UserService> logger)
     {
         _userRepo = userRepo;
         _authService = authService;
+        _accountSetupEmailSender = accountSetupEmailSender;
         _logger = logger;
     }
 
@@ -133,7 +139,9 @@ public class UserService : IUserService
         if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Only accounts pending activation can receive another invitation.");
 
-        await _authService.ResendSetupLinkAsync(user.UserId, user.Email);
+        var setupLink = await _authService.ResendSetupLinkAsync(user.UserId, user.Email);
+        if (setupLink is not null)
+            await _accountSetupEmailSender.SendAsync(user.Email, setupLink);
     }
 
     private static DateTimeOffset ConvertToVietnamTime(DateTime dateTime)
