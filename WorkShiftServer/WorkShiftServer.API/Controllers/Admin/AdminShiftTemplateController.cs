@@ -12,10 +12,19 @@ namespace WorkShiftServer.API.Controllers.Admin;
 public sealed class AdminShiftTemplateController(ShiftTemplateService service) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(PagedResponse<ShiftTemplateResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResponse<ShiftTemplateListResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] ShiftTemplateListQuery query, CancellationToken cancellationToken)
     {
         return Ok(await service.GetAllAsync(query, cancellationToken));
+    }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ShiftTemplateResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    {
+        var template = await service.GetByIdAsync(id, cancellationToken);
+        return template is null ? NotFound() : Ok(template);
     }
 
     [HttpPost]

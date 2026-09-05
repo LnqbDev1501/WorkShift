@@ -11,7 +11,7 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 
 public sealed class ShiftTemplateService(AppDbContext context)
 {
-    public async Task<PagedResponse<ShiftTemplateResponse>> GetAllAsync(
+    public async Task<PagedResponse<ShiftTemplateListResponse>> GetAllAsync(
         ShiftTemplateListQuery query, CancellationToken cancellationToken = default)
     {
         Validator.ValidateObject(query, new ValidationContext(query), validateAllProperties: true);
@@ -37,6 +37,31 @@ public sealed class ShiftTemplateService(AppDbContext context)
             .ThenBy(template => template.ShiftTemplateId)
             .Skip((query.Page - 1) * pageSize)
             .Take(pageSize)
+            .Select(template => new ShiftTemplateListResponse
+            {
+                ShiftName = template.ShiftName,
+                StartTime = template.StartTime,
+                EndTime = template.EndTime,
+                BreakMinutes = template.BreakMinutes,
+                Status = template.Status
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResponse<ShiftTemplateListResponse>
+        {
+            Items = items,
+            Page = query.Page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    public async Task<ShiftTemplateResponse?> GetByIdAsync(
+        int id, CancellationToken cancellationToken = default)
+    {
+        return await context.ShiftTemplates
+            .AsNoTracking()
+            .Where(template => template.ShiftTemplateId == id)
             .Select(template => new ShiftTemplateResponse
             {
                 ShiftTemplateId = template.ShiftTemplateId,
@@ -49,15 +74,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt
             })
-            .ToListAsync(cancellationToken);
-
-        return new PagedResponse<ShiftTemplateResponse>
-        {
-            Items = items,
-            Page = query.Page,
-            PageSize = pageSize,
-            TotalCount = totalCount
-        };
+            .SingleOrDefaultAsync(cancellationToken);
     }
 
     public async Task<ShiftTemplate?> CreateAsync(
