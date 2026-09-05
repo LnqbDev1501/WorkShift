@@ -19,6 +19,29 @@ public class AdminUserController : ControllerBase
         _logger = logger;
     }
 
+    [HttpGet]
+    [ProducesResponseType(typeof(AdminUserListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AdminUserListResponse>> GetAdminUsers(
+        [FromQuery] GetAdminUsersRequest request)
+    {
+        try
+        {
+            return Ok(await _userService.GetAdminUsersAsync(request));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving users");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Users could not be retrieved. Please try again later." });
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(CreateAdminUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

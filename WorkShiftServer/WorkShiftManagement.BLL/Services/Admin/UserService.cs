@@ -12,6 +12,7 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 
 public class UserService : IUserService
 {
+    private const int AdminUserPageSize = 20;
     private const string ManagerRole = "MANAGER";
     private const string AccountantRole = "ACCOUNTANT";
     private const string PendingStatus = "PENDING";
@@ -36,6 +37,57 @@ public class UserService : IUserService
         _authService = authService;
         _accountSetupEmailSender = accountSetupEmailSender;
         _logger = logger;
+    }
+
+    public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.PageNumber <= 0)
+            throw new ArgumentException("PageNumber must be greater than 0.");
+        var search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim();
+        var status = string.IsNullOrWhiteSpace(request.Status)
+            ? null
+            : request.Status.Trim().ToUpperInvariant();
+        if (status is not null and not (PendingStatus or ActiveStatus or InactiveStatus))
+            throw new ArgumentException("Status must be PENDING, ACTIVE, or INACTIVE.");
+        if (request.RoleId <= 0)
+            throw new ArgumentException("RoleId must be greater than 0.");
+        if (request.BranchId <= 0)
+            throw new ArgumentException("BranchId must be greater than 0.");
+
+        var (users, totalItems) = await _userRepo.GetPagedAsync(
+            request.PageNumber,
+            AdminUserPageSize,
+            search,
+            status,
+            request.RoleId,
+            request.BranchId);
+
+        return new AdminUserListResponse
+        {
+            Items = users.Select(user => new AdminUserListItemResponse
+            {
+                UserId = user.UserId,
+                AvatarUrl = user.AvatarUrl,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                RoleId = user.RoleId,
+                RoleName = user.Role.RoleName,
+                BranchId = user.BranchId,
+                BranchName = user.Branch?.BranchName,
+                Status = user.Status,
+                CreatedAt = ConvertToVietnamTime(user.CreatedAt),
+                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
+            }).ToList(),
+            PageNumber = request.PageNumber,
+            PageSize = AdminUserPageSize,
+            TotalItems = totalItems,
+            TotalPages = totalItems == 0
+                ? 0
+                : (int)Math.Ceiling(totalItems / (double)AdminUserPageSize)
+        };
     }
 
     public async Task<CreateAdminUserResponse> CreateAdminUserAsync(CreateAdminUserRequest request)

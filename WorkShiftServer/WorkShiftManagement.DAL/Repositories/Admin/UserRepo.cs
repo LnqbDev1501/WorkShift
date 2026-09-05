@@ -80,6 +80,48 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .FirstOrDefaultAsync(user => user.UserId == userId);
         }
 
+        public async Task<(IReadOnlyList<User> Items, int TotalItems)> GetPagedAsync(
+            int pageNumber,
+            int pageSize,
+            string? search,
+            string? status,
+            int? roleId,
+            int? branchId)
+        {
+            var query = _context.Users
+                .AsNoTracking()
+                .Include(user => user.Role)
+                .Include(user => user.Branch)
+                .Where(user => user.DeletedAt == null);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var pattern = $"%{search}%";
+                query = query.Where(user =>
+                    EF.Functions.ILike(user.FullName, pattern) ||
+                    EF.Functions.ILike(user.Email, pattern) ||
+                    EF.Functions.ILike(user.Phone, pattern) ||
+                    EF.Functions.ILike(user.IdentityNo, pattern));
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+                query = query.Where(user => user.Status == status);
+            if (roleId.HasValue)
+                query = query.Where(user => user.RoleId == roleId.Value);
+            if (branchId.HasValue)
+                query = query.Where(user => user.BranchId == branchId.Value);
+
+            var totalItems = await query.CountAsync();
+            var items = await query
+                .OrderByDescending(user => user.CreatedAt)
+                .ThenBy(user => user.UserId)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalItems);
+        }
+
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
