@@ -6,13 +6,13 @@ namespace WorkShiftServer.API.Controllers.Admin
 {
     [ApiController]
     [Route("api/admin/payroll-periods")]
-    public class PayrollApprovalController
+    public class AdminPayrollApprovalController
         : ControllerBase
     {
         private readonly IPayrollApprovalService
             _service;
 
-        public PayrollApprovalController(
+        public AdminPayrollApprovalController(
             IPayrollApprovalService service)
         {
             _service = service;

@@ -70,10 +70,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     PageSize = pageSize,
                     TotalCount = result.TotalCount,
 
-                    TotalPages =
-                        (int)Math.Ceiling(
-                            result.TotalCount /
-                            (double)pageSize)
+                    TotalPages = (int)Math.Ceiling(result.TotalCount / (double)pageSize)
                 };
 
             foreach (var period in result.Items)
@@ -81,46 +78,19 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 var item =
                     new PayrollPeriodListItemResponse
                     {
-                        PayrollPeriodId =
-                            period.PayrollPeriodId,
-
-                        PeriodCode =
-                            period.PeriodCode,
-
-                        PeriodName =
-                            period.PeriodName,
-
-                        BranchId =
-                            period.BranchId,
-
-                        BranchName =
-                            period.BranchNameSnapshot,
-
-                        StartDate =
-                            period.StartDate,
-
-                        EndDate =
-                            period.EndDate,
-
-                        Status =
-                            period.Status,
-
-                        TotalPayrolls =
-                            period.Payrolls.Count,
-
-                        RejectedPayrollCount =
-                            period.Payrolls.Count(x =>
-                                x.Status == "REJECTED"),
-
-                        TotalNetSalary =
-                            period.Payrolls.Sum(x =>
-                                x.NetSalary),
-
-                        SubmittedAt =
-                            period.SubmittedAt,
-
-                        ApprovedAt =
-                            period.ApprovedAt
+                        PayrollPeriodId = period.PayrollPeriodId,
+                        PeriodCode = period.PeriodCode,
+                        PeriodName = period.PeriodName,
+                        BranchId = period.BranchId,
+                        BranchName = period.BranchNameSnapshot,
+                        StartDate = period.StartDate,
+                        EndDate = period.EndDate,
+                        Status = period.Status,
+                        TotalPayrolls = period.Payrolls.Count,
+                        RejectedPayrollCount = period.Payrolls.Count(x => x.Status == "REJECTED"),
+                        TotalNetSalary = period.Payrolls.Sum(x => x.NetSalary),
+                        SubmittedAt = period.SubmittedAt,
+                        ApprovedAt = period.ApprovedAt
                     };
 
                 if (period.SubmittedBy.HasValue &&
@@ -129,13 +99,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     item.SubmittedBy =
                         new PayrollActorResponse
                         {
-                            UserId =
-                                period.SubmittedBy.Value,
-
-                            FullName =
-                                period
-                                    .SubmittedByNavigation
-                                    .FullName
+                            UserId = period.SubmittedBy.Value,
+                            FullName = period.SubmittedByNavigation.FullName
                         };
                 }
 
@@ -145,13 +110,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     item.ApprovedBy =
                         new PayrollActorResponse
                         {
-                            UserId =
-                                period.ApprovedBy.Value,
-
-                            FullName =
-                                period
-                                    .ApprovedByNavigation
-                                    .FullName
+                            UserId = period.ApprovedBy.Value,
+                            FullName = period.ApprovedByNavigation.FullName
                         };
                 }
 
@@ -182,8 +142,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (period == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy kỳ lương.");
+                throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
             }
 
             var payrollResult =
@@ -197,88 +156,34 @@ namespace WorkShiftManagement.BLL.Services.Admin
             var response =
                 new PayrollPeriodDetailResponse
                 {
-                    PayrollPeriodId =
-                        period.PayrollPeriodId,
-
-                    PeriodCode =
-                        period.PeriodCode,
-
-                    PeriodName =
-                        period.PeriodName,
-
-                    BranchId =
-                        period.BranchId,
-
-                    BranchName =
-                        period.BranchNameSnapshot,
-
-                    StartDate =
-                        period.StartDate,
-
-                    EndDate =
-                        period.EndDate,
-
-                    Status =
-                        period.Status,
-
-                    CalculatedAt =
-                        period.CalculatedAt,
-
-                    SubmittedAt =
-                        period.SubmittedAt,
-
-                    ApprovedAt =
-                        period.ApprovedAt,
-
-                    Summary =
-                        new PayrollSummaryResponse
-                        {
-                            TotalPayrolls =
-                                period.Payrolls.Count,
-
-                            RejectedPayrollCount =
-                                period.Payrolls.Count(x =>
-                                    x.Status ==
-                                    "REJECTED"),
-
-                            TotalWorkPay =
-                                period.Payrolls.Sum(x =>
-                                    x.WorkPay),
-
-                            TotalReward =
-                                period.Payrolls.Sum(x =>
-                                    x.TotalReward),
-
-                            TotalPenalty =
-                                period.Payrolls.Sum(x =>
-                                    x.TotalPenalty),
-
-                            TotalAttendanceDeduction =
-                                period.Payrolls.Sum(x =>
-                                    x.AttendanceDeduction),
-
-                            TotalNetSalary =
-                                period.Payrolls.Sum(x =>
-                                    x.NetSalary)
-                        },
-
-                    Payrolls =
-                        new PayrollPageResponse
-                        {
-                            PageNumber =
-                                pageNumber,
-
-                            PageSize =
-                                pageSize,
-
-                            TotalCount =
-                                payrollResult.TotalCount,
-
-                            TotalPages =
-                                (int)Math.Ceiling(
-                                    payrollResult.TotalCount /
-                                    (double)pageSize)
-                        }
+                    PayrollPeriodId = period.PayrollPeriodId,
+                    PeriodCode = period.PeriodCode,
+                    PeriodName = period.PeriodName,
+                    BranchId = period.BranchId,
+                    BranchName = period.BranchNameSnapshot,
+                    StartDate = period.StartDate,
+                    EndDate = period.EndDate,
+                    Status = period.Status,
+                    CalculatedAt = period.CalculatedAt,
+                    SubmittedAt = period.SubmittedAt,
+                    ApprovedAt = period.ApprovedAt,
+                    Summary = new PayrollSummaryResponse
+                    {
+                        TotalPayrolls = period.Payrolls.Count,
+                        RejectedPayrollCount = period.Payrolls.Count(x => x.Status == "REJECTED"),
+                        TotalWorkPay = period.Payrolls.Sum(x => x.WorkPay),
+                        TotalReward = period.Payrolls.Sum(x => x.TotalReward),
+                        TotalPenalty = period.Payrolls.Sum(x => x.TotalPenalty),
+                        TotalAttendanceDeduction = period.Payrolls.Sum(x => x.AttendanceDeduction),
+                        TotalNetSalary = period.Payrolls.Sum(x => x.NetSalary)
+                    },
+                    Payrolls = new PayrollPageResponse
+                    {
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        TotalCount = payrollResult.TotalCount,
+                        TotalPages = (int)Math.Ceiling(payrollResult.TotalCount / (double)pageSize)
+                    }
                 };
 
             // Người tính lương
@@ -288,13 +193,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 response.CalculatedBy =
                     new PayrollActorResponse
                     {
-                        UserId =
-                            period.CalculatedBy.Value,
-
-                        FullName =
-                            period
-                                .CalculatedByNavigation
-                                .FullName
+                        UserId = period.CalculatedBy.Value,
+                        FullName = period.CalculatedByNavigation.FullName
                     };
             }
 
@@ -305,13 +205,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 response.SubmittedBy =
                     new PayrollActorResponse
                     {
-                        UserId =
-                            period.SubmittedBy.Value,
-
-                        FullName =
-                            period
-                                .SubmittedByNavigation
-                                .FullName
+                        UserId = period.SubmittedBy.Value,
+                        FullName = period.SubmittedByNavigation.FullName
                     };
             }
 
@@ -322,13 +217,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 response.ApprovedBy =
                     new PayrollActorResponse
                     {
-                        UserId =
-                            period.ApprovedBy.Value,
-
-                        FullName =
-                            period
-                                .ApprovedByNavigation
-                                .FullName
+                        UserId = period.ApprovedBy.Value,
+                        FullName = period.ApprovedByNavigation.FullName
                     };
             }
 
@@ -338,49 +228,20 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 var payrollResponse =
                     new PayrollResponse
                     {
-                        PayrollId =
-                            payroll.PayrollId,
-
-                        UserId =
-                            payroll.UserId,
-
-                        EmployeeFullName =
-                            payroll
-                                .EmployeeFullNameSnapshot,
-
-                        EmployeePosition =
-                            payroll
-                                .EmployeePositionSnapshot,
-
-                        HourlyRate =
-                            payroll.HourlyRateSnapshot,
-
-                        TotalWorkHours =
-                            payroll.TotalWorkHours,
-
-                        WorkPay =
-                            payroll.WorkPay,
-
-                        TotalReward =
-                            payroll.TotalReward,
-
-                        TotalPenalty =
-                            payroll.TotalPenalty,
-
-                        AttendanceDeduction =
-                            payroll.AttendanceDeduction,
-
-                        GrossSalary =
-                            payroll.GrossSalary,
-
-                        TotalDeduction =
-                            payroll.TotalDeduction,
-
-                        NetSalary =
-                            payroll.NetSalary,
-
-                        Status =
-                            payroll.Status
+                        PayrollId = payroll.PayrollId,
+                        UserId = payroll.UserId,
+                        EmployeeFullName = payroll.EmployeeFullNameSnapshot,
+                        EmployeePosition = payroll.EmployeePositionSnapshot,
+                        HourlyRate = payroll.HourlyRateSnapshot,
+                        TotalWorkHours = payroll.TotalWorkHours,
+                        WorkPay = payroll.WorkPay,
+                        TotalReward = payroll.TotalReward,
+                        TotalPenalty = payroll.TotalPenalty,
+                        AttendanceDeduction = payroll.AttendanceDeduction,
+                        GrossSalary = payroll.GrossSalary,
+                        TotalDeduction = payroll.TotalDeduction,
+                        NetSalary = payroll.NetSalary,
+                        Status = payroll.Status
                     };
 
                 // Nếu Payroll bị reject
@@ -389,19 +250,10 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     payrollResponse.Rejection =
                         new PayrollRejectionResponse
                         {
-                            RejectedById =
-                                payroll.RejectedBy,
-
-                            RejectedByName =
-                                payroll
-                                    .RejectedByNavigation?
-                                    .FullName,
-
-                            RejectedAt =
-                                payroll.RejectedAt,
-
-                            Reason =
-                                payroll.RejectReason
+                            RejectedById = payroll.RejectedBy,
+                            RejectedByName = payroll.RejectedByNavigation?.FullName,
+                            RejectedAt = payroll.RejectedAt,
+                            Reason = payroll.RejectReason
                         };
                 }
 
@@ -415,46 +267,22 @@ namespace WorkShiftManagement.BLL.Services.Admin
                         .Select(detail =>
                             new PayrollDetailResponse
                             {
-                                PayrollDetailId =
-                                    detail.PayrollDetailId,
-
-                                Type =
-                                    detail.Type,
-
-                                ItemCode =
-                                    detail.ItemCode,
-
-                                Description =
-                                    detail.Description,
-
-                                Multiplier =
-                                    detail.Multiplier,
-
-                                WorkFrom =
-                                    detail.WorkFrom,
-
-                                WorkTo =
-                                    detail.WorkTo,
-
-                                Quantity =
-                                    detail.Quantity,
-
-                                Rate =
-                                    detail.Rate,
-
-                                Amount =
-                                    detail.Amount,
-
-                                DisplayOrder =
-                                    detail.DisplayOrder,
-
-                                Note =
-                                    detail.Note
+                                PayrollDetailId = detail.PayrollDetailId,
+                                Type = detail.Type,
+                                ItemCode = detail.ItemCode,
+                                Description = detail.Description,
+                                Multiplier = detail.Multiplier,
+                                WorkFrom = detail.WorkFrom,
+                                WorkTo = detail.WorkTo,
+                                Quantity = detail.Quantity,
+                                Rate = detail.Rate,
+                                Amount = detail.Amount,
+                                DisplayOrder = detail.DisplayOrder,
+                                Note = detail.Note
                             })
                         .ToList();
 
-                response.Payrolls.Items.Add(
-                    payrollResponse);
+                response.Payrolls.Items.Add(payrollResponse);
             }
 
             return response;
@@ -472,23 +300,19 @@ namespace WorkShiftManagement.BLL.Services.Admin
         {
             if (request == null)
             {
-                throw new ArgumentException(
-                    "Dữ liệu yêu cầu không hợp lệ.");
+                throw new ArgumentException("Dữ liệu yêu cầu không hợp lệ.");
             }
 
-            var reason =
-                request.Reason?.Trim();
+            var reason = request.Reason?.Trim();
 
             if (string.IsNullOrWhiteSpace(reason))
             {
-                throw new ArgumentException(
-                    "Lý do yêu cầu chỉnh sửa là bắt buộc.");
+                throw new ArgumentException("Lý do yêu cầu chỉnh sửa là bắt buộc.");
             }
 
             if (reason.Length > 1000)
             {
-                throw new ArgumentException(
-                    "Lý do không được vượt quá 1000 ký tự.");
+                throw new ArgumentException("Lý do không được vượt quá 1000 ký tự.");
             }
 
             // Hiện project chưa JWT,
@@ -498,8 +322,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (!userExists)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy người thực hiện.");
+                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
             }
 
             var period =
@@ -509,8 +332,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (period == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy kỳ lương.");
+                throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
             }
 
             var payroll =
@@ -520,16 +342,13 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (payroll == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy phiếu lương.");
+                throw new KeyNotFoundException("Không tìm thấy phiếu lương.");
             }
 
             // Payroll phải thuộc Period trên URL
-            if (payroll.PayrollPeriodId !=
-                payrollPeriodId)
+            if (payroll.PayrollPeriodId != payrollPeriodId)
             {
-                throw new ArgumentException(
-                    "Phiếu lương không thuộc kỳ lương này.");
+                throw new ArgumentException("Phiếu lương không thuộc kỳ lương này.");
             }
 
             /*
@@ -558,47 +377,25 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     "mới có thể yêu cầu chỉnh sửa.");
             }
 
-            var now =
-                DateTime.UtcNow;
-
-            payroll.Status =
-                "REJECTED";
-
-            payroll.RejectedBy =
-                adminId;
-
-            payroll.RejectedAt =
-                now;
-
-            payroll.RejectReason =
-                reason;
+            var now = DateTime.UtcNow;
+            payroll.Status = "REJECTED";
+            payroll.RejectedBy = adminId;
+            payroll.RejectedAt = now;
+            payroll.RejectReason = reason;
 
             // Có ít nhất một Payroll sai
-            period.Status =
-                "REVISION_REQUIRED";
+            period.Status = "REVISION_REQUIRED";
 
             await _repo.SaveChangesAsync();
 
             return new PayrollRejectResponse
             {
-                Message =
-                    "Đã trả phiếu lương về để " +
-                    "Accountant điều chỉnh.",
-
-                PayrollPeriodId =
-                    payrollPeriodId,
-
-                PayrollId =
-                    payrollId,
-
-                PayrollStatus =
-                    payroll.Status,
-
-                PayrollPeriodStatus =
-                    period.Status,
-
-                RejectedAt =
-                    now
+                Message = "Đã trả phiếu lương về để Accountant điều chỉnh.",
+                PayrollPeriodId = payrollPeriodId,
+                PayrollId = payrollId,
+                PayrollStatus = payroll.Status,
+                PayrollPeriodStatus = period.Status,
+                RejectedAt = now
             };
         }
 
@@ -615,8 +412,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (!userExists)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy người thực hiện.");
+                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
             }
 
             var period =
@@ -626,8 +422,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (period == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy kỳ lương.");
+                throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
             }
 
             // Period phải trở lại SUBMITTED
@@ -645,13 +440,11 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (payrolls.Count == 0)
             {
-                throw new InvalidOperationException(
-                    "Kỳ lương chưa có phiếu lương.");
+                throw new InvalidOperationException("Kỳ lương chưa có phiếu lương.");
             }
 
             // Còn REJECTED
-            if (payrolls.Any(x =>
-                x.Status == "REJECTED"))
+            if (payrolls.Any(x => x.Status == "REJECTED"))
             {
                 throw new InvalidOperationException(
                     "Kỳ lương vẫn còn phiếu lương " +
@@ -667,16 +460,12 @@ namespace WorkShiftManagement.BLL.Services.Admin
              *
              * vẫn không được approve.
              */
-            if (payrolls.Any(x =>
-                x.Status != "SUBMITTED"))
+            if (payrolls.Any(x => x.Status != "SUBMITTED"))
             {
-                throw new InvalidOperationException(
-                    "Tất cả phiếu lương phải ở trạng thái " +
-                    "SUBMITTED trước khi duyệt kỳ lương.");
+                throw new InvalidOperationException("Tất cả phiếu lương phải ở trạng thái SUBMITTED trước khi duyệt kỳ lương.");
             }
 
-            var now =
-                DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
             // Approve toàn bộ Payroll
             foreach (var payroll in payrolls)
@@ -686,14 +475,9 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             // Approve Period
-            period.Status =
-                "APPROVED";
-
-            period.ApprovedBy =
-                adminId;
-
-            period.ApprovedAt =
-                now;
+            period.Status = "APPROVED";
+            period.ApprovedBy = adminId;
+            period.ApprovedAt = now;
 
             /*
              * EF SaveChanges với nhiều update như trên
@@ -703,17 +487,10 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             return new PayrollApprovalResponse
             {
-                Message =
-                    "Đã duyệt kỳ lương thành công.",
-
-                PayrollPeriodId =
-                    payrollPeriodId,
-
-                Status =
-                    period.Status,
-
-                ApprovedAt =
-                    now
+                Message = "Đã duyệt kỳ lương thành công.",
+                PayrollPeriodId = payrollPeriodId,
+                Status = period.Status,
+                ApprovedAt = now
             };
         }
 
@@ -726,42 +503,30 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollId,
                 Guid accountantId)
         {
-            var userExists =
-                await _repo.UserExistsAsync(accountantId);
+            var userExists = await _repo.UserExistsAsync(accountantId);
 
             if (!userExists)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy người thực hiện.");
+                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
             }
 
-            var period =
-                await _repo
-                    .GetPayrollPeriodForUpdateAsync(
-                        payrollPeriodId);
+            var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId);
 
             if (period == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy kỳ lương.");
+                throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
             }
 
-            var payroll =
-                await _repo
-                    .GetPayrollForUpdateAsync(
-                        payrollId);
+            var payroll = await _repo.GetPayrollForUpdateAsync(payrollId);
 
             if (payroll == null)
             {
-                throw new KeyNotFoundException(
-                    "Không tìm thấy phiếu lương.");
+                throw new KeyNotFoundException("Không tìm thấy phiếu lương.");
             }
 
-            if (payroll.PayrollPeriodId !=
-                payrollPeriodId)
+            if (payroll.PayrollPeriodId != payrollPeriodId)
             {
-                throw new ArgumentException(
-                    "Phiếu lương không thuộc kỳ lương này.");
+                throw new ArgumentException("Phiếu lương không thuộc kỳ lương này.");
             }
 
             if (period.Status != "REVISION_REQUIRED")
@@ -778,65 +543,36 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     "mới được gửi lại duyệt.");
             }
 
-            var now =
-                DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
-            payroll.Status =
-                "SUBMITTED";
+            payroll.Status = "SUBMITTED";
+            payroll.RejectedBy = null;
+            payroll.RejectedAt = null;
+            payroll.RejectReason = null;
 
-            payroll.RejectedBy =
-                null;
+            var payrolls = await _repo.GetAllPayrollsForUpdateAsync(payrollPeriodId);
 
-            payroll.RejectedAt =
-                null;
-
-            payroll.RejectReason =
-                null;
-
-            var payrolls =
-                await _repo
-                    .GetAllPayrollsForUpdateAsync(
-                        payrollPeriodId);
-
-            if (payrolls.Any(x =>
-                x.Status == "REJECTED"))
+            if (payrolls.Any(x => x.Status == "REJECTED"))
             {
-                period.Status =
-                    "REVISION_REQUIRED";
+                period.Status = "REVISION_REQUIRED";
             }
             else
             {
-                period.Status =
-                    "SUBMITTED";
-
-                period.SubmittedBy =
-                    accountantId;
-
-                period.SubmittedAt =
-                    now;
+                period.Status = "SUBMITTED";
+                period.SubmittedBy = accountantId;
+                period.SubmittedAt = now;
             }
 
             await _repo.SaveChangesAsync();
 
             return new PayrollSubmitResponse
             {
-                Message =
-                    "Đã gửi lại phiếu lương để Admin duyệt.",
-
-                PayrollPeriodId =
-                    payrollPeriodId,
-
-                PayrollId =
-                    payrollId,
-
-                PayrollStatus =
-                    payroll.Status,
-
-                PayrollPeriodStatus =
-                    period.Status,
-
-                SubmittedAt =
-                    now
+                Message = "Đã gửi lại phiếu lương để Admin duyệt.",
+                PayrollPeriodId = payrollPeriodId,
+                PayrollId = payrollId,
+                PayrollStatus = payroll.Status,
+                PayrollPeriodStatus = period.Status,
+                SubmittedAt = now
             };
         }
 
@@ -849,15 +585,12 @@ namespace WorkShiftManagement.BLL.Services.Admin
         {
             if (pageNumber < 1)
             {
-                throw new ArgumentException(
-                    "pageNumber phải lớn hơn hoặc bằng 1.");
+                throw new ArgumentException("pageNumber phải lớn hơn hoặc bằng 1.");
             }
 
-            if (pageSize < 1 ||
-                pageSize > 100)
+            if (pageSize < 1 || pageSize > 100)
             {
-                throw new ArgumentException(
-                    "pageSize phải từ 1 đến 100.");
+                throw new ArgumentException("pageSize phải từ 1 đến 100.");
             }
         }
     }
