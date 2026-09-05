@@ -77,6 +77,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
         public async Task<User?> GetByIdAsync(Guid userId)
         {
             return await _context.Users
+                .Include(user => user.Role)
                 .FirstOrDefaultAsync(user => user.UserId == userId);
         }
 

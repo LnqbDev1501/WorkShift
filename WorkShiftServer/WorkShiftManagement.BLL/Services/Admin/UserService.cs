@@ -232,6 +232,49 @@ public class UserService : IUserService
             await _accountSetupEmailSender.SendAsync(user.Email, setupLink);
     }
 
+    public async Task SoftDeleteAdminUserAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required.");
+
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
+        if (roleName is not (ManagerRole or AccountantRole))
+            throw new ArgumentException("Only Manager or Accountant accounts can be deleted by this endpoint.");
+
+        if (user.DeletedAt.HasValue)
+            throw new InvalidOperationException("The account has already been deleted.");
+
+        await _authService.BanUserAsync(user.UserId);
+        try
+        {
+            var now = DateTime.UtcNow;
+            user.PreviousStatus = user.Status;
+            user.Status = InactiveStatus;
+            user.DeletedAt = now;
+            user.UpdatedAt = now;
+            await _userRepo.SaveChangesAsync();
+        }
+        catch
+        {
+            try
+            {
+                await _authService.UnbanUserAsync(user.UserId);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.LogCritical(
+                    rollbackException,
+                    "Unable to unban Supabase Auth user {UserId} after soft-delete database failure",
+                    user.UserId);
+            }
+
+            throw;
+        }
+    }
+
     private static DateTimeOffset ConvertToVietnamTime(DateTime dateTime)
     {
         var utcDateTime = dateTime.Kind == DateTimeKind.Utc

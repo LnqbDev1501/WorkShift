@@ -101,6 +101,31 @@ public class AuthService : IAuthService
             $"Unable to roll back Supabase Auth user: {GetErrorMessage(body)}", null, response.StatusCode);
     }
 
+    public async Task BanUserAsync(Guid userId)
+    {
+        await UpdateBanDurationAsync(userId, "876000h", "ban");
+    }
+
+    public async Task UnbanUserAsync(Guid userId)
+    {
+        await UpdateBanDurationAsync(userId, "none", "unban");
+    }
+
+    private async Task UpdateBanDurationAsync(Guid userId, string banDuration, string operation)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { ban_duration = banDuration });
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Unable to {operation} Supabase Auth user: {GetErrorMessage(body)}",
+            null,
+            response.StatusCode);
+    }
+
     public async Task<Guid> SetPasswordAsync(string accessToken, string password)
     {
         using var request = new HttpRequestMessage(HttpMethod.Put, "auth/v1/user")
