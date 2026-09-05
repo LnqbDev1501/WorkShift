@@ -78,6 +78,9 @@ public class UserService : IUserService
                 BranchId = user.BranchId,
                 BranchName = user.Branch?.BranchName,
                 Status = user.Status,
+                DeletedAt = user.DeletedAt.HasValue
+                    ? ConvertToVietnamTime(user.DeletedAt.Value)
+                    : null,
                 CreatedAt = ConvertToVietnamTime(user.CreatedAt),
                 UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
             }).ToList(),
@@ -246,6 +249,13 @@ public class UserService : IUserService
 
         if (user.DeletedAt.HasValue)
             throw new InvalidOperationException("The account has already been deleted.");
+
+        if (user.Status.Equals(InactiveStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Inactive accounts cannot be deleted.");
+
+        if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) &&
+            !user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The current account status does not allow deletion.");
 
         await _authService.BanUserAsync(user.UserId);
         try

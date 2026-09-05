@@ -103,7 +103,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .AsNoTracking()
                 .Include(user => user.Role)
                 .Include(user => user.Branch)
-                .Where(user => user.DeletedAt == null);
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
