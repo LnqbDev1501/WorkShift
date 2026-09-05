@@ -10,5 +10,6 @@ public interface IUserService
     Task<CreateAdminUserResponse> CreateAdminUserAsync(CreateAdminUserRequest request);
     Task ResendSetupLinkAsync(Guid userId);
     Task SoftDeleteAdminUserAsync(Guid userId);
+    Task RestoreAdminUserAsync(Guid userId);
     Task ActivateUserAsync(Guid userId);
 }

@@ -104,6 +104,46 @@ public class AdminUserController : ControllerBase
         }
     }
 
+    [HttpPost("{userId:guid}/restore")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RestoreAdminUser(Guid userId)
+    {
+        try
+        {
+            await _userService.RestoreAdminUserAsync(userId);
+            return NoContent();
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Supabase Auth failed while restoring user {UserId}", userId);
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { message = "Authentication service is temporarily unavailable." });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while restoring user {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The account could not be restored. Please try again later." });
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(CreateAdminUserResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

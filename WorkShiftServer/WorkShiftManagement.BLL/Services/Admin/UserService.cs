@@ -1,5 +1,6 @@
 using System.Net.Mail;
 using System.Text.RegularExpressions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -279,6 +280,78 @@ public class UserService : IUserService
                     rollbackException,
                     "Unable to unban Supabase Auth user {UserId} after soft-delete database failure",
                     user.UserId);
+            }
+
+            throw;
+        }
+    }
+
+    public async Task RestoreAdminUserAsync(Guid userId)
+    {
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required.");
+
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
+        var isManager = roleName == ManagerRole;
+        var isAccountant = roleName == AccountantRole;
+        if (!isManager && !isAccountant)
+            throw new ArgumentException("Only Manager or Accountant accounts can be restored by this endpoint.");
+
+        if (!user.DeletedAt.HasValue)
+            throw new InvalidOperationException("The account has not been deleted.");
+
+        if (!user.Status.Equals(InactiveStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The deleted account must currently be inactive.");
+
+        var restoredStatus = user.PreviousStatus?.Trim().ToUpperInvariant();
+        if (restoredStatus is not (PendingStatus or ActiveStatus))
+            throw new InvalidOperationException("The account does not have a valid previous status to restore.");
+
+        if (!user.BranchId.HasValue)
+            throw new InvalidOperationException("The account is not assigned to a branch.");
+
+        if (!await _userRepo.ActiveBranchExistsAsync(user.BranchId.Value))
+            throw new InvalidOperationException("The assigned branch does not exist or is inactive.");
+
+        if (await _userRepo.BranchHasRoleAsync(user.BranchId.Value, user.RoleId))
+        {
+            throw new InvalidOperationException(
+                isManager
+                    ? "This branch already has a Manager."
+                    : "This branch already has an Accountant.");
+        }
+
+        await _authService.UnbanUserAsync(user.UserId);
+        try
+        {
+            user.Status = restoredStatus;
+            user.PreviousStatus = null;
+            user.DeletedAt = null;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepo.SaveChangesAsync();
+        }
+        catch (Exception exception)
+        {
+            try
+            {
+                await _authService.BanUserAsync(user.UserId);
+            }
+            catch (Exception rollbackException)
+            {
+                _logger.LogCritical(
+                    rollbackException,
+                    "Unable to re-ban Supabase Auth user {UserId} after restore database failure",
+                    user.UserId);
+            }
+
+            if (exception is DbUpdateException)
+            {
+                throw new InvalidOperationException(
+                    "The account could not be restored because its branch role is no longer available.",
+                    exception);
             }
 
             throw;
