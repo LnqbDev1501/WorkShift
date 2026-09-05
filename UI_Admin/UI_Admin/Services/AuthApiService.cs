@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace UI_Admin.Services
 {
@@ -7,19 +8,26 @@ namespace UI_Admin.Services
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
 
-        public AuthApiService(HttpClient httpClient, IConfiguration configuration)
+        public AuthApiService(
+            HttpClient httpClient,
+            IConfiguration configuration)
         {
             _httpClient = httpClient;
             _configuration = configuration;
         }
 
-        public async Task SetPasswordAsync(string accessToken, string password)
+        public async Task SetPasswordAsync(
+            string accessToken,
+            string password)
         {
             var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("Thiếu cấu hình WorkShiftApi:BaseUrl.");
+                ?? throw new InvalidOperationException(
+                    "The WorkShiftApi:BaseUrl configuration is missing.");
+
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
                 new { accessToken, password });
+
             if (response.IsSuccessStatusCode)
                 return;
 
@@ -32,13 +40,28 @@ namespace UI_Admin.Services
             try
             {
                 using var document = JsonDocument.Parse(body);
-                foreach (var key in new[] { "msg", "message", "error_description", "error" })
-                    if (document.RootElement.TryGetProperty(key, out var value))
-                        return value.GetString() ?? "Không thể đặt mật khẩu.";
-            }
-            catch (JsonException) { }
 
-            return "Link thiết lập mật khẩu không hợp lệ hoặc đã hết hạn.";
+                foreach (var key in new[]
+                         {
+                             "msg",
+                             "message",
+                             "error_description",
+                             "error"
+                         })
+                {
+                    if (document.RootElement.TryGetProperty(key, out var value))
+                    {
+                        return value.GetString()
+                            ?? "The password could not be set.";
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Return the default message below.
+            }
+
+            return "The password setup link is invalid or has expired.";
         }
     }
 }
