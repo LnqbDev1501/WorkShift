@@ -65,4 +65,56 @@ public class AdminUserController : ControllerBase
                 new { message = "The account could not be created. Please try again later." });
         }
     }
+
+    [HttpPost("{userId:guid}/resend-setup-link")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status502BadGateway)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ResendSetupLink(Guid userId)
+    {
+        try
+        {
+            await _userService.ResendSetupLinkAsync(userId);
+            return NoContent();
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.TooManyRequests)
+        {
+            return StatusCode(StatusCodes.Status429TooManyRequests,
+                new { message = "Please wait before sending another invitation." });
+        }
+        catch (HttpRequestException exception)
+            when (exception.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.UnprocessableEntity)
+        {
+            return Conflict(new { message = "The account setup link cannot be sent for this Auth account." });
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Supabase Auth failed while resending an account setup link for {UserId}", userId);
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { message = "Authentication service is temporarily unavailable." });
+        }
+        catch (InvalidDataException exception)
+        {
+            _logger.LogError(exception, "Supabase Auth returned invalid data while resending an account setup link for {UserId}", userId);
+            return StatusCode(StatusCodes.Status502BadGateway,
+                new { message = "Authentication service returned invalid data." });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while resending an account setup link for {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The account setup link could not be sent. Please try again later." });
+        }
+    }
 }

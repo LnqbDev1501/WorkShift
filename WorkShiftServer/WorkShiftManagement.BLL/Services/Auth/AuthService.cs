@@ -21,6 +21,53 @@ public class AuthService : IAuthService
 
     public async Task<Guid> CreateUserAndSendInviteAsync(string email)
     {
+        return await SendInvitationAsync(email, "create");
+    }
+
+    public async Task ResendSetupLinkAsync(Guid userId, string email)
+    {
+        using var userResponse = await _httpClient.GetAsync($"auth/v1/admin/users/{userId}");
+        var userBody = await userResponse.Content.ReadAsStringAsync();
+        if (!userResponse.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to read Supabase Auth user: {GetErrorMessage(userBody)}", null, userResponse.StatusCode);
+        }
+
+        using var document = JsonDocument.Parse(userBody);
+        var root = document.RootElement;
+        var authEmail = root.TryGetProperty("email", out var emailElement)
+            ? emailElement.GetString()
+            : null;
+        if (!string.Equals(authEmail, email, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Supabase Auth email does not match the local user profile.");
+
+        var emailIsConfirmed = root.TryGetProperty("email_confirmed_at", out var confirmedAt) &&
+                               confirmedAt.ValueKind is not JsonValueKind.Null &&
+                               !string.IsNullOrWhiteSpace(confirmedAt.GetString());
+
+        if (!emailIsConfirmed)
+        {
+            var invitedUserId = await SendInvitationAsync(email, "resend");
+            if (invitedUserId != userId)
+                throw new InvalidDataException("Supabase Auth returned a user that does not match the local profile.");
+            return;
+        }
+
+        var endpoint = $"auth/v1/recover?redirect_to={Uri.EscapeDataString(_inviteRedirectUrl)}";
+        using var recoveryResponse = await _httpClient.PostAsJsonAsync(endpoint, new { email });
+        if (recoveryResponse.IsSuccessStatusCode)
+            return;
+
+        var recoveryBody = await recoveryResponse.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Unable to send Supabase recovery link: {GetErrorMessage(recoveryBody)}",
+            null,
+            recoveryResponse.StatusCode);
+    }
+
+    private async Task<Guid> SendInvitationAsync(string email, string operation)
+    {
         var endpoint = $"auth/v1/invite?redirect_to={Uri.EscapeDataString(_inviteRedirectUrl)}";
         using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email });
         var body = await response.Content.ReadAsStringAsync();
@@ -31,7 +78,7 @@ public class AuthService : IAuthService
                 throw new HttpRequestException("Email already exists in Supabase Auth.", null, response.StatusCode);
 
             throw new HttpRequestException(
-                $"Unable to create Supabase Auth user: {GetErrorMessage(body)}", null, response.StatusCode);
+                $"Unable to {operation} Supabase invitation: {GetErrorMessage(body)}", null, response.StatusCode);
         }
 
         return GetUserId(body);

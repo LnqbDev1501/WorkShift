@@ -122,6 +122,20 @@ public class UserService : IUserService
         await _userRepo.SaveChangesAsync();
     }
 
+    public async Task ResendSetupLinkAsync(Guid userId)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        if (user.DeletedAt is not null)
+            throw new InvalidOperationException("Deleted accounts cannot receive invitations.");
+
+        if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only accounts pending activation can receive another invitation.");
+
+        await _authService.ResendSetupLinkAsync(user.UserId, user.Email);
+    }
+
     private static DateTimeOffset ConvertToVietnamTime(DateTime dateTime)
     {
         var utcDateTime = dateTime.Kind == DateTimeKind.Utc
