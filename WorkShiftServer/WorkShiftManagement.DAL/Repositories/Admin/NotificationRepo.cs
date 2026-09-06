@@ -89,6 +89,19 @@ public class NotificationRepo : INotificationRepo
                 user.Role.RoleName == "ADMIN");
     }
 
+    public Task<bool> IsActiveRegionAsync(int regionId)
+    {
+        return _context.Regions.AnyAsync(region => region.RegionId == regionId && region.IsActive);
+    }
+
+    public Task<bool> IsActiveBranchAsync(int branchId)
+    {
+        return _context.Branches.AnyAsync(branch =>
+            branch.BranchId == branchId &&
+            branch.Status == "ACTIVE" &&
+            branch.Region.IsActive);
+    }
+
     public Task<List<User>> GetRecipientsAsync(string targetType, int? regionId, int? branchId)
     {
         var query = _context.Users

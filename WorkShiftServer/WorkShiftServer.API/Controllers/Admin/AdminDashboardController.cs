@@ -6,22 +6,29 @@ namespace WorkShiftServer.API.Controllers.Admin;
 
 [Route("api/admin/dashboard")]
 [ApiController]
-public sealed class AdminDashboardController : ControllerBase
+public sealed class AdminDashboardController(
+    IDashboardService dashboardService,
+    ILogger<AdminDashboardController> logger) : ControllerBase
 {
-    private readonly IDashboardService _dashboardService;
-
-    public AdminDashboardController(IDashboardService dashboardService)
-    {
-        _dashboardService = dashboardService;
-    }
-
     [HttpGet]
     [ProducesResponseType(typeof(DashboardResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<DashboardResponse>> Get()
     {
-        return Ok(await _dashboardService.GetAsync());
+        try
+        {
+            return Ok(await dashboardService.GetAsync());
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // A canceled request is not a server failure.
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Failed to retrieve the admin dashboard.");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Unable to load the dashboard. Please try again later." });
+        }
     }
 }
