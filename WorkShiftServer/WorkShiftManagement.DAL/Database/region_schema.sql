@@ -1,4 +1,4 @@
-﻿-- Migration: request_limit_rules
+﻿S-- Migration: request_limit_rules
 -- Description: Create request limit rules table
 
 CREATE TABLE request_limit_rules (

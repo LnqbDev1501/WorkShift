@@ -39,6 +39,8 @@ public partial class User
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? PreviousBranchId { get; set; }
+
     public virtual ICollection<AttendancePenaltyRule> AttendancePenaltyRuleCancelledByNavigations { get; set; } = new List<AttendancePenaltyRule>();
 
     public virtual ICollection<AttendancePenaltyRule> AttendancePenaltyRuleCreatedByNavigations { get; set; } = new List<AttendancePenaltyRule>();
@@ -112,6 +114,8 @@ public partial class User
     public virtual ICollection<Payroll> PayrollRejectedByNavigations { get; set; } = new List<Payroll>();
 
     public virtual ICollection<Payroll> PayrollUsers { get; set; } = new List<Payroll>();
+
+    public virtual Branch? PreviousBranch { get; set; }
 
     public virtual ICollection<PublicHolidayConfig> PublicHolidayConfigs { get; set; } = new List<PublicHolidayConfig>();
 
