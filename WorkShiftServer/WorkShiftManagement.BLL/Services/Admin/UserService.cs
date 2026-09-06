@@ -78,6 +78,8 @@ public class UserService : IUserService
                 RoleName = user.Role.RoleName,
                 BranchId = user.BranchId,
                 BranchName = user.Branch?.BranchName,
+                PreviousBranchId = user.PreviousBranchId,
+                PreviousBranchName = user.PreviousBranch?.BranchName,
                 Status = user.Status,
                 DeletedAt = user.DeletedAt.HasValue
                     ? ConvertToVietnamTime(user.DeletedAt.Value)
@@ -118,6 +120,9 @@ public class UserService : IUserService
             BranchId = user.BranchId,
             BranchCode = user.Branch?.BranchCode,
             BranchName = user.Branch?.BranchName,
+            PreviousBranchId = user.PreviousBranchId,
+            PreviousBranchCode = user.PreviousBranch?.BranchCode,
+            PreviousBranchName = user.PreviousBranch?.BranchName,
             EmployeeTypeId = user.EmployeeTypeId,
             EmployeeTypeName = user.EmployeeType?.TypeName,
             Status = user.Status,
@@ -167,6 +172,7 @@ public class UserService : IUserService
                 Phone = request.Phone,
                 Status = PendingStatus,
                 PreviousStatus = null,
+                PreviousBranchId = null,
                 DeletedAt = null,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -263,6 +269,8 @@ public class UserService : IUserService
         {
             var now = DateTime.UtcNow;
             user.PreviousStatus = user.Status;
+            user.PreviousBranchId = user.BranchId;
+            user.BranchId = null;
             user.Status = InactiveStatus;
             user.DeletedAt = now;
             user.UpdatedAt = now;
@@ -286,10 +294,15 @@ public class UserService : IUserService
         }
     }
 
-    public async Task RestoreAdminUserAsync(Guid userId)
+    public async Task RestoreAdminUserAsync(Guid userId, RestoreAdminUserRequest request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId is required.");
+
+        if (request.BranchId.HasValue && request.BranchId.Value <= 0)
+            throw new ArgumentException("BranchId must be greater than 0.");
 
         var user = await _userRepo.GetByIdAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
@@ -310,13 +323,13 @@ public class UserService : IUserService
         if (restoredStatus is not (PendingStatus or ActiveStatus))
             throw new InvalidOperationException("The account does not have a valid previous status to restore.");
 
-        if (!user.BranchId.HasValue)
-            throw new InvalidOperationException("The account is not assigned to a branch.");
+        var targetBranchId = request.BranchId ?? user.PreviousBranchId
+            ?? throw new InvalidOperationException(
+                "No branch is available for restoring this account.");
+        if (!await _userRepo.ActiveBranchExistsAsync(targetBranchId))
+            throw new InvalidOperationException("The selected branch does not exist or is inactive.");
 
-        if (!await _userRepo.ActiveBranchExistsAsync(user.BranchId.Value))
-            throw new InvalidOperationException("The assigned branch does not exist or is inactive.");
-
-        if (await _userRepo.BranchHasRoleAsync(user.BranchId.Value, user.RoleId))
+        if (await _userRepo.BranchHasRoleAsync(targetBranchId, user.RoleId))
         {
             throw new InvalidOperationException(
                 isManager
@@ -327,6 +340,8 @@ public class UserService : IUserService
         await _authService.UnbanUserAsync(user.UserId);
         try
         {
+            user.BranchId = targetBranchId;
+            user.PreviousBranchId = null;
             user.Status = restoredStatus;
             user.PreviousStatus = null;
             user.DeletedAt = null;

@@ -111,11 +111,13 @@ public class AdminUserController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(object), StatusCodes.Status502BadGateway)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> RestoreAdminUser(Guid userId)
+    public async Task<IActionResult> RestoreAdminUser(
+        Guid userId,
+        [FromBody] RestoreAdminUserRequest request)
     {
         try
         {
-            await _userService.RestoreAdminUserAsync(userId);
+            await _userService.RestoreAdminUserAsync(userId, request);
             return NoContent();
         }
         catch (ArgumentException exception)

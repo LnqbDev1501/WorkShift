@@ -2334,6 +2334,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("phone");
+            entity.Property(e => e.PreviousBranchId).HasColumnName("previous_branch_id");
             entity.Property(e => e.PreviousStatus)
                 .HasMaxLength(30)
                 .HasColumnName("previous_status");
@@ -2346,7 +2347,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Branch).WithMany(p => p.Users)
+            entity.HasOne(d => d.Branch).WithMany(p => p.UserBranches)
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("users_branch_id_fkey");
@@ -2355,6 +2356,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.EmployeeTypeId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("users_employee_type_id_fkey");
+
+            entity.HasOne(d => d.PreviousBranch).WithMany(p => p.UserPreviousBranches)
+                .HasForeignKey(d => d.PreviousBranchId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("users_previous_branch_id_fkey");
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)

@@ -87,6 +87,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .AsNoTracking()
                 .Include(user => user.Role)
                 .Include(user => user.Branch)
+                .Include(user => user.PreviousBranch)
                 .Include(user => user.EmployeeType)
                 .FirstOrDefaultAsync(user => user.UserId == userId);
         }
@@ -103,6 +104,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .AsNoTracking()
                 .Include(user => user.Role)
                 .Include(user => user.Branch)
+                .Include(user => user.PreviousBranch)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -120,7 +122,9 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             if (roleId.HasValue)
                 query = query.Where(user => user.RoleId == roleId.Value);
             if (branchId.HasValue)
-                query = query.Where(user => user.BranchId == branchId.Value);
+                query = query.Where(user =>
+                    user.BranchId == branchId.Value ||
+                    (user.DeletedAt != null && user.PreviousBranchId == branchId.Value));
 
             var totalItems = await query.CountAsync();
             var items = await query

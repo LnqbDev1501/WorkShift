@@ -11,6 +11,8 @@ public class AdminUserListItemResponse
     public string RoleName { get; set; } = string.Empty;
     public int? BranchId { get; set; }
     public string? BranchName { get; set; }
+    public int? PreviousBranchId { get; set; }
+    public string? PreviousBranchName { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTimeOffset? DeletedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
