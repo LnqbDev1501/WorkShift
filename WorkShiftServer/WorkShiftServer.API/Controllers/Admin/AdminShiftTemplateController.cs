@@ -9,81 +9,39 @@ namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/shift-templates")]
+[ShiftTemplateValidation]
+[TypeFilter(typeof(ShiftTemplateExceptionFilter))]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status500InternalServerError)]
 public sealed class AdminShiftTemplateController(
-    ShiftTemplateService service, ILogger<AdminShiftTemplateController> logger) : ControllerBase
+    ShiftTemplateService service) : ControllerBase
 {
     [HttpPost("{id}/restore")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Restore(
         [FromRoute, Range(1, int.MaxValue, ErrorMessage = "id must be a positive integer.")] int id,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var restored = await service.RestoreAsync(id, cancellationToken);
-            if (!restored)
-                return Ok(new { message = "Shift template is already ACTIVE." });
+        var restored = await service.RestoreAsync(id, cancellationToken);
+        if (!restored)
+            return Ok(new { message = "Shift template is already ACTIVE." });
 
-            return Ok(new { message = "Shift template restored successfully." });
-        }
-        catch (ValidationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(new { message = exception.Message });
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(exception, "Failed to restore shift template {ShiftTemplateId}.", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Unable to restore the shift template. Please try again later." });
-        }
+        return Ok(new { message = "Shift template restored successfully." });
     }
 
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Delete(
         [FromRoute, Range(1, int.MaxValue, ErrorMessage = "id must be a positive integer.")] int id,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            var deactivated = await service.DeleteAsync(id, cancellationToken);
-            if (!deactivated)
-                return Ok(new { message = "Shift template is already INACTIVE." });
+        var deactivated = await service.DeleteAsync(id, cancellationToken);
+        if (!deactivated)
+            return Ok(new { message = "Shift template is already INACTIVE." });
 
-            return Ok(new { message = "Shift template deactivated successfully." });
-        }
-        catch (ValidationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(new { message = exception.Message });
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            logger.LogError(exception, "Failed to deactivate shift template {ShiftTemplateId}.", id);
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Unable to deactivate the shift template. Please try again later." });
-        }
+        return Ok(new { message = "Shift template deactivated successfully." });
     }
 
     [HttpGet]
@@ -93,72 +51,57 @@ public sealed class AdminShiftTemplateController(
         return Ok(await service.GetAllAsync(query, cancellationToken));
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("{id}")]
     [ProducesResponseType(typeof(ShiftTemplateResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetById(
+        [FromRoute, Range(1, int.MaxValue, ErrorMessage = "id must be a positive integer.")] int id,
+        CancellationToken cancellationToken)
     {
         var template = await service.GetByIdAsync(id, cancellationToken);
-        return template is null ? NotFound() : Ok(template);
+        return template is null ? NotFound(new { message = "Shift template not found." }) : Ok(template);
     }
 
     [HttpPost]
-    [ShiftTemplateValidation]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(CreateShiftTemplateRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var template = await service.CreateAsync(request, cancellationToken);
-            if (template is null)
-                return Conflict(new { message = "A shift template with this name already exists." });
+        var template = await service.CreateAsync(request, cancellationToken);
+        if (template is null)
+            return Conflict(new { message = "A shift template with this name already exists." });
 
-            return StatusCode(StatusCodes.Status201Created, new
-            {
-                message = "Shift template created successfully.",
-                data = new
-                {
-                    template.ShiftTemplateId,
-                    template.ShiftName,
-                    template.StartTime,
-                    template.EndTime,
-                    template.BreakMinutes,
-                    template.Description,
-                    template.Status,
-                    template.CreatedAt,
-                    template.UpdatedAt
-                }
-            });
-        }
-        catch (ValidationException exception)
+        return StatusCode(StatusCodes.Status201Created, new
         {
-            return BadRequest(new { message = exception.Message });
-        }
+            message = "Shift template created successfully.",
+            data = new
+            {
+                template.ShiftTemplateId,
+                template.ShiftName,
+                template.StartTime,
+                template.EndTime,
+                template.BreakMinutes,
+                template.Description,
+                template.Status,
+                template.CreatedAt,
+                template.UpdatedAt
+            }
+        });
     }
 
-    [HttpPut("{id:int}")]
-    [ShiftTemplateValidation]
+    [HttpPut("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Update(int id, UpdateShiftTemplateRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Update(
+        [FromRoute, Range(1, int.MaxValue, ErrorMessage = "id must be a positive integer.")] int id,
+        UpdateShiftTemplateRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
-            var template = await service.UpdateAsync(id, request, cancellationToken);
-            if (template is null)
-                return Conflict(new { message = "A shift template with this name already exists." });
+        var template = await service.UpdateAsync(id, request, cancellationToken);
+        if (template is null)
+            return Conflict(new { message = "A shift template with this name already exists." });
 
-            return Ok(new { message = "Shift template updated successfully.", data = template });
-        }
-        catch (ValidationException exception)
-        {
-            return BadRequest(new { message = exception.Message });
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(new { message = exception.Message });
-        }
+        return Ok(new { message = "Shift template updated successfully.", data = template });
     }
 }
 
@@ -176,12 +119,46 @@ internal sealed class ShiftTemplateValidationAttribute : ActionFilterAttribute
             .Where(entry => entry.Value!.Errors.Count > 0)
             .OrderByDescending(entry => entry.Key.StartsWith('$'))
             .First();
-        var message = error.Key.StartsWith('$') || error.Value!.Errors[0].Exception is not null
-            ? CreateShiftTemplateRequest.GetBodyError(error.Key.TrimStart('$', '.'))
-            : string.IsNullOrEmpty(error.Key) || error.Key == "request"
-                ? "The request body is required. Send a JSON object containing shiftName, startTime, endTime and breakMinutes."
-                : error.Value!.Errors[0].ErrorMessage;
+        var field = error.Key;
+        var modelError = error.Value!.Errors[0];
+        string message;
+
+        if (field.Equals("id", StringComparison.OrdinalIgnoreCase))
+            message = "id must be a positive integer.";
+        else if (field.Equals("Page", StringComparison.OrdinalIgnoreCase))
+            message = "Page must be a whole number between 1 and 20.";
+        else if (field.StartsWith('$') || modelError.Exception is not null)
+            message = CreateShiftTemplateRequest.GetBodyError(field.TrimStart('$', '.'));
+        else if (string.IsNullOrEmpty(field) || field == "request")
+            message = "The request body is required. Send a JSON object containing shiftName, startTime, endTime and breakMinutes.";
+        else
+            message = modelError.ErrorMessage;
 
         context.Result = new BadRequestObjectResult(new { message });
+    }
+}
+
+internal sealed class ShiftTemplateExceptionFilter(ILogger<ShiftTemplateExceptionFilter> logger) : IExceptionFilter
+{
+    public void OnException(ExceptionContext context)
+    {
+        // A disconnected client must not be reported as a server failure.
+        if (context.Exception is OperationCanceledException && context.HttpContext.RequestAborted.IsCancellationRequested)
+            return;
+
+        var (statusCode, message) = context.Exception switch
+        {
+            ValidationException exception => (StatusCodes.Status400BadRequest, exception.Message),
+            KeyNotFoundException exception => (StatusCodes.Status404NotFound, exception.Message),
+            _ => (StatusCodes.Status500InternalServerError,
+                "Unable to process the shift template request. Please try again later.")
+        };
+
+        if (statusCode == StatusCodes.Status500InternalServerError)
+            logger.LogError(context.Exception, "Shift template request failed: {Method} {Path}.",
+                context.HttpContext.Request.Method, context.HttpContext.Request.Path);
+
+        context.Result = new ObjectResult(new { message }) { StatusCode = statusCode };
+        context.ExceptionHandled = true;
     }
 }

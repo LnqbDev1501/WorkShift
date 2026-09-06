@@ -157,6 +157,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
             .Take(pageSize)
             .Select(template => new ShiftTemplateListResponse
             {
+                ShiftTemplateId = template.ShiftTemplateId,
                 ShiftName = template.ShiftName,
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
@@ -177,6 +178,9 @@ public sealed class ShiftTemplateService(AppDbContext context)
     public async Task<ShiftTemplateResponse?> GetByIdAsync(
         int id, CancellationToken cancellationToken = default)
     {
+        if (id <= 0)
+            throw new ValidationException("id must be a positive integer.");
+
         return await context.ShiftTemplates
             .AsNoTracking()
             .Where(template => template.ShiftTemplateId == id)
