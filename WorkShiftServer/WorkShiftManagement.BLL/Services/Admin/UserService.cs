@@ -1,6 +1,7 @@
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -19,7 +20,6 @@ public class UserService : IUserService
     private const string PendingStatus = "PENDING";
     private const string ActiveStatus = "ACTIVE";
     private const string InactiveStatus = "INACTIVE";
-    private const string DefaultAvatarUrl = "https://ui-avatars.com/api/?background=random&name=User";
     private static readonly TimeZoneInfo VietnamTimeZone =
         TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
 
@@ -27,17 +27,22 @@ public class UserService : IUserService
     private readonly IAuthService _authService;
     private readonly IAccountSetupEmailSender _accountSetupEmailSender;
     private readonly ILogger<UserService> _logger;
+    private readonly string _defaultAvatarUrl;
 
     public UserService(
         IUserRepo userRepo,
         IAuthService authService,
         IAccountSetupEmailSender accountSetupEmailSender,
-        ILogger<UserService> logger)
+        ILogger<UserService> logger,
+        IConfiguration configuration)
     {
         _userRepo = userRepo;
         _authService = authService;
         _accountSetupEmailSender = accountSetupEmailSender;
         _logger = logger;
+        _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
+            ?? throw new InvalidOperationException(
+                "Cloudinary:DefaultAvatarUrl is not configured.");
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -165,7 +170,7 @@ public class UserService : IUserService
                 FullName = request.FullName,
                 Gender = request.Gender,
                 DateOfBirth = request.DateOfBirth!.Value,
-                AvatarUrl = DefaultAvatarUrl,
+                AvatarUrl = _defaultAvatarUrl,
                 Address = request.Address,
                 IdentityNo = request.IdentityNo,
                 Email = request.Email,
