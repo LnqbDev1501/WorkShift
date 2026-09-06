@@ -64,6 +64,40 @@ public class AdminUserController : ControllerBase
         }
     }
 
+    [HttpPut("{userId:guid}")]
+    [ProducesResponseType(typeof(UpdateAdminUserResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<UpdateAdminUserResponse>> UpdateAdminUser(
+        Guid userId,
+        [FromBody] UpdateAdminUserRequest request)
+    {
+        try
+        {
+            return Ok(await _userService.UpdateAdminUserAsync(userId, request));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while updating user {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The account could not be updated. Please try again later." });
+        }
+    }
+
     [HttpDelete("{userId:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

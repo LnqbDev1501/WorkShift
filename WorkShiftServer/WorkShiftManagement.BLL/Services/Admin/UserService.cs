@@ -226,6 +226,68 @@ public class UserService : IUserService
         await _userRepo.SaveChangesAsync();
     }
 
+    public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
+        Guid userId,
+        UpdateAdminUserRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (userId == Guid.Empty)
+            throw new ArgumentException("UserId is required.");
+
+        NormalizeAndValidateUpdateRequest(request);
+
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
+
+        if (user.DeletedAt.HasValue)
+            throw new InvalidOperationException("Deleted accounts cannot be updated.");
+
+        if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only active accounts can be updated.");
+
+        var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
+        if (roleName is not (ManagerRole or AccountantRole))
+            throw new ArgumentException("Only Manager or Accountant accounts can be updated by this endpoint.");
+
+        var phoneOwner = await _userRepo.GetByPhoneAsync(request.Phone);
+        if (phoneOwner is not null && phoneOwner.UserId != userId)
+            ThrowIdentityConflict(phoneOwner, "Phone number");
+
+        var identityOwner = await _userRepo.GetByIdentityNoAsync(request.IdentityNo);
+        if (identityOwner is not null && identityOwner.UserId != userId)
+            ThrowIdentityConflict(identityOwner, "Identity number");
+
+        user.FullName = request.FullName;
+        user.Phone = request.Phone;
+        user.IdentityNo = request.IdentityNo;
+        user.Gender = request.Gender;
+        user.DateOfBirth = request.DateOfBirth!.Value;
+        user.Address = request.Address;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        try
+        {
+            await _userRepo.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception)
+        {
+            throw new InvalidOperationException(
+                "The phone number or identity number is already in use.", exception);
+        }
+
+        return new UpdateAdminUserResponse
+        {
+            UserId = user.UserId,
+            FullName = user.FullName,
+            Phone = user.Phone,
+            IdentityNo = user.IdentityNo,
+            Gender = user.Gender,
+            DateOfBirth = user.DateOfBirth,
+            Address = user.Address,
+            UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
+        };
+    }
+
     public async Task ResendSetupLinkAsync(Guid userId)
     {
         var user = await _userRepo.GetByIdAsync(userId)
@@ -437,6 +499,34 @@ public class UserService : IUserService
             throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.BranchId.HasValue || request.BranchId.Value <= 0)
             throw new ArgumentException("Manager and Accountant accounts must be assigned to a branch.");
+        if (!request.DateOfBirth.HasValue)
+            throw new ArgumentException("Date of birth is required.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (request.DateOfBirth.Value < new DateOnly(1900, 1, 1))
+            throw new ArgumentException("Date of birth must be on or after January 1, 1900.");
+        if (request.DateOfBirth.Value > today.AddYears(-18))
+            throw new ArgumentException("User must be at least 18 years old.");
+        if (request.Address.Length is 0 or > 500)
+            throw new ArgumentException("Address must contain between 1 and 500 characters.");
+    }
+
+    private static void NormalizeAndValidateUpdateRequest(UpdateAdminUserRequest request)
+    {
+        request.FullName = request.FullName.Trim();
+        request.Phone = request.Phone.Trim();
+        request.IdentityNo = request.IdentityNo.Trim();
+        request.Gender = request.Gender.Trim().ToUpperInvariant();
+        request.Address = request.Address.Trim();
+
+        if (request.FullName.Length is 0 or > 150)
+            throw new ArgumentException("Full name must contain between 1 and 150 characters.");
+        if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
+        if (!Regex.IsMatch(request.IdentityNo, @"^\d{9}$|^\d{12}$"))
+            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+        if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
+            throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.DateOfBirth.HasValue)
             throw new ArgumentException("Date of birth is required.");
 
