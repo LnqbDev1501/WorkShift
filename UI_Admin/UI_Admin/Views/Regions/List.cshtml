@@ -1,0 +1,75 @@
+﻿@model List<UI_Admin.Models.RegionViewModel>
+
+@{
+    ViewData["Title"] = "Regions";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/regions.css"
+          asp-append-version="true" />
+}
+
+<section class="regions-page">
+    <header class="regions-header">
+        <div>
+            <h1>Regions</h1>
+            <p>Manage operational regions in the WorkShift system.</p>
+        </div>
+    </header>
+
+    <div class="regions-table-container">
+        @if (Model.Count == 0)
+        {
+            <div class="empty-state">
+                No regions found.
+            </div>
+        }
+        else
+        {
+            <table class="regions-table">
+                <thead>
+                    <tr>
+                        <th>Region Code</th>
+                        <th>Region Name</th>
+                        <th>Description</th>
+                        <th>Branches</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var region in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="region-code">
+                                    @region.RegionCode
+                                </span>
+                            </td>
+
+                            <td>@region.RegionName</td>
+
+                            <td>
+                                @(string.IsNullOrWhiteSpace(region.Description)
+                                                        ? "No description"
+                                                        : region.Description)
+                                                                         </td>
+
+                            <td>@region.BranchCount</td>
+
+                            <td>
+                                <span class="status-badge
+                                                    @(region.Status == "ACTIVE"
+                                                                                                                    ? "status-active"
+                                                                                                                    : "status-inactive")">
+                            @region.Status
+                        </span>
+                    </td>
+                </tr>
+                                }
+                </tbody>
+            </table>
+        }
+    </div>
+</section>

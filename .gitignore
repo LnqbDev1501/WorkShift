@@ -9,6 +9,8 @@ obj/
 *.user
 *.suo
 
+**/.buildcheck/
+
 # Secrets / Environment
 .env
 appsettings.Development.json
