@@ -44,6 +44,7 @@ public class AdminUserController : ControllerBase
 
     [HttpGet("{userId:guid}")]
     [ProducesResponseType(typeof(AdminUserDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<AdminUserDetailResponse>> GetAdminUserDetail(Guid userId)
@@ -51,6 +52,10 @@ public class AdminUserController : ControllerBase
         try
         {
             return Ok(await _userService.GetAdminUserDetailAsync(userId));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
         }
         catch (KeyNotFoundException exception)
         {

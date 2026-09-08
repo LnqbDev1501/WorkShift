@@ -1,4 +1,5 @@
 using System.Net.Mail;
+using System.Text.RegularExpressions;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -175,9 +176,9 @@ public class BranchService : IBranchService
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             normalizedPhone = request.Phone.Trim();
-            if (normalizedPhone.Length > 20)
+            if (!Regex.IsMatch(normalizedPhone, @"^0\d{9}$"))
             {
-                throw new ArgumentException("Phone cannot exceed 20 characters.");
+                throw new ArgumentException("Phone number must contain exactly 10 digits and start with 0.");
             }
         }
 
@@ -308,9 +309,9 @@ public class BranchService : IBranchService
         if (!string.IsNullOrWhiteSpace(request.Phone))
         {
             normalizedPhone = request.Phone.Trim();
-            if (normalizedPhone.Length > 20)
+            if (!Regex.IsMatch(normalizedPhone, @"^0\d{9}$"))
             {
-                throw new ArgumentException("Phone cannot exceed 20 characters.");
+                throw new ArgumentException("Phone number must contain exactly 10 digits and start with 0.");
             }
         }
 
