@@ -35,7 +35,6 @@ public sealed class DashboardService : IDashboardService
             TotalBranches = data.TotalBranches,
             ActiveBranches = data.ActiveBranches,
             PendingPayrolls = data.PendingPayrolls,
-            PendingRequests = data.PendingRequests,
             TodayAttendance = new AttendanceSummaryResponse
             {
                 Date = today,
@@ -46,24 +45,16 @@ public sealed class DashboardService : IDashboardService
                     Count = item.Count
                 }).ToList()
             },
-            RecentPayrolls = data.RecentPayrolls.Select(item => new RecentPayrollResponse
+            RecentPayrollPeriods = data.RecentPayrollPeriods.Select(item => new RecentPayrollPeriodResponse
             {
-                PayrollId = item.PayrollId,
-                EmployeeName = item.EmployeeName,
+                PayrollPeriodId = item.PayrollPeriodId,
                 BranchName = item.BranchName,
+                PeriodCode = item.PeriodCode,
                 PeriodName = item.PeriodName,
-                NetSalary = item.NetSalary,
+                StartDate = item.StartDate,
+                EndDate = item.EndDate,
                 Status = item.Status,
-                UpdatedAt = item.UpdatedAt
-            }).ToList(),
-            RecentRequests = data.RecentRequests.Select(item => new RecentRequestResponse
-            {
-                RequestId = item.RequestId,
-                EmployeeName = item.EmployeeName,
-                BranchName = item.BranchName,
-                RequestType = item.RequestType,
-                Status = item.Status,
-                CreatedAt = item.CreatedAt
+                TotalPayrolls = item.TotalPayrolls
             }).ToList()
         };
     }
