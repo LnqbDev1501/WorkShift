@@ -35,36 +35,21 @@ public sealed class DashboardRepo : IDashboardRepo
             .OrderBy(item => item.Status)
             .ToListAsync();
 
-        var recentPayrolls = await _context.Payrolls
+        var recentPayrollPeriods = await _context.PayrollPeriods
             .AsNoTracking()
-            .OrderByDescending(payroll => payroll.UpdatedAt)
-            .ThenByDescending(payroll => payroll.PayrollId)
+            .OrderByDescending(period => period.EndDate)
+            .ThenByDescending(period => period.PayrollPeriodId)
             .Take(3)
-            .Select(payroll => new RecentPayrollData
+            .Select(period => new RecentPayrollPeriodData
             {
-                PayrollId = payroll.PayrollId,
-                EmployeeName = payroll.EmployeeFullNameSnapshot,
-                BranchName = payroll.BranchNameSnapshot,
-                PeriodName = payroll.PayrollPeriod.PeriodName,
-                NetSalary = payroll.NetSalary,
-                Status = payroll.Status,
-                UpdatedAt = payroll.UpdatedAt
-            })
-            .ToListAsync();
-
-        var recentRequests = await _context.EmployeeRequests
-            .AsNoTracking()
-            .OrderByDescending(request => request.CreatedAt)
-            .ThenByDescending(request => request.RequestId)
-            .Take(5)
-            .Select(request => new RecentRequestData
-            {
-                RequestId = request.RequestId,
-                EmployeeName = request.User.FullName,
-                BranchName = request.Branch.BranchName,
-                RequestType = request.RequestType,
-                Status = request.Status,
-                CreatedAt = request.CreatedAt
+                PayrollPeriodId = period.PayrollPeriodId,
+                BranchName = period.BranchNameSnapshot,
+                PeriodCode = period.PeriodCode,
+                PeriodName = period.PeriodName,
+                StartDate = period.StartDate,
+                EndDate = period.EndDate,
+                Status = period.Status,
+                TotalPayrolls = period.Payrolls.Count
             })
             .ToListAsync();
 
@@ -80,11 +65,8 @@ public sealed class DashboardRepo : IDashboardRepo
                 .CountAsync(branch => branch.Status == "ACTIVE"),
             PendingPayrolls = await _context.Payrolls.AsNoTracking()
                 .CountAsync(payroll => payroll.Status == "SUBMITTED"),
-            PendingRequests = await _context.EmployeeRequests.AsNoTracking()
-                .CountAsync(request => request.Status == "PENDING"),
             TodayAttendance = attendanceStatuses,
-            RecentPayrolls = recentPayrolls,
-            RecentRequests = recentRequests
+            RecentPayrollPeriods = recentPayrollPeriods
         };
     }
 
