@@ -1,37 +1,21 @@
-namespace WorkShiftManagement.BLL.DTOs.Admin.Response;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-/// <summary>
-/// Response DTO containing summary information of a region.
-/// </summary>
-public class RegionResponse
+namespace WorkShiftManagement.BLL.DTOs.Admin.Response
 {
-    /// <summary>
-    /// Unique identifier of the region.
-    /// </summary>
-    public int RegionId { get; set; }
+    public class RegionResponse
+    {
+        public string RegionCode { get; set; } = null!;
 
-    /// <summary>
-    /// Code of the region.
-    /// </summary>
-    public string RegionCode { get; set; } = null!;
+        public string RegionName { get; set; } = null!;
 
-    /// <summary>
-    /// Display name of the region.
-    /// </summary>
-    public string RegionName { get; set; } = null!;
+        public string? Description { get; set; }
 
-    /// <summary>
-    /// Description of the region.
-    /// </summary>
-    public string? Description { get; set; }
+        public bool IsActive { get; set; }
 
-    /// <summary>
-    /// Total count of branches assigned to this region.
-    /// </summary>
-    public int BranchCount { get; set; }
-
-    /// <summary>
-    /// Current status: 'ACTIVE' or 'INACTIVE'.
-    /// </summary>
-    public string Status { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+    }
 }

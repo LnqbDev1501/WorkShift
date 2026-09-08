@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -8,6 +8,10 @@ namespace WorkShiftManagement.DAL.Data;
 
 public partial class AppDbContext : DbContext
 {
+    public AppDbContext()
+    {
+    }
+
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
@@ -104,14 +108,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkScheduleWeek> WorkScheduleWeeks { get; set; }
 
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
-        }
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -2293,10 +2289,6 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.RoleId, e.Status }, "ix_users_role_status");
 
-            entity.HasIndex(e => new { e.BranchId, e.RoleId }, "uq_users_branch_role_active")
-                .IsUnique()
-                .HasFilter("((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACTIVE'::character varying])::text[]))");
-
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
 
             entity.HasIndex(e => e.IdentityNo, "users_identity_no_key").IsUnique();
@@ -2334,7 +2326,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
                 .HasColumnName("phone");
-            entity.Property(e => e.PreviousBranchId).HasColumnName("previous_branch_id");
             entity.Property(e => e.PreviousStatus)
                 .HasMaxLength(30)
                 .HasColumnName("previous_status");
@@ -2347,7 +2338,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Branch).WithMany(p => p.UserBranches)
+            entity.HasOne(d => d.Branch).WithMany(p => p.Users)
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("users_branch_id_fkey");
@@ -2356,11 +2347,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.EmployeeTypeId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("users_employee_type_id_fkey");
-
-            entity.HasOne(d => d.PreviousBranch).WithMany(p => p.UserPreviousBranches)
-                .HasForeignKey(d => d.PreviousBranchId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("users_previous_branch_id_fkey");
 
             entity.HasOne(d => d.Role).WithMany(p => p.Users)
                 .HasForeignKey(d => d.RoleId)
