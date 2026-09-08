@@ -51,9 +51,7 @@ public partial class Branch
 
     public virtual ICollection<RequestLimitRule> RequestLimitRules { get; set; } = new List<RequestLimitRule>();
 
-    public virtual ICollection<User> UserBranches { get; set; } = new List<User>();
-
-    public virtual ICollection<User> UserPreviousBranches { get; set; } = new List<User>();
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
 
     public virtual ICollection<WorkScheduleWeek> WorkScheduleWeeks { get; set; } = new List<WorkScheduleWeek>();
 }

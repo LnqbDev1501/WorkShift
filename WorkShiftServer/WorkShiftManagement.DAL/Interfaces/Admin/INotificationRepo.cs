@@ -18,10 +18,6 @@ public interface INotificationRepo
 
     Task<User?> GetActiveAdminByEmailAsync(string email);
 
-    Task<bool> IsActiveRegionAsync(int regionId);
-
-    Task<bool> IsActiveBranchAsync(int branchId);
-
     Task<List<User>> GetRecipientsAsync(string targetType, int? regionId, int? branchId);
 
     Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);

@@ -46,8 +46,8 @@ public class NotificationService : INotificationService
             throw new ArgumentException("DateFrom must be earlier than or equal to DateTo.");
         }
 
-        var sortBy = NormalizeSortBy(query.SortBy);
-        var sortOrder = NormalizeSortOrder(query.SortOrder);
+        var sortBy = string.Equals(query.SortBy, "Title", StringComparison.OrdinalIgnoreCase) ? "Title" : "CreatedAt";
+        var sortOrder = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc";
         var (items, totalCount) = await _notificationRepo.GetPagedAsync(
             query.Search,
             query.Type,
@@ -93,20 +93,9 @@ public class NotificationService : INotificationService
 
     public async Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Title))
-        {
-            throw new ArgumentException("Title must not be empty or whitespace.");
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Message))
-        {
-            throw new ArgumentException("Message must not be empty or whitespace.");
-        }
-
         var target = NormalizeTarget(request.Target);
         var channels = NormalizeChannels(request.Channels);
         ValidateTargetScope(target, request.RegionId, request.BranchId);
-        await ValidateTargetIsActiveAsync(target, request.RegionId, request.BranchId);
 
         if (string.IsNullOrWhiteSpace(_createdByEmail))
         {
@@ -197,36 +186,6 @@ public class NotificationService : INotificationService
         return normalizedTarget ?? throw new ArgumentException("Target must be All, Staff, Manager, Accountant, Region, or Branch.");
     }
 
-    private static string NormalizeSortBy(string? sortBy)
-    {
-        if (string.Equals(sortBy, "CreatedAt", StringComparison.OrdinalIgnoreCase))
-        {
-            return "CreatedAt";
-        }
-
-        if (string.Equals(sortBy, "Title", StringComparison.OrdinalIgnoreCase))
-        {
-            return "Title";
-        }
-
-        throw new ArgumentException("SortBy must be CreatedAt or Title.");
-    }
-
-    private static string NormalizeSortOrder(string? sortOrder)
-    {
-        if (string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase))
-        {
-            return "asc";
-        }
-
-        if (string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase))
-        {
-            return "desc";
-        }
-
-        throw new ArgumentException("SortOrder must be asc or desc.");
-    }
-
     private static List<string> NormalizeChannels(IEnumerable<string>? channels)
     {
         var normalizedChannels = channels?
@@ -251,19 +210,6 @@ public class NotificationService : INotificationService
             (!isRegionTarget && !isBranchTarget && (regionId.HasValue || branchId.HasValue)))
         {
             throw new ArgumentException("Region and Branch targets require exactly their matching ID; other targets must not include them.");
-        }
-    }
-
-    private async Task ValidateTargetIsActiveAsync(string target, int? regionId, int? branchId)
-    {
-        if (target == "Region" && !await _notificationRepo.IsActiveRegionAsync(regionId!.Value))
-        {
-            throw new ArgumentException("Region was not found or is inactive.");
-        }
-
-        if (target == "Branch" && !await _notificationRepo.IsActiveBranchAsync(branchId!.Value))
-        {
-            throw new ArgumentException("Branch was not found, is inactive, or belongs to an inactive region.");
         }
     }
 
