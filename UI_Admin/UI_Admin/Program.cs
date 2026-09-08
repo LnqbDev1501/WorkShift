@@ -6,6 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpClient<AuthApiService>();
+builder.Services.AddHttpClient<RegionApiService>();
+
+
 
 var app = builder.Build();
 

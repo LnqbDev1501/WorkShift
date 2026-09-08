@@ -10,18 +10,18 @@
 
     <nav class="sidebar-navigation" aria-label="Admin navigation">
         <p class="sidebar-section-title">WORKSPACE</p>
-        <a asp-controller="Dashboard" asp-action="Index" class="sidebar-link @(currentController == "Dashboard" ? "active" : null)"><span class="sidebar-icon">▦</span>Overview</a>
-        <a asp-controller="Users" asp-action="Index" class="sidebar-link @(currentController == "Users" ? "active" : null)"><span class="sidebar-icon">♙</span>User Accounts</a>
+        <a asp-controller="Dashboard" asp-action="List" class="sidebar-link @(currentController == "Dashboard" ? "active" : null)"><span class="sidebar-icon">▦</span>Overview</a>
+        <a asp-controller="Users" asp-action="List" class="sidebar-link @(currentController == "Users" ? "active" : null)"><span class="sidebar-icon">♙</span>User Accounts</a>
 
         <p class="sidebar-section-title">ORGANIZATION</p>
-        <a asp-controller="Regions" asp-action="Index" class="sidebar-link @(currentController == "Regions" ? "active" : null)"><span class="sidebar-icon">▧</span>Regions</a>
-        <a asp-controller="Branches" asp-action="Index" class="sidebar-link @(currentController == "Branches" ? "active" : null)"><span class="sidebar-icon">▤</span>Branches</a>
-        <a asp-controller="ShiftTemplates" asp-action="Index" class="sidebar-link @(currentController == "ShiftTemplates" ? "active" : null)"><span class="sidebar-icon">◷</span>Shift Templates</a>
+        <a asp-controller="Regions" asp-action="List" class="sidebar-link @(currentController == "Regions" ? "active" : null)"><span class="sidebar-icon">▧</span>Regions</a>
+        <a asp-controller="Branches" asp-action="List" class="sidebar-link @(currentController == "Branches" ? "active" : null)"><span class="sidebar-icon">▤</span>Branches</a>
+        <a asp-controller="ShiftTemplates" asp-action="List" class="sidebar-link @(currentController == "ShiftTemplates" ? "active" : null)"><span class="sidebar-icon">◷</span>Shift Templates</a>
 
         <p class="sidebar-section-title">OPERATIONS</p>
-        <a asp-controller="Payroll" asp-action="Index" class="sidebar-link @(currentController == "Payroll" ? "active" : null)"><span class="sidebar-icon">▣</span>Payroll Approvals</a>
-        <a asp-controller="Requests" asp-action="Index" class="sidebar-link @(currentController == "Requests" ? "active" : null)"><span class="sidebar-icon">✓</span>Requests</a>
-        <a asp-controller="Notifications" asp-action="Index" class="sidebar-link @(currentController == "Notifications" ? "active" : null)"><span class="sidebar-icon">♧</span>Notifications</a>
+        <a asp-controller="Payroll" asp-action="List" class="sidebar-link @(currentController == "Payroll" ? "active" : null)"><span class="sidebar-icon">▣</span>Payroll Approvals</a>
+        <a asp-controller="Requests" asp-action="List" class="sidebar-link @(currentController == "Requests" ? "active" : null)"><span class="sidebar-icon">✓</span>Requests</a>
+        <a asp-controller="Notifications" asp-action="List" class="sidebar-link @(currentController == "Notifications" ? "active" : null)"><span class="sidebar-icon">♧</span>Notifications</a>
     </nav>
 
     <div class="sidebar-user">
