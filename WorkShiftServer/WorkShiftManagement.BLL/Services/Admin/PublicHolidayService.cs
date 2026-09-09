@@ -1,0 +1,265 @@
+using System.Data;
+using System.Text.Json;
+using Npgsql;
+using WorkShiftManagement.BLL.DTOs.Admin.PublicHoliday.Request;
+using WorkShiftManagement.BLL.DTOs.Admin.PublicHoliday.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
+
+namespace WorkShiftManagement.BLL.Services.Admin;
+
+public sealed class PublicHolidayService : IPublicHolidayService
+{
+    private const int PageSize = 20;
+    private const int MaxBatchSize = 366;
+    private readonly IPublicHolidayRepo _repo;
+
+    public PublicHolidayService(IPublicHolidayRepo repo) => _repo = repo;
+
+    private static T Error<T>(T exception, string code) where T : Exception
+    {
+        exception.Data["code"] = code;
+        return exception;
+    }
+
+    // No authorization checks in this Development module.
+    // Preserve the service interface's callerId for optional audit metadata.
+    // An unauthenticated request has no real actor, so do not invent a UUID.
+    private Task WriteAuditIfKnownAsync(
+        Guid callerId, string action, int recordId,
+        string? oldValueJson, string? newValueJson,
+        CancellationToken ct)
+    {
+        if (callerId == Guid.Empty)
+            return Task.CompletedTask;
+
+        return _repo.WriteAuditAsync(callerId, action, recordId,
+            oldValueJson, newValueJson, ct);
+    }
+
+    // Recognize the PostgreSQL UNIQUE violation even if the Repository
+    // wraps it in another exception. No custom Exception class is required.
+    private static bool IsHolidayDateConflict(Exception ex)
+    {
+        if (ex is DuplicateNameException)
+            return true;
+
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is PostgresException pg
+                && pg.SqlState == PostgresErrorCodes.UniqueViolation
+                && pg.TableName == "public_holiday_configs"
+                && (pg.ConstraintName?.Contains("holiday_date",
+                    StringComparison.OrdinalIgnoreCase) ?? false))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void ValidateId(int id)
+    {
+        if (id <= 0)
+            throw Error(new ArgumentException("Public holiday id must be greater than 0."), "INVALID_ID");
+    }
+
+    private static (string Name, DateOnly Date, decimal Multiplier) ValidateItem(
+        string? name, DateOnly? date, decimal? multiplier)
+    {
+        var trimmed = name?.Trim();
+        if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length > 150)
+            throw Error(new ArgumentException("Holiday name must contain 1 to 150 characters."), "INVALID_HOLIDAY_NAME");
+        if (!date.HasValue || date.Value == default)
+            throw Error(new ArgumentException("A valid holiday date is required."), "INVALID_HOLIDAY_DATE");
+        if (!multiplier.HasValue || multiplier.Value <= 0 || multiplier.Value > 999.99m
+            || decimal.Round(multiplier.Value, 2) != multiplier.Value)
+            throw Error(new ArgumentException("Pay multiplier must be greater than 0, at most 999.99, and have no more than 2 decimal places."), "INVALID_PAY_MULTIPLIER");
+        return (trimmed, date.Value, multiplier.Value);
+    }
+
+    private static PublicHolidayResponse Map(PublicHolidayConfig e) => new()
+    {
+        PublicHolidayId = e.PublicHolidayId,
+        HolidayName = e.HolidayName,
+        HolidayDate = e.HolidayDate,
+        PayMultiplier = e.PayMultiplier,
+        IsActive = e.IsActive,
+        CreatedBy = e.CreatedBy,
+        CreatedAt = e.CreatedAt,
+        UpdatedAt = e.UpdatedAt
+    };
+
+    private static object AuditSnapshot(PublicHolidayConfig e) => new
+    {
+        e.PublicHolidayId,
+        e.HolidayName,
+        e.HolidayDate,
+        e.PayMultiplier,
+        e.IsActive
+    };
+
+    private static string Json(object value) => JsonSerializer.Serialize(value);
+
+    public async Task<PublicHolidayPageResponse> GetAllAsync(PublicHolidayListRequest request,
+        Guid callerId, CancellationToken ct = default)
+    {
+        if (request == null)
+            throw Error(new ArgumentException("Query is required."), "INVALID_REQUEST");
+        if (request.PageNumber < 1 || request.PageNumber > int.MaxValue / PageSize)
+            throw Error(new ArgumentException("PageNumber is out of range."), "INVALID_PAGE");
+        if (request.Year is < 1 or > 9999)
+            throw Error(new ArgumentException("Year must be between 1 and 9999."), "INVALID_YEAR");
+        if (request.Month is < 1 or > 12)
+            throw Error(new ArgumentException("Month must be between 1 and 12."), "INVALID_MONTH");
+        if (request.Month.HasValue && !request.Year.HasValue)
+            throw Error(new ArgumentException("Year is required when filtering by month."), "YEAR_REQUIRED");
+        if (request.Search?.Length > 150)
+            throw Error(new ArgumentException("Search cannot exceed 150 characters."), "INVALID_SEARCH");
+
+        var (items, count) = await _repo.GetPagedAsync(request.PageNumber, PageSize,
+            request.Year, request.Month, request.Search, request.IncludeInactive, ct);
+        return new PublicHolidayPageResponse
+        {
+            Items = items.Select(Map).ToList(),
+            PageNumber = request.PageNumber,
+            PageSize = PageSize,
+            TotalCount = count,
+            TotalPages = (int)Math.Ceiling(count / (double)PageSize)
+        };
+    }
+
+    public async Task<PublicHolidayResponse> GetByIdAsync(int id, Guid callerId, CancellationToken ct = default)
+    {
+        ValidateId(id);
+        var holiday = await _repo.GetByIdAsync(id,
+            true, ct);
+        if (holiday == null)
+            throw Error(new KeyNotFoundException("Public holiday not found."), "HOLIDAY_NOT_FOUND");
+        return Map(holiday);
+    }
+
+    public async Task<IReadOnlyList<PublicHolidayResponse>> CreateAsync(CreatePublicHolidaysRequest request,
+        Guid callerId, CancellationToken ct = default)
+    {
+        if (request?.Holidays == null || request.Holidays.Count == 0 || request.Holidays.Count > MaxBatchSize)
+            throw Error(new ArgumentException("Holidays must contain between 1 and 366 items."), "INVALID_BATCH");
+
+        var normalized = new List<(string Name, DateOnly Date, decimal Multiplier)>();
+        foreach (var item in request.Holidays)
+        {
+            if (item == null)
+                throw Error(new ArgumentException("Holiday items cannot be null."), "INVALID_ITEM");
+            normalized.Add(ValidateItem(item.HolidayName, item.HolidayDate, item.PayMultiplier ?? 1m));
+        }
+
+        var duplicateInRequest = normalized.GroupBy(x => x.Date).Where(g => g.Count() > 1)
+            .Select(g => g.Key).ToList();
+        if (duplicateInRequest.Count > 0)
+            throw Error(new ArgumentException($"Duplicate dates in request: {string.Join(", ", duplicateInRequest)}."), "DUPLICATE_DATES_IN_REQUEST");
+
+        try
+        {
+            return await _repo.ExecuteInTransactionAsync(async () =>
+            {
+                var dates = normalized.Select(x => x.Date).ToList();
+                var existing = await _repo.GetExistingDatesAsync(dates, ct: ct);
+                if (existing.Count > 0)
+                    throw Error(new InvalidOperationException($"Public holiday dates already exist: {string.Join(", ", existing)}. Deleted dates cannot be recreated."), "HOLIDAY_DATE_EXISTS");
+
+                var now = DateTime.UtcNow;
+                var entities = normalized.Select(x => new PublicHolidayConfig
+                {
+                    HolidayName = x.Name,
+                    HolidayDate = x.Date,
+                    PayMultiplier = x.Multiplier,
+                    IsActive = true,
+                    CreatedBy = callerId == Guid.Empty ? (Guid?)null : callerId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                }).ToList();
+
+                await _repo.AddRangeAsync(entities, ct);
+                await _repo.SaveChangesAsync(ct);
+                foreach (var entity in entities)
+                    await WriteAuditIfKnownAsync(callerId, "CREATE_PUBLIC_HOLIDAY", entity.PublicHolidayId,
+                        null, Json(AuditSnapshot(entity)), ct);
+                return (IReadOnlyList<PublicHolidayResponse>)entities.Select(Map).ToList();
+            }, ct);
+        }
+        catch (Exception ex) when (IsHolidayDateConflict(ex))
+        {
+            throw Error(new InvalidOperationException("A public holiday already exists for one of the requested dates."), "HOLIDAY_DATE_EXISTS");
+        }
+    }
+
+    public async Task<PublicHolidayResponse> UpdateAsync(int id, UpdatePublicHolidayRequest request,
+        Guid callerId, CancellationToken ct = default)
+    {
+        ValidateId(id);
+        if (request == null)
+            throw Error(new ArgumentException("Request body is required."), "INVALID_REQUEST");
+        var data = ValidateItem(request.HolidayName, request.HolidayDate, request.PayMultiplier);
+
+        try
+        {
+            return await _repo.ExecuteInTransactionAsync(async () =>
+            {
+                var holiday = await _repo.GetForUpdateAsync(id, ct);
+                if (holiday == null || !holiday.IsActive)
+                    throw Error(new KeyNotFoundException("Active public holiday not found."), "HOLIDAY_NOT_FOUND");
+
+                var existing = await _repo.GetExistingDatesAsync(new[] { data.Date }, id, ct);
+                if (existing.Count > 0)
+                    throw Error(new InvalidOperationException("Another public holiday already exists on this date."), "HOLIDAY_DATE_EXISTS");
+
+                var dateChanged = holiday.HolidayDate != data.Date;
+                var multiplierChanged = holiday.PayMultiplier != data.Multiplier;
+                var nameChanged = holiday.HolidayName != data.Name;
+                if ((dateChanged || multiplierChanged) && await _repo.IsUsedInPayrollAsync(id, ct))
+                    throw Error(new InvalidOperationException("This holiday has already been used in payroll. Its date and multiplier cannot be changed."), "HOLIDAY_USED_IN_PAYROLL");
+
+                if (!dateChanged && !multiplierChanged && !nameChanged)
+                    return Map(holiday);
+
+                var oldValue = Json(AuditSnapshot(holiday));
+                holiday.HolidayName = data.Name;
+                holiday.HolidayDate = data.Date;
+                holiday.PayMultiplier = data.Multiplier;
+                holiday.UpdatedAt = DateTime.UtcNow;
+                // PUT does not change IsActive, CreatedBy or CreatedAt.
+                await _repo.SaveChangesAsync(ct);
+                await WriteAuditIfKnownAsync(callerId, "UPDATE_PUBLIC_HOLIDAY", id,
+                    oldValue, Json(AuditSnapshot(holiday)), ct);
+                return Map(holiday);
+            }, ct);
+        }
+        catch (Exception ex) when (IsHolidayDateConflict(ex))
+        {
+            throw Error(new InvalidOperationException("Another public holiday already exists on this date."), "HOLIDAY_DATE_EXISTS");
+        }
+    }
+
+    public async Task DeleteAsync(int id, Guid callerId, CancellationToken ct = default)
+    {
+        ValidateId(id);
+        await _repo.ExecuteInTransactionAsync(async () =>
+        {
+            var holiday = await _repo.GetForUpdateAsync(id, ct);
+            if (holiday == null)
+                throw Error(new KeyNotFoundException("Public holiday not found."), "HOLIDAY_NOT_FOUND");
+            // Repeated DELETE is idempotent.
+            if (!holiday.IsActive) return true;
+            if (await _repo.IsUsedInPayrollAsync(id, ct))
+                throw Error(new InvalidOperationException("This public holiday cannot be deleted because it has already been used in payroll."), "HOLIDAY_USED_IN_PAYROLL");
+
+            var oldValue = Json(AuditSnapshot(holiday));
+            holiday.IsActive = false;
+            holiday.UpdatedAt = DateTime.UtcNow;
+            await _repo.SaveChangesAsync(ct);
+            await WriteAuditIfKnownAsync(callerId, "DELETE_PUBLIC_HOLIDAY", id,
+                oldValue, Json(AuditSnapshot(holiday)), ct);
+            return true;
+        }, ct);
+    }
+}

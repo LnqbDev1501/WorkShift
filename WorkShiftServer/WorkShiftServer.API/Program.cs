@@ -22,7 +22,9 @@ builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
-
+    
+builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
+builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
 
 
 builder.Services.AddHttpClient<AuthService>(client =>
@@ -56,6 +58,8 @@ builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
+builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
 
 builder.Services.AddScoped<ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();

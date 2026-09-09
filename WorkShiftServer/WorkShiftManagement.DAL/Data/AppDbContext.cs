@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -8,6 +8,10 @@ namespace WorkShiftManagement.DAL.Data;
 
 public partial class AppDbContext : DbContext
 {
+    public AppDbContext()
+    {
+    }
+
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
@@ -104,14 +108,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkScheduleWeek> WorkScheduleWeeks { get; set; }
 
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
-        }
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

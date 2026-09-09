@@ -16,5 +16,6 @@ appsettings.json
 
 artifacts/
 **/artifacts/
+**/.buildcheck/
 bin/
 obj/
