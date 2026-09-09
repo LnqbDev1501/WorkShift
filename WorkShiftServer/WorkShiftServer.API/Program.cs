@@ -58,6 +58,8 @@ builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
+builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
 
 builder.Services.AddScoped<ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
