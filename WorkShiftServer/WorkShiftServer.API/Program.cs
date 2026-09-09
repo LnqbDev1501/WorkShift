@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Admin;
-using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Admin;
+using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -22,6 +22,10 @@ builder.Services.AddSignalR();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
+    
+builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
+builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
+
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
@@ -40,9 +44,6 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:SetPasswordUrl configuration.");
     return new AuthService(client, setPasswordUrl);
 });
-    
-builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
-builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
 
 
 
@@ -57,8 +58,6 @@ builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
-builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
-builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 
 builder.Services.AddScoped<ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
