@@ -1,4 +1,3 @@
-using System.Net;
 using System.Net.Http.Json;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 
@@ -19,7 +18,10 @@ public class ResendNotificationEmailSender : INotificationEmailSender
     {
         var apiKey = _configuration["Resend:ApiKey"];
         var fromEmail = _configuration["Resend:FromEmail"];
-        if (string.IsNullOrWhiteSpace(apiKey) || string.IsNullOrWhiteSpace(fromEmail))
+        var templateId = _configuration["Resend:NotificationTemplateId"];
+        if (string.IsNullOrWhiteSpace(apiKey) ||
+            string.IsNullOrWhiteSpace(fromEmail) ||
+            string.IsNullOrWhiteSpace(templateId))
         {
             throw new InvalidOperationException("Resend configuration is missing.");
         }
@@ -31,7 +33,15 @@ public class ResendNotificationEmailSender : INotificationEmailSender
                 from = fromEmail,
                 to = new[] { recipientEmail },
                 subject = title,
-                html = $"<p>{WebUtility.HtmlEncode(message).Replace("\n", "<br />")}</p>"
+                template = new
+                {
+                    id = templateId,
+                    variables = new Dictionary<string, object>
+                    {
+                        ["NOTIFICATION_TITLE"] = title,
+                        ["NOTIFICATION_MESSAGE"] = message
+                    }
+                }
             })
         };
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
