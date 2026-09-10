@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -14,15 +13,6 @@ public class AdminNotificationController : ControllerBase
     public AdminNotificationController(INotificationService notificationService)
     {
         _notificationService = notificationService;
-    }
-
-    private Guid CurrentUserId()
-    {
-        var value = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue("sub")
-            ?? User.FindFirstValue("user_id");
-
-        return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
     }
 
     [HttpGet]
@@ -50,7 +40,7 @@ public class AdminNotificationController : ControllerBase
     {
         try
         {
-            return Ok(await _notificationService.BroadcastAsync(request, CurrentUserId()));
+            return Ok(await _notificationService.BroadcastAsync(request));
         }
         catch (ArgumentException exception)
         {

@@ -9,5 +9,5 @@ public interface INotificationService
 
     Task<NotificationDetailResponse?> GetByIdAsync(int notificationId);
 
-    Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request, Guid createdByUserId);
+    Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request);
 }
