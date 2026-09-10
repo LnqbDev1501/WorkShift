@@ -17,10 +17,8 @@ public class ResendNotificationEmailSender : INotificationEmailSender
     public async Task SendAsync(string recipientEmail, string title, string message)
     {
         var apiKey = _configuration["Resend:ApiKey"];
-        var fromEmail = _configuration["Resend:FromEmail"];
         var templateId = _configuration["Resend:NotificationTemplateId"];
         if (string.IsNullOrWhiteSpace(apiKey) ||
-            string.IsNullOrWhiteSpace(fromEmail) ||
             string.IsNullOrWhiteSpace(templateId))
         {
             throw new InvalidOperationException("Resend configuration is missing.");
@@ -30,7 +28,6 @@ public class ResendNotificationEmailSender : INotificationEmailSender
         {
             Content = JsonContent.Create(new
             {
-                from = fromEmail,
                 to = new[] { recipientEmail },
                 subject = title,
                 template = new

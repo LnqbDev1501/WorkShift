@@ -78,12 +78,12 @@ public class NotificationRepo : INotificationRepo
             .FirstOrDefaultAsync(notification => notification.NotificationId == notificationId && !notification.IsDeleted);
     }
 
-    public Task<User?> GetActiveAdminByEmailAsync(string email)
+    public Task<User?> GetActiveAdminByIdAsync(Guid userId)
     {
         return _context.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user =>
-                user.Email == email &&
+                user.UserId == userId &&
                 user.Status == "ACTIVE" &&
                 user.DeletedAt == null &&
                 user.Role.RoleName == "ADMIN");
