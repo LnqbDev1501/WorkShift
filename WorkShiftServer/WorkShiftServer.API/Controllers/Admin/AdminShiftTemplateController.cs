@@ -74,18 +74,7 @@ public sealed class AdminShiftTemplateController(
         return StatusCode(StatusCodes.Status201Created, new
         {
             message = "Shift template created successfully.",
-            data = new
-            {
-                template.ShiftTemplateId,
-                template.ShiftName,
-                template.StartTime,
-                template.EndTime,
-                template.BreakMinutes,
-                template.Description,
-                template.Status,
-                template.CreatedAt,
-                template.UpdatedAt
-            }
+            data = template
         });
     }
 
