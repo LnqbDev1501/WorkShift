@@ -8,4 +8,5 @@ public interface IAuthService
     Task BanUserAsync(Guid userId);
     Task UnbanUserAsync(Guid userId);
     Task<Guid> SetPasswordAsync(string accessToken, string password);
+    Task UpdateEmailAsync(Guid userId, string email);
 }

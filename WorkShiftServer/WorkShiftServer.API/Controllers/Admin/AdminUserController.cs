@@ -77,7 +77,7 @@ public class AdminUserController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<UpdateAdminUserResponse>> UpdateAdminUser(
         Guid userId,
-        [FromBody] UpdateAdminUserRequest request)
+        [FromForm] UpdateAdminUserRequest request)
     {
         try
         {
