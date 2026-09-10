@@ -16,7 +16,7 @@ public interface INotificationRepo
 
     Task<Notification?> GetByIdAsync(int notificationId);
 
-    Task<User?> GetActiveAdminByEmailAsync(string email);
+    Task<User?> GetActiveAdminByIdAsync(Guid userId);
 
     Task<bool> IsActiveRegionAsync(int regionId);
 
