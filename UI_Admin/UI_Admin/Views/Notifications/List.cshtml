@@ -12,8 +12,14 @@
             <h1>Notifications</h1>
             <p>Review notification history and send operational announcements.</p>
         </div>
-        <a asp-action="Send" class="btn-primary">+ Send Notification</a>
+        <div class="header-actions"><span class="history-chip">◷ History</span><a asp-action="Send" class="btn-primary">✦ Send Notification</a></div>
     </header>
+
+    <div class="list-summary-grid">
+        <div class="summary-card"><span class="summary-icon">◎</span><span>Total broadcasts</span><strong>@Model.TotalCount</strong><small>Matching current filters</small></div>
+        <div class="summary-card"><span class="summary-icon">▤</span><span>Current page</span><strong>@Model.Page</strong><small>@Model.Items.Count notifications shown</small></div>
+        <div class="summary-card"><span class="summary-icon">↕</span><span>Sort order</span><strong>@(Model.SortOrder == "asc" ? "Oldest" : "Newest")</strong><small>By creation date</small></div>
+    </div>
 
     <form method="get" class="notification-filter-card">
         <input name="Search" value="@Model.Search" placeholder="Search notification title or message..." />
@@ -42,7 +48,7 @@
             <div class="table-scroll"><table class="notification-table"><thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Channels</th><th>Created</th><th></th></tr></thead><tbody>
             @foreach (var item in Model.Items)
             {
-                <tr><td><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></td><td><span class="type-pill">@item.NotificationType</span></td><td>@item.Audience</td><td><div class="channel-list">@foreach (var channel in item.Channels) { <span>@channel</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" class="detail-link">View details</a></td></tr>
+                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" class="detail-link">View details →</a></td></tr>
             }
             </tbody></table></div>
             <footer class="notification-pagination"><span>Showing @Model.Items.Count of @Model.TotalCount notifications</span><div>@if (Model.Page > 1) { <a asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-type="@Model.Type" asp-route-sortOrder="@Model.SortOrder">Previous</a> } <span>Page @Model.Page / @totalPages</span> @if (Model.Page < totalPages) { <a asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-type="@Model.Type" asp-route-sortOrder="@Model.SortOrder">Next</a> }</div></footer>
