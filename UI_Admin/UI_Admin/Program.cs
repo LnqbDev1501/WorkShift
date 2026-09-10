@@ -7,6 +7,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddHttpClient<AuthApiService>();
 builder.Services.AddHttpClient<RegionApiService>();
+builder.Services.AddHttpClient<UserApiService>();
 
 
 

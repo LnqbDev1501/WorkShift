@@ -11,7 +11,7 @@
     <nav class="sidebar-navigation" aria-label="Admin navigation">
         <p class="sidebar-section-title">WORKSPACE</p>
         <a asp-controller="Dashboard" asp-action="List" class="sidebar-link @(currentController == "Dashboard" ? "active" : null)"><span class="sidebar-icon">▦</span>Overview</a>
-        <a asp-controller="Users" asp-action="List" class="sidebar-link @(currentController == "Users" ? "active" : null)"><span class="sidebar-icon">♙</span>User Accounts</a>
+        <a asp-controller="User" asp-action="List" class="sidebar-link @(currentController == "User" ? "active" : null)"><span class="sidebar-icon">♙</span>User Accounts</a>
 
         <p class="sidebar-section-title">ORGANIZATION</p>
         <a asp-controller="Regions" asp-action="List" class="sidebar-link @(currentController == "Regions" ? "active" : null)"><span class="sidebar-icon">▧</span>Regions</a>
