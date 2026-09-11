@@ -1,0 +1,47 @@
+@model UI_Admin.Models.Payroll.PayrollListViewModel
+@{
+    ViewData["Title"] = "Payroll Periods";
+    string Link(int page = 1, string? status = null) => Url.Action("List", new { search = Model.Filter.Search, regionId = Model.Filter.RegionId, branchId = Model.Filter.BranchId, status = status ?? Model.Filter.Status, pageNumber = page, pageSize = Model.Filter.PageSize })!;
+    string Count(string status) => Model.Counts.TryGetValue(status, out var count) ? count.ToString("N0") : "—";
+    var tabs = new[] { ("", "All Batches"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required") };
+}
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<header class="payroll-topbar"><span>Admin <b>/</b> WorkShift Control <b>/</b> <strong>Payroll Approvals</strong></span><span class="payroll-account">Administrator <small>Admin workspace</small></span></header>
+<div class="payroll-page">
+    <div class="payroll-heading"><div><h1>Payroll Periods</h1><p>Review payroll cycles, audit employee pay, and track approval across branches.</p></div><div class="payroll-actions"><button class="payroll-button" id="export-payroll" type="button" disabled="@(Model.Page.Items.Count == 0)">↓ Export Page CSV</button><button class="payroll-button" disabled title="Backend chưa hỗ trợ tính lại lương">☷ Recalculate Accruals</button><button class="payroll-button primary" disabled title="Backend chưa hỗ trợ tạo kỳ lương">⊕ Initiate New Cycle</button></div></div>
+    <p class="payroll-hint">Tạo chu kỳ và tính lại lương chưa khả dụng.</p>
+    @if (Model.Error != null || TempData["PayrollError"] != null) { <div class="alert alert-danger" role="alert">@(Model.Error ?? TempData["PayrollError"]) <a asp-action="List">Thử lại</a></div> }
+    @if (Model.LookupError != null) { <div class="alert alert-warning" role="alert">@Model.LookupError</div> }
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <section class="payroll-stats" aria-label="Payroll summary">
+        <article><div>TOTAL PAYROLL CYCLES <span>▦</span></div><p><strong>@Count("")</strong> Periods</p><small>Across matching branches</small></article>
+        <article><div>PENDING REVIEW <span class="purple">●</span></div><p><strong class="purple">@Count("SUBMITTED")</strong> Batches</p><small>Awaiting approval</small></article>
+        <article><div>APPROVED <span>◎</span></div><p><strong>@Count("APPROVED")</strong> Periods</p><small>Approval completed</small></article>
+        <article><div>DISCREPANCY AUDIT <span class="red">⚑</span></div><p><strong class="red">@Count("REVISION_REQUIRED")</strong> Flagged</p><small class="red">Revision required</small></article>
+    </section>
+    <section class="payroll-filters">
+        <form method="get" asp-action="List" id="payroll-filter-form">
+            <input type="hidden" name="Status" value="@Model.Filter.Status" />
+            <input type="hidden" name="PageSize" value="@Model.Filter.PageSize" />
+            <label class="search-field"><span class="visually-hidden">Search payroll periods</span><input name="Search" value="@Model.Filter.Search" maxlength="100" placeholder="Search by Period Code (PR-...), or period name…" /></label>
+            <label><span class="visually-hidden">Region</span><select name="RegionId" id="payroll-region"><option value="">All Regions (Enterprise)</option>@foreach (var region in Model.Regions) { <option value="@region.RegionId" selected="@(region.RegionId == Model.Filter.RegionId)">@region.RegionName</option> }</select></label>
+            <label><span class="visually-hidden">Branch</span><select name="BranchId" id="payroll-branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.BranchId" selected="@(branch.BranchId == Model.Filter.BranchId)">@branch.BranchName</option> }</select></label>
+            <button class="payroll-button primary" type="submit">Search</button><a class="payroll-button" asp-action="List">↻ Reset</a>
+        </form>
+        <nav class="payroll-tabs" aria-label="Payroll status">@foreach (var tab in tabs) { <a href="@Link(status: tab.Item1)" class="@((Model.Filter.Status ?? "") == tab.Item1 ? "active" : "")" aria-current="@((Model.Filter.Status ?? "") == tab.Item1 ? "page" : null)">@tab.Item2 <span>@Count(tab.Item1)</span></a> }</nav>
+    </section>
+    <section class="payroll-table-card">
+        <div class="payroll-table-toolbar"><span>Showing payroll records sorted by <strong>Cycle Recency</strong></span><button class="payroll-button" id="payroll-density" type="button" aria-pressed="false">☷ Compact rows</button></div>
+        <div class="payroll-table-scroll"><table id="payroll-table"><thead><tr><th>PERIOD IDENTIFIER</th><th>BRANCH</th><th>CYCLE DURATION</th><th>HEADCOUNT</th><th class="money">NET SALARY</th><th>STATUS</th><th>SUBMITTED AUDIT</th><th data-no-export>ACTIONS</th></tr></thead><tbody>
+        @foreach (var period in Model.Page.Items)
+        {
+            <tr class="@(period.Status == "REVISION_REQUIRED" ? "flagged" : "")"><td><strong>@period.PeriodCode</strong><small>@period.PeriodName</small></td><td><strong>@period.BranchName</strong><small>Branch #@period.BranchId</small></td><td class="dates">@period.StartDate.ToString("dd MMM yyyy") – @period.EndDate.ToString("dd MMM yyyy")</td><td><strong>@period.TotalPayrolls Staff</strong><small>@period.RejectedPayrollCount payrolls requiring revision</small></td><td class="money"><strong>@period.TotalNetSalary.ToString("N0") ₫</strong><small>VND</small></td><td><span class="payroll-status @period.Status.ToLowerInvariant()">● @period.Status.Replace('_', ' ')</span></td><td>@(period.SubmittedBy?.FullName ?? "—")<small>@(period.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</small></td><td data-no-export><a class="payroll-button @(period.Status == "SUBMITTED" ? "primary" : "")" asp-action="Details" asp-route-id="@period.PayrollPeriodId">View Details ›</a></td></tr>
+        }
+        @if (Model.Page.Items.Count == 0) { <tr><td colspan="8" class="payroll-empty"><strong>@(Model.Error == null ? "No payroll periods found" : "Payroll data unavailable")</strong><p>@(Model.Error == null ? "Try another search or reset your filters." : "Check the API connection and try again.")</p><a asp-action="List">Reset filters</a></td></tr> }
+        </tbody></table></div>
+        <footer class="payroll-pagination"><span>Showing @(Model.Page.Items.Count == 0 ? 0 : (Model.Page.PageNumber - 1) * Model.Page.PageSize + 1)–@((Model.Page.PageNumber - 1) * Model.Page.PageSize + Model.Page.Items.Count) of @Model.Page.TotalCount periods</span><form method="get"><input type="hidden" name="Search" value="@Model.Filter.Search"/><input type="hidden" name="Status" value="@Model.Filter.Status"/><input type="hidden" name="RegionId" value="@Model.Filter.RegionId"/><input type="hidden" name="BranchId" value="@Model.Filter.BranchId"/><label>Per page <select name="PageSize" onchange="this.form.submit()">@foreach (var size in new[] { 10, 20, 50, 100 }) { <option selected="@(Model.Filter.PageSize == size)" value="@size">@size / page</option> }</select></label></form><nav aria-label="Pagination">@if (Model.Page.PageNumber > 1) { <a href="@Link(Model.Page.PageNumber - 1)" aria-label="Previous page">‹</a> }@for (var page = Math.Max(1, Model.Page.PageNumber - 2); page <= Math.Min(Model.Page.TotalPages, Model.Page.PageNumber + 2); page++) { <a class="@(page == Model.Page.PageNumber ? "active" : "")" href="@Link(page)" aria-current="@(page == Model.Page.PageNumber ? "page" : null)">@(page)</a> }@if (Model.Page.PageNumber < Model.Page.TotalPages) { <a href="@Link(Model.Page.PageNumber + 1)" aria-label="Next page">›</a> }</nav></footer>
+    </section>
+    <aside class="payroll-compliance"><span>♧</span><div><strong>Payroll review &amp; audit</strong><small>Review individual payroll details and revision reasons before approval.</small></div></aside>
+</div>
+@section Scripts { <script src="~/js/payroll.js" asp-append-version="true"></script> }
+
