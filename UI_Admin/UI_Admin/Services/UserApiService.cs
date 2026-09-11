@@ -24,27 +24,20 @@ public sealed class UserApiService
         var pendingTask = GetUsersAsync(new UserListQueryViewModel { Status = "PENDING" }, cancellationToken);
         var dashboardTask = GetDashboardAsync(cancellationToken);
         var branchesTask = GetBranchesAsync(cancellationToken);
+        var rolesTask = GetOperationalRolesAsync(cancellationToken);
 
-        await Task.WhenAll(listTask, activeTask, pendingTask, dashboardTask, branchesTask);
+        await Task.WhenAll(listTask, activeTask, pendingTask, dashboardTask, branchesTask, rolesTask);
 
         var list = await listTask;
         var dashboard = await dashboardTask;
         var branches = await branchesTask;
+        var roles = await rolesTask;
 
         return new UserListViewModel
         {
             Query = query,
             Items = list.Items,
-            Roles = list.Items
-                .Where(user => user.RoleId > 0)
-                .GroupBy(user => user.RoleId)
-                .Select(group => new UserFilterOptionViewModel
-                {
-                    Id = group.Key,
-                    Name = ToDisplayName(group.First().RoleName)
-                })
-                .OrderBy(role => role.Name)
-                .ToList(),
+            Roles = roles,
             Branches = branches.Items
                 .Where(branch => branch.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
                 .Select(branch => new UserFilterOptionViewModel { Id = branch.BranchId, Name = branch.BranchName })
@@ -74,6 +67,96 @@ public sealed class UserApiService
             BuildUrl($"api/admin/users/{userId}/restore"),
             new { BranchId = branchId },
             cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<List<UserFilterOptionViewModel>> GetOperationalRolesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var roles = await _httpClient.GetFromJsonAsync<List<RoleResponseItem>>(
+                BuildUrl("api/admin/users/roles"), cancellationToken) ?? [];
+
+            if (roles.Count > 0)
+            {
+                return roles.Select(role => new UserFilterOptionViewModel
+                {
+                    Id = role.RoleId,
+                    Name = ToDisplayName(role.RoleName)
+                }).OrderBy(role => role.Name).ToList();
+            }
+        }
+        catch
+        {
+            // fallback if offline
+        }
+
+        return
+        [
+            new UserFilterOptionViewModel { Id = 2, Name = "Manager" },
+            new UserFilterOptionViewModel { Id = 3, Name = "Accountant" }
+        ];
+    }
+
+    public async Task<List<BranchOptionViewModel>> GetActiveBranchesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var branches = await _httpClient.GetFromJsonAsync<List<BranchAssignableResponseItem>>(
+                BuildUrl("api/admin/branches/assignable"), cancellationToken) ?? [];
+
+            if (branches.Count > 0)
+            {
+                return branches.Select(b => new BranchOptionViewModel
+                {
+                    Id = b.BranchId,
+                    Name = b.BranchName,
+                    BranchCode = b.BranchCode,
+                    ManagerCount = b.ManagerCount,
+                    AccountantCount = b.AccountantCount
+                }).OrderBy(b => b.Name).ToList();
+            }
+        }
+        catch
+        {
+            // fallback to general branches API if endpoint unavailable
+        }
+
+        var pagedBranches = await GetBranchesAsync(cancellationToken);
+        return pagedBranches.Items
+            .Where(branch => branch.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            .Select(branch => new BranchOptionViewModel
+            {
+                Id = branch.BranchId,
+                Name = branch.BranchName,
+                BranchCode = branch.BranchCode,
+                ManagerCount = 0,
+                AccountantCount = 0
+            })
+            .OrderBy(branch => branch.Name)
+            .ToList();
+    }
+
+    public async Task CreateAsync(UserCreateViewModel model, CancellationToken cancellationToken = default)
+    {
+        var request = new
+        {
+            FullName = model.FullName,
+            Email = model.Email,
+            Phone = model.Phone,
+            IdentityNo = model.IdentityNo,
+            RoleId = model.RoleId,
+            BranchId = model.BranchId,
+            Gender = model.Gender,
+            DateOfBirth = model.DateOfBirth,
+            Address = model.Address
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync(
+            BuildUrl("api/admin/users"),
+            request,
+            cancellationToken);
+
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
@@ -156,8 +239,24 @@ public sealed class UserApiService
     private sealed class BranchResponse
     {
         public int BranchId { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+    }
+
+    private sealed class RoleResponseItem
+    {
+        public int RoleId { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+    }
+
+    private sealed class BranchAssignableResponseItem
+    {
+        public int BranchId { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public int ManagerCount { get; set; }
+        public int AccountantCount { get; set; }
     }
 
     private sealed class ApiErrorResponse

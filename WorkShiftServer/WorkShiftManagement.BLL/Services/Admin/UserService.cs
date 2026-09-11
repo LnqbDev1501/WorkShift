@@ -109,6 +109,17 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<IReadOnlyList<RoleResponse>> GetAssignableRolesAsync()
+    {
+        var roles = await _userRepo.GetAssignableRolesAsync();
+        return roles.Select(role => new RoleResponse
+        {
+            RoleId = role.RoleId,
+            RoleName = role.RoleName,
+            Description = role.Description
+        }).ToList();
+    }
+
     public async Task<AdminUserDetailResponse> GetAdminUserDetailAsync(Guid userId)
     {
         if (userId == Guid.Empty)

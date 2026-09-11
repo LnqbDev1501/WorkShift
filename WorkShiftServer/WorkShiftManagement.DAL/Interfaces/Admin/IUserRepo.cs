@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +10,8 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
     public interface IUserRepo
     {
         Task<Role?> GetActiveRoleByIdAsync(int roleId);
+
+        Task<IReadOnlyList<Role>> GetAssignableRolesAsync();
 
         Task<bool> ActiveBranchExistsAsync(int branchId);
 

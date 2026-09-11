@@ -296,4 +296,29 @@ public class AdminBranchController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Retrieves active branches with manager and accountant counts for staff provisioning.
+    /// </summary>
+    /// <returns>A list of assignable branch options.</returns>
+    [HttpGet("assignable")]
+    [ProducesResponseType(typeof(IReadOnlyList<BranchAssignableOptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<BranchAssignableOptionResponse>>> GetAssignableOptions()
+    {
+        try
+        {
+            var result = await _branchService.GetAssignableOptionsAsync();
+            return Ok(result);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Internal Server Error",
+                Detail = "Failed to retrieve assignable branches."
+            });
+        }
+    }
 }

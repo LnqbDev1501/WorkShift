@@ -42,6 +42,23 @@ public class AdminUserController : ControllerBase
         }
     }
 
+    [HttpGet("roles")]
+    [ProducesResponseType(typeof(IReadOnlyList<RoleResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<RoleResponse>>> GetAssignableRoles()
+    {
+        try
+        {
+            return Ok(await _userService.GetAssignableRolesAsync());
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving assignable roles");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Roles could not be retrieved. Please try again later." });
+        }
+    }
+
     [HttpGet("{userId:guid}")]
     [ProducesResponseType(typeof(AdminUserDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

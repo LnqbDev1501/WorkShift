@@ -25,11 +25,27 @@
         .ToTitleCase(value.ToLowerInvariant());
 }
 
+@if (TempData["AccountCreatedSuccess"] is true or "true")
+{
+    <div id="successPopupModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-icon-wrap">
+                <svg viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <h3 class="modal-title">Account Created Successfully</h3>
+            <p class="modal-desc">User account provisioned successfully. An activation invite has been dispatched to their email.</p>
+            <button type="button" class="modal-ok-btn" onclick="document.getElementById('successPopupModal').remove()">OK</button>
+        </div>
+    </div>
+}
+
 <section class="users-page">
     <div class="users-body">
         <div class="page-heading">
             <div><div class="eyebrow"><i></i>Enterprise Access Directory</div><h1>User Accounts</h1><p>View user profiles and manage manager and accountant accounts.</p></div>
-            <div class="heading-actions"><button class="ui-button light" type="button"><span class="symbol">⇩</span>Export Roster</button><button class="ui-button primary" type="button"><span class="symbol">♙+</span>Create Account</button></div>
+            <div class="heading-actions"><button class="ui-button light" type="button"><span class="symbol">⇩</span>Export Roster</button><a asp-action="Create" class="ui-button primary"><span class="symbol">♙+</span>Create Account</a></div>
         </div>
         @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert-box success">@successMessage</div> }
         @if (TempData["ErrorMessage"] is string actionError) { <div class="alert-box error">@actionError</div> }
