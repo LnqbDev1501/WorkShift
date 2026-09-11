@@ -11,6 +11,12 @@ public class UserController : Controller
     public UserController(UserApiService userApiService) => _userApiService = userApiService;
 
     [HttpGet]
+    public IActionResult Create()
+    {
+        return View();
+    }
+
+    [HttpGet]
     public async Task<IActionResult> List(
         [FromQuery] UserListQueryViewModel query,
         CancellationToken cancellationToken)
