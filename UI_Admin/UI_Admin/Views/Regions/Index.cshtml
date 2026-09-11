@@ -1,0 +1,332 @@
+@model UI_Admin.Models.Regions.RegionListPagedViewModel
+
+@{
+    ViewData["Title"] = "WorkShift Control";
+}
+
+<div class="flex flex-col w-full gap-unit-6">
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="flex items-center justify-between p-unit-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-body-md font-body-md-medium shadow-sm">
+            <div class="flex items-center gap-unit-3">
+                <span class="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
+                <span>@Model.SuccessMessage</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-900">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="flex items-center justify-between p-unit-4 bg-error-container border border-error/20 rounded-xl text-on-error-container text-body-md font-body-md-medium shadow-sm">
+            <div class="flex items-center gap-unit-3">
+                <span class="material-symbols-outlined text-[20px] text-error">error</span>
+                <span>@Model.ErrorMessage</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-on-error-container hover:opacity-75">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Regions</h1>
+               
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">Organize branches into operational regions across national workforce zones.</p>
+        </div>
+        <div class="flex items-center gap-unit-3 self-start md:self-auto">
+            <button class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer" id="open-create-modal" type="button">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                <span>Create Region</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Contextual Policy Banner -->
+    <div class="flex items-start gap-unit-3 px-unit-4 py-unit-3 bg-surface-container-low rounded-xl">
+        <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
+        <div class="flex-1 text-body-sm font-body-sm text-secondary">
+            <strong class="font-body-md-medium text-on-surface">Administrative Notice:</strong> Region deactivation changes the region's own status without automatically deactivating individual branches or user accounts.
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <form method="get" asp-controller="Regions" asp-action="Index" id="filter-form" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
+        <div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-unit-3 max-w-2xl">
+            <!-- Search Input -->
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary">search</span>
+                <input class="w-full h-[40px] pl-9 pr-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                       id="region-search"
+                       name="search"
+                       value="@Model.Search"
+                       placeholder="Search region code or name..."
+                       type="text">
+            </div>
+            <!-- Status Filter Dropdown -->
+            <div class="relative sm:w-48">
+                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
+                        id="status-filter"
+                        name="status"
+                        onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
+                    <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
+                    <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
+            </div>
+        </div>
+        <!-- Clear Filters Button -->
+        <a href="@Url.Action("Index", "Regions")" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors" id="clear-filters-btn">
+            <span class="material-symbols-outlined text-[18px]">restart_alt</span>
+            <span>Clear Filters</span>
+        </a>
+    </form>
+
+    <!-- Main Table Container -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-5 py-2" scope="col">Region Code</th>
+                        <th class="px-unit-4 py-2" scope="col">Region Name</th>
+                        <th class="px-unit-4 py-2" scope="col">Description</th>
+                        <th class="px-unit-4 py-2 text-right" scope="col">Branches</th>
+                        <th class="px-unit-4 py-2" scope="col">Status</th>
+                        <th class="px-unit-5 py-2 text-right" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-0" id="regions-table-body">
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="px-unit-5 py-8 text-center text-secondary font-body-md">
+                                No operational regions found matching your filter criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            var isActive = item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isActive ? "bg-surface-container-lowest/70" : "")">
+                                <td class="px-unit-5 py-2">
+                                    <span class="font-code-num text-code-num @(isActive ? "text-primary" : "text-secondary") font-semibold bg-surface-container px-2 py-1 rounded">@item.RegionCode</span>
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary")">
+                                    @item.RegionName
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary max-w-sm truncate">
+                                    @(string.IsNullOrWhiteSpace(item.Description) ? "No description provided." : item.Description)
+                                </td>
+                                <td class="px-unit-4 py-2 font-code-num text-code-num @(isActive ? "text-on-surface" : "text-secondary") text-right whitespace-nowrap">
+                                    @item.BranchCount branches
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    @if (isActive)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                            Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-unit-5 py-2 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <a href="@Url.Action("Details", "Regions", new { id = item.RegionId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">View Details</a>
+                                        <a href="@Url.Action("Edit", "Regions", new { id = item.RegionId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-sm transition-colors">Edit</a>
+                                        @if (isActive)
+                                        {
+                                            <button type="button"
+                                                    class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn"
+                                                    data-id="@item.RegionId"
+                                                    data-name="@item.RegionName">
+                                                Deactivate
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <form method="post" asp-controller="Regions" asp-action="Restore" asp-route-id="@item.RegionId" class="inline">
+                                                @Html.AntiForgeryToken()
+                                                <button class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors" type="submit">
+                                                    <span class="material-symbols-outlined text-[16px]">restore</span>
+                                                    <span>Restore</span>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination / Footer Bar -->
+        <div class="flex items-center justify-between px-unit-5 py-unit-3 bg-surface-container-low text-secondary text-body-sm font-body-sm">
+            <span>Showing <strong class="text-on-surface">@(((Model.PageNumber - 1) * Model.PageSize) + (Model.Items.Count > 0 ? 1 : 0)) to @(((Model.PageNumber - 1) * Model.PageSize) + Model.Items.Count)</strong> of <strong class="text-on-surface">@Model.TotalItems</strong> registered regions</span>
+            <div class="flex items-center gap-unit-2">
+                @if (Model.PageNumber > 1)
+                {
+                    <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = Model.PageNumber - 1 })" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors">
+                        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                        <span>Previous</span>
+                    </a>
+                }
+                else
+                {
+                    <button class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant text-secondary opacity-50 cursor-not-allowed font-body-md-medium text-body-sm" disabled type="button">
+                        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                        <span>Previous</span>
+                    </button>
+                }
+
+                @for (int p = 1; p <= Math.Max(Model.TotalPages, 1); p++)
+                {
+                    if (p == Model.PageNumber)
+                    {
+                        <span class="px-2 py-0.5 rounded bg-primary-container text-white font-code-num text-body-sm font-semibold">@p</span>
+                    }
+                    else if (p <= 3 || p == Model.TotalPages || Math.Abs(p - Model.PageNumber) <= 1)
+                    {
+                        <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = p })" class="px-2 py-0.5 rounded bg-surface-container text-secondary hover:text-on-surface font-code-num text-body-sm">@p</a>
+                    }
+                }
+
+                @if (Model.PageNumber < Model.TotalPages)
+                {
+                    <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = Model.PageNumber + 1 })" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors">
+                        <span>Next</span>
+                        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                    </a>
+                }
+                else
+                {
+                    <button class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant text-secondary opacity-50 cursor-not-allowed font-body-md-medium text-body-sm" disabled type="button">
+                        <span>Next</span>
+                        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Region Modal Dialog -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="create-region-modal">
+        <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-5">
+            <!-- Modal Header -->
+            <div class="flex items-start justify-between">
+                <div class="flex flex-col">
+                    <h2 class="font-title-lg text-title-lg text-on-surface">Create Region</h2>
+                    <p class="font-body-sm text-body-sm text-secondary mt-0.5">Add an operational territory for grouping branches.</p>
+                </div>
+                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-create-modal" type="button">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <!-- Form Inputs -->
+            <form method="post" asp-controller="Regions" asp-action="Create" class="flex flex-col gap-unit-4" id="create-region-form">
+                @Html.AntiForgeryToken()
+                <!-- Field 1: Region Code -->
+                <div class="flex flex-col gap-1">
+                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-code">
+                        <span>Region Code <span class="text-error">*</span></span>
+                        <span class="font-label-sm text-label-sm text-secondary">Max 20 chars</span>
+                    </label>
+                    <input class="h-[40px] px-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container uppercase"
+                           id="modal-region-code"
+                           name="RegionCode"
+                           maxlength="20"
+                           placeholder="e.g. VN-SOUTHWEST"
+                           required
+                           type="text">
+                    <span class="font-label-sm text-label-sm text-secondary">Unique uppercase identifier code.</span>
+                </div>
+                <!-- Field 2: Region Name -->
+                <div class="flex flex-col gap-1">
+                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-name">
+                        <span>Region Name <span class="text-error">*</span></span>
+                        <span class="font-label-sm text-label-sm text-secondary">Max 150 chars</span>
+                    </label>
+                    <input class="h-[40px] px-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                           id="modal-region-name"
+                           name="RegionName"
+                           maxlength="150"
+                           placeholder="e.g. Southwest Coast"
+                           required
+                           type="text">
+                </div>
+                <!-- Field 3: Description -->
+                <div class="flex flex-col gap-1">
+                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-desc">
+                        <span>Description</span>
+                        <span class="font-label-sm text-label-sm text-secondary">Optional (Max 500 chars)</span>
+                    </label>
+                    <textarea class="p-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container resize-none"
+                              id="modal-region-desc"
+                              name="Description"
+                              maxlength="500"
+                              placeholder="Operational details, scope, and strategic branch coverage..."
+                              rows="3"></textarea>
+                </div>
+                <!-- Modal Footer Actions -->
+                <div class="flex items-center justify-end gap-unit-3 pt-unit-3 mt-unit-2">
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-create-modal" type="button">
+                        Cancel
+                    </button>
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" type="submit">
+                        Create Region
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Deactivate Region Modal Dialog -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="deactivate-region-modal">
+        <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
+            <div class="flex items-start gap-unit-3">
+                <div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">warning</span>
+                </div>
+                <div class="flex-1">
+                    <h2 class="font-title-lg text-title-lg text-on-surface">Deactivate Region</h2>
+                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface" id="deactivate-target-name">this region</strong>?</p>
+                </div>
+                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary">
+                <strong class="text-on-surface font-body-md-medium">Note:</strong> Region deactivation changes the region's status to Inactive via <code class="font-code-num text-primary">DELETE /api/admin/regions/{id}</code> without automatically deactivating individual branches or user accounts.
+            </div>
+            <form method="post" asp-controller="Regions" asp-action="Deactivate" id="deactivate-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="deactivate-region-id" value="0" />
+                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-deactivate-modal" type="button">Cancel</button>
+                <button class="h-[40px] px-unit-4 rounded-xl bg-error hover:bg-error-container hover:text-on-error-container text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-deactivate-btn" type="submit">Deactivate Region</button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <script src="~/js/regions.js" asp-append-version="true"></script>
+}
