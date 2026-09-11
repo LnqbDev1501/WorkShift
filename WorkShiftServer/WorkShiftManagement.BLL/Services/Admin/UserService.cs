@@ -464,6 +464,70 @@ public class UserService : IUserService
             !user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The current account status does not allow deletion.");
 
+        if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            var branchId = user.BranchId.GetValueOrDefault();
+            if (roleName == ManagerRole && branchId > 0)
+            {
+                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
+                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
+                
+                var hasEmployeeRequests = await _dbContext.EmployeeRequests
+                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
+
+                var hasSwapRequests = await _dbContext.ShiftSwapRequests
+                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
+                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
+
+                var hasContracts = await _dbContext.EmploymentContracts
+                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
+                
+                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
+                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
+
+                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
+                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
+
+                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
+                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
+
+                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
+                {
+                    throw new InvalidOperationException("Cannot delete because the Manager has pending tasks in the current branch.");
+                }
+            }
+            else if (roleName == AccountantRole && branchId > 0)
+            {
+                var hasPayrollPeriods = await _dbContext.PayrollPeriods
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+
+                var hasPayrolls = await _dbContext.Payrolls
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
+
+                if (hasPayrollPeriods || hasPayrolls)
+                {
+                    throw new InvalidOperationException("Cannot delete because the Accountant has pending payroll processing in the current branch.");
+                }
+            }
+        }
+
+        if (user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) ||
+            user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl != _defaultAvatarUrl)
+            {
+                try
+                {
+                    await _cloudinaryService.DeleteImageAsync($"account/{userId}/avatar");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete avatar from Cloudinary for user {UserId}", userId);
+                }
+                user.AvatarUrl = _defaultAvatarUrl;
+            }
+        }
+
         await _authService.BanUserAsync(user.UserId);
         try
         {

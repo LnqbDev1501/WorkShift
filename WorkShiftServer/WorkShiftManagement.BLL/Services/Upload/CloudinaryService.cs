@@ -61,4 +61,15 @@ public class CloudinaryService : ICloudinaryService
 
         return uploadResult.SecureUrl.AbsoluteUri;
     }
+
+    public async Task DeleteImageAsync(string publicId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            return;
+        }
+
+        var deletionParams = new DeletionParams(publicId);
+        await _cloudinary.DestroyAsync(deletionParams);
+    }
 }
