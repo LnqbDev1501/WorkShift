@@ -145,6 +145,22 @@ public class AuthService : IAuthService
         return GetUserId(body);
     }
 
+    public async Task UpdateEmailAsync(Guid userId, string email)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { email = email, email_confirm = true });
+        
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Unable to update email in Supabase Auth: {GetErrorMessage(body)}",
+            null,
+            response.StatusCode);
+    }
+
     private static Guid GetUserId(string body)
     {
         try

@@ -61,6 +61,8 @@ builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
 
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
+
 builder.Services.AddScoped<ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
