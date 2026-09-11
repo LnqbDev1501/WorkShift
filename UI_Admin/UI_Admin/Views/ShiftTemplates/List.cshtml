@@ -1,0 +1,88 @@
+@model UI_Admin.Models.ShiftTemplateListViewModel
+@{
+    ViewData["Title"] = "Shift Templates";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/shift-templates.css" asp-append-version="true" />
+}
+<div class="shift-page">
+    <header class="shift-topbar">
+        <nav aria-label="Breadcrumb">Admin <span aria-hidden="true">›</span> WorkShift Control <span aria-hidden="true">›</span> <strong>Shift Templates</strong></nav>
+        <div class="shift-user"><span>Administrator<small>Admin</small></span><div class="user-avatar" aria-hidden="true">A</div></div>
+    </header>
+    <section class="shift-content" aria-labelledby="shift-heading">
+        <div class="shift-heading">
+            <div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift hours and break durations.</p></div>
+            <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
+        </div>
+        @if (TempData["ShiftTemplateSuccess"] is string successMessage)
+        {
+            <div class="alert alert-success" role="status">@successMessage</div>
+        }
+        <div class="shift-card">
+            <div class="shift-toolbar">
+                <form asp-controller="ShiftTemplates" asp-action="List" method="get" class="shift-search" role="search">
+                    <label class="visually-hidden" for="table-search">Search name or description</label>
+                    <input id="table-search" name="search" value="@Model.Query.Search" placeholder="Search name or description" type="search" />
+                    <button type="submit" class="shift-primary">Search</button>
+                    @if (!string.IsNullOrEmpty(Model.Query.Search))
+                    {
+                        <a asp-action="List" class="shift-reset">Reset</a>
+                    }
+                </form>
+                @if (Model.ErrorMessage is null)
+                {
+                    <div class="shift-scope"><small>CATALOG SCOPE</small><div>@Model.Result.Items.Count(x => x.IsActive) Active on this page · @Model.Result.TotalItems Total matches</div></div>
+                }
+            </div>
+            @if (Model.ErrorMessage is not null)
+            {
+                <div class="shift-empty" role="alert"><h2>Could not load templates</h2><p>@Model.ErrorMessage</p><a asp-action="List" asp-route-search="@Model.Query.Search" class="shift-reset">Try again</a></div>
+            }
+            else
+            {
+                <div class="shift-table-wrap">
+                    <table class="shift-table">
+                        <caption class="visually-hidden">Shift templates with start time, end time, break duration and status</caption>
+                        <thead><tr><th scope="col">Shift Name</th><th scope="col">Start Time</th><th scope="col">End Time</th><th scope="col">Break Minutes</th><th scope="col">Status</th><th scope="col" class="shift-actions">Actions</th></tr></thead>
+                        <tbody>
+                        @foreach (var item in Model.Result.Items)
+                        {
+                            <tr>
+                                <td><strong>@item.ShiftName</strong></td>
+                                <td class="shift-number">@item.StartTime.ToString("HH:mm:ss")</td>
+                                <td class="shift-number">@item.EndTime.ToString("HH:mm:ss")</td>
+                                <td class="shift-number">@item.BreakMinutes mins</td>
+                                <td><span class="shift-status @(item.IsActive ? "is-active" : "is-inactive")"><span aria-hidden="true">●</span> @(item.IsActive ? "Active" : item.Status == "INACTIVE" ? "Inactive" : item.Status)</span></td>
+                                <td class="shift-actions"><button disabled aria-label="View details" title="Details are not available in this list view.">◉</button><button disabled aria-label="Edit template" title="Editing is not available in this list view.">✎</button><button disabled aria-label="Change status" title="Status changes are not available in this list view.">⊘</button></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+                @if (Model.Result.Items.Count == 0)
+                {
+                    <div class="shift-empty"><div class="shift-empty-icon" aria-hidden="true">⌕</div><h2>No shift templates found</h2><p>@(string.IsNullOrEmpty(Model.Query.Search) ? "There are no shift templates in the catalog yet." : "No templates match the entered query. Check for typos or reset filters.")</p>
+                        @if (!string.IsNullOrEmpty(Model.Query.Search)) { <a asp-action="List" class="shift-reset">Reset Search</a> }
+                    </div>
+                }
+                <footer class="shift-footer">
+                    <div>Showing <strong>@Model.FirstItem to @Model.LastItem</strong> of <strong>@Model.Result.TotalItems</strong> templates <span>· 20 records per page, maximum page 20</span></div>
+                    <nav class="shift-pagination" aria-label="Template pagination">
+                        @if (Model.Query.Page > 1) { <a asp-action="List" asp-route-page="@(Model.Query.Page - 1)" asp-route-search="@Model.Query.Search" aria-label="Previous page">‹</a> }
+                        else { <span aria-disabled="true" aria-label="Previous page">‹</span> }
+                        @for (var page = 1; page <= Model.LastPage; page++)
+                        {
+                            if (page == Model.Query.Page) { <span class="current" aria-current="page">@(page)</span> }
+                            else if (page == 1 || page == Model.LastPage || Math.Abs(page - Model.Query.Page) <= 1) { <a asp-action="List" asp-route-page="@(page)" asp-route-search="@Model.Query.Search" aria-label="Page @(page)">@(page)</a> }
+                            else if (page == Model.Query.Page - 2 || page == Model.Query.Page + 2) { <span>…</span> }
+                        }
+                        @if (Model.Query.Page < Model.LastPage) { <a asp-action="List" asp-route-page="@(Model.Query.Page + 1)" asp-route-search="@Model.Query.Search" aria-label="Next page">›</a> }
+                        else { <span aria-disabled="true" aria-label="Next page">›</span> }
+                    </nav>
+                </footer>
+                @if (Model.Result.TotalPages > 20) { <p class="shift-limit">Only the first 20 pages are available. Refine your search to find more templates.</p> }
+            }
+        </div>
+    </section>
+</div>

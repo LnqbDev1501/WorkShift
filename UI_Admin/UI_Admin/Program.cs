@@ -10,6 +10,7 @@ builder.Services.AddHttpClient<RegionApiService>();
 builder.Services.AddHttpClient<DashboardApiService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddHttpClient<NotificationApiService>();
 builder.Services.AddHttpClient<UserApiService>();
+builder.Services.AddHttpClient<ShiftTemplateApiService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 
 
 
