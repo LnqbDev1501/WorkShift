@@ -30,5 +30,7 @@ public interface IBranchRepo
         int pageNumber,
         int pageSize);
 
+    Task<List<Branch>> GetAssignableBranchesAsync();
+
     Task<Branch?> GetEntityByIdAsync(int id);
 }

@@ -11,9 +11,45 @@ public class UserController : Controller
     public UserController(UserApiService userApiService) => _userApiService = userApiService;
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(CancellationToken cancellationToken)
     {
-        return View();
+        var branches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+        var roles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+        var defaultRoleId = roles.FirstOrDefault(r => r.Name.Equals("Manager", StringComparison.OrdinalIgnoreCase))?.Id ?? 2;
+
+        var model = new UserCreateViewModel
+        {
+            AvailableBranches = branches,
+            AvailableRoles = roles,
+            RoleId = defaultRoleId,
+            BranchId = branches.FirstOrDefault()?.Id
+        };
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(UserCreateViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            model.AvailableRoles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+            return View(model);
+        }
+
+        try
+        {
+            await _userApiService.CreateAsync(model, cancellationToken);
+            TempData["AccountCreatedSuccess"] = true;
+            return RedirectToAction(nameof(List));
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            model.AvailableRoles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+            return View(model);
+        }
     }
 
     [HttpGet]
