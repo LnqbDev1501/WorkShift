@@ -5,8 +5,8 @@
 .shift-topbar strong { color:#191c1f; font-weight:500; }
 .shift-user { display:flex; align-items:center; gap:12px; text-align:right; }
 .shift-user small { display:block; color:#575e70; font-size:11px; }
-.shift-content { max-width:1504px; margin:auto; padding:32px; }
-.shift-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:24px; }
+.shift-content { max-width:1504px; margin:auto; padding:16px 28px 28px; }
+.shift-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; margin-bottom:16px; }
 .shift-heading h1 { font-size:22px; font-weight:600; letter-spacing:-.4px; margin:0 0 6px; }
 .shift-heading p { color:#575e70; font-size:14px; margin:0; }
 .shift-primary { background:#4f46e5; color:#fff; border:0; border-radius:8px; padding:10px 16px; min-height:40px; font-weight:500; white-space:nowrap; }

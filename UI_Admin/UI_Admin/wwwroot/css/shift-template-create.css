@@ -1,5 +1,5 @@
-.create-heading { align-items:flex-end; }
-.create-heading h1 { font-size:30px; margin:12px 0 8px; }
+.create-heading { align-items:flex-end; margin-bottom:16px; }
+.create-heading h1 { font-size:28px; margin:4px 0 6px; }
 .create-heading p { max-width:720px; line-height:1.6; }
 .create-module { color:#3525cd; background:#e2dfff; border-radius:10px; padding:4px 9px; font-size:10px; font-weight:600; letter-spacing:.7px; text-transform:uppercase; }
 .create-default { padding:12px 16px; background:#edeef2; border-radius:8px; flex-shrink:0; }

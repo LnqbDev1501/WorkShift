@@ -109,29 +109,8 @@
     <partial name="_AdminSidebar" />
 
     <div class="pl-[232px]">
-        <header class="fixed top-0 left-[232px] right-0 h-[64px] bg-surface-container-lowest border-b border-surface-container-highest z-40 flex items-center justify-between px-unit-8">
-            <div class="flex items-center gap-unit-3">
-                <div class="flex items-center gap-unit-2 font-label-md text-secondary">
-                    <span class="font-body-md text-secondary">Admin</span>
-                    <span class="material-symbols-outlined text-[16px] text-outline-variant">chevron_right</span>
-                    <span class="font-body-md-medium text-on-surface">@ViewData["Title"]</span>
-                </div>
-            </div>
-            <div class="flex items-center gap-unit-4">
-                <div class="flex items-center gap-unit-3 border-l border-surface-container-high pl-unit-4">
-                    <div class="flex flex-col text-right">
-                        <span class="font-title-md text-on-surface text-[13px] leading-none">Nguyen Minh Chau</span>
-                        <span class="font-label-sm text-secondary text-[11px] mt-0.5">Super Admin</span>
-                    </div>
-                    <img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxBqyVKY3tSSdbSk2R1vAcGD4081GVIvabN1KxoezORlQQQU4QL834LccRH3msx2wGRRYrXCubaeO0clG7Ln26m_rObsktqf1a-b4MzFcLnDFoqubTn0QZxCPOi1ocOcwRgVp2UcUm2Ii-fXYDIWONx_TYhOA-nr6tHzsSrjIj6tH_2VJ2HW_5rij3HSL21l6w64l7mqTh8DMiVGq21fjjJMgt4JO44tEWiuglcaNqGZlE8_ean_HMrw">
-                </div>
-            </div>
-        </header>
-
-        <main class="relative pt-[64px] bg-[#F6F7FB] min-h-screen px-unit-8 py-unit-8">
-            <div class="w-full max-w-[1440px] mx-auto">
-                @RenderBody()
-            </div>
+        <main class="relative bg-[#F6F7FB] min-h-screen">
+            @RenderBody()
         </main>
     </div>
 
