@@ -9,6 +9,39 @@ public sealed class ShiftTemplatesController(
     ShiftTemplateApiService service, ILogger<ShiftTemplatesController> logger) : Controller
 {
     [HttpGet]
+    public IActionResult Create() => View(new CreateShiftTemplateViewModel
+    {
+        StartTime = "08:00:00", EndTime = "16:30:00", BreakMinutes = 45
+    });
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(CreateShiftTemplateViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return View(model);
+
+        try
+        {
+            var result = await service.CreateAsync(model, cancellationToken);
+            if (result.Success)
+            {
+                TempData["ShiftTemplateSuccess"] = $"Shift template “{model.ShiftName?.Trim()}” created successfully.";
+                return RedirectToAction(nameof(List));
+            }
+            ModelState.AddModelError(result.DuplicateName ? nameof(model.ShiftName) : string.Empty, result.Error!);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Unable to confirm shift template creation.");
+            ModelState.AddModelError(string.Empty,
+                "Unable to confirm whether the template was created. Check the template list before trying again. Your entered values have been kept.");
+        }
+        return View(model);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> List(
         [FromQuery] ShiftTemplateListQueryViewModel query, CancellationToken cancellationToken)
     {

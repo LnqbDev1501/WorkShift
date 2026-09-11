@@ -1,0 +1,300 @@
+@startuml
+title View Admin Dashboard\nClass Diagram
+
+top to bottom direction
+
+skinparam monochrome true
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 75
+skinparam classFontStyle bold
+
+hide circle
+show stereotypes
+hide empty members
+
+
+' =====================================================
+' CONTROLLER
+' =====================================================
+
+class AdminDashboardController {
+    - dashboardService : IDashboardService
+    - logger : ILogger<AdminDashboardController>
+    --
+    + Get() : Task<ActionResult<DashboardResponse>>
+}
+
+
+' =====================================================
+' SERVICE
+' =====================================================
+
+interface IDashboardService {
+    + GetAsync() : Task<DashboardResponse>
+}
+
+class DashboardService {
+    - _dashboardRepo : IDashboardRepo
+    --
+    + DashboardService(dashboardRepo : IDashboardRepo)
+    + GetAsync() : Task<DashboardResponse>
+    {static} - GetVietnamTimeZone() : TimeZoneInfo
+}
+
+
+' =====================================================
+' REPOSITORY
+' =====================================================
+
+interface IDashboardRepo {
+    + GetAsync(
+      todayStartUtc : DateTime,
+      tomorrowStartUtc : DateTime
+      ) : Task<DashboardData>
+}
+
+class DashboardRepo {
+    - _context : AppDbContext
+    --
+    + DashboardRepo(context : AppDbContext)
+    + GetAsync(
+      todayStartUtc : DateTime,
+      tomorrowStartUtc : DateTime
+      ) : Task<DashboardData>
+}
+
+
+' =====================================================
+' DATABASE CONTEXT
+' =====================================================
+
+class AppDbContext {
+    + Users : DbSet<User>
+    + Regions : DbSet<Region>
+    + Branches : DbSet<Branch>
+    + Attendances : DbSet<Attendance>
+    + Payrolls : DbSet<Payroll>
+    + PayrollPeriods : DbSet<PayrollPeriod>
+    --
+    + AppDbContext()
+    + AppDbContext(
+      options : DbContextOptions<AppDbContext>
+      )
+}
+
+
+' =====================================================
+' DATA MODEL
+' =====================================================
+
+class DashboardData {
+    + TotalUsers : int
+    + ManagerCount : int
+    + AccountantCount : int
+    + StaffCount : int
+    + TotalRegions : int
+    + TotalBranches : int
+    + ActiveBranches : int
+    + PendingPayrolls : int
+    + TodayAttendance : List<AttendanceStatusData>
+    + RecentPayrollPeriods : List<RecentPayrollPeriodData>
+}
+
+class AttendanceStatusData {
+    + Status : string
+    + Count : int
+}
+
+class RecentPayrollPeriodData {
+    + PayrollPeriodId : int
+    + BranchName : string
+    + PeriodCode : string
+    + PeriodName : string
+    + StartDate : DateOnly
+    + EndDate : DateOnly
+    + Status : string
+    + TotalPayrolls : int
+}
+
+
+' =====================================================
+' RESPONSE DTO
+' =====================================================
+
+class DashboardResponse {
+    + TotalUsers : int
+    + ManagerCount : int
+    + AccountantCount : int
+    + StaffCount : int
+    + TotalRegions : int
+    + TotalBranches : int
+    + ActiveBranches : int
+    + PendingPayrolls : int
+    + TodayAttendance : AttendanceSummaryResponse
+    + RecentPayrollPeriods : List<RecentPayrollPeriodResponse>
+}
+
+class AttendanceSummaryResponse {
+    + Date : DateOnly
+    + Total : int
+    + ByStatus : List<AttendanceStatusResponse>
+}
+
+class AttendanceStatusResponse {
+    + Status : string
+    + Count : int
+}
+
+class RecentPayrollPeriodResponse {
+    + PayrollPeriodId : int
+    + BranchName : string
+    + PeriodCode : string
+    + PeriodName : string
+    + StartDate : DateOnly
+    + EndDate : DateOnly
+    + Status : string
+    + TotalPayrolls : int
+}
+
+
+' =====================================================
+' RELATIONSHIPS
+' =====================================================
+
+
+' Controller -> IService
+' UML: injected association or interface realization
+AdminDashboardController --> IDashboardService : dashboardService
+
+
+' Service -> IService
+' UML: injected association or interface realization
+DashboardService ..|> IDashboardService
+
+
+' Service -> Repository
+' UML: injected association or interface realization
+DashboardService --> IDashboardRepo : _dashboardRepo
+
+
+' Repository -> IRepository
+' UML: injected association or interface realization
+DashboardRepo ..|> IDashboardRepo
+
+
+' Repository -> Data Model
+' Dependency / Use: dashed arrow
+DashboardRepo ..> DashboardData : <<use>>
+
+
+' Repository -> DbContext
+' Association: solid line without arrow
+DashboardRepo --> AppDbContext : _context
+
+
+' =====================================================
+' DATA MODEL DEPENDENCIES
+' =====================================================
+
+DashboardData ..> AttendanceStatusData : <<use>>\nTodayAttendance
+DashboardData ..> RecentPayrollPeriodData : <<use>>\nRecentPayrollPeriods
+
+
+' =====================================================
+' RESPONSE DTO DEPENDENCIES
+' =====================================================
+
+DashboardResponse ..> AttendanceSummaryResponse : <<use>>\nTodayAttendance
+
+AttendanceSummaryResponse ..> AttendanceStatusResponse : <<use>>\nByStatus
+
+DashboardResponse ..> RecentPayrollPeriodResponse : <<use>>\nRecentPayrollPeriods
+
+
+' =====================================================
+' SERVICE RESPONSE DEPENDENCIES
+' =====================================================
+
+DashboardService ..> DashboardData : <<use>>
+DashboardService ..> DashboardResponse : <<use>>
+
+AdminDashboardController ..> DashboardResponse : <<use>>
+
+' Entities: selected scalar properties; other members omitted for readability.
+' Standalone entities arranged around AppDbContext.
+    class User <<entity>> {
+        + UserId : Guid
+        + RoleId : int
+        + BranchId : int?
+        + FullName : string
+        + Email : string
+        + Status : string
+        + DeletedAt : DateTime?
+    }
+    class Region <<entity>> {
+        + RegionId : int
+        + RegionCode : string
+        + RegionName : string
+        + Description : string?
+        + IsActive : bool
+    }
+    class Branch <<entity>> {
+        + BranchId : int
+        + RegionId : int
+        + BranchCode : string
+        + BranchName : string
+        + Address : string
+        + Status : string
+    }
+    class Attendance <<entity>> {
+        + AttendanceId : int
+        + AssignmentId : int
+        + AttendanceRuleId : int
+        + EmployeeFullNameSnapshot : string
+        + ShiftStartAtSnapshot : DateTime
+        + ShiftEndAtSnapshot : DateTime
+        + CheckInTime : DateTime?
+        + CheckOutTime : DateTime?
+        + Status : string
+    }
+    class Payroll <<entity>> {
+        + PayrollId : int
+        + UserId : Guid
+        + PayrollPeriodId : int
+        + BranchId : int
+        + TimesheetId : int
+        + GrossSalary : decimal
+        + TotalDeduction : decimal
+        + NetSalary : decimal
+        + Status : string
+    }
+    class PayrollPeriod <<entity>> {
+        + PayrollPeriodId : int
+        + BranchId : int
+        + BranchNameSnapshot : string
+        + PeriodCode : string
+        + PeriodName : string
+        + StartDate : DateOnly
+        + EndDate : DateOnly
+        + Status : string
+        + CreatedAt : DateTime
+    }
+
+
+AppDbContext ..left.> User : <<use>>\nUsers
+AppDbContext ..left.> Region : <<use>>\nRegions
+AppDbContext ..down.> Branch : <<use>>\nBranches
+AppDbContext ..right.> Attendance : <<use>>\nAttendances
+AppDbContext ..right.> Payroll : <<use>>\nPayrolls
+AppDbContext ..down.> PayrollPeriod : <<use>>\nPayrollPeriods
+
+IDashboardService ..> DashboardResponse : <<use>>
+IDashboardRepo ..> DashboardData : <<use>>
+
+@enduml
+
+
+

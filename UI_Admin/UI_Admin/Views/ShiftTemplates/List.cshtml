@@ -13,8 +13,12 @@
     <section class="shift-content" aria-labelledby="shift-heading">
         <div class="shift-heading">
             <div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift hours and break durations.</p></div>
-            <button class="shift-primary" disabled title="Template creation is not available in this list view."><span aria-hidden="true">＋</span> Create Template</button>
+            <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
         </div>
+        @if (TempData["ShiftTemplateSuccess"] is string successMessage)
+        {
+            <div class="alert alert-success" role="status">@successMessage</div>
+        }
         <div class="shift-card">
             <div class="shift-toolbar">
                 <form asp-controller="ShiftTemplates" asp-action="List" method="get" class="shift-search" role="search">
