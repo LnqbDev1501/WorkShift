@@ -108,16 +108,20 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromHeader(Name = "X-Admin-Id")]
                 string? adminId)
         {
-            if (string.IsNullOrWhiteSpace(adminId) ||
-                !Guid.TryParse(
-                    adminId,
-                    out var adminGuid))
+            Guid? adminGuid = null;
+            Guid parsedAdminId = Guid.Empty;
+            if (!string.IsNullOrWhiteSpace(adminId) &&
+                !Guid.TryParse(adminId, out parsedAdminId))
             {
                 return BadRequest(new
                 {
                     message =
                         "X-Admin-Id không hợp lệ."
                 });
+            }
+            else if (!string.IsNullOrWhiteSpace(adminId))
+            {
+                adminGuid = parsedAdminId;
             }
 
             try
@@ -164,16 +168,20 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromHeader(Name = "X-Admin-Id")]
                 string? adminId)
         {
-            if (string.IsNullOrWhiteSpace(adminId) ||
-                !Guid.TryParse(
-                    adminId,
-                    out var adminGuid))
+            Guid? adminGuid = null;
+            Guid parsedAdminId = Guid.Empty;
+            if (!string.IsNullOrWhiteSpace(adminId) &&
+                !Guid.TryParse(adminId, out parsedAdminId))
             {
                 return BadRequest(new
                 {
                     message =
                         "X-Admin-Id không hợp lệ."
                 });
+            }
+            else if (!string.IsNullOrWhiteSpace(adminId))
+            {
+                adminGuid = parsedAdminId;
             }
 
             try

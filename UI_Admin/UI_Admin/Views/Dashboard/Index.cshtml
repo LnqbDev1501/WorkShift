@@ -1,3 +1,88 @@
+@model DashboardViewModel
+@using System.Globalization
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Overview";
+    var data = Model.Data;
 }
+@section Styles {
+    <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
+}
+<header class="dashboard-topbar">
+    <div>Admin <span class="breadcrumb-divider">›</span> <strong>WorkShift Control</strong></div>
+    <div class="dashboard-profile"><span><strong>@(User.Identity?.Name ?? "Administrator")</strong><small>Admin</small></span><span class="user-avatar">A</span></div>
+</header>
+<div class="dashboard-page">
+    <div class="dashboard-heading">
+        <div><div class="eyebrow">▦ &nbsp; SYSTEM COMMAND</div><h1>Overview</h1><p>Monitor your organization, attendance records, and payroll review workload.</p></div>
+        <a class="sync-badge" asp-action="Index" aria-label="Refresh dashboard">↻ &nbsp; @(data is null ? "Retry connection" : "Refresh data")</a>
+    </div>
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="dashboard-error" role="alert"><strong>Dashboard unavailable</strong><p>@Model.ErrorMessage</p><a asp-action="Index">Try again →</a></div>
+    }
+    @if (data is not null)
+    {
+        <section class="stat-grid" aria-label="Organization statistics">
+            @foreach (var card in new[] {
+                (Label: "Total Users", Value: data.TotalUsers, Icon: "♙", Note: "All account statuses"),
+                (Label: "Regions", Value: data.TotalRegions, Icon: "▧", Note: "Operating territories"),
+                (Label: "Branches", Value: data.TotalBranches, Icon: "▤", Note: $"{DashboardViewModel.Number(data.ActiveBranches)} active"),
+                (Label: "Payrolls Awaiting Approval", Value: data.PendingPayrolls, Icon: "◷", Note: "Submitted employee payrolls") })
+            {
+                <article class="dashboard-card stat-card">
+                    <div class="card-heading"><span>@card.Label</span><span class="stat-icon" aria-hidden="true">@card.Icon</span></div>
+                    <div class="stat-value">@DashboardViewModel.Number(card.Value)
+                        @if (card.Label == "Payrolls Awaiting Approval" && card.Value > 0) { <span class="status-badge pending">Action Req.</span> }
+                    </div><p>@card.Note</p>
+                </article>
+            }
+        </section>
+        <div class="summary-grid">
+            <section class="dashboard-card summary-card">
+                <div class="card-heading"><h2>Users by Role</h2><span class="eyebrow">Account Distribution</span></div>
+                <p>Active authorization tiers across corporate and site divisions.</p>
+                <div class="role-list">
+                    @foreach (var role in new[] { (Name: "Managers", Count: data.ManagerCount, Color: "primary"), (Name: "Accountants", Count: data.AccountantCount, Color: "neutral"), (Name: "Staff", Count: data.StaffCount, Color: "staff") })
+                    {
+                        var percent = DashboardViewModel.Percent(role.Count, data.TotalUsers);
+                        <div><div class="role-label"><span><i class="dot @role.Color"></i>@role.Name</span><span>@DashboardViewModel.Number(role.Count)<small>@(percent)%</small></span></div>
+                        <div class="chart-track" role="img" aria-label="@role.Name: @role.Count, @percent percent"><div class="chart-fill @role.Color" style="width: @(percent)%"></div></div></div>
+                    }
+                </div>
+                <div class="panel-footer"><span>Selected account roles</span><span>Total Segmented: @DashboardViewModel.Number(data.ManagerCount + data.AccountantCount + data.StaffCount)</span></div>
+            </section>
+            <section class="dashboard-card summary-card">
+                <div class="card-heading"><h2>Today's Attendance</h2><div class="attendance-date">@data.TodayAttendance.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)<small>Asia/Ho_Chi_Minh</small></div></div>
+                <p>Attendance records associated with today's scheduled shift starts.</p>
+                <div class="attendance-total"><strong>@DashboardViewModel.Number(data.TodayAttendance.Total)</strong> records logged</div>
+                <div class="chart-track attendance-chart" role="img" aria-label="Attendance distribution">
+                    @foreach (var status in data.TodayAttendance.ByStatus)
+                    {
+                        <div class="chart-fill @DashboardViewModel.StatusClass(status.Status)" style="width: @(DashboardViewModel.Percent(status.Count, data.TodayAttendance.Total))%" title="@DashboardViewModel.Label(status.Status): @status.Count"></div>
+                    }
+                </div>
+                <div class="attendance-grid">
+                    @foreach (var status in data.TodayAttendance.ByStatus)
+                    {
+                        <div><span><i class="dot @DashboardViewModel.StatusClass(status.Status)"></i>@DashboardViewModel.Label(status.Status)</span><strong>@DashboardViewModel.Number(status.Count)</strong></div>
+                    }
+                </div>
+                @if (data.TodayAttendance.ByStatus.Count == 0) { <p class="empty-state">No attendance records for today.</p> }
+                <div class="panel-footer"><span>◷ Standard Shift Window</span><span>Total Evaluated: @DashboardViewModel.Number(data.TodayAttendance.Total) records</span></div>
+            </section>
+        </div>
+        <section class="dashboard-card payroll-card">
+            <div class="payroll-heading"><div><h2>Recent Payroll Periods</h2><p>Ordered by period end date</p></div><span>@data.RecentPayrollPeriods.Count Recent Periods</span></div>
+            <div class="payroll-table-scroll" tabindex="0" role="region" aria-label="Recent payroll periods">
+                <table class="payroll-table"><thead><tr><th scope="col">Period</th><th scope="col">Branch</th><th scope="col">Date Range</th><th scope="col" class="number">Payrolls</th><th scope="col">Status</th></tr></thead><tbody>
+                @foreach (var period in data.RecentPayrollPeriods.OrderByDescending(p => p.EndDate))
+                {
+                    <tr><td><strong>@period.PeriodCode</strong><small>@period.PeriodName</small></td><td>@period.BranchName</td><td class="date-range">@period.StartDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) – @period.EndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</td><td class="number">@DashboardViewModel.Number(period.TotalPayrolls)</td><td><span class="status-badge @DashboardViewModel.StatusClass(period.Status)">@DashboardViewModel.Label(period.Status)</span></td></tr>
+                }
+                @if (data.RecentPayrollPeriods.Count == 0) { <tr><td colspan="5" class="empty-state">No payroll periods available.</td></tr> }
+                </tbody></table>
+            </div>
+            <div class="payroll-footer">Displaying latest payroll periods</div>
+        </section>
+    }
+</div>

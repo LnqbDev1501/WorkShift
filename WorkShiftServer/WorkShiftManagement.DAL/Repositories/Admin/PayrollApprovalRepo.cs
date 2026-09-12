@@ -172,15 +172,21 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .ToListAsync();
         }
 
-        // =====================================================
-        // USER EXISTS
-        // =====================================================
-        public async Task<bool>
-            UserExistsAsync(Guid userId)
+        public async Task<bool> UserHasActiveRoleAsync(Guid userId, string roleName)
         {
             return await _context.Users
                 .AsNoTracking()
-                .AnyAsync(x => x.UserId == userId);
+                .AnyAsync(x => x.UserId == userId &&
+                    x.Status == "ACTIVE" && x.Role.RoleName == roleName);
+        }
+
+        public async Task<List<Guid>> GetActiveUserIdsByRoleAsync(string roleName)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(x => x.Status == "ACTIVE" && x.Role.RoleName == roleName)
+                .Select(x => x.UserId)
+                .ToListAsync();
         }
 
         // =====================================================

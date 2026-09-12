@@ -40,4 +40,14 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response
 
         public DateTime SubmittedAt { get; set; }
     }
+
+    public class PayrollPeriodSubmitResponse
+    {
+        public string Message { get; set; } = string.Empty;
+        public int PayrollPeriodId { get; set; }
+        public int SubmittedPayrollCount { get; set; }
+        public Guid AssignedAdminId { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public DateTime SubmittedAt { get; set; }
+    }
 }

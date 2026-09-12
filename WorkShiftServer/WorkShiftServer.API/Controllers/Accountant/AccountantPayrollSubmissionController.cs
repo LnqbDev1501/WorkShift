@@ -19,11 +19,37 @@ namespace WorkShiftServer.API.Controllers.Accountant
 
         // =====================================================
         // POST
-        // /api/accountant/payroll-periods/{periodId}
-        // /payrolls/{payrollId}/submit
+        // /api/accountant/payroll-periods/{periodId}/submit
         // =====================================================
-        [HttpPost(
-            "{periodId:int}/payrolls/{payrollId:int}/submit")]
+        [HttpPost("{periodId:int}/submit")]
+        public async Task<IActionResult>
+            SubmitPayrollPeriod(
+                int periodId,
+                [FromHeader(Name = "X-Accountant-Id")]
+                string? accountantId)
+        {
+            if (string.IsNullOrWhiteSpace(accountantId) ||
+                !Guid.TryParse(accountantId, out var accountantGuid))
+            {
+                return BadRequest(new { message = "X-Accountant-Id không hợp lệ." });
+            }
+
+            try
+            {
+                return Ok(await _service.SubmitPayrollPeriodAsync(periodId, accountantGuid));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        // Gửi lại một Payroll đã bị Admin reject.
+        [HttpPost("{periodId:int}/payrolls/{payrollId:int}/submit")]
         public async Task<IActionResult>
             SubmitRejectedPayroll(
                 int periodId,

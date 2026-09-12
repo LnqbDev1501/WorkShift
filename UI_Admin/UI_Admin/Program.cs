@@ -9,6 +9,7 @@ builder.Services.AddHttpClient<AuthApiService>();
 builder.Services.AddHttpClient<RegionApiService>();
 builder.Services.AddHttpClient<PayrollApiService>(client => client.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddHttpClient<DashboardApiService>(client => client.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddHttpClient<NotificationApiService>();
 
 
 

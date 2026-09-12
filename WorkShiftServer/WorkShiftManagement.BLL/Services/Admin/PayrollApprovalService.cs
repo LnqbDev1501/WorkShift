@@ -296,7 +296,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollPeriodId,
                 int payrollId,
                 RejectPayrollRequest request,
-                Guid adminId)
+                Guid? adminId)
         {
             if (request == null)
             {
@@ -315,15 +315,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 throw new ArgumentException("Lý do không được vượt quá 1000 ký tự.");
             }
 
-            // Hiện project chưa JWT,
-            // nên ít nhất kiểm tra X-Admin-Id tồn tại.
-            var userExists =
-                await _repo.UserExistsAsync(adminId);
-
-            if (!userExists)
-            {
-                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
-            }
+            var resolvedAdminId = await ResolveAdminIdAsync(adminId);
 
             var period =
                 await _repo
@@ -379,7 +371,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             var now = DateTime.UtcNow;
             payroll.Status = "REJECTED";
-            payroll.RejectedBy = adminId;
+            payroll.RejectedBy = resolvedAdminId;
             payroll.RejectedAt = now;
             payroll.RejectReason = reason;
 
@@ -405,15 +397,9 @@ namespace WorkShiftManagement.BLL.Services.Admin
         public async Task<PayrollApprovalResponse>
             ApprovePayrollPeriodAsync(
                 int payrollPeriodId,
-                Guid adminId)
+                Guid? adminId)
         {
-            var userExists =
-                await _repo.UserExistsAsync(adminId);
-
-            if (!userExists)
-            {
-                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
-            }
+            var resolvedAdminId = await ResolveAdminIdAsync(adminId);
 
             var period =
                 await _repo
@@ -476,7 +462,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             // Approve Period
             period.Status = "APPROVED";
-            period.ApprovedBy = adminId;
+            period.ApprovedBy = resolvedAdminId;
             period.ApprovedAt = now;
 
             /*
@@ -503,11 +489,9 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollId,
                 Guid accountantId)
         {
-            var userExists = await _repo.UserExistsAsync(accountantId);
-
-            if (!userExists)
+            if (!await _repo.UserHasActiveRoleAsync(accountantId, "ACCOUNTANT"))
             {
-                throw new KeyNotFoundException("Không tìm thấy người thực hiện.");
+                throw new KeyNotFoundException("Không tìm thấy Accountant đang hoạt động.");
             }
 
             var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId);
@@ -573,6 +557,81 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 PayrollStatus = payroll.Status,
                 PayrollPeriodStatus = period.Status,
                 SubmittedAt = now
+            };
+        }
+
+        public async Task<PayrollPeriodSubmitResponse> SubmitPayrollPeriodAsync(
+            int payrollPeriodId,
+            Guid accountantId)
+        {
+            if (!await _repo.UserHasActiveRoleAsync(accountantId, "ACCOUNTANT"))
+            {
+                throw new KeyNotFoundException("Không tìm thấy Accountant đang hoạt động.");
+            }
+
+            var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId)
+                ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
+
+            if (period.Status != "CALCULATED")
+            {
+                throw new InvalidOperationException(
+                    "Chỉ kỳ lương đang CALCULATED mới được gửi Admin duyệt lần đầu.");
+            }
+
+            var payrolls = await _repo.GetAllPayrollsForUpdateAsync(payrollPeriodId);
+            if (payrolls.Count == 0)
+            {
+                throw new InvalidOperationException("Kỳ lương chưa có phiếu lương.");
+            }
+
+            if (payrolls.Any(x => x.Status != "CALCULATED"))
+            {
+                throw new InvalidOperationException(
+                    "Tất cả phiếu lương phải ở trạng thái CALCULATED trước khi gửi duyệt.");
+            }
+
+            var assignedAdminId = await ResolveAdminIdAsync(null);
+            var now = DateTime.UtcNow;
+            foreach (var payroll in payrolls)
+            {
+                payroll.Status = "SUBMITTED";
+            }
+
+            period.Status = "SUBMITTED";
+            period.SubmittedBy = accountantId;
+            period.SubmittedAt = now;
+            await _repo.SaveChangesAsync();
+
+            return new PayrollPeriodSubmitResponse
+            {
+                Message = "Đã gửi kỳ lương cho Admin duyệt.",
+                PayrollPeriodId = payrollPeriodId,
+                SubmittedPayrollCount = payrolls.Count,
+                AssignedAdminId = assignedAdminId,
+                Status = period.Status,
+                SubmittedAt = now
+            };
+        }
+
+        private async Task<Guid> ResolveAdminIdAsync(Guid? requestedAdminId)
+        {
+            var activeAdminIds = await _repo.GetActiveUserIdsByRoleAsync("ADMIN");
+
+            if (requestedAdminId.HasValue)
+            {
+                if (!activeAdminIds.Contains(requestedAdminId.Value))
+                {
+                    throw new KeyNotFoundException("Không tìm thấy Admin đang hoạt động.");
+                }
+                return requestedAdminId.Value;
+            }
+
+            return activeAdminIds.Count switch
+            {
+                1 => activeAdminIds[0],
+                0 => throw new InvalidOperationException("Hệ thống chưa có Admin đang hoạt động."),
+                _ => throw new InvalidOperationException(
+                    "Hệ thống có nhiều Admin đang hoạt động; cần xác định X-Admin-Id.")
             };
         }
 

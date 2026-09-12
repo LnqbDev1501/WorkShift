@@ -44,15 +44,58 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id, int pageNumber = 1, CancellationToken ct = default)
+    public async Task<IActionResult> Details(int id, PayrollDetailQuery query, CancellationToken ct)
     {
-        if (id < 1 || pageNumber < 1) return BadRequest();
-        try { return View(await payroll.GetDetailAsync(id, pageNumber, ct)); }
+        if (id < 1 || !ModelState.IsValid) return BadRequest(ModelState);
+        try { return View(await LoadDetailAsync(id, query, ct)); }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return NotFound(); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Could not load payroll period {Id}", id);
             TempData["PayrollError"] = "Không thể tải chi tiết kỳ lương. Vui lòng thử lại.";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    private async Task<PayrollDetailViewModel> LoadDetailAsync(int id, PayrollDetailQuery query, CancellationToken ct) =>
+        new() { Period = await payroll.GetDetailAsync(id, query, ct), Query = query };
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Approve(PayrollReviewInput input, CancellationToken ct) => ReviewAsync(input, null, ct);
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Reject(PayrollRejectInput input, CancellationToken ct) => ReviewAsync(input, input, ct);
+
+    private async Task<IActionResult> ReviewAsync(PayrollReviewInput input, PayrollRejectInput? rejection, CancellationToken ct)
+    {
+        if (input.PeriodId < 1 || input.PageNumber < 1 || input.PageSize is < 1 or > 100) return BadRequest();
+        try
+        {
+            if (ModelState.IsValid)
+            {
+                if (rejection == null) await payroll.ApproveAsync(input.PeriodId, ct);
+                else await payroll.RejectAsync(rejection, ct);
+                TempData["PayrollSuccess"] = rejection == null ? "Đã duyệt toàn bộ kỳ lương." : "Đã gửi phiếu lương về để chỉnh sửa. Kỳ lương cần được gửi lại trước khi duyệt.";
+                return RedirectToAction(nameof(Details), new { id = input.PeriodId, input.Search, input.PageNumber, input.PageSize });
+            }
+        }
+        catch (InvalidOperationException ex) { ModelState.AddModelError("", ex.Message); }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            logger.LogWarning(ex, "Payroll review failed for {Id}", input.PeriodId);
+            ModelState.AddModelError("", "Không xác nhận được kết quả thao tác. Hãy tải lại trang để kiểm tra trạng thái trước khi thử lại.");
+        }
+        try
+        {
+            var model = await LoadDetailAsync(input.PeriodId, input, ct);
+            model.RejectedPayrollId = rejection?.PayrollId;
+            model.RejectionReason = rejection?.Reason;
+            return View("Details", model);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
+        {
+            logger.LogWarning(ex, "Could not refresh payroll review");
+            TempData["PayrollError"] = "Không thể tải lại kỳ lương. Vui lòng kiểm tra trạng thái trước khi thực hiện lại thao tác.";
             return RedirectToAction(nameof(List));
         }
     }

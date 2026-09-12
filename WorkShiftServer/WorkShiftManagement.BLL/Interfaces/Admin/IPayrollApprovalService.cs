@@ -26,12 +26,17 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin
                 int payrollPeriodId,
                 int payrollId,
                 RejectPayrollRequest request,
-                Guid adminId);
+                Guid? adminId);
 
         Task<PayrollApprovalResponse>
             ApprovePayrollPeriodAsync(
                 int payrollPeriodId,
-                Guid adminId);
+                Guid? adminId);
+
+        Task<PayrollPeriodSubmitResponse>
+            SubmitPayrollPeriodAsync(
+                int payrollPeriodId,
+                Guid accountantId);
 
         Task<PayrollSubmitResponse>
             SubmitRejectedPayrollAsync(

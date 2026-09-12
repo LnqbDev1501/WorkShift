@@ -28,7 +28,9 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
 
         Task<List<Payroll>> GetAllPayrollsForUpdateAsync(int payrollPeriodId);
 
-        Task<bool> UserExistsAsync(Guid userId);
+        Task<bool> UserHasActiveRoleAsync(Guid userId, string roleName);
+
+        Task<List<Guid>> GetActiveUserIdsByRoleAsync(string roleName);
 
         Task<int> SaveChangesAsync();
     }
