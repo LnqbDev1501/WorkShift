@@ -11,6 +11,55 @@ public sealed class ShiftTemplatesController(
     ShiftTemplateApiService service, ILogger<ShiftTemplatesController> logger) : Controller
 {
     [HttpGet]
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid || id <= 0) return BadRequest();
+        try
+        {
+            var model = await service.GetByIdAsync(id, cancellationToken);
+            if (model is not null) return View(model);
+            Response.StatusCode = StatusCodes.Status404NotFound;
+            return View(new ShiftTemplateDetailViewModel { ShiftTemplateId = id, ErrorMessage = "This shift template could not be found." });
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Unable to load shift template {Id}.", id);
+            Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return View(new ShiftTemplateDetailViewModel { ShiftTemplateId = id, ErrorMessage = "Unable to load this template. Please try again later." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ChangeStatus(ChangeShiftTemplateStatusViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return BadRequest();
+        var id = model.Id;
+        var restore = model.Restore!.Value;
+        try
+        {
+            var result = await service.SetStatusAsync(id, restore, cancellationToken);
+            if (!result.Success)
+                TempData["ShiftTemplateError"] = result.Message;
+            else
+            {
+                TempData["ShiftTemplateSuccess"] = result.Message;
+                TempData["ShiftTemplateSuccessTitle"] = restore ? "Template restored" : "Template deactivated";
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Unable to confirm status change for shift template {Id}.", id);
+            TempData["ShiftTemplateError"] = "Unable to confirm the status change. Check the current status before trying again.";
+        }
+        if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
+            return LocalRedirect(model.ReturnUrl);
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
     public IActionResult Create() => View(new CreateShiftTemplateViewModel
     {
         StartTime = "08:00:00", EndTime = "16:30:00", BreakMinutes = 45

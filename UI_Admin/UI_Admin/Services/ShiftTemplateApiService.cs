@@ -5,6 +5,41 @@ namespace UI_Admin.Services;
 
 public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguration configuration)
 {
+    public async Task<ShiftTemplateDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        using var response = await httpClient.GetAsync($"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{id}", cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<ShiftTemplateDetailViewModel>(cancellationToken: cancellationToken)
+            ?? throw new JsonException("The shift template API returned an empty response.");
+    }
+
+    public async Task<(bool Success, string Message)> SetStatusAsync(int id, bool restore, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        var url = $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{id}";
+        using var response = restore
+            ? await httpClient.PostAsync($"{url}/restore", null, cancellationToken)
+            : await httpClient.DeleteAsync(url, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return (false, "This shift template could not be found. It may have been removed.");
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            return (false, "Your session has expired. Please sign in again.");
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            return (false, "You do not have permission to change template status.");
+        if (response.StatusCode is System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.Conflict)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiError>(cancellationToken: cancellationToken);
+            return (false, error?.Message ?? "The template status could not be changed. Refresh and try again.");
+        }
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<ApiError>(cancellationToken: cancellationToken);
+        return (true, result?.Message ?? (restore ? "Template restored successfully." : "Template deactivated successfully."));
+    }
+
     public async Task<(bool Success, string? Error, bool DuplicateName)> CreateAsync(
         CreateShiftTemplateViewModel model, CancellationToken cancellationToken = default)
     {

@@ -8,4 +8,5 @@ public sealed class ShiftTemplateListResponse
     public TimeOnly EndTime { get; set; }
     public int BreakMinutes { get; set; }
     public string Status { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
 }

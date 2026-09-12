@@ -159,7 +159,8 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
                 BreakMinutes = template.BreakMinutes,
-                Status = template.Status
+                Status = template.Status,
+                CreatedAt = template.CreatedAt
             })
             .ToListAsync(cancellationToken);
 

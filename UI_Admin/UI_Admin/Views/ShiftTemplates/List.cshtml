@@ -18,10 +18,7 @@
             <div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift hours and break durations.</p></div>
             <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
         </div>
-        @if (TempData["ShiftTemplateSuccess"] is string successMessage)
-        {
-            <div class="alert alert-success" role="status">@successMessage</div>
-        }
+        <partial name="_Feedback" />
         <div class="shift-card">
             <div class="shift-toolbar">
                 <form asp-controller="ShiftTemplates" asp-action="List" method="get" class="shift-search shift-filters" role="search">
@@ -58,8 +55,9 @@
             {
                 <div class="shift-table-wrap">
                     <table class="shift-table">
-                        <caption class="visually-hidden">Shift templates with start time, end time, break duration and status</caption>
-                        <thead><tr><th scope="col">Shift Name</th><th scope="col">Start Time</th><th scope="col">End Time</th><th scope="col">Break Minutes</th><th scope="col">Status</th><th scope="col" class="shift-actions">Actions</th></tr></thead>
+                        <caption class="visually-hidden">Shift templates with start time, end time, break duration, status and creation date</caption>
+                        <colgroup><col class="shift-name-column" /><col /><col /><col /><col /><col /><col /></colgroup>
+                        <thead><tr><th scope="col">Shift Name</th><th scope="col">Start Time</th><th scope="col">End Time</th><th scope="col">Break Minutes</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col" class="shift-actions">Actions</th></tr></thead>
                         <tbody>
                         @foreach (var item in Model.Result.Items)
                         {
@@ -69,7 +67,20 @@
                                 <td class="shift-number">@item.EndTime.ToString("HH:mm:ss")</td>
                                 <td class="shift-number">@item.BreakMinutes mins</td>
                                 <td><span class="shift-status @(item.IsActive ? "is-active" : "is-inactive")"><span aria-hidden="true">●</span> @(item.IsActive ? "Active" : item.Status == "INACTIVE" ? "Inactive" : item.Status)</span></td>
-                                <td class="shift-actions"><button disabled aria-label="View details" title="Details are not available in this list view.">◉</button><button disabled aria-label="Edit template" title="Editing is not available in this list view.">✎</button><button disabled aria-label="Change status" title="Status changes are not available in this list view.">⊘</button></td>
+                                <td class="shift-created">
+                                    @if (item.CreatedAt is DateTime createdAt)
+                                    {
+                                        <time datetime="@createdAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)">@createdAt.ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture)</time>
+                                    }
+                                    else
+                                    {
+                                        <span aria-label="Creation date unavailable">—</span>
+                                    }
+                                </td>
+                                <td class="shift-actions"><a asp-action="Details" asp-route-id="@item.ShiftTemplateId" aria-label="View details for @item.ShiftName" title="View details" class="inline-flex items-center justify-center w-[30px] h-8 text-secondary align-middle"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span></a><button disabled aria-label="Edit template" title="Editing is not available in this list view.">✎</button>@if (item.IsActive || string.Equals(item.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase))
+{
+    <button type="button" class="template-status-trigger @(item.IsActive ? "" : "template-restore-trigger")" data-id="@item.ShiftTemplateId" data-name="@item.ShiftName" data-restore="@((!item.IsActive).ToString().ToLowerInvariant())" aria-label="@(item.IsActive ? "Deactivate" : "Restore") @item.ShiftName" title="@(item.IsActive ? "Deactivate template" : "Restore template")"><span class="material-symbols-outlined" aria-hidden="true">@(item.IsActive ? "pause_circle" : "restore")</span></button>
+}</td>
                             </tr>
                         }
                         </tbody>
@@ -101,6 +112,18 @@
         </div>
     </section>
 </div>
+<dialog id="list-status-dialog" class="template-status-dialog" aria-labelledby="list-status-title" aria-describedby="list-status-description">
+    <h2 id="list-status-title">Change template status?</h2>
+    <p id="list-status-description"></p>
+    <form asp-action="ChangeStatus" method="post">
+        <input type="hidden" name="id" id="list-status-id" />
+        <input type="hidden" name="restore" id="list-status-restore" />
+        <input type="hidden" name="returnUrl" value="@(Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString)" />
+        <div class="template-status-actions"><button type="button" id="list-status-cancel" autofocus>Cancel</button><button type="submit" id="list-status-confirm">Confirm</button></div>
+    </form>
+</dialog>
 @section Scripts {
+    <script src="~/js/shift-template-status.js" asp-append-version="true"></script>
     <script src="~/js/shift-time-picker.js" asp-append-version="true"></script>
+    <script src="~/js/shift-template-success.js" asp-append-version="true"></script>
 }
