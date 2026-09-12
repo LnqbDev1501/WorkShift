@@ -5,34 +5,18 @@
     var selectedRegion = Model.AvailableRegions.FirstOrDefault(r => r.RegionId == Model.RegionId);
 }
 
-<div class="flex flex-col w-full">
+<div class="flex flex-col w-full px-7 py-4">
     <div class="flex flex-col gap-unit-6">
-        <!-- Breadcrumb & Header Zone -->
-        <div class="flex flex-col gap-unit-2">
-            <nav aria-label="Breadcrumbs" class="flex items-center gap-unit-2 text-on-surface-variant font-body-sm">
-                <span class="hover:text-on-surface transition-colors cursor-pointer">Admin</span>
-                <span class="material-symbols-outlined text-label-sm text-outline-variant">chevron_right</span>
-                <span class="hover:text-on-surface transition-colors cursor-pointer">WorkShift Control</span>
-                <span class="material-symbols-outlined text-label-sm text-outline-variant">chevron_right</span>
-                <a asp-controller="Branches" asp-action="Index" class="hover:text-on-surface transition-colors cursor-pointer">Branches</a>
-                <span class="material-symbols-outlined text-label-sm text-outline-variant">chevron_right</span>
-                <span class="font-body-md-medium text-primary-container">Create Branch</span>
-            </nav>
-            <div class="flex flex-col md:flex-row md:items-end justify-between gap-unit-4 pt-unit-1">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-unit-3">
-                        <span class="h-6 w-1.5 rounded-full bg-primary-container inline-block"></span>
-                        <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Branch</h1>
-                    </div>
-                    <p class="font-body-md text-body-md text-on-surface-variant pl-unit-5">
-                        Register a new operating branch within an active regional jurisdiction.
-                    </p>
-                </div>
-                <!-- Global Status Tag Indicator -->
-                <div class="flex items-center gap-unit-2 bg-surface-container px-unit-3 py-1.5 rounded-full self-start md:self-auto">
-                    <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
-                    <span class="font-label-sm text-label-sm uppercase text-on-surface-variant font-semibold tracking-wider">Default Status: Active</span>
-                </div>
+        <!-- Header Zone with Back Button -->
+        <div class="flex items-center gap-3">
+            <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Branches">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Branch</h1>
+                <p class="font-body-md text-secondary mt-0.5">
+                    Register a new operating branch within an active regional jurisdiction.
+                </p>
             </div>
         </div>
 

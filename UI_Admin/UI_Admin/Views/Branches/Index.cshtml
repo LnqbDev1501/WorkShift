@@ -6,7 +6,7 @@
     var selectedRegionName = Model.RegionId.HasValue ? Model.AvailableRegions.FirstOrDefault(r => r.RegionId == Model.RegionId.Value)?.RegionName : null;
 }
 
-<div class="flex flex-col w-full space-y-unit-6">
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
 
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
@@ -37,16 +37,12 @@
     <!-- Top Page Header Bar & Primary Action -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4">
         <div>
-            <div class="flex items-center gap-unit-2 mb-unit-1">
-                <span class="font-label-sm text-secondary tracking-wider uppercase">Administrative Units</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary-fixed text-primary">Live Synced</span>
-            </div>
             <h1 class="font-display-md text-on-surface text-2xl font-bold tracking-tight">Branches</h1>
             <p class="font-body-md text-secondary mt-0.5">Manage branch information and view assigned users across operational jurisdictions.</p>
         </div>
         <div class="flex items-center gap-unit-3">
-            <a asp-controller="Branches" asp-action="Create" class="h-10 px-unit-4 bg-primary-container hover:bg-primary text-on-primary font-body-md-medium rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-unit-2">
-                <span class="material-symbols-outlined text-[18px]">add</span>
+            <a asp-controller="Branches" asp-action="Create" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">add</span>
                 <span>Create Branch</span>
             </a>
         </div>
