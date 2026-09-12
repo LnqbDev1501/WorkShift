@@ -33,7 +33,7 @@ public class RegionsController : Controller
             viewModel.ErrorMessage = error;
         }
 
-        return View(viewModel);
+        return View("Index", viewModel);
     }
 
     [HttpGet]
