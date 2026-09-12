@@ -1,0 +1,532 @@
+@model UI_Admin.Models.Branches.BranchDetailViewModel
+
+@{
+    ViewData["Title"] = $"{Model.BranchName} - Branch Details";
+    var isBranchActive = Model.IsActive;
+    var coordinatesText = Model.Latitude.HasValue && Model.Longitude.HasValue
+        ? $"{Model.Latitude.Value:F4}° N, {Model.Longitude.Value:F4}° E"
+        : "Unconfigured";
+    var rawCoords = Model.Latitude.HasValue && Model.Longitude.HasValue
+        ? $"{Model.Latitude.Value:F4}, {Model.Longitude.Value:F4}"
+        : "No GPS";
+}
+
+<div class="flex flex-col w-full">
+    <!-- Top Action & Title Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4 pb-unit-6">
+        <div class="flex flex-col gap-unit-2">
+            <div class="flex flex-wrap items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.BranchName</h1>
+                <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
+                    @Model.BranchCode
+                </span>
+                @if (isBranchActive)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                        Active
+                    </span>
+                }
+                else if (Model.IsInactive)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                        Inactive
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-amber-50 text-amber-700 font-label-md text-label-md font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                        @Model.Status
+                    </span>
+                }
+            </div>
+            <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-unit-2">
+                <span>Operational Node</span>
+                <span class="text-outline-variant">•</span>
+                <span>@Model.RegionName jurisdiction</span>
+            </p>
+        </div>
+
+        <div class="flex items-center gap-unit-3 shrink-0">
+            <a asp-controller="Branches" asp-action="Edit" asp-route-id="@Model.BranchId" class="h-input-height px-unit-4 bg-surface-container-lowest text-on-surface hover:bg-surface-container-low shadow-sm rounded-xl font-body-md-medium text-body-md-medium inline-flex items-center gap-unit-2 transition-colors border border-surface-container-high">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+                <span>Edit Branch</span>
+            </a>
+
+            @if (isBranchActive)
+            {
+                <button onclick="document.getElementById('deactivate-modal').classList.remove('hidden')" class="h-input-height px-unit-4 bg-surface-container-lowest text-error hover:bg-surface-container-low shadow-sm rounded-xl font-body-md-medium text-body-md-medium inline-flex items-center gap-unit-2 transition-colors border border-surface-container-high cursor-pointer" type="button">
+                    <span class="material-symbols-outlined text-[18px]">power_settings_new</span>
+                    <span>Deactivate Branch</span>
+                </button>
+            }
+            else
+            {
+                <form method="post" asp-controller="Branches" asp-action="Restore" asp-route-id="@Model.BranchId" class="inline">
+                    @Html.AntiForgeryToken()
+                    <button class="h-input-height px-unit-4 bg-primary-fixed text-primary hover:bg-primary-fixed/80 shadow-sm rounded-xl font-body-md-medium text-body-md-medium inline-flex items-center gap-unit-2 transition-colors cursor-pointer" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">restart_alt</span>
+                        <span>Restore Branch</span>
+                    </button>
+                </form>
+            }
+
+            <div class="relative">
+                <button class="h-input-height w-10 bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low shadow-sm rounded-xl inline-flex items-center justify-center transition-colors border border-surface-container-high cursor-pointer" id="overflowBtn" type="button">
+                    <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                </button>
+                <div class="hidden absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-xl py-unit-1 z-30 border border-surface-container-high" id="overflowMenu">
+                    <a class="flex items-center gap-unit-2 px-unit-4 py-unit-2 font-body-md text-body-sm text-on-surface hover:bg-surface-container-low" asp-controller="Branches" asp-action="Index">
+                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">arrow_back</span>
+                        Back to List
+                    </a>
+                    <a class="flex items-center gap-unit-2 px-unit-4 py-unit-2 font-body-md text-body-sm text-on-surface hover:bg-surface-container-low" asp-controller="User" asp-action="List">
+                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">group</span>
+                        User Accounts
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Operational Lifecycle Notice Banner -->
+    <div class="bg-surface-container-low/60 rounded-2xl p-unit-4 mb-unit-6 flex items-start gap-unit-3">
+        <div class="w-8 h-8 rounded-lg bg-surface-container-lowest shadow-sm flex items-center justify-center text-primary-container shrink-0 mt-0.5">
+            <span class="material-symbols-outlined text-[20px]">info</span>
+        </div>
+        <div class="flex-1">
+            <h4 class="font-title-md text-body-md-medium text-on-surface leading-snug">Branch Lifecycle Rule Notice</h4>
+            <p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Deactivating this branch only changes the branch status to Inactive. User accounts and historical records are not automatically changed.</p>
+        </div>
+    </div>
+
+    <!-- Tab Header Navigation -->
+    <div class="flex items-center gap-unit-8 mb-unit-6 border-b border-surface-container-high">
+        <button class="relative pb-unit-3 font-title-md text-body-md-medium transition-colors flex items-center gap-unit-2 text-primary-container cursor-pointer" id="tabBtn-overview" onclick="switchTab('overview')">
+            <span class="material-symbols-outlined text-[18px]">dashboard</span>
+            <span>Overview</span>
+            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-container rounded-full" id="tabIndicator-overview"></span>
+        </button>
+        <button class="relative pb-unit-3 font-title-md text-body-md-medium hover:text-on-surface transition-colors flex items-center gap-unit-2 text-on-surface-variant cursor-pointer" id="tabBtn-users" onclick="switchTab('users')">
+            <span class="material-symbols-outlined text-[18px]">group</span>
+            <span>Employees</span>
+            <span class="inline-flex items-center justify-center px-unit-2 py-0.5 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm font-code-num">@Model.Employees.Count</span>
+            <span class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-container rounded-full hidden" id="tabIndicator-users"></span>
+        </button>
+    </div>
+
+    <!-- Tab Content 1: Overview -->
+    <div class="flex flex-col gap-unit-6" id="tabContent-overview">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-unit-5">
+            <!-- Card 1: Jurisdiction & Location -->
+            <div class="bg-surface-container-lowest rounded-2xl p-unit-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 mb-unit-4 border-b border-surface-container-high">
+                        <div class="flex items-center gap-unit-2">
+                            <span class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+                                <span class="material-symbols-outlined text-[18px]">location_on</span>
+                            </span>
+                            <h3 class="font-title-md text-title-md text-on-surface">Jurisdiction &amp; Location</h3>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-4">
+                        <div>
+                            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Region</p>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-unit-2">
+                                    <span class="font-body-md-medium text-body-md-medium text-on-surface">@Model.RegionName</span>
+                                    <span class="px-unit-2 py-0.5 rounded bg-surface-container font-code-num text-[11px] text-secondary font-semibold uppercase">@Model.RegionCode</span>
+                                </div>
+                                <span class="inline-flex items-center gap-1 px-unit-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-label-sm font-medium">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                    @Model.RegionStatus
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Address</p>
+                            <p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                                @Model.Address
+                            </p>
+                        </div>
+                        <div>
+                            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Coordinates</p>
+                            <div class="flex items-center gap-unit-2">
+                                <span class="font-code-num text-code-num text-secondary bg-surface-container-low px-unit-2 py-1 rounded-md">@coordinatesText</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-unit-5">
+                    <div class="w-full h-32 rounded-xl bg-cover bg-center relative overflow-hidden shadow-inner flex items-end p-unit-3" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuACFtG4M2dH6AKmZtvQdHbvQbtKT0f91969gPWTlJ4xvyTqllE9Xb0w2Lo7UekJivHNxnhGHNwix0PxaXhR7Jg0-0lbA-7rAGVHBLwIVGp0nVkkmEwEwBODPSZbjc9wzgMp4HMY0wHVD40taexGxja9V4aElNXWXS6LICrWMGZXT9xHEUy5jk1meJPYEMGgb8texAmXGAdR392n5tlEe1l-BcLmjLAdGIz2_8XfmoUMLCUHlVMFiyyVyg')">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                        <div class="relative flex items-center justify-between w-full text-white">
+                            <span class="font-label-sm text-label-sm flex items-center gap-1 drop-shadow">
+                                <span class="material-symbols-outlined text-[14px]">map</span>
+                                @Model.BranchName
+                            </span>
+                            <span class="font-code-num text-[11px] bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded text-gray-200">@rawCoords</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Communication & Contact -->
+            <div class="bg-surface-container-lowest rounded-2xl p-unit-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 mb-unit-4 border-b border-surface-container-high">
+                        <div class="flex items-center gap-unit-2">
+                            <span class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+                                <span class="material-symbols-outlined text-[18px]">hub</span>
+                            </span>
+                            <h3 class="font-title-md text-title-md text-on-surface">Communication &amp; Contact</h3>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-5">
+                        <div>
+                            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Direct Phone</p>
+                            <div class="flex items-center justify-between">
+                                <span class="font-body-md-medium text-body-md-medium text-on-surface font-mono" id="phoneValue">
+                                    @(string.IsNullOrEmpty(Model.Phone) ? "Not provided" : Model.Phone)
+                                </span>
+                                @if (!string.IsNullOrEmpty(Model.Phone))
+                                {
+                                    <button class="text-on-surface-variant hover:text-primary-container p-1 rounded transition-colors cursor-pointer" onclick="navigator.clipboard.writeText('@Model.Phone')" title="Copy Phone" type="button">
+                                        <span class="material-symbols-outlined text-[16px]">content_copy</span>
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Official Email</p>
+                            <div class="flex items-center justify-between">
+                                <span class="font-body-md-medium text-body-md-medium text-primary-container truncate max-w-[200px]">
+                                    @(string.IsNullOrEmpty(Model.Email) ? "Not provided" : Model.Email)
+                                </span>
+                                @if (!string.IsNullOrEmpty(Model.Email))
+                                {
+                                    <a class="text-on-surface-variant hover:text-primary-container p-1 rounded transition-colors" href="mailto:@Model.Email" title="Send Email">
+                                        <span class="material-symbols-outlined text-[16px]">mail</span>
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-unit-5 p-unit-4 rounded-xl bg-surface-container-low flex items-center justify-between">
+                    <span class="font-label-sm text-label-sm text-on-surface-variant">Channel State</span>
+                    <span class="inline-flex items-center gap-1 font-label-sm text-label-sm @(isBranchActive ? "text-emerald-700" : "text-secondary") font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full @(isBranchActive ? "bg-emerald-600" : "bg-secondary")"></span>
+                        @(isBranchActive ? "Verified & Active" : Model.Status)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card 3: Employees -->
+            <div class="bg-surface-container-lowest rounded-2xl p-unit-6 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 mb-unit-4 border-b border-surface-container-high">
+                        <div class="flex items-center gap-unit-2">
+                            <span class="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center text-primary-container">
+                                <span class="material-symbols-outlined text-[18px]">badge</span>
+                            </span>
+                            <h3 class="font-title-md text-title-md text-on-surface">Employees</h3>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-5">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-unit-1">Assigned Employees</p>
+                                <p class="font-display-md text-display-md text-on-surface font-semibold font-code-num">@Model.EmployeeCount <span class="font-body-md text-body-md text-secondary font-normal font-sans">personnel</span></p>
+                            </div>
+                            <button class="text-primary-container hover:underline font-label-md text-label-md flex items-center gap-0.5 cursor-pointer" onclick="switchTab('users')" type="button">
+                                <span>View Employees</span>
+                                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                            </button>
+                        </div>
+                        <div class="p-unit-3 rounded-xl bg-surface-container-low/60 flex items-start gap-unit-2">
+                            <span class="material-symbols-outlined text-outline text-[18px] mt-0.5">info</span>
+                            <p class="font-body-sm text-body-sm text-on-surface-variant">
+                                Assigned employees count reflects all staff currently assigned to this branch node.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-unit-5 flex items-center justify-between pt-unit-3">
+                    <span class="font-label-sm text-label-sm text-on-surface-variant">Roster Status</span>
+                    <span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-emerald-700 font-medium">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                        Synchronized
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Content 2: Employees Table -->
+    <div class="flex flex-col gap-unit-5 hidden" id="tabContent-users">
+        <!-- Search and Filters for Employees -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm p-unit-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-unit-4">
+            <div class="relative flex-1 max-w-md">
+                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                <input class="w-full h-input-height pl-unit-10 pr-unit-3 bg-surface-container-low rounded-xl text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container transition-all" id="userSearchInput" placeholder="Search employee..." type="text">
+            </div>
+            <div class="flex flex-wrap items-center gap-unit-3">
+                <div class="flex items-center gap-unit-2">
+                    <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Role:</span>
+                    <select class="h-input-height px-unit-3 bg-surface-container-low rounded-xl text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container transition-all cursor-pointer" id="roleFilter">
+                        <option value="all">All Roles</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Accountant">Accountant</option>
+                        <option value="Staff">Staff</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-unit-2">
+                    <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status:</span>
+                    <select class="h-input-height px-unit-3 bg-surface-container-low rounded-xl text-on-surface font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container transition-all cursor-pointer" id="statusFilter">
+                        <option value="all">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending Activation</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Employees Table -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden flex flex-col">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="h-10 bg-surface-container-low text-secondary font-label-md text-label-md uppercase tracking-wider select-none">
+                            <th class="px-unit-6">Full Name</th>
+                            <th class="px-unit-6">Email</th>
+                            <th class="px-unit-6">Phone</th>
+                            <th class="px-unit-6">Role</th>
+                            <th class="px-unit-6">Status</th>
+                            <th class="px-unit-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assignedUsersTbody">
+                        @if (Model.Employees.Count == 0)
+                        {
+                            <tr id="initialEmptyRow">
+                                <td colspan="6" class="py-12 px-6 text-center">
+                                    <div class="flex flex-col items-center justify-center gap-2 text-secondary">
+                                        <span class="material-symbols-outlined text-[40px] text-outline-variant">person_off</span>
+                                        <p class="font-title-md text-[15px] text-on-surface">No employees assigned to this branch</p>
+                                        <p class="font-body-sm text-[13px]">Use the User Accounts directory to assign personnel to this branch.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var emp in Model.Employees)
+                            {
+                                var isEmpActive = emp.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                                var isEmpPending = emp.Status.Contains("PENDING", StringComparison.OrdinalIgnoreCase);
+                                var isManager = emp.Role.Equals("Manager", StringComparison.OrdinalIgnoreCase);
+                                var isAccountant = emp.Role.Equals("Accountant", StringComparison.OrdinalIgnoreCase);
+
+                                <tr class="h-table-row-height bg-surface-container-lowest hover:bg-surface-container-low/70 transition-colors border-b border-surface-container-high employee-row">
+                                    <td class="px-unit-6">
+                                        <div class="flex items-center gap-unit-3">
+                                            <div class="w-8 h-8 rounded-full @(isManager ? "bg-primary-fixed text-primary-container" : isAccountant ? "bg-amber-100 text-amber-800" : "bg-surface-container-high text-secondary") flex items-center justify-center font-label-md font-bold shrink-0">
+                                                @emp.Initials
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="font-body-md-medium text-body-md-medium text-on-surface leading-tight emp-name">@emp.FullName</span>
+                                                <span class="font-label-sm text-on-surface-variant leading-tight">@emp.Role</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-unit-6 font-body-sm text-body-sm text-on-surface-variant emp-email">@emp.Email</td>
+                                    <td class="px-unit-6 font-code-num text-code-num text-on-surface emp-phone">@emp.Phone</td>
+                                    <td class="px-unit-6">
+                                        @if (isManager)
+                                        {
+                                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-label-md text-label-md font-medium emp-role">Manager</span>
+                                        }
+                                        else if (isAccountant)
+                                        {
+                                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-purple-50 text-purple-700 font-label-md text-label-md font-medium emp-role">Accountant</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container text-secondary font-label-md text-label-md font-medium emp-role">@emp.Role</span>
+                                        }
+                                    </td>
+                                    <td class="px-unit-6">
+                                        @if (isEmpActive)
+                                        {
+                                            <span class="inline-flex items-center gap-1.5 px-unit-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-label-sm text-label-sm font-medium emp-status">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Active
+                                            </span>
+                                        }
+                                        else if (isEmpPending)
+                                        {
+                                            <span class="inline-flex items-center gap-1.5 px-unit-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-label-sm text-label-sm font-medium emp-status">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>Pending
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1.5 px-unit-2 py-0.5 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm font-medium emp-status">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>@emp.Status
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="px-unit-6 text-right">
+                                        <a class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg text-primary-container hover:bg-surface-container-low text-body-sm font-body-md-medium transition-colors" asp-controller="User" asp-action="List" asp-route-search="@emp.FullName">
+                                            <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                            <span>View</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Dynamic empty state when filter finds nothing -->
+            <div class="hidden p-unit-8 flex flex-col items-center justify-center text-center" id="emptyStateEmployees">
+                <div class="w-12 h-12 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant mb-unit-3">
+                    <span class="material-symbols-outlined text-[24px]">person_off</span>
+                </div>
+                <h4 class="font-title-md text-body-md-medium text-on-surface">No employees found in this branch.</h4>
+                <p class="font-body-sm text-body-sm text-on-surface-variant mt-unit-1">Try adjusting your search terms or filter selections.</p>
+            </div>
+
+            <!-- Notice bar -->
+            <div class="p-unit-4 bg-surface-container-low/40 flex items-center gap-unit-3">
+                <span class="material-symbols-outlined text-outline text-[18px]">lock</span>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    Users cannot be directly added or transferred from this view. Use <a class="text-primary-container underline font-medium" asp-controller="User" asp-action="List">User Accounts directory</a> to assign or reassign personnel.
+                </p>
+            </div>
+
+            <!-- Footer count -->
+            <div class="p-unit-4 bg-surface-container-lowest flex flex-col sm:flex-row sm:items-center justify-between gap-unit-3 select-none border-t border-surface-container-high/60">
+                <span class="font-body-sm text-body-sm text-on-surface-variant" id="paginationInfo">
+                    Showing <span class="font-semibold text-on-surface font-code-num" id="visibleEmpCount">@Model.Employees.Count</span> of <span class="font-semibold text-on-surface font-code-num">@Model.Employees.Count</span> employees
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deactivate Confirmation Modal Overlay -->
+<div class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-unit-4" id="deactivate-modal">
+    <div class="bg-surface-container-lowest max-w-md w-full rounded-xl p-unit-6 shadow-2xl animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-unit-3">
+            <div class="p-unit-2 rounded-full bg-error-container text-error shrink-0">
+                <span class="material-symbols-outlined text-[24px]">warning</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface">Deactivate Branch @Model.BranchCode?</h3>
+                <p class="font-body-sm text-on-surface-variant mt-unit-2">Are you sure you want to deactivate "@Model.BranchName"? Only the branch will become inactive. Existing employee assignments and historical records will remain intact.</p>
+            </div>
+        </div>
+        <form method="post" asp-controller="Branches" asp-action="Deactivate" asp-route-id="@Model.BranchId" class="mt-unit-6 flex items-center justify-end gap-unit-3">
+            @Html.AntiForgeryToken()
+            <button class="h-input-height px-unit-4 bg-surface-container-low hover:bg-surface-container-high text-on-surface font-body-md-medium rounded-lg transition-colors cursor-pointer" onclick="document.getElementById('deactivate-modal').classList.add('hidden')" type="button">Cancel</button>
+            <button class="h-input-height px-unit-4 bg-error text-on-error hover:bg-error/90 font-body-md-medium rounded-lg transition-colors shadow-sm cursor-pointer" type="submit">Confirm Deactivation</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function switchTab(tabKey) {
+            const overviewContent = document.getElementById('tabContent-overview');
+            const usersContent = document.getElementById('tabContent-users');
+            const overviewBtn = document.getElementById('tabBtn-overview');
+            const usersBtn = document.getElementById('tabBtn-users');
+            const overviewIndicator = document.getElementById('tabIndicator-overview');
+            const usersIndicator = document.getElementById('tabIndicator-users');
+
+            if (tabKey === 'overview') {
+                overviewContent.classList.remove('hidden');
+                usersContent.classList.add('hidden');
+                overviewBtn.classList.add('text-primary-container');
+                overviewBtn.classList.remove('text-on-surface-variant');
+                usersBtn.classList.remove('text-primary-container');
+                usersBtn.classList.add('text-on-surface-variant');
+                overviewIndicator.classList.remove('hidden');
+                usersIndicator.classList.add('hidden');
+            } else if (tabKey === 'users') {
+                overviewContent.classList.add('hidden');
+                usersContent.classList.remove('hidden');
+                usersBtn.classList.add('text-primary-container');
+                usersBtn.classList.remove('text-on-surface-variant');
+                overviewBtn.classList.remove('text-primary-container');
+                overviewBtn.classList.add('text-on-surface-variant');
+                usersIndicator.classList.remove('hidden');
+                overviewIndicator.classList.add('hidden');
+            }
+        }
+
+        const overflowBtn = document.getElementById('overflowBtn');
+        const overflowMenu = document.getElementById('overflowMenu');
+        if (overflowBtn && overflowMenu) {
+            overflowBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                overflowMenu.classList.toggle('hidden');
+            });
+            document.addEventListener('click', () => {
+                overflowMenu.classList.add('hidden');
+            });
+        }
+
+        const searchInput = document.getElementById('userSearchInput');
+        const roleFilter = document.getElementById('roleFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const rows = document.querySelectorAll('.employee-row');
+        const emptyState = document.getElementById('emptyStateEmployees');
+        const visibleCountSpan = document.getElementById('visibleEmpCount');
+
+        function filterEmployees() {
+            const term = (searchInput?.value || '').toLowerCase().trim();
+            const role = roleFilter?.value || 'all';
+            const status = statusFilter?.value || 'all';
+
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const matchesSearch = !term || text.includes(term);
+                const matchesRole = (role === 'all') || text.includes(role.toLowerCase());
+                const matchesStatus = (status === 'all') || text.includes(status.toLowerCase());
+
+                if (matchesSearch && matchesRole && matchesStatus) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            if (visibleCountSpan) {
+                visibleCountSpan.textContent = visibleCount;
+            }
+
+            if (emptyState) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                } else {
+                    emptyState.classList.add('hidden');
+                    emptyState.classList.remove('flex');
+                }
+            }
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterEmployees);
+        if (roleFilter) roleFilter.addEventListener('change', filterEmployees);
+        if (statusFilter) statusFilter.addEventListener('change', filterEmployees);
+    </script>
+}
