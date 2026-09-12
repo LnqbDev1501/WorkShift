@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -7,6 +8,7 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
+[Authorize(Policy = "Admin")]
 [Route("api/admin/users")]
 public class AdminUserController : ControllerBase
 {
@@ -39,6 +41,23 @@ public class AdminUserController : ControllerBase
             _logger.LogError(exception, "Unexpected error while retrieving users");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "Users could not be retrieved. Please try again later." });
+        }
+    }
+
+    [HttpGet("roles")]
+    [ProducesResponseType(typeof(IReadOnlyList<RoleResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<RoleResponse>>> GetAssignableRoles()
+    {
+        try
+        {
+            return Ok(await _userService.GetAssignableRolesAsync());
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving assignable roles");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Roles could not be retrieved. Please try again later." });
         }
     }
 

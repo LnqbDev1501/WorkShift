@@ -12,4 +12,5 @@ public interface IBranchService
     Task<bool> DeleteAsync(int id);
     Task<bool> RestoreAsync(int id);
     Task<BranchEmployeesResponse?> GetEmployeesAsync(int branchId, BranchEmployeeListQuery query);
+    Task<IReadOnlyList<BranchAssignableOptionResponse>> GetAssignableOptionsAsync();
 }

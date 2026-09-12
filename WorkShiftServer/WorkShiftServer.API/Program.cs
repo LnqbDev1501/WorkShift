@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Services.Admin;
@@ -19,6 +21,24 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
 
+var supabaseUrl = builder.Configuration["Supabase:Url"]
+    ?? throw new InvalidOperationException("Missing Supabase:Url configuration.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = $"{supabaseUrl.TrimEnd('/')}/auth/v1";
+        options.Audience = "authenticated";
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+    options.AddPolicy("Admin", policy => policy.RequireRole("ADMIN"));
+    options.AddPolicy("Accountant", policy => policy.RequireRole("ADMIN", "ACCOUNTANT"));
+    options.AddPolicy("Staff", policy => policy.RequireRole("ADMIN", "STAFF"));
+    options.AddPolicy("Manager", policy => policy.RequireRole("ADMIN", "MANAGER"));
+});
+builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, SupabaseRoleClaimsTransformation>();
+
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
@@ -29,8 +49,6 @@ builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
-    var supabaseUrl = builder.Configuration["Supabase:Url"]
-        ?? throw new InvalidOperationException("Missing Supabase:Url configuration.");
     var serviceRoleKey = builder.Configuration["Supabase:ServiceRoleKey"]
         ?? throw new InvalidOperationException("Missing Supabase:ServiceRoleKey configuration.");
 
@@ -63,6 +81,7 @@ builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
+builder.Services.AddScoped<IShiftTemplateRepo, ShiftTemplateRepo>();
 builder.Services.AddScoped<ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -89,6 +108,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

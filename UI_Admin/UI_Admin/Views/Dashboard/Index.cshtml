@@ -7,10 +7,6 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 }
-<header class="dashboard-topbar">
-    <div>Admin <span class="breadcrumb-divider">›</span> <strong>WorkShift Control</strong></div>
-    <div class="dashboard-profile"><span><strong>@(User.Identity?.Name ?? "Administrator")</strong><small>Admin</small></span><span class="user-avatar">A</span></div>
-</header>
 <div class="dashboard-page">
     <div class="dashboard-heading">
         <div><div class="eyebrow">▦ &nbsp; SYSTEM COMMAND</div><h1>Overview</h1><p>Monitor your organization, attendance records, and payroll review workload.</p></div>

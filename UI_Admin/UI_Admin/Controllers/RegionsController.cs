@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.Regions;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 public class RegionsController : Controller
 {
     private readonly RegionApiService _regionApiService;
