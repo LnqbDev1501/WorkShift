@@ -5,37 +5,16 @@
     var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="flex flex-col w-full">
-    <!-- Top Breadcrumb Ribbon & Live Telemetry Stamp -->
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-unit-3 mb-unit-6">
-        <div class="flex items-center gap-unit-2 font-body-sm text-on-surface-variant">
-            <span class="hover:text-primary transition-colors">Admin</span>
-            <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
-            <span class="hover:text-primary transition-colors">WorkShift Control</span>
-            <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
-            <a class="hover:text-primary transition-colors" asp-controller="Regions" asp-action="Index">Regions</a>
-            <span class="material-symbols-outlined text-[14px] text-outline">chevron_right</span>
-            <span class="font-body-md-medium text-on-surface">@Model.RegionName (@Model.RegionCode)</span>
-        </div>
-        <div class="flex items-center gap-unit-3 bg-surface-container-lowest px-unit-3 py-unit-2 rounded-xl shadow-sm">
-            <div class="flex items-center gap-unit-2">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span class="font-label-sm uppercase tracking-wider text-on-surface-variant font-code-num">Live Sync Active</span>
-            </div>
-            <span class="text-surface-container-highest text-[10px]">•</span>
-            <span class="font-body-sm text-on-surface-variant font-code-num">Last synced: Today, @DateTime.Now.ToString("HH:mm") ICT</span>
-        </div>
-    </div>
-
+<div class="flex flex-col w-full px-7 py-4">
     <!-- Region Detail Hero / Identification Header -->
     <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm mb-unit-6">
         <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-unit-6">
             <!-- Title & Identification Badges -->
             <div class="space-y-unit-2">
                 <div class="flex flex-wrap items-center gap-unit-3">
+                    <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Regions">
+                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+                    </a>
                     <h1 class="font-display-md text-on-surface tracking-tight">@Model.RegionName</h1>
                     <span class="font-code-num text-label-md px-unit-2 py-unit-1 rounded-lg bg-surface-container font-medium text-on-surface-variant tracking-wide">
                         @Model.RegionCode

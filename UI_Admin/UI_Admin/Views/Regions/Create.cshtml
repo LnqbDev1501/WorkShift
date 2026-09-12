@@ -4,37 +4,19 @@
     ViewData["Title"] = "Create Region";
 }
 
-<div class="flex flex-col w-full">
-    <!-- Page Header Hierarchy & Meta -->
-    <div class="flex flex-col gap-2 pb-6">
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-secondary">
-            <span class="inline-flex items-center gap-1">
-                <span class="material-symbols-outlined text-[15px] text-primary">public</span>
-                Territory Management
-            </span>
-            <span class="text-outline-variant font-normal">/</span>
-            <span class="text-on-surface-variant font-mono text-[11px] tracking-normal">SYS-REG-094</span>
-        </div>
-        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-                <h1 class="text-display-md md:text-display-lg font-bold tracking-tight text-on-surface">
-                    Create Region
-                </h1>
-                <p class="text-body-md text-secondary mt-1">
-                    Create a new operational region.
-                </p>
-            </div>
-            <!-- Live Preview Status Indicator Badge -->
-            <div class="flex items-center gap-3 bg-surface-container-low px-4 py-2 rounded-xl self-start md:self-auto shadow-sm">
-                <span class="relative flex h-2.5 w-2.5">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
-                </span>
-                <div class="flex flex-col">
-                    <span class="text-[11px] uppercase tracking-wider font-semibold text-secondary">Pre-flight Status</span>
-                    <span class="text-xs font-semibold text-on-surface">Auto-Provision: ACTIVE</span>
-                </div>
-            </div>
+<div class="flex flex-col w-full px-7 py-4">
+    <!-- Page Header with Back Navigation -->
+    <div class="flex items-center gap-3 pb-6">
+        <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Regions">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div>
+            <h1 class="text-display-md md:text-display-lg font-bold tracking-tight text-on-surface">
+                Create Region
+            </h1>
+            <p class="text-body-md text-secondary mt-0.5">
+                Create a new operational region.
+            </p>
         </div>
     </div>
 

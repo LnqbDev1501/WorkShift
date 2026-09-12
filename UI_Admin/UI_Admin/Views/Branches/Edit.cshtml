@@ -13,39 +13,33 @@
         : "Unconfigured";
 }
 
-<div class="flex flex-col w-full">
-    <!-- Internal contextual breadcrumb & top header bar -->
+<div class="flex flex-col w-full px-7 py-4">
+    <!-- Top Header Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4 pb-unit-6">
-        <div class="flex flex-col gap-unit-1">
-            <div class="flex items-center gap-unit-2 font-body-sm text-on-surface-variant">
-                <span class="hover:text-primary transition-colors cursor-pointer">Admin</span>
-                <span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
-                <span class="hover:text-primary transition-colors cursor-pointer">WorkShift Control</span>
-                <span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
-                <a asp-controller="Branches" asp-action="Index" class="hover:text-primary transition-colors">Branches</a>
-                <span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
-                <a asp-controller="Branches" asp-action="Details" asp-route-id="@Model.BranchId" class="hover:text-primary transition-colors">@branchNameVal</a>
-                <span class="material-symbols-outlined text-[14px] text-outline-variant">chevron_right</span>
-                <span class="font-body-md-medium text-on-surface">Edit Branch</span>
+        <div class="flex items-center gap-3">
+            <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Branches">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div class="flex flex-col gap-unit-1">
+                <div class="flex items-center gap-unit-3">
+                    <h1 class="font-display-md text-on-surface tracking-tight">Edit Branch</h1>
+                    @if (isBranchActive)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide uppercase bg-[#ECFDF5] text-[#059669]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+                            Active
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide uppercase bg-surface-container text-secondary">
+                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            @Model.Status
+                        </span>
+                    }
+                </div>
+                <p class="font-body-md text-on-surface-variant">Update branch metadata, contact information, and physical coordinates.</p>
             </div>
-            <div class="flex items-center gap-unit-3 mt-unit-1">
-                <h1 class="font-display-md text-on-surface tracking-tight">Edit Branch</h1>
-                @if (isBranchActive)
-                {
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide uppercase bg-[#ECFDF5] text-[#059669]">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
-                        Active
-                    </span>
-                }
-                else
-                {
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium tracking-wide uppercase bg-surface-container text-secondary">
-                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                        @Model.Status
-                    </span>
-                }
-            </div>
-            <p class="font-body-md text-on-surface-variant">Update branch metadata, contact information, and physical coordinates.</p>
         </div>
     </div>
 

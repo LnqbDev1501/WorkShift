@@ -11,42 +11,47 @@
         : "No GPS";
 }
 
-<div class="flex flex-col w-full">
+<div class="flex flex-col w-full px-7 py-4">
     <!-- Top Action & Title Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4 pb-unit-6">
-        <div class="flex flex-col gap-unit-2">
-            <div class="flex flex-wrap items-center gap-unit-3">
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.BranchName</h1>
-                <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
-                    @Model.BranchCode
-                </span>
-                @if (isBranchActive)
-                {
-                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                        Active
+        <div class="flex items-center gap-3">
+            <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Branches">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div class="flex flex-col gap-unit-1">
+                <div class="flex flex-wrap items-center gap-unit-3">
+                    <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.BranchName</h1>
+                    <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
+                        @Model.BranchCode
                     </span>
-                }
-                else if (Model.IsInactive)
-                {
-                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                        Inactive
-                    </span>
-                }
-                else
-                {
-                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-amber-50 text-amber-700 font-label-md text-label-md font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                        @Model.Status
-                    </span>
-                }
+                    @if (isBranchActive)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            Active
+                        </span>
+                    }
+                    else if (Model.IsInactive)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                            Inactive
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-amber-50 text-amber-700 font-label-md text-label-md font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                            @Model.Status
+                        </span>
+                    }
+                </div>
+                <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-unit-2">
+                    <span>Operational Node</span>
+                    <span class="text-outline-variant">•</span>
+                    <span>@Model.RegionName jurisdiction</span>
+                </p>
             </div>
-            <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-unit-2">
-                <span>Operational Node</span>
-                <span class="text-outline-variant">•</span>
-                <span>@Model.RegionName jurisdiction</span>
-            </p>
         </div>
 
         <div class="flex items-center gap-unit-3 shrink-0">

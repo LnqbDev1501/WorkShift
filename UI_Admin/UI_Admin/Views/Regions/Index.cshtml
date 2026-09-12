@@ -42,10 +42,10 @@
             <p class="font-body-md text-body-md text-secondary mt-1">Organize branches into operational regions across national workforce zones.</p>
         </div>
         <div class="flex items-center gap-unit-3 self-start md:self-auto">
-            <button class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer" id="open-create-modal" type="button">
+            <a asp-controller="Regions" asp-action="Create" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer">
                 <span class="material-symbols-outlined text-[20px]">add</span>
                 <span>Create Region</span>
-            </button>
+            </a>
         </div>
     </div>
 
@@ -227,76 +227,7 @@
         </div>
     </div>
 
-    <!-- Create Region Modal Dialog -->
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="create-region-modal">
-        <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-5">
-            <!-- Modal Header -->
-            <div class="flex items-start justify-between">
-                <div class="flex flex-col">
-                    <h2 class="font-title-lg text-title-lg text-on-surface">Create Region</h2>
-                    <p class="font-body-sm text-body-sm text-secondary mt-0.5">Add an operational territory for grouping branches.</p>
-                </div>
-                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-create-modal" type="button">
-                    <span class="material-symbols-outlined text-[20px]">close</span>
-                </button>
-            </div>
-            <!-- Form Inputs -->
-            <form method="post" asp-controller="Regions" asp-action="Create" class="flex flex-col gap-unit-4" id="create-region-form">
-                @Html.AntiForgeryToken()
-                <!-- Field 1: Region Code -->
-                <div class="flex flex-col gap-1">
-                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-code">
-                        <span>Region Code <span class="text-error">*</span></span>
-                        <span class="font-label-sm text-label-sm text-secondary">Max 20 chars</span>
-                    </label>
-                    <input class="h-[40px] px-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container uppercase"
-                           id="modal-region-code"
-                           name="RegionCode"
-                           maxlength="20"
-                           placeholder="e.g. VN-SOUTHWEST"
-                           required
-                           type="text">
-                    <span class="font-label-sm text-label-sm text-secondary">Unique uppercase identifier code.</span>
-                </div>
-                <!-- Field 2: Region Name -->
-                <div class="flex flex-col gap-1">
-                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-name">
-                        <span>Region Name <span class="text-error">*</span></span>
-                        <span class="font-label-sm text-label-sm text-secondary">Max 150 chars</span>
-                    </label>
-                    <input class="h-[40px] px-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
-                           id="modal-region-name"
-                           name="RegionName"
-                           maxlength="150"
-                           placeholder="e.g. Southwest Coast"
-                           required
-                           type="text">
-                </div>
-                <!-- Field 3: Description -->
-                <div class="flex flex-col gap-1">
-                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="modal-region-desc">
-                        <span>Description</span>
-                        <span class="font-label-sm text-label-sm text-secondary">Optional (Max 500 chars)</span>
-                    </label>
-                    <textarea class="p-unit-3 rounded-xl bg-surface-container-lowest border border-surface-container-high text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container resize-none"
-                              id="modal-region-desc"
-                              name="Description"
-                              maxlength="500"
-                              placeholder="Operational details, scope, and strategic branch coverage..."
-                              rows="3"></textarea>
-                </div>
-                <!-- Modal Footer Actions -->
-                <div class="flex items-center justify-end gap-unit-3 pt-unit-3 mt-unit-2">
-                    <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-create-modal" type="button">
-                        Cancel
-                    </button>
-                    <button class="h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" type="submit">
-                        Create Region
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+
 
     <!-- Deactivate Region Modal Dialog -->
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="deactivate-region-modal">
