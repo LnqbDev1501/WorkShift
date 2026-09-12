@@ -1,3 +1,6 @@
+using WorkShiftManagement.BLL.DTOs.Auth.Request;
+using WorkShiftManagement.BLL.DTOs.Auth.Response;
+
 namespace WorkShiftManagement.BLL.Interfaces.Auth;
 
 public interface IAuthService
@@ -9,4 +12,5 @@ public interface IAuthService
     Task UnbanUserAsync(Guid userId);
     Task<Guid> SetPasswordAsync(string accessToken, string password);
     Task UpdateEmailAsync(Guid userId, string email);
+    Task<LoginResponse> LoginAsync(LoginRequest request);
 }

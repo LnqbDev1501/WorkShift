@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -6,6 +7,7 @@ namespace WorkShiftServer.API.Controllers.Admin;
 
 [Route("api/admin/notifications")]
 [ApiController]
+[Authorize(Policy = "Admin")]
 public class AdminNotificationController : ControllerBase
 {
     private readonly INotificationService _notificationService;

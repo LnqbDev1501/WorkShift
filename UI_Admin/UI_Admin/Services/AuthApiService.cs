@@ -35,6 +35,23 @@ namespace UI_Admin.Services
             throw new InvalidOperationException(GetErrorMessage(body));
         }
 
+        public async Task<LoginApiResponse> LoginAsync(string email, string password)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/login",
+                new { email, password });
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(GetErrorMessage(body));
+
+            return JsonSerializer.Deserialize<LoginApiResponse>(body,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
+        }
+
         private static string GetErrorMessage(string body)
         {
             try
@@ -63,5 +80,15 @@ namespace UI_Admin.Services
 
             return "The password setup link is invalid or has expired.";
         }
+    }
+
+    public sealed class LoginApiResponse
+    {
+        public string AccessToken { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
+        public int ExpiresIn { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
     }
 }

@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -7,6 +8,7 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
+[Authorize(Policy = "Admin")]
 [Route("api/admin/users")]
 public class AdminUserController : ControllerBase
 {
