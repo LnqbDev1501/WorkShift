@@ -1,0 +1,19 @@
+info:
+  name: GET
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/admin/regions"
+  auth:
+    type: basic
+    username: hongocnhan2532004@gmail.com
+    password: '"Admin@123'
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

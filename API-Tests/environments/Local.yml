@@ -1,0 +1,10 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: https://localhost:7193
+    description: string
+  - name: accessToken
+    value: eyJhbGciOiJFUzI1NiIsImtpZCI6Ijk1NzczODFmLTlhNzAtNDg5OS1hZWM5LTAyY2IzYmZhNjBmYyIsInR5cCI6IkpXVCJ9
+  - secret: true
+    name: accessToken
+    description: ""
