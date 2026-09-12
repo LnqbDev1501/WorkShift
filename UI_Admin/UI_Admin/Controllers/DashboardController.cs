@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using UI_Admin.Models;
@@ -5,6 +6,7 @@ using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 public class DashboardController(DashboardApiService dashboardService, ILogger<DashboardController> logger) : Controller
 {
     [HttpGet]

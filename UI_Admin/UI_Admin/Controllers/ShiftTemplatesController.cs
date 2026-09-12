@@ -1,10 +1,12 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 public sealed class ShiftTemplatesController(
     ShiftTemplateApiService service, ILogger<ShiftTemplatesController> logger) : Controller
 {

@@ -8,7 +8,7 @@ using UI_Admin.Services;
 
 namespace UI_Admin.Controllers
 {
-    [AllowAnonymous]
+    [Authorize]
     public class AuthController : Controller
     {
         private readonly AuthApiService _authService;
@@ -23,6 +23,7 @@ namespace UI_Admin.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult Login(string? returnUrl = null)
         {
             if (User.Identity?.IsAuthenticated == true)
@@ -32,6 +33,7 @@ namespace UI_Admin.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
@@ -47,13 +49,23 @@ namespace UI_Admin.Controllers
                     new Claim(ClaimTypes.Email, login.Email),
                     new Claim(ClaimTypes.Role, login.Role)
                 };
-                var properties = new AuthenticationProperties { IsPersistent = model.RememberMe };
+                var now = DateTimeOffset.UtcNow;
+                var properties = new AuthenticationProperties
+                {
+                    IsPersistent = model.RememberMe,
+                    IssuedUtc = now,
+                    ExpiresUtc = now.AddDays(7)
+                };
                 properties.StoreTokens(new[]
                 {
                     new AuthenticationToken { Name = "access_token", Value = login.AccessToken },
-                    new AuthenticationToken { Name = "refresh_token", Value = login.RefreshToken }
+                    new AuthenticationToken { Name = "refresh_token", Value = login.RefreshToken },
+                    new AuthenticationToken
+                    {
+                        Name = "access_token_expires_at",
+                        Value = now.AddSeconds(login.ExpiresIn).ToString("O")
+                    }
                 });
-                properties.ExpiresUtc = DateTimeOffset.UtcNow.AddSeconds(login.ExpiresIn);
 
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,

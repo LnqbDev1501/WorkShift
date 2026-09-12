@@ -13,4 +13,5 @@ public interface IAuthService
     Task<Guid> SetPasswordAsync(string accessToken, string password);
     Task UpdateEmailAsync(Guid userId, string email);
     Task<LoginResponse> LoginAsync(LoginRequest request);
+    Task<LoginResponse> RefreshAsync(string refreshToken);
 }

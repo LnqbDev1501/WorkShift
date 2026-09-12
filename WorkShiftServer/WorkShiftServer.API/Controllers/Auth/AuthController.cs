@@ -51,6 +51,29 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("refresh")]
+    public async Task<ActionResult<LoginResponse>> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var login = await _authService.RefreshAsync(request.RefreshToken);
+            var user = await _context.Users.AsNoTracking()
+                .Where(item => item.UserId == login.UserId && item.Status == "ACTIVE" && item.DeletedAt == null)
+                .Select(item => new { item.FullName, Role = item.Role.RoleName })
+                .SingleOrDefaultAsync();
+            if (user == null)
+                return Unauthorized(new { message = "Your WorkShift account is inactive or unavailable." });
+
+            login.FullName = user.FullName;
+            login.Role = user.Role.ToUpperInvariant();
+            return Ok(login);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return Unauthorized(new { message = "Your session has expired. Please sign in again." });
+        }
+    }
+
     [HttpPost("set-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

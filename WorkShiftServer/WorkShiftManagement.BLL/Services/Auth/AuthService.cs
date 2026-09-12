@@ -188,6 +188,31 @@ public class AuthService : IAuthService
         };
     }
 
+    public async Task<LoginResponse> RefreshAsync(string refreshToken)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "auth/v1/token?grant_type=refresh_token",
+            new { refresh_token = refreshToken });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(GetErrorMessage(body), null, response.StatusCode);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var user = root.GetProperty("user");
+        if (!Guid.TryParse(user.GetProperty("id").GetString(), out var userId))
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+
+        return new LoginResponse
+        {
+            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
+            RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
+            ExpiresIn = root.GetProperty("expires_in").GetInt32(),
+            UserId = userId,
+            Email = user.GetProperty("email").GetString() ?? string.Empty
+        };
+    }
+
     private static Guid GetUserId(string body)
     {
         try

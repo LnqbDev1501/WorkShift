@@ -52,6 +52,23 @@ namespace UI_Admin.Services
                 ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
         }
 
+        public async Task<LoginApiResponse> RefreshAsync(string refreshToken)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/refresh",
+                new { refreshToken });
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(GetErrorMessage(body));
+
+            return JsonSerializer.Deserialize<LoginApiResponse>(body,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
+        }
+
         private static string GetErrorMessage(string body)
         {
             try
