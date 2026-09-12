@@ -42,6 +42,12 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
         var url = $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates?page={query.Page}";
         if (!string.IsNullOrWhiteSpace(query.Search))
             url += $"&search={Uri.EscapeDataString(query.Search.Trim())}";
+        if (!string.IsNullOrEmpty(query.Status))
+            url += $"&status={Uri.EscapeDataString(query.Status)}";
+        if (query.StartTime.HasValue)
+            url += $"&startTime={query.StartTime.Value.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)}";
+        if (query.EndTime.HasValue)
+            url += $"&endTime={query.EndTime.Value.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture)}";
 
         using var response = await httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
