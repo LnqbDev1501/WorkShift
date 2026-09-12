@@ -53,3 +53,35 @@
 .shift-limit { padding:0 24px 16px; margin:0; color:#575e70; font-size:12px; }
 @media(max-width:1100px) { .shift-toolbar,.shift-footer { align-items:flex-start; flex-direction:column; } .shift-search { width:100%; max-width:none; } .shift-scope { text-align:left; } }
 @media(max-width:600px) { .shift-content { padding:20px 16px; } .shift-topbar { padding:16px; } .shift-user { display:none; } .shift-heading { align-items:flex-start; flex-direction:column; } .shift-footer>div>span { display:block; margin:6px 0 0; } }
+.shift-toolbar:has(.shift-filters) { flex-wrap:wrap; }
+.shift-search.shift-filters { max-width:none; flex-basis:100%; flex-wrap:wrap; align-items:flex-end; gap:12px; }
+.shift-filter-field { display:flex; flex-direction:column; gap:6px; flex:1 1 140px; }
+.shift-filter-search { flex:2 1 240px; }
+.shift-filter-field label { color:#575e70; font-size:12px; font-weight:600; }
+.shift-filter-field select { height:40px; padding:0 12px; border:1px solid #e7e8ec; border-radius:8px; background:white; color:#191c1f; }
+.shift-filters .shift-reset { padding:10px 0; }
+.shift-filter-help { flex-basis:100%; color:#575e70; font-size:12px; }
+.shift-filter-help.validation-summary-valid { display:none; }
+.shift-filter-help ul { margin:0; padding-left:18px; }
+.shift-clock-input { position:relative; }
+.shift-search .shift-clock-input input { padding-right:44px; }
+.shift-clock-trigger { position:absolute; right:3px; top:3px; height:34px; width:36px; display:grid; place-items:center; border:0; border-radius:6px; color:#4f46e5; background:transparent; }
+.shift-clock-trigger:hover { background:#ede9fe; }
+.shift-clock-dialog { border:0; border-radius:16px; padding:24px; width:min(360px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; color:#191c1f; box-shadow:0 16px 64px #0f172a40; }
+.shift-clock-dialog::backdrop { background:#0f172a66; }
+.shift-clock-dialog h2 { font-size:18px; font-weight:600; margin:0 0 6px; }
+.shift-clock-context,.shift-clock-hint { color:#575e70; font-size:12px; }
+.shift-clock-values { display:flex; align-items:center; justify-content:center; gap:12px; margin:18px 0; }
+.shift-clock-values label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:#575e70; }
+.shift-clock-values select { font-size:26px; font-variant-numeric:tabular-nums; padding:6px 12px; border:1px solid #c7c4d8; border-radius:8px; background:#f5f3ff; color:#3525cd; }
+.shift-clock-hint { min-height:32px; text-align:center; }
+.shift-clock-face { position:relative; width:256px; height:256px; margin:0 auto 20px; background:#f2f3f7; border-radius:50%; }
+.shift-clock-face::after { content:''; position:absolute; width:8px; height:8px; border-radius:50%; background:#4f46e5; left:calc(50% - 4px); top:calc(50% - 4px); }
+.shift-clock-face button { position:absolute; transform:translate(-50%,-50%); width:32px; height:32px; border:0; border-radius:50%; background:transparent; font-size:12px; font-variant-numeric:tabular-nums; color:#464555; }
+.shift-clock-face button:hover { background:#e2dfff; }
+.shift-clock-face button[aria-pressed=true] { background:#4f46e5; color:white; }
+.shift-clock-hand { position:absolute; bottom:50%; left:calc(50% - 1px); width:2px; background:#4f46e5; transform-origin:bottom center; }
+.shift-clock-actions { display:flex; justify-content:flex-end; gap:8px; }
+.shift-clock-actions button { border:0; padding:9px 12px; border-radius:6px; font-size:13px; }
+.shift-clock-actions button:first-child { margin-right:auto; }
+.shift-clock-dialog :focus-visible { outline:3px solid #a5b4fc; outline-offset:2px; }

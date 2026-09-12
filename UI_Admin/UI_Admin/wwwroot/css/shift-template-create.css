@@ -20,6 +20,7 @@
 .required,.field-validation-error { color:#ba1a1a; }
 .create-field input,.create-field textarea { background:#f2f3f7; border:1px solid transparent; border-radius:6px; padding:10px 12px; width:100%; min-width:0; color:#191c1f; }
 .create-field input { height:42px; }
+.create-field .shift-clock-input input { padding-right:44px; }
 .create-field textarea { resize:vertical; min-height:100px; }
 .create-field input:focus,.create-field textarea:focus { background:#fff; outline:2px solid #c3c0ff; }
 .create-field .input-validation-error { border-color:#ba1a1a; }

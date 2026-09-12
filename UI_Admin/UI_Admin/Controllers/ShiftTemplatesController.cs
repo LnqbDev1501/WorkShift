@@ -49,7 +49,7 @@ public sealed class ShiftTemplatesController(
         var model = new ShiftTemplateListViewModel { Query = query };
         if (!ModelState.IsValid)
         {
-            model.ErrorMessage = "Invalid query. Page must be a whole number between 1 and 20.";
+            model.ErrorMessage = "Invalid filters. Check the status, page and time range below.";
             Response.StatusCode = StatusCodes.Status400BadRequest;
             return View(model);
         }
@@ -58,7 +58,8 @@ public sealed class ShiftTemplatesController(
         {
             model.Result = await service.GetAllAsync(query, cancellationToken);
             if (query.Page > Math.Max(1, model.LastPage))
-                return RedirectToAction(nameof(List), new { page = Math.Max(1, model.LastPage), search = query.Search });
+                return RedirectToAction(nameof(List), new { page = Math.Max(1, model.LastPage), search = query.Search,
+                    status = query.Status, startTime = query.StartTime?.ToString("HH:mm:ss"), endTime = query.EndTime?.ToString("HH:mm:ss") });
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
             || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
