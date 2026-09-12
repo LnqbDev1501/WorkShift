@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -6,6 +7,7 @@ namespace WorkShiftServer.API.Controllers.Admin;
 
 [Route("api/admin/dashboard")]
 [ApiController]
+[Authorize(Policy = "Admin")]
 public sealed class AdminDashboardController(
     IDashboardService dashboardService,
     ILogger<AdminDashboardController> logger) : ControllerBase

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -8,6 +9,7 @@ using WorkShiftManagement.BLL.Services.Admin;
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
+[Authorize(Policy = "Admin")]
 [Route("api/admin/shift-templates")]
 [ShiftTemplateValidation]
 [TypeFilter(typeof(ShiftTemplateExceptionFilter))]
@@ -74,18 +76,7 @@ public sealed class AdminShiftTemplateController(
         return StatusCode(StatusCodes.Status201Created, new
         {
             message = "Shift template created successfully.",
-            data = new
-            {
-                template.ShiftTemplateId,
-                template.ShiftName,
-                template.StartTime,
-                template.EndTime,
-                template.BreakMinutes,
-                template.Description,
-                template.Status,
-                template.CreatedAt,
-                template.UpdatedAt
-            }
+            data = template
         });
     }
 

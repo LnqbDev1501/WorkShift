@@ -263,6 +263,17 @@ public class BranchRepo : IBranchRepo
         return (items, totalCount);
     }
 
+    public async Task<List<Branch>> GetAssignableBranchesAsync()
+    {
+        return await _context.Branches
+            .AsNoTracking()
+            .Include(branch => branch.UserBranches)
+                .ThenInclude(user => user.Role)
+            .Where(branch => branch.Status == "ACTIVE")
+            .OrderBy(branch => branch.BranchName)
+            .ToListAsync();
+    }
+
     public async Task<Branch?> GetEntityByIdAsync(int id)
     {
         return await _context.Branches

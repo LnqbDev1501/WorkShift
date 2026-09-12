@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -11,6 +12,7 @@ namespace WorkShiftServer.API.Controllers.Admin;
 /// </summary>
 [Route("api/admin/regions")]
 [ApiController]
+[Authorize(Policy = "Admin")]
 public class AdminRegionController : ControllerBase
 {
     private readonly IRegionService _regionService;

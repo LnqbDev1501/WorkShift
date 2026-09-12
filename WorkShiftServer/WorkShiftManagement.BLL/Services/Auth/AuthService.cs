@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.DTOs.Auth.Request;
+using WorkShiftManagement.BLL.DTOs.Auth.Response;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
@@ -143,6 +145,72 @@ public class AuthService : IAuthService
         }
 
         return GetUserId(body);
+    }
+
+    public async Task UpdateEmailAsync(Guid userId, string email)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { email = email, email_confirm = true });
+        
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Unable to update email in Supabase Auth: {GetErrorMessage(body)}",
+            null,
+            response.StatusCode);
+    }
+
+    public async Task<LoginResponse> LoginAsync(LoginRequest request)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "auth/v1/token?grant_type=password",
+            new { email = request.Email.Trim(), password = request.Password });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(GetErrorMessage(body), null, response.StatusCode);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var user = root.GetProperty("user");
+        if (!Guid.TryParse(user.GetProperty("id").GetString(), out var userId))
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+
+        return new LoginResponse
+        {
+            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
+            RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
+            ExpiresIn = root.GetProperty("expires_in").GetInt32(),
+            UserId = userId,
+            Email = user.GetProperty("email").GetString() ?? string.Empty
+        };
+    }
+
+    public async Task<LoginResponse> RefreshAsync(string refreshToken)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "auth/v1/token?grant_type=refresh_token",
+            new { refresh_token = refreshToken });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new HttpRequestException(GetErrorMessage(body), null, response.StatusCode);
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        var user = root.GetProperty("user");
+        if (!Guid.TryParse(user.GetProperty("id").GetString(), out var userId))
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+
+        return new LoginResponse
+        {
+            AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
+            RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
+            ExpiresIn = root.GetProperty("expires_in").GetInt32(),
+            UserId = userId,
+            Email = user.GetProperty("email").GetString() ?? string.Empty
+        };
     }
 
     private static Guid GetUserId(string body)

@@ -1,10 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Controllers.Admin
 {
-    [ApiController]
+[ApiController]
+[Authorize(Policy = "Admin")]
     [Route("api/admin/payroll-periods")]
     public class AdminPayrollApprovalController
         : ControllerBase

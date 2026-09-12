@@ -9,6 +9,8 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.BLL.Interfaces.Upload;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -28,13 +30,17 @@ public class UserService : IUserService
     private readonly IAccountSetupEmailSender _accountSetupEmailSender;
     private readonly ILogger<UserService> _logger;
     private readonly string _defaultAvatarUrl;
+    private readonly AppDbContext _dbContext;
+    private readonly ICloudinaryService _cloudinaryService;
 
     public UserService(
         IUserRepo userRepo,
         IAuthService authService,
         IAccountSetupEmailSender accountSetupEmailSender,
         ILogger<UserService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        AppDbContext dbContext,
+        ICloudinaryService cloudinaryService)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -43,6 +49,8 @@ public class UserService : IUserService
         _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
             ?? throw new InvalidOperationException(
                 "Cloudinary:DefaultAvatarUrl is not configured.");
+        _dbContext = dbContext;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -99,6 +107,17 @@ public class UserService : IUserService
                 ? 0
                 : (int)Math.Ceiling(totalItems / (double)AdminUserPageSize)
         };
+    }
+
+    public async Task<IReadOnlyList<RoleResponse>> GetAssignableRolesAsync()
+    {
+        var roles = await _userRepo.GetAssignableRolesAsync();
+        return roles.Select(role => new RoleResponse
+        {
+            RoleId = role.RoleId,
+            RoleName = role.RoleName,
+            Description = role.Description
+        }).ToList();
     }
 
     public async Task<AdminUserDetailResponse> GetAdminUserDetailAsync(Guid userId)
@@ -239,9 +258,7 @@ public class UserService : IUserService
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId is required.");
 
-        NormalizeAndValidateUpdateRequest(request);
-
-        var user = await _userRepo.GetByIdAsync(userId)
+        var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
 
         if (user.DeletedAt.HasValue)
@@ -250,9 +267,89 @@ public class UserService : IUserService
         if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Only active accounts can be updated.");
 
+        if (request.DateOfBirth.HasValue)
+        {
+            var dob = request.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue);
+            if (dob.Date > DateTime.Today)
+            {
+                throw new ArgumentException("Date of birth cannot be in the future.");
+            }
+
+            var age = DateTime.Today.Year - dob.Year;
+            if (dob.Date > DateTime.Today.AddYears(-age)) age--;
+            if (age < 18)
+            {
+                throw new ArgumentException("The user must be at least 18 years old.");
+            }
+        }
+
         var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
         if (roleName is not (ManagerRole or AccountantRole))
             throw new ArgumentException("Only Manager or Accountant accounts can be updated by this endpoint.");
+
+        if (!request.BranchId.HasValue)
+        {
+            throw new ArgumentException("BranchId is required for Manager and Accountant accounts.");
+        }
+
+        var isBranchChanged = user.BranchId != request.BranchId;
+        var isRoleChanged = user.RoleId != request.RoleId;
+
+        if (isRoleChanged)
+        {
+            var newRole = await _dbContext.Roles.FindAsync(request.RoleId);
+            if (newRole != null && newRole.RoleName.Trim().ToUpperInvariant() == "ADMIN")
+            {
+                throw new ArgumentException("Cannot change role to ADMIN.");
+            }
+        }
+
+        if (isBranchChanged || isRoleChanged)
+        {
+            var branchId = user.BranchId.GetValueOrDefault();
+            if (roleName == ManagerRole && branchId > 0)
+            {
+                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
+                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
+                
+                var hasEmployeeRequests = await _dbContext.EmployeeRequests
+                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
+
+                var hasSwapRequests = await _dbContext.ShiftSwapRequests
+                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
+                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
+
+                var hasContracts = await _dbContext.EmploymentContracts
+                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
+                
+                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
+                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
+
+                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
+                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
+
+                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
+                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
+
+                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
+                {
+                    throw new InvalidOperationException("Cannot update Branch or Role because the Manager has pending tasks in the current branch.");
+                }
+            }
+            else if (roleName == AccountantRole && branchId > 0)
+            {
+                var hasPayrollPeriods = await _dbContext.PayrollPeriods
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+
+                var hasPayrolls = await _dbContext.Payrolls
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
+
+                if (hasPayrollPeriods || hasPayrolls)
+                {
+                    throw new InvalidOperationException("Cannot update Branch or Role because the Accountant has pending payroll processing in the current branch.");
+                }
+            }
+        }
 
         var phoneOwner = await _userRepo.GetByPhoneAsync(request.Phone);
         if (phoneOwner is not null && phoneOwner.UserId != userId)
@@ -262,33 +359,80 @@ public class UserService : IUserService
         if (identityOwner is not null && identityOwner.UserId != userId)
             ThrowIdentityConflict(identityOwner, "Identity number");
 
+        var emailOwner = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+        if (emailOwner is not null && emailOwner.UserId != userId)
+            throw new InvalidOperationException("Email is already in use by another user.");
+
+        if (request.AvatarFile is not null)
+        {
+            user.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, request.AvatarFile);
+        }
+
+        var originalEmail = user.Email;
+        var emailChanged = !string.Equals(originalEmail, request.Email, StringComparison.OrdinalIgnoreCase);
+
         user.FullName = request.FullName;
         user.Phone = request.Phone;
         user.IdentityNo = request.IdentityNo;
         user.Gender = request.Gender;
         user.DateOfBirth = request.DateOfBirth!.Value;
         user.Address = request.Address;
+        user.Email = request.Email;
+        user.BranchId = request.BranchId;
+        user.RoleId = request.RoleId;
         user.UpdatedAt = DateTime.UtcNow;
 
+        using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
-            await _userRepo.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync();
+
+            if (emailChanged)
+            {
+                await _authService.UpdateEmailAsync(userId, request.Email);
+            }
+
+            await transaction.CommitAsync();
         }
         catch (DbUpdateException exception)
         {
-            throw new InvalidOperationException(
-                "The phone number or identity number is already in use.", exception);
+            await transaction.RollbackAsync();
+            var innerMessage = exception.InnerException?.Message ?? "";
+            if (innerMessage.Contains("23503")) // Foreign key violation
+            {
+                throw new ArgumentException("The provided BranchId or RoleId does not exist.");
+            }
+            throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        // Reload the user with Role and Branch included to get RoleName and BranchName
+        await _dbContext.Entry(user).Reference(u => u.Role).LoadAsync();
+        if (user.BranchId.HasValue)
+        {
+            await _dbContext.Entry(user).Reference(u => u.Branch).LoadAsync();
         }
 
         return new UpdateAdminUserResponse
         {
             UserId = user.UserId,
+            AvatarUrl = user.AvatarUrl,
             FullName = user.FullName,
+            Email = user.Email,
             Phone = user.Phone,
             IdentityNo = user.IdentityNo,
             Gender = user.Gender,
             DateOfBirth = user.DateOfBirth,
             Address = user.Address,
+            RoleId = user.RoleId,
+            RoleName = user.Role.RoleName,
+            BranchId = user.BranchId,
+            BranchName = user.Branch?.BranchName,
+            Status = user.Status,
             UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
         };
     }
@@ -330,6 +474,70 @@ public class UserService : IUserService
         if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) &&
             !user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("The current account status does not allow deletion.");
+
+        if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            var branchId = user.BranchId.GetValueOrDefault();
+            if (roleName == ManagerRole && branchId > 0)
+            {
+                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
+                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
+                
+                var hasEmployeeRequests = await _dbContext.EmployeeRequests
+                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
+
+                var hasSwapRequests = await _dbContext.ShiftSwapRequests
+                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
+                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
+
+                var hasContracts = await _dbContext.EmploymentContracts
+                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
+                
+                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
+                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
+
+                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
+                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
+
+                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
+                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
+
+                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
+                {
+                    throw new InvalidOperationException("Cannot delete because the Manager has pending tasks in the current branch.");
+                }
+            }
+            else if (roleName == AccountantRole && branchId > 0)
+            {
+                var hasPayrollPeriods = await _dbContext.PayrollPeriods
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+
+                var hasPayrolls = await _dbContext.Payrolls
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
+
+                if (hasPayrollPeriods || hasPayrolls)
+                {
+                    throw new InvalidOperationException("Cannot delete because the Accountant has pending payroll processing in the current branch.");
+                }
+            }
+        }
+
+        if (user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) ||
+            user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl != _defaultAvatarUrl)
+            {
+                try
+                {
+                    await _cloudinaryService.DeleteImageAsync($"account/{userId}/avatar");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete avatar from Cloudinary for user {UserId}", userId);
+                }
+                user.AvatarUrl = _defaultAvatarUrl;
+            }
+        }
 
         await _authService.BanUserAsync(user.UserId);
         try
