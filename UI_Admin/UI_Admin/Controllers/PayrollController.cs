@@ -32,7 +32,16 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         }
         try
         {
-            model.Regions = await regions.GetAllAsync();
+            var regionPage = await regions.GetPagedAsync(
+                status: "ACTIVE",
+                pageNumber: 1,
+                pageSize: 100,
+                cancellationToken: ct);
+            model.Regions = regionPage.Items;
+            if (!string.IsNullOrWhiteSpace(regionPage.ErrorMessage))
+            {
+                model.LookupError = regionPage.ErrorMessage;
+            }
             model.Branches = await payroll.GetBranchesAsync(filter.RegionId, ct);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)

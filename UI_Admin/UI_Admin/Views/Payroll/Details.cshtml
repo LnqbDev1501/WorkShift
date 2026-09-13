@@ -15,9 +15,19 @@
     <style>
         .period-detail { padding-top: 24px; }
         .period-header { background: linear-gradient(135deg, #fff 0%, #fbfbff 100%); border: 1px solid #edeef5; border-radius: 12px; box-shadow: 0 8px 24px rgba(31,36,68,.04); }
+        .payroll-modal[hidden] { display: none; }
+        .payroll-modal { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 20px; background: rgba(27, 30, 42, .58); backdrop-filter: blur(3px); }
+        .payroll-modal-dialog { width: min(100%, 520px); overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 24px 70px rgba(20, 24, 50, .25); }
+        .payroll-modal-header, .payroll-modal-footer { display: flex; align-items: center; gap: 10px; padding: 18px 20px; }
+        .payroll-modal-header { justify-content: space-between; border-bottom: 1px solid #eceef4; }
+        .payroll-modal-header h2 { margin: 0; font-size: 18px; font-weight: 700; }
+        .payroll-modal-close { border: 0; background: transparent; color: #6f7687; font-size: 24px; line-height: 1; cursor: pointer; }
+        .payroll-modal-body { padding: 20px; color: #555d70; }
+        .payroll-modal-body p { margin: 0 0 12px; }
+        .payroll-modal-body p:last-child { margin-bottom: 0; }
+        .payroll-modal-footer { justify-content: flex-end; border-top: 1px solid #eceef4; background: #fafbfe; }
     </style>
 }
-<header class="payroll-topbar"><span>Admin <b>/</b> WorkShift Control <b>/</b> <a asp-action="List">Payroll Approvals</a></span><span class="payroll-account">Administrator<small>Payroll review</small></span></header>
 <div class="payroll-page period-detail">
     <section class="period-header">
         <div><div class="period-title"><h1>Payroll Period: @period.PeriodName</h1><span class="payroll-status @period.Status.ToLowerInvariant()">● @statusText</span></div>
@@ -25,7 +35,7 @@
             <p>Submitted by @(period.SubmittedBy?.FullName ?? "—") · @(period.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</p>
             @if (period.ApprovedAt.HasValue) { <p>Approved by @(period.ApprovedBy?.FullName ?? "—") · @period.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</p> }
         </div>
-        <div class="period-header-actions"><button type="button" class="payroll-button primary" disabled="@(!canApprove)" data-bs-toggle="modal" data-bs-target="#approve-period">✓ Approve Entire Period</button></div>
+        <div class="period-header-actions"><button type="button" class="payroll-button primary" disabled="@(!canApprove)" data-modal-open="approve-period">✓ Approve Entire Period</button></div>
     </section>
     @if (TempData["PayrollSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
     <div asp-validation-summary="All" class="alert alert-danger review-errors" role="alert"></div>
@@ -74,6 +84,6 @@
 </div>
 @if (canApprove)
 {
-    <div class="modal fade" id="approve-period" tabindex="-1" aria-labelledby="approve-title" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form asp-action="Approve" method="post"><div class="modal-header"><h2 class="modal-title fs-5" id="approve-title">Approve Entire Period</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p><p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p><p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId"/><input type="hidden" name="Search" value="@query.Search"/><input type="hidden" name="PageNumber" value="@query.PageNumber"/><input type="hidden" name="PageSize" value="@query.PageSize"/></div><div class="modal-footer"><button type="button" class="payroll-button" data-bs-dismiss="modal">Cancel</button><button type="submit" class="payroll-button primary">Confirm Approval</button></div></form></div></div></div>
+    <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden><div class="payroll-modal-dialog"><form asp-action="Approve" method="post"><div class="payroll-modal-header"><h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close" data-modal-close aria-label="Close">×</button></div><div class="payroll-modal-body"><p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p><p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p><p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId"/><input type="hidden" name="Search" value="@query.Search"/><input type="hidden" name="PageNumber" value="@query.PageNumber"/><input type="hidden" name="PageSize" value="@query.PageSize"/></div><div class="payroll-modal-footer"><button type="button" class="payroll-button" data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm Approval</button></div></form></div></div>
 }
 @section Scripts { <script src="~/js/payroll-detail.js" asp-append-version="true"></script> }

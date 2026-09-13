@@ -1,4 +1,32 @@
 (() => {
+    let modalTrigger = null;
+    const closeModal = modal => {
+        modal.hidden = true;
+        document.body.style.overflow = '';
+        modalTrigger?.focus();
+    };
+    document.querySelectorAll('[data-modal-open]').forEach(button => {
+        button.addEventListener('click', () => {
+            const modal = document.getElementById(button.dataset.modalOpen);
+            if (!modal) return;
+            modalTrigger = button;
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+            modal.querySelector('[data-modal-close]')?.focus();
+        });
+    });
+    document.querySelectorAll('.payroll-modal').forEach(modal => {
+        modal.querySelectorAll('[data-modal-close]').forEach(button =>
+            button.addEventListener('click', () => closeModal(modal)));
+        modal.addEventListener('click', event => {
+            if (event.target === modal) closeModal(modal);
+        });
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        const modal = document.querySelector('.payroll-modal:not([hidden])');
+        if (modal) closeModal(modal);
+    });
     document.querySelectorAll('[data-inspect]').forEach(button => {
         button.addEventListener('click', () => {
             const panel = document.getElementById(button.dataset.inspect);

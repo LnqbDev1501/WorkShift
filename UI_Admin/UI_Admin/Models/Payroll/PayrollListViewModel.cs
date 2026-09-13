@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using UI_Admin.Models.Regions;
 
 namespace UI_Admin.Models.Payroll;
 
@@ -18,7 +19,7 @@ public class PayrollListViewModel
     public PayrollFilter Filter { get; set; } = new();
     public PayrollPeriodListResponse Page { get; set; } = new();
     public Dictionary<string, int> Counts { get; set; } = new();
-    public List<RegionViewModel> Regions { get; set; } = [];
+    public List<RegionListItemViewModel> Regions { get; set; } = [];
     public List<PayrollBranch> Branches { get; set; } = [];
     public string? Error { get; set; }
     public string? LookupError { get; set; }

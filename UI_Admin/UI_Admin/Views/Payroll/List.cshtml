@@ -6,7 +6,6 @@
     var tabs = new[] { ("", "All Batches"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required") };
 }
 @section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
-<header class="payroll-topbar"><span>Admin <b>/</b> WorkShift Control <b>/</b> <strong>Payroll Approvals</strong></span><span class="payroll-account">Administrator <small>Admin workspace</small></span></header>
 <div class="payroll-page">
     <div class="payroll-heading"><div><h1>Payroll Periods</h1><p>Review payroll cycles, audit employee pay, and track approval across branches.</p></div><div class="payroll-actions"><button class="payroll-button" id="export-payroll" type="button" disabled="@(Model.Page.Items.Count == 0)">↓ Export Page CSV</button><button class="payroll-button" disabled title="Backend chưa hỗ trợ tính lại lương">☷ Recalculate Accruals</button><button class="payroll-button primary" disabled title="Backend chưa hỗ trợ tạo kỳ lương">⊕ Initiate New Cycle</button></div></div>
     <p class="payroll-hint">Tạo chu kỳ và tính lại lương chưa khả dụng.</p>

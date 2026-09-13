@@ -1,0 +1,14 @@
+<header class="holiday-topbar">
+    <div class="holiday-crumb">
+        <span>Organization</span>
+        <span class="material-symbols-outlined">chevron_right</span>
+        <strong>Public Holidays</strong>
+    </div>
+    <div class="holiday-user">
+        <div>
+            <strong>@User.Identity?.Name</strong>
+            <span>@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+        </div>
+        <span class="holiday-avatar material-symbols-outlined">person</span>
+    </div>
+</header>

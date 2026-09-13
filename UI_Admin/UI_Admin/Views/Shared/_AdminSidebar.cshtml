@@ -43,6 +43,10 @@
                     <span class="material-symbols-outlined text-[18px]">schedule</span>
                     <span class="font-body-md-medium text-[13px]">Shift Templates</span>
                 </a>
+                <a asp-controller="Holidays" asp-action="Index" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Holidays" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
+                    <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+                    <span class="font-body-md-medium text-[13px]">Public Holidays</span>
+                </a>
             </nav>
             <nav class="space-y-unit-1">
                 <div class="px-unit-3 pb-unit-1">

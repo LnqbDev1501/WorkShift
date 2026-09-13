@@ -1,0 +1,130 @@
+@model UI_Admin.Models.Holidays.HolidayIndexViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Public Holidays";
+    var selectedYear = Model.Query.Year ?? DateTime.Today.Year;
+    var years = Enumerable.Range(selectedYear - 3, 7).Reverse();
+    var upcoming = Model.UpcomingHoliday;
+}
+@section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
+
+<div class="holiday-shell">
+    <partial name="_HolidayTopbar" />
+
+    <main class="holiday-page">
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="holiday-alert error"><span class="material-symbols-outlined">error</span><span>@Model.ErrorMessage</span><button type="button" aria-label="Dismiss" onclick="this.parentElement.remove()">×</button></div>
+        }
+
+        <div class="holiday-heading">
+            <div><div class="page-crumb">Admin <span>›</span> WorkShift Control <span>›</span> Public Holidays</div><h1>Public Holidays</h1><p>Manage holiday dates and statutory pay multipliers across regional shifts.</p></div>
+            <div class="heading-actions">
+                <a class="secondary-button" asp-action="Export" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive"><span class="material-symbols-outlined">download</span>Export CSV</a>
+                <a class="primary-button" asp-action="Create"><span class="material-symbols-outlined">add</span>Create Holidays</a>
+            </div>
+        </div>
+
+        <section class="holiday-stats" aria-label="Holiday summary">
+            <article><div><span class="stat-label">Statutory holidays (@selectedYear)</span><strong>@Model.ActiveCount</strong><small>total active days</small></div><span class="material-symbols-outlined indigo">calendar_month</span><p><span class="material-symbols-outlined green">check_circle</span>Compliant holiday configuration</p></article>
+            <article><div><span class="stat-label">Default multiplier</span><strong>@Model.DefaultMultiplier.ToString("0.00")×</strong><small>base pay rate</small></div><span class="material-symbols-outlined green">percent</span><p><i class="status-dot"></i>Standard overtime rule active</p></article>
+            <article><div><span class="stat-label">Upcoming holiday</span><strong class="upcoming-name">@(upcoming?.HolidayName ?? "No upcoming date")</strong><small>@(upcoming is null ? "—" : upcoming.HolidayDate.ToString("dd MMM yyyy (dddd)", CultureInfo.InvariantCulture))</small></div><span class="material-symbols-outlined">event_upcoming</span><p><span class="material-symbols-outlined indigo">schedule</span>Future schedule reservation</p></article>
+            <article><div><span class="stat-label">Historical inactive</span><strong>@Model.InactiveCount</strong><small>archived slots</small></div><span class="material-symbols-outlined">history</span><p><span class="material-symbols-outlined">lock</span>Date reservations preserved</p></article>
+        </section>
+
+        <section class="holiday-guard">
+            <span class="material-symbols-outlined indigo">info</span>
+            <div><strong>Permanent Shift &amp; Calendar Reservation Guard</strong><p>Holiday dates remain locked across both Active and Inactive records, preventing schedule overlaps and preserving payroll history.</p></div>
+            <span class="guard-tag">Statutory lock</span>
+        </section>
+
+        <section class="holiday-table-card">
+            <form asp-action="Index" method="get" class="holiday-filters" id="holiday-filter-form">
+                <input type="hidden" name="PageNumber" value="1" />
+                <label class="search-box"><span class="material-symbols-outlined">search</span><input name="Search" value="@Model.Query.Search" maxlength="150" placeholder="Search by holiday name..." /></label>
+                <select name="Year" aria-label="Year filter">
+                    <option value="">All Years</option>
+                    @foreach (var year in years) { <option value="@year" selected="@(Model.Query.Year == year)">@year</option> }
+                </select>
+                <select name="Month" aria-label="Month filter">
+                    <option value="">All Months</option>
+                    @for (var month = 1; month <= 12; month++) { <option value="@month" selected="@(Model.Query.Month == month)">@CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)</option> }
+                </select>
+                <button type="submit" class="filter-button">Apply</button>
+                <label class="inactive-toggle"><input type="checkbox" name="IncludeInactive" value="true" checked="@Model.Query.IncludeInactive" /><span>Include Inactive</span><small>@(Model.Query.IncludeInactive ? "Inactive records visible" : "Inactive records hidden")</small></label>
+                <a asp-action="Index" asp-route-year="@DateTime.Today.Year" class="clear-filter">Clear Filters</a>
+                <div class="sort-label">Sort by: <strong>Chronological Date</strong> <span class="material-symbols-outlined">south</span></div>
+            </form>
+
+            <div class="table-scroll">
+                <table class="holiday-table">
+                    <thead><tr><th>Holiday name</th><th>Date</th><th>Pay multiplier</th><th>Status</th><th class="actions">Actions</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.Result.Items)
+                    {
+                        var icon = item.HolidayDate.Month switch { 1 => "celebration", 4 => "festival", 5 => "badge", 9 => "star", _ => "event" };
+                        <tr class="@(!item.IsActive ? "inactive-row" : string.Empty)">
+                            <td><div class="holiday-name"><span class="holiday-icon material-symbols-outlined">@icon</span><div><strong>@item.HolidayName</strong><small>Public holiday calendar reservation</small></div></div></td>
+                            <td><span class="date-cell"><span class="material-symbols-outlined">calendar_month</span>@item.HolidayDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</span></td>
+                            <td><span class="multiplier">@item.PayMultiplier.ToString("0.00")×</span></td>
+                            <td><span class="status @(item.IsActive ? "active" : "inactive")"><i></i>@(item.IsActive ? "Active" : "Inactive")</span></td>
+                            <td class="actions"><div class="row-actions">
+                                <a asp-action="Details" asp-route-id="@item.PublicHolidayId" title="View details"><span class="material-symbols-outlined">visibility</span></a>
+                                @if (item.IsActive)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.PublicHolidayId" title="Edit holiday"><span class="material-symbols-outlined">edit</span></a>
+                                    <button type="button" title="Deactivate holiday" data-delete-open data-id="@item.PublicHolidayId" data-name="@item.HolidayName"><span class="material-symbols-outlined">delete</span></button>
+                                }
+                                else { <span class="locked" title="Inactive records are read-only"><span class="material-symbols-outlined">lock</span></span> }
+                            </div></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.Result.Items.Count == 0)
+            {
+                <div class="holiday-empty"><span class="material-symbols-outlined">event_busy</span><h2>No matching public holidays found</h2><p>Try another search, year, month, or include inactive records.</p></div>
+            }
+            <footer class="table-footer">
+                <div>Showing @Model.FirstItem to @Model.LastItem of @Model.Result.TotalCount holidays <span>•</span> @Model.Result.PageSize records per page</div>
+                <nav aria-label="Pagination">
+                    <a class="@(Model.Result.PageNumber <= 1 ? "disabled" : string.Empty)" asp-action="Index" asp-route-pageNumber="@(Model.Result.PageNumber - 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">‹ Previous</a>
+                    <span>@Model.Result.PageNumber</span>
+                    <a class="@(Model.Result.PageNumber >= Model.Result.TotalPages ? "disabled" : string.Empty)" asp-action="Index" asp-route-pageNumber="@(Model.Result.PageNumber + 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">Next ›</a>
+                </nav>
+            </footer>
+        </section>
+        <footer class="compliance"><span><span class="material-symbols-outlined">verified_user</span>Vietnamese Labor Code statutory verification active</span><span>Holiday date reservation: <strong>Enabled</strong></span></footer>
+    </main>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+{
+    <div class="holiday-modal" id="holiday-success-modal" role="dialog" aria-modal="true" aria-labelledby="success-modal-title">
+        <div class="holiday-modal-card success-modal-card">
+            <div class="modal-icon success"><span class="material-symbols-outlined">check</span></div>
+            <h2 id="success-modal-title">Success!</h2>
+            <p>@Model.SuccessMessage</p>
+            <button type="button" class="primary-button" data-success-close>OK</button>
+        </div>
+    </div>
+}
+
+<div class="holiday-modal" id="holiday-delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title" hidden>
+    <div class="holiday-modal-card delete-modal-card">
+        <div class="delete-modal-copy">
+            <div class="modal-icon danger"><span class="material-symbols-outlined">warning</span></div>
+            <div><h2 id="delete-modal-title">Deactivate public holiday?</h2><p id="delete-modal-description">Only this holiday will become inactive. Its date remains permanently reserved.</p></div>
+        </div>
+        <div class="modal-reservation-note"><span class="material-symbols-outlined">lock</span><div><strong>Permanent date reservation</strong><p>This date cannot be reused for another holiday after deactivation.</p></div></div>
+        <form asp-action="Delete" method="post" id="holiday-delete-form" class="modal-actions">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="delete-holiday-id" value="0" />
+            <button type="button" class="secondary-button" data-delete-close>Cancel</button>
+            <button type="submit" class="danger-button">Confirm Deactivation</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <script src="~/js/holidays.js" asp-append-version="true"></script> }
