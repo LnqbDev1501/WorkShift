@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -11,6 +12,7 @@ namespace WorkShiftServer.API.Controllers.Admin;
 /// </summary>
 [Route("api/admin/branches")]
 [ApiController]
+[Authorize(Policy = "Admin")]
 public class AdminBranchController : ControllerBase
 {
     private readonly IBranchService _branchService;

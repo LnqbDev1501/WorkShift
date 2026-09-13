@@ -6,30 +6,7 @@
         link.classList.remove('text-[#9ca3af]');
     });
 
-    // Create Modal Controls
-    const openCreateBtn = document.getElementById('open-create-modal');
-    const closeCreateBtn = document.getElementById('close-create-modal');
-    const cancelCreateBtn = document.getElementById('cancel-create-modal');
-    const createModal = document.getElementById('create-region-modal');
 
-    const toggleCreateModal = (show) => {
-        if (!createModal) return;
-        if (show) {
-            createModal.classList.remove('hidden');
-        } else {
-            createModal.classList.add('hidden');
-        }
-    };
-
-    if (openCreateBtn) openCreateBtn.addEventListener('click', () => toggleCreateModal(true));
-    if (closeCreateBtn) closeCreateBtn.addEventListener('click', () => toggleCreateModal(false));
-    if (cancelCreateBtn) cancelCreateBtn.addEventListener('click', () => toggleCreateModal(false));
-
-    if (createModal) {
-        createModal.addEventListener('click', (e) => {
-            if (e.target === createModal) toggleCreateModal(false);
-        });
-    }
 
     // Deactivate Modal Controls
     const deactivateModal = document.getElementById('deactivate-region-modal');

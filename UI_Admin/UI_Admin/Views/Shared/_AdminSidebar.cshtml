@@ -12,6 +12,8 @@
             </div>
         </div>
         <div class="flex-1 overflow-y-auto px-unit-3 py-unit-4 space-y-unit-6">
+            @if (User.IsInRole("ADMIN"))
+            {
             <nav class="space-y-unit-1">
                 <div class="px-unit-3 pb-unit-1">
                     <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">WORKSPACE</span>
@@ -59,15 +61,29 @@
                     <span class="font-body-md-medium text-[13px]">Notifications</span>
                 </a>
             </nav>
+            }
+            else
+            {
+                <nav class="space-y-unit-1">
+                    <div class="px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">WORKSPACE</span></div>
+                    <a asp-controller="Landing" asp-action="@(User.IsInRole("ACCOUNTANT") ? "Accountant" : User.IsInRole("MANAGER") ? "Manager" : "Staff")" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg bg-primary-container text-white font-title-md">
+                        <span class="material-symbols-outlined text-[18px]">dashboard</span><span class="font-body-md-medium text-[13px]">My workspace</span>
+                    </a>
+                </nav>
+            }
         </div>
     </div>
     <div class="p-unit-3 border-t border-[#1f2937] bg-[#0d131f]">
         <div class="flex items-center gap-unit-3 px-unit-2 py-unit-1">
             <img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-[#374151]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxBqyVKY3tSSdbSk2R1vAcGD4081GVIvabN1KxoezORlQQQU4QL834LccRH3msx2wGRRYrXCubaeO0clG7Ln26m_rObsktqf1a-b4MzFcLnDFoqubTn0QZxCPOi1ocOcwRgVp2UcUm2Ii-fXYDIWONx_TYhOA-nr6tHzsSrjIj6tH_2VJ2HW_5rij3HSL21l6w64l7mqTh8DMiVGq21fjjJMgt4JO44tEWiuglcaNqGZlE8_ean_HMrw">
             <div class="flex flex-col min-w-0 flex-1">
-                <span class="font-title-md text-white text-[13px] leading-snug truncate">Nguyen Minh Chau</span>
-                <span class="font-label-sm text-[#9ca3af] text-[11px] truncate">Super Admin</span>
+                <span class="font-title-md text-white text-[13px] leading-snug truncate">@User.Identity?.Name</span>
+                <span class="font-label-sm text-[#9ca3af] text-[11px] truncate">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
             </div>
+            <form asp-controller="Auth" asp-action="Logout" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="text-[#9ca3af] hover:text-white text-[11px]">Sign out</button>
+            </form>
         </div>
     </div>
 </aside>

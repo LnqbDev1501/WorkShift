@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 public sealed class NotificationsController : Controller
 {
     private readonly NotificationApiService _notificationApiService;

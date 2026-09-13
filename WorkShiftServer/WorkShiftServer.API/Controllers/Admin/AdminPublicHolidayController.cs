@@ -7,7 +7,7 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
-[AllowAnonymous] // Development only: this module does not require authentication.
+[Authorize(Policy = "Admin")]
 [Route("api/public-holidays")]
 public sealed class AdminPublicHolidayController : ControllerBase
 {

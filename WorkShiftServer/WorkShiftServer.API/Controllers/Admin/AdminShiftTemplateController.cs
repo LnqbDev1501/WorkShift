@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -8,6 +9,7 @@ using WorkShiftManagement.BLL.Services.Admin;
 namespace WorkShiftServer.API.Controllers.Admin;
 
 [ApiController]
+[Authorize(Policy = "Admin")]
 [Route("api/admin/shift-templates")]
 [ShiftTemplateValidation]
 [TypeFilter(typeof(ShiftTemplateExceptionFilter))]

@@ -138,6 +138,14 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
                 (template.Description != null && EF.Functions.ILike(template.Description, pattern, "\\")));
         }
 
+        if (!string.IsNullOrEmpty(query.Status))
+            templates = templates.Where(template => template.Status == query.Status);
+
+        // Match templates contained within the selected clock-time window before counting/paging.
+        if (query.StartTime.HasValue)
+            templates = templates.Where(template => template.StartTime >= query.StartTime.Value);
+        if (query.EndTime.HasValue)
+            templates = templates.Where(template => template.EndTime <= query.EndTime.Value);
         var totalCount = await templates.CountAsync(cancellationToken);
         var items = await templates
             .OrderByDescending(template => template.CreatedAt)
@@ -151,7 +159,8 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
                 BreakMinutes = template.BreakMinutes,
-                Status = template.Status
+                Status = template.Status,
+                CreatedAt = template.CreatedAt
             })
             .ToListAsync(cancellationToken);
 
