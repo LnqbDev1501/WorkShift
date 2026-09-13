@@ -74,6 +74,27 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        try
+        {
+            var email = request.Email.Trim();
+            var hasActiveAccount = await _context.Users.AsNoTracking().AnyAsync(item =>
+                item.Email == email && item.Status == "ACTIVE" && item.DeletedAt == null);
+            if (hasActiveAccount)
+                await _authService.SendPasswordRecoveryAsync(email);
+        }
+        catch (Exception exception)
+        {
+            // Return the same response to avoid exposing account existence or mail delivery failures.
+            _logger.LogError(exception, "Unable to process password recovery request");
+        }
+
+        return NoContent();
+    }
+
     [HttpPost("set-password")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

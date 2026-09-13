@@ -86,7 +86,9 @@ builder.Services.AddHttpClient<AuthService>(client =>
 {
     var setPasswordUrl = builder.Configuration["AdminUi:SetPasswordUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:SetPasswordUrl configuration.");
-    return new AuthService(client, setPasswordUrl);
+    var resetPasswordUrl = builder.Configuration["AdminUi:ResetPasswordUrl"]
+        ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
+    return new AuthService(client, setPasswordUrl, resetPasswordUrl);
 });
 
 

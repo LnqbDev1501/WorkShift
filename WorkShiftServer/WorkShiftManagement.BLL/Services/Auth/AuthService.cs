@@ -12,13 +12,17 @@ public class AuthService : IAuthService
 {
     private readonly HttpClient _httpClient;
     private readonly string _inviteRedirectUrl;
+    private readonly string _passwordRecoveryRedirectUrl;
 
-    public AuthService(HttpClient httpClient, string inviteRedirectUrl)
+    public AuthService(HttpClient httpClient, string inviteRedirectUrl, string passwordRecoveryRedirectUrl)
     {
         _httpClient = httpClient;
         _inviteRedirectUrl = string.IsNullOrWhiteSpace(inviteRedirectUrl)
             ? throw new ArgumentException("Password setup URL is required.", nameof(inviteRedirectUrl))
             : inviteRedirectUrl;
+        _passwordRecoveryRedirectUrl = string.IsNullOrWhiteSpace(passwordRecoveryRedirectUrl)
+            ? throw new ArgumentException("Password recovery URL is required.", nameof(passwordRecoveryRedirectUrl))
+            : passwordRecoveryRedirectUrl;
     }
 
     public async Task<Guid> CreateUserAndSendInviteAsync(string email)
@@ -211,6 +215,20 @@ public class AuthService : IAuthService
             UserId = userId,
             Email = user.GetProperty("email").GetString() ?? string.Empty
         };
+    }
+
+    public async Task SendPasswordRecoveryAsync(string email)
+    {
+        var endpoint = $"auth/v1/recover?redirect_to={Uri.EscapeDataString(_passwordRecoveryRedirectUrl)}";
+        using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email });
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync();
+        throw new HttpRequestException(
+            $"Unable to send password recovery email: {GetErrorMessage(body)}",
+            null,
+            response.StatusCode);
     }
 
     private static Guid GetUserId(string body)

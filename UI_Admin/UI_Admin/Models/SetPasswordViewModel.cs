@@ -15,8 +15,9 @@ namespace UI_Admin.Models
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please confirm your password.")]
-        [Compare(
+    [Required(ErrorMessage = "Please confirm your password.")]
+    [Display(Name = "Confirm Password")]
+    [Compare(
             nameof(Password),
             ErrorMessage = "The password confirmation does not match.")]
         [DataType(DataType.Password)]
