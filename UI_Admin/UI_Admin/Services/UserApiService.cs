@@ -55,6 +55,14 @@ public sealed class UserApiService
         };
     }
 
+    public async Task<UserDetailViewModel> GetDetailAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var response = await _httpClient.GetFromJsonAsync<UserDetailViewModel>(
+            BuildUrl($"api/admin/users/{userId}"), cancellationToken);
+
+        return response ?? throw new InvalidOperationException("User detail response is empty.");
+    }
+
     public Task ResendSetupLinkAsync(Guid userId, CancellationToken cancellationToken = default) =>
         SendWithoutBodyAsync(HttpMethod.Post, $"api/admin/users/{userId}/resend-setup-link", cancellationToken);
 

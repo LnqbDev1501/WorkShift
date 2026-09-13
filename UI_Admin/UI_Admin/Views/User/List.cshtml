@@ -27,16 +27,22 @@
 
 @if (TempData["AccountCreatedSuccess"] is true or "true")
 {
-    <div id="successPopupModal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-icon-wrap">
-                <svg viewBox="0 0 24 24">
+    <div id="successPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
             </div>
-            <h3 class="modal-title">Account Created Successfully</h3>
-            <p class="modal-desc">User account provisioned successfully. An activation invite has been dispatched to their email.</p>
-            <button type="button" class="modal-ok-btn" onclick="document.getElementById('successPopupModal').remove()">OK</button>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Account Created Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    User account provisioned successfully. An activation invite has been dispatched to their email.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('successPopupModal').remove()">
+                OK
+            </button>
         </div>
     </div>
 }
