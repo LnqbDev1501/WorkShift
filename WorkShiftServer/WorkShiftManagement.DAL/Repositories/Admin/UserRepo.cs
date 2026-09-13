@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,6 +26,16 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .FirstOrDefaultAsync(role =>
                     role.RoleId == roleId &&
                     role.Status == "ACTIVE");
+        }
+
+        public async Task<IReadOnlyList<Role>> GetAssignableRolesAsync()
+        {
+            return await _context.Roles
+                .AsNoTracking()
+                .Where(role => role.Status == "ACTIVE" &&
+                    (role.RoleName.ToUpper() == "MANAGER" || role.RoleName.ToUpper() == "ACCOUNTANT"))
+                .OrderBy(role => role.RoleId)
+                .ToListAsync();
         }
 
         public async Task<bool> ActiveBranchExistsAsync(int branchId)

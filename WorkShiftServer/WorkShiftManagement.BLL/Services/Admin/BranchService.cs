@@ -470,6 +470,25 @@ public class BranchService : IBranchService
         };
     }
 
+    public async Task<IReadOnlyList<BranchAssignableOptionResponse>> GetAssignableOptionsAsync()
+    {
+        var branches = await _branchRepo.GetAssignableBranchesAsync();
+        return branches.Select(branch => new BranchAssignableOptionResponse
+        {
+            BranchId = branch.BranchId,
+            BranchCode = branch.BranchCode,
+            BranchName = branch.BranchName,
+            ManagerCount = branch.UserBranches.Count(user =>
+                user.Role != null &&
+                user.Role.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) &&
+                !user.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase)),
+            AccountantCount = branch.UserBranches.Count(user =>
+                user.Role != null &&
+                user.Role.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase) &&
+                !user.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))
+        }).ToList();
+    }
+
     private static bool IsValidEmail(string email)
     {
         try

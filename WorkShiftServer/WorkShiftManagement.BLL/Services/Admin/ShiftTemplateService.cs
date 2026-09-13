@@ -4,19 +4,19 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
-using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
-public sealed class ShiftTemplateService(AppDbContext context)
+public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
 {
     public async Task<bool> RestoreAsync(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0)
             throw new ValidationException("id must be a positive integer.");
 
-        var template = await context.ShiftTemplates.SingleOrDefaultAsync(
+        var template = await repository.Query(tracking: true).SingleOrDefaultAsync(
             x => x.ShiftTemplateId == id, cancellationToken);
         if (template is null)
             throw new KeyNotFoundException("Shift template not found.");
@@ -30,11 +30,11 @@ public sealed class ShiftTemplateService(AppDbContext context)
 
         try
         {
-            await context.SaveChangesAsync(cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            context.Entry(template).State = EntityState.Detached;
+            repository.Detach(template);
             throw new KeyNotFoundException("Shift template no longer exists.");
         }
 
@@ -46,7 +46,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
         if (id <= 0)
             throw new ValidationException("id must be a positive integer.");
 
-        var template = await context.ShiftTemplates.SingleOrDefaultAsync(
+        var template = await repository.Query(tracking: true).SingleOrDefaultAsync(
             x => x.ShiftTemplateId == id, cancellationToken);
         if (template is null)
             throw new KeyNotFoundException("Shift template not found.");
@@ -60,11 +60,11 @@ public sealed class ShiftTemplateService(AppDbContext context)
 
         try
         {
-            await context.SaveChangesAsync(cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            context.Entry(template).State = EntityState.Detached;
+            repository.Detach(template);
             throw new KeyNotFoundException("Shift template no longer exists.");
         }
 
@@ -78,13 +78,13 @@ public sealed class ShiftTemplateService(AppDbContext context)
             throw new ValidationException("id must be a positive integer.");
         Validator.ValidateObject(request, new ValidationContext(request), validateAllProperties: true);
 
-        var template = await context.ShiftTemplates.SingleOrDefaultAsync(
+        var template = await repository.Query(tracking: true).SingleOrDefaultAsync(
             x => x.ShiftTemplateId == id, cancellationToken);
         if (template is null)
             throw new KeyNotFoundException("Shift template not found.");
 
         var shiftName = request.ShiftName!.Trim();
-        if (await context.ShiftTemplates.AnyAsync(
+        if (await repository.Query().AnyAsync(
             x => x.ShiftTemplateId != id && x.ShiftName == shiftName, cancellationToken))
             return null;
 
@@ -98,11 +98,11 @@ public sealed class ShiftTemplateService(AppDbContext context)
 
         try
         {
-            await context.SaveChangesAsync(cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
-            context.Entry(template).State = EntityState.Detached;
+            repository.Detach(template);
             throw new KeyNotFoundException("Shift template no longer exists.");
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
@@ -111,22 +111,11 @@ public sealed class ShiftTemplateService(AppDbContext context)
             ConstraintName: "shift_templates_shift_name_key"
         })
         {
-            context.Entry(template).State = EntityState.Detached;
+            repository.Detach(template);
             return null;
         }
 
-        return new ShiftTemplateResponse
-        {
-            ShiftTemplateId = template.ShiftTemplateId,
-            ShiftName = template.ShiftName,
-            StartTime = template.StartTime,
-            EndTime = template.EndTime,
-            BreakMinutes = template.BreakMinutes,
-            Description = template.Description,
-            Status = template.Status,
-            CreatedAt = template.CreatedAt,
-            UpdatedAt = template.UpdatedAt
-        };
+        return ToResponse(template);
     }
 
     public async Task<PagedResponse<ShiftTemplateListResponse>> GetAllAsync(
@@ -135,7 +124,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
         Validator.ValidateObject(query, new ValidationContext(query), validateAllProperties: true);
         const int pageSize = 20;
 
-        var templates = context.ShiftTemplates.AsNoTracking();
+        var templates = repository.Query();
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             // Treat LIKE wildcards as literal characters in the search text.
@@ -149,6 +138,14 @@ public sealed class ShiftTemplateService(AppDbContext context)
                 (template.Description != null && EF.Functions.ILike(template.Description, pattern, "\\")));
         }
 
+        if (!string.IsNullOrEmpty(query.Status))
+            templates = templates.Where(template => template.Status == query.Status);
+
+        // Match templates contained within the selected clock-time window before counting/paging.
+        if (query.StartTime.HasValue)
+            templates = templates.Where(template => template.StartTime >= query.StartTime.Value);
+        if (query.EndTime.HasValue)
+            templates = templates.Where(template => template.EndTime <= query.EndTime.Value);
         var totalCount = await templates.CountAsync(cancellationToken);
         var items = await templates
             .OrderByDescending(template => template.CreatedAt)
@@ -162,7 +159,8 @@ public sealed class ShiftTemplateService(AppDbContext context)
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
                 BreakMinutes = template.BreakMinutes,
-                Status = template.Status
+                Status = template.Status,
+                CreatedAt = template.CreatedAt
             })
             .ToListAsync(cancellationToken);
 
@@ -181,8 +179,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
         if (id <= 0)
             throw new ValidationException("id must be a positive integer.");
 
-        return await context.ShiftTemplates
-            .AsNoTracking()
+        return await repository.Query()
             .Where(template => template.ShiftTemplateId == id)
             .Select(template => new ShiftTemplateResponse
             {
@@ -199,7 +196,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
             .SingleOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<ShiftTemplate?> CreateAsync(
+    public async Task<ShiftTemplateResponse?> CreateAsync(
         CreateShiftTemplateRequest request, CancellationToken cancellationToken = default)
     {
         Validator.ValidateObject(request, new ValidationContext(request), validateAllProperties: true);
@@ -209,7 +206,7 @@ public sealed class ShiftTemplateService(AppDbContext context)
         var endTime = TimeOnly.ParseExact(request.EndTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
         var breakMinutes = request.BreakMinutes!.Value;
 
-        if (await context.ShiftTemplates.AnyAsync(x => x.ShiftName == shiftName, cancellationToken))
+        if (await repository.Query().AnyAsync(x => x.ShiftName == shiftName, cancellationToken))
             return null;
 
         var template = new ShiftTemplate
@@ -222,10 +219,10 @@ public sealed class ShiftTemplateService(AppDbContext context)
             Status = "ACTIVE"
         };
 
-        context.ShiftTemplates.Add(template);
+        repository.Add(template);
         try
         {
-            await context.SaveChangesAsync(cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (exception.InnerException is PostgresException
         {
@@ -233,10 +230,27 @@ public sealed class ShiftTemplateService(AppDbContext context)
             ConstraintName: "shift_templates_shift_name_key"
         })
         {
-            context.Entry(template).State = EntityState.Detached;
+            repository.Detach(template);
             return null;
         }
 
-        return template;
+        return ToResponse(template);
     }
+
+    private static ShiftTemplateResponse ToResponse(ShiftTemplate template)
+    {
+        return new ShiftTemplateResponse
+        {
+            ShiftTemplateId = template.ShiftTemplateId,
+            ShiftName = template.ShiftName,
+            StartTime = template.StartTime,
+            EndTime = template.EndTime,
+            BreakMinutes = template.BreakMinutes,
+            Description = template.Description,
+            Status = template.Status,
+            CreatedAt = template.CreatedAt,
+            UpdatedAt = template.UpdatedAt
+        };
+    }
+
 }

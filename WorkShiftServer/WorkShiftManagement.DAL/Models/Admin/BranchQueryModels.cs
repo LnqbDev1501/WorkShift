@@ -43,3 +43,5 @@ public class BranchEmployeeData
     public string Role { get; set; } = null!;
     public string Status { get; set; } = null!;
 }
+
+

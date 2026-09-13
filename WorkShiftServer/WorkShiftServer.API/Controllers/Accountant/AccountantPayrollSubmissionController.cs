@@ -1,9 +1,12 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Controllers.Accountant
 {
     [ApiController]
+    [Authorize(Policy = "Accountant")]
     [Route("api/accountant/payroll-periods")]
     public class AccountantPayrollSubmissionController
         : ControllerBase
@@ -27,19 +30,15 @@ namespace WorkShiftServer.API.Controllers.Accountant
         public async Task<IActionResult>
             SubmitRejectedPayroll(
                 int periodId,
-                int payrollId,
-                [FromHeader(Name = "X-Accountant-Id")]
-                string? accountantId)
+                int payrollId)
         {
-            if (string.IsNullOrWhiteSpace(accountantId) ||
-                !Guid.TryParse(
-                    accountantId,
-                    out var accountantGuid))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var accountantGuid))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message =
-                        "X-Accountant-Id không hợp lệ."
+                    message = "The authenticated user ID is invalid."
                 });
             }
 

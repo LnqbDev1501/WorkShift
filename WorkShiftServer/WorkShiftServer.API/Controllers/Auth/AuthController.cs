@@ -1,27 +1,98 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
-using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.DTOs.Auth.Response;
+using WorkShiftManagement.DAL.Data;
 
 namespace WorkShiftServer.API.Controllers.Auth;
 
 [ApiController]
 [Route("api/auth")]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
-    private readonly IUserService _userService;
     private readonly ILogger<AuthController> _logger;
+    private readonly AppDbContext _context;
 
     public AuthController(
         IAuthService authService,
-        IUserService userService,
-        ILogger<AuthController> logger)
+        ILogger<AuthController> logger,
+        AppDbContext context)
     {
         _authService = authService;
-        _userService = userService;
         _logger = logger;
+        _context = context;
+    }
+
+    [HttpPost("login")]
+    public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
+    {
+        try
+        {
+            var login = await _authService.LoginAsync(request);
+            var user = await _context.Users.AsNoTracking()
+                .Where(item => item.UserId == login.UserId && item.Status == "ACTIVE" && item.DeletedAt == null)
+                .Select(item => new { item.FullName, Role = item.Role.RoleName })
+                .SingleOrDefaultAsync();
+            if (user == null)
+                return Unauthorized(new { message = "Your WorkShift account is inactive or unavailable." });
+
+            login.FullName = user.FullName;
+            login.Role = user.Role.ToUpperInvariant();
+            return Ok(login);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return Unauthorized(new { message = "Invalid email or password." });
+        }
+    }
+
+    [HttpPost("refresh")]
+    public async Task<ActionResult<LoginResponse>> Refresh([FromBody] RefreshTokenRequest request)
+    {
+        try
+        {
+            var login = await _authService.RefreshAsync(request.RefreshToken);
+            var user = await _context.Users.AsNoTracking()
+                .Where(item => item.UserId == login.UserId && item.Status == "ACTIVE" && item.DeletedAt == null)
+                .Select(item => new { item.FullName, Role = item.Role.RoleName })
+                .SingleOrDefaultAsync();
+            if (user == null)
+                return Unauthorized(new { message = "Your WorkShift account is inactive or unavailable." });
+
+            login.FullName = user.FullName;
+            login.Role = user.Role.ToUpperInvariant();
+            return Ok(login);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return Unauthorized(new { message = "Your session has expired. Please sign in again." });
+        }
+    }
+
+    [HttpPost("forgot-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        try
+        {
+            var email = request.Email.Trim();
+            var hasActiveAccount = await _context.Users.AsNoTracking().AnyAsync(item =>
+                item.Email == email && item.Status == "ACTIVE" && item.DeletedAt == null);
+            if (hasActiveAccount)
+                await _authService.SendPasswordRecoveryAsync(email);
+        }
+        catch (Exception exception)
+        {
+            // Return the same response to avoid exposing account existence or mail delivery failures.
+            _logger.LogError(exception, "Unable to process password recovery request");
+        }
+
+        return NoContent();
     }
 
     [HttpPost("set-password")]
@@ -35,7 +106,18 @@ public class AuthController : ControllerBase
         try
         {
             var userId = await _authService.SetPasswordAsync(request.AccessToken, request.Password);
-            await _userService.ActivateUserAsync(userId);
+            var user = await _context.Users.SingleOrDefaultAsync(item => item.UserId == userId)
+                ?? throw new KeyNotFoundException("No matching user profile was found.");
+            if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+            {
+                user.Status = "ACTIVE";
+                user.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+            else if (!user.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("The current account status does not allow activation.");
+            }
             return NoContent();
         }
         catch (HttpRequestException exception)

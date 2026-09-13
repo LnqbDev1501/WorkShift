@@ -28,4 +28,16 @@ public class UpdateAdminUserRequest
     [Required(ErrorMessage = "Address is required.")]
     [StringLength(500, ErrorMessage = "Address must not exceed 500 characters.")]
     public string Address { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Email is required.")]
+    [EmailAddress(ErrorMessage = "Invalid email format.")]
+    [StringLength(254, ErrorMessage = "Email must not exceed 254 characters.")]
+    public string Email { get; set; } = string.Empty;
+
+    public int? BranchId { get; set; }
+
+    [Required(ErrorMessage = "Role ID is required.")]
+    public int RoleId { get; set; }
+
+    public Microsoft.AspNetCore.Http.IFormFile? AvatarFile { get; set; }
 }
