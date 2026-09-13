@@ -48,8 +48,6 @@
 .detail-summary>div:last-child { background:#eeecff; color:#3525cd; }
 .detail-notice { padding:14px 18px; background:#fffbeb; color:#92400e; border-radius:8px; margin-bottom:20px; }
 .detail-success { background:#ecfdf5; color:#047857; }
-.detail-breadcrumb { display:flex; align-items:center; flex-wrap:wrap; gap:12px; font-size:13px; color:#575e70; }
-.detail-breadcrumb a:hover { color:#4f46e5; }
 .detail-heading>div:first-child { flex:1; min-width:0; }
 .detail-heading>.detail-actions { flex-shrink:0; }
 .detail-heading .detail-metadata { display:flex; flex-wrap:wrap; gap:8px 16px; line-height:1.6; }

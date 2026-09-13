@@ -3,7 +3,7 @@ using System.Globalization;
 
 namespace UI_Admin.Models;
 
-public sealed class CreateShiftTemplateViewModel : IValidatableObject
+public class CreateShiftTemplateViewModel : IValidatableObject
 {
     [Required(ErrorMessage = "Shift name is required.")]
     [StringLength(150, ErrorMessage = "Shift name must not exceed 150 characters.")]

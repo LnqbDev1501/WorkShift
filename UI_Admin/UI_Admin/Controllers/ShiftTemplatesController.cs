@@ -11,6 +11,75 @@ public sealed class ShiftTemplatesController(
     ShiftTemplateApiService service, ILogger<ShiftTemplatesController> logger) : Controller
 {
     [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid || id <= 0) return BadRequest();
+        try
+        {
+            var template = await service.GetByIdAsync(id, cancellationToken);
+            if (template is null)
+            {
+                Response.StatusCode = StatusCodes.Status404NotFound;
+                return View("Details", new ShiftTemplateDetailViewModel { ShiftTemplateId = id, ErrorMessage = "This shift template could not be found." });
+            }
+            return View(new EditShiftTemplateViewModel
+            {
+                Id = id, ShiftName = template.ShiftName, Description = template.Description,
+                StartTime = template.StartTime.ToString("HH:mm:ss"), EndTime = template.EndTime.ToString("HH:mm:ss"),
+                BreakMinutes = template.BreakMinutes, Status = template.Status,
+                CreatedAt = template.CreatedAt, UpdatedAt = template.UpdatedAt
+            });
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Unable to load template {Id} for editing.", id);
+            Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return View("Details", new ShiftTemplateDetailViewModel { ShiftTemplateId = id, ErrorMessage = "Unable to load the template for editing. Please try again later." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(EditShiftTemplateViewModel model, CancellationToken cancellationToken)
+    {
+        if (model.Id <= 0) return BadRequest();
+        try
+        {
+            if (ModelState.IsValid)
+            {
+                var result = await service.UpdateAsync(model, cancellationToken);
+                if (result.Success)
+                {
+                    TempData["ShiftTemplateSuccess"] = $"Shift template “{model.ShiftName?.Trim()}” updated successfully.";
+                    TempData["ShiftTemplateSuccessTitle"] = "Template updated successfully";
+                    return RedirectToAction(nameof(Details), new { id = model.Id });
+                }
+                ModelState.AddModelError(result.DuplicateName ? nameof(model.ShiftName) : string.Empty, result.Error!);
+            }
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogError(exception, "Unable to confirm template {Id} update.", model.Id);
+            ModelState.AddModelError(string.Empty, "Unable to confirm whether changes were saved. Check template details before retrying. Your entered values have been kept.");
+        }
+        try
+        {
+            var current = await service.GetByIdAsync(model.Id, cancellationToken);
+            model.Status = current?.Status ?? string.Empty;
+            model.CreatedAt = current?.CreatedAt;
+            model.UpdatedAt = current?.UpdatedAt;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "Unable to reload audit metadata for template {Id}.", model.Id);
+        }
+        return View(model);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid || id <= 0) return BadRequest();

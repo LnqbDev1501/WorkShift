@@ -5,6 +5,35 @@ namespace UI_Admin.Services;
 
 public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguration configuration)
 {
+    public async Task<(bool Success, string? Error, bool DuplicateName)> UpdateAsync(
+        EditShiftTemplateViewModel model, CancellationToken cancellationToken = default)
+    {
+        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        using var response = await httpClient.PutAsJsonAsync(
+            $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{model.Id}", new
+            {
+                shiftName = model.ShiftName?.Trim(), model.StartTime, model.EndTime,
+                model.BreakMinutes, description = model.Description?.Trim()
+            }, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.OK) return (true, null, false);
+        if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+            return (false, "A shift template with this name already exists.", true);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return (false, "This template no longer exists. Your entered values have been kept.", false);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            return (false, "Your session has expired. Please sign in again.", false);
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            return (false, "You do not have permission to edit this template.", false);
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            var error = await response.Content.ReadFromJsonAsync<ApiError>(cancellationToken: cancellationToken);
+            return (false, error?.Message ?? "Check the entered values and try again.", false);
+        }
+        response.EnsureSuccessStatusCode();
+        throw new HttpRequestException("Unexpected response while updating a shift template.");
+    }
+
     public async Task<ShiftTemplateDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var baseUrl = configuration["WorkShiftApi:BaseUrl"]

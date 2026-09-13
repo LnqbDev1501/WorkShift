@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="~/css/shift-template-detail.css" asp-append-version="true" />
 }
 <div class="shift-page">
-<nav class="shift-topbar" aria-label="Breadcrumb"><div class="detail-breadcrumb"><span>Admin</span><span aria-hidden="true">/</span><a asp-action="List">Shift Templates</a><span aria-hidden="true">/</span><strong>Template Details</strong></div></nav>
 <section class="shift-content template-detail" aria-labelledby="detail-title">
     <a asp-action="List" class="detail-back"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Back to Templates</a>
     <partial name="_Feedback" />
@@ -27,7 +26,7 @@
                 <p class="detail-metadata"><span>Template ID: <strong>@Model.ShiftTemplateId</strong></span><span>Created @Timestamp(Model.CreatedAt)</span><span>Updated @Timestamp(Model.UpdatedAt)</span></p>
             </div>
             <div class="detail-actions">
-                <button type="button" disabled title="Template editing is not available yet." class="detail-button"><span class="material-symbols-outlined" aria-hidden="true">edit</span> Edit Template</button>
+                <a asp-action="Edit" asp-route-id="@Model.ShiftTemplateId" class="detail-button"><span class="material-symbols-outlined" aria-hidden="true">edit</span> Edit Template</a>
                 @if (Model.IsActive || Model.IsInactive)
                 {
                     <button type="button" id="status-open" class="detail-button @(Model.IsActive ? "detail-danger" : "detail-restore")"><span class="material-symbols-outlined" aria-hidden="true">@(Model.IsActive ? "pause_circle" : "restore")</span> @(Model.IsActive ? "Deactivate" : "Restore Template")</button>
