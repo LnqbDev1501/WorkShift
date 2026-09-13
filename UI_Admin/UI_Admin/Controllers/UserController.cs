@@ -72,6 +72,12 @@ public class UserController : Controller
         }
     }
 
+    [HttpGet]
+    public IActionResult Detail(Guid? id)
+    {
+        return View();
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendSetupLink(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
         await RunActionAsync(
