@@ -72,6 +72,43 @@ public class UserController : Controller
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Detail(Guid? id, CancellationToken cancellationToken)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty)
+        {
+            TempData["ErrorMessage"] = "Invalid user ID.";
+            return RedirectToAction(nameof(List));
+        }
+
+        try
+        {
+            var model = await _userApiService.GetDetailAsync(id.Value, cancellationToken);
+            return View(model);
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["ErrorMessage"] = $"Could not load user details: {exception.Message}";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendDetailSetupLink(Guid userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _userApiService.ResendSetupLinkAsync(userId, cancellationToken);
+            TempData["ResendSuccess"] = true;
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Detail), new { id = userId });
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendSetupLink(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
         await RunActionAsync(

@@ -129,7 +129,7 @@
 <div class="w-full px-7 py-4">
     <div class="w-full max-w-[1440px] mx-auto">
         <div class="flex flex-col w-full">
-            <!-- Page Header Breadcrumb & Actions Bar -->
+            <!-- Page Header -->
             <div class="mb-unit-4 flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
                 <div class="space-y-unit-1">
                     <div class="inline-flex items-center gap-unit-2 px-unit-2 py-0.5 bg-surface-container-high rounded-full">
@@ -137,12 +137,6 @@
                         <span class="font-label-sm text-secondary tracking-wider uppercase text-[10px]">Staff Provisioning • RBAC Enforcement</span>
                     </div>
                     <h1 class="font-display-lg text-on-surface tracking-tight text-[26px]">Create User Account</h1>
-                </div>
-                <div class="flex items-center gap-unit-3">
-                    <a asp-controller="User" asp-action="List" class="h-input-height px-unit-4 rounded-xl bg-surface-container-lowest text-slate-700 font-body-md-medium hover:bg-surface-container border border-surface-container-high transition-colors duration-150 inline-flex items-center gap-unit-2 shadow-sm text-[13px] text-decoration-none">
-                        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                        <span>Back to List</span>
-                    </a>
                 </div>
             </div>
 
@@ -354,13 +348,13 @@
                         <span>Supabase Auth Invite will be dispatched • Default Cloudinary avatar assigned • Auto-rollback on failure</span>
                     </div>
                     <div class="flex items-center gap-unit-3 w-full sm:w-auto justify-end">
-                        <a asp-controller="User" asp-action="List" class="h-input-height px-unit-4 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium hover:bg-surface-container transition-colors duration-150 flex items-center gap-unit-2 border border-surface-container-high text-[13px] text-decoration-none">
+                        <a asp-controller="User" asp-action="List" class="h-input-height px-unit-5 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-slate-700 font-body-md-medium border border-surface-container-high transition-colors flex items-center gap-unit-2 text-[13px] text-decoration-none shadow-sm cursor-pointer">
                             <span class="material-symbols-outlined text-[18px]">close</span>
                             <span>Cancel</span>
                         </a>
-                        <button class="h-input-height px-unit-5 rounded-xl bg-primary-container hover:bg-primary text-white font-body-md-medium transition-all duration-150 flex items-center gap-unit-2 shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary-container text-[13px]" id="btn-create-account" type="submit">
-                            <span class="material-symbols-outlined text-[18px]">send</span>
-                            <span id="btn-create-text">Send Invite &amp; Create Account</span>
+                        <button class="h-input-height px-unit-5 rounded-xl bg-primary-container hover:bg-primary text-white font-body-md-medium transition-all duration-150 flex items-center gap-unit-2 shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary-container text-[13px] cursor-pointer" id="btn-create-account" type="submit">
+                            <span class="material-symbols-outlined text-[18px]">person_add</span>
+                            <span id="btn-create-text">Create Account</span>
                         </button>
                     </div>
                 </div>
@@ -377,10 +371,10 @@
             const btnText = document.getElementById('btn-create-text');
             if (btn) {
                 btn.disabled = false;
-                if (btnText) btnText.innerText = 'Send Invite & Create Account';
+                if (btnText) btnText.innerText = 'Create Account';
                 const icon = btn.querySelector('.material-symbols-outlined');
                 if (icon) {
-                    icon.innerText = 'send';
+                    icon.innerText = 'person_add';
                     icon.classList.remove('animate-spin');
                 }
             }
