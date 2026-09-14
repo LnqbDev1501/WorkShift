@@ -301,7 +301,7 @@
                                         }
                                         else
                                         {
-                                            foreach (var role in Model.AvailableRoles)
+                                            foreach (var role in Model.AvailableRoles.Where(r => !r.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
                                             {
                                                 <option value="@role.Id">@role.Name</option>
                                             }

@@ -336,7 +336,7 @@
                         </label>
                         <div class="relative">
                             <select asp-for="RoleId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
-                                @foreach (var role in Model.AvailableRoles)
+                                @foreach (var role in Model.AvailableRoles.Where(r => !r.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
                                 {
                                     <option value="@role.Id">@role.Name</option>
                                 }
