@@ -103,16 +103,67 @@
         };
     </script>
 
+    <style>
+        /* Collapsible Sidebar Styles */
+        #admin-sidebar {
+            transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #main-content-wrapper {
+            transition: padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar-collapsed #admin-sidebar {
+            width: 72px !important;
+        }
+        .sidebar-collapsed #main-content-wrapper {
+            padding-left: 72px !important;
+        }
+        .sidebar-collapsed .sidebar-full-label,
+        .sidebar-collapsed .sidebar-header-full,
+        .sidebar-collapsed .sidebar-user-full,
+        .sidebar-collapsed .sidebar-category-header {
+            display: none !important;
+        }
+        .sidebar-collapsed .sidebar-header-collapsed,
+        .sidebar-collapsed .sidebar-user-collapsed {
+            display: flex !important;
+        }
+        .sidebar-collapsed .sidebar-nav-item {
+            justify-content: center !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+    </style>
+
+    <script>
+        // Prevent layout flash on initial load
+        (function() {
+            try {
+                if (localStorage.getItem('admin_sidebar_collapsed') === 'true') {
+                    document.documentElement.classList.add('sidebar-collapsed');
+                }
+            } catch (e) {}
+        })();
+    </script>
+
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="bg-background font-body-md text-on-surface">
     <partial name="_AdminSidebar" />
 
-    <div class="pl-[232px]">
+    <div id="main-content-wrapper" class="pl-[232px]">
         <main class="relative bg-[#F6F7FB] min-h-screen">
             @RenderBody()
         </main>
     </div>
+
+    <script>
+        function toggleAdminSidebar() {
+            const isCollapsed = document.documentElement.classList.toggle('sidebar-collapsed');
+            try {
+                localStorage.setItem('admin_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+            } catch (e) {}
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

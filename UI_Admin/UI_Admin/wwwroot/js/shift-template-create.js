@@ -6,6 +6,7 @@
     const name = get('ShiftName'), description = get('Description');
     const start = get('StartTime'), end = get('EndTime'), rest = get('BreakMinutes');
     const submit = get('create-submit');
+    const submitLabel = submit.textContent;
     const parseTime = value => {
         if (!/^([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/.test(value)) return null;
         const [h, m, s] = value.split(':').map(Number);
@@ -60,12 +61,12 @@
             return;
         }
         submit.disabled = true;
-        submit.textContent = 'Creating Template…';
+        submit.textContent = form.dataset.edit === 'true' ? 'Saving Changes…' : 'Creating Template…';
         form.setAttribute('aria-busy', 'true');
     });
     window.addEventListener('pageshow', () => {
         submit.disabled = false;
-        submit.textContent = '＋ Create Template';
+        submit.textContent = submitLabel;
         form.removeAttribute('aria-busy');
         update();
     });

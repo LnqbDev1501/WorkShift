@@ -1,0 +1,94 @@
+@model UI_Admin.Models.ShiftTemplateDetailViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Template Details";
+    var statusLabel = Model.IsActive ? "Active" : Model.IsInactive ? "Inactive" : Model.Status;
+    string Timestamp(DateTime? value) => value?.ToString("dd MMM yyyy, HH:mm:ss", CultureInfo.InvariantCulture) ?? "Not available";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/shift-templates.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/shift-template-detail.css" asp-append-version="true" />
+}
+<div class="shift-page">
+<section class="shift-content template-detail" aria-labelledby="detail-title">
+    <a asp-action="List" class="detail-back"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span> Back to Templates</a>
+    <partial name="_Feedback" />
+    
+    @if (Model.ErrorMessage is not null)
+    {
+        <div class="shift-card shift-empty" role="alert"><h1 id="detail-title">Template unavailable</h1><p>@Model.ErrorMessage</p><a asp-action="Details" asp-route-id="@Model.ShiftTemplateId" class="shift-reset">Try again</a></div>
+    }
+    else
+    {
+        @if (Model.IsInactive) { <div class="detail-notice" role="status">This template is inactive. Restore it to make it available for scheduling again.</div> }
+        <header class="detail-heading">
+            <div><div class="detail-title-row"><h1 id="detail-title">@Model.ShiftName</h1><span class="shift-status @(Model.IsActive ? "is-active" : "is-inactive")"><span aria-hidden="true">●</span> @statusLabel</span></div>
+                <p class="detail-metadata"><span>Template ID: <strong>@Model.ShiftTemplateId</strong></span><span>Created @Timestamp(Model.CreatedAt)</span><span>Updated @Timestamp(Model.UpdatedAt)</span></p>
+            </div>
+            <div class="detail-actions">
+                <a asp-action="Edit" asp-route-id="@Model.ShiftTemplateId" class="detail-button"><span class="material-symbols-outlined" aria-hidden="true">edit</span> Edit Template</a>
+                @if (Model.IsActive || Model.IsInactive)
+                {
+                    <button type="button" id="status-open" class="detail-button @(Model.IsActive ? "detail-danger" : "detail-restore")"><span class="material-symbols-outlined" aria-hidden="true">@(Model.IsActive ? "pause_circle" : "restore")</span> @(Model.IsActive ? "Deactivate" : "Restore Template")</button>
+                }
+            </div>
+        </header>
+        <div class="detail-grid">
+            <div class="detail-stack">
+                <section class="detail-card" aria-labelledby="timing-heading">
+                    <h2 id="timing-heading"><span class="material-symbols-outlined" aria-hidden="true">schedule</span> Shift Schedule &amp; Timing <small>24H FORMAT</small></h2>
+                    <div class="detail-metrics">
+                        <div><span>Start Time</span><strong>@Model.StartTime.ToString("HH:mm:ss")</strong><small>Shift begins</small></div>
+                        <div><span>End Time</span><strong>@Model.EndTime.ToString("HH:mm:ss")</strong><small>@(Model.EndTime < Model.StartTime ? "Next day" : "Shift ends")</small></div>
+                        <div><span>Break Duration</span><strong>@Model.BreakMinutes <small>min</small></strong><small>Scheduled rest time</small></div>
+                        <div><span>Total Elapsed Shift</span><strong>@UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.TotalMinutes)</strong><small>Including breaks</small></div>
+                        <div class="detail-net"><span>Net Working Time</span><strong>@UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.NetMinutes)</strong><small>Total shift minus break duration</small></div>
+                    </div>
+                </section>
+                <section class="detail-card" aria-labelledby="description-heading">
+                    <h2 id="description-heading"><span class="material-symbols-outlined" aria-hidden="true">description</span> Description &amp; Operational Notes</h2>
+                    <p class="detail-description">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p>
+                </section>
+                <section class="detail-card" aria-labelledby="audit-heading">
+                    <h2 id="audit-heading"><span class="material-symbols-outlined" aria-hidden="true">history</span> Governance &amp; Audit Timestamps</h2>
+                    <dl class="detail-audit">
+                        <div><dt>Record Status</dt><dd><span class="shift-status @(Model.IsActive ? "is-active" : "is-inactive")">@statusLabel</span></dd></div>
+                        <div><dt>Created At</dt><dd>@Timestamp(Model.CreatedAt)</dd></div>
+                        <div><dt>Last Updated</dt><dd>@Timestamp(Model.UpdatedAt)</dd></div>
+                    </dl>
+                </section>
+            </div>
+            <aside class="detail-stack" aria-label="Shift composition and utilities">
+                <section class="detail-card">
+                    <p class="detail-eyebrow">Shift Composition</p><h2>Daily Timeline View</h2>
+                    <div class="detail-timeline">
+                        <div class="detail-time-labels"><span>@Model.StartTime.ToString("HH:mm:ss")</span><span>@Model.EndTime.ToString("HH:mm:ss")@(Model.EndTime < Model.StartTime ? " (+1 day)" : "")</span></div>
+                        <div class="detail-bar" role="img" aria-label="Work @UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.NetMinutes), break @Model.BreakMinutes minutes"><span style="width: @(Model.WorkPercent)%"></span></div>
+                        <div class="detail-legend"><span><i></i> Working time</span><strong>@((Model.NetMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture)) hrs</strong></div>
+                        <div class="detail-legend"><span><i class="detail-break"></i> Rest / break</span><strong>@Model.BreakMinutes min</strong></div>
+                    </div>
+                    <p class="detail-help">The bar shows the proportion of work and break time. The template does not specify when the break starts.</p>
+                    <div class="detail-summary"><div><span>Total Shift</span><strong>@((Model.TotalMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture))h</strong></div><div><span>Break</span><strong>@Model.BreakMinutes m</strong></div><div><span>Net Work</span><strong>@((Model.NetMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture))h</strong></div></div>
+                </section>
+                <section class="detail-card detail-utilities"><h2><span class="material-symbols-outlined" aria-hidden="true">print</span> Administrative Utilities</h2><p class="detail-help">Print a copy of this shift template for reference.</p><button type="button" id="print-template" class="detail-button"><span class="material-symbols-outlined" aria-hidden="true">print</span> Print Sheet</button></section>
+            </aside>
+        </div>
+        @if (Model.IsActive || Model.IsInactive)
+        {
+            <dialog id="status-dialog" class="template-status-dialog" aria-labelledby="status-title" aria-describedby="status-description">
+                <div class="detail-dialog-icon @(Model.IsActive ? "detail-danger" : "detail-restore")"><span class="material-symbols-outlined" aria-hidden="true">@(Model.IsActive ? "pause_circle" : "restore")</span></div>
+                <h2 id="status-title">@(Model.IsActive ? "Deactivate" : "Restore") this shift template?</h2>
+                <p id="status-description">“@Model.ShiftName” will be marked as @(Model.IsActive ? "inactive" : "active"). Existing scheduled shifts will remain unchanged. You can change its status again from this page.</p>
+                <form asp-action="ChangeStatus" asp-route-id="@Model.ShiftTemplateId" method="post">
+                    <input type="hidden" name="restore" value="@Model.IsInactive.ToString().ToLowerInvariant()" />
+                    <div class="template-status-actions"><button type="button" id="status-cancel" autofocus>Cancel</button><button type="submit" class="@(Model.IsActive ? "template-confirm-deactivate" : "template-confirm-restore")">@(Model.IsActive ? "Deactivate Template" : "Restore Template")</button></div>
+                </form>
+            </dialog>
+        }
+    }
+</section>
+</div>
+@section Scripts {
+    <script src="~/js/shift-template-success.js" asp-append-version="true"></script>
+    <script src="~/js/shift-template-detail.js" asp-append-version="true"></script>
+}

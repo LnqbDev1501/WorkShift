@@ -89,6 +89,31 @@ namespace UI_Admin.Controllers
             }
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                await _authService.RequestPasswordRecoveryAsync(model.Email);
+                model.Submitted = true;
+            }
+            catch (InvalidOperationException)
+            {
+                ModelState.AddModelError(string.Empty, "The authentication service is temporarily unavailable. Please try again.");
+            }
+
+            return View(model);
+        }
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -118,6 +143,37 @@ namespace UI_Admin.Controllers
         public IActionResult SetPassword()
         {
             return View(new SetPasswordViewModel());
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ResetPassword() => View(new SetPasswordViewModel());
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(SetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                await _authService.SetPasswordAsync(model.AccessToken, model.Password);
+                return View("ResetPasswordSuccess");
+            }
+            catch (InvalidOperationException exception)
+            {
+                _logger.LogWarning(exception, "Unable to reset the password using the recovery link.");
+                ModelState.AddModelError(string.Empty, exception.Message);
+                return View(model);
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception, "Unable to connect to the authentication service.");
+                ModelState.AddModelError(string.Empty, "The authentication service is temporarily unavailable. Please try again.");
+                return View(model);
+            }
         }
 
         [HttpPost]

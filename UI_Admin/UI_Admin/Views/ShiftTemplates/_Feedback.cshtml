@@ -1,0 +1,15 @@
+@if (TempData["ShiftTemplateSuccess"] is string message)
+{
+    var title = TempData["ShiftTemplateSuccessTitle"] as string ?? "Template created successfully";
+    <dialog id="template-success-dialog" class="template-success-dialog" aria-labelledby="template-success-title" aria-describedby="template-success-message">
+        <div class="template-success-icon"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span></div>
+        <h2 id="template-success-title">@title</h2>
+        <p id="template-success-message">@message</p>
+        <form method="dialog"><button type="submit" class="shift-primary" autofocus>Done</button></form>
+    </dialog>
+    <noscript><div class="template-feedback" role="status">@message</div></noscript>
+}
+@if (TempData["ShiftTemplateError"] is string error)
+{
+    <div class="template-feedback template-feedback-error" role="alert">@error</div>
+}

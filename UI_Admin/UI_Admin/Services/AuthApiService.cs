@@ -69,6 +69,18 @@ namespace UI_Admin.Services
                 ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
         }
 
+        public async Task RequestPasswordRecoveryAsync(string email)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
+                new { email });
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+        }
+
         private static string GetErrorMessage(string body)
         {
             try

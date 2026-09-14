@@ -1,92 +1,146 @@
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var userName = User.Identity?.Name ?? "Admin User";
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "ADMIN";
+    var words = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var initials = words.Length == 0 ? "A" : string.Concat(words.TakeLast(2).Select(w => char.ToUpperInvariant(w[0])));
+    var defaultAdminAvatar = "https://res.cloudinary.com/workshift/image/upload/v1789317142/logo_nh%C3%B3m_knjs8l.jpg";
 }
 
-<aside class="fixed left-0 top-0 h-screen w-[232px] bg-[#111827] z-50 flex flex-col justify-between border-r border-[#1f2937]">
+<aside id="admin-sidebar" class="fixed left-0 top-0 h-screen w-[232px] bg-[#111827] z-50 flex flex-col justify-between border-r border-[#1f2937] select-none shadow-xl">
     <div class="flex flex-col flex-1 min-h-0">
-        <div class="h-[64px] px-unit-5 flex items-center gap-unit-3 border-b border-[#1f2937]">
-            <img alt="WorkShift Brand Wordmark" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1Vdtno8pCn7_VpmeA-4JkIGfjHZW74ukz0coovXPBJSigEzaCdvvEtVuPeZDZkUoSdXaEHUEv_m8tBaEmaC8ffgCKgi9UHPcMuNQfg6pXbn1QoWzoe-614XjgoBOgDOwee4_OSNrjisQ8P5ChBEuU36UmOK867KVwKSM0YhY2HHcYrCL8ZNP5Eskqvwyw1ipN-xNtj0C04-1lV7r4y8Fx6SWYt8MRz70cNwSAEHV1gXwBcQj03eaVm2GT6f">
-            <div class="flex flex-col">
-                <span class="font-title-md text-white text-[15px] leading-tight tracking-tight">WorkShift</span>
-                <span class="font-label-sm text-[#9ca3af] text-[10px] tracking-wider uppercase">Admin Engine</span>
+        <!-- Sidebar Header -->
+        <div class="h-[64px] px-unit-3 flex items-center justify-between border-b border-[#1f2937]/80 bg-[#0d131f]/50">
+            <!-- Full Header View -->
+            <div class="sidebar-header-full flex items-center justify-between w-full px-1">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white shadow-md flex-shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">access_time_filled</span>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-title-md text-white text-[14px] font-semibold leading-tight tracking-tight truncate">WorkShift</span>
+                        <span class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">ADMIN ENGINE</span>
+                    </div>
+                </div>
+                <!-- Stylish Collapse Toggle Button -->
+                <button type="button" onclick="toggleAdminSidebar()" class="w-7 h-7 rounded-lg bg-[#1f2937] hover:bg-primary-container text-[#9ca3af] hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer flex-shrink-0 border border-[#374151]/60 shadow-sm group" title="Collapse Sidebar">
+                    <span class="material-symbols-outlined text-[18px] transition-transform duration-200 group-hover:-translate-x-0.5">chevron_left</span>
+                </button>
+            </div>
+
+            <!-- Collapsed Header View -->
+            <div class="sidebar-header-collapsed hidden items-center justify-center w-full">
+                <!-- Stylish Expand Toggle Button -->
+                <button type="button" onclick="toggleAdminSidebar()" class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-primary-container text-[#9ca3af] hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer border border-[#374151]/60 shadow-sm group" title="Expand Sidebar">
+                    <span class="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:translate-x-0.5">chevron_right</span>
+                </button>
             </div>
         </div>
+
+        <!-- Navigation Links -->
         <div class="flex-1 overflow-y-auto px-unit-3 py-unit-4 space-y-unit-6">
             @if (User.IsInRole("ADMIN"))
             {
-            <nav class="space-y-unit-1">
-                <div class="px-unit-3 pb-unit-1">
-                    <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">WORKSPACE</span>
-                </div>
-                <a asp-controller="Dashboard" asp-action="Index" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Dashboard" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">dashboard</span>
-                    <span class="font-body-md-medium text-[13px]">Overview</span>
-                </a>
-                <a asp-controller="User" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "User" || currentController == "Users" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">group</span>
-                    <span class="font-body-md-medium text-[13px]">User Accounts</span>
-                </a>
-            </nav>
-            <nav class="space-y-unit-1">
-                <div class="px-unit-3 pb-unit-1">
-                    <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">ORGANIZATION</span>
-                </div>
-                <a asp-controller="Regions" asp-action="Index" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Regions" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">map</span>
-                    <span class="font-body-md-medium text-[13px]">Regions</span>
-                </a>
-                <a asp-controller="Branches" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Branches" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">store</span>
-                    <span class="font-body-md-medium text-[13px]">Branches</span>
-                </a>
-                <a asp-controller="ShiftTemplates" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ShiftTemplates" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">schedule</span>
-                    <span class="font-body-md-medium text-[13px]">Shift Templates</span>
-                </a>
-                <a asp-controller="Holidays" asp-action="Index" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Holidays" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">calendar_today</span>
-                    <span class="font-body-md-medium text-[13px]">Public Holidays</span>
-                </a>
-            </nav>
-            <nav class="space-y-unit-1">
-                <div class="px-unit-3 pb-unit-1">
-                    <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">OPERATIONS</span>
-                </div>
-                <a asp-controller="Payroll" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Payroll" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">payments</span>
-                    <span class="font-body-md-medium text-[13px]">Payroll Approvals</span>
-                </a>
-                <a asp-controller="Requests" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Requests" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
-                    <span class="font-body-md-medium text-[13px]">Requests</span>
-                </a>
-                <a asp-controller="Notifications" asp-action="List" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-colors duration-150">
-                    <span class="material-symbols-outlined text-[18px]">notifications</span>
-                    <span class="font-body-md-medium text-[13px]">Notifications</span>
-                </a>
-            </nav>
+                <nav class="space-y-unit-1">
+                    <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                        <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
+                    </div>
+                    <a asp-controller="Dashboard" asp-action="Index" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Dashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Overview">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
+                    </a>
+                    <a asp-controller="User" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "User" || currentController == "Users" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="User Accounts">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">group</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">User Accounts</span>
+                    </a>
+                </nav>
+
+                <nav class="space-y-unit-1">
+                    <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                        <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">ORGANIZATION</span>
+                    </div>
+                    <a asp-controller="Regions" asp-action="Index" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Regions" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Regions">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">map</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Regions</span>
+                    </a>
+                    <a asp-controller="Branches" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Branches" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Branches">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">store</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branches</span>
+                    </a>
+                    <a asp-controller="ShiftTemplates" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ShiftTemplates" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Shift Templates">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">schedule</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Shift Templates</span>
+                    </a>
+                    <a asp-controller="Holidays" asp-action="Index" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Holidays" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Public Holidays">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">calendar_today</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Public Holidays</span>
+                    </a>
+                </nav>
+
+                <nav class="space-y-unit-1">
+                    <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                        <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">OPERATIONS</span>
+                    </div>
+                    <a asp-controller="Payroll" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Payroll" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Payroll Approvals">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Approvals</span>
+                    </a>
+                    <a asp-controller="Requests" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Requests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Requests">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">check_circle</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Requests</span>
+                    </a>
+                    <a asp-controller="Notifications" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Notifications">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                    </a>
+                </nav>
             }
             else
             {
                 <nav class="space-y-unit-1">
-                    <div class="px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px]">WORKSPACE</span></div>
-                    <a asp-controller="Landing" asp-action="@(User.IsInRole("ACCOUNTANT") ? "Accountant" : User.IsInRole("MANAGER") ? "Manager" : "Staff")" class="flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg bg-primary-container text-white font-title-md">
-                        <span class="material-symbols-outlined text-[18px]">dashboard</span><span class="font-body-md-medium text-[13px]">My workspace</span>
+                    <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                        <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
+                    </div>
+                    <a asp-controller="Landing" asp-action="@(User.IsInRole("ACCOUNTANT") ? "Accountant" : User.IsInRole("MANAGER") ? "Manager" : "Staff")" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg bg-primary-container text-white font-title-md shadow-sm" title="My Workspace">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">My Workspace</span>
                     </a>
                 </nav>
             }
         </div>
     </div>
+
+    <!-- Sidebar Bottom Profile Section -->
     <div class="p-unit-3 border-t border-[#1f2937] bg-[#0d131f]">
-        <div class="flex items-center gap-unit-3 px-unit-2 py-unit-1">
-            <img alt="Profile" class="w-8 h-8 rounded-full object-cover border border-[#374151]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxBqyVKY3tSSdbSk2R1vAcGD4081GVIvabN1KxoezORlQQQU4QL834LccRH3msx2wGRRYrXCubaeO0clG7Ln26m_rObsktqf1a-b4MzFcLnDFoqubTn0QZxCPOi1ocOcwRgVp2UcUm2Ii-fXYDIWONx_TYhOA-nr6tHzsSrjIj6tH_2VJ2HW_5rij3HSL21l6w64l7mqTh8DMiVGq21fjjJMgt4JO44tEWiuglcaNqGZlE8_ean_HMrw">
-            <div class="flex flex-col min-w-0 flex-1">
-                <span class="font-title-md text-white text-[13px] leading-snug truncate">@User.Identity?.Name</span>
-                <span class="font-label-sm text-[#9ca3af] text-[11px] truncate">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+        <!-- Full Profile View -->
+        <div class="sidebar-user-full flex items-center gap-unit-3 px-unit-2 py-unit-1">
+            <img alt="Admin Profile" class="w-8 h-8 rounded-full object-cover border border-[#374151] flex-shrink-0 shadow-sm" src="@defaultAdminAvatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="hidden w-8 h-8 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] flex-shrink-0 shadow-sm">
+                @initials
             </div>
-            <form asp-controller="Auth" asp-action="Logout" method="post">
+            <div class="flex flex-col min-w-0 flex-1">
+                <span class="font-title-md text-white text-[13px] leading-snug truncate font-medium" title="@userName">@userName</span>
+                <span class="font-label-sm text-[#9ca3af] text-[10px] truncate uppercase tracking-wider font-semibold">@userRole</span>
+            </div>
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="flex-shrink-0">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="text-[#9ca3af] hover:text-white text-[11px]">Sign out</button>
+                <button type="submit" class="text-[#9ca3af] hover:text-rose-400 text-[11px] font-medium transition-colors cursor-pointer" title="Sign out">Sign out</button>
+            </form>
+        </div>
+
+        <!-- Collapsed Profile View -->
+        <div class="sidebar-user-collapsed hidden items-center justify-center py-unit-1">
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="flex items-center justify-center">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="relative group cursor-pointer" title="Sign out: @userName (@userRole)">
+                    <img alt="Admin Profile" class="w-9 h-9 rounded-full object-cover border border-[#374151] group-hover:border-rose-400/80 transition-all shadow-sm" src="@defaultAdminAvatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="hidden w-9 h-9 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] group-hover:border-rose-400 transition-all shadow-sm">
+                        @initials
+                    </div>
+                    <span class="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                        <span class="material-symbols-outlined text-[16px]">logout</span>
+                    </span>
+                </button>
             </form>
         </div>
     </div>
