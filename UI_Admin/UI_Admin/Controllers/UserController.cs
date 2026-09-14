@@ -94,9 +94,70 @@ public class UserController : Controller
     }
 
     [HttpGet]
-    public IActionResult Edit(Guid? id)
+    public async Task<IActionResult> Edit(Guid? id, CancellationToken cancellationToken)
     {
-        return View();
+        if (!id.HasValue || id.Value == Guid.Empty)
+        {
+            TempData["ErrorMessage"] = "Invalid user ID.";
+            return RedirectToAction(nameof(List));
+        }
+
+        try
+        {
+            var detail = await _userApiService.GetDetailAsync(id.Value, cancellationToken);
+            var branches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            var roles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+
+            var model = new UserEditViewModel
+            {
+                UserId = detail.UserId,
+                FullName = detail.FullName,
+                Email = detail.Email,
+                Phone = detail.Phone,
+                IdentityNo = detail.IdentityNo,
+                Gender = detail.Gender,
+                DateOfBirth = detail.DateOfBirth,
+                Address = detail.Address,
+                RoleId = detail.RoleId,
+                BranchId = detail.BranchId,
+                AvatarUrl = detail.AvatarUrl,
+                Status = detail.Status,
+                AvailableBranches = branches,
+                AvailableRoles = roles
+            };
+
+            return View(model);
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["ErrorMessage"] = $"Could not load user data: {exception.Message}";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(Guid id, UserEditViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            model.AvailableRoles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+            return View(model);
+        }
+
+        try
+        {
+            await _userApiService.UpdateAsync(id, model, cancellationToken);
+            TempData["UserUpdatedSuccess"] = true;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            model.AvailableRoles = await _userApiService.GetOperationalRolesAsync(cancellationToken);
+            return View(model);
+        }
     }
 
     [HttpPost, ValidateAntiForgeryToken]

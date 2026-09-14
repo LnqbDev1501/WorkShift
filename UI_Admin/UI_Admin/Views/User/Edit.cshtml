@@ -1,5 +1,9 @@
+@model UserEditViewModel
+
 @{
-    ViewData["Title"] = "Edit User Account";
+    ViewData["Title"] = $"Edit Account - {Model.FullName}";
+    var isPending = Model.IsPending;
+    var isActive = Model.IsActive;
 }
 
 @section Styles {
@@ -109,22 +113,69 @@
             }
         };
     </script>
+    <style>
+        .field-validation-error {
+            color: #ba1a1a;
+            font-size: 11px;
+            font-weight: 500;
+            display: block;
+            margin-top: 4px;
+        }
+        .input-validation-error {
+            border-color: #ba1a1a !important;
+            background-color: #fff8f8 !important;
+        }
+    </style>
 }
 
 <div class="w-full px-7 pt-6 pb-10">
     <div class="w-full max-w-[1200px] mx-auto">
-        <form class="flex flex-col w-full gap-unit-6" id="editUserForm" onsubmit="event.preventDefault(); saveAccountChanges();">
-            
+        <form asp-controller="User" asp-action="Edit" asp-route-id="@Model.UserId" method="post" enctype="multipart/form-data" class="flex flex-col w-full gap-unit-6" id="editUserForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" />
+            <input type="hidden" asp-for="AvatarUrl" />
+            <input type="hidden" asp-for="Status" />
+
             <!-- Page Header Ribbon -->
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-unit-3 flex-wrap">
                     <h1 class="font-display-md text-display-md text-on-surface">Edit User Account</h1>
-                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#ecfdf5] text-[#059669] font-label-sm text-label-sm border border-[#a7f3d0]">
-                        <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
-                        ACTIVE
-                    </span>
+                    @if (isPending)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#fef3c7] text-[#b45309] font-label-sm text-label-sm border border-[#fde68a]">
+                            <span class="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                            PENDING ACTIVATION
+                        </span>
+                    }
+                    else if (isActive)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#ecfdf5] text-[#059669] font-label-sm text-label-sm border border-[#a7f3d0]">
+                            <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
+                            ACTIVE
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm border border-surface-container-high">
+                            <span class="w-2 h-2 rounded-full bg-[#9ca3af]"></span>
+                            INACTIVE
+                        </span>
+                    }
                 </div>
             </div>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.TryGetValue(string.Empty, out var modelStateErrors) && modelStateErrors.Errors.Count > 0)
+            {
+                <div class="p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-unit-3 text-error shadow-sm">
+                    <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5">error</span>
+                    <div class="text-[13px] font-body-md space-y-1">
+                        @foreach (var error in modelStateErrors.Errors)
+                        {
+                            <div>@error.ErrorMessage</div>
+                        }
+                    </div>
+                </div>
+            }
 
             <!-- SECTION 1: Identity & Personal Information -->
             <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
@@ -142,7 +193,17 @@
                 <!-- Avatar Uploader Component -->
                 <div class="p-unit-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center gap-unit-5 border border-[#e2e8f0]">
                     <div class="relative group">
-                        <img id="avatarPreview" alt="User Avatar Preview" class="w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2JZ3baf_YOdWlvPcizPaBpQGwHfS49_BLV4ys631bcIbij05PeP8cJhIatMjUSGksTEqvOJNIXTJs7HelzmDlkk0lGlcaLThyIo55-PCcIy5JFwSZZIQS6foj8i6XYp0xK214TZaQqVMV8nCcLyoecWPNXQLTwscjV2GJeHZQax8cGuiPX5N_4Mfx75ft0HcvxuRs0rf3iLjzT1vyHor7KGegpFah1dIemw7CuDVnP_NglajBELlypw" />
+                        @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                        {
+                            <img id="avatarPreview" alt="@Model.FullName Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="@Model.AvatarUrl" />
+                        }
+                        else
+                        {
+                            <div id="avatarPlaceholder" class="w-24 h-24 rounded-full bg-[#5146e5] text-white text-2xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm ring-2 ring-primary/20">
+                                @Model.Initials
+                            </div>
+                            <img id="avatarPreview" alt="Preview" class="hidden w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" />
+                        }
                         <label for="avatarFileInput" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                             <span class="material-symbols-outlined text-[24px]">photo_camera</span>
                         </label>
@@ -155,7 +216,7 @@
                         </div>
                         
                         <div class="flex items-center gap-unit-3 flex-wrap">
-                            <input type="file" id="avatarFileInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
+                            <input type="file" asp-for="AvatarFile" id="avatarFileInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
                             <button type="button" onclick="document.getElementById('avatarFileInput').click()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-surface-container-lowest border border-[#cbd5e1] hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors shadow-sm cursor-pointer">
                                 <span class="material-symbols-outlined text-[16px] text-primary">upload</span>
                                 <span>Change Photo</span>
@@ -168,77 +229,83 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
                     <!-- Full Name -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="fullName">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="FullName">
                             Full Legal Name <span class="text-error">*</span>
                         </label>
-                        <input class="h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="fullName" name="FullName" type="text" value="Tran Quoc Bao" required />
+                        <input asp-for="FullName" class="h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="150" placeholder="e.g. Nguyen Van An" type="text" />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
                     </div>
 
-                    <!-- Work Email (Editable) -->
+                    <!-- Work Email -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="email">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Email">
                             Work / Contact Email <span class="text-error">*</span>
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">mail</span>
-                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="email" name="Email" type="email" value="tran.bao@workshift.vn" required />
+                            <input asp-for="Email" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="254" placeholder="user@workshift.vn" type="email" />
                         </div>
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
                     </div>
 
                     <!-- Phone Number -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="phoneNumber">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Phone">
                             Contact Phone (VN Mobile) <span class="text-error">*</span>
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">call</span>
-                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="phoneNumber" name="Phone" type="tel" value="0903821445" placeholder="0901234567" pattern="^0[35789]\d{8}$" required />
+                            <input asp-for="Phone" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="10" placeholder="0912345678" type="tel" />
                         </div>
-                        <span class="font-label-sm text-secondary text-[11px]">10 digits starting with 03, 05, 07, 08, 09</span>
+                        <span asp-validation-for="Phone" class="field-validation-error"></span>
                     </div>
 
                     <!-- Citizen ID / CCCD -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="identityNo">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="IdentityNo">
                             Citizen ID / CCCD (9 or 12 digits) <span class="text-error">*</span>
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">credit_card</span>
-                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="identityNo" name="IdentityNo" type="text" value="079294002911" placeholder="079294002911" required />
+                            <input asp-for="IdentityNo" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="12" placeholder="079099012345" type="text" />
                         </div>
+                        <span asp-validation-for="IdentityNo" class="field-validation-error"></span>
                     </div>
 
                     <!-- Gender Selection -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="gender">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Gender">
                             Gender <span class="text-error">*</span>
                         </label>
                         <div class="relative">
-                            <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="gender" name="Gender" required>
-                                <option value="MALE" selected>Male (Nam)</option>
-                                <option value="FEMALE">Female (Nữ)</option>
-                                <option value="OTHER">Other (Khác)</option>
+                            <select asp-for="Gender" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
                             </select>
                             <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
                         </div>
+                        <span asp-validation-for="Gender" class="field-validation-error"></span>
                     </div>
 
                     <!-- Date of Birth -->
                     <div class="flex flex-col gap-unit-1">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="dateOfBirth">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="DateOfBirth">
                             Date of Birth <span class="text-error">*</span>
                         </label>
                         <div class="relative flex items-center">
-                            <input class="w-full h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="dateOfBirth" name="DateOfBirth" type="date" value="1992-05-18" required />
+                            <input asp-for="DateOfBirth" asp-format="{0:yyyy-MM-dd}" min="1900-01-01" max="@DateTime.Today.AddYears(-18).ToString("yyyy-MM-dd")" class="w-full h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" type="date" />
                         </div>
+                        <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
                     </div>
 
                     <!-- Residential Address -->
                     <div class="flex flex-col gap-unit-1 md:col-span-2">
-                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="address">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Address">
                             Residential Address <span class="text-error">*</span>
                         </label>
-                        <textarea rows="2" class="p-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" id="address" name="Address" required>124 Nguyen Dinh Chieu, Ward Vo Thi Sau, District 3, Ho Chi Minh City</textarea>
+                        <textarea asp-for="Address" rows="2" class="p-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder="Enter complete residential address..."></textarea>
+                        <span asp-validation-for="Address" class="field-validation-error"></span>
                     </div>
                 </div>
             </section>
@@ -257,18 +324,19 @@
                 </div>
 
                 <div class="flex flex-col gap-unit-1">
-                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="systemRole">
+                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="RoleId">
                         Assigned System Role <span class="text-error">*</span>
                     </label>
                     <div class="relative">
-                        <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="systemRole" name="RoleId">
-                            <option value="2" selected>Manager — Store & Operations Management</option>
-                            <option value="3">Supervisor — Direct Shift Lead & Roster</option>
-                            <option value="4">Accountant — Payroll & Statutory Auditor</option>
-                            <option value="5">Staff — Frontline Shift Member</option>
+                        <select asp-for="RoleId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <option value="@role.Id">@role.Name</option>
+                            }
                         </select>
                         <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
                     </div>
+                    <span asp-validation-for="RoleId" class="field-validation-error"></span>
                 </div>
             </section>
 
@@ -287,18 +355,19 @@
 
                 <!-- Primary Branch -->
                 <div class="flex flex-col gap-unit-1">
-                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="primaryBranch">
+                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="BranchId">
                         Primary Branch Hub <span class="text-error">*</span>
                     </label>
                     <div class="relative">
-                        <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="primaryBranch" name="BranchId" required>
-                            <option value="1" selected>District 1 Flagship (D1-FLAGSHIP)</option>
-                            <option value="2">District 3 - Le Van Sy (D3-LVS)</option>
-                            <option value="3">District 7 - Crescent Mall (D7-CRES)</option>
-                            <option value="4">Binh Thanh - Landmark 81 (BT-L81)</option>
+                        <select asp-for="BranchId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                            @foreach (var branch in Model.AvailableBranches)
+                            {
+                                <option value="@branch.Id">@branch.DisplayText</option>
+                            }
                         </select>
                         <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
                     </div>
+                    <span asp-validation-for="BranchId" class="field-validation-error"></span>
                 </div>
             </section>
 
@@ -309,12 +378,12 @@
                     <span>Make sure to save changes before navigating away from this page.</span>
                 </div>
                 <div class="flex items-center gap-unit-3 w-full sm:w-auto justify-end">
-                    <a asp-action="List" class="h-input-height px-unit-5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-body-md-medium transition-colors inline-flex items-center justify-center text-body-sm shadow-sm">
+                    <a asp-action="Detail" asp-route-id="@Model.UserId" class="h-input-height px-unit-5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-body-md-medium transition-colors inline-flex items-center justify-center text-body-sm shadow-sm">
                         Cancel
                     </a>
                     <button class="h-input-height px-unit-6 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium shadow-sm transition-all inline-flex items-center justify-center gap-unit-2 text-body-sm active:scale-[0.99] cursor-pointer" id="saveChangesBtn" type="submit">
                         <span class="material-symbols-outlined text-[18px]">save</span>
-                        Save Changes
+                        <span>Save Changes</span>
                     </button>
                 </div>
             </div>
@@ -324,45 +393,49 @@
 </div>
 
 @section Scripts {
+<partial name="_ValidationScriptsPartial" />
 <script>
-    // Live Avatar Preview
     function previewAvatar(event) {
         const input = event.target;
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) {
-                document.getElementById('avatarPreview').src = e.target.result;
+                const previewImg = document.getElementById('avatarPreview');
+                const placeholder = document.getElementById('avatarPlaceholder');
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('hidden');
+                }
             };
             reader.readAsDataURL(input.files[0]);
         }
     }
 
-    // Save Action Feedback
-    function saveAccountChanges() {
-        const btn = document.getElementById('saveChangesBtn');
-        const originalHTML = btn.innerHTML;
-        
-        btn.innerHTML = `
-            <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
-            Saving Changes...
-        `;
-        btn.disabled = true;
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('editUserForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (window.jQuery && $(form).length && typeof $(form).valid === 'function') {
+                    if (!$(form).valid()) {
+                        return;
+                    }
+                } else if (!form.checkValidity()) {
+                    return;
+                }
 
-        setTimeout(() => {
-            btn.innerHTML = `
-                <span class="material-symbols-outlined text-[18px]">check</span>
-                Saved Successfully
-            `;
-            btn.classList.remove('bg-primary-container');
-            btn.classList.add('bg-[#059669]');
-            
-            setTimeout(() => {
-                btn.innerHTML = originalHTML;
-                btn.classList.remove('bg-[#059669]');
-                btn.classList.add('bg-primary-container');
-                btn.disabled = false;
-            }, 2000);
-        }, 700);
-    }
+                const btn = document.getElementById('saveChangesBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `
+                        <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        <span>Saving Changes...</span>
+                    `;
+                }
+            });
+        }
+    });
 </script>
 }

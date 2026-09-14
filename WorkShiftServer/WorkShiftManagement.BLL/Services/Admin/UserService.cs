@@ -258,6 +258,8 @@ public class UserService : IUserService
         if (userId == Guid.Empty)
             throw new ArgumentException("UserId is required.");
 
+        NormalizeAndValidateUpdateRequest(request);
+
         var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
 
@@ -266,22 +268,6 @@ public class UserService : IUserService
 
         if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Only active accounts can be updated.");
-
-        if (request.DateOfBirth.HasValue)
-        {
-            var dob = request.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue);
-            if (dob.Date > DateTime.Today)
-            {
-                throw new ArgumentException("Date of birth cannot be in the future.");
-            }
-
-            var age = DateTime.Today.Year - dob.Year;
-            if (dob.Date > DateTime.Today.AddYears(-age)) age--;
-            if (age < 18)
-            {
-                throw new ArgumentException("The user must be at least 18 years old.");
-            }
-        }
 
         var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
         if (roleName is not (ManagerRole or AccountantRole))
@@ -292,17 +278,22 @@ public class UserService : IUserService
             throw new ArgumentException("BranchId is required for Manager and Accountant accounts.");
         }
 
-        var isBranchChanged = user.BranchId != request.BranchId;
-        var isRoleChanged = user.RoleId != request.RoleId;
-
-        if (isRoleChanged)
+        var targetRole = await _dbContext.Roles.FindAsync(request.RoleId)
+            ?? throw new ArgumentException("The specified role does not exist.");
+        var targetRoleName = targetRole.RoleName.Trim().ToUpperInvariant();
+        if (targetRoleName is not (ManagerRole or AccountantRole))
         {
-            var newRole = await _dbContext.Roles.FindAsync(request.RoleId);
-            if (newRole != null && newRole.RoleName.Trim().ToUpperInvariant() == "ADMIN")
-            {
-                throw new ArgumentException("Cannot change role to ADMIN.");
-            }
+            throw new ArgumentException("Admin can only assign Manager or Accountant role.");
         }
+
+        var targetBranchId = request.BranchId.Value;
+        if (!await _userRepo.ActiveBranchExistsAsync(targetBranchId))
+        {
+            throw new ArgumentException("Target branch does not exist or is inactive.");
+        }
+
+        var isBranchChanged = user.BranchId != targetBranchId;
+        var isRoleChanged = user.RoleId != request.RoleId;
 
         if (isBranchChanged || isRoleChanged)
         {
@@ -348,6 +339,23 @@ public class UserService : IUserService
                 {
                     throw new InvalidOperationException("Cannot update Branch or Role because the Accountant has pending payroll processing in the current branch.");
                 }
+            }
+
+            // Check if another active or pending user already occupies the target role in the target branch
+            var isRoleOccupied = await _dbContext.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.UserId != userId
+                            && u.BranchId == targetBranchId
+                            && u.RoleId == request.RoleId
+                            && u.Status != InactiveStatus
+                            && u.DeletedAt == null);
+
+            if (isRoleOccupied)
+            {
+                throw new InvalidOperationException(
+                    targetRoleName == ManagerRole
+                        ? "This branch already has an active Manager."
+                        : "This branch already has an active Accountant.");
             }
         }
 
@@ -401,6 +409,22 @@ public class UserService : IUserService
             if (innerMessage.Contains("23503")) // Foreign key violation
             {
                 throw new ArgumentException("The provided BranchId or RoleId does not exist.");
+            }
+            if (innerMessage.Contains("branch", StringComparison.OrdinalIgnoreCase) && innerMessage.Contains("role", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("This branch already has an assigned user with this role.");
+            }
+            if (innerMessage.Contains("phone", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Phone number is already in use by another user.");
+            }
+            if (innerMessage.Contains("identity", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Identity number is already in use by another user.");
+            }
+            if (innerMessage.Contains("email", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Email is already in use by another user.");
             }
             throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
         }
