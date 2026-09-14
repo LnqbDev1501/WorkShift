@@ -19,6 +19,10 @@
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             <span>Back to User Accounts</span>
         </a>
+        <a asp-action="Edit" asp-route-id="@Model.UserId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-sm transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">edit</span>
+            <span>Edit Account</span>
+        </a>
     </div>
 
     <!-- Success Modal Popup on Resend -->

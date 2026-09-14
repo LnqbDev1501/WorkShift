@@ -93,6 +93,12 @@ public class UserController : Controller
         }
     }
 
+    [HttpGet]
+    public IActionResult Edit(Guid? id)
+    {
+        return View();
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendDetailSetupLink(Guid userId, CancellationToken cancellationToken)
     {

@@ -1,0 +1,368 @@
+@{
+    ViewData["Title"] = "Edit User Account";
+}
+
+@section Styles {
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-container": "#dad7ff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface": "#f8f9fd",
+                        "surface-container-low": "#f2f3f7",
+                        "surface-dim": "#d9dade",
+                        "inverse-surface": "#2e3134",
+                        "background": "#f8f9fd",
+                        "surface-bright": "#f8f9fd",
+                        "on-background": "#191c1f",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "outline": "#777587",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "primary-container": "#4f46e5",
+                        "on-secondary-container": "#5c6274",
+                        "secondary-container": "#d9dff5",
+                        "inverse-primary": "#c3c0ff",
+                        "surface-container-high": "#e7e8ec",
+                        "secondary-fixed": "#dce2f7",
+                        "on-secondary-fixed": "#141b2b",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#d3e4fe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#ccdcf7",
+                        "surface-tint": "#4d44e3",
+                        "on-surface": "#191c1f",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "primary-fixed": "#e2dfff",
+                        "inverse-on-surface": "#eff1f5",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e1e2e6",
+                        "surface-container": "#edeef2",
+                        "on-surface-variant": "#464555",
+                        "tertiary": "#3a495f",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c7c4d8",
+                        "tertiary-container": "#516177",
+                        "surface-variant": "#e1e2e6",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "error-container": "#ffdad6",
+                        "secondary": "#575e70",
+                        "primary": "#3525cd",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-tertiary-fixed-variant": "#38485d"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "unit-4": "1rem",
+                        "sidebar-width": "16.25rem",
+                        "input-height": "2.5rem",
+                        "unit-8": "2rem",
+                        "unit-6": "1.5rem",
+                        "unit-12": "3rem",
+                        "unit-10": "2.5rem",
+                        "unit-2": "0.5rem",
+                        "unit-1": "0.25rem",
+                        "topbar-height": "4rem",
+                        "unit-3": "0.75rem",
+                        "table-row-height": "3.5rem",
+                        "unit-5": "1.25rem"
+                    },
+                    fontFamily: {
+                        "title-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "code-num": ["Inter"],
+                        "display-md": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-md-medium": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    fontSize: {
+                        "title-md": ["16px", { lineHeight: "24px", letterSpacing: "-0.005em", fontWeight: "600" }],
+                        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }],
+                        "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.03em", fontWeight: "500" }],
+                        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "code-num": ["13px", { lineHeight: "18px", letterSpacing: "-0.01em", fontWeight: "500" }],
+                        "display-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "600" }],
+                        "title-lg": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-md-medium": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "500" }],
+                        "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+                        "body-sm": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }]
+                    }
+                }
+            }
+        };
+    </script>
+}
+
+<div class="w-full px-7 pt-6 pb-10">
+    <div class="w-full max-w-[1200px] mx-auto">
+        <form class="flex flex-col w-full gap-unit-6" id="editUserForm" onsubmit="event.preventDefault(); saveAccountChanges();">
+            
+            <!-- Page Header Ribbon -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-unit-3 flex-wrap">
+                    <h1 class="font-display-md text-display-md text-on-surface">Edit User Account</h1>
+                    <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#ecfdf5] text-[#059669] font-label-sm text-label-sm border border-[#a7f3d0]">
+                        <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
+                        ACTIVE
+                    </span>
+                </div>
+            </div>
+
+            <!-- SECTION 1: Identity & Personal Information -->
+            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[22px]">badge</span>
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface">Personal Information & Profile</h2>
+                            <p class="font-label-sm text-secondary">Update personal bio, legal identification, and official avatar</p>
+                        </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Core Bio</span>
+                </div>
+
+                <!-- Avatar Uploader Component -->
+                <div class="p-unit-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center gap-unit-5 border border-[#e2e8f0]">
+                    <div class="relative group">
+                        <img id="avatarPreview" alt="User Avatar Preview" class="w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2JZ3baf_YOdWlvPcizPaBpQGwHfS49_BLV4ys631bcIbij05PeP8cJhIatMjUSGksTEqvOJNIXTJs7HelzmDlkk0lGlcaLThyIo55-PCcIy5JFwSZZIQS6foj8i6XYp0xK214TZaQqVMV8nCcLyoecWPNXQLTwscjV2GJeHZQax8cGuiPX5N_4Mfx75ft0HcvxuRs0rf3iLjzT1vyHor7KGegpFah1dIemw7CuDVnP_NglajBELlypw" />
+                        <label for="avatarFileInput" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <span class="material-symbols-outlined text-[24px]">photo_camera</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex flex-col gap-unit-2 flex-1">
+                        <div>
+                            <h4 class="font-title-md text-title-md text-on-surface">Profile Avatar Photo</h4>
+                            <p class="font-body-sm text-body-sm text-secondary">Upload a square image (JPG, PNG, or WEBP, max 5MB). Stored securely via Cloudinary.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-unit-3 flex-wrap">
+                            <input type="file" id="avatarFileInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
+                            <button type="button" onclick="document.getElementById('avatarFileInput').click()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-surface-container-lowest border border-[#cbd5e1] hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[16px] text-primary">upload</span>
+                                <span>Change Photo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                    <!-- Full Name -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="fullName">
+                            Full Legal Name <span class="text-error">*</span>
+                        </label>
+                        <input class="h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="fullName" name="FullName" type="text" value="Tran Quoc Bao" required />
+                    </div>
+
+                    <!-- Work Email (Editable) -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="email">
+                            Work / Contact Email <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">mail</span>
+                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="email" name="Email" type="email" value="tran.bao@workshift.vn" required />
+                        </div>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="phoneNumber">
+                            Contact Phone (VN Mobile) <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">call</span>
+                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="phoneNumber" name="Phone" type="tel" value="0903821445" placeholder="0901234567" pattern="^0[35789]\d{8}$" required />
+                        </div>
+                        <span class="font-label-sm text-secondary text-[11px]">10 digits starting with 03, 05, 07, 08, 09</span>
+                    </div>
+
+                    <!-- Citizen ID / CCCD -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="identityNo">
+                            Citizen ID / CCCD (9 or 12 digits) <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">credit_card</span>
+                            <input class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="identityNo" name="IdentityNo" type="text" value="079294002911" placeholder="079294002911" required />
+                        </div>
+                    </div>
+
+                    <!-- Gender Selection -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="gender">
+                            Gender <span class="text-error">*</span>
+                        </label>
+                        <div class="relative">
+                            <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="gender" name="Gender" required>
+                                <option value="MALE" selected>Male (Nam)</option>
+                                <option value="FEMALE">Female (Nữ)</option>
+                                <option value="OTHER">Other (Khác)</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                        </div>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="dateOfBirth">
+                            Date of Birth <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <input class="w-full h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" id="dateOfBirth" name="DateOfBirth" type="date" value="1992-05-18" required />
+                        </div>
+                    </div>
+
+                    <!-- Residential Address -->
+                    <div class="flex flex-col gap-unit-1 md:col-span-2">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="address">
+                            Residential Address <span class="text-error">*</span>
+                        </label>
+                        <textarea rows="2" class="p-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" id="address" name="Address" required>124 Nguyen Dinh Chieu, Ward Vo Thi Sau, District 3, Ho Chi Minh City</textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: Role & Operational Permissions -->
+            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[22px]">admin_panel_settings</span>
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface">Role & System Permissions</h2>
+                            <p class="font-label-sm text-secondary">Assign user system role and operational access level</p>
+                        </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">RBAC Authority</span>
+                </div>
+
+                <div class="flex flex-col gap-unit-1">
+                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="systemRole">
+                        Assigned System Role <span class="text-error">*</span>
+                    </label>
+                    <div class="relative">
+                        <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="systemRole" name="RoleId">
+                            <option value="2" selected>Manager — Store & Operations Management</option>
+                            <option value="3">Supervisor — Direct Shift Lead & Roster</option>
+                            <option value="4">Accountant — Payroll & Statutory Auditor</option>
+                            <option value="5">Staff — Frontline Shift Member</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: Organizational Assignment -->
+            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[22px]">apartment</span>
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface">Organizational Assignment</h2>
+                            <p class="font-label-sm text-secondary">Assign user workplace branch</p>
+                        </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Territory</span>
+                </div>
+
+                <!-- Primary Branch -->
+                <div class="flex flex-col gap-unit-1">
+                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" for="primaryBranch">
+                        Primary Branch Hub <span class="text-error">*</span>
+                    </label>
+                    <div class="relative">
+                        <select class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all" id="primaryBranch" name="BranchId" required>
+                            <option value="1" selected>District 1 Flagship (D1-FLAGSHIP)</option>
+                            <option value="2">District 3 - Le Van Sy (D3-LVS)</option>
+                            <option value="3">District 7 - Crescent Mall (D7-CRES)</option>
+                            <option value="4">Binh Thanh - Landmark 81 (BT-L81)</option>
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Static Bottom Action Bar -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-[#e2e8f0] flex flex-col sm:flex-row items-center justify-between gap-unit-4">
+                <div class="flex items-center gap-unit-2 text-secondary text-[13px]">
+                    <span class="material-symbols-outlined text-[18px] text-outline">info</span>
+                    <span>Make sure to save changes before navigating away from this page.</span>
+                </div>
+                <div class="flex items-center gap-unit-3 w-full sm:w-auto justify-end">
+                    <a asp-action="List" class="h-input-height px-unit-5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-body-md-medium transition-colors inline-flex items-center justify-center text-body-sm shadow-sm">
+                        Cancel
+                    </a>
+                    <button class="h-input-height px-unit-6 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium shadow-sm transition-all inline-flex items-center justify-center gap-unit-2 text-body-sm active:scale-[0.99] cursor-pointer" id="saveChangesBtn" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">save</span>
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Live Avatar Preview
+    function previewAvatar(event) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('avatarPreview').src = e.target.result;
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Save Action Feedback
+    function saveAccountChanges() {
+        const btn = document.getElementById('saveChangesBtn');
+        const originalHTML = btn.innerHTML;
+        
+        btn.innerHTML = `
+            <span class="material-symbols-outlined animate-spin text-[18px]">sync</span>
+            Saving Changes...
+        `;
+        btn.disabled = true;
+
+        setTimeout(() => {
+            btn.innerHTML = `
+                <span class="material-symbols-outlined text-[18px]">check</span>
+                Saved Successfully
+            `;
+            btn.classList.remove('bg-primary-container');
+            btn.classList.add('bg-[#059669]');
+            
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.classList.remove('bg-[#059669]');
+                btn.classList.add('bg-primary-container');
+                btn.disabled = false;
+            }, 2000);
+        }, 700);
+    }
+</script>
+}
