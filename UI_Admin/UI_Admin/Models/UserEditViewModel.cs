@@ -33,8 +33,9 @@ public sealed class UserEditViewModel
     [Display(Name = "System Role")]
     public int RoleId { get; set; }
 
-    [Required(ErrorMessage = "Target branch is required.")]
-    [Range(1, int.MaxValue, ErrorMessage = "Please select a valid branch.")]
+    public string RoleName { get; set; } = string.Empty;
+    public bool IsAdmin => RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase);
+
     [Display(Name = "Target Branch")]
     public int? BranchId { get; set; }
 

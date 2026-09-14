@@ -270,10 +270,11 @@ public class UserService : IUserService
             throw new InvalidOperationException("Only active accounts can be updated.");
 
         var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
-        if (roleName is not (ManagerRole or AccountantRole))
-            throw new ArgumentException("Only Manager or Accountant accounts can be updated by this endpoint.");
+        var isAdmin = roleName == "ADMIN";
+        if (roleName is not (ManagerRole or AccountantRole or "ADMIN"))
+            throw new ArgumentException("Only Admin, Manager, or Accountant accounts can be updated by this endpoint.");
 
-        if (!request.BranchId.HasValue)
+        if (!isAdmin && !request.BranchId.HasValue)
         {
             throw new ArgumentException("BranchId is required for Manager and Accountant accounts.");
         }
@@ -281,81 +282,92 @@ public class UserService : IUserService
         var targetRole = await _dbContext.Roles.FindAsync(request.RoleId)
             ?? throw new ArgumentException("The specified role does not exist.");
         var targetRoleName = targetRole.RoleName.Trim().ToUpperInvariant();
-        if (targetRoleName is not (ManagerRole or AccountantRole))
+
+        if (isAdmin)
+        {
+            request.RoleId = user.RoleId;
+        }
+        else if (targetRoleName is not (ManagerRole or AccountantRole))
         {
             throw new ArgumentException("Admin can only assign Manager or Accountant role.");
         }
 
-        var targetBranchId = request.BranchId.Value;
-        if (!await _userRepo.ActiveBranchExistsAsync(targetBranchId))
+        int? targetBranchId = request.BranchId;
+        if (targetBranchId.HasValue)
         {
-            throw new ArgumentException("Target branch does not exist or is inactive.");
+            if (!await _userRepo.ActiveBranchExistsAsync(targetBranchId.Value))
+            {
+                throw new ArgumentException("Target branch does not exist or is inactive.");
+            }
         }
 
-        var isBranchChanged = user.BranchId != targetBranchId;
-        var isRoleChanged = user.RoleId != request.RoleId;
-
-        if (isBranchChanged || isRoleChanged)
+        if (!isAdmin && targetBranchId.HasValue)
         {
-            var branchId = user.BranchId.GetValueOrDefault();
-            if (roleName == ManagerRole && branchId > 0)
+            var isBranchChanged = user.BranchId != targetBranchId.Value;
+            var isRoleChanged = user.RoleId != request.RoleId;
+
+            if (isBranchChanged || isRoleChanged)
             {
-                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
-                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-                
-                var hasEmployeeRequests = await _dbContext.EmployeeRequests
-                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
-
-                var hasSwapRequests = await _dbContext.ShiftSwapRequests
-                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
-                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
-
-                var hasContracts = await _dbContext.EmploymentContracts
-                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-                
-                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
-                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
-
-                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
-                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
-
-                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
-                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
-
-                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
+                var branchId = user.BranchId.GetValueOrDefault();
+                if (roleName == ManagerRole && branchId > 0)
                 {
-                    throw new InvalidOperationException("Cannot update Branch or Role because the Manager has pending tasks in the current branch.");
+                    var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
+                        .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
+                    
+                    var hasEmployeeRequests = await _dbContext.EmployeeRequests
+                        .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
+
+                    var hasSwapRequests = await _dbContext.ShiftSwapRequests
+                        .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
+                        .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
+
+                    var hasContracts = await _dbContext.EmploymentContracts
+                        .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
+                    
+                    var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
+                        .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
+
+                    var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
+                        .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
+
+                    var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
+                        .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
+
+                    if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
+                    {
+                        throw new InvalidOperationException("Cannot update Branch or Role because the Manager has pending tasks in the current branch.");
+                    }
                 }
-            }
-            else if (roleName == AccountantRole && branchId > 0)
-            {
-                var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
-
-                var hasPayrolls = await _dbContext.Payrolls
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
-
-                if (hasPayrollPeriods || hasPayrolls)
+                else if (roleName == AccountantRole && branchId > 0)
                 {
-                    throw new InvalidOperationException("Cannot update Branch or Role because the Accountant has pending payroll processing in the current branch.");
+                    var hasPayrollPeriods = await _dbContext.PayrollPeriods
+                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+
+                    var hasPayrolls = await _dbContext.Payrolls
+                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
+
+                    if (hasPayrollPeriods || hasPayrolls)
+                    {
+                        throw new InvalidOperationException("Cannot update Branch or Role because the Accountant has pending payroll processing in the current branch.");
+                    }
                 }
-            }
 
-            // Check if another active or pending user already occupies the target role in the target branch
-            var isRoleOccupied = await _dbContext.Users
-                .AsNoTracking()
-                .AnyAsync(u => u.UserId != userId
-                            && u.BranchId == targetBranchId
-                            && u.RoleId == request.RoleId
-                            && u.Status != InactiveStatus
-                            && u.DeletedAt == null);
+                // Check if another active or pending user already occupies the target role in the target branch
+                var isRoleOccupied = await _dbContext.Users
+                    .AsNoTracking()
+                    .AnyAsync(u => u.UserId != userId
+                                && u.BranchId == targetBranchId.Value
+                                && u.RoleId == request.RoleId
+                                && u.Status != InactiveStatus
+                                && u.DeletedAt == null);
 
-            if (isRoleOccupied)
-            {
-                throw new InvalidOperationException(
-                    targetRoleName == ManagerRole
-                        ? "This branch already has an active Manager."
-                        : "This branch already has an active Accountant.");
+                if (isRoleOccupied)
+                {
+                    throw new InvalidOperationException(
+                        targetRoleName == ManagerRole
+                            ? "This branch already has an active Manager."
+                            : "This branch already has an active Accountant.");
+                }
             }
         }
 

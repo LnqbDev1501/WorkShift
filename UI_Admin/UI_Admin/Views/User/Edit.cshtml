@@ -310,35 +310,43 @@
                 </div>
             </section>
 
-            <!-- SECTION 2: Role & Operational Permissions -->
-            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
-                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
-                    <div class="flex items-center gap-unit-2">
-                        <span class="material-symbols-outlined text-primary text-[22px]">admin_panel_settings</span>
-                        <div>
-                            <h2 class="font-title-lg text-title-lg text-on-surface">Role & System Permissions</h2>
-                            <p class="font-label-sm text-secondary">Assign user system role and operational access level</p>
+            <input type="hidden" asp-for="RoleName" />
+            @if (Model.IsAdmin)
+            {
+                <input type="hidden" asp-for="RoleId" />
+            }
+            else
+            {
+                <!-- SECTION 2: Role & Operational Permissions -->
+                <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-unit-2">
+                            <span class="material-symbols-outlined text-primary text-[22px]">admin_panel_settings</span>
+                            <div>
+                                <h2 class="font-title-lg text-title-lg text-on-surface">Role & System Permissions</h2>
+                                <p class="font-label-sm text-secondary">Assign user system role and operational access level</p>
+                            </div>
                         </div>
+                        <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">RBAC Authority</span>
                     </div>
-                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">RBAC Authority</span>
-                </div>
 
-                <div class="flex flex-col gap-unit-1">
-                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="RoleId">
-                        Assigned System Role <span class="text-error">*</span>
-                    </label>
-                    <div class="relative">
-                        <select asp-for="RoleId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
-                            @foreach (var role in Model.AvailableRoles)
-                            {
-                                <option value="@role.Id">@role.Name</option>
-                            }
-                        </select>
-                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="RoleId">
+                            Assigned System Role <span class="text-error">*</span>
+                        </label>
+                        <div class="relative">
+                            <select asp-for="RoleId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                                @foreach (var role in Model.AvailableRoles)
+                                {
+                                    <option value="@role.Id">@role.Name</option>
+                                }
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                        </div>
+                        <span asp-validation-for="RoleId" class="field-validation-error"></span>
                     </div>
-                    <span asp-validation-for="RoleId" class="field-validation-error"></span>
-                </div>
-            </section>
+                </section>
+            }
 
             <!-- SECTION 3: Organizational Assignment -->
             <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
@@ -347,7 +355,7 @@
                         <span class="material-symbols-outlined text-primary text-[22px]">apartment</span>
                         <div>
                             <h2 class="font-title-lg text-title-lg text-on-surface">Organizational Assignment</h2>
-                            <p class="font-label-sm text-secondary">Assign user workplace branch</p>
+                            <p class="font-label-sm text-secondary">@(Model.IsAdmin ? "Assign administrative branch base (optional)" : "Assign user workplace branch")</p>
                         </div>
                     </div>
                     <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Territory</span>
@@ -356,10 +364,14 @@
                 <!-- Primary Branch -->
                 <div class="flex flex-col gap-unit-1">
                     <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="BranchId">
-                        Primary Branch Hub <span class="text-error">*</span>
+                        Primary Branch Hub @if (!Model.IsAdmin) { <span class="text-error">*</span> } else { <span class="text-secondary text-xs">(Optional)</span> }
                     </label>
                     <div class="relative">
                         <select asp-for="BranchId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                            @if (Model.IsAdmin)
+                            {
+                                <option value="">No Branch Assigned (Head Office / System-wide)</option>
+                            }
                             @foreach (var branch in Model.AvailableBranches)
                             {
                                 <option value="@branch.Id">@branch.DisplayText</option>

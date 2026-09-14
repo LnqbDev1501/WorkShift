@@ -119,6 +119,7 @@ public class UserController : Controller
                 DateOfBirth = detail.DateOfBirth,
                 Address = detail.Address,
                 RoleId = detail.RoleId,
+                RoleName = detail.RoleName,
                 BranchId = detail.BranchId,
                 AvatarUrl = detail.AvatarUrl,
                 Status = detail.Status,
@@ -138,6 +139,11 @@ public class UserController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, UserEditViewModel model, CancellationToken cancellationToken)
     {
+        if (!model.IsAdmin && (!model.BranchId.HasValue || model.BranchId <= 0))
+        {
+            ModelState.AddModelError(nameof(model.BranchId), "Target branch is required for Manager and Accountant accounts.");
+        }
+
         if (!ModelState.IsValid)
         {
             model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
