@@ -297,37 +297,6 @@
     </div>
 </div>
 
-<!-- Restore Confirmation Popup Modal -->
-<div id="restoreConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
-        <div class="w-14 h-14 rounded-full bg-[#eff6ff] border-2 border-[#bfdbfe] text-[#2563eb] flex items-center justify-center shadow-sm">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-            </svg>
-        </div>
-        <div class="space-y-1">
-            <h3 class="text-[18px] font-semibold text-[#191c2a]">Restore User Account?</h3>
-            <p class="text-[14px] text-[#5b6074]">
-                Are you sure you want to restore <strong id="restoreUserNameText" class="text-[#191c2a] font-semibold"></strong>? This will reactivate the account and grant system access again.
-            </p>
-        </div>
-        <form asp-action="Restore" method="post" id="restoreUserForm" class="w-full space-y-2">
-            @Html.AntiForgeryToken()
-            <input type="hidden" name="userId" id="restoreUserIdInput" value="" />
-            <input type="hidden" name="branchId" id="restoreBranchIdInput" value="" />
-            <partial name="_UserQueryFields" model="Model.Query" />
-            <div class="flex items-center gap-3 pt-2">
-                <button type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium text-[14px] transition-colors cursor-pointer" onclick="closeRestoreModal()">
-                    Cancel
-                </button>
-                <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer">
-                    Restore Account
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
 <section class="users-page">
     <div class="users-body">
         <div class="page-heading">
@@ -372,7 +341,7 @@
                                 }
                             }
                             else if (isInactive) { 
-                                <button class="icon-button" type="button" title="Restore account" aria-label="Restore account" onclick="openRestoreModal('@user.UserId', '@Html.Raw(user.FullName.Replace("'", "\\'"))', '@(user.PreviousBranchId?.ToString() ?? "")')"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg></button> 
+                                <a asp-action="Restore" asp-route-id="@user.UserId" class="icon-button" title="Restore account" aria-label="Restore account"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg></a>
                             }
                             else if (user.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <a asp-action="Edit" asp-route-id="@user.UserId" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></a>@if (!user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <button class="icon-button danger" type="button" title="Deactivate account" aria-label="Deactivate account" onclick="openDeactivateModal('@user.UserId', '@Html.Raw(user.FullName.Replace("'", "\\'"))')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button> } }
                         </div></td>
@@ -397,16 +366,6 @@
     }
     function closeDeactivateModal() {
         document.getElementById('deactivateConfirmModal').classList.add('hidden');
-    }
-
-    function openRestoreModal(userId, fullName, branchId) {
-        document.getElementById('restoreUserIdInput').value = userId;
-        document.getElementById('restoreBranchIdInput').value = branchId || '';
-        document.getElementById('restoreUserNameText').textContent = fullName;
-        document.getElementById('restoreConfirmModal').classList.remove('hidden');
-    }
-    function closeRestoreModal() {
-        document.getElementById('restoreConfirmModal').classList.add('hidden');
     }
 </script>
 }

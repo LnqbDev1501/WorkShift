@@ -214,20 +214,69 @@ public class UserController : Controller
         return RedirectToAction(nameof(List), query);
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Restore(Guid userId, int? branchId, UserListQueryViewModel query, CancellationToken cancellationToken)
+    [HttpGet]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken cancellationToken)
     {
         try
         {
-            await _userApiService.RestoreAsync(userId, branchId, cancellationToken);
-            TempData["UserRestoredSuccess"] = true;
+            var detail = await _userApiService.GetDetailAsync(id, cancellationToken);
+            if (!detail.IsInactive)
+            {
+                TempData["ErrorMessage"] = "Only inactive accounts can be restored.";
+                return RedirectToAction(nameof(Detail), new { id });
+            }
+
+            var branches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            var model = new UserRestoreViewModel
+            {
+                UserId = detail.UserId,
+                FullName = detail.FullName,
+                Email = detail.Email,
+                Phone = detail.Phone,
+                RoleName = detail.RoleName,
+                AvatarUrl = detail.AvatarUrl,
+                Initials = detail.Initials,
+                PreviousBranchId = detail.PreviousBranchId ?? detail.BranchId,
+                PreviousBranchName = detail.PreviousBranchName ?? detail.BranchName,
+                BranchId = detail.PreviousBranchId ?? detail.BranchId,
+                AvailableBranches = branches
+            };
+
+            return View(model);
         }
         catch (HttpRequestException exception)
         {
-            TempData["UserRestoredError"] = exception.Message;
+            TempData["ErrorMessage"] = $"Could not load account details: {exception.Message}";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(Guid id, UserRestoreViewModel model, CancellationToken cancellationToken)
+    {
+        if (!model.BranchId.HasValue || model.BranchId <= 0)
+        {
+            ModelState.AddModelError(nameof(model.BranchId), "Please select a target branch for this account.");
         }
 
-        return RedirectToAction(nameof(List), query);
+        if (!ModelState.IsValid)
+        {
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            return View(model);
+        }
+
+        try
+        {
+            await _userApiService.RestoreAsync(id, model.BranchId, cancellationToken);
+            TempData["UserRestoredSuccess"] = true;
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            model.AvailableBranches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+            return View(model);
+        }
     }
 
     private async Task<IActionResult> RunActionAsync(Func<Task> action, string successMessage, UserListQueryViewModel query)
