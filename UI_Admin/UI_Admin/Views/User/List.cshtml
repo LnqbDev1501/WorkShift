@@ -47,6 +47,28 @@
     </div>
 }
 
+@if (TempData["UserUpdatedSuccess"] is true or "true")
+{
+    <div id="updateSuccessPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Account Updated Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    User account updated successfully.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('updateSuccessPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
 <section class="users-page">
     <div class="users-body">
         <div class="page-heading">
@@ -88,7 +110,7 @@
                             <a asp-action="Detail" asp-route-id="@user.UserId" class="icon-button" title="View account" aria-label="View account"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></a>
                             @if (isPending) { <form asp-action="ResendSetupLink" method="post" class="inline-action"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button" type="submit" title="Resend setup link" aria-label="Resend setup link"><svg viewBox="0 0 24 24"><path d="m4 4 16 8-16 8 3-8-3-8Z"/><path d="M7 12h13"/></svg></button></form> }
                             else if (isInactive) { <form asp-action="Restore" method="post" class="inline-action"><input type="hidden" name="userId" value="@user.UserId" /><input type="hidden" name="branchId" value="@user.PreviousBranchId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button" type="submit" title="Restore account" aria-label="Restore account"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg></button></form> }
-                            else if (user.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase)) { <button type="button" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></button><form asp-action="Delete" method="post" class="inline-action" onsubmit="return confirm('Deactivate this account?');"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button danger" type="submit" title="Deactivate account" aria-label="Deactivate account"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button></form> }
+                            else if (user.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <a asp-action="Edit" asp-route-id="@user.UserId" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></a>@if (!user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <form asp-action="Delete" method="post" class="inline-action" onsubmit="return confirm('Deactivate this account?');"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button danger" type="submit" title="Deactivate account" aria-label="Deactivate account"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button></form> } }
                         </div></td>
                     </tr>
                 }

@@ -19,6 +19,10 @@
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             <span>Back to User Accounts</span>
         </a>
+        <a asp-action="Edit" asp-route-id="@Model.UserId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-sm transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">edit</span>
+            <span>Edit Account</span>
+        </a>
     </div>
 
     <!-- Success Modal Popup on Resend -->
@@ -36,6 +40,27 @@
                     </p>
                 </div>
                 <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-md transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('resendSuccessModal').remove()">
+                    OK
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Success Modal Popup on Update -->
+    @if (TempData["UserUpdatedSuccess"] is true or "true")
+    {
+        <div id="updateSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+                <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-outlined text-[32px]">check_circle</span>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="font-title-lg text-title-lg text-on-surface">Account Updated Successfully</h3>
+                    <p class="font-body-md text-secondary text-[14px]">
+                        User account updated successfully.
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-md transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('updateSuccessModal').remove()">
                     OK
                 </button>
             </div>

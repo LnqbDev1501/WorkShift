@@ -168,6 +168,42 @@ public sealed class UserApiService
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task UpdateAsync(Guid userId, UserEditViewModel model, CancellationToken cancellationToken = default)
+    {
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent(model.FullName ?? string.Empty), nameof(model.FullName));
+        content.Add(new StringContent(model.Email ?? string.Empty), nameof(model.Email));
+        content.Add(new StringContent(model.Phone ?? string.Empty), nameof(model.Phone));
+        content.Add(new StringContent(model.IdentityNo ?? string.Empty), nameof(model.IdentityNo));
+        content.Add(new StringContent(model.Gender ?? string.Empty), nameof(model.Gender));
+        content.Add(new StringContent(model.Address ?? string.Empty), nameof(model.Address));
+        content.Add(new StringContent(model.RoleId.ToString()), nameof(model.RoleId));
+
+        if (model.BranchId.HasValue)
+        {
+            content.Add(new StringContent(model.BranchId.Value.ToString()), nameof(model.BranchId));
+        }
+
+        if (model.DateOfBirth.HasValue)
+        {
+            content.Add(new StringContent(model.DateOfBirth.Value.ToString("yyyy-MM-dd")), nameof(model.DateOfBirth));
+        }
+
+        if (model.AvatarFile != null && model.AvatarFile.Length > 0)
+        {
+            var streamContent = new StreamContent(model.AvatarFile.OpenReadStream());
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(model.AvatarFile.ContentType ?? "image/jpeg");
+            content.Add(streamContent, nameof(model.AvatarFile), model.AvatarFile.FileName);
+        }
+
+        using var response = await _httpClient.PutAsync(
+            BuildUrl($"api/admin/users/{userId}"),
+            content,
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     private async Task<PagedUsersResponse> GetUsersAsync(
         UserListQueryViewModel query,
         CancellationToken cancellationToken)
