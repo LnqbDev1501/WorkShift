@@ -69,6 +69,116 @@
     </div>
 }
 
+@if (TempData["ResendSuccess"] is true or "true")
+{
+    <div id="resendSuccessPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Invitation Resent Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    The activation invite and password setup link have been resent successfully to the user's email.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('resendSuccessPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["ResendError"] is string resendError && !string.IsNullOrWhiteSpace(resendError))
+{
+    <div id="resendErrorPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Failed to Resend Invitation</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @resendError
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('resendErrorPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["SuccessMessage"] is string actionSuccess && !string.IsNullOrWhiteSpace(actionSuccess))
+{
+    <div id="actionSuccessPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Success</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @actionSuccess
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('actionSuccessPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] is string actionError && !string.IsNullOrWhiteSpace(actionError))
+{
+    <div id="actionErrorPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Action Failed</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @actionError
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('actionErrorPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div id="loadErrorPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Failed to Load Users</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @Model.ErrorMessage
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('loadErrorPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
 <section class="users-page">
     <div class="users-body">
         <div class="page-heading">
@@ -76,9 +186,6 @@
             <div class="heading-actions">
                 <a asp-action="Create" class="ui-button primary"><span class="symbol">♙+</span>Create Account</a></div>
         </div>
-        @if (TempData["SuccessMessage"] is string successMessage) { <div class="alert-box success">@successMessage</div> }
-        @if (TempData["ErrorMessage"] is string actionError) { <div class="alert-box error">@actionError</div> }
-        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) { <div class="alert-box error">Could not load users: @Model.ErrorMessage</div> }
         <div asp-validation-summary="ModelOnly" class="validation-errors"></div>
         <div class="metrics">
             <article class="metric"><div><div class="metric-label">Total Active Users</div><div class="metric-value">@Model.ActiveUsers.ToString("N0")</div><div class="metric-note">Currently active accounts</div></div><span class="metric-icon">▣</span></article>

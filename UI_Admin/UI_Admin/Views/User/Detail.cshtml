@@ -67,11 +67,20 @@
         </div>
     }
 
-    @if (TempData["ErrorMessage"] is string errorMessage)
+    @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
     {
-        <div class="mb-6 p-4 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium flex items-center gap-2 shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">error</span>
-            <span>@errorMessage</span>
+        <div id="detailErrorMessageBanner" class="mb-6 p-4 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium flex items-center justify-between gap-3 shadow-sm transition-opacity duration-200">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="material-symbols-outlined text-[20px] text-[#dc2626] shrink-0">error</span>
+                <span class="text-[14px] leading-relaxed break-words">@errorMessage</span>
+            </div>
+            <button type="button" 
+                    class="p-1 rounded-lg hover:bg-[#fca5a5]/40 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                    title="Dismiss" 
+                    aria-label="Close" 
+                    onclick="document.getElementById('detailErrorMessageBanner').remove()">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
         </div>
     }
 

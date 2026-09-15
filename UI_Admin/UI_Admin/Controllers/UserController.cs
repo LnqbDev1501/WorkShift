@@ -183,10 +183,20 @@ public class UserController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> ResendSetupLink(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
-        await RunActionAsync(
-            () => _userApiService.ResendSetupLinkAsync(userId, cancellationToken),
-            "Account setup link sent successfully.", query);
+    public async Task<IActionResult> ResendSetupLink(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _userApiService.ResendSetupLinkAsync(userId, cancellationToken);
+            TempData["ResendSuccess"] = true;
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["ResendError"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(List), query);
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
