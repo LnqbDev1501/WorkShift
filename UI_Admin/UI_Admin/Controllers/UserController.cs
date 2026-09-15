@@ -199,16 +199,36 @@ public class UserController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
-        await RunActionAsync(
-            () => _userApiService.DeleteAsync(userId, cancellationToken),
-            "Account deactivated successfully.", query);
+    public async Task<IActionResult> Delete(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _userApiService.DeleteAsync(userId, cancellationToken);
+            TempData["UserDeactivatedSuccess"] = true;
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["UserDeactivatedError"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(List), query);
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Restore(Guid userId, int? branchId, UserListQueryViewModel query, CancellationToken cancellationToken) =>
-        await RunActionAsync(
-            () => _userApiService.RestoreAsync(userId, branchId, cancellationToken),
-            "Account restored successfully.", query);
+    public async Task<IActionResult> Restore(Guid userId, int? branchId, UserListQueryViewModel query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _userApiService.RestoreAsync(userId, branchId, cancellationToken);
+            TempData["UserRestoredSuccess"] = true;
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["UserRestoredError"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(List), query);
+    }
 
     private async Task<IActionResult> RunActionAsync(Func<Task> action, string successMessage, UserListQueryViewModel query)
     {

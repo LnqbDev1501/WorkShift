@@ -179,6 +179,155 @@
     </div>
 }
 
+@if (TempData["UserDeactivatedSuccess"] is true or "true")
+{
+    <div id="deactivateSuccessPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Account Deactivated Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    The user account has been deactivated successfully.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('deactivateSuccessPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["UserDeactivatedError"] is string deactivateError && !string.IsNullOrWhiteSpace(deactivateError))
+{
+    <div id="deactivateErrorPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Deactivation Failed</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @deactivateError
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('deactivateErrorPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["UserRestoredSuccess"] is true or "true")
+{
+    <div id="restoreSuccessPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Account Restored Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    The user account has been reactivated successfully.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('restoreSuccessPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+@if (TempData["UserRestoredError"] is string restoreError && !string.IsNullOrWhiteSpace(restoreError))
+{
+    <div id="restoreErrorPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-[18px] font-semibold text-[#191c2a]">Restore Failed</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    @restoreError
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('restoreErrorPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+<!-- Deactivate Confirmation Popup Modal -->
+<div id="deactivateConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-[#fef2f2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+        </div>
+        <div class="space-y-1">
+            <h3 class="text-[18px] font-semibold text-[#191c2a]">Deactivate User Account?</h3>
+            <p class="text-[14px] text-[#5b6074]">
+                Are you sure you want to deactivate <strong id="deactivateUserNameText" class="text-[#191c2a] font-semibold"></strong>? This will revoke system access and mark the account as Inactive.
+            </p>
+        </div>
+        <form asp-action="Delete" method="post" id="deactivateUserForm" class="w-full space-y-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="deactivateUserIdInput" value="" />
+            <partial name="_UserQueryFields" model="Model.Query" />
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium text-[14px] transition-colors cursor-pointer" onclick="closeDeactivateModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer">
+                    Deactivate
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Restore Confirmation Popup Modal -->
+<div id="restoreConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-[#eff6ff] border-2 border-[#bfdbfe] text-[#2563eb] flex items-center justify-center shadow-sm">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+            </svg>
+        </div>
+        <div class="space-y-1">
+            <h3 class="text-[18px] font-semibold text-[#191c2a]">Restore User Account?</h3>
+            <p class="text-[14px] text-[#5b6074]">
+                Are you sure you want to restore <strong id="restoreUserNameText" class="text-[#191c2a] font-semibold"></strong>? This will reactivate the account and grant system access again.
+            </p>
+        </div>
+        <form asp-action="Restore" method="post" id="restoreUserForm" class="w-full space-y-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="restoreUserIdInput" value="" />
+            <input type="hidden" name="branchId" id="restoreBranchIdInput" value="" />
+            <partial name="_UserQueryFields" model="Model.Query" />
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" class="flex-1 py-2.5 px-4 rounded-xl bg-[#f3f4f6] hover:bg-[#e5e7eb] text-[#374151] font-medium text-[14px] transition-colors cursor-pointer" onclick="closeRestoreModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer">
+                    Restore Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <section class="users-page">
     <div class="users-body">
         <div class="page-heading">
@@ -215,9 +364,17 @@
                         <td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td><div class="actions">
                             <a asp-action="Detail" asp-route-id="@user.UserId" class="icon-button" title="View account" aria-label="View account"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></a>
-                            @if (isPending) { <form asp-action="ResendSetupLink" method="post" class="inline-action"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button" type="submit" title="Resend setup link" aria-label="Resend setup link"><svg viewBox="0 0 24 24"><path d="m4 4 16 8-16 8 3-8-3-8Z"/><path d="M7 12h13"/></svg></button></form> }
-                            else if (isInactive) { <form asp-action="Restore" method="post" class="inline-action"><input type="hidden" name="userId" value="@user.UserId" /><input type="hidden" name="branchId" value="@user.PreviousBranchId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button" type="submit" title="Restore account" aria-label="Restore account"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg></button></form> }
-                            else if (user.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <a asp-action="Edit" asp-route-id="@user.UserId" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></a>@if (!user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <form asp-action="Delete" method="post" class="inline-action" onsubmit="return confirm('Deactivate this account?');"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button danger" type="submit" title="Deactivate account" aria-label="Deactivate account"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button></form> } }
+                            @if (isPending) { 
+                                <form asp-action="ResendSetupLink" method="post" class="inline-action"><input type="hidden" name="userId" value="@user.UserId" /><partial name="_UserQueryFields" model="Model.Query" /><button class="icon-button" type="submit" title="Resend setup link" aria-label="Resend setup link"><svg viewBox="0 0 24 24"><path d="m4 4 16 8-16 8 3-8-3-8Z"/><path d="M7 12h13"/></svg></button></form> 
+                                <a asp-action="Edit" asp-route-id="@user.UserId" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></a>
+                                @if (!user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { 
+                                    <button class="icon-button danger" type="button" title="Deactivate account" aria-label="Deactivate account" onclick="openDeactivateModal('@user.UserId', '@Html.Raw(user.FullName.Replace("'", "\\'"))')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button> 
+                                }
+                            }
+                            else if (isInactive) { 
+                                <button class="icon-button" type="button" title="Restore account" aria-label="Restore account" onclick="openRestoreModal('@user.UserId', '@Html.Raw(user.FullName.Replace("'", "\\'"))', '@(user.PreviousBranchId?.ToString() ?? "")')"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v6h6"/></svg></button> 
+                            }
+                            else if (user.RoleName.Equals("MANAGER", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ACCOUNTANT", StringComparison.OrdinalIgnoreCase) || user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <a asp-action="Edit" asp-route-id="@user.UserId" class="icon-button" title="Edit account" aria-label="Edit account"><svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg></a>@if (!user.RoleName.Equals("ADMIN", StringComparison.OrdinalIgnoreCase)) { <button class="icon-button danger" type="button" title="Deactivate account" aria-label="Deactivate account" onclick="openDeactivateModal('@user.UserId', '@Html.Raw(user.FullName.Replace("'", "\\'"))')"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2m-9 0 1 15h8l1-15M10 10v7m4-7v7"/></svg></button> } }
                         </div></td>
                     </tr>
                 }
@@ -230,3 +387,26 @@
         </div>
     </div>
 </section>
+
+@section Scripts {
+<script>
+    function openDeactivateModal(userId, fullName) {
+        document.getElementById('deactivateUserIdInput').value = userId;
+        document.getElementById('deactivateUserNameText').textContent = fullName;
+        document.getElementById('deactivateConfirmModal').classList.remove('hidden');
+    }
+    function closeDeactivateModal() {
+        document.getElementById('deactivateConfirmModal').classList.add('hidden');
+    }
+
+    function openRestoreModal(userId, fullName, branchId) {
+        document.getElementById('restoreUserIdInput').value = userId;
+        document.getElementById('restoreBranchIdInput').value = branchId || '';
+        document.getElementById('restoreUserNameText').textContent = fullName;
+        document.getElementById('restoreConfirmModal').classList.remove('hidden');
+    }
+    function closeRestoreModal() {
+        document.getElementById('restoreConfirmModal').classList.add('hidden');
+    }
+</script>
+}
