@@ -59,10 +59,8 @@
                 <form method="post" asp-controller="Regions" asp-action="Create" class="flex flex-col gap-6" id="createRegionForm">
                     @Html.AntiForgeryToken()
 
-                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
-                    {
-                        <div asp-validation-summary="ModelOnly" class="p-unit-4 bg-error-container text-on-error-container rounded-xl text-body-md font-body-md-medium"></div>
-                    }
+                    <partial name="_NotificationModal" />
+
 
                     <!-- Field 1: Region Code -->
                     <div class="flex flex-col gap-1.5">

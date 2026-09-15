@@ -7,13 +7,65 @@ namespace UI_Admin.Controllers;
 public class BranchesController : Controller
 {
     private readonly BranchApiService _branchApiService;
+    private readonly IVietMapService _vietMapService;
     private readonly ILogger<BranchesController> _logger;
 
-    public BranchesController(BranchApiService branchApiService, ILogger<BranchesController> logger)
+    public BranchesController(
+        BranchApiService branchApiService,
+        IVietMapService vietMapService,
+        ILogger<BranchesController> logger)
     {
         _branchApiService = branchApiService;
+        _vietMapService = vietMapService;
         _logger = logger;
     }
+
+    [HttpGet]
+    public async Task<IActionResult> SearchLocation([FromQuery] string? text, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Trim().Length < 3)
+        {
+            return BadRequest(new { error = "Search text must be at least 3 characters." });
+        }
+
+        var results = await _vietMapService.AutocompleteAsync(text.Trim(), cancellationToken);
+        return Ok(results);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetLocation([FromQuery] string? refId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refId))
+        {
+            return BadRequest(new { error = "refId is required." });
+        }
+
+        var place = await _vietMapService.GetPlaceAsync(refId.Trim(), cancellationToken);
+        if (place == null)
+        {
+            return NotFound(new { error = "Location not found." });
+        }
+
+        return Ok(place);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ReverseLocation([FromQuery] double latitude, [FromQuery] double longitude, CancellationToken cancellationToken = default)
+    {
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)
+        {
+            return BadRequest(new { error = "Invalid latitude or longitude range." });
+        }
+
+        var result = await _vietMapService.ReverseAsync(latitude, longitude, cancellationToken);
+        if (result == null)
+        {
+            return NotFound(new { error = "Address not found." });
+        }
+
+        return Ok(result);
+    }
+
 
     [HttpGet]
     public async Task<IActionResult> Index(

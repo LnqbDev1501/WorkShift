@@ -8,31 +8,8 @@
 
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
 
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="flex items-center justify-between p-unit-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-body-md font-body-md-medium shadow-sm">
-            <div class="flex items-center gap-unit-3">
-                <span class="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
-                <span>@Model.SuccessMessage</span>
-            </div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-900 cursor-pointer">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    }
+    <partial name="_NotificationModal" />
 
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="flex items-center justify-between p-unit-4 bg-error-container border border-error/20 rounded-xl text-on-error-container text-body-md font-body-md-medium shadow-sm">
-            <div class="flex items-center gap-unit-3">
-                <span class="material-symbols-outlined text-[20px] text-error">error</span>
-                <span>@Model.ErrorMessage</span>
-            </div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-on-error-container hover:opacity-75 cursor-pointer">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    }
 
     <!-- Top Page Header Bar & Primary Action -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4">
@@ -135,17 +112,17 @@
         }
 
         <!-- Main Branches Table -->
-        <div class="overflow-x-auto w-full">
-            <table class="w-full text-left border-collapse min-w-[960px]">
+        <div class="overflow-x-auto w-full relative">
+            <table class="w-full text-left border-collapse min-w-full">
                 <thead>
                     <tr class="h-10 bg-surface-container-low text-secondary font-label-md text-[11px] tracking-wider uppercase">
-                        <th class="px-unit-4 w-40">Branch Code</th>
-                        <th class="px-unit-4">Branch Name</th>
-                        <th class="px-unit-4">Region</th>
-                        <th class="px-unit-4 min-w-[260px]">Address</th>
-                        <th class="px-unit-4 w-36 text-right">Employees</th>
-                        <th class="px-unit-4 w-32 text-center">Status</th>
-                        <th class="px-unit-4 w-44 text-right">Actions</th>
+                        <th class="px-unit-4 w-36 whitespace-nowrap">Branch Code</th>
+                        <th class="px-unit-4 whitespace-nowrap">Branch Name</th>
+                        <th class="px-unit-4 whitespace-nowrap">Region</th>
+                        <th class="px-unit-4">Address</th>
+                        <th class="px-unit-4 w-28 text-right whitespace-nowrap">Employees</th>
+                        <th class="px-unit-4 w-28 text-center whitespace-nowrap">Status</th>
+                        <th class="px-unit-4 w-28 text-right whitespace-nowrap sticky right-0 bg-surface-container-low z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y-0 text-on-surface font-body-md" id="branches-table-body">
@@ -170,33 +147,30 @@
                             var rowBg = isEven ? "bg-surface-container-low/30 hover:bg-surface-container-low/70" : "bg-surface-container-lowest hover:bg-surface-container-low/60";
 
                             <tr class="h-14 @rowBg transition-colors group">
-                                <td class="px-unit-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="w-1.5 h-6 rounded-full bg-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                                        <span class="font-code-num text-[13px] font-semibold tracking-tight text-primary px-2 py-1 bg-primary-fixed rounded">@branch.BranchCode</span>
-                                    </div>
+                                <td class="px-unit-4 whitespace-nowrap">
+                                    <span class="font-code-num text-[13px] font-semibold tracking-tight text-primary px-2 py-1 bg-primary-fixed rounded">@branch.BranchCode</span>
                                 </td>
-                                <td class="px-unit-4">
-                                    <div class="font-title-md text-[14px] text-on-surface font-medium truncate">@branch.BranchName</div>
+                                <td class="px-unit-4 whitespace-nowrap">
+                                    <div class="font-title-md text-[14px] text-on-surface font-medium truncate max-w-[160px] lg:max-w-[220px]" title="@branch.BranchName">@branch.BranchName</div>
                                 </td>
-                                <td class="px-unit-4">
-                                    <span class="inline-flex items-center gap-1.5 text-[13px] text-on-surface font-body-md">
+                                <td class="px-unit-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 text-[13px] text-on-surface font-body-md whitespace-nowrap">
                                         <span class="material-symbols-outlined text-[16px] text-secondary">location_on</span>
                                         @branch.RegionName (@branch.RegionCode)
                                     </span>
                                 </td>
                                 <td class="px-unit-4">
-                                    <div class="font-body-sm text-secondary line-clamp-1 text-[13px]" title="@branch.Address">
-                                        @branch.Address
+                                    <div class="font-body-sm text-secondary truncate max-w-[200px] lg:max-w-[320px] text-[13px]" title="@branch.Address">
+                                        @(string.IsNullOrWhiteSpace(branch.Address) ? "-" : branch.Address)
                                     </div>
                                 </td>
-                                <td class="px-unit-4 text-right">
+                                <td class="px-unit-4 text-right whitespace-nowrap">
                                     <div class="inline-flex items-center gap-1 font-code-num text-on-surface font-semibold text-[13px]">
                                         <span class="material-symbols-outlined text-[15px] text-secondary">group</span>
-                                        <span>@branch.EmployeeCount employees</span>
+                                        <span>@branch.EmployeeCount</span>
                                     </div>
                                 </td>
-                                <td class="px-unit-4 text-center">
+                                <td class="px-unit-4 text-center whitespace-nowrap">
                                     @if (branch.IsActive)
                                     {
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-medium bg-[#ECFDF5] text-[#059669]">
@@ -219,8 +193,8 @@
                                         </span>
                                     }
                                 </td>
-                                <td class="px-unit-4 text-right">
-                                    <div class="flex items-center justify-end gap-2">
+                                <td class="px-unit-4 text-right whitespace-nowrap sticky right-0 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.06)] @(isEven ? "bg-[#f8fafc] group-hover:bg-[#f1f5f9]" : "bg-white group-hover:bg-[#f8fafc]") transition-colors">
+                                    <div class="flex items-center justify-end gap-1">
                                         <a href="@Url.Action("Details", "Branches", new { id = branch.BranchId })" class="w-8 h-8 flex items-center justify-center text-secondary hover:text-primary hover:bg-surface-container rounded-lg transition-colors" title="View Details">
                                             <span class="material-symbols-outlined text-[18px]">visibility</span>
                                         </a>

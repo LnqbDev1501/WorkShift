@@ -6,31 +6,8 @@
 
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
 
-    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="flex items-center justify-between p-unit-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-body-md font-body-md-medium shadow-sm">
-            <div class="flex items-center gap-unit-3">
-                <span class="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
-                <span>@Model.SuccessMessage</span>
-            </div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-900">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    }
+    <partial name="_NotificationModal" />
 
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-    {
-        <div class="flex items-center justify-between p-unit-4 bg-error-container border border-error/20 rounded-xl text-on-error-container text-body-md font-body-md-medium shadow-sm">
-            <div class="flex items-center gap-unit-3">
-                <span class="material-symbols-outlined text-[20px] text-error">error</span>
-                <span>@Model.ErrorMessage</span>
-            </div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-on-error-container hover:opacity-75">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
-        </div>
-    }
 
     <!-- Header Title & Action Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
@@ -53,7 +30,7 @@
     <div class="flex items-start gap-unit-3 px-unit-4 py-unit-3 bg-surface-container-low rounded-xl">
         <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
         <div class="flex-1 text-body-sm font-body-sm text-secondary">
-            <strong class="font-body-md-medium text-on-surface">Administrative Notice:</strong> Region deactivation changes the region's own status without automatically deactivating individual branches or user accounts.
+            <strong class="font-body-md-medium text-on-surface">Administrative Notice:</strong> Deactivating a region only changes the region's status. Its branches and user accounts will remain unchanged.
         </div>
     </div>
 
@@ -154,7 +131,7 @@
                                         @if (isActive)
                                         {
                                             <button type="button"
-                                                    class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn"
+                                                    class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn cursor-pointer"
                                                     data-id="@item.RegionId"
                                                     data-name="@item.RegionName">
                                                 Deactivate
@@ -162,13 +139,13 @@
                                         }
                                         else
                                         {
-                                            <form method="post" asp-controller="Regions" asp-action="Restore" asp-route-id="@item.RegionId" class="inline">
-                                                @Html.AntiForgeryToken()
-                                                <button class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors" type="submit">
-                                                    <span class="material-symbols-outlined text-[16px]">restore</span>
-                                                    <span>Restore</span>
-                                                </button>
-                                            </form>
+                                            <button type="button"
+                                                    class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors open-restore-btn cursor-pointer"
+                                                    data-id="@item.RegionId"
+                                                    data-name="@item.RegionName">
+                                                <span class="material-symbols-outlined text-[16px]">restore</span>
+                                                <span>Restore</span>
+                                            </button>
                                         }
                                     </div>
                                 </td>
@@ -227,8 +204,6 @@
         </div>
     </div>
 
-
-
     <!-- Deactivate Region Modal Dialog -->
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="deactivate-region-modal">
         <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
@@ -244,14 +219,43 @@
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
-            <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary">
-                <strong class="text-on-surface font-body-md-medium">Note:</strong> Region deactivation changes the region's status to Inactive via <code class="font-code-num text-primary">DELETE /api/admin/regions/{id}</code> without automatically deactivating individual branches or user accounts.
+            <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                <p>Deactivating this region will not deactivate its branches or user accounts.</p>
+                <p>The region can be restored later.</p>
             </div>
             <form method="post" asp-controller="Regions" asp-action="Deactivate" id="deactivate-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="deactivate-region-id" value="0" />
                 <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-deactivate-modal" type="button">Cancel</button>
                 <button class="h-[40px] px-unit-4 rounded-xl bg-error hover:bg-error-container hover:text-on-error-container text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-deactivate-btn" type="submit">Deactivate Region</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Restore Region Modal Dialog -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="restore-region-modal">
+        <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
+            <div class="flex items-start gap-unit-3">
+                <div class="w-10 h-10 rounded-full bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">restart_alt</span>
+                </div>
+                <div class="flex-1">
+                    <h2 class="font-title-lg text-title-lg text-on-surface">Restore Region</h2>
+                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface" id="restore-target-name">this region</strong>?</p>
+                </div>
+                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                <p>Restoring this region will change its status back to <strong class="text-on-surface font-medium">Active</strong>.</p>
+                <p>Its assigned branches can then be managed normally.</p>
+            </div>
+            <form method="post" asp-controller="Regions" asp-action="Restore" id="restore-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" id="restore-region-id" value="0" />
+                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-restore-modal" type="button">Cancel</button>
+                <button class="h-[40px] px-unit-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-restore-btn" type="submit">Confirm Restore</button>
             </form>
         </div>
     </div>

@@ -1,4 +1,5 @@
 @model UI_Admin.Models.Branches.EditBranchViewModel
+@inject IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Edit {Model.BranchName} - Branch Details";
@@ -11,7 +12,14 @@
     var coordinatesDisplay = Model.Latitude.HasValue && Model.Longitude.HasValue
         ? $"{Model.Latitude.Value:F6}° N, {Model.Longitude.Value:F6}° E"
         : "Unconfigured";
+    var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
 }
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
+    <link rel="stylesheet" href="~/css/branches.css" asp-append-version="true" />
+}
+
 
 <div class="flex flex-col w-full px-7 py-4">
     <!-- Top Header Bar -->
@@ -54,10 +62,8 @@
         </div>
     </div>
 
-    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
-    {
-        <div asp-validation-summary="All" class="mb-unit-6 p-unit-4 bg-error-container text-on-error-container rounded-xl text-body-md font-body-md-medium"></div>
-    }
+    <partial name="_NotificationModal" />
+
 
     <!-- Main Grid: 2-Column Bento Layout (Form left 8 cols, Operational Telemetry right 4 cols) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-unit-6 items-start">
@@ -173,6 +179,31 @@
                 </div>
 
                 <div class="flex flex-col gap-unit-5 pt-unit-2">
+                    <!-- VietMap Search Location (Autocomplete) -->
+                    <div class="flex flex-col gap-unit-2 relative z-20" id="search-location-container">
+                        <div class="flex items-center justify-between">
+                            <label class="font-label-md text-on-surface flex items-center gap-unit-1" for="searchLocationInput">
+                                <span>Search Location</span>
+                                <span class="text-primary-container text-[11px] font-normal">(VIETMAP Autocomplete)</span>
+                            </label>
+                            <span class="font-label-sm text-on-surface-variant">Type to search address / place</span>
+                        </div>
+                        <div class="relative flex items-center">
+                            <input class="h-input-height w-full px-unit-3 pl-unit-10 pr-unit-10 rounded-lg bg-surface-container-lowest text-on-surface font-body-md shadow-sm border border-surface-container-high focus:outline-none focus:border-primary-container focus:ring-1 focus:ring-primary-container transition-all"
+                                   id="searchLocationInput"
+                                   type="text"
+                                   placeholder="Type place or street address (e.g. FPT Can Tho)..."
+                                   autocomplete="off" />
+                            <span class="material-symbols-outlined absolute left-unit-3 text-[18px] text-outline">search</span>
+                            <button type="button" id="clearSearchBtn" class="hidden absolute right-unit-3 text-outline-variant hover:text-on-surface text-[18px] cursor-pointer">
+                                <span class="material-symbols-outlined text-[18px]">close</span>
+                            </button>
+                        </div>
+                        <div id="searchResultsDropdown"
+                             class="hidden absolute left-0 right-0 top-full mt-1 bg-surface-container-lowest rounded-xl shadow-xl border border-surface-container-high z-50 max-h-60 overflow-y-auto divide-y divide-surface-container-high">
+                        </div>
+                    </div>
+
                     <!-- Physical Address Textarea -->
                     <div class="flex flex-col gap-unit-2">
                         <div class="flex items-center justify-between">
@@ -239,6 +270,15 @@
                             <span asp-validation-for="Longitude" class="text-error text-body-sm"></span>
                             <p class="font-body-sm text-on-surface-variant">Valid range -180 to 180</p>
                         </div>
+                    </div>
+
+                    <!-- Map Section -->
+                    <div class="flex flex-col gap-unit-2 pt-unit-2">
+                        <label class="font-label-md text-on-surface flex items-center justify-between">
+                            <span>Branch Location Map</span>
+                            <span class="text-on-surface-variant text-[11px] font-normal">VIETMAP GL JS</span>
+                        </label>
+                        <div id="branchMap"></div>
                     </div>
                 </div>
             </section>
@@ -438,6 +478,13 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.js"></script>
+    <script>
+        window.vietMapConfig = {
+            tileMapKey: '@vietMapTileKey'
+        };
+    </script>
+    <script src="~/js/branch-map.js" asp-append-version="true"></script>
     <script>
         (function initEditBranchInteractions() {
             const branchNameInput = document.getElementById('branch-name');
