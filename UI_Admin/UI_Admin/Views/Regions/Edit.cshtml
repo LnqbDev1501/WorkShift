@@ -56,10 +56,8 @@
         </div>
     </div>
 
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div asp-validation-summary="All" class="mb-unit-6 p-unit-4 bg-error-container text-on-error-container rounded-xl text-body-md font-body-md-medium shadow-sm"></div>
-    }
+    <partial name="_NotificationModal" />
+
 
     <!-- Main Content Grid (2 Columns: 65% Main Form / 35% Sidebar Context) -->
     <form class="grid grid-cols-1 lg:grid-cols-12 gap-unit-6 items-start pb-unit-12" id="editRegionForm" method="post" asp-controller="Regions" asp-action="Edit" asp-route-id="@Model.RegionId">

@@ -6,75 +6,9 @@
 }
 
 <div class="flex flex-col w-full px-7 py-4">
-    <!-- Region Detail Hero / Identification Header -->
-    <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm mb-unit-6">
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-unit-6">
-            <!-- Title & Identification Badges -->
-            <div class="space-y-unit-2">
-                <div class="flex flex-wrap items-center gap-unit-3">
-                    <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Regions">
-                        <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-                    </a>
-                    <h1 class="font-display-md text-on-surface tracking-tight">@Model.RegionName</h1>
-                    <span class="font-code-num text-label-md px-unit-2 py-unit-1 rounded-lg bg-surface-container font-medium text-on-surface-variant tracking-wide">
-                        @Model.RegionCode
-                    </span>
-                    @if (isActive)
-                    {
-                        <div class="inline-flex items-center gap-unit-1 px-unit-3 py-unit-1 rounded-full bg-emerald-50 text-emerald-700">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                            <span class="font-label-md">Active</span>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="inline-flex items-center gap-unit-1 px-unit-3 py-unit-1 rounded-full bg-surface-container text-secondary">
-                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                            <span class="font-label-md">Inactive</span>
-                        </div>
-                    }
-                </div>
-                <p class="font-body-md text-on-surface-variant max-w-3xl">
-                    @(string.IsNullOrWhiteSpace(Model.Description) ? "No operational description provided." : Model.Description)
-                </p>
-            </div>
-            <!-- Action Buttons -->
-            <div class="flex flex-wrap items-center gap-unit-3 shrink-0">
-                <a href="@Url.Action("Edit", "Regions", new { id = Model.RegionId })" class="h-input-height px-unit-4 bg-surface-container-low hover:bg-surface-container-high text-on-surface font-body-md-medium rounded-lg transition-colors flex items-center gap-unit-2 shadow-sm">
-                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                    <span>Edit Region</span>
-                </a>
-                @if (isActive)
-                {
-                    <button class="h-input-height px-unit-4 bg-error-container hover:bg-error-container/80 text-on-error-container font-body-md-medium rounded-lg transition-colors flex items-center gap-unit-2 cursor-pointer" onclick="document.getElementById('deactivate-modal').classList.remove('hidden')" type="button">
-                        <span class="material-symbols-outlined text-[18px]">pause_circle</span>
-                        <span>Deactivate Region</span>
-                    </button>
-                }
-                else
-                {
-                    <form method="post" asp-controller="Regions" asp-action="Restore" asp-route-id="@Model.RegionId" class="inline">
-                        @Html.AntiForgeryToken()
-                        <button class="h-input-height px-unit-4 bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium rounded-lg transition-colors flex items-center gap-unit-2 cursor-pointer" type="submit">
-                            <span class="material-symbols-outlined text-[18px]">restore</span>
-                            <span>Restore Region</span>
-                        </button>
-                    </form>
-                }
-                <div class="relative">
-                    <button class="h-input-height w-input-height flex items-center justify-center bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant rounded-lg transition-colors shadow-sm cursor-pointer" id="more-actions-btn" onclick="document.getElementById('more-actions-menu').classList.toggle('hidden')" type="button">
-                        <span class="material-symbols-outlined text-[20px]">more_horiz</span>
-                    </button>
-                    <div class="hidden absolute right-0 top-12 w-52 bg-surface-container-lowest rounded-xl shadow-xl z-20 py-unit-2 border border-surface-container-high" id="more-actions-menu">
-                        <a class="flex items-center gap-unit-2 px-unit-4 py-unit-2 font-body-sm text-on-surface hover:bg-surface-container-low transition-colors" asp-controller="Regions" asp-action="Index">
-                            <span class="material-symbols-outlined text-[18px] text-on-surface-variant">arrow_back</span>
-                            <span>Back to Grid</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <partial name="_NotificationModal" />
+
+
 
     <!-- Administrative Notice Callout -->
     <div class="bg-amber-50 rounded-xl p-unit-4 flex items-start gap-unit-3 mb-unit-6">
@@ -82,8 +16,8 @@
             <span class="material-symbols-outlined text-[20px]">info</span>
         </div>
         <div class="flex-1 min-w-0">
-            <div class="font-body-md-medium text-amber-900">Region Lifecycle Rule & Policy Enforcement</div>
-            <p class="font-body-sm text-amber-800/90 mt-unit-1">Deactivating this region only changes the region status to <span class="font-medium">Inactive</span>. Existing branches and user accounts are not automatically deactivated. Inactive regions cannot be selected when creating or reassigning branches.</p>
+            <div class="font-body-md-medium text-amber-900">Administrative Notice</div>
+            <p class="font-body-sm text-amber-800/90 mt-unit-1">Deactivating a region only changes the region's status. Its branches and user accounts will remain unchanged.</p>
         </div>
     </div>
 
@@ -246,8 +180,12 @@
                 </div>
                 <div>
                     <h3 class="font-title-lg text-on-surface">Deactivate Region @Model.RegionCode?</h3>
-                    <p class="font-body-sm text-on-surface-variant mt-unit-2">Are you sure you want to deactivate this region? Only the region will become inactive. Existing branches and user accounts will keep their current status.</p>
+                    <p class="font-body-sm text-on-surface-variant mt-unit-2">Are you sure you want to deactivate <strong class="text-on-surface">@Model.RegionName</strong>?</p>
                 </div>
+            </div>
+            <div class="mt-unit-4 p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                <p>Deactivating this region will not deactivate its branches or user accounts.</p>
+                <p>The region can be restored later.</p>
             </div>
             <form method="post" asp-controller="Regions" asp-action="Deactivate" asp-route-id="@Model.RegionId" class="mt-unit-6 flex items-center justify-end gap-unit-3">
                 @Html.AntiForgeryToken()
