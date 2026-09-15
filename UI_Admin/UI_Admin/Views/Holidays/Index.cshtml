@@ -37,7 +37,7 @@
         </section>
 
         <section class="holiday-table-card">
-            <form asp-action="Index" method="get" class="holiday-filters" id="holiday-filter-form">
+            <form asp-action="List" method="get" class="holiday-filters" id="holiday-filter-form">
                 <input type="hidden" name="PageNumber" value="1" />
                 <label class="search-box"><span class="material-symbols-outlined">search</span><input name="Search" value="@Model.Query.Search" maxlength="150" placeholder="Search by holiday name..." /></label>
                 <select name="Year" aria-label="Year filter">
@@ -50,7 +50,7 @@
                 </select>
                 <button type="submit" class="filter-button">Apply</button>
                 <label class="inactive-toggle"><input type="checkbox" name="IncludeInactive" value="true" checked="@Model.Query.IncludeInactive" /><span>Include Inactive</span><small>@(Model.Query.IncludeInactive ? "Inactive records visible" : "Inactive records hidden")</small></label>
-                <a asp-action="Index" asp-route-year="@DateTime.Today.Year" class="clear-filter">Clear Filters</a>
+                <a asp-action="List" asp-route-year="@DateTime.Today.Year" class="clear-filter">Clear Filters</a>
                 <div class="sort-label">Sort by: <strong>Chronological Date</strong> <span class="material-symbols-outlined">south</span></div>
             </form>
 
@@ -87,9 +87,9 @@
             <footer class="table-footer">
                 <div>Showing @Model.FirstItem to @Model.LastItem of @Model.Result.TotalCount holidays <span>•</span> @Model.Result.PageSize records per page</div>
                 <nav aria-label="Pagination">
-                    <a class="@(Model.Result.PageNumber <= 1 ? "disabled" : string.Empty)" asp-action="Index" asp-route-pageNumber="@(Model.Result.PageNumber - 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">‹ Previous</a>
+                    <a class="@(Model.Result.PageNumber <= 1 ? "disabled" : string.Empty)" asp-action="List" asp-route-pageNumber="@(Model.Result.PageNumber - 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">‹ Previous</a>
                     <span>@Model.Result.PageNumber</span>
-                    <a class="@(Model.Result.PageNumber >= Model.Result.TotalPages ? "disabled" : string.Empty)" asp-action="Index" asp-route-pageNumber="@(Model.Result.PageNumber + 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">Next ›</a>
+                    <a class="@(Model.Result.PageNumber >= Model.Result.TotalPages ? "disabled" : string.Empty)" asp-action="List" asp-route-pageNumber="@(Model.Result.PageNumber + 1)" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive">Next ›</a>
                 </nav>
             </footer>
         </section>

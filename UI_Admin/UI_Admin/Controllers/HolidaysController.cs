@@ -12,7 +12,10 @@ namespace UI_Admin.Controllers;
 public sealed class HolidaysController(HolidayApiService service, ILogger<HolidaysController> logger) : Controller
 {
     [HttpGet]
-    public async Task<IActionResult> Index(
+    public IActionResult Index() => RedirectToActionPermanent(nameof(List));
+
+    [HttpGet]
+    public async Task<IActionResult> List(
         [FromQuery] HolidayListQueryViewModel query, CancellationToken cancellationToken)
     {
         query.Search = query.Search?.Trim();
@@ -24,7 +27,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             model.ErrorMessage = "The selected holiday filters are invalid.";
             Response.StatusCode = StatusCodes.Status400BadRequest;
-            return View(model);
+            return View("Index", model);
         }
 
         try
@@ -36,7 +39,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             model.SummaryItems = await summaryTask;
 
             if (query.PageNumber > Math.Max(1, model.Result.TotalPages))
-                return RedirectToAction(nameof(Index), new
+                return RedirectToAction(nameof(List), new
                 {
                     pageNumber = Math.Max(1, model.Result.TotalPages), query.Year, query.Month,
                     query.Search, query.IncludeInactive
@@ -51,7 +54,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
 
         model.SuccessMessage = TempData["HolidaySuccess"] as string;
         model.ErrorMessage ??= TempData["HolidayError"] as string;
-        return View(model);
+        return View("Index", model);
     }
 
     [HttpGet]
@@ -68,7 +71,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             logger.LogError(exception, "Unable to load public holiday {HolidayId}.", id);
             TempData["HolidayError"] = "Unable to load that public holiday.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(List));
         }
     }
 
@@ -92,7 +95,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             if (result.Success)
             {
                 TempData["HolidaySuccess"] = $"Created {model.Holidays.Count} public holiday{(model.Holidays.Count == 1 ? string.Empty : "s")} successfully.";
-                return RedirectToAction(nameof(Index), new { year = model.Holidays[0].HolidayDate?.Year });
+                return RedirectToAction(nameof(List), new { year = model.Holidays[0].HolidayDate?.Year });
             }
             ModelState.AddModelError(string.Empty, result.Error ?? "The public holidays could not be created.");
         }
@@ -130,7 +133,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             logger.LogError(exception, "Unable to load public holiday {HolidayId} for editing.", id);
             TempData["HolidayError"] = "Unable to load that public holiday.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(List));
         }
     }
 
@@ -146,7 +149,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             if (result.Success)
             {
                 TempData["HolidaySuccess"] = $"Public holiday ‘{model.HolidayName.Trim()}’ updated successfully.";
-                return RedirectToAction(nameof(Index), new { year = model.HolidayDate?.Year });
+                return RedirectToAction(nameof(List), new { year = model.HolidayDate?.Year });
             }
             ModelState.AddModelError(string.Empty, result.Error ?? "The public holiday could not be updated.");
         }
@@ -175,7 +178,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             logger.LogError(exception, "Unable to deactivate public holiday {HolidayId}.", id);
             TempData["HolidayError"] = "Unable to reach the server. No change was confirmed.";
         }
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(List));
     }
 
     [HttpGet]
@@ -199,7 +202,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             logger.LogError(exception, "Unable to export public holidays.");
             TempData["HolidayError"] = "Unable to export public holidays right now.";
-            return RedirectToAction(nameof(Index), new { year, month, search, includeInactive });
+            return RedirectToAction(nameof(List), new { year, month, search, includeInactive });
         }
     }
 

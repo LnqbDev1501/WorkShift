@@ -4,7 +4,7 @@
 
 <div class="holiday-shell">
 <main class="holiday-page holiday-form-page">
-    <div class="form-heading"><div><h1>Create Public Holidays</h1><p>Add one or more statutory dates. Every date is permanently reserved after creation.</p></div><a asp-action="Index" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
+    <div class="form-heading"><div><h1>Create Public Holidays</h1><p>Add one or more statutory dates. Every date is permanently reserved after creation.</p></div><a asp-action="List" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
     <form asp-action="Create" method="post" id="holiday-create-form" class="holiday-form-full">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="holiday-validation"></div>
@@ -30,7 +30,7 @@
         </aside>
         </div>
         <section class="holiday-form-note full-note"><span class="material-symbols-outlined">sync</span><div><strong>Payroll engine synchronization</strong><p>Configured multipliers are used automatically when payroll is calculated for shifts scheduled on these dates.</p></div></section>
-        <div class="form-actions"><a asp-action="Index" class="secondary-button">Cancel</a><button type="submit" class="primary-button"><span class="material-symbols-outlined">save</span>Create holidays</button></div>
+        <div class="form-actions"><a asp-action="List" class="secondary-button">Cancel</a><button type="submit" class="primary-button"><span class="material-symbols-outlined">save</span>Create holidays</button></div>
     </form>
 </main>
 </div>
