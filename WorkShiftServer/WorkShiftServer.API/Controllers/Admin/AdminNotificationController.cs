@@ -37,6 +37,12 @@ public class AdminNotificationController : ControllerBase
         return notification == null ? NotFound() : Ok(notification);
     }
 
+    [HttpGet("audience-options")]
+    public async Task<IActionResult> GetAudienceOptions()
+    {
+        return Ok(await _notificationService.GetAudienceOptionsAsync());
+    }
+
     [HttpPost("broadcast")]
     public async Task<IActionResult> Broadcast(BroadcastNotificationRequest request)
     {

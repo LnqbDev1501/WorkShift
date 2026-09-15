@@ -54,6 +54,16 @@ public sealed class NotificationApiService
         return await response.Content.ReadFromJsonAsync<NotificationDetailViewModel>(cancellationToken);
     }
 
+    public async Task<NotificationAudienceOptionsViewModel> GetAudienceOptionsAsync(CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(
+            $"{_apiBaseUrl.TrimEnd('/')}/api/admin/notifications/audience-options",
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<NotificationAudienceOptionsViewModel>(cancellationToken)
+            ?? new NotificationAudienceOptionsViewModel();
+    }
+
     public async Task<BroadcastResultViewModel> BroadcastAsync(
         SendNotificationViewModel request,
         CancellationToken cancellationToken)

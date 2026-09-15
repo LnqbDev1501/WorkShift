@@ -52,7 +52,6 @@ namespace UI_Admin.Controllers
                 var now = DateTimeOffset.UtcNow;
                 var properties = new AuthenticationProperties
                 {
-                    IsPersistent = model.RememberMe,
                     IssuedUtc = now,
                     ExpiresUtc = now.AddDays(7)
                 };

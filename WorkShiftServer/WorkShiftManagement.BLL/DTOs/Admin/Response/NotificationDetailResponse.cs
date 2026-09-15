@@ -8,6 +8,8 @@ public class NotificationDetailResponse : NotificationListResponse
 
     public int? TargetBranchId { get; set; }
 
+    public List<string> TargetRoles { get; set; } = [];
+
     public string CreatedByName { get; set; } = null!;
 
     public int InAppRecipientCount { get; set; }

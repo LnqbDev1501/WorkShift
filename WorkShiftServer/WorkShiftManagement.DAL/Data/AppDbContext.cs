@@ -1341,6 +1341,10 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("notification_type");
             entity.Property(e => e.TargetBranchId).HasColumnName("target_branch_id");
             entity.Property(e => e.TargetRegionId).HasColumnName("target_region_id");
+            entity.Property(e => e.TargetRoles)
+                .HasDefaultValueSql("ARRAY[]::character varying[]")
+                .HasColumnType("character varying(20)[]")
+                .HasColumnName("target_roles");
             entity.Property(e => e.TargetType)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'All'::character varying")
