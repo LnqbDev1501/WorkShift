@@ -9,8 +9,6 @@
 @section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
 
 <div class="holiday-shell">
-    <partial name="_HolidayTopbar" />
-
     <main class="holiday-page">
         @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
         {
@@ -18,7 +16,7 @@
         }
 
         <div class="holiday-heading">
-            <div><div class="page-crumb">Admin <span>›</span> WorkShift Control <span>›</span> Public Holidays</div><h1>Public Holidays</h1><p>Manage holiday dates and statutory pay multipliers across regional shifts.</p></div>
+            <div><h1>Public Holidays</h1><p>Manage holiday dates and statutory pay multipliers across regional shifts.</p></div>
             <div class="heading-actions">
                 <a class="secondary-button" asp-action="Export" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive"><span class="material-symbols-outlined">download</span>Export CSV</a>
                 <a class="primary-button" asp-action="Create"><span class="material-symbols-outlined">add</span>Create Holidays</a>

@@ -3,9 +3,8 @@
 @section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
 
 <div class="holiday-shell">
-<partial name="_HolidayTopbar" />
 <main class="holiday-page holiday-form-page">
-    <div class="form-heading"><div><div class="page-crumb">Public Holidays <span>›</span> Edit</div><h1>Edit Public Holiday</h1><p>Update the holiday identity, calendar date, or statutory pay rate.</p></div><a asp-action="Index" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
+    <div class="form-heading"><div><h1>Edit Public Holiday</h1><p>Update the holiday identity, calendar date, or statutory pay rate.</p></div><a asp-action="Index" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
     <form asp-action="Edit" asp-route-id="@Model.PublicHolidayId" method="post" class="holiday-form-full">
         @Html.AntiForgeryToken()<input asp-for="PublicHolidayId" type="hidden" /><input asp-for="IsActive" type="hidden" />
         <div asp-validation-summary="All" class="holiday-validation"></div>

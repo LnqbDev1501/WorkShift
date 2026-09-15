@@ -4,9 +4,8 @@
 @section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
 
 <div class="holiday-shell">
-<partial name="_HolidayTopbar" />
 <main class="holiday-page holiday-form-page">
-    <div class="form-heading"><div><div class="page-crumb">Public Holidays <span>›</span> Details</div><h1>@Model.HolidayName</h1><p>Calendar reservation and audit information for this public holiday.</p></div><div class="heading-actions"><a asp-action="Index" asp-route-year="@Model.HolidayDate.Year" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back</a>@if (Model.IsActive) { <a asp-action="Edit" asp-route-id="@Model.PublicHolidayId" class="primary-button"><span class="material-symbols-outlined">edit</span>Edit holiday</a> }</div></div>
+    <div class="form-heading"><div><h1>@Model.HolidayName</h1><p>Calendar reservation and audit information for this public holiday.</p></div><div class="heading-actions"><a asp-action="Index" asp-route-year="@Model.HolidayDate.Year" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back</a>@if (Model.IsActive) { <a asp-action="Edit" asp-route-id="@Model.PublicHolidayId" class="primary-button"><span class="material-symbols-outlined">edit</span>Edit holiday</a> }</div></div>
     @if (TempData["HolidayError"] is string error) { <div class="holiday-alert error"><span class="material-symbols-outlined">error</span><span>@error</span></div> }
     <div class="detail-workspace">
     <section class="holiday-detail-card">
