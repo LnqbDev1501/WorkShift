@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     var deleteModal = document.getElementById('holiday-delete-modal');
     var successModal = document.getElementById('holiday-success-modal');
+    var restoreModal = document.getElementById('holiday-restore-modal');
     var lastTrigger = null;
 
     function setModalOpen(modal, isOpen) {
@@ -32,7 +33,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-success-close]').forEach(function (button) {
         button.addEventListener('click', function () { setModalOpen(successModal, false); });
     });
-    [deleteModal, successModal].forEach(function (modal) {
+    document.querySelectorAll('[data-restore-open]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            if (!restoreModal) return;
+            lastTrigger = button;
+            document.getElementById('restore-holiday-id').value = button.dataset.id;
+            document.getElementById('restore-modal-title').textContent = 'Restore ' + button.dataset.name + '?';
+            setModalOpen(restoreModal, true);
+            restoreModal.querySelector('[data-restore-close]').focus();
+        });
+    });
+    document.querySelectorAll('[data-restore-close]').forEach(function (button) {
+        button.addEventListener('click', function () { setModalOpen(restoreModal, false); });
+    });
+    [deleteModal, successModal, restoreModal].forEach(function (modal) {
         if (!modal) return;
         modal.addEventListener('click', function (event) {
             if (event.target === modal) setModalOpen(modal, false);
@@ -40,6 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.addEventListener('keydown', function (event) {
         if (event.key !== 'Escape') return;
+        if (restoreModal && !restoreModal.hidden) setModalOpen(restoreModal, false);
         if (deleteModal && !deleteModal.hidden) setModalOpen(deleteModal, false);
         else if (successModal && !successModal.hidden) setModalOpen(successModal, false);
     });

@@ -73,7 +73,7 @@
                                     <a asp-action="Edit" asp-route-id="@item.PublicHolidayId" title="Edit holiday"><span class="material-symbols-outlined">edit</span></a>
                                     <button type="button" title="Deactivate holiday" data-delete-open data-id="@item.PublicHolidayId" data-name="@item.HolidayName"><span class="material-symbols-outlined">delete</span></button>
                                 }
-                                else { <span class="locked" title="Inactive records are read-only"><span class="material-symbols-outlined">lock</span></span> }
+                                else { <button type="button" title="Restore holiday" aria-label="Restore @item.HolidayName" data-restore-open data-id="@item.PublicHolidayId" data-name="@item.HolidayName"><span class="material-symbols-outlined">restore</span></button> }
                             </div></td>
                         </tr>
                     }
@@ -125,4 +125,5 @@
     </div>
 </div>
 
+<partial name="_RestoreModal" />
 @section Scripts { <script src="~/js/holidays.js" asp-append-version="true"></script> }

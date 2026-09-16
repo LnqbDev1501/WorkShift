@@ -56,12 +56,13 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
     {
         var payload = new
         {
-            holidays = model.Holidays.Select(item => new
+            holidays = model.Holidays.SelectMany(item => Enumerable.Range(0,
+                item.ToDate!.Value.DayNumber - item.FromDate!.Value.DayNumber + 1).Select(offset => new
             {
                 holidayName = item.HolidayName.Trim(),
-                holidayDate = item.HolidayDate,
+                holidayDate = item.FromDate.Value.AddDays(offset),
                 payMultiplier = item.PayMultiplier
-            })
+            }))
         };
         using var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/api/public-holidays", payload, cancellationToken);
         return response.IsSuccessStatusCode
@@ -88,6 +89,14 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         int id, CancellationToken cancellationToken = default)
     {
         using var response = await httpClient.DeleteAsync($"{BaseUrl}/api/public-holidays/{id}", cancellationToken);
+        return response.IsSuccessStatusCode
+            ? (true, null)
+            : (false, await ReadErrorAsync(response, cancellationToken));
+    }
+
+    public async Task<(bool Success, string? Error)> RestoreAsync(int id, CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.PatchAsync($"{BaseUrl}/api/public-holidays/{id}/restore", null, cancellationToken);
         return response.IsSuccessStatusCode
             ? (true, null)
             : (false, await ReadErrorAsync(response, cancellationToken));

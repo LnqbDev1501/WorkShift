@@ -83,10 +83,6 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
     public async Task<IActionResult> Create(CreateHolidaysViewModel model, CancellationToken cancellationToken)
     {
         model.Holidays ??= [];
-        var duplicateDates = model.Holidays.Where(item => item.HolidayDate.HasValue)
-            .GroupBy(item => item.HolidayDate).Where(group => group.Count() > 1).Select(group => group.Key).ToList();
-        if (duplicateDates.Count > 0)
-            ModelState.AddModelError(string.Empty, "Each holiday in the batch must have a unique date.");
         if (!ModelState.IsValid) return View(model);
 
         try
@@ -94,8 +90,8 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             var result = await service.CreateAsync(model, cancellationToken);
             if (result.Success)
             {
-                TempData["HolidaySuccess"] = $"Created {model.Holidays.Count} public holiday{(model.Holidays.Count == 1 ? string.Empty : "s")} successfully.";
-                return RedirectToAction(nameof(List), new { year = model.Holidays[0].HolidayDate?.Year });
+                TempData["HolidaySuccess"] = $"Created {model.TotalDays} public holiday days successfully.";
+                return RedirectToAction(nameof(List), new { year = model.Holidays[0].FromDate?.Year });
             }
             ModelState.AddModelError(string.Empty, result.Error ?? "The public holidays could not be created.");
         }
@@ -179,6 +175,26 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             TempData["HolidayError"] = "Unable to reach the server. No change was confirmed.";
         }
         return RedirectToAction(nameof(List));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(int id, CancellationToken cancellationToken)
+    {
+        if (id <= 0) return BadRequest();
+        try
+        {
+            var result = await service.RestoreAsync(id, cancellationToken);
+            TempData[result.Success ? "HolidaySuccess" : "HolidayError"] = result.Success
+                ? "Public holiday restored successfully."
+                : result.Error ?? "Unable to restore this holiday.";
+        }
+        catch (Exception exception) when (IsApiException(exception, cancellationToken))
+        {
+            logger.LogError(exception, "Unable to restore holiday {HolidayId}.", id);
+            TempData["HolidayError"] = "Unable to confirm restoration. Please check the list before retrying.";
+        }
+        return RedirectToAction(nameof(List), new { year = (int?)null, includeInactive = true });
     }
 
     [HttpGet]

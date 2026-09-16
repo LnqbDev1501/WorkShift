@@ -5,6 +5,7 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin;
 
 public interface IPublicHolidayService
 {
+    Task<PublicHolidayResponse> RestoreAsync(int id, Guid callerId, CancellationToken ct = default);
     Task<PublicHolidayPageResponse> GetAllAsync(
         PublicHolidayListRequest request,
         Guid callerId,
