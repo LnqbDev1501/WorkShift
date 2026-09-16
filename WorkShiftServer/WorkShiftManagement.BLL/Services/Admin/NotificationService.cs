@@ -9,7 +9,8 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 
 public class NotificationService : INotificationService
 {
-    private static readonly HashSet<string> ValidTargets = ["All", "Staff", "Manager", "Accountant", "Region", "Branch"];
+    private static readonly HashSet<string> ValidTargets = ["Custom"];
+    private static readonly HashSet<string> ValidRoles = ["STAFF", "MANAGER", "ACCOUNTANT"];
     private static readonly HashSet<string> ValidChannels = ["InApp", "Email"];
 
     private readonly INotificationRepo _notificationRepo;
@@ -86,6 +87,7 @@ public class NotificationService : INotificationService
             Message = notification.Content,
             TargetRegionId = notification.TargetRegionId,
             TargetBranchId = notification.TargetBranchId,
+            TargetRoles = notification.TargetRoles,
             CreatedByName = notification.CreatedByNavigation.FullName,
             InAppRecipientCount = notification.UserNotifications.Count(userNotification => !userNotification.IsDeleted)
         };
@@ -104,9 +106,9 @@ public class NotificationService : INotificationService
         }
 
         var target = NormalizeTarget(request.Target);
+        var targetRoles = NormalizeRoles(request.TargetRoles);
         var channels = NormalizeChannels(request.Channels);
-        ValidateTargetScope(target, request.RegionId, request.BranchId);
-        await ValidateTargetIsActiveAsync(target, request.RegionId, request.BranchId);
+        await ValidateTargetIsActiveAsync(request.RegionId, request.BranchId);
 
         if (string.IsNullOrWhiteSpace(_createdByEmail))
         {
@@ -119,7 +121,7 @@ public class NotificationService : INotificationService
             throw new InvalidOperationException("The configured notification admin was not found or is not active.");
         }
 
-        var recipients = await _notificationRepo.GetRecipientsAsync(target, request.RegionId, request.BranchId);
+        var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, request.RegionId, request.BranchId);
         var now = DateTime.UtcNow;
         var notification = new Notification
         {
@@ -131,6 +133,7 @@ public class NotificationService : INotificationService
             UpdatedAt = now,
             IsDeleted = false,
             TargetType = target,
+            TargetRoles = targetRoles,
             TargetRegionId = request.RegionId,
             TargetBranchId = request.BranchId,
             Channels = channels
@@ -194,7 +197,21 @@ public class NotificationService : INotificationService
     private static string NormalizeTarget(string target)
     {
         var normalizedTarget = ValidTargets.FirstOrDefault(value => string.Equals(value, target?.Trim(), StringComparison.OrdinalIgnoreCase));
-        return normalizedTarget ?? throw new ArgumentException("Target must be All, Staff, Manager, Accountant, Region, or Branch.");
+        return normalizedTarget ?? throw new ArgumentException("Target must be Custom.");
+    }
+
+    private static List<string> NormalizeRoles(IEnumerable<string>? roles)
+    {
+        var normalizedRoles = roles?
+            .Select(role => ValidRoles.FirstOrDefault(value => string.Equals(value, role?.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .ToList() ?? [];
+
+        if (normalizedRoles.Count == 0 || normalizedRoles.Any(role => role == null))
+        {
+            throw new ArgumentException("TargetRoles must contain at least one of Staff, Manager, or Accountant.");
+        }
+
+        return normalizedRoles.Select(role => role!).Distinct().ToList();
     }
 
     private static string NormalizeSortBy(string? sortBy)
@@ -241,27 +258,14 @@ public class NotificationService : INotificationService
         return normalizedChannels.Select(channel => channel!).Distinct().ToList();
     }
 
-    private static void ValidateTargetScope(string target, int? regionId, int? branchId)
+    private async Task ValidateTargetIsActiveAsync(int? regionId, int? branchId)
     {
-        var isRegionTarget = target == "Region";
-        var isBranchTarget = target == "Branch";
-
-        if ((isRegionTarget && (!regionId.HasValue || branchId.HasValue)) ||
-            (isBranchTarget && (!branchId.HasValue || regionId.HasValue)) ||
-            (!isRegionTarget && !isBranchTarget && (regionId.HasValue || branchId.HasValue)))
-        {
-            throw new ArgumentException("Region and Branch targets require exactly their matching ID; other targets must not include them.");
-        }
-    }
-
-    private async Task ValidateTargetIsActiveAsync(string target, int? regionId, int? branchId)
-    {
-        if (target == "Region" && !await _notificationRepo.IsActiveRegionAsync(regionId!.Value))
+        if (regionId.HasValue && !await _notificationRepo.IsActiveRegionAsync(regionId.Value))
         {
             throw new ArgumentException("Region was not found or is inactive.");
         }
 
-        if (target == "Branch" && !await _notificationRepo.IsActiveBranchAsync(branchId!.Value))
+        if (branchId.HasValue && !await _notificationRepo.IsActiveBranchAsync(branchId.Value))
         {
             throw new ArgumentException("Branch was not found, is inactive, or belongs to an inactive region.");
         }
@@ -290,7 +294,32 @@ public class NotificationService : INotificationService
             "Accountant" => "All Accountants",
             "Region" => $"Specific Region: {notification.TargetRegion?.RegionName}",
             "Branch" => $"Specific Branch: {notification.TargetBranch?.BranchName}",
+            "Custom" => GetCustomAudience(notification),
             _ => notification.TargetType
         };
+    }
+
+    public async Task<NotificationAudienceOptionsResponse> GetAudienceOptionsAsync()
+    {
+        var options = await _notificationRepo.GetAudienceOptionsAsync();
+        return new NotificationAudienceOptionsResponse
+        {
+            Regions = options.Regions.Select(region => new NotificationAudienceRegionOptionResponse { RegionId = region.RegionId, RegionName = region.RegionName }).ToList(),
+            Branches = options.Branches.Select(branch => new NotificationAudienceBranchOptionResponse { BranchId = branch.BranchId, BranchName = branch.BranchName, RegionId = branch.RegionId }).ToList()
+        };
+    }
+
+    private static string GetCustomAudience(Notification notification)
+    {
+        if (notification.TargetRoles.Count == 0)
+        {
+            return "Custom audience";
+        }
+
+        var roles = string.Join(", ", notification.TargetRoles.Select(role => char.ToUpperInvariant(role[0]) + role[1..].ToLowerInvariant()));
+        var filters = new List<string> { roles };
+        if (notification.TargetRegion != null) filters.Add($"Region: {notification.TargetRegion.RegionName}");
+        if (notification.TargetBranch != null) filters.Add($"Branch: {notification.TargetBranch.BranchName}");
+        return string.Join(" | ", filters);
     }
 }

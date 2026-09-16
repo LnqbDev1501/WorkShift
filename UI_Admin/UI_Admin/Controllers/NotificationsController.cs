@@ -50,31 +50,51 @@ public sealed class NotificationsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Send() => View(new SendNotificationViewModel { Channels = ["InApp"] });
+    public async Task<IActionResult> Send(CancellationToken cancellationToken)
+    {
+        var model = new SendNotificationViewModel { Channels = ["InApp"] };
+        await PopulateAudienceOptionsAsync(model, cancellationToken);
+        return View(model);
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(SendNotificationViewModel request, CancellationToken cancellationToken)
     {
-        if ((request.Target == "Region" && !request.RegionId.HasValue) ||
-            (request.Target == "Branch" && !request.BranchId.HasValue))
-        {
-            ModelState.AddModelError(string.Empty, "Enter the target Region ID or Branch ID for the selected scope.");
-        }
-
         if (!ModelState.IsValid)
+        {
+            await PopulateAudienceOptionsAsync(request, cancellationToken);
             return View(request);
+        }
 
         try
         {
-            request.Result = await _notificationApiService.BroadcastAsync(request, cancellationToken);
-            return View(request);
+            var result = await _notificationApiService.BroadcastAsync(request, cancellationToken);
+            TempData["NotificationSuccess"] =
+                $"Notification #{result.NotificationId} sent to {result.RecipientCount} recipient(s).";
+            return RedirectToAction(nameof(Send));
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to broadcast notification");
             request.ErrorMessage = "The notification could not be sent. Verify the selected recipients and try again.";
+            await PopulateAudienceOptionsAsync(request, cancellationToken);
             return View(request);
+        }
+    }
+
+    private async Task PopulateAudienceOptionsAsync(SendNotificationViewModel model, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var options = await _notificationApiService.GetAudienceOptionsAsync(cancellationToken);
+            model.Regions = options.Regions;
+            model.Branches = options.Branches;
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to retrieve notification audience options");
+            model.ErrorMessage ??= "Audience options are temporarily unavailable.";
         }
     }
 }

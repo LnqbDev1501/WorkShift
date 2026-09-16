@@ -1,9 +1,17 @@
 @model UI_Admin.Models.Branches.CreateBranchViewModel
+@inject IConfiguration Configuration
 
 @{
     ViewData["Title"] = "Create Branch";
     var selectedRegion = Model.AvailableRegions.FirstOrDefault(r => r.RegionId == Model.RegionId);
+    var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
 }
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
+    <link rel="stylesheet" href="~/css/branches.css" asp-append-version="true" />
+}
+
 
 <div class="flex flex-col w-full px-7 py-4">
     <div class="flex flex-col gap-unit-6">
@@ -38,10 +46,8 @@
         <form method="post" asp-controller="Branches" asp-action="Create" class="space-y-unit-6" id="createBranchForm">
             @Html.AntiForgeryToken()
 
-            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
-            {
-                <div asp-validation-summary="ModelOnly" class="p-unit-4 bg-error-container text-on-error-container rounded-xl text-body-md font-body-md-medium"></div>
-            }
+            <partial name="_NotificationModal" />
+
 
             <!-- Grid Bento Split -->
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-unit-6 items-start">
@@ -105,6 +111,7 @@
                                             {
                                                 var isRegionActive = r.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
                                                 <option value="@r.RegionId"
+                                                        data-region-name="@r.RegionName"
                                                         disabled="@(!isRegionActive)"
                                                         selected="@(Model.RegionId == r.RegionId)"
                                                         class="@(isRegionActive ? "" : "bg-surface-container text-outline")">
@@ -161,6 +168,28 @@
                         </div>
 
                         <div class="space-y-unit-5">
+                            <!-- VietMap Search Location (Autocomplete) -->
+                            <div class="space-y-unit-2 relative z-20" id="search-location-container">
+                                <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="searchLocationInput">
+                                    <span>Search Location</span>
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">Type to search address / place</span>
+                                </label>
+                                <div class="relative">
+                                    <input class="h-input-height w-full px-unit-3 pl-unit-10 pr-unit-10 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
+                                           id="searchLocationInput"
+                                           type="text"
+                                           placeholder="Type place or street address (e.g. FPT Can Tho)..."
+                                           autocomplete="off" />
+                                    <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+                                    <button type="button" id="clearSearchBtn" class="hidden absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface text-[18px] cursor-pointer">
+                                        <span class="material-symbols-outlined text-[18px]">close</span>
+                                    </button>
+                                </div>
+                                <div id="searchResultsDropdown"
+                                     class="hidden absolute left-0 right-0 top-full mt-1 bg-surface-container-lowest rounded-xl shadow-xl border border-surface-container-high z-50 max-h-60 overflow-y-auto divide-y divide-surface-container-high">
+                                </div>
+                            </div>
+
                             <!-- Physical Address (Full Width) -->
                             <div class="space-y-unit-2">
                                 <div class="flex items-center justify-between">
@@ -221,64 +250,14 @@
                                     <span asp-validation-for="Longitude" class="text-error text-label-sm"></span>
                                 </div>
                             </div>
-                        </div>
-                    </section>
 
-                    <!-- Section 3: Contact Details -->
-                    <section class="bg-surface-container-lowest rounded-xl p-unit-8 shadow-sm space-y-unit-6">
-                        <div class="flex items-center justify-between pb-unit-2">
-                            <div class="flex items-center gap-unit-3">
-                                <div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
-                                    <span class="material-symbols-outlined text-title-md">contact_mail</span>
-                                </div>
-                                <div>
-                                    <h2 class="font-title-lg text-title-lg text-on-surface">Contact Information</h2>
-                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Operational hotlines and administrative email routing.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
-                            <!-- Phone Number -->
-                            <div class="space-y-unit-2">
-                                <div class="flex items-center justify-between">
-                                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center gap-unit-1" for="phoneNumber">
-                                        Phone <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">(Optional)</span>
-                                    </label>
-                                    <span class="font-code-num text-label-sm text-on-surface-variant" id="phoneCounter">@(Model?.Phone?.Length ?? 0)/20</span>
-                                </div>
-                                <div class="relative">
-                                    <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
-                                           id="phoneNumber"
-                                           maxlength="20"
-                                           name="Phone"
-                                           value="@Model?.Phone"
-                                           placeholder="e.g., 0901234567"
-                                           type="tel" />
-                                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">call</span>
-                                </div>
-                                <span asp-validation-for="Phone" class="text-error text-label-sm"></span>
-                            </div>
-
-                            <!-- Official Email -->
-                            <div class="space-y-unit-2">
-                                <div class="flex items-center justify-between">
-                                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center gap-unit-1" for="branchEmail">
-                                        Email <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">(Optional)</span>
-                                    </label>
-                                    <span class="font-code-num text-label-sm text-on-surface-variant" id="emailCounter">@(Model?.Email?.Length ?? 0)/254</span>
-                                </div>
-                                <div class="relative">
-                                    <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
-                                           id="branchEmail"
-                                           maxlength="254"
-                                           name="Email"
-                                           value="@Model?.Email"
-                                           placeholder="e.g., d1.operations@workshift.vn"
-                                           type="email" />
-                                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">alternate_email</span>
-                                </div>
-                                <span asp-validation-for="Email" class="text-error text-label-sm"></span>
+                            <!-- Map Section -->
+                            <div class="space-y-unit-2 pt-unit-2">
+                                <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between">
+                                    <span>Branch Location Map</span>
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">VIETMAP GL JS</span>
+                                </label>
+                                <div id="branchMap"></div>
                             </div>
                         </div>
                     </section>
@@ -319,50 +298,7 @@
                                         @(string.IsNullOrEmpty(Model?.Address) ? "Not provided" : Model.Address)
                                     </span>
                                 </div>
-                                <div class="flex items-center justify-between text-body-sm">
-                                    <span class="text-on-surface-variant font-body-sm">Phone:</span>
-                                    <span class="font-body-sm text-on-surface truncate max-w-[150px]" id="previewPhone">
-                                        @(string.IsNullOrEmpty(Model?.Phone) ? "Not provided" : Model.Phone)
-                                    </span>
-                                </div>
-                                <div class="flex items-center justify-between text-body-sm">
-                                    <span class="text-on-surface-variant font-body-sm">Email:</span>
-                                    <span class="font-body-sm text-on-surface truncate max-w-[150px]" id="previewEmail">
-                                        @(string.IsNullOrEmpty(Model?.Email) ? "Not provided" : Model.Email)
-                                    </span>
-                                </div>
                             </div>
-                        </div>
-
-                        <!-- Pre-verification Checklist -->
-                        <div class="space-y-unit-3">
-                            <h4 class="font-body-md-medium text-body-md-medium text-on-surface">Validation Requirements</h4>
-                            <ul class="space-y-unit-2 text-body-sm text-on-surface-variant">
-                                <li class="flex items-center gap-unit-2" id="ruleCode">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Unique branch code provided
-                                </li>
-                                <li class="flex items-center gap-unit-2" id="ruleName">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Branch name provided (max 150 chars)
-                                </li>
-                                <li class="flex items-center gap-unit-2" id="ruleRegion">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Active region selected
-                                </li>
-                                <li class="flex items-center gap-unit-2" id="ruleAddress">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Address provided
-                                </li>
-                                <li class="flex items-center gap-unit-2" id="ruleCoords">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Coordinates valid (-90 to 90 / -180 to 180)
-                                </li>
-                                <li class="flex items-center gap-unit-2" id="ruleEmail">
-                                    <span class="material-symbols-outlined text-outline text-[16px]">radio_button_unchecked</span>
-                                    Valid email format (if provided)
-                                </li>
-                            </ul>
                         </div>
                     </div>
 
@@ -405,13 +341,18 @@
 </div>
 
 @section Scripts {
+    <script src="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.js"></script>
+    <script>
+        window.vietMapConfig = {
+            tileMapKey: '@vietMapTileKey'
+        };
+    </script>
+    <script src="~/js/branch-map.js" asp-append-version="true"></script>
     <script>
         (function() {
             const codeInput = document.getElementById('branchCode');
             const nameInput = document.getElementById('branchName');
             const addressInput = document.getElementById('branchAddress');
-            const phoneInput = document.getElementById('phoneNumber');
-            const emailInput = document.getElementById('branchEmail');
             const regionSelect = document.getElementById('regionSelect');
             const latInput = document.getElementById('latitude');
             const lngInput = document.getElementById('longitude');
@@ -421,36 +362,11 @@
             const previewRegion = document.getElementById('previewRegion');
             const previewCoords = document.getElementById('previewCoords');
             const previewAddress = document.getElementById('previewAddress');
-            const previewPhone = document.getElementById('previewPhone');
-            const previewEmail = document.getElementById('previewEmail');
-
-            const ruleCode = document.getElementById('ruleCode');
-            const ruleName = document.getElementById('ruleName');
-            const ruleRegion = document.getElementById('ruleRegion');
-            const ruleAddress = document.getElementById('ruleAddress');
-            const ruleCoords = document.getElementById('ruleCoords');
-            const ruleEmail = document.getElementById('ruleEmail');
 
             function updateCounter(input, counterId, max) {
                 const counter = document.getElementById(counterId);
                 if (counter) {
                     counter.textContent = `${input.value.length}/${max}`;
-                }
-            }
-
-            function setRuleState(el, isValid) {
-                if (!el) return;
-                const icon = el.querySelector('.material-symbols-outlined');
-                if (isValid) {
-                    icon.textContent = 'check_circle';
-                    icon.classList.remove('text-outline');
-                    icon.classList.add('text-[#059669]');
-                    el.classList.add('text-on-surface');
-                } else {
-                    icon.textContent = 'radio_button_unchecked';
-                    icon.classList.remove('text-[#059669]');
-                    icon.classList.add('text-outline');
-                    el.classList.remove('text-on-surface');
                 }
             }
 
@@ -462,60 +378,42 @@
 
                     updateCounter(this, 'codeCounter', 30);
                     if (previewCode) previewCode.textContent = this.value || 'Not provided';
-                    setRuleState(ruleCode, this.value.trim().length > 0);
                 });
-                if (codeInput.value) {
-                    setRuleState(ruleCode, codeInput.value.trim().length > 0);
-                }
             }
 
             if (nameInput) {
                 nameInput.addEventListener('input', function() {
                     updateCounter(this, 'nameCounter', 150);
                     if (previewName) previewName.textContent = this.value || 'Not provided';
-                    setRuleState(ruleName, this.value.trim().length > 0);
                 });
-                if (nameInput.value) {
-                    setRuleState(ruleName, nameInput.value.trim().length > 0);
-                }
             }
 
             if (addressInput) {
                 addressInput.addEventListener('input', function() {
                     updateCounter(this, 'addressCounter', 500);
                     if (previewAddress) previewAddress.textContent = this.value || 'Not provided';
-                    setRuleState(ruleAddress, this.value.trim().length > 0);
-                });
-                if (addressInput.value) {
-                    setRuleState(ruleAddress, addressInput.value.trim().length > 0);
-                }
-            }
-
-            if (phoneInput) {
-                phoneInput.addEventListener('input', function() {
-                    updateCounter(this, 'phoneCounter', 20);
-                    if (previewPhone) previewPhone.textContent = this.value || 'Not provided';
-                });
-            }
-
-            if (emailInput) {
-                emailInput.addEventListener('input', function() {
-                    updateCounter(this, 'emailCounter', 254);
-                    if (previewEmail) previewEmail.textContent = this.value || 'Not provided';
-                    const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
-                    setRuleState(ruleEmail, !this.value || emailRegex.test(this.value.trim()));
                 });
             }
 
             if (regionSelect) {
-                regionSelect.addEventListener('change', function() {
-                    const text = this.options[this.selectedIndex]?.text || '';
-                    if (previewRegion) previewRegion.textContent = this.value ? text.split(' [')[0] : 'Not selected';
-                    setRuleState(ruleRegion, Boolean(this.value));
-                });
-                if (regionSelect.value) {
-                    setRuleState(ruleRegion, Boolean(regionSelect.value));
+                function handleRegionChange() {
+                    const selectedOpt = regionSelect.options[regionSelect.selectedIndex];
+                    const text = selectedOpt?.text || '';
+                    const regionName = selectedOpt?.getAttribute('data-region-name') || text.split(' (')[0].trim();
+
+                    if (previewRegion) previewRegion.textContent = regionSelect.value ? text.split(' [')[0] : 'Not selected';
+
+                    // Auto-fill VietMap search location box when region is selected
+                    const searchInput = document.getElementById('searchLocationInput');
+                    const clearSearchBtn = document.getElementById('clearSearchBtn');
+                    if (searchInput && regionSelect.value && regionName) {
+                        searchInput.value = regionName;
+                        if (clearSearchBtn) clearSearchBtn.classList.remove('hidden');
+                        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
                 }
+
+                regionSelect.addEventListener('change', handleRegionChange);
             }
 
             function updateCoords() {
@@ -524,11 +422,8 @@
                 const latNum = parseFloat(lat);
                 const lngNum = parseFloat(lng);
 
-                const hasCoords = lat !== '' || lng !== '';
                 const validCoords = (!lat || (!isNaN(latNum) && latNum >= -90 && latNum <= 90)) &&
                                     (!lng || (!isNaN(lngNum) && lngNum >= -180 && lngNum <= 180));
-
-                setRuleState(ruleCoords, !hasCoords || validCoords);
 
                 if (previewCoords) {
                     if (lat && lng && validCoords) {

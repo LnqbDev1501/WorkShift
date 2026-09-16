@@ -102,22 +102,53 @@ public class NotificationRepo : INotificationRepo
             branch.Region.IsActive);
     }
 
-    public Task<List<User>> GetRecipientsAsync(string targetType, int? regionId, int? branchId)
+    public Task<List<User>> GetRecipientsAsync(IReadOnlyCollection<string> targetRoles, int? regionId, int? branchId)
     {
         var query = _context.Users
             .AsNoTracking()
-            .Where(user => user.Status == "ACTIVE" && user.DeletedAt == null);
+            .Where(user => user.Status == "ACTIVE" && user.DeletedAt == null && targetRoles.Contains(user.Role.RoleName));
 
-        query = targetType switch
+        if (regionId.HasValue)
         {
-            "Staff" or "Manager" or "Accountant" => query.Where(user => user.Role.RoleName == targetType.ToUpperInvariant()),
-            "Region" => query.Where(user => user.Branch != null && user.Branch.RegionId == regionId),
-            "Branch" => query.Where(user => user.BranchId == branchId),
-            _ => query
-        };
+            query = query.Where(user => user.Branch != null && user.Branch.RegionId == regionId.Value);
+        }
+
+        if (branchId.HasValue)
+        {
+            query = query.Where(user => user.BranchId == branchId.Value);
+        }
 
         return query.ToListAsync();
     }
+
+    public async Task<NotificationAudienceOptionsData> GetAudienceOptionsAsync()
+    {
+        return new NotificationAudienceOptionsData
+        {
+            Regions = await _context.Regions
+                .AsNoTracking()
+                .Where(region => region.IsActive)
+                .OrderBy(region => region.RegionName)
+                .Select(region => new NotificationAudienceRegionOptionData
+                {
+                    RegionId = region.RegionId,
+                    RegionName = region.RegionName
+                })
+                .ToListAsync(),
+            Branches = await _context.Branches
+                .AsNoTracking()
+                .Where(branch => branch.Status == "ACTIVE" && branch.Region.IsActive)
+                .OrderBy(branch => branch.BranchName)
+                .Select(branch => new NotificationAudienceBranchOptionData
+                {
+                    BranchId = branch.BranchId,
+                    BranchName = branch.BranchName,
+                    RegionId = branch.RegionId
+                })
+                .ToListAsync()
+        };
+    }
+
 
     public async Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications)
     {

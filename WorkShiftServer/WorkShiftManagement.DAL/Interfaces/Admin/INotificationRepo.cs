@@ -22,7 +22,28 @@ public interface INotificationRepo
 
     Task<bool> IsActiveBranchAsync(int branchId);
 
-    Task<List<User>> GetRecipientsAsync(string targetType, int? regionId, int? branchId);
+    Task<List<User>> GetRecipientsAsync(IReadOnlyCollection<string> targetRoles, int? regionId, int? branchId);
+
+    Task<NotificationAudienceOptionsData> GetAudienceOptionsAsync();
 
     Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);
+}
+
+public class NotificationAudienceOptionsData
+{
+    public List<NotificationAudienceRegionOptionData> Regions { get; set; } = [];
+    public List<NotificationAudienceBranchOptionData> Branches { get; set; } = [];
+}
+
+public class NotificationAudienceRegionOptionData
+{
+    public int RegionId { get; set; }
+    public string RegionName { get; set; } = null!;
+}
+
+public class NotificationAudienceBranchOptionData
+{
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = null!;
+    public int RegionId { get; set; }
 }

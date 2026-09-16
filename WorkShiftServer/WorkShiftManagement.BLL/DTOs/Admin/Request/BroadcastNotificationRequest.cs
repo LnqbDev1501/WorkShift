@@ -12,7 +12,11 @@ public class BroadcastNotificationRequest
     public string Message { get; set; } = null!;
 
     [Required]
-    public string Target { get; set; } = null!;
+    public string Target { get; set; } = "Custom";
+
+    [Required]
+    [MinLength(1)]
+    public List<string> TargetRoles { get; set; } = [];
 
     public int? RegionId { get; set; }
 
