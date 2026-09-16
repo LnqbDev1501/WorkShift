@@ -27,14 +27,13 @@ namespace WorkShiftServer.API.Controllers.Accountant
         [HttpPost("{periodId:int}/submit")]
         public async Task<IActionResult>
             SubmitPayrollPeriod(
-                int periodId,
-                [FromHeader(Name = "X-Accountant-Id")]
-                string? accountantId)
+                int periodId)
         {
-            if (string.IsNullOrWhiteSpace(accountantId) ||
-                !Guid.TryParse(accountantId, out var accountantGuid))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var accountantGuid))
             {
-                return BadRequest(new { message = "X-Accountant-Id không hợp lệ." });
+                return Unauthorized(new { message = "The authenticated Accountant ID is invalid." });
             }
 
             try

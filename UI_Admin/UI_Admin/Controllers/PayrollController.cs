@@ -53,10 +53,15 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Details(int id, PayrollDetailQuery query, CancellationToken ct)
     {
         if (id < 1 || !ModelState.IsValid) return BadRequest(ModelState);
-        try { return View(await LoadDetailAsync(id, query, ct)); }
+        try
+        {
+            var model = await LoadDetailAsync(id, query, ct);
+            return View(model);
+        }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return NotFound(); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
@@ -85,6 +90,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
                 if (rejection == null) await payroll.ApproveAsync(input.PeriodId, ct);
                 else await payroll.RejectAsync(rejection, ct);
                 TempData["PayrollSuccess"] = rejection == null ? "Đã duyệt toàn bộ kỳ lương." : "Đã gửi phiếu lương về để chỉnh sửa. Kỳ lương cần được gửi lại trước khi duyệt.";
+                TempData["PayrollAction"] = rejection == null ? "approve" : "reject";
                 return RedirectToAction(nameof(Details), new { id = input.PeriodId, input.Search, input.PageNumber, input.PageSize });
             }
         }
