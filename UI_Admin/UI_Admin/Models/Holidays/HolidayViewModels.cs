@@ -70,20 +70,60 @@ public sealed class HolidayFormItemViewModel
     [StringLength(150, MinimumLength = 1, ErrorMessage = "Holiday name must contain 1 to 150 characters.")]
     public string HolidayName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Holiday date is required.")]
+    [Required(ErrorMessage = "From date is required.")]
     [DataType(DataType.Date)]
-    public DateOnly? HolidayDate { get; set; }
+    public DateOnly? FromDate { get; set; }
+
+    [Required(ErrorMessage = "To date is required.")]
+    [DataType(DataType.Date)]
+    public DateOnly? ToDate { get; set; }
 
     [Required(ErrorMessage = "Pay multiplier is required.")]
     [Range(typeof(decimal), "0.01", "999.99", ErrorMessage = "Pay multiplier must be between 0.01 and 999.99.")]
     public decimal? PayMultiplier { get; set; } = 3m;
 }
 
-public sealed class CreateHolidaysViewModel
+public sealed class CreateHolidaysViewModel : IValidatableObject
 {
     [MinLength(1, ErrorMessage = "Add at least one public holiday.")]
     [MaxLength(366, ErrorMessage = "A maximum of 366 holidays can be created at once.")]
     public List<HolidayFormItemViewModel> Holidays { get; set; } = [new()];
+
+    public int TotalDays => Holidays.Sum(item => item.FromDate.HasValue && item.ToDate >= item.FromDate
+        ? item.ToDate.Value.DayNumber - item.FromDate.Value.DayNumber + 1 : 0);
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (Holidays == null || Holidays.Count == 0)
+        {
+            yield return new ValidationResult("Add at least one holiday range.");
+            yield break;
+        }
+        var dates = new HashSet<int>();
+        var total = 0;
+        foreach (var item in Holidays)
+        {
+            if (!item.FromDate.HasValue || !item.ToDate.HasValue) continue;
+            if (item.FromDate == DateOnly.MinValue || item.ToDate < item.FromDate)
+            {
+                yield return new ValidationResult("To date must be on or after From date; use a valid start date.");
+                yield break;
+            }
+            var days = item.ToDate.Value.DayNumber - item.FromDate.Value.DayNumber + 1;
+            total += days;
+            if (total > 366)
+            {
+                yield return new ValidationResult("A maximum of 366 days can be created at once.");
+                yield break;
+            }
+            for (var offset = 0; offset < days; offset++)
+                if (!dates.Add(item.FromDate.Value.DayNumber + offset))
+                {
+                    yield return new ValidationResult("Holiday ranges overlap. Each date must be unique.");
+                    yield break;
+                }
+        }
+    }
 }
 
 public sealed class EditHolidayViewModel

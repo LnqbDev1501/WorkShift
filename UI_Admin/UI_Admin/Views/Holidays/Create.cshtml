@@ -4,7 +4,7 @@
 
 <div class="holiday-shell">
 <main class="holiday-page holiday-form-page">
-    <div class="form-heading"><div><h1>Create Public Holidays</h1><p>Add one or more statutory dates. Every date is permanently reserved after creation.</p></div><a asp-action="List" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
+    <div class="form-heading"><div><h1>Create Public Holidays</h1><p>Choose inclusive date ranges. Each day becomes a separate holiday; maximum 366 days per batch.</p></div><a asp-action="List" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
     <form asp-action="Create" method="post" id="holiday-create-form" class="holiday-form-full">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="holiday-validation"></div>
@@ -14,10 +14,11 @@
             <div id="holiday-rows">
                 @for (var index = 0; index < Model.Holidays.Count; index++)
                 {
-                    <div class="holiday-form-row" data-row>
+                    <div class="holiday-form-row holiday-range-row" data-row>
                         <div class="row-number">@(index + 1)</div>
                         <label><span>Holiday name *</span><input asp-for="Holidays[index].HolidayName" maxlength="150" placeholder="e.g., New Year's Day" /><span asp-validation-for="Holidays[index].HolidayName"></span></label>
-                        <label><span>Holiday date *</span><input asp-for="Holidays[index].HolidayDate" type="date" /><span asp-validation-for="Holidays[index].HolidayDate"></span></label>
+                        <label><span>From date *</span><input asp-for="Holidays[index].FromDate" type="date" /><span asp-validation-for="Holidays[index].FromDate"></span></label>
+                        <label><span>To date *</span><input asp-for="Holidays[index].ToDate" type="date" required /><span asp-validation-for="Holidays[index].ToDate"></span></label>
                         <label><span>Pay multiplier *</span><div class="multiplier-input"><input asp-for="Holidays[index].PayMultiplier" type="number" min="0.01" max="999.99" step="0.01" /><b>×</b></div><span asp-validation-for="Holidays[index].PayMultiplier"></span></label>
                         <button type="button" class="remove-holiday-row" title="Remove row"><span class="material-symbols-outlined">delete</span></button>
                     </div>
@@ -26,7 +27,7 @@
         </section>
         <aside class="holiday-form-sidebar">
             <section class="guideline-card"><header><span class="material-symbols-outlined">verified_user</span><h2>Validation Guidelines</h2></header><ul><li><span class="material-symbols-outlined">check_circle</span><div><strong>Multiplier Range</strong><p>Use values from 0.01 to 999.99, with up to two decimal places.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Unique Calendar Dates</strong><p>Dates must be unique in this batch and must not duplicate an existing holiday.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Flexible Holiday Naming</strong><p>Use a clear statutory or operational holiday name, up to 150 characters.</p></div></li><li class="danger"><span class="material-symbols-outlined">warning</span><div><strong>All-or-Nothing Batch</strong><p>If one entry fails validation, no holiday in the batch is created.</p></div></li></ul></section>
-            <section class="batch-summary"><span class="stat-label">Batch integrity summary</span><div><span>Target rows</span><strong id="batch-row-count">@Model.Holidays.Count</strong></div><div><span>Validation status</span><b>Pre-flight validation</b></div><div><span>Initial record state</span><b>Active</b></div></section>
+            <section class="batch-summary"><span class="stat-label">Batch integrity summary</span><div><span>Total holiday days</span><strong id="batch-row-count">@Model.TotalDays</strong></div><div><span>Validation status</span><b>Pre-flight validation</b></div><div><span>Initial record state</span><b>Active</b></div></section>
         </aside>
         </div>
         <section class="holiday-form-note full-note"><span class="material-symbols-outlined">sync</span><div><strong>Payroll engine synchronization</strong><p>Configured multipliers are used automatically when payroll is calculated for shifts scheduled on these dates.</p></div></section>

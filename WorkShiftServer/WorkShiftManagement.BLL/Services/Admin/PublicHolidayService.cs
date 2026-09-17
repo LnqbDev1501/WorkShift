@@ -240,6 +240,26 @@ public sealed class PublicHolidayService : IPublicHolidayService
         }
     }
 
+    public async Task<PublicHolidayResponse> RestoreAsync(int id, Guid callerId, CancellationToken ct = default)
+    {
+        ValidateId(id);
+        return await _repo.ExecuteInTransactionAsync(async () =>
+        {
+            var holiday = await _repo.GetForUpdateAsync(id, ct);
+            if (holiday == null)
+                throw Error(new KeyNotFoundException("Public holiday not found."), "HOLIDAY_NOT_FOUND");
+            if (holiday.IsActive) return Map(holiday);
+
+            var oldValue = Json(AuditSnapshot(holiday));
+            holiday.IsActive = true;
+            holiday.UpdatedAt = DateTime.UtcNow;
+            await _repo.SaveChangesAsync(ct);
+            await WriteAuditIfKnownAsync(callerId, "RESTORE_PUBLIC_HOLIDAY", id,
+                oldValue, Json(AuditSnapshot(holiday)), ct);
+            return Map(holiday);
+        }, ct);
+    }
+
     public async Task DeleteAsync(int id, Guid callerId, CancellationToken ct = default)
     {
         ValidateId(id);

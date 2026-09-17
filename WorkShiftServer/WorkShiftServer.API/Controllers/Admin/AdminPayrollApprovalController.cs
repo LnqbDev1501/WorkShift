@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
@@ -106,24 +107,16 @@ namespace WorkShiftServer.API.Controllers.Admin
             RejectPayroll(
                 int periodId,
                 int payrollId,
-                [FromBody] RejectPayrollRequest request,
-                [FromHeader(Name = "X-Admin-Id")]
-                string? adminId)
+                [FromBody] RejectPayrollRequest request)
         {
-            Guid? adminGuid = null;
-            Guid parsedAdminId = Guid.Empty;
-            if (!string.IsNullOrWhiteSpace(adminId) &&
-                !Guid.TryParse(adminId, out parsedAdminId))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var adminGuid))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message =
-                        "X-Admin-Id không hợp lệ."
+                    message = "The authenticated Admin ID is invalid."
                 });
-            }
-            else if (!string.IsNullOrWhiteSpace(adminId))
-            {
-                adminGuid = parsedAdminId;
             }
 
             try
@@ -166,24 +159,16 @@ namespace WorkShiftServer.API.Controllers.Admin
         [HttpPost("{id:int}/approve")]
         public async Task<IActionResult>
             ApprovePayrollPeriod(
-                int id,
-                [FromHeader(Name = "X-Admin-Id")]
-                string? adminId)
+                int id)
         {
-            Guid? adminGuid = null;
-            Guid parsedAdminId = Guid.Empty;
-            if (!string.IsNullOrWhiteSpace(adminId) &&
-                !Guid.TryParse(adminId, out parsedAdminId))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var adminGuid))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message =
-                        "X-Admin-Id không hợp lệ."
+                    message = "The authenticated Admin ID is invalid."
                 });
-            }
-            else if (!string.IsNullOrWhiteSpace(adminId))
-            {
-                adminGuid = parsedAdminId;
             }
 
             try

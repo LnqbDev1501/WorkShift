@@ -118,6 +118,19 @@ public sealed class AdminPublicHolidayController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:int}/restore")]
+    public async Task<IActionResult> Restore(int id, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _service.RestoreAsync(id, OptionalCurrentUserId(), ct));
+        }
+        catch (Exception ex) when (IsExpectedError(ex))
+        {
+            return ErrorResponse(ex);
+        }
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {

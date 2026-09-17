@@ -1,0 +1,86 @@
+/* Shared User Account typography and component styling. Icon fonts remain independent. */
+:root { --ws-font:Arial,Helvetica,sans-serif; --ws-primary:#5146e5; --ws-bg:#f6f7fb; --ws-line:#e0e2eb; }
+body.workshift-theme { margin:0; font-family:var(--ws-font); font-size:14px; line-height:1.45; color:#20233a; background:var(--ws-bg); }
+.workshift-theme [class*="font-"]:not(.material-symbols-outlined), .workshift-theme :is(input,select,textarea,button):not(.material-symbols-outlined), .workshift-theme .period-detail { font-family:var(--ws-font); }
+.workshift-theme h1 { font-size:22px; line-height:1.35; font-weight:600; letter-spacing:normal; color:#191c2a; }
+.workshift-theme :is(.dashboard-page,.notifications-page,.payroll-page,.holiday-page,.shift-content) { width:100%; max-width:1496px; margin-inline:auto; padding:16px 28px 36px; background:var(--ws-bg); font-size:14px; }
+.workshift-theme .shift-page { background:var(--ws-bg); }
+.workshift-theme #main-content-wrapper > main > .px-7 { max-width:1496px; margin-inline:auto; padding:16px 28px 36px; }
+.workshift-theme :is(.dashboard-heading,.notification-header,.holiday-heading,.form-heading,.shift-heading) { margin-bottom:16px; gap:24px; }
+.workshift-theme :is(.dashboard-heading,.notification-header,.holiday-heading,.form-heading,.shift-heading,.payroll-heading) p { color:#5b6074; font-size:14px; margin-top:4px; }
+.workshift-theme :is(.dashboard-card,.shift-card,.form-card,.detail-card,.notification-table-card,.payroll-table-card,.bg-surface-container-lowest.rounded-xl,.card) { background:#fff; border-radius:10px; border-color:var(--ws-line); box-shadow:0 1px 3px #191c2d0d; }
+.workshift-theme :is(.shift-primary,.primary-button,.secondary-button,.btn-primary,.btn-secondary,.payroll-button,a.bg-primary-container,button.bg-primary-container) { min-height:41px; padding:9px 18px; border-radius:9px; font-size:14px; font-weight:500; }
+.workshift-theme :is(.shift-primary,.primary-button,.btn-primary,.payroll-button.primary,a.bg-primary-container,button.bg-primary-container) { background:var(--ws-primary); color:white; box-shadow:0 3px 7px #4f46e540; }
+.workshift-theme :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=file]),select,textarea) { font-family:var(--ws-font); font-size:14px; background-color:#f4f5fa; border-color:var(--ws-line); border-radius:8px; color:#20233a; }
+.workshift-theme :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=file]),select) { min-height:41px; }
+.workshift-theme :is(a,button,input,select,textarea):focus-visible { outline:2px solid #a5a0f5; outline-offset:2px; }
+.workshift-theme table th { background:#f0f1f6; color:#4a516f; font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:normal; }
+.workshift-theme table td { font-size:14px; border-color:#f3f3f6; }
+.workshift-theme .list-eyebrow { display:flex; align-items:center; gap:9px; margin-bottom:5px; color:#50577a; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+.list-eyebrow::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ws-primary); }
+.list-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+.list-metric { position:relative; overflow:hidden; min-height:125px; padding:18px; border:1px solid var(--ws-line); border-radius:12px; background:#fff; }
+.list-metric::after { content:""; position:absolute; right:-20px; top:-25px; width:90px; height:90px; border-radius:50%; background:#f0efff; }
+.list-metric-label { position:relative; z-index:1; padding-right:36px; color:#454c6d; font-size:13px; font-weight:600; text-transform:uppercase; }
+.list-metric-value { margin-top:14px; color:#191c2a; font-size:24px; font-weight:600; overflow-wrap:anywhere; }
+.list-metric-note { margin-top:6px; color:#5b6074; font-size:13px; }
+.list-metric-icon { position:absolute; z-index:1; right:18px; top:20px; color:var(--ws-primary); font-size:20px; }
+.workshift-theme :is(.holiday-stats,.payroll-stats,.list-summary-grid) { gap:14px; margin-bottom:16px; }
+.workshift-theme :is(.holiday-stats article,.payroll-stats article,.list-summary-grid .summary-card) { position:relative; overflow:hidden; min-height:125px; padding:18px; border:1px solid var(--ws-line); border-radius:12px; background:#fff; box-shadow:none; }
+.workshift-theme :is(.holiday-stats article,.payroll-stats article)::after { content:""; position:absolute; right:-20px; top:-25px; width:90px; height:90px; border-radius:50%; background:#f0efff; pointer-events:none; }
+.workshift-theme :is(.holiday-stats article > .material-symbols-outlined,.payroll-stats article > div > span) { position:absolute; z-index:1; right:18px; top:20px; color:var(--ws-primary); font-size:20px; }
+.workshift-theme :is(.holiday-stats strong,.payroll-stats strong,.summary-card > strong) { font-size:24px; font-weight:600; }
+.workshift-theme :is(.filter-card,.notification-filter-card,.payroll-filters,.holiday-filters,.shift-toolbar,#filter-form,#branch-filter-form) { padding:16px; background:#fff; border:1px solid var(--ws-line); border-radius:14px; box-shadow:0 4px 16px #141c3c0a; }
+.workshift-theme :is(.filter-card,.notification-filter-card,.payroll-filters,.holiday-filters,.shift-toolbar,#filter-form,#branch-filter-form) :is(input:not([type=checkbox]):not([type=hidden]),select) { min-height:48px; border:1px solid var(--ws-line); }
+.workshift-theme .shift-toolbar { margin-bottom:16px; }
+.workshift-theme .shift-card:has(> .shift-toolbar), .workshift-theme .holiday-card:has(> .holiday-filters) { overflow:visible; }
+@media(max-width:1100px) { .list-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:700px) { .list-metrics { grid-template-columns:1fr; } .workshift-theme :is(.dashboard-page,.notifications-page,.payroll-page,.holiday-page,.shift-content), .workshift-theme #main-content-wrapper > main > .px-7 { padding:16px; } }
+
+.workshift-theme .filter-card .ui-button { min-height:48px; }
+
+/* Shared list filter actions: compact search and reset, matching User Accounts. */
+.workshift-theme .ws-filter-actions { display:flex; align-items:center; gap:12px; flex:0 0 auto; align-self:end; }
+.workshift-theme .ws-filter-actions > :is(button,a) { display:inline-flex; align-items:center; justify-content:center; gap:9px; height:48px; min-height:48px; border:0; border-radius:10px; font:400 14px Arial,Helvetica,sans-serif; text-decoration:none; cursor:pointer; box-shadow:none; white-space:nowrap; }
+.workshift-theme .ws-filter-search { width:44px; padding:0; background:#5146e5; color:#fff; }
+.workshift-theme .ws-filter-search:hover { background:#4338ca; }
+.workshift-theme .ws-filter-clear { min-width:102px; padding:0 18px; background:#f0f1f6; color:#42475a; }
+.workshift-theme .ws-filter-clear:hover { background:#e5e7f0; color:#3028b8; }
+.ws-filter-actions svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+
+/* Holiday summary content must grow naturally with long names and dates. */
+.workshift-theme .holiday-stats article { display:flex; flex-direction:column; gap:12px; min-height:150px; }
+.workshift-theme .holiday-stats article > div { position:relative; z-index:1; min-width:0; }
+.workshift-theme .holiday-stats .stat-label { padding-right:36px; }
+.workshift-theme .holiday-stats .upcoming-name { max-width:100%; white-space:normal; overflow-wrap:anywhere; line-height:1.3; }
+.workshift-theme .holiday-stats p { position:static; margin: auto 0 0; flex-wrap:wrap; line-height:1.5; }
+.workshift-theme .holiday-stats .upcoming-name + small { margin-top:6px; line-height:1.5; }
+
+/* Explicit areas prevent the inactive toggle from displacing the filter actions. */
+.workshift-theme #holiday-filter-form {
+    grid-template-columns:minmax(0,1fr) 130px 150px auto;
+    grid-template-areas:"search year month actions" "inactive inactive sort sort";
+    min-height:0;
+    align-items:center;
+    border:0;
+    border-bottom:1px solid var(--ws-line);
+    border-radius:0;
+    box-shadow:none;
+}
+#holiday-filter-form .search-box { grid-area:search; position:relative; height:48px; min-width:0; padding:0; border:0; background:transparent; }
+#holiday-filter-form .search-box > .material-symbols-outlined { position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none; }
+.workshift-theme #holiday-filter-form .search-box input { box-sizing:border-box; min-width:0; height:48px; padding:0 14px 0 44px; }
+#holiday-filter-form select[name="Year"] { grid-area:year; width:100%; }
+#holiday-filter-form select[name="Month"] { grid-area:month; width:100%; }
+.workshift-theme #holiday-filter-form .ws-filter-actions { grid-area:actions; align-self:center; }
+#holiday-filter-form .inactive-toggle { grid-area:inactive; flex-wrap:wrap; min-width:0; }
+#holiday-filter-form .sort-label { grid-area:sort; justify-self:end; flex-wrap:wrap; }
+@media(max-width:1000px) {
+    .workshift-theme #holiday-filter-form { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-areas:"search search" "year month" "inactive actions" "sort sort"; }
+    .workshift-theme #holiday-filter-form .ws-filter-actions { justify-self:end; }
+}
+@media(max-width:600px) {
+    .workshift-theme #holiday-filter-form { grid-template-columns:minmax(0,1fr); grid-template-areas:"search" "year" "month" "actions" "inactive" "sort"; }
+    #holiday-filter-form .sort-label { justify-self:start; }
+    .workshift-theme #holiday-filter-form .ws-filter-actions { justify-self:start; }
+}

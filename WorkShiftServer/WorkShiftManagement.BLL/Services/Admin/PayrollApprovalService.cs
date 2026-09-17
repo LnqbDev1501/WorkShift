@@ -362,6 +362,12 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             // Chỉ Payroll đang SUBMITTED được reject
+            if (payroll.Status == "REJECTED")
+            {
+                throw new InvalidOperationException(
+                    "Phiếu lương này đã bị yêu cầu chỉnh sửa và không thể reject lần nữa.");
+            }
+
             if (payroll.Status != "SUBMITTED")
             {
                 throw new InvalidOperationException(

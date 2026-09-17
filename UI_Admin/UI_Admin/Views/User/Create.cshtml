@@ -5,7 +5,6 @@
 }
 
 @section Styles {
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script id="tailwind-config">
@@ -84,16 +83,16 @@
                         "unit-5": "1.25rem"
                     },
                     "fontFamily": {
-                        "title-md": ["Inter"],
-                        "label-md": ["Inter"],
-                        "label-sm": ["Inter"],
-                        "display-lg": ["Inter"],
-                        "code-num": ["Inter"],
-                        "display-md": ["Inter"],
-                        "title-lg": ["Inter"],
-                        "body-md-medium": ["Inter"],
-                        "body-md": ["Inter"],
-                        "body-sm": ["Inter"]
+                        "title-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-sm": ["Arial", "Helvetica", "sans-serif"],
+                        "display-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "code-num": ["Arial", "Helvetica", "sans-serif"],
+                        "display-md": ["Arial", "Helvetica", "sans-serif"],
+                        "title-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md-medium": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md": ["Arial", "Helvetica", "sans-serif"],
+                        "body-sm": ["Arial", "Helvetica", "sans-serif"]
                     },
                     "fontSize": {
                         "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" }],
@@ -142,14 +141,23 @@
 
             @if (!ViewData.ModelState.IsValid && ViewData.ModelState.TryGetValue(string.Empty, out var modelStateErrors) && modelStateErrors.Errors.Count > 0)
             {
-                <div class="mb-unit-4 p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-unit-3 text-error">
-                    <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5">error</span>
-                    <div class="text-[13px] font-body-md space-y-1">
-                        @foreach (var error in modelStateErrors.Errors)
-                        {
-                            <div>@error.ErrorMessage</div>
-                        }
+                <div id="createModelStateErrorBanner" class="mb-unit-4 p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-error shadow-sm transition-opacity duration-200">
+                    <div class="flex items-start gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5 text-[#dc2626]">error</span>
+                        <div class="text-[13px] font-body-md space-y-1 leading-relaxed">
+                            @foreach (var error in modelStateErrors.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
                     </div>
+                    <button type="button" 
+                            class="p-1 rounded-lg hover:bg-rose-200/50 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                            title="Dismiss" 
+                            aria-label="Close" 
+                            onclick="document.getElementById('createModelStateErrorBanner').remove()">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
                 </div>
             }
 

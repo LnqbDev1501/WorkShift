@@ -16,7 +16,7 @@
         }
 
         <div class="holiday-heading">
-            <div><h1>Public Holidays</h1><p>Manage holiday dates and statutory pay multipliers across regional shifts.</p></div>
+            <div><div class="list-eyebrow">Enterprise Holiday Calendar</div><h1>Public Holidays</h1><p>Manage holiday dates and statutory pay multipliers across regional shifts.</p></div>
             <div class="heading-actions">
                 <a class="secondary-button" asp-action="Export" asp-route-year="@Model.Query.Year" asp-route-month="@Model.Query.Month" asp-route-search="@Model.Query.Search" asp-route-includeInactive="@Model.Query.IncludeInactive"><span class="material-symbols-outlined">download</span>Export CSV</a>
                 <a class="primary-button" asp-action="Create"><span class="material-symbols-outlined">add</span>Create Holidays</a>
@@ -28,12 +28,6 @@
             <article><div><span class="stat-label">Default multiplier</span><strong>@Model.DefaultMultiplier.ToString("0.00")×</strong><small>base pay rate</small></div><span class="material-symbols-outlined green">percent</span><p><i class="status-dot"></i>Standard overtime rule active</p></article>
             <article><div><span class="stat-label">Upcoming holiday</span><strong class="upcoming-name">@(upcoming?.HolidayName ?? "No upcoming date")</strong><small>@(upcoming is null ? "—" : upcoming.HolidayDate.ToString("dd MMM yyyy (dddd)", CultureInfo.InvariantCulture))</small></div><span class="material-symbols-outlined">event_upcoming</span><p><span class="material-symbols-outlined indigo">schedule</span>Future schedule reservation</p></article>
             <article><div><span class="stat-label">Historical inactive</span><strong>@Model.InactiveCount</strong><small>archived slots</small></div><span class="material-symbols-outlined">history</span><p><span class="material-symbols-outlined">lock</span>Date reservations preserved</p></article>
-        </section>
-
-        <section class="holiday-guard">
-            <span class="material-symbols-outlined indigo">info</span>
-            <div><strong>Permanent Shift &amp; Calendar Reservation Guard</strong><p>Holiday dates remain locked across both Active and Inactive records, preventing schedule overlaps and preserving payroll history.</p></div>
-            <span class="guard-tag">Statutory lock</span>
         </section>
 
         <section class="holiday-table-card">
@@ -48,9 +42,9 @@
                     <option value="">All Months</option>
                     @for (var month = 1; month <= 12; month++) { <option value="@month" selected="@(Model.Query.Month == month)">@CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)</option> }
                 </select>
-                <button type="submit" class="filter-button">Apply</button>
+
                 <label class="inactive-toggle"><input type="checkbox" name="IncludeInactive" value="true" checked="@Model.Query.IncludeInactive" /><span>Include Inactive</span><small>@(Model.Query.IncludeInactive ? "Inactive records visible" : "Inactive records hidden")</small></label>
-                <a asp-action="List" asp-route-year="@DateTime.Today.Year" class="clear-filter">Clear Filters</a>
+                <partial name="_ListFilterActions" model='"List"' />
                 <div class="sort-label">Sort by: <strong>Chronological Date</strong> <span class="material-symbols-outlined">south</span></div>
             </form>
 
@@ -73,7 +67,7 @@
                                     <a asp-action="Edit" asp-route-id="@item.PublicHolidayId" title="Edit holiday"><span class="material-symbols-outlined">edit</span></a>
                                     <button type="button" title="Deactivate holiday" data-delete-open data-id="@item.PublicHolidayId" data-name="@item.HolidayName"><span class="material-symbols-outlined">delete</span></button>
                                 }
-                                else { <span class="locked" title="Inactive records are read-only"><span class="material-symbols-outlined">lock</span></span> }
+                                else { <button type="button" title="Restore holiday" aria-label="Restore @item.HolidayName" data-restore-open data-id="@item.PublicHolidayId" data-name="@item.HolidayName"><span class="material-symbols-outlined">restore</span></button> }
                             </div></td>
                         </tr>
                     }
@@ -125,4 +119,5 @@
     </div>
 </div>
 
+<partial name="_RestoreModal" />
 @section Scripts { <script src="~/js/holidays.js" asp-append-version="true"></script> }

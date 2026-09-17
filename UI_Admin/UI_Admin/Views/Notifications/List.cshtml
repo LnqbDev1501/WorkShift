@@ -8,7 +8,7 @@
 <section class="notifications-page">
     <header class="notification-header">
         <div>
-            <span class="eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
+            <span class="list-eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
             <h1>Notifications</h1>
             <p>Review notification history and send operational announcements.</p>
         </div>
@@ -34,7 +34,7 @@
             <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
         </select>
         <input type="hidden" name="SortBy" value="CreatedAt" />
-        <button type="submit" class="btn-secondary">Apply filters</button>
+        <partial name="_ListFilterActions" model='"List"' />
     </form>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
