@@ -7,11 +7,13 @@ namespace UI_Admin.Controllers;
 public class RegionsController : Controller
 {
     private readonly RegionApiService _regionApiService;
+    private readonly BranchApiService _branchApiService;
     private readonly ILogger<RegionsController> _logger;
 
-    public RegionsController(RegionApiService regionApiService, ILogger<RegionsController> logger)
+    public RegionsController(RegionApiService regionApiService, BranchApiService branchApiService, ILogger<RegionsController> logger)
     {
         _regionApiService = regionApiService;
+        _branchApiService = branchApiService;
         _logger = logger;
     }
 
@@ -52,6 +54,24 @@ public class RegionsController : Controller
         {
             TempData["ErrorMessage"] = "Region not found.";
             return RedirectToAction(nameof(Index));
+        }
+
+        if (detail.Branches.Any(b => !b.Latitude.HasValue || !b.Longitude.HasValue))
+        {
+            var branchTasks = detail.Branches.Select(async b =>
+            {
+                if (!b.Latitude.HasValue || !b.Longitude.HasValue)
+                {
+                    var bDetail = await _branchApiService.GetByIdAsync(b.BranchId, cancellationToken);
+                    if (bDetail != null)
+                    {
+                        b.Address = string.IsNullOrWhiteSpace(b.Address) ? bDetail.Address : b.Address;
+                        b.Latitude = bDetail.Latitude;
+                        b.Longitude = bDetail.Longitude;
+                    }
+                }
+            });
+            await Task.WhenAll(branchTasks);
         }
 
         return View(detail);

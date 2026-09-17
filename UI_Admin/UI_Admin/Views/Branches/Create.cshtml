@@ -50,9 +50,9 @@
 
 
             <!-- Grid Bento Split -->
-            <div class="grid grid-cols-1 xl:grid-cols-12 gap-unit-6 items-start">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-unit-6 items-start">
                 <!-- Left Side: Core Fields (8 Cols) -->
-                <div class="xl:col-span-8 space-y-unit-6">
+                <div class="lg:col-span-8 space-y-unit-6">
                     <!-- Section 1: Branch Information -->
                     <section class="bg-surface-container-lowest rounded-xl p-unit-8 shadow-sm space-y-unit-6">
                         <div class="flex items-center justify-between pb-unit-2">
@@ -264,7 +264,7 @@
                 </div>
 
                 <!-- Right Side: Sticky Operational Summary & Meta Details (4 Cols) -->
-                <div class="xl:col-span-4 space-y-unit-6 xl:sticky xl:top-24">
+                <div class="lg:col-span-4 space-y-unit-6 lg:sticky lg:top-24">
                     <!-- Live Preview Summary Card -->
                     <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm space-y-unit-5">
                         <div class="flex items-center justify-between border-b border-surface-container-high pb-unit-4">
@@ -301,40 +301,18 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Quick Map Preview Widget with data-location -->
-                    <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm space-y-unit-3">
-                        <div class="flex items-center justify-between">
-                            <span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Coordinate Preview (Optional)</span>
-                            <span class="material-symbols-outlined text-primary-container text-body-md">location_on</span>
-                        </div>
-                        <div class="w-full h-36 bg-cover bg-center rounded-lg flex flex-col justify-end p-unit-3 relative overflow-hidden group shadow-inner" data-location="Ho Chi Minh City, Vietnam" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuACFtG4M2dH6AKmZtvQdHbvQbtKT0f91969gPWTlJ4xvyTqllE9Xb0w2Lo7UekJivHNxnhGHNwix0PxaXhR7Jg0-0lbA-7rAGVHBLwIVGp0nVkkmEwEwBODPSZbjc9wzgMp4HMY0wHVD40taexGxja9V4aElNXWXS6LICrWMGZXT9xHEUy5jk1meJPYEMGgb8texAmXGAdR392n5tlEe1l-BcLmjLAdGIz2_8XfmoUMLCUHlVMFiyyVyg');">
-                            <div class="absolute inset-0 bg-gradient-to-t from-[#111827]/90 via-[#111827]/40 to-transparent"></div>
-                            <div class="relative z-10 text-white flex items-center justify-between">
-                                <span class="font-code-num text-label-sm tracking-wide" id="previewCoords">LOCATION PREVIEW</span>
-                                <span class="material-symbols-outlined text-title-md text-primary-fixed-dim">my_location</span>
-                            </div>
-                        </div>
-                        <p class="font-label-sm text-label-sm text-on-surface-variant">Map baseline is updated automatically when valid latitude and longitude are supplied.</p>
-                    </div>
                 </div>
             </div>
 
             <!-- Persistent Bottom Actions Ribbon -->
-            <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-unit-4">
-                <div class="flex items-center gap-unit-2 text-on-surface-variant font-body-sm order-2 sm:order-1">
-                    <span class="material-symbols-outlined text-body-md text-primary-container">shield</span>
-                    <span>Draft changes are validated locally before submission.</span>
-                </div>
-                <div class="flex items-center gap-unit-4 w-full sm:w-auto order-1 sm:order-2 justify-end">
-                    <a asp-controller="Branches" asp-action="Index" class="h-input-height px-unit-6 rounded-lg bg-surface-container-lowest text-[#64748B] hover:bg-surface-container hover:text-on-surface font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer border border-surface-container-high">
-                        Cancel
-                    </a>
-                    <button class="h-input-height px-unit-6 rounded-lg bg-primary-container text-white hover:bg-primary font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" id="submitBtn" type="submit">
-                        <span class="material-symbols-outlined text-body-md">add_business</span>
-                        <span>Create Branch</span>
-                    </button>
-                </div>
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm flex items-center justify-end gap-unit-4">
+                <a asp-controller="Branches" asp-action="Index" class="h-input-height px-unit-6 rounded-lg bg-surface-container-lowest text-[#64748B] hover:bg-surface-container hover:text-on-surface font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer border border-surface-container-high">
+                    Cancel
+                </a>
+                <button class="h-input-height px-unit-6 rounded-lg bg-primary-container text-white hover:bg-primary font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" id="submitBtn" type="submit">
+                    <span class="material-symbols-outlined text-body-md">add_business</span>
+                    <span>Create Branch</span>
+                </button>
             </div>
         </form>
     </div>
@@ -360,7 +338,6 @@
             const previewCode = document.getElementById('previewCode');
             const previewName = document.getElementById('previewName');
             const previewRegion = document.getElementById('previewRegion');
-            const previewCoords = document.getElementById('previewCoords');
             const previewAddress = document.getElementById('previewAddress');
 
             function updateCounter(input, counterId, max) {
@@ -415,31 +392,6 @@
 
                 regionSelect.addEventListener('change', handleRegionChange);
             }
-
-            function updateCoords() {
-                const lat = latInput ? latInput.value.trim() : '';
-                const lng = lngInput ? lngInput.value.trim() : '';
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lng);
-
-                const validCoords = (!lat || (!isNaN(latNum) && latNum >= -90 && latNum <= 90)) &&
-                                    (!lng || (!isNaN(lngNum) && lngNum >= -180 && lngNum <= 180));
-
-                if (previewCoords) {
-                    if (lat && lng && validCoords) {
-                        previewCoords.textContent = `${latNum.toFixed(4)}, ${lngNum.toFixed(4)}`;
-                    } else if (lat && validCoords) {
-                        previewCoords.textContent = `Lat: ${latNum.toFixed(4)}`;
-                    } else if (lng && validCoords) {
-                        previewCoords.textContent = `Lng: ${lngNum.toFixed(4)}`;
-                    } else {
-                        previewCoords.textContent = 'LOCATION PREVIEW';
-                    }
-                }
-            }
-
-            if (latInput) latInput.addEventListener('input', updateCoords);
-            if (lngInput) lngInput.addEventListener('input', updateCoords);
         })();
     </script>
 }
