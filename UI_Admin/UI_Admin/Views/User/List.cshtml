@@ -305,18 +305,18 @@
                 <a asp-action="Create" class="ui-button primary"><span class="symbol">♙+</span>Create Account</a></div>
         </div>
         <div asp-validation-summary="ModelOnly" class="validation-errors"></div>
-        <div class="metrics">
-            <article class="metric"><div><div class="metric-label">Total Active Users</div><div class="metric-value">@Model.ActiveUsers.ToString("N0")</div><div class="metric-note">Currently active accounts</div></div><span class="metric-icon">▣</span></article>
-            <article class="metric"><div><div class="metric-label">Managers &amp; Accountants</div><div class="metric-value">@Model.ElevatedUsers.ToString("N0")</div><div class="metric-note">Elevated operational roles</div></div><span class="metric-icon">♧</span></article>
-            <article class="metric"><div><div class="metric-label">Pending Activation</div><div class="metric-value">@Model.PendingUsers.ToString("N0")</div><div class="metric-note danger">Awaiting account setup</div></div><span class="metric-icon">⌛</span></article>
-            <article class="metric"><div><div class="metric-label">Branch Deployment</div><div class="metric-value">@Model.ActiveBranches / @Model.TotalBranches</div><div class="metric-note">Active branches</div></div><span class="metric-icon">⌘</span></article>
-        </div>
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Total Active Users", Model.ActiveUsers.ToString("N0"), "Currently active accounts", "group"),
+            new("Managers & Accountants", Model.ElevatedUsers.ToString("N0"), "Elevated operational roles", "admin_panel_settings"),
+            new("Pending Activation", Model.PendingUsers.ToString("N0"), "Awaiting account setup", "pending_actions"),
+            new("Branch Deployment", $"{Model.ActiveBranches} / {Model.TotalBranches}", "Active branches", "account_tree")
+        })' />
         <form asp-action="List" method="get" class="filter-card"><div class="filters">
             <label class="search-box"><span>⌕</span><input asp-for="Query.Search" name="search" class="filter-control" type="search" placeholder="Search name, email, phone, or identity number" /></label>
             <select asp-for="Query.RoleId" name="roleId" class="filter-control" aria-label="Role"><option value="">All Roles</option>@foreach (var role in Model.Roles) { <option value="@role.Id">@role.Name</option> }</select>
             <select asp-for="Query.BranchId" name="branchId" class="filter-control" aria-label="Branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.Id">@branch.Name</option> }</select>
             <select asp-for="Query.Status" name="status" class="filter-control" aria-label="Status"><option value="">All Statuses</option><option value="ACTIVE">Active</option><option value="PENDING">Pending Activation</option><option value="INACTIVE">Inactive</option></select>
-            <div class="heading-actions"><button class="ui-button filter-submit" type="submit" title="Apply filters">⌕</button><a asp-action="List" class="ui-button clear" title="Clear filters"><span class="symbol">↻</span>Clear</a></div>
+            <partial name="_ListFilterActions" model='"List"' />
         </div></form>
         <div class="table-card">
             <table class="users-table"><thead><tr><th>User</th><th>Phone</th><th>Role</th><th>Branch</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody>

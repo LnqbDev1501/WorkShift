@@ -36,16 +36,53 @@
         <div class="summary-grid">
             <section class="dashboard-card summary-card">
                 <div class="card-heading"><h2>Users by Role</h2><span class="eyebrow">Account Distribution</span></div>
-                <p>Active authorization tiers across corporate and site divisions.</p>
-                <div class="role-list">
-                    @foreach (var role in new[] { (Name: "Managers", Count: data.ManagerCount, Color: "primary"), (Name: "Accountants", Count: data.AccountantCount, Color: "neutral"), (Name: "Staff", Count: data.StaffCount, Color: "staff") })
+                <p>Distribution of Manager, Accountant and Staff accounts.</p>
+                @{
+                    var roles = new[] {
+                        (Name: "Managers", Count: data.ManagerCount, Color: "#5146e5"),
+                        (Name: "Accountants", Count: data.AccountantCount, Color: "#0891b2"),
+                        (Name: "Staff", Count: data.StaffCount, Color: "#f59e0b")
+                    };
+                    var roleTotal = roles.Sum(role => role.Count);
+                    // Allocate tenths by largest remainder so displayed percentages total 100.0%.
+                    var exactShares = roles.Select(role => roleTotal == 0 ? 0m : role.Count * 1000m / roleTotal).ToArray();
+                    var shares = exactShares.Select(share => (int)Math.Floor(share)).ToArray();
+                    if (roleTotal > 0)
                     {
-                        var percent = DashboardViewModel.Percent(role.Count, data.TotalUsers);
-                        <div><div class="role-label"><span><i class="dot @role.Color"></i>@role.Name</span><span>@DashboardViewModel.Number(role.Count)<small>@(percent)%</small></span></div>
-                        <div class="chart-track" role="img" aria-label="@role.Name: @role.Count, @percent percent"><div class="chart-fill @role.Color" style="width: @(percent)%"></div></div></div>
+                        var remaining = 1000 - shares.Sum();
+                        foreach (var index in Enumerable.Range(0, roles.Length).OrderByDescending(i => exactShares[i] - shares[i]).Take(remaining))
+                        {
+                            shares[index]++;
+                        }
                     }
+                    var firstStop = (shares[0] / 10m).ToString("0.0", CultureInfo.InvariantCulture);
+                    var secondStop = ((shares[0] + shares[1]) / 10m).ToString("0.0", CultureInfo.InvariantCulture);
+                    var chartBackground = roleTotal == 0 ? "#e8e9ef" : $"conic-gradient({roles[0].Color} 0% {firstStop}%, {roles[1].Color} {firstStop}% {secondStop}%, {roles[2].Color} {secondStop}% 100%)";
+                }
+                <div class="role-distribution">
+                    <div class="role-donut" style="background: @chartBackground" aria-hidden="true">
+                        <div class="role-donut-center"><strong>@DashboardViewModel.Number(roleTotal)</strong><span>Accounts</span></div>
+                        @for (var i = 0; i < roles.Length; i++)
+                        {
+                            if (shares[i] == 0) { continue; }
+                            var midpoint = (shares.Take(i).Sum() + shares[i] / 2d) / 1000d * 2 * Math.PI;
+                            var labelX = (50 + 40 * Math.Sin(midpoint)).ToString("0.###", CultureInfo.InvariantCulture);
+                            var labelY = (50 - 40 * Math.Cos(midpoint)).ToString("0.###", CultureInfo.InvariantCulture);
+                            <span class="role-segment-percent" style="left:@(labelX)%;top:@(labelY)%" title="@roles[i].Name">@((shares[i] / 10m).ToString("0.0", CultureInfo.InvariantCulture))%</span>
+                        }
+                    </div>
+                    <ul class="role-legend" aria-label="Account distribution by role">
+                        @for (var i = 0; i < roles.Length; i++)
+                        {
+                            <li aria-label="@roles[i].Name: @roles[i].Count accounts, @((shares[i] / 10m).ToString("0.0", CultureInfo.InvariantCulture)) percent">
+                                <span class="role-legend-name"><i style="background: @roles[i].Color" aria-hidden="true"></i>@roles[i].Name</span>
+                                <strong>@DashboardViewModel.Number(roles[i].Count)<small>accounts</small></strong>
+                            </li>
+                        }
+                    </ul>
                 </div>
-                <div class="panel-footer"><span>Selected account roles</span><span>Total Segmented: @DashboardViewModel.Number(data.ManagerCount + data.AccountantCount + data.StaffCount)</span></div>
+                @if (roleTotal == 0) { <p class="empty-state">No accounts in these roles yet.</p> }
+                <div class="panel-footer"><span>Managers, Accountants &amp; Staff</span><span>Total: @DashboardViewModel.Number(roleTotal) · @(roleTotal == 0 ? "0" : "100")%</span></div>
             </section>
             <section class="dashboard-card summary-card">
                 <div class="card-heading"><h2>Today's Attendance</h2><div class="attendance-date">@data.TodayAttendance.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)<small>Asia/Ho_Chi_Minh</small></div></div>

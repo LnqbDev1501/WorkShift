@@ -3,11 +3,11 @@
     ViewData["Title"] = "Payroll Periods";
     string Link(int page = 1, string? status = null) => Url.Action("List", new { search = Model.Filter.Search, regionId = Model.Filter.RegionId, branchId = Model.Filter.BranchId, status = status ?? Model.Filter.Status, pageNumber = page, pageSize = Model.Filter.PageSize })!;
     string Count(string status) => Model.Counts.TryGetValue(status, out var count) ? count.ToString("N0") : "—";
-    var tabs = new[] { ("", "All Batches"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required") };
+    var statuses = new[] { ("", "All Batches"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required") };
 }
 @section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
 <div class="payroll-page">
-    <div class="payroll-heading"><div><h1>Payroll Periods</h1><p>Review payroll cycles, audit employee pay, and track approval across branches.</p></div><div class="payroll-actions"><button class="payroll-button" id="export-payroll" type="button" disabled="@(Model.Page.Items.Count == 0)">↓ Export Page CSV</button><div class="payroll-review-mode" aria-label="Admin review workspace"><span class="material-symbols-outlined">verified_user</span><div><strong>Admin Review Mode</strong><small><b>@Count("SUBMITTED")</b> batches awaiting approval</small></div></div></div></div>
+    <div class="payroll-heading"><div><div class="list-eyebrow">Enterprise Payroll Directory</div><h1>Payroll Periods</h1><p>Review payroll cycles, audit employee pay, and track approval across branches.</p></div><div class="payroll-actions"><button class="payroll-button" id="export-payroll" type="button" disabled="@(Model.Page.Items.Count == 0)">↓ Export Page CSV</button><div class="payroll-review-mode" aria-label="Admin review workspace"><span class="material-symbols-outlined">verified_user</span><div><strong>Admin Review Mode</strong><small><b>@Count("SUBMITTED")</b> batches awaiting approval</small></div></div></div></div>
     @if (Model.Error != null || TempData["PayrollError"] != null) { <div class="alert alert-danger" role="alert">@(Model.Error ?? TempData["PayrollError"]) <a asp-action="List">Thử lại</a></div> }
     @if (Model.LookupError != null) { <div class="alert alert-warning" role="alert">@Model.LookupError</div> }
     <div asp-validation-summary="All" class="text-danger"></div>
@@ -19,14 +19,14 @@
     </section>
     <section class="payroll-filters">
         <form method="get" asp-action="List" id="payroll-filter-form">
-            <input type="hidden" name="Status" value="@Model.Filter.Status" />
+
             <input type="hidden" name="PageSize" value="@Model.Filter.PageSize" />
             <label class="search-field"><span class="visually-hidden">Search payroll periods</span><input name="Search" value="@Model.Filter.Search" maxlength="100" placeholder="Search by Period Code (PR-...), or period name…" /></label>
             <label><span class="visually-hidden">Region</span><select name="RegionId" id="payroll-region"><option value="">All Regions (Enterprise)</option>@foreach (var region in Model.Regions) { <option value="@region.RegionId" selected="@(region.RegionId == Model.Filter.RegionId)">@region.RegionName</option> }</select></label>
             <label><span class="visually-hidden">Branch</span><select name="BranchId" id="payroll-branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.BranchId" selected="@(branch.BranchId == Model.Filter.BranchId)">@branch.BranchName</option> }</select></label>
-            <button class="payroll-button primary" type="submit">Search</button><a class="payroll-button" asp-action="List">↻ Reset</a>
+            <label><span class="visually-hidden">Payroll status</span><select name="Status" id="payroll-status" aria-label="Payroll status">@foreach (var status in statuses) { <option value="@status.Item1" selected="@((Model.Filter.Status ?? "") == status.Item1)">@status.Item2 (@Count(status.Item1))</option> }</select></label>
+            <partial name="_ListFilterActions" model='"List"' />
         </form>
-        <nav class="payroll-tabs" aria-label="Payroll status">@foreach (var tab in tabs) { <a href="@Link(status: tab.Item1)" class="@((Model.Filter.Status ?? "") == tab.Item1 ? "active" : "")" aria-current="@((Model.Filter.Status ?? "") == tab.Item1 ? "page" : null)">@tab.Item2 <span>@Count(tab.Item1)</span></a> }</nav>
     </section>
     <section class="payroll-table-card">
         <div class="payroll-table-toolbar"><span>Showing payroll records sorted by <strong>Cycle Recency</strong></span><button class="payroll-button" id="payroll-density" type="button" aria-pressed="false">☷ Compact rows</button></div>

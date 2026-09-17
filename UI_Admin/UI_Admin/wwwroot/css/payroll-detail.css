@@ -19,7 +19,7 @@
     box-sizing: border-box;
 
     color: #303238;
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 13px;
     line-height: 1.45;
 }
@@ -414,7 +414,7 @@
 .employee-payroll-table td {
     box-sizing: border-box;
 
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     line-height: 1.45;
 }
 
@@ -622,7 +622,7 @@
 
     box-shadow: 0 1px 3px rgba(32, 42, 64, .05);
 
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
 .inspection-panel header {
@@ -1066,7 +1066,7 @@
     border: 1px solid #e8ebf2;
     border-radius: 8px;
     box-shadow: none;
-    font-family: Inter, "Segoe UI", Arial, sans-serif;
+    font-family: Arial, Helvetica, sans-serif;
     text-align: left !important;
 }
 

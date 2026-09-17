@@ -14,7 +14,7 @@
     <!-- Top Page Header Bar & Primary Action -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4">
         <div>
-            <h1 class="font-display-md text-on-surface text-2xl font-bold tracking-tight">Branches</h1>
+            <div class="list-eyebrow">Enterprise Branch Directory</div><h1 class="font-display-md text-on-surface text-2xl font-bold tracking-tight">Branches</h1>
             <p class="font-body-md text-secondary mt-0.5">Manage branch information and view assigned users across operational jurisdictions.</p>
         </div>
         <div class="flex items-center gap-unit-3">
@@ -25,18 +25,12 @@
         </div>
     </div>
 
-    <!-- Operational Lifecycle Notice Banner -->
-    <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm flex items-start gap-unit-3 relative overflow-hidden">
-        <div class="w-1.5 absolute left-0 top-0 bottom-0 bg-primary"></div>
-        <div class="p-1.5 rounded-lg bg-primary-fixed text-primary shrink-0 mt-0.5">
-            <span class="material-symbols-outlined text-[20px]">info</span>
-        </div>
-        <div class="flex-1 min-w-0 pr-4">
-            <div class="font-title-md text-[14px] text-on-surface font-semibold">Operational State &amp; User Assignment Integrity</div>
-            <p class="font-body-sm text-secondary mt-0.5">Deactivating a branch only changes the branch status to Inactive. User accounts and historical records are not automatically changed.</p>
-        </div>
-    </div>
-
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+new("Matching Branches", Model.TotalItems.ToString("N0"), "Matching current filters", "store"),
+new("Active Branches", Model.Items.Count(x => x.IsActive).ToString("N0"), "On this page", "check_circle"),
+new("Inactive / Closed", Model.Items.Count(x => x.IsInactive || x.IsClosed).ToString("N0"), "On this page", "pause_circle"),
+new("Assigned Employees", Model.Items.Sum(x => x.EmployeeCount).ToString("N0"), "Across branches on this page", "groups")
+})' />
     <!-- Table Container Card with Filter Toolbar -->
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden flex flex-col">
         <!-- Filter Toolbar -->
@@ -85,16 +79,7 @@
                     <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary pointer-events-none text-[18px]">expand_more</span>
                 </div>
             </div>
-            <!-- Clear Action & Stats -->
-            <div class="flex items-center gap-unit-3 self-end lg:self-center">
-                @if (isFiltered)
-                {
-                    <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center gap-1 text-[13px] text-secondary hover:text-primary transition-colors cursor-pointer" id="clear-filters-btn">
-                        <span class="material-symbols-outlined text-[16px]">restart_alt</span>
-                        <span>Clear Filters</span>
-                    </a>
-                }
-            </div>
+<partial name="_ListFilterActions" model='"Index"' />
         </form>
 
         <!-- Active Filtering Feedback Pill Bar -->

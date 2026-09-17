@@ -12,6 +12,7 @@
     <!-- Header Title & Action Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
         <div class="flex flex-col">
+<div class="list-eyebrow">Enterprise Region Directory</div>
             <div class="flex items-center gap-unit-3">
                 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Regions</h1>
                
@@ -26,14 +27,12 @@
         </div>
     </div>
 
-    <!-- Contextual Policy Banner -->
-    <div class="flex items-start gap-unit-3 px-unit-4 py-unit-3 bg-surface-container-low rounded-xl">
-        <span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
-        <div class="flex-1 text-body-sm font-body-sm text-secondary">
-            <strong class="font-body-md-medium text-on-surface">Administrative Notice:</strong> Deactivating a region only changes the region's status. Its branches and user accounts will remain unchanged.
-        </div>
-    </div>
-
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+new("Matching Regions", Model.TotalItems.ToString("N0"), "Matching current filters", "public"),
+new("Active Regions", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
+new("Inactive Regions", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
+new("Branch Deployment", Model.Items.Sum(x => x.BranchCount).ToString("N0"), "Across regions on this page", "account_tree")
+})' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="Regions" asp-action="Index" id="filter-form" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
         <div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-unit-3 max-w-2xl">
@@ -60,11 +59,7 @@
                 <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
             </div>
         </div>
-        <!-- Clear Filters Button -->
-        <a href="@Url.Action("Index", "Regions")" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors" id="clear-filters-btn">
-            <span class="material-symbols-outlined text-[18px]">restart_alt</span>
-            <span>Clear Filters</span>
-        </a>
+<partial name="_ListFilterActions" model='"Index"' />
     </form>
 
     <!-- Main Table Container -->
