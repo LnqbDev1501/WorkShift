@@ -105,7 +105,10 @@ public class RegionApiService
                 BranchId = b.BranchId,
                 BranchCode = b.BranchCode,
                 BranchName = b.BranchName,
-                Status = b.Status ?? "ACTIVE"
+                Status = b.Status ?? "ACTIVE",
+                Address = b.Address,
+                Latitude = b.Latitude,
+                Longitude = b.Longitude
             }).ToList() ?? []
         };
     }
@@ -217,6 +220,9 @@ public class RegionApiService
         public string BranchCode { get; set; } = string.Empty;
         public string BranchName { get; set; } = string.Empty;
         public string? Status { get; set; }
+        public string? Address { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
     }
 
     private class ProblemDetailsResponse

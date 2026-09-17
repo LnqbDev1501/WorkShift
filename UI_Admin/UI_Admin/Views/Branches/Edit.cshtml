@@ -154,7 +154,7 @@
                                     required>
                                 @foreach (var reg in Model.AvailableRegions)
                                 {
-                                    <option value="@reg.RegionId" selected="@(reg.RegionId == Model.RegionId)">@reg.RegionName (@reg.RegionCode)</option>
+                                    <option value="@reg.RegionId" data-region-name="@reg.RegionName" selected="@(reg.RegionId == Model.RegionId)">@reg.RegionName (@reg.RegionCode)</option>
                                 }
                             </select>
                             <span class="material-symbols-outlined absolute right-unit-3 text-[18px] text-on-surface-variant pointer-events-none">expand_more</span>
@@ -410,31 +410,6 @@
                         <span class="text-on-surface-variant">Employees</span>
                         <span class="font-semibold text-on-surface">@Model.EmployeeCount</span>
                     </div>
-                </div>
-            </div>
-
-            <!-- Card 2: Geofence Radar Preview in Sidebar -->
-            <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm border border-surface-container-high flex flex-col gap-unit-3">
-                <div class="flex items-center justify-between border-b border-surface-container-high pb-unit-3">
-                    <div class="flex items-center gap-unit-2 font-label-md text-on-surface">
-                        <span class="material-symbols-outlined text-primary-container text-[20px]">map</span>
-                        <h3 class="font-title-md text-on-surface text-[15px]">Location Preview</h3>
-                    </div>
-                    <span class="font-code-num text-body-sm text-on-surface-variant">WGS 84</span>
-                </div>
-                <div class="w-full h-44 rounded-lg bg-cover bg-center relative flex items-center justify-center shadow-inner overflow-hidden"
-                     style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBmX27Cr-sW8Pk8IMp42qXHnyFD2kYBWkx49Dva8NZqhDMxrdeBTKSEt3wWcYifdBvskTY_byT59qiFlR0jblVuPR4ZwiedPj50XudYv4Bwm2wH4tl3tpISrcECuRsgODH38DzQU48G4gWPMoYhg4L9c5UzWS-55dBJYoruVOI2c0QKpDp6n6Z05EgRtvZhFw07Bhl9dnvsmbF-P0zzItP8wDdFqfUqXVlP42437o7mshSjRsV5OA-8Dw');">
-                    <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
-                    <div class="relative flex items-center justify-center z-10">
-                        <div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg">
-                            <span class="material-symbols-outlined text-[16px]">store</span>
-                        </div>
-                    </div>
-                    <div class="absolute bottom-2 left-3 z-10 flex items-center gap-unit-2 bg-surface/90 backdrop-blur-sm px-unit-2 py-unit-1 rounded text-body-sm font-code-num text-on-surface">
-                        <span class="w-2 h-2 rounded-full @(Model.Latitude.HasValue && Model.Longitude.HasValue ? "bg-[#059669]" : "bg-secondary")"></span>
-                        <span id="sidebar-coords-display">@coordinatesDisplay</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -514,30 +489,27 @@
                 });
             }
 
-            // Sync region select to sidebar preview
-            if (regionSelect && sidebarRegionDisplay) {
+            // Sync region select to sidebar preview & auto-fill map search location
+            if (regionSelect) {
                 regionSelect.addEventListener('change', () => {
-                    const selectedText = regionSelect.options[regionSelect.selectedIndex]?.text;
-                    if (selectedText) {
+                    const selectedOpt = regionSelect.options[regionSelect.selectedIndex];
+                    const selectedText = selectedOpt?.text;
+                    const regionName = selectedOpt?.getAttribute('data-region-name') || (selectedText ? selectedText.split(' (')[0].trim() : '');
+
+                    if (sidebarRegionDisplay && selectedText) {
                         sidebarRegionDisplay.textContent = selectedText;
+                    }
+
+                    // Auto-fill VietMap search location box when region is selected
+                    const searchInput = document.getElementById('searchLocationInput');
+                    const clearSearchBtn = document.getElementById('clearSearchBtn');
+                    if (searchInput && regionSelect.value && regionName) {
+                        searchInput.value = regionName;
+                        if (clearSearchBtn) clearSearchBtn.classList.remove('hidden');
+                        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
                     }
                 });
             }
-
-            // Sync coordinates to sidebar preview
-            function updateCoordsPreview() {
-                if (!sidebarCoordsDisplay) return;
-                const lat = parseFloat(latInput?.value);
-                const lng = parseFloat(lngInput?.value);
-                if (!isNaN(lat) && !isNaN(lng)) {
-                    sidebarCoordsDisplay.textContent = `${lat.toFixed(6)}° N, ${lng.toFixed(6)}° E`;
-                } else {
-                    sidebarCoordsDisplay.textContent = 'Unconfigured';
-                }
-            }
-
-            latInput?.addEventListener('input', updateCoordsPreview);
-            lngInput?.addEventListener('input', updateCoordsPreview);
 
             // Modal lifecycle handling
             function toggleModal(show) {
