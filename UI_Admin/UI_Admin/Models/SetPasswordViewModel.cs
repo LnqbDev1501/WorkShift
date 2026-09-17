@@ -9,9 +9,10 @@ namespace UI_Admin.Models
 
         [Required(ErrorMessage = "Please enter a password.")]
         [MinLength(6, ErrorMessage = "The password must contain at least 6 characters.")]
+        [MaxLength(16, ErrorMessage = "The password must not exceed 16 characters.")]
         [RegularExpression(
-            @"^(?=.*[A-Z])(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])\S{6,}$",
-            ErrorMessage = "The password must contain a letter, a number, at least one uppercase letter, and one special character.")]
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])\S{6,16}$",
+            ErrorMessage = "The password must contain uppercase and lowercase letters, a number, and a special character. Spaces are not allowed.")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;
 
