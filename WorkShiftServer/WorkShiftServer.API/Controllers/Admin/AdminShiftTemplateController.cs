@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
-using WorkShiftManagement.BLL.Services.Admin;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Controllers.Admin;
 
@@ -16,7 +16,7 @@ namespace WorkShiftServer.API.Controllers.Admin;
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
 [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 public sealed class AdminShiftTemplateController(
-    ShiftTemplateService service) : ControllerBase
+    IShiftTemplateService service) : ControllerBase
 {
     [HttpPost("{id}/restore")]
     [ProducesResponseType(StatusCodes.Status200OK)]

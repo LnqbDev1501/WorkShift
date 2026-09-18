@@ -110,7 +110,7 @@ builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
 builder.Services.AddScoped<IShiftTemplateRepo, ShiftTemplateRepo>();
-builder.Services.AddScoped<ShiftTemplateService>();
+builder.Services.AddScoped<IShiftTemplateService, ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepo, NotificationRepo>();

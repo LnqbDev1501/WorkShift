@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
-public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
+public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShiftTemplateService
 {
     public async Task<bool> RestoreAsync(int id, CancellationToken cancellationToken = default)
     {
