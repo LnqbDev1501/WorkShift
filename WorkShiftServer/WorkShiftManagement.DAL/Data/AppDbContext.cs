@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -117,6 +117,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
 
+<<<<<<< HEAD
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
@@ -141,6 +142,11 @@ public partial class AppDbContext : DbContext
             .HasPostgresExtension("extensions", "uuid-ossp")
             .HasPostgresExtension("vector")
             .HasPostgresExtension("vault", "supabase_vault");
+=======
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+
+>>>>>>> Truc_new
 
         modelBuilder.Entity<Attendance>(entity =>
         {

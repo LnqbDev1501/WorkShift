@@ -1,0 +1,151 @@
+@model UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageDetailViewModel
+
+@{
+    ViewData["Title"] = $"Minimum Wage {Model.WageName} - Details";
+}
+
+<div class="flex flex-col w-full px-7 py-4">
+    <partial name="_NotificationModal" />
+
+    <!-- Navigation Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+        <div class="flex items-center gap-3">
+            <a asp-controller="RegionalMinimumWages" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Minimum Wages">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-display-md text-display-lg font-bold tracking-tight text-on-surface">@Model.WageName Details</h1>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-label-sm bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> Current Active Version
+                    </span>
+                </div>
+                <p class="text-body-md text-secondary mt-0.5">Comprehensive regional minimum wage specification and historical audit log.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-body-sm transition-all shadow-sm cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+                <span>Edit Wage Tier</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Administrative Versioning Notice Callout -->
+    @if (Model.ReplacedWageId.HasValue)
+    {
+        <div class="bg-indigo-50/80 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-indigo-200/70 shadow-sm">
+            <div class="p-1.5 rounded-lg bg-indigo-100 text-indigo-700 shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-[20px]">history</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-body-md-medium font-bold text-indigo-950 text-sm">Version Hierarchy Notice</div>
+                <p class="font-body-sm text-indigo-900/90 text-xs mt-0.5 leading-relaxed">
+                    This minimum wage record represents a replacement version. It superseded wage record <strong class="font-semibold text-indigo-950">#@Model.ReplacedWageId</strong> and automatically migrated all associated active regions.
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-surface-container-low rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-surface-container-high shadow-sm">
+            <div class="p-1.5 rounded-lg bg-surface-container text-secondary shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-[20px]">verified</span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="font-body-md-medium font-semibold text-on-surface text-sm">Original Wage Specification</div>
+                <p class="font-body-sm text-secondary text-xs mt-0.5 leading-relaxed">
+                    This record is an original baseline wage tier specification and has not superseded any previous wage version.
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Main Content Cards Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Main Wage Details Card (8 Cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-surface-container-high/60 flex flex-col gap-6">
+                <div class="flex items-center justify-between pb-4 border-b border-surface-container-high">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">payments</span>
+                        <h2 class="font-title-lg text-on-surface font-bold text-base">Wage Tier Parameters</h2>
+                    </div>
+                    <span class="font-mono text-xs text-secondary font-semibold bg-surface-container px-2.5 py-1 rounded-md">
+                        ID: #@Model.RegionalMinimumWageId
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-body-sm">
+                    <!-- Field 1: Wage Name -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Wage Tier Name</span>
+                        <div class="mt-1 font-body-md-medium text-on-surface text-base font-bold">@Model.WageName</div>
+                    </div>
+
+                    <!-- Field 2: Hourly Rate -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Minimum Hourly Rate</span>
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-code-num text-primary font-bold text-2xl tracking-tight">@Model.MinimumHourlyRate.ToString("N0")</span>
+                            <span class="text-xs text-secondary font-semibold">VND / hour</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 border-t border-surface-container-high flex flex-col gap-2">
+                    <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Description / Coverage Notes</span>
+                    <p class="font-body-md text-on-surface text-sm leading-relaxed bg-surface-container-low p-4 rounded-xl">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "No description or special notes provided for this wage tier." : Model.Description)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Audit & History Sidebar (4 Cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60 flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-surface-container-high pb-3">
+                    <span class="material-symbols-outlined text-primary text-[20px]">manage_history</span>
+                    <h3 class="font-title-md text-on-surface font-bold text-sm">System Audit Metadata</h3>
+                </div>
+
+                <div class="flex flex-col gap-3.5 text-xs">
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-secondary">Version Status</span>
+                        <span class="font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Current</span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Replaced Wage Record</span>
+                        <span class="font-mono text-on-surface font-semibold">
+                            @(Model.ReplacedWageId.HasValue ? $"Replaced Wage ID #{Model.ReplacedWageId}" : "Original version (None)")
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Created Timestamp</span>
+                        <span class="font-mono text-on-surface font-semibold">@Model.CreatedAt.ToString("g")</span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Created By Admin User ID</span>
+                        <span class="font-mono text-secondary text-[11px] truncate" title="@Model.CreatedBy">@Model.CreatedBy</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar Footer -->
+    <div class="mt-8 pt-5 border-t border-surface-container-high/60 flex items-center justify-between">
+        <a asp-controller="RegionalMinimumWages" asp-action="Index" class="h-10 px-5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs flex items-center gap-2 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            <span>Back to List</span>
+        </a>
+        <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="h-10 px-6 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-xs flex items-center gap-2 transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[16px]">edit</span>
+            <span>Edit Wage Tier</span>
+        </a>
+    </div>
+</div>

@@ -86,7 +86,7 @@
                         </span>
                     }
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-unit-6 pt-unit-4 text-body-sm">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-unit-6 pt-unit-4 text-body-sm">
                     <div class="flex flex-col gap-unit-1">
                         <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Region Code</span>
                         <div class="mt-unit-1">
@@ -96,6 +96,22 @@
                     <div class="flex flex-col gap-unit-1">
                         <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Region Name</span>
                         <div class="mt-unit-1 font-body-md-medium text-on-surface">@Model.RegionName</div>
+                    </div>
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Minimum Wage</span>
+                        <div class="mt-unit-1">
+                            @if (Model.MinimumWage != null)
+                            {
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-on-surface">@Model.MinimumWage.WageName</span>
+                                    <span class="text-xs text-secondary font-code-num">@Model.MinimumWage.MinimumHourlyRate.ToString("N0") VND/hour</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-secondary italic text-body-sm">Not assigned</span>
+                            }
+                        </div>
                     </div>
                     <div class="flex flex-col gap-unit-1">
                         <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Status</span>

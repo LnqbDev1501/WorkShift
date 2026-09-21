@@ -63,6 +63,10 @@
                         <span class="material-symbols-outlined text-[20px] flex-shrink-0">map</span>
                         <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Regions</span>
                     </a>
+                    <a asp-controller="RegionalMinimumWages" asp-action="Index" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "RegionalMinimumWages" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Minimum Wages">
+                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
+                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Minimum Wages</span>
+                    </a>
                     <a asp-controller="Branches" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Branches" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150" title="Branches">
                         <span class="material-symbols-outlined text-[20px] flex-shrink-0">store</span>
                         <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branches</span>
