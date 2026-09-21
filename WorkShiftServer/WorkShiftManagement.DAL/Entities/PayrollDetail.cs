@@ -41,7 +41,11 @@ public partial class PayrollDetail
 
     public DateTime CreatedAt { get; set; }
 
+    public int? HolidayPayRuleId { get; set; }
+
     public virtual AttendancePenaltyRecord? AttendancePenalty { get; set; }
+
+    public virtual HolidayPayRule? HolidayPayRule { get; set; }
 
     public virtual Payroll Payroll { get; set; } = null!;
 

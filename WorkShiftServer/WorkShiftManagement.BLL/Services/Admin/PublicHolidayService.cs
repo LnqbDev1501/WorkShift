@@ -172,7 +172,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
                 {
                     HolidayName = x.Name,
                     HolidayDate = x.Date,
-                    PayMultiplier = x.Multiplier,
+                    //PayMultiplier = x.Multiplier,
                     IsActive = true,
                     CreatedBy = callerId == Guid.Empty ? (Guid?)null : callerId,
                     CreatedAt = now,
@@ -216,10 +216,10 @@ public sealed class PublicHolidayService : IPublicHolidayService
                 var dateChanged = holiday.HolidayDate != data.Date;
                 var multiplierChanged = holiday.PayMultiplier != data.Multiplier;
                 var nameChanged = holiday.HolidayName != data.Name;
-                if ((dateChanged || multiplierChanged) && await _repo.IsUsedInPayrollAsync(id, ct))
+                //if ((dateChanged || multiplierChanged) && await _repo.IsUsedInPayrollAsync(id, ct))
                     throw Error(new InvalidOperationException("This holiday has already been used in payroll. Its date and multiplier cannot be changed."), "HOLIDAY_USED_IN_PAYROLL");
 
-                if (!dateChanged && !multiplierChanged && !nameChanged)
+                //if (!dateChanged && !multiplierChanged && !nameChanged)
                     return Map(holiday);
 
                 var oldValue = Json(AuditSnapshot(holiday));

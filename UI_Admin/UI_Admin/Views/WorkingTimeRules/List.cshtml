@@ -1,0 +1,88 @@
+@model UI_Admin.Models.WorkingTimeRuleListViewModel
+@{
+    ViewData["Title"] = "Working Time Limits";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
+}
+
+@if (TempData["WorkingTimeRuleCreatedSuccess"] is true or "true")
+{
+    <div role="dialog" aria-modal="true" aria-labelledby="working-time-success-title" id="successPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 id="working-time-success-title" class="text-[18px] font-semibold text-[#191c2a]">Version Created Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    The new working time version is Active. Previous versions are now Inactive.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('successPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+
+<main class="time-rules">
+    <header>
+        <div>
+            <h1>Working Time Limits</h1>
+            <p>Version history of maximum daily and weekly working hours.</p>
+        </div>
+        <a asp-action="Create" class="rule-button">Create version</a>
+    </header>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <p class="rule-error" role="alert">@Model.ErrorMessage</p>
+    }
+    else if (Model.Items.Count == 0)
+    {
+        <section class="rule-card">
+            <h2>No versions yet</h2>
+            <p>Create the first version with both daily and weekly limits.</p>
+        </section>
+    }
+    else
+    {
+        <div class="rule-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Version</th>
+                        <th>Name / legal reference</th>
+                        <th>Hours / day</th>
+                        <th>Hours / week</th>
+                        <th>Status</th>
+                        <th>Created (UTC+7)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rule in Model.Items)
+                    {
+                        <tr>
+                            <td>V@rule.WorkingTimeRuleId</td>
+                            <td>@rule.RuleName</td>
+                            <td>@rule.MaxDailyHours.ToString("0.##")</td>
+                            <td>@rule.MaxWeeklyHours.ToString("0.##")</td>
+                            <td>
+                                <span class="rule-status @(rule.Status == "ACTIVE" ? "active" : "inactive")">
+                                    @(rule.Status == "ACTIVE" ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>@rule.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <p class="rule-help">Versions are retained for reference. Creating a new version activates it immediately and makes the previous version Inactive. Versions cannot be edited or deleted.</p>
+</main>

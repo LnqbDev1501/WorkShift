@@ -99,6 +99,8 @@ public partial class User
 
     public virtual ICollection<FaceVerificationSession> FaceVerificationSessions { get; set; } = new List<FaceVerificationSession>();
 
+    public virtual ICollection<HolidayPayRule> HolidayPayRules { get; set; } = new List<HolidayPayRule>();
+
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
@@ -118,6 +120,8 @@ public partial class User
     public virtual Branch? PreviousBranch { get; set; }
 
     public virtual ICollection<PublicHolidayConfig> PublicHolidayConfigs { get; set; } = new List<PublicHolidayConfig>();
+
+    public virtual ICollection<RegionalMinimumWage> RegionalMinimumWages { get; set; } = new List<RegionalMinimumWage>();
 
     public virtual ICollection<RequestLimitRule> RequestLimitRuleCreatedByNavigations { get; set; } = new List<RequestLimitRule>();
 
@@ -154,4 +158,6 @@ public partial class User
     public virtual ICollection<WorkShift> WorkShiftCancelledByNavigations { get; set; } = new List<WorkShift>();
 
     public virtual ICollection<WorkShift> WorkShiftCreatedByNavigations { get; set; } = new List<WorkShift>();
+
+    public virtual ICollection<WorkingTimeRule> WorkingTimeRules { get; set; } = new List<WorkingTimeRule>();
 }

@@ -100,6 +100,8 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
+builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
+builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
