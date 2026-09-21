@@ -76,4 +76,7 @@ public class RegionBranchItemViewModel
     public string BranchCode { get; set; } = string.Empty;
     public string BranchName { get; set; } = string.Empty;
     public string Status { get; set; } = "ACTIVE";
+    public string? Address { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
 }

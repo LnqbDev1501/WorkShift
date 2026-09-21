@@ -1,14 +1,18 @@
 @model UI_Admin.Models.Regions.RegionDetailViewModel
+@inject IConfiguration Configuration
 
 @{
-    ViewData["Title"] = "Regions";
+    ViewData["Title"] = $"Region {Model.RegionCode} - Details";
     var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+    var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
 }
 
 <div class="flex flex-col w-full px-7 py-4">
     <partial name="_NotificationModal" />
-
-
 
     <!-- Administrative Notice Callout -->
     <div class="bg-amber-50 rounded-xl p-unit-4 flex items-start gap-unit-3 mb-unit-6">
@@ -51,7 +55,7 @@
     <div class="flex items-center gap-unit-6 border-b border-surface-container-high mb-unit-6">
         <button class="flex items-center gap-unit-2 pb-unit-3 text-primary border-b-2 border-primary font-body-md-medium transition-colors cursor-pointer" id="tab-overview-btn" type="button">
             <span class="material-symbols-outlined text-[18px]">info</span>
-            <span>Overview & Regional Metadata</span>
+            <span>Overview &amp; Regional Metadata</span>
         </button>
         <button class="flex items-center gap-unit-2 pb-unit-3 text-on-surface-variant hover:text-on-surface border-b-2 border-transparent font-body-md-medium transition-colors cursor-pointer" id="tab-branches-btn" type="button">
             <span class="material-symbols-outlined text-[18px]">storefront</span>
@@ -110,6 +114,30 @@
                         @(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)
                     </p>
                 </div>
+            </div>
+
+            <!-- Regional Branch Map Card -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm border border-surface-container-high/60 w-full">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-unit-4 border-b border-surface-container-high mb-unit-4 gap-unit-2">
+                    <div class="flex items-center gap-unit-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]">map</span>
+                        </div>
+                        <div>
+                            <h2 class="font-title-lg text-on-surface">Regional Map &amp; Branch Locations</h2>
+                            <p class="font-body-sm text-on-surface-variant">
+                                Geographic location map of all assigned branches in @Model.RegionName
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-unit-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-label-sm bg-primary/10 text-primary font-medium">
+                            <span class="w-2 h-2 rounded-full bg-primary"></span>
+                            @Model.Branches.Count(b => b.Latitude.HasValue && b.Longitude.HasValue) Mapped Facilities
+                        </span>
+                    </div>
+                </div>
+                <div id="regionBranchesMap" class="w-full h-[420px] rounded-xl border border-surface-container-high overflow-hidden shadow-inner relative z-0"></div>
             </div>
         </div>
     </div>
@@ -197,6 +225,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.js"></script>
     <script>
         (function () {
             const overviewBtn = document.getElementById('tab-overview-btn');
@@ -244,6 +273,100 @@
                         row.style.display = !query || text.includes(query) ? '' : 'none';
                     });
                 });
+            }
+
+            // VietMap Initialization for Region Branches
+            const vietMapKey = '@vietMapTileKey';
+            const mapContainer = document.getElementById('regionBranchesMap');
+
+            if (mapContainer && vietMapKey) {
+                const branchesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Branches.Select(b => new {
+                    b.BranchId,
+                    b.BranchCode,
+                    b.BranchName,
+                    b.Status,
+                    Address = b.Address ?? "",
+                    Latitude = b.Latitude.HasValue ? (double)b.Latitude.Value : (double?)null,
+                    Longitude = b.Longitude.HasValue ? (double)b.Longitude.Value : (double?)null
+                })));
+
+                const defaultLng = 106.660172;
+                const defaultLat = 10.762622;
+
+                const map = new vietmapgl.Map({
+                    container: 'regionBranchesMap',
+                    style: `https://maps.vietmap.vn/maps/styles/tm/style.json?apikey=${vietMapKey}`,
+                    center: [defaultLng, defaultLat],
+                    zoom: 10
+                });
+
+                map.addControl(new vietmapgl.NavigationControl(), 'top-right');
+
+                const bounds = new vietmapgl.LngLatBounds();
+                let validCount = 0;
+
+                branchesData.forEach(branch => {
+                    if (branch.Latitude !== null && branch.Longitude !== null &&
+                        !isNaN(branch.Latitude) && !isNaN(branch.Longitude)) {
+
+                        const lng = branch.Longitude;
+                        const lat = branch.Latitude;
+                        bounds.extend([lng, lat]);
+                        validCount++;
+
+                        const el = document.createElement('div');
+                        el.className = 'w-9 h-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center shadow-lg border-2 border-white cursor-pointer transform hover:scale-110 transition-transform';
+                        el.innerHTML = '<span class="material-symbols-outlined text-[18px]">store</span>';
+
+                        const popupHtml = `
+                            <div class="p-2 min-w-[200px]">
+                                <div class="font-code-num text-xs text-[#4F46E5] font-bold uppercase tracking-wider">${branch.BranchCode}</div>
+                                <div class="font-semibold text-sm text-gray-900 mt-0.5">${branch.BranchName}</div>
+                                <div class="text-xs text-gray-600 mt-1">${branch.Address || 'No address specified'}</div>
+                                <div class="mt-2 pt-1 border-t border-gray-200 flex items-center justify-between">
+                                    <span class="text-[11px] px-2 py-0.5 rounded-full ${branch.Status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 font-medium' : 'bg-gray-100 text-gray-700'}">${branch.Status}</span>
+                                    <a href="/Branches/Details/${branch.BranchId}" class="text-xs text-[#4F46E5] hover:underline font-medium">View Branch &rarr;</a>
+                                </div>
+                            </div>
+                        `;
+
+                        const popup = new vietmapgl.Popup({ offset: 25 })
+                            .setHTML(popupHtml);
+
+                        new vietmapgl.Marker(el)
+                            .setLngLat([lng, lat])
+                            .setPopup(popup)
+                            .addTo(map);
+                    }
+                });
+
+                if (validCount > 0) {
+                    map.on('load', () => {
+                        if (validCount === 1) {
+                            map.flyTo({ center: bounds.getCenter(), zoom: 14 });
+                        } else {
+                            map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
+                        }
+                    });
+                } else {
+                    const regionName = '@Model.RegionName';
+                    if (regionName) {
+                        fetch(`https://maps.vietmap.vn/api/autocomplete/v3?apikey=${vietMapKey}&text=${encodeURIComponent(regionName)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if (Array.isArray(data) && data.length > 0 && data[0].ref_id) {
+                                    return fetch(`https://maps.vietmap.vn/api/place/v3?apikey=${vietMapKey}&refid=${data[0].ref_id}`);
+                                }
+                            })
+                            .then(res => res ? res.json() : null)
+                            .then(place => {
+                                if (place && place.lat && place.lng) {
+                                    map.flyTo({ center: [place.lng, place.lat], zoom: 11 });
+                                }
+                            })
+                            .catch(() => {});
+                    }
+                }
             }
         })();
     </script>
