@@ -41,6 +41,8 @@ public partial class User
 
     public int? PreviousBranchId { get; set; }
 
+    public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
+
     public virtual ICollection<AttendancePenaltyRule> AttendancePenaltyRuleCancelledByNavigations { get; set; } = new List<AttendancePenaltyRule>();
 
     public virtual ICollection<AttendancePenaltyRule> AttendancePenaltyRuleCreatedByNavigations { get; set; } = new List<AttendancePenaltyRule>();
@@ -52,8 +54,6 @@ public partial class User
     public virtual ICollection<AttendanceRule> AttendanceRuleCreatedByNavigations { get; set; } = new List<AttendanceRule>();
 
     public virtual ICollection<AttendanceRule> AttendanceRulePublishedByNavigations { get; set; } = new List<AttendanceRule>();
-
-    public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
 
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 

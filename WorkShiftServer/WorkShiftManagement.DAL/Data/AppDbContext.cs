@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -18,6 +18,8 @@ public partial class AppDbContext : DbContext
     }
 
     public virtual DbSet<Attendance> Attendances { get; set; }
+
+    public virtual DbSet<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; }
 
     public virtual DbSet<AttendancePenaltyLevel> AttendancePenaltyLevels { get; set; }
 
@@ -117,8 +119,30 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder
+            .HasPostgresEnum("auth", "aal_level", new[] { "aal1", "aal2", "aal3" })
+            .HasPostgresEnum("auth", "code_challenge_method", new[] { "s256", "plain" })
+            .HasPostgresEnum("auth", "factor_status", new[] { "unverified", "verified" })
+            .HasPostgresEnum("auth", "factor_type", new[] { "totp", "webauthn", "phone", "recovery_code" })
+            .HasPostgresEnum("auth", "oauth_authorization_status", new[] { "pending", "approved", "denied", "expired" })
+            .HasPostgresEnum("auth", "oauth_client_type", new[] { "public", "confidential" })
+            .HasPostgresEnum("auth", "oauth_registration_type", new[] { "dynamic", "manual" })
+            .HasPostgresEnum("auth", "oauth_response_type", new[] { "code" })
+            .HasPostgresEnum("auth", "one_time_token_type", new[] { "confirmation_token", "reauthentication_token", "recovery_token", "email_change_token_new", "email_change_token_current", "phone_change_token" })
+            .HasPostgresEnum("realtime", "action", new[] { "INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR" })
+            .HasPostgresEnum("realtime", "equality_op", new[] { "eq", "neq", "lt", "lte", "gt", "gte", "in", "like", "ilike", "is", "match", "imatch", "isdistinct" })
+            .HasPostgresEnum("storage", "buckettype", new[] { "STANDARD", "ANALYTICS", "VECTOR" })
+            .HasPostgresExtension("extensions", "pg_stat_statements")
+            .HasPostgresExtension("extensions", "pgcrypto")
+            .HasPostgresExtension("extensions", "uuid-ossp")
+            .HasPostgresExtension("vector")
+            .HasPostgresExtension("vault", "supabase_vault");
 
         modelBuilder.Entity<Attendance>(entity =>
         {
@@ -209,12 +233,6 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.LateArrivalRequestId).HasColumnName("late_arrival_request_id");
-            entity.Property(e => e.ResolutionReason).HasColumnName("resolution_reason");
-            entity.Property(e => e.ResolutionType)
-                .HasMaxLength(20)
-                .HasColumnName("resolution_type");
-            entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
-            entity.Property(e => e.ResolvedBy).HasColumnName("resolved_by");
             entity.Property(e => e.RuleSnapshotJson)
                 .HasColumnType("jsonb")
                 .HasColumnName("rule_snapshot_json");
@@ -266,11 +284,63 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.LateArrivalRequestId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("attendances_late_arrival_request_id_fkey");
+        });
 
-            entity.HasOne(d => d.ResolvedByNavigation).WithMany(p => p.Attendances)
-                .HasForeignKey(d => d.ResolvedBy)
+        modelBuilder.Entity<AttendanceAdjustmentHistory>(entity =>
+        {
+            entity.HasKey(e => e.AdjustmentId).HasName("attendance_adjustment_histories_pkey");
+
+            entity.ToTable("attendance_adjustment_histories");
+
+            entity.HasIndex(e => e.AttendanceId, "attendance_adjustment_histories_attendance_id_key").IsUnique();
+
+            entity.Property(e => e.AdjustmentId).HasColumnName("adjustment_id");
+            entity.Property(e => e.AdjustedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("adjusted_at");
+            entity.Property(e => e.AdjustedBy).HasColumnName("adjusted_by");
+            entity.Property(e => e.AdjustmentReason).HasColumnName("adjustment_reason");
+            entity.Property(e => e.AdjustmentType)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'ADJUSTED'::character varying")
+                .HasColumnName("adjustment_type");
+            entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
+            entity.Property(e => e.NewActualWorkingMinutes).HasColumnName("new_actual_working_minutes");
+            entity.Property(e => e.NewChargeableEarlyLeaveMinutes).HasColumnName("new_chargeable_early_leave_minutes");
+            entity.Property(e => e.NewChargeableLateMinutes).HasColumnName("new_chargeable_late_minutes");
+            entity.Property(e => e.NewCheckInTime).HasColumnName("new_check_in_time");
+            entity.Property(e => e.NewCheckOutTime).HasColumnName("new_check_out_time");
+            entity.Property(e => e.NewStatus)
+                .HasMaxLength(40)
+                .HasColumnName("new_status");
+            entity.Property(e => e.NewTotalEarlyLeaveMinutes).HasColumnName("new_total_early_leave_minutes");
+            entity.Property(e => e.NewTotalLateMinutes).HasColumnName("new_total_late_minutes");
+            entity.Property(e => e.NewWorkingHours)
+                .HasPrecision(10, 4)
+                .HasColumnName("new_working_hours");
+            entity.Property(e => e.OldActualWorkingMinutes).HasColumnName("old_actual_working_minutes");
+            entity.Property(e => e.OldChargeableEarlyLeaveMinutes).HasColumnName("old_chargeable_early_leave_minutes");
+            entity.Property(e => e.OldChargeableLateMinutes).HasColumnName("old_chargeable_late_minutes");
+            entity.Property(e => e.OldCheckInTime).HasColumnName("old_check_in_time");
+            entity.Property(e => e.OldCheckOutTime).HasColumnName("old_check_out_time");
+            entity.Property(e => e.OldStatus)
+                .HasMaxLength(40)
+                .HasColumnName("old_status");
+            entity.Property(e => e.OldTotalEarlyLeaveMinutes).HasColumnName("old_total_early_leave_minutes");
+            entity.Property(e => e.OldTotalLateMinutes).HasColumnName("old_total_late_minutes");
+            entity.Property(e => e.OldWorkingHours)
+                .HasPrecision(10, 4)
+                .HasColumnName("old_working_hours");
+
+            entity.HasOne(d => d.AdjustedByNavigation).WithMany(p => p.AttendanceAdjustmentHistories)
+                .HasForeignKey(d => d.AdjustedBy)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("attendances_resolved_by_fkey");
+                .HasConstraintName("attendance_adjustment_histories_adjusted_by_fkey");
+
+            entity.HasOne(d => d.Attendance).WithOne(p => p.AttendanceAdjustmentHistory)
+                .HasForeignKey<AttendanceAdjustmentHistory>(d => d.AttendanceId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("attendance_adjustment_histories_attendance_id_fkey");
         });
 
         modelBuilder.Entity<AttendancePenaltyLevel>(entity =>
@@ -311,8 +381,6 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.AttendancePenaltyId).HasName("attendance_penalty_records_pkey");
 
             entity.ToTable("attendance_penalty_records");
-
-            entity.HasIndex(e => e.AttendanceId, "ix_attendance_penalty_records_attendance");
 
             entity.HasIndex(e => new { e.AttendanceId, e.ViolationType }, "uq_attendance_penalty_type").IsUnique();
 
@@ -355,12 +423,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.Status, e.EffectiveFrom }, "ix_attendance_penalty_rules_due").HasFilter("((status)::text = 'SCHEDULED'::text)");
 
-            entity.HasIndex(e => e.BranchId, "uq_active_attendance_penalty_rule_per_branch")
-                .IsUnique()
-                .HasFilter("((status)::text = 'ACTIVE'::text)");
-
             entity.Property(e => e.PenaltyRuleId).HasColumnName("penalty_rule_id");
-            entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
             entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
@@ -384,11 +447,6 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.Branch).WithOne(p => p.AttendancePenaltyRule)
-                .HasForeignKey<AttendancePenaltyRule>(d => d.BranchId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("attendance_penalty_rules_branch_id_fkey");
-
             entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.AttendancePenaltyRuleCancelledByNavigations)
                 .HasForeignKey(d => d.CancelledBy)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -411,14 +469,9 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("attendance_rules");
 
-            entity.HasIndex(e => new { e.BranchId, e.EffectiveFrom, e.EffectiveTo }, "ix_attendance_rules_branch_effective");
-
-            entity.HasIndex(e => e.BranchId, "uq_active_attendance_rule_per_branch")
-                .IsUnique()
-                .HasFilter("((status)::text = 'ACTIVE'::text)");
+            entity.HasIndex(e => new { e.EffectiveFrom, e.EffectiveTo }, "ix_attendance_rules_effective");
 
             entity.Property(e => e.AttendanceRuleId).HasColumnName("attendance_rule_id");
-            entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
             entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
@@ -444,12 +497,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.MaxAttendanceDistanceMeters).HasColumnName("max_attendance_distance_meters");
             entity.Property(e => e.PublishedAt).HasColumnName("published_at");
             entity.Property(e => e.PublishedBy).HasColumnName("published_by");
-            entity.Property(e => e.RequireFaceVerification)
-                .HasDefaultValue(true)
-                .HasColumnName("require_face_verification");
-            entity.Property(e => e.RequireGps)
-                .HasDefaultValue(true)
-                .HasColumnName("require_gps");
             entity.Property(e => e.RuleName)
                 .HasMaxLength(150)
                 .HasColumnName("rule_name");
@@ -460,11 +507,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.Branch).WithOne(p => p.AttendanceRule)
-                .HasForeignKey<AttendanceRule>(d => d.BranchId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("attendance_rules_branch_id_fkey");
 
             entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.AttendanceRuleCancelledByNavigations)
                 .HasForeignKey(d => d.CancelledBy)
@@ -1888,7 +1930,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("is_active");
             entity.Property(e => e.PayMultiplier)
                 .HasPrecision(5, 2)
-                .HasDefaultValue(1m)
+                .HasDefaultValueSql("3.00")
                 .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")

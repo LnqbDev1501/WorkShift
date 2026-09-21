@@ -29,10 +29,6 @@ public partial class Branch
 
     public DateTime UpdatedAt { get; set; }
 
-    public virtual AttendancePenaltyRule? AttendancePenaltyRule { get; set; }
-
-    public virtual AttendanceRule? AttendanceRule { get; set; }
-
     public virtual ChatConversation? ChatConversation { get; set; }
 
     public virtual ICollection<EmployeeRequest> EmployeeRequests { get; set; } = new List<EmployeeRequest>();

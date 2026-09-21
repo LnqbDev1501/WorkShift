@@ -7,8 +7,6 @@ public partial class AttendancePenaltyRule
 {
     public int PenaltyRuleId { get; set; }
 
-    public int BranchId { get; set; }
-
     public string RuleName { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -38,8 +36,6 @@ public partial class AttendancePenaltyRule
     public virtual ICollection<AttendancePenaltyLevel> AttendancePenaltyLevels { get; set; } = new List<AttendancePenaltyLevel>();
 
     public virtual ICollection<AttendancePenaltyRecord> AttendancePenaltyRecords { get; set; } = new List<AttendancePenaltyRecord>();
-
-    public virtual Branch Branch { get; set; } = null!;
 
     public virtual User? CancelledByNavigation { get; set; }
 
