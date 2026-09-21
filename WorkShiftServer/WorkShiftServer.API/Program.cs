@@ -56,6 +56,8 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 });
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
+builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
+builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();

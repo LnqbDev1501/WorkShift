@@ -78,9 +78,13 @@ public class RegionsController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create()
+    public async Task<IActionResult> Create(CancellationToken cancellationToken = default)
     {
-        return View(new CreateRegionViewModel());
+        var model = new CreateRegionViewModel
+        {
+            MinimumWages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken)
+        };
+        return View(model);
     }
 
     [HttpPost]
@@ -89,6 +93,7 @@ public class RegionsController : Controller
     {
         if (!ModelState.IsValid)
         {
+            model.MinimumWages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken);
             return View(model);
         }
 
@@ -99,6 +104,7 @@ public class RegionsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        model.MinimumWages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken);
         ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to create region.");
         return View(model);
     }
@@ -115,6 +121,8 @@ public class RegionsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        var wages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken);
+
         var editModel = new EditRegionViewModel
         {
             RegionId = detail.RegionId,
@@ -122,7 +130,9 @@ public class RegionsController : Controller
             RegionName = detail.RegionName,
             Description = detail.Description,
             Status = detail.Status,
-            BranchCount = detail.Branches?.Count ?? 0
+            BranchCount = detail.Branches?.Count ?? 0,
+            RegionalMinimumWageId = detail.MinimumWage?.RegionalMinimumWageId,
+            MinimumWages = wages
         };
 
         return View(editModel);
@@ -136,6 +146,7 @@ public class RegionsController : Controller
 
         if (!ModelState.IsValid)
         {
+            model.MinimumWages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken);
             return View(model);
         }
 
@@ -146,6 +157,7 @@ public class RegionsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        model.MinimumWages = await _regionApiService.GetRegionalMinimumWagesAsync(cancellationToken);
         ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to update region.");
         return View(model);
     }

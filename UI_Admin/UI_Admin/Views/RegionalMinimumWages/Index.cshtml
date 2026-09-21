@@ -1,0 +1,156 @@
+@model List<UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageListItemViewModel>
+
+@{
+    ViewData["Title"] = "Regional Minimum Wages";
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+
+    <partial name="_NotificationModal" />
+
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Enterprise Minimum Wage Policy</div>
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Regional Minimum Wages</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">Manage baseline minimum hourly wage rates across national workforce regions.</p>
+        </div>
+        <div class="flex items-center gap-unit-3 self-start md:self-auto">
+            <a asp-controller="RegionalMinimumWages" asp-action="Create" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                <span>Create Minimum Wage</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Metric Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-unit-4 my-2">
+        <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-surface-container-high/60 flex items-center justify-between">
+            <div class="flex flex-col">
+                <span class="text-label-sm uppercase tracking-wider text-secondary">Active Wage Tiers</span>
+                <span class="font-display-md text-on-surface font-code-num text-xl font-bold mt-1">@Model.Count</span>
+                <span class="text-xs text-secondary mt-0.5">Enforced across regions</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">payments</span>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-surface-container-high/60 flex items-center justify-between">
+            <div class="flex flex-col">
+                <span class="text-label-sm uppercase tracking-wider text-secondary">Highest Minimum Rate</span>
+                <span class="font-display-md text-emerald-600 font-code-num text-xl font-bold mt-1">
+                    @(Model.Any() ? Model.Max(x => x.MinimumHourlyRate).ToString("N0") + " VND" : "—")
+                </span>
+                <span class="text-xs text-secondary mt-0.5">Top regional tier rate</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">trending_up</span>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-surface-container-high/60 flex items-center justify-between">
+            <div class="flex flex-col">
+                <span class="text-label-sm uppercase tracking-wider text-secondary">Lowest Minimum Rate</span>
+                <span class="font-display-md text-amber-600 font-code-num text-xl font-bold mt-1">
+                    @(Model.Any() ? Model.Min(x => x.MinimumHourlyRate).ToString("N0") + " VND" : "—")
+                </span>
+                <span class="text-xs text-secondary mt-0.5">Baseline regional floor</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">trending_down</span>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-surface-container-high/60 flex items-center justify-between">
+            <div class="flex flex-col">
+                <span class="text-label-sm uppercase tracking-wider text-secondary">Average Rate</span>
+                <span class="font-display-md text-on-surface font-code-num text-xl font-bold mt-1">
+                    @(Model.Any() ? Math.Round(Model.Average(x => x.MinimumHourlyRate)).ToString("N0") + " VND" : "—")
+                </span>
+                <span class="text-xs text-secondary mt-0.5">National baseline avg</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-surface-container text-secondary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[22px]">calculate</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Container -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-surface-container-high/60 mt-2">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-5 py-2" scope="col">Wage Name</th>
+                        <th class="px-unit-4 py-2" scope="col">Hourly Rate</th>
+                        <th class="px-unit-4 py-2" scope="col">Status</th>
+                        <th class="px-unit-5 py-2 text-right" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-0" id="wages-table-body">
+                    @if (Model.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="4" class="px-unit-5 py-12 text-center text-secondary font-body-md">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-secondary">
+                                        <span class="material-symbols-outlined text-[28px]">payments</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <span class="font-title-md font-semibold text-on-surface">No regional minimum wages found.</span>
+                                        <span class="text-body-sm text-secondary mt-0.5">Get started by creating the first regional wage policy tier.</span>
+                                    </div>
+                                    <a asp-controller="RegionalMinimumWages" asp-action="Create" class="mt-2 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-on-primary font-body-md-medium text-xs transition-colors shadow-sm">
+                                        <span class="material-symbols-outlined text-[16px]">add</span>
+                                        <span>Create Minimum Wage</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model)
+                        {
+                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group">
+                                <td class="px-unit-5 py-2">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-xs font-mono shrink-0">
+                                            #@item.RegionalMinimumWageId
+                                        </div>
+                                        <span class="font-body-md-medium text-body-md-medium text-on-surface font-semibold">@item.WageName</span>
+                                    </div>
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    <div class="flex items-baseline gap-1.5">
+                                        <span class="font-code-num text-code-num text-on-surface font-bold text-[15px]">@item.MinimumHourlyRate.ToString("N0")</span>
+                                        <span class="text-xs text-secondary font-medium">VND/hour</span>
+                                    </div>
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    <span class="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700 border border-emerald-200/60 font-semibold">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                        Current
+                                    </span>
+                                </td>
+                                <td class="px-unit-5 py-2 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <a href="@Url.Action("Details", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">
+                                            <span class="material-symbols-outlined text-[16px] mr-1">visibility</span> View Details
+                                        </a>
+                                        <a href="@Url.Action("Edit", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-sm transition-colors">
+                                            <span class="material-symbols-outlined text-[16px] mr-1">edit</span> Edit
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

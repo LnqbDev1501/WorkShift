@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -61,6 +61,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<FaceVerificationSession> FaceVerificationSessions { get; set; }
 
+    public virtual DbSet<HolidayPayRule> HolidayPayRules { get; set; }
+
     public virtual DbSet<LeaveRequestDetail> LeaveRequestDetails { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
@@ -79,9 +81,13 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategory> ProductCategories { get; set; }
 
+    public virtual DbSet<Province> Provinces { get; set; }
+
     public virtual DbSet<PublicHolidayConfig> PublicHolidayConfigs { get; set; }
 
     public virtual DbSet<Region> Regions { get; set; }
+
+    public virtual DbSet<RegionalMinimumWage> RegionalMinimumWages { get; set; }
 
     public virtual DbSet<RequestLimitRule> RequestLimitRules { get; set; }
 
@@ -109,26 +115,11 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
+    public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder
-            .HasPostgresEnum("auth", "aal_level", new[] { "aal1", "aal2", "aal3" })
-            .HasPostgresEnum("auth", "code_challenge_method", new[] { "s256", "plain" })
-            .HasPostgresEnum("auth", "factor_status", new[] { "unverified", "verified" })
-            .HasPostgresEnum("auth", "factor_type", new[] { "totp", "webauthn", "phone" })
-            .HasPostgresEnum("auth", "oauth_authorization_status", new[] { "pending", "approved", "denied", "expired" })
-            .HasPostgresEnum("auth", "oauth_client_type", new[] { "public", "confidential" })
-            .HasPostgresEnum("auth", "oauth_registration_type", new[] { "dynamic", "manual" })
-            .HasPostgresEnum("auth", "oauth_response_type", new[] { "code" })
-            .HasPostgresEnum("auth", "one_time_token_type", new[] { "confirmation_token", "reauthentication_token", "recovery_token", "email_change_token_new", "email_change_token_current", "phone_change_token" })
-            .HasPostgresEnum("realtime", "action", new[] { "INSERT", "UPDATE", "DELETE", "TRUNCATE", "ERROR" })
-            .HasPostgresEnum("realtime", "equality_op", new[] { "eq", "neq", "lt", "lte", "gt", "gte", "in", "like", "ilike", "is", "match", "imatch", "isdistinct" })
-            .HasPostgresEnum("storage", "buckettype", new[] { "STANDARD", "ANALYTICS", "VECTOR" })
-            .HasPostgresExtension("extensions", "pg_stat_statements")
-            .HasPostgresExtension("extensions", "pgcrypto")
-            .HasPostgresExtension("extensions", "uuid-ossp")
-            .HasPostgresExtension("vector")
-            .HasPostgresExtension("vault", "supabase_vault");
+
 
         modelBuilder.Entity<Attendance>(entity =>
         {
@@ -1296,6 +1287,43 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("face_verification_sessions_user_id_fkey");
         });
 
+        modelBuilder.Entity<HolidayPayRule>(entity =>
+        {
+            entity.HasKey(e => e.HolidayPayRuleId).HasName("holiday_pay_rules_pkey");
+
+            entity.ToTable("holiday_pay_rules");
+
+            entity.HasIndex(e => e.EffectiveFrom, "holiday_pay_rules_effective_from_key").IsUnique();
+
+            entity.HasIndex(e => e.EffectiveFrom, "idx_holiday_pay_rules_effective_from").IsDescending();
+
+            entity.Property(e => e.HolidayPayRuleId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("holiday_pay_rule_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.PayMultiplier)
+                .HasPrecision(5, 2)
+                .HasColumnName("pay_multiplier");
+            entity.Property(e => e.ReplacedRuleId).HasColumnName("replaced_rule_id");
+            entity.Property(e => e.RuleName)
+                .HasColumnType("character varying")
+                .HasColumnName("rule_name");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.HolidayPayRules)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("holiday_pay_rules_created_by_fkey");
+
+            entity.HasOne(d => d.ReplacedRule).WithMany(p => p.InverseReplacedRule)
+                .HasForeignKey(d => d.ReplacedRuleId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("holiday_pay_rules_replaced_rule_id_fkey");
+        });
+
         modelBuilder.Entity<LeaveRequestDetail>(entity =>
         {
             entity.HasKey(e => e.RequestId).HasName("leave_request_details_pkey");
@@ -1341,6 +1369,10 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("notification_type");
             entity.Property(e => e.TargetBranchId).HasColumnName("target_branch_id");
             entity.Property(e => e.TargetRegionId).HasColumnName("target_region_id");
+            entity.Property(e => e.TargetRoles)
+                .HasDefaultValueSql("(ARRAY[]::character varying[])::character varying(20)[]")
+                .HasColumnType("character varying(20)[]")
+                .HasColumnName("target_roles");
             entity.Property(e => e.TargetType)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'All'::character varying")
@@ -1576,6 +1608,8 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("payroll_details");
 
+            entity.HasIndex(e => e.HolidayPayRuleId, "idx_payroll_details_holiday_pay_rule_id");
+
             entity.HasIndex(e => new { e.PayrollId, e.DisplayOrder }, "ix_payroll_details_payroll_display");
 
             entity.HasIndex(e => e.RewardPenaltyId, "uq_payroll_detail_adjustment")
@@ -1600,6 +1634,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.DisplayOrder)
                 .HasDefaultValue(0)
                 .HasColumnName("display_order");
+            entity.Property(e => e.HolidayPayRuleId).HasColumnName("holiday_pay_rule_id");
             entity.Property(e => e.ItemCode)
                 .HasMaxLength(50)
                 .HasColumnName("item_code");
@@ -1630,6 +1665,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey<PayrollDetail>(d => d.AttendancePenaltyId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_details_attendance_penalty_id_fkey");
+
+            entity.HasOne(d => d.HolidayPayRule).WithMany(p => p.PayrollDetails)
+                .HasForeignKey(d => d.HolidayPayRuleId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("payroll_details_holiday_pay_rule_id_fkey");
 
             entity.HasOne(d => d.Payroll).WithMany(p => p.PayrollDetails)
                 .HasForeignKey(d => d.PayrollId)
@@ -1792,6 +1832,41 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("updated_at");
         });
 
+        modelBuilder.Entity<Province>(entity =>
+        {
+            entity.HasKey(e => e.ProvinceId).HasName("provinces_pkey");
+
+            entity.ToTable("provinces");
+
+            entity.HasIndex(e => e.RegionId, "idx_provinces_region_id");
+
+            entity.HasIndex(e => e.ProvinceCode, "provinces_province_code_key").IsUnique();
+
+            entity.HasIndex(e => e.ProvinceName, "provinces_province_name_key").IsUnique();
+
+            entity.Property(e => e.ProvinceId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("province_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description)
+                .HasColumnType("character varying")
+                .HasColumnName("description");
+            entity.Property(e => e.ProvinceCode)
+                .HasColumnType("character varying")
+                .HasColumnName("province_code");
+            entity.Property(e => e.ProvinceName)
+                .HasColumnType("character varying")
+                .HasColumnName("province_name");
+            entity.Property(e => e.RegionId).HasColumnName("region_id");
+
+            entity.HasOne(d => d.Region).WithMany(p => p.Provinces)
+                .HasForeignKey(d => d.RegionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("provinces_region_id_fkey");
+        });
+
         modelBuilder.Entity<PublicHolidayConfig>(entity =>
         {
             entity.HasKey(e => e.PublicHolidayId).HasName("public_holiday_configs_pkey");
@@ -1812,10 +1887,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            entity.Property(e => e.PayMultiplier)
-                .HasPrecision(5, 2)
-                .HasDefaultValueSql("1")
-                .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
@@ -1831,6 +1902,8 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.RegionId).HasName("regions_pkey");
 
             entity.ToTable("regions");
+
+            entity.HasIndex(e => e.RegionalMinimumWageId, "idx_regions_regional_minimum_wage_id");
 
             entity.HasIndex(e => e.RegionCode, "regions_region_code_key").IsUnique();
 
@@ -1852,9 +1925,46 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RegionName)
                 .HasMaxLength(150)
                 .HasColumnName("region_name");
+            entity.Property(e => e.RegionalMinimumWageId).HasColumnName("regional_minimum_wage_id");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.RegionalMinimumWage).WithMany(p => p.Regions)
+                .HasForeignKey(d => d.RegionalMinimumWageId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("regions_regional_minimum_wage_id_fkey");
+        });
+
+        modelBuilder.Entity<RegionalMinimumWage>(entity =>
+        {
+            entity.HasKey(e => e.RegionalMinimumWageId).HasName("regional_minimum_wages_pkey");
+
+            entity.ToTable("regional_minimum_wages");
+
+            entity.Property(e => e.RegionalMinimumWageId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("regional_minimum_wage_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.MinimumHourlyRate).HasColumnName("minimum_hourly_rate");
+            entity.Property(e => e.ReplacedWageId).HasColumnName("replaced_wage_id");
+            entity.Property(e => e.WageName)
+                .HasColumnType("character varying")
+                .HasColumnName("wage_name");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.RegionalMinimumWages)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("regional_minimum_wages_created_by_fkey");
+
+            entity.HasOne(d => d.ReplacedWage).WithMany(p => p.InverseReplacedWage)
+                .HasForeignKey(d => d.ReplacedWageId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("regional_minimum_wages_replaced_wage_id_fkey");
         });
 
         modelBuilder.Entity<RequestLimitRule>(entity =>
@@ -2511,6 +2621,38 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ShiftTemplateId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("work_shifts_shift_template_id_fkey");
+        });
+
+        modelBuilder.Entity<WorkingTimeRule>(entity =>
+        {
+            entity.HasKey(e => e.WorkingTimeRuleId).HasName("working_time_rules_pkey");
+
+            entity.ToTable("working_time_rules");
+
+            entity.Property(e => e.WorkingTimeRuleId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("working_time_rule_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.MaxDailyMinutes).HasColumnName("max_daily_minutes");
+            entity.Property(e => e.MaxWeeklyMinutes).HasColumnName("max_weekly_minutes");
+            entity.Property(e => e.RuleName)
+                .HasColumnType("character varying")
+                .HasColumnName("rule_name");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.WorkingTimeRules)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("working_time_rules_created_by_fkey");
         });
 
         OnModelCreatingPartial(modelBuilder);

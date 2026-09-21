@@ -1,0 +1,183 @@
+@model UI_Admin.Models.RegionalMinimumWages.CreateRegionalMinimumWageViewModel
+
+@{
+    ViewData["Title"] = "Create Minimum Wage";
+}
+
+<div class="flex flex-col w-full px-7 py-4">
+    <!-- Header with Navigation -->
+    <div class="flex items-center gap-3 pb-6">
+        <a asp-controller="RegionalMinimumWages" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Minimum Wages">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div>
+            <h1 class="text-display-md md:text-display-lg font-bold tracking-tight text-on-surface">
+                Create Minimum Wage
+            </h1>
+            <p class="text-body-md text-secondary mt-0.5">
+                Define a new baseline regional minimum wage tier for workforce regulation.
+            </p>
+        </div>
+    </div>
+
+    <!-- Policy Callout -->
+    <div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-surface-container to-surface-container p-4 md:p-5 mb-8 shadow-sm">
+        <div class="flex items-start gap-3.5 relative z-10">
+            <div class="w-9 h-9 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <span class="material-symbols-outlined text-[20px]">info</span>
+            </div>
+            <div class="flex flex-col gap-0.5">
+                <h2 class="text-title-md font-semibold text-on-surface">Regulatory Compliance Policy</h2>
+                <p class="text-body-sm text-secondary leading-relaxed">
+                    Regional minimum wage tiers set the legal minimum hourly rate for shift payment calculations. Newly created tiers become immediately available for mapping when configuring operational regions.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Work Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Form Card (8 Columns) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8 flex flex-col gap-7 border border-surface-container-high/60">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="text-label-sm uppercase tracking-widest text-primary font-bold">Section 01</span>
+                        <h3 class="text-title-lg font-bold text-on-surface mt-0.5">Wage Tier Parameters</h3>
+                        <p class="text-body-sm text-secondary mt-1">
+                            Specify the unique regional designation and minimum hourly compensation rate.
+                        </p>
+                    </div>
+                </div>
+
+                <form method="post" asp-controller="RegionalMinimumWages" asp-action="Create" class="flex flex-col gap-6" id="createWageForm">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="p-4 rounded-xl bg-error-container/20 border border-error/30 text-error text-body-sm"></div>
+
+                    <!-- Field 1: Wage Name -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="wageName">
+                            Wage Name <span class="text-error font-bold">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">payments</span>
+                            <input autocomplete="off"
+                                   class="w-full h-11 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
+                                   id="wageName"
+                                   maxlength="100"
+                                   name="WageName"
+                                   value="@Model?.WageName"
+                                   placeholder="e.g., Vùng I, Vùng II, Vùng III, Vùng IV, or Vùng V"
+                                   required
+                                   type="text" />
+                        </div>
+                        <span asp-validation-for="WageName" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Unique region tier name as classified by government wage directives.
+                        </p>
+                    </div>
+
+                    <!-- Field 2: Minimum Hourly Rate -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="minimumHourlyRate">
+                            Minimum Hourly Rate <span class="text-error font-bold">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">attach_money</span>
+                            <input autocomplete="off"
+                                   class="w-full h-11 pl-10 pr-28 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-code-num font-bold text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
+                                   id="minimumHourlyRate"
+                                   min="1"
+                                   step="100"
+                                   name="MinimumHourlyRate"
+                                   value="@(Model?.MinimumHourlyRate > 0 ? Model.MinimumHourlyRate.ToString("0") : "")"
+                                   placeholder="e.g., 25500"
+                                   required
+                                   type="number" />
+                            <span class="absolute right-3.5 px-2 py-0.5 rounded bg-surface-container text-secondary text-xs font-mono font-bold pointer-events-none">VND / hour</span>
+                        </div>
+                        <span asp-validation-for="MinimumHourlyRate" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            The minimum statutory hourly rate in VND.
+                        </p>
+                    </div>
+
+                    <!-- Field 3: Description (Optional) -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="description">
+                            Description
+                            <span class="text-label-sm text-secondary font-normal font-sans">(Optional)</span>
+                        </label>
+                        <textarea class="w-full p-3.5 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all resize-y min-h-[110px]"
+                                  id="description"
+                                  maxlength="500"
+                                  name="Description"
+                                  placeholder="Provide optional details regarding included provinces, legal decrees, or jurisdiction scope..."
+                                  rows="4">@Model?.Description</textarea>
+                        <span asp-validation-for="Description" class="text-error text-label-sm"></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar Guidelines (4 Columns) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 flex flex-col gap-5 border border-surface-container-high/60">
+                <div class="flex items-center gap-2.5 pb-2 border-b border-surface-container-high">
+                    <div class="w-8 h-8 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">gavel</span>
+                    </div>
+                    <div>
+                        <h4 class="text-title-md font-bold text-on-surface leading-tight">Tier Guidelines</h4>
+                        <span class="text-label-sm text-secondary">System Policy Rules</span>
+                    </div>
+                </div>
+                <ul class="flex flex-col gap-4 text-xs">
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="font-semibold text-on-surface">Unique Title</span>
+                            <p class="text-secondary leading-snug">Wage tier titles (e.g., Vùng I) must be unique among current active wage tiers.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="font-semibold text-on-surface">Positive Minimum Rate</span>
+                            <p class="text-secondary leading-snug">The minimum hourly wage rate must be greater than zero.</p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="font-semibold text-on-surface">Immediate Availability</span>
+                            <p class="text-secondary leading-snug">Once created, regions can select this minimum wage tier immediately.</p>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar Footer -->
+    <div class="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-surface-container-high/60">
+        <div class="flex items-center gap-2 text-secondary text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+            <span>All values are validated before registering in the audit log.</span>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <a class="flex-1 sm:flex-none h-11 px-5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-title-md text-[13px] flex items-center justify-center transition-colors shadow-sm" asp-controller="RegionalMinimumWages" asp-action="Index">
+                Cancel
+            </a>
+            <button class="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-md text-[13px] flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer" type="submit" form="createWageForm">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Create Minimum Wage</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
