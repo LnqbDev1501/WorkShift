@@ -31,6 +31,21 @@ public class RegionalMinimumWageDetailResponse
     public int? ReplacedWageId { get; set; }
 
     /// <summary>
+    /// Current status (DRAFT, PUBLISH, ACTIVE, INACTIVE, CANCEL).
+    /// </summary>
+    public string Status { get; set; } = null!;
+
+    /// <summary>
+    /// Effective start date.
+    /// </summary>
+    public DateOnly? EffectiveFrom { get; set; }
+
+    /// <summary>
+    /// Effective end date.
+    /// </summary>
+    public DateOnly? EffectiveTo { get; set; }
+
+    /// <summary>
     /// Identifier of the admin user who created this record.
     /// </summary>
     public Guid CreatedBy { get; set; }

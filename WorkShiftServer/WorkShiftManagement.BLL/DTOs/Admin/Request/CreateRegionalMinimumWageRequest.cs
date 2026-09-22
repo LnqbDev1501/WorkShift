@@ -19,4 +19,14 @@ public class CreateRegionalMinimumWageRequest
     /// Optional description for the wage tier.
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Optional identifier of the active wage being replaced by this new wage.
+    /// </summary>
+    public int? ReplacedWageId { get; set; }
+
+    /// <summary>
+    /// Effective start date. Optional when DRAFT, required before PUBLISH.
+    /// </summary>
+    public DateOnly? EffectiveFrom { get; set; }
 }

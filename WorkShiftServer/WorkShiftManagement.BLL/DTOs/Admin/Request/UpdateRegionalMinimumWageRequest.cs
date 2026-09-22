@@ -1,22 +1,32 @@
 namespace WorkShiftManagement.BLL.DTOs.Admin.Request;
 
 /// <summary>
-/// Request payload DTO for updating an existing regional minimum wage (version replacement).
+/// Request payload DTO for updating a DRAFT regional minimum wage.
 /// </summary>
 public class UpdateRegionalMinimumWageRequest
 {
     /// <summary>
-    /// Updated display name of the wage level.
+    /// Display name of the wage level (e.g., "Vùng I").
     /// </summary>
     public string WageName { get; set; } = null!;
 
     /// <summary>
-    /// Updated minimum hourly rate in VND. Must be greater than 0.
+    /// Minimum hourly rate in VND. Must be greater than 0.
     /// </summary>
     public decimal MinimumHourlyRate { get; set; }
 
     /// <summary>
-    /// Optional updated description for the wage tier.
+    /// Optional description for the wage tier.
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Optional identifier of the active wage being replaced.
+    /// </summary>
+    public int? ReplacedWageId { get; set; }
+
+    /// <summary>
+    /// Effective start date.
+    /// </summary>
+    public DateOnly? EffectiveFrom { get; set; }
 }

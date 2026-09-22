@@ -22,22 +22,23 @@ public class RegionalMinimumWageRepo : IRegionalMinimumWageRepo
     }
 
     /// <inheritdoc />
-    public async Task<List<RegionalMinimumWage>> GetCurrentWagesAsync()
+    public async Task<List<RegionalMinimumWage>> GetListAsync(string? status = null, string? search = null)
     {
-        return await _context.RegionalMinimumWages
-            .AsNoTracking()
-            .Where(w => !_context.RegionalMinimumWages.Any(r => r.ReplacedWageId == w.RegionalMinimumWageId))
-            .OrderBy(w => w.RegionalMinimumWageId)
-            .ToListAsync();
-    }
+        var query = _context.RegionalMinimumWages.AsNoTracking().AsQueryable();
 
-    /// <inheritdoc />
-    public async Task<List<RegionalMinimumWage>> GetAllAsync()
-    {
-        return await _context.RegionalMinimumWages
-            .AsNoTracking()
-            .OrderBy(w => w.RegionalMinimumWageId)
-            .ToListAsync();
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normStatus = status.Trim().ToUpperInvariant();
+            query = query.Where(w => w.Status == normStatus);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normSearch = search.Trim();
+            query = query.Where(w => EF.Functions.ILike(w.WageName, $"%{normSearch}%"));
+        }
+
+        return await query.OrderBy(w => w.RegionalMinimumWageId).ToListAsync();
     }
 
     /// <inheritdoc />
@@ -56,33 +57,30 @@ public class RegionalMinimumWageRepo : IRegionalMinimumWageRepo
     }
 
     /// <inheritdoc />
-    public async Task<bool> IsAlreadyReplacedAsync(int id)
+    public async Task<bool> IsActiveAsync(int id)
     {
         return await _context.RegionalMinimumWages
             .AsNoTracking()
-            .AnyAsync(r => r.ReplacedWageId == id);
+            .AnyAsync(w => w.RegionalMinimumWageId == id && w.Status == "ACTIVE");
     }
 
     /// <inheritdoc />
-    public async Task<bool> CurrentNameExistsAsync(string wageName, int? excludeId = null)
+    public async Task<bool> HasPublishedReplacementAsync(int oldWageId)
     {
-        if (string.IsNullOrWhiteSpace(wageName))
-        {
-            return false;
-        }
-
-        var pattern = wageName.Trim();
-        var query = _context.RegionalMinimumWages
+        return await _context.RegionalMinimumWages
             .AsNoTracking()
-            .Where(w => !_context.RegionalMinimumWages.Any(r => r.ReplacedWageId == w.RegionalMinimumWageId))
-            .Where(w => EF.Functions.ILike(w.WageName, pattern));
+            .AnyAsync(w => w.ReplacedWageId == oldWageId && w.Status == "PUBLISH");
+    }
 
-        if (excludeId.HasValue)
-        {
-            query = query.Where(w => w.RegionalMinimumWageId != excludeId.Value);
-        }
-
-        return await query.AnyAsync();
+    /// <inheritdoc />
+    public async Task<List<RegionalMinimumWage>> GetDuePublishedWagesAsync(DateOnly currentDate)
+    {
+        return await _context.RegionalMinimumWages
+            .AsNoTracking()
+            .Where(w => w.Status == "PUBLISH" && w.EffectiveFrom != null && w.EffectiveFrom <= currentDate)
+            .OrderBy(w => w.EffectiveFrom)
+            .ThenBy(w => w.RegionalMinimumWageId)
+            .ToListAsync();
     }
 
     /// <inheritdoc />
@@ -94,7 +92,15 @@ public class RegionalMinimumWageRepo : IRegionalMinimumWageRepo
     }
 
     /// <inheritdoc />
-    public async Task<RegionalMinimumWage> ReplaceWageAsync(int oldWageId, RegionalMinimumWage newWageEntity)
+    public async Task<RegionalMinimumWage> UpdateAsync(RegionalMinimumWage entity)
+    {
+        _context.RegionalMinimumWages.Update(entity);
+        await _context.SaveChangesAsync();
+        return entity;
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> ActivateDueWageTransactionAsync(int newWageId, DateOnly currentDate)
     {
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -102,26 +108,61 @@ public class RegionalMinimumWageRepo : IRegionalMinimumWageRepo
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Save new replacement wage record
-                _context.RegionalMinimumWages.Add(newWageEntity);
-                await _context.SaveChangesAsync();
-
-                // 2. Update all regions pointing to oldWageId to point to newWageEntity.RegionalMinimumWageId
-                var affectedRegions = await _context.Regions
-                    .Where(r => r.RegionalMinimumWageId == oldWageId)
+                // Lock the target new wage row using FOR UPDATE to prevent concurrent activation by multiple workers
+                var newWageList = await _context.RegionalMinimumWages
+                    .FromSqlInterpolated($"SELECT * FROM public.regional_minimum_wages WHERE regional_minimum_wage_id = {newWageId} FOR UPDATE")
+                    .AsTracking()
                     .ToListAsync();
 
-                foreach (var region in affectedRegions)
+                var newWage = newWageList.FirstOrDefault();
+
+                if (newWage == null || newWage.Status != "PUBLISH")
                 {
-                    region.RegionalMinimumWageId = newWageEntity.RegionalMinimumWageId;
+                    await transaction.RollbackAsync();
+                    return false;
+                }
+
+                newWage.Status = "ACTIVE";
+
+                if (newWage.ReplacedWageId.HasValue)
+                {
+                    var oldWageId = newWage.ReplacedWageId.Value;
+
+                    // Lock the old wage row using FOR UPDATE
+                    var oldWageList = await _context.RegionalMinimumWages
+                        .FromSqlInterpolated($"SELECT * FROM public.regional_minimum_wages WHERE regional_minimum_wage_id = {oldWageId} FOR UPDATE")
+                        .AsTracking()
+                        .ToListAsync();
+
+                    var oldWage = oldWageList.FirstOrDefault();
+
+                    // Old wage must still be ACTIVE; if already set to INACTIVE or modified concurrently, abort transaction safely
+                    if (oldWage == null || oldWage.Status != "ACTIVE")
+                    {
+                        await transaction.RollbackAsync();
+                        return false;
+                    }
+
+                    oldWage.Status = "INACTIVE";
+
+                    if (newWage.EffectiveFrom.HasValue)
+                    {
+                        oldWage.EffectiveTo = newWage.EffectiveFrom.Value.AddDays(-1);
+                    }
+
+                    var affectedRegions = await _context.Regions
+                        .Where(r => r.RegionalMinimumWageId == oldWageId)
+                        .ToListAsync();
+
+                    foreach (var region in affectedRegions)
+                    {
+                        region.RegionalMinimumWageId = newWage.RegionalMinimumWageId;
+                    }
                 }
 
                 await _context.SaveChangesAsync();
-
-                // 3. Commit transaction
                 await transaction.CommitAsync();
-
-                return newWageEntity;
+                return true;
             }
             catch
             {

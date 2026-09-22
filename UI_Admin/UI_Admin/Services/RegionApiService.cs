@@ -87,7 +87,7 @@ public class RegionApiService
 
     public async Task<List<RegionalMinimumWageViewModel>> GetRegionalMinimumWagesAsync(CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages";
+        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages?status=ACTIVE";
         using var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return [];

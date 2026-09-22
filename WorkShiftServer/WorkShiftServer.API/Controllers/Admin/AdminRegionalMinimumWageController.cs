@@ -28,15 +28,17 @@ public class AdminRegionalMinimumWageController : ControllerBase
     }
 
     /// <summary>
-    /// Retrieves current active (un-replaced) regional minimum wage tiers for dropdown selection.
+    /// Retrieves regional minimum wage tiers with optional status and search filtering.
     /// </summary>
-    /// <returns>A list of current regional minimum wage options.</returns>
+    /// <param name="status">Optional status filter (e.g., "ACTIVE", "DRAFT", "PUBLISH").</param>
+    /// <param name="search">Optional search keyword for wage name.</param>
+    /// <returns>A list of regional minimum wage options.</returns>
     [HttpGet]
     [ProducesResponseType(typeof(List<RegionalMinimumWageResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? status = null, [FromQuery] string? search = null)
     {
-        var result = await _service.GetCurrentWagesAsync();
+        var result = await _service.GetListAsync(status, search);
         return Ok(result);
     }
 
@@ -66,7 +68,7 @@ public class AdminRegionalMinimumWageController : ControllerBase
     }
 
     /// <summary>
-    /// Creates a new regional minimum wage tier.
+    /// Creates a new regional minimum wage tier in DRAFT status.
     /// </summary>
     /// <param name="request">The creation payload.</param>
     /// <returns>The created regional minimum wage details.</returns>
@@ -113,11 +115,11 @@ public class AdminRegionalMinimumWageController : ControllerBase
     }
 
     /// <summary>
-    /// Updates an existing regional minimum wage by creating a new version replacement and updating referencing regions.
+    /// Updates an existing DRAFT regional minimum wage directly in place.
     /// </summary>
-    /// <param name="id">The old wage ID being replaced.</param>
+    /// <param name="id">The wage ID to update.</param>
     /// <param name="request">The update payload.</param>
-    /// <returns>The newly created replacement wage tier details.</returns>
+    /// <returns>The updated DRAFT wage tier details.</returns>
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(RegionalMinimumWageDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -129,7 +131,121 @@ public class AdminRegionalMinimumWageController : ControllerBase
         try
         {
             var callerId = GetCurrentUserId();
-            var result = await _service.UpdateAsync(id, request, callerId);
+            var result = await _service.UpdateDraftAsync(id, request, callerId);
+            return Ok(result);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Not Found",
+                Detail = exception.Message
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Conflict",
+                Detail = exception.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Publishes a DRAFT regional minimum wage (DRAFT -> PUBLISH).
+    /// </summary>
+    /// <param name="id">The wage ID to publish.</param>
+    /// <returns>The published wage tier details.</returns>
+    [HttpPost("{id:int}/publish")]
+    [ProducesResponseType(typeof(RegionalMinimumWageDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Publish(int id)
+    {
+        try
+        {
+            var callerId = GetCurrentUserId();
+            var result = await _service.PublishAsync(id, callerId);
+            return Ok(result);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "Not Found",
+                Detail = exception.Message
+            });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Conflict",
+                Detail = exception.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Cancels a DRAFT or PUBLISH regional minimum wage (DRAFT/PUBLISH -> CANCEL).
+    /// </summary>
+    /// <param name="id">The wage ID to cancel.</param>
+    /// <returns>The cancelled wage tier details.</returns>
+    [HttpPost("{id:int}/cancel")]
+    [ProducesResponseType(typeof(RegionalMinimumWageDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        try
+        {
+            var callerId = GetCurrentUserId();
+            var result = await _service.CancelAsync(id, callerId);
             return Ok(result);
         }
         catch (ArgumentException exception)

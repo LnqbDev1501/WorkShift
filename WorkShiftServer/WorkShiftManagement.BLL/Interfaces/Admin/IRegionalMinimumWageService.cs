@@ -9,9 +9,17 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin;
 public interface IRegionalMinimumWageService
 {
     /// <summary>
-    /// Retrieves current (un-replaced) regional minimum wage tiers for dropdown selections.
+    /// Retrieves regional minimum wage tiers with optional status and search filters.
     /// </summary>
-    /// <returns>A list of current regional minimum wage response DTOs.</returns>
+    /// <param name="status">Optional status filter (e.g., "ACTIVE", "DRAFT", "PUBLISH").</param>
+    /// <param name="search">Optional search term for WageName.</param>
+    /// <returns>A list of regional minimum wage response DTOs.</returns>
+    Task<List<RegionalMinimumWageResponse>> GetListAsync(string? status = null, string? search = null);
+
+    /// <summary>
+    /// Retrieves current ACTIVE regional minimum wage tiers for dropdown selections.
+    /// </summary>
+    /// <returns>A list of active regional minimum wage response DTOs.</returns>
     Task<List<RegionalMinimumWageResponse>> GetCurrentWagesAsync();
 
     /// <summary>
@@ -22,7 +30,7 @@ public interface IRegionalMinimumWageService
     Task<RegionalMinimumWageDetailResponse?> GetByIdAsync(int id);
 
     /// <summary>
-    /// Creates a new regional minimum wage tier.
+    /// Creates a new regional minimum wage tier in DRAFT status.
     /// </summary>
     /// <param name="request">The creation payload.</param>
     /// <param name="callerId">The ID of the admin executing the request.</param>
@@ -30,11 +38,33 @@ public interface IRegionalMinimumWageService
     Task<RegionalMinimumWageDetailResponse> CreateAsync(CreateRegionalMinimumWageRequest request, Guid callerId);
 
     /// <summary>
-    /// Updates a regional minimum wage tier by creating a new version replacement and updating referencing regions.
+    /// Updates an existing DRAFT regional minimum wage tier directly in place.
     /// </summary>
-    /// <param name="id">The old regional minimum wage identifier being replaced.</param>
+    /// <param name="id">The regional minimum wage identifier.</param>
     /// <param name="request">The update payload.</param>
     /// <param name="callerId">The ID of the admin executing the request.</param>
-    /// <returns>The newly created replacement regional minimum wage detail response.</returns>
-    Task<RegionalMinimumWageDetailResponse> UpdateAsync(int id, UpdateRegionalMinimumWageRequest request, Guid callerId);
+    /// <returns>The updated regional minimum wage detail response.</returns>
+    Task<RegionalMinimumWageDetailResponse> UpdateDraftAsync(int id, UpdateRegionalMinimumWageRequest request, Guid callerId);
+
+    /// <summary>
+    /// Publishes a DRAFT regional minimum wage tier (DRAFT -> PUBLISH).
+    /// </summary>
+    /// <param name="id">The regional minimum wage identifier.</param>
+    /// <param name="callerId">The ID of the admin executing the request.</param>
+    /// <returns>The published regional minimum wage detail response.</returns>
+    Task<RegionalMinimumWageDetailResponse> PublishAsync(int id, Guid callerId);
+
+    /// <summary>
+    /// Cancels a DRAFT or PUBLISH regional minimum wage tier (DRAFT/PUBLISH -> CANCEL).
+    /// </summary>
+    /// <param name="id">The regional minimum wage identifier.</param>
+    /// <param name="callerId">The ID of the admin executing the request.</param>
+    /// <returns>The cancelled regional minimum wage detail response.</returns>
+    Task<RegionalMinimumWageDetailResponse> CancelAsync(int id, Guid callerId);
+
+    /// <summary>
+    /// Automatically activates all PUBLISH regional minimum wage tiers whose EffectiveFrom date is due.
+    /// </summary>
+    /// <returns>The count of activated wage tiers.</returns>
+    Task<int> ActivateDueWagesAsync();
 }
