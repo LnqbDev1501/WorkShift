@@ -36,7 +36,7 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
         return Map(await _workingTimeRuleRepo.CreateVersionAsync(rule, cancellationToken));
     }
 
-    public async Task<WorkingTimeRuleResponse> UpdateAsync(int id, CreateWorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
+    public async Task<WorkingTimeRuleResponse> UpdateAsync(int id, UpdateWorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
         Map(await _workingTimeRuleRepo.UpdateDraftAsync(id, CreateValues(request), cancellationToken));
 
     public Task DeleteAsync(int id, CancellationToken cancellationToken) => _workingTimeRuleRepo.DeleteDraftAsync(id, cancellationToken);
@@ -46,7 +46,7 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
         Map(await _workingTimeRuleRepo.CancelAsync(id, cancellationToken));
     public Task ActivateDueAsync(CancellationToken cancellationToken) => _workingTimeRuleRepo.ActivateDueAsync(cancellationToken);
 
-    private static WorkingTimeRule CreateValues(CreateWorkingTimeRuleRequest request)
+    private static WorkingTimeRule CreateValues(WorkingTimeRuleRequest request)
     {
         Validator.ValidateObject(request, new ValidationContext(request), true);
         WorkingTimeRuleLifecycle.ValidateEffectiveDate(request.EffectiveFrom, WorkingTimeRuleLifecycle.Today);

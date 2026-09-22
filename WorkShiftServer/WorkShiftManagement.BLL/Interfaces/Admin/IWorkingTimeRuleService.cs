@@ -8,7 +8,7 @@ public interface IWorkingTimeRuleService
     Task<List<WorkingTimeRuleResponse>> GetAllAsync(CancellationToken cancellationToken);
     Task<WorkingTimeRuleResponse> CreateAsync(CreateWorkingTimeRuleRequest request, Guid createdBy, CancellationToken cancellationToken);
     Task<WorkingTimeRuleResponse> GetByIdAsync(int id, CancellationToken cancellationToken);
-    Task<WorkingTimeRuleResponse> UpdateAsync(int id, CreateWorkingTimeRuleRequest request, CancellationToken cancellationToken);
+    Task<WorkingTimeRuleResponse> UpdateAsync(int id, UpdateWorkingTimeRuleRequest request, CancellationToken cancellationToken);
     Task DeleteAsync(int id, CancellationToken cancellationToken);
     Task<WorkingTimeRuleResponse> PublishAsync(int id, CancellationToken cancellationToken);
     Task<WorkingTimeRuleResponse> CancelAsync(int id, CancellationToken cancellationToken);

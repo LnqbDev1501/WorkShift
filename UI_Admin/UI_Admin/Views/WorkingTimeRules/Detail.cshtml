@@ -3,29 +3,74 @@
     ViewData["Title"] = "Working Time Version Details";
 }
 @section Styles {
+    <link rel="stylesheet" href="~/css/shift-templates.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/shift-template-detail.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
 }
 <partial name="_NotificationModal" />
-<main class="time-rules">
-    <header>
-        <div><h1>@Model.RuleName</h1><p>Version V@Model.WorkingTimeRuleId</p></div>
-        <a asp-action="List">Back to versions</a>
-    </header>
-    <section class="rule-card">
-        <span class="rule-status @Model.Status.ToLowerInvariant()">@Model.StatusLabel</span>
-        <dl class="rule-detail-grid">
-            <div><dt>Maximum per day</dt><dd>@Model.MaxDailyHours.ToString("0.##") hours</dd></div>
-            <div><dt>Maximum per week</dt><dd>@Model.MaxWeeklyHours.ToString("0.##") hours</dd></div>
-            <div><dt>Effective date (UTC+7)</dt><dd>@(Model.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "Not recorded")</dd></div>
-            <div><dt>Expires from (00:00, UTC+7)</dt><dd>@(Model.EffectiveTo?.ToString("dd/MM/yyyy") ?? "—")</dd></div>
-            <div><dt>Created (UTC+7)</dt><dd>@Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</dd></div>
-        </dl>
-        <partial name="_VersionActions" model="Model" />
-        @if (Model.Status == "DRAFT")
-        { <p class="rule-help">Edit and publish this draft to schedule its activation. Only one version can be Publish; cancel any existing publication first.</p> }
-        else if (Model.Status == "PUBLISH")
-        { <p class="rule-help">Scheduled for activation on the effective date. You may cancel publication before it becomes Active.</p> }
-        else
-        { <p class="rule-help">This version is read-only.</p> }
+<div class="shift-page">
+    <section class="shift-content template-detail working-time-detail" aria-labelledby="detail-title">
+        <a asp-action="List" class="detail-back"><span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>Back to Working Time Limits</a>
+        <header class="detail-heading">
+            <div>
+                <div class="detail-title-row">
+                    <h1 id="detail-title">@Model.RuleName</h1>
+                    <span class="shift-status rule-status @Model.StatusCssClass"><span aria-hidden="true">●</span>@Model.StatusLabel</span>
+                </div>
+                <p class="detail-metadata"><span>Version: <strong>@($"V{Model.WorkingTimeRuleId}")</strong></span><span>Created @Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy, HH:mm") (UTC+7)</span></p>
+            </div>
+            <div class="detail-actions"><partial name="_VersionActions" model="Model" /></div>
+        </header>
+        <div class="detail-grid">
+            <div class="detail-stack">
+                <section class="detail-card" aria-labelledby="limits-heading">
+                    <h2 id="limits-heading"><span class="material-symbols-outlined" aria-hidden="true">schedule</span>Working Hour Limits<small>HOURS</small></h2>
+                    <div class="detail-metrics working-time-metrics">
+                        <div><span>Maximum per day</span><strong>@Model.MaxDailyHours.ToString("0.##") <small>hours</small></strong><small>Daily working limit</small></div>
+                        <div><span>Maximum per week</span><strong>@Model.MaxWeeklyHours.ToString("0.##") <small>hours</small></strong><small>Weekly working limit</small></div>
+                    </div>
+                </section>
+                <section class="detail-card" aria-labelledby="dates-heading">
+                    <h2 id="dates-heading"><span class="material-symbols-outlined" aria-hidden="true">date_range</span>Effective Period</h2>
+                    <dl class="detail-audit">
+                        <div><dt>Effective from</dt><dd>@(Model.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "Not recorded")</dd></div>
+                        <div><dt>Expires from</dt><dd>@(Model.EffectiveTo?.ToString("dd/MM/yyyy") ?? "Not set")</dd></div>
+                        <div><dt>Time zone</dt><dd>Vietnam · UTC+7</dd></div>
+                    </dl>
+                    <p class="detail-help">Dates start at 00:00. When a new version becomes Active, the previous version expires at that same boundary.</p>
+                </section>
+            </div>
+            <aside class="detail-stack">
+                <section class="detail-card">
+                    <h2><span class="material-symbols-outlined" aria-hidden="true">published_with_changes</span>Version Status</h2>
+                    <p class="detail-description">
+                        @if (Model.CanEdit)
+                        {
+                            <text>This draft can be edited or deleted. Publish it to schedule activation on its effective date.</text>
+                        }
+                        else if (Model.CanCancel)
+                        {
+                            <text>This version is waiting for its effective date. You can cancel publication before it becomes Active.</text>
+                        }
+                        else
+                        {
+                            <text>This version is read-only and retained for reference.</text>
+                        }
+                    </p>
+                    <p class="detail-help">Only one version can be Publish at a time. Cancel the current publication before publishing another version.</p>
+                </section>
+                <section class="detail-card">
+                    <h2><span class="material-symbols-outlined" aria-hidden="true">history</span>Record Information</h2>
+                    <dl class="detail-audit">
+                        <div><dt>Version</dt><dd>@($"V{Model.WorkingTimeRuleId}")</dd></div>
+                        <div><dt>Created (UTC+7)</dt><dd>@Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</dd></div>
+                    </dl>
+                </section>
+            </aside>
+        </div>
     </section>
-</main>
+</div>
+<partial name="_ActionDialog" />
+@section Scripts {
+    <script src="~/js/working-time-actions.js" asp-append-version="true"></script>
+}

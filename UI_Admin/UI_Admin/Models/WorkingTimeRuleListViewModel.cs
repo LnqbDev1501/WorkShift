@@ -17,9 +17,23 @@ public sealed class WorkingTimeRuleListItemViewModel
     public DateTime CreatedAt { get; set; }
     public DateOnly? EffectiveFrom { get; set; }
     public DateOnly? EffectiveTo { get; set; }
+    public bool CanEdit => Status == "DRAFT";
+    public bool CanCancel => Status == "PUBLISH";
+    public string StatusCssClass => Status switch
+    {
+        "DRAFT" => "draft",
+        "PUBLISH" => "publish",
+        "ACTIVE" => "active",
+        "CANCEL" => "cancel",
+        _ => "inactive"
+    };
     public string StatusLabel => Status switch
     {
-        "DRAFT" => "Draft", "PUBLISH" => "Publish", "ACTIVE" => "Active",
-        "INACTIVE" => "Inactive", "CANCEL" => "Cancelled", _ => Status
+        "DRAFT" => "Draft",
+        "PUBLISH" => "Publish",
+        "ACTIVE" => "Active",
+        "INACTIVE" => "Inactive",
+        "CANCEL" => "Cancelled",
+        _ => Status
     };
 }
