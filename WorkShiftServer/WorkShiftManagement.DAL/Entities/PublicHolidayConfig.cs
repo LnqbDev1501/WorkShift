@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -10,6 +10,8 @@ public partial class PublicHolidayConfig
     public string HolidayName { get; set; } = null!;
 
     public DateOnly HolidayDate { get; set; }
+
+    public decimal PayMultiplier { get; set; }
 
     public bool IsActive { get; set; }
 
