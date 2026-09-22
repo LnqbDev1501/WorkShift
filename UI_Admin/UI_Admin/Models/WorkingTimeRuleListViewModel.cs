@@ -15,4 +15,11 @@ public sealed class WorkingTimeRuleListItemViewModel
     public string Status { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateOnly? EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public string StatusLabel => Status switch
+    {
+        "DRAFT" => "Draft", "PUBLISH" => "Publish", "ACTIVE" => "Active",
+        "INACTIVE" => "Inactive", "CANCEL" => "Cancelled", _ => Status
+    };
 }

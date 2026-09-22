@@ -18,7 +18,7 @@
             <div class="space-y-1">
                 <h3 id="working-time-success-title" class="text-[18px] font-semibold text-[#191c2a]">Version Created Successfully</h3>
                 <p class="text-[14px] text-[#5b6074]">
-                    The new working time version is Active. Previous versions are now Inactive.
+                    The new version has been saved as Draft. Review it and publish when ready.
                 </p>
             </div>
             <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('successPopupModal').remove()">
@@ -29,6 +29,7 @@
 }
 
 
+<partial name="_NotificationModal" />
 <main class="time-rules">
     <header>
         <div>
@@ -59,8 +60,8 @@
                         <th>Name / legal reference</th>
                         <th>Hours / day</th>
                         <th>Hours / week</th>
-                        <th>Status</th>
-                        <th>Created (UTC+7)</th>
+                        <th>Effective date</th><th>Status</th>
+                        <th>Created (UTC+7)</th><th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -71,12 +72,13 @@
                             <td>@rule.RuleName</td>
                             <td>@rule.MaxDailyHours.ToString("0.##")</td>
                             <td>@rule.MaxWeeklyHours.ToString("0.##")</td>
+                            <td>@rule.EffectiveFrom?.ToString("dd/MM/yyyy")</td>
                             <td>
-                                <span class="rule-status @(rule.Status == "ACTIVE" ? "active" : "inactive")">
-                                    @(rule.Status == "ACTIVE" ? "Active" : "Inactive")
+                                <span class="rule-status @rule.Status.ToLowerInvariant()">
+                                    @rule.StatusLabel
                                 </span>
                             </td>
-                            <td>@rule.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@rule.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@rule.WorkingTimeRuleId">Detail</a><partial name="_VersionActions" model="rule" /></td>
                         </tr>
                     }
                 </tbody>
@@ -84,5 +86,5 @@
         </div>
     }
 
-    <p class="rule-help">Versions are retained for reference. Creating a new version activates it immediately and makes the previous version Inactive. Versions cannot be edited or deleted.</p>
+    <p class="rule-help">Only one version can be Publish at a time. Cancel the current publication before publishing another version. Drafts can be edited or deleted. Publish to schedule activation; published versions can be cancelled before their effective date. Active, Inactive and Cancelled versions are read-only.</p>
 </main>

@@ -1,0 +1,19 @@
+@model UI_Admin.Models.WorkingTimeRuleListItemViewModel
+<div class="rule-row-actions">
+    @if (Model.Status == "DRAFT")
+    {
+        <a asp-action="Edit" asp-route-id="@Model.WorkingTimeRuleId">Edit</a>
+        <form asp-action="Publish" asp-route-id="@Model.WorkingTimeRuleId" method="post" onsubmit="return confirm('Publish this version? It will activate on its effective date.');">
+            <button type="submit">Publish</button>
+        </form>
+        <form asp-action="Delete" asp-route-id="@Model.WorkingTimeRuleId" method="post" onsubmit="return confirm('Delete this draft permanently?');">
+            <button type="submit" class="rule-danger">Delete</button>
+        </form>
+    }
+    else if (Model.Status == "PUBLISH")
+    {
+        <form asp-action="Cancel" asp-route-id="@Model.WorkingTimeRuleId" method="post" onsubmit="return confirm('Cancel publication of this version?');">
+            <button type="submit" class="rule-danger">Cancel</button>
+        </form>
+    }
+</div>

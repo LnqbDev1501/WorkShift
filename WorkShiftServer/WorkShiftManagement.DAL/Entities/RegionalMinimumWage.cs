@@ -19,6 +19,12 @@ public partial class RegionalMinimumWage
 
     public DateTime CreatedAt { get; set; }
 
+    public string Status { get; set; } = null!;
+
+    public DateOnly? EffectiveFrom { get; set; }
+
+    public DateOnly? EffectiveTo { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<RegionalMinimumWage> InverseReplacedWage { get; set; } = new List<RegionalMinimumWage>();

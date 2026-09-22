@@ -13,6 +13,9 @@ public sealed class CreateWorkingTimeRuleRequest : IValidatableObject
     [Required, Range(typeof(decimal), "0.25", "168")]
     public decimal? MaxWeeklyHours { get; set; }
 
+    [Required, DataType(DataType.Date)]
+    public DateOnly? EffectiveFrom { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
         if (MaxDailyHours.HasValue && MaxDailyHours.Value % 0.25m != 0)

@@ -1333,9 +1333,11 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("holiday_pay_rules");
 
-            entity.HasIndex(e => e.EffectiveFrom, "holiday_pay_rules_effective_from_key").IsUnique();
-
             entity.HasIndex(e => e.EffectiveFrom, "idx_holiday_pay_rules_effective_from").IsDescending();
+
+            entity.HasIndex(e => e.EffectiveFrom, "ux_holiday_pay_rules_effective_from_active")
+                .IsUnique()
+                .HasFilter("((status)::text <> 'INACTIVE'::text)");
 
             entity.Property(e => e.HolidayPayRuleId)
                 .UseIdentityAlwaysColumn()
@@ -1352,6 +1354,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RuleName)
                 .HasColumnType("character varying")
                 .HasColumnName("rule_name");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.HolidayPayRules)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1927,10 +1933,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            entity.Property(e => e.PayMultiplier)
-                .HasPrecision(5, 2)
-                .HasDefaultValueSql("3.00")
-                .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
@@ -1994,8 +1996,14 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.MinimumHourlyRate).HasColumnName("minimum_hourly_rate");
             entity.Property(e => e.ReplacedWageId).HasColumnName("replaced_wage_id");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
             entity.Property(e => e.WageName)
                 .HasColumnType("character varying")
                 .HasColumnName("wage_name");
@@ -2680,13 +2688,15 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.MaxDailyMinutes).HasColumnName("max_daily_minutes");
             entity.Property(e => e.MaxWeeklyMinutes).HasColumnName("max_weekly_minutes");
             entity.Property(e => e.RuleName)
                 .HasColumnType("character varying")
                 .HasColumnName("rule_name");
             entity.Property(e => e.Status)
-                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasDefaultValueSql("'DRAFT'::character varying")
                 .HasColumnType("character varying")
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)

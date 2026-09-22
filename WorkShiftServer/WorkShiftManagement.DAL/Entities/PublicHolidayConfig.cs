@@ -19,8 +19,6 @@ public partial class PublicHolidayConfig
 
     public DateTime UpdatedAt { get; set; }
 
-    public decimal PayMultiplier { get; set; }
-
     public virtual User? CreatedByNavigation { get; set; }
 
     public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();

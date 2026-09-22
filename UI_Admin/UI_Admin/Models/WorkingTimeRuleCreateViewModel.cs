@@ -13,8 +13,13 @@ public sealed class WorkingTimeRuleCreateViewModel : IValidatableObject
     [Required, Range(typeof(decimal), "0.25", "168"), Display(Name = "Maximum hours per week")]
     public decimal? MaxWeeklyHours { get; set; }
 
+    [Required, DataType(DataType.Date), Display(Name = "Effective date")]
+    public DateOnly? EffectiveFrom { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
+        if (EffectiveFrom.HasValue && EffectiveFrom.Value <= DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)))
+            yield return new("Effective date must be after today (Vietnam time).", [nameof(EffectiveFrom)]);
         if (MaxDailyHours.HasValue && MaxDailyHours.Value % 0.25m != 0)
             yield return new("Daily hours must use 15-minute increments.", [nameof(MaxDailyHours)]);
         if (MaxWeeklyHours.HasValue && MaxWeeklyHours.Value % 0.25m != 0)

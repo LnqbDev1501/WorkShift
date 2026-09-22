@@ -1,6 +1,7 @@
 @model UI_Admin.Models.WorkingTimeRuleCreateViewModel
 @{
-    ViewData["Title"] = "Create Working Time Version";
+    var isEdit = ViewData["IsEdit"] is true;
+    ViewData["Title"] = isEdit ? "Edit Working Time Draft" : "Create Working Time Version";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
@@ -11,14 +12,14 @@
     <header class="rule-create-heading">
         <div>
             <span class="rule-eyebrow">WORKING TIME POLICY</span>
-            <h1>Create a new version</h1>
+            <h1>@(isEdit ? "Edit draft version" : "Create a new version")</h1>
             <p>Set the daily and weekly limits for your next working time policy.</p>
         </div>
         <span class="rule-version-badge"><span class="material-symbols-outlined" aria-hidden="true">history</span>Version management</span>
     </header>
 
     <div class="rule-create-layout">
-        <form asp-action="Create" method="post" class="rule-create-form">
+        <form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@(isEdit ? ViewData["RuleId"] : null)" method="post" class="rule-create-form">
             <div class="rule-section-heading">
                 <span class="rule-section-icon material-symbols-outlined" aria-hidden="true">tune</span>
                 <div><h2>Policy details</h2><p>All fields are required.</p></div>
@@ -32,6 +33,12 @@
                     <p id="rule-name-help" class="rule-field-help">Use a clear name to identify this version in your history.</p>
                 </div>
 
+                <div class="rule-field rule-effective-date">
+                    <label asp-for="EffectiveFrom">Effective date <span>*</span></label>
+                    <input asp-for="EffectiveFrom" type="date" min="@DateTime.UtcNow.AddHours(7).AddDays(1).ToString("yyyy-MM-dd")" required />
+                    <span asp-validation-for="EffectiveFrom"></span>
+                    <p class="rule-field-help">Choose a date after today. Published versions apply from 00:00 on this date (UTC+7).</p>
+                </div>
                 <div class="rule-limits-heading"><h3>Working hour limits</h3><span>Hours</span></div>
                 <div class="rule-limit-grid">
                     <div class="rule-limit-field">
@@ -58,10 +65,10 @@
                 <p id="rule-increment-help" class="rule-increment-note"><span class="material-symbols-outlined" aria-hidden="true">info</span>Enter hours in 15-minute steps. For example, 8.25 = 8 hours 15 minutes.</p>
             </div>
             <footer class="rule-create-actions">
-                <span><span class="material-symbols-outlined" aria-hidden="true">lock</span>Saved versions are read-only</span>
+                <span><span class="material-symbols-outlined" aria-hidden="true">lock</span>Drafts can be edited before publishing</span>
                 <div>
                     <a asp-action="List" class="rule-cancel-button">Cancel</a>
-                    <button type="submit" class="rule-button"><span class="material-symbols-outlined" aria-hidden="true">add_circle</span>Create and activate</button>
+                    <button type="submit" class="rule-button"><span class="material-symbols-outlined" aria-hidden="true">add_circle</span>@(isEdit ? "Save draft" : "Create draft")</button>
                 </div>
             </footer>
         </form>
@@ -71,13 +78,13 @@
                 <span class="rule-aside-icon material-symbols-outlined" aria-hidden="true">published_with_changes</span>
                 <h2>A new version.<br />A clear history.</h2>
                 <p>Each update keeps a record of the limits that came before it.</p>
-                <div class="rule-state-row"><span>New version</span><span class="rule-state-active"><i></i>Active</span></div>
-                <div class="rule-state-row"><span>Previous version</span><span class="rule-state-inactive">Inactive</span></div>
-                <p class="rule-activation-footnote">The change takes effect as soon as you create this version.</p>
+                <div class="rule-state-row"><span>New version</span><span class="rule-state-active"><i></i>Draft</span></div>
+                <div class="rule-state-row"><span>Current active version</span><span class="rule-state-inactive">Unchanged</span></div>
+                <p class="rule-activation-footnote">Publish the draft when ready. It becomes Active on its effective date (Vietnam time).</p>
             </section>
             <section class="rule-review-note">
                 <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
-                <div><h3>Review before creating</h3><p>Versions cannot be edited or deleted. To change the limits later, create another version.</p></div>
+                <div><h3>Review before creating</h3><p>Only drafts can be edited or deleted. A published version can be cancelled before it becomes Active.</p></div>
             </section>
         </aside>
     </div>

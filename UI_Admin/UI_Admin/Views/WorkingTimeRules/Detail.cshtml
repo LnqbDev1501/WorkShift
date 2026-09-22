@@ -1,0 +1,31 @@
+@model UI_Admin.Models.WorkingTimeRuleListItemViewModel
+@{
+    ViewData["Title"] = "Working Time Version Details";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
+}
+<partial name="_NotificationModal" />
+<main class="time-rules">
+    <header>
+        <div><h1>@Model.RuleName</h1><p>Version V@Model.WorkingTimeRuleId</p></div>
+        <a asp-action="List">Back to versions</a>
+    </header>
+    <section class="rule-card">
+        <span class="rule-status @Model.Status.ToLowerInvariant()">@Model.StatusLabel</span>
+        <dl class="rule-detail-grid">
+            <div><dt>Maximum per day</dt><dd>@Model.MaxDailyHours.ToString("0.##") hours</dd></div>
+            <div><dt>Maximum per week</dt><dd>@Model.MaxWeeklyHours.ToString("0.##") hours</dd></div>
+            <div><dt>Effective date (UTC+7)</dt><dd>@(Model.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "Not recorded")</dd></div>
+            <div><dt>Expires from (00:00, UTC+7)</dt><dd>@(Model.EffectiveTo?.ToString("dd/MM/yyyy") ?? "—")</dd></div>
+            <div><dt>Created (UTC+7)</dt><dd>@Model.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</dd></div>
+        </dl>
+        <partial name="_VersionActions" model="Model" />
+        @if (Model.Status == "DRAFT")
+        { <p class="rule-help">Edit and publish this draft to schedule its activation. Only one version can be Publish; cancel any existing publication first.</p> }
+        else if (Model.Status == "PUBLISH")
+        { <p class="rule-help">Scheduled for activation on the effective date. You may cancel publication before it becomes Active.</p> }
+        else
+        { <p class="rule-help">This version is read-only.</p> }
+    </section>
+</main>

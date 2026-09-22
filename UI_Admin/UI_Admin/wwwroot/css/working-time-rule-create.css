@@ -104,3 +104,5 @@
     .rule-create-actions > div { width: 100%; }
     .rule-create-actions .rule-button { flex: 1; justify-content: center; }
 }
+
+.rule-effective-date { margin-top: 24px; }

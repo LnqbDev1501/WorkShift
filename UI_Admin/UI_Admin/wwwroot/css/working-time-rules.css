@@ -151,3 +151,15 @@
         padding: 18px;
     }
 }
+
+.rule-status.draft { color: #92400e; background: #fef3c7; }
+.rule-status.publish { color: #4338ca; background: #e0e7ff; }
+.rule-status.cancel { color: #9f1239; background: #ffe4e6; }
+.rule-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; }
+.rule-row-actions form { display: inline-flex; margin: 0; }
+.rule-row-actions a, .rule-row-actions button { color: #4f46e5; cursor: pointer; }
+.rule-row-actions .rule-danger { color: #be123c; }
+.rule-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.rule-detail-grid dt { color: #64748b; font-size: 13px; margin-bottom: 6px; }
+.rule-detail-grid dd { font-weight: 600; }
+@media (max-width: 640px) { .rule-detail-grid { grid-template-columns: 1fr; } }

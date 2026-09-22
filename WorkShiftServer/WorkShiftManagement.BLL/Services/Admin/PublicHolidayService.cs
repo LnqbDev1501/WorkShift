@@ -83,7 +83,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
         PublicHolidayId = e.PublicHolidayId,
         HolidayName = e.HolidayName,
         HolidayDate = e.HolidayDate,
-        PayMultiplier = e.PayMultiplier,
+        //PayMultiplier = e.PayMultiplier,
         IsActive = e.IsActive,
         CreatedBy = e.CreatedBy,
         CreatedAt = e.CreatedAt,
@@ -95,7 +95,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
         e.PublicHolidayId,
         e.HolidayName,
         e.HolidayDate,
-        e.PayMultiplier,
+        //e.PayMultiplier,
         e.IsActive
     };
 
@@ -172,7 +172,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
                 {
                     HolidayName = x.Name,
                     HolidayDate = x.Date,
-                    PayMultiplier = x.Multiplier,
+                    //PayMultiplier = x.Multiplier,
                     IsActive = true,
                     CreatedBy = callerId == Guid.Empty ? (Guid?)null : callerId,
                     CreatedAt = now,
@@ -214,18 +214,18 @@ public sealed class PublicHolidayService : IPublicHolidayService
                     throw Error(new InvalidOperationException("Another public holiday already exists on this date."), "HOLIDAY_DATE_EXISTS");
 
                 var dateChanged = holiday.HolidayDate != data.Date;
-                var multiplierChanged = holiday.PayMultiplier != data.Multiplier;
+                //var multiplierChanged = holiday.PayMultiplier != data.Multiplier;
                 var nameChanged = holiday.HolidayName != data.Name;
-                if ((dateChanged || multiplierChanged) && await _repo.IsUsedInPayrollAsync(id, ct))
+                //if ((dateChanged || multiplierChanged) && await _repo.IsUsedInPayrollAsync(id, ct))
                     throw Error(new InvalidOperationException("This holiday has already been used in payroll. Its date and multiplier cannot be changed."), "HOLIDAY_USED_IN_PAYROLL");
 
-                if (!dateChanged && !multiplierChanged && !nameChanged)
+                //if (!dateChanged && !multiplierChanged && !nameChanged)
                     return Map(holiday);
 
                 var oldValue = Json(AuditSnapshot(holiday));
                 holiday.HolidayName = data.Name;
                 holiday.HolidayDate = data.Date;
-                holiday.PayMultiplier = data.Multiplier;
+                //holiday.PayMultiplier = data.Multiplier;
                 holiday.UpdatedAt = DateTime.UtcNow;
                 // PUT does not change IsActive, CreatedBy or CreatedAt.
                 await _repo.SaveChangesAsync(ct);
