@@ -1089,7 +1089,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(500)
                 .HasColumnName("description");
-            entity.Property(e => e.MaxShiftsPerWeek).HasColumnName("max_shifts_per_week");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'ACTIVE'::character varying")
