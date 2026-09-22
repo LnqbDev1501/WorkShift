@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Create Minimum Wage";
+    var activeWages = Model?.ActiveWages ?? [];
 }
 
 <div class="flex flex-col w-full px-7 py-4">
@@ -15,7 +16,7 @@
                 Create Minimum Wage
             </h1>
             <p class="text-body-md text-secondary mt-0.5">
-                Define a new baseline regional minimum wage tier for workforce regulation.
+                Draft a new regional minimum wage policy tier for workforce regulation.
             </p>
         </div>
     </div>
@@ -27,9 +28,9 @@
                 <span class="material-symbols-outlined text-[20px]">info</span>
             </div>
             <div class="flex flex-col gap-0.5">
-                <h2 class="text-title-md font-semibold text-on-surface">Regulatory Compliance Policy</h2>
+                <h2 class="text-title-md font-semibold text-on-surface">Draft Creation Lifecycle</h2>
                 <p class="text-body-sm text-secondary leading-relaxed">
-                    Regional minimum wage tiers set the legal minimum hourly rate for shift payment calculations. Newly created tiers become immediately available for mapping when configuring operational regions.
+                    Newly created minimum wage tiers are saved in <strong>DRAFT</strong> status. You can refine parameters anytime. The effective date can be set now or specified before publishing.
                 </p>
             </div>
         </div>
@@ -42,10 +43,10 @@
             <div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8 flex flex-col gap-7 border border-surface-container-high/60">
                 <div class="flex items-start justify-between">
                     <div>
-                        <span class="text-label-sm uppercase tracking-widest text-primary font-bold">Section 01</span>
-                        <h3 class="text-title-lg font-bold text-on-surface mt-0.5">Wage Tier Parameters</h3>
+                        <span class="text-label-sm uppercase tracking-widest text-primary font-bold">Draft Parameters</span>
+                        <h3 class="text-title-lg font-bold text-on-surface mt-0.5">Wage Tier Specification</h3>
                         <p class="text-body-sm text-secondary mt-1">
-                            Specify the unique regional designation and minimum hourly compensation rate.
+                            Specify the regional designation, hourly rate, optional effective date, and replaced active wage.
                         </p>
                     </div>
                 </div>
@@ -65,10 +66,10 @@
                             <input autocomplete="off"
                                    class="w-full h-11 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
                                    id="wageName"
-                                   maxlength="100"
+                                   maxlength="150"
                                    name="WageName"
                                    value="@Model?.WageName"
-                                   placeholder="e.g., Vùng I, Vùng II, Vùng III, Vùng IV, or Vùng V"
+                                   placeholder="e.g., Vùng I, Vùng II, Vùng III, or Vùng IV"
                                    required
                                    type="text" />
                         </div>
@@ -89,21 +90,66 @@
                                    class="w-full h-11 pl-10 pr-28 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-code-num font-bold text-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
                                    id="minimumHourlyRate"
                                    min="1"
-                                   step="100"
+                                   step="1"
                                    name="MinimumHourlyRate"
                                    value="@(Model?.MinimumHourlyRate > 0 ? Model.MinimumHourlyRate.ToString("0") : "")"
-                                   placeholder="e.g., 25500"
+                                   placeholder="e.g., 27000"
                                    required
                                    type="number" />
                             <span class="absolute right-3.5 px-2 py-0.5 rounded bg-surface-container text-secondary text-xs font-mono font-bold pointer-events-none">VND / hour</span>
                         </div>
                         <span asp-validation-for="MinimumHourlyRate" class="text-error text-label-sm"></span>
                         <p class="text-body-sm text-secondary">
-                            The minimum statutory hourly rate in VND.
+                            The statutory minimum hourly rate in VND (must be greater than 0).
                         </p>
                     </div>
 
-                    <!-- Field 3: Description (Optional) -->
+                    <!-- Field 3: Replaced Existing Wage Dropdown (Active wages only) -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="replacedWageId">
+                            Replaces Existing Wage
+                            <span class="text-label-sm text-secondary font-normal font-sans">(Optional)</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">swap_horiz</span>
+                            <select id="replacedWageId"
+                                    name="ReplacedWageId"
+                                    class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg text-on-surface font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all cursor-pointer">
+                                <option value="" selected="@(Model?.ReplacedWageId == null)">No replacement (New standalone wage)</option>
+                                @foreach (var activeWage in activeWages)
+                                {
+                                    <option value="@activeWage.RegionalMinimumWageId" selected="@(Model?.ReplacedWageId == activeWage.RegionalMinimumWageId)">
+                                        @activeWage.WageName — @activeWage.MinimumHourlyRate.ToString("N0") VND/hour (ID #@activeWage.RegionalMinimumWageId)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <p class="text-body-sm text-secondary">
+                            Select an active wage tier to be superseded when this new wage becomes active.
+                        </p>
+                    </div>
+
+                    <!-- Field 4: Effective From -->
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="effectiveFrom">
+                            Effective From
+                            <span class="text-label-sm text-secondary font-normal font-sans">(Optional for Draft, required before Publish)</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">calendar_today</span>
+                            <input autocomplete="off"
+                                   class="w-full h-11 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md font-mono focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
+                                   id="effectiveFrom"
+                                   name="EffectiveFrom"
+                                   value="@(Model?.EffectiveFrom.HasValue == true ? Model.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "")"
+                                   type="date" />
+                        </div>
+                        <p class="text-body-sm text-secondary">
+                            Date when this wage policy should automatically become active.
+                        </p>
+                    </div>
+
+                    <!-- Field 5: Description (Optional) -->
                     <div class="flex flex-col gap-1.5">
                         <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="description">
                             Description
@@ -113,7 +159,7 @@
                                   id="description"
                                   maxlength="500"
                                   name="Description"
-                                  placeholder="Provide optional details regarding included provinces, legal decrees, or jurisdiction scope..."
+                                  placeholder="Provide optional details regarding included provinces, decrees, or jurisdiction scope..."
                                   rows="4">@Model?.Description</textarea>
                         <span asp-validation-for="Description" class="text-error text-label-sm"></span>
                     </div>
@@ -129,30 +175,30 @@
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
                     </div>
                     <div>
-                        <h4 class="text-title-md font-bold text-on-surface leading-tight">Tier Guidelines</h4>
-                        <span class="text-label-sm text-secondary">System Policy Rules</span>
+                        <h4 class="text-title-md font-bold text-on-surface leading-tight">Draft Rules</h4>
+                        <span class="text-label-sm text-secondary">Workflow Policy</span>
                     </div>
                 </div>
                 <ul class="flex flex-col gap-4 text-xs">
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
                         <div class="flex flex-col gap-0.5">
-                            <span class="font-semibold text-on-surface">Unique Title</span>
-                            <p class="text-secondary leading-snug">Wage tier titles (e.g., Vùng I) must be unique among current active wage tiers.</p>
+                            <span class="font-semibold text-on-surface">Save as Draft</span>
+                            <p class="text-secondary leading-snug">Initial creation creates a DRAFT record. You can edit parameters as needed before publishing.</p>
                         </div>
                     </li>
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
                         <div class="flex flex-col gap-0.5">
-                            <span class="font-semibold text-on-surface">Positive Minimum Rate</span>
-                            <p class="text-secondary leading-snug">The minimum hourly wage rate must be greater than zero.</p>
+                            <span class="font-semibold text-on-surface">Effective Date Validation</span>
+                            <p class="text-secondary leading-snug">When publishing, the effective date must be today or in the future, and later than any replaced wage date.</p>
                         </div>
                     </li>
                     <li class="flex items-start gap-3">
                         <span class="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">check_circle</span>
                         <div class="flex flex-col gap-0.5">
-                            <span class="font-semibold text-on-surface">Immediate Availability</span>
-                            <p class="text-secondary leading-snug">Once created, regions can select this minimum wage tier immediately.</p>
+                            <span class="font-semibold text-on-surface">Automatic Background Activation</span>
+                            <p class="text-secondary leading-snug">Published wages automatically activate on their effective date via system background worker.</p>
                         </div>
                     </li>
                 </ul>
@@ -164,15 +210,15 @@
     <div class="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-surface-container-high/60">
         <div class="flex items-center gap-2 text-secondary text-xs">
             <span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
-            <span>All values are validated before registering in the audit log.</span>
+            <span>All values are validated before saving to draft.</span>
         </div>
         <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
             <a class="flex-1 sm:flex-none h-11 px-5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-title-md text-[13px] flex items-center justify-center transition-colors shadow-sm" asp-controller="RegionalMinimumWages" asp-action="Index">
                 Cancel
             </a>
             <button class="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-md text-[13px] flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer" type="submit" form="createWageForm">
-                <span class="material-symbols-outlined text-[18px]">add</span>
-                <span>Create Minimum Wage</span>
+                <span class="material-symbols-outlined text-[18px]">save</span>
+                <span>Save Draft</span>
             </button>
         </div>
     </div>

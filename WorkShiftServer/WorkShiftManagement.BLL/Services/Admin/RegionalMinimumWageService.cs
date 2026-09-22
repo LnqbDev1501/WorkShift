@@ -22,17 +22,51 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
         _repo = repo;
     }
 
+    /// <summary>
+    /// Helper method to calculate the current business date according to Vietnam Timezone (Asia/Ho_Chi_Minh).
+    /// </summary>
+    public static DateOnly GetVietnamToday()
+    {
+        var utcNow = DateTimeOffset.UtcNow;
+        TimeZoneInfo vnTimeZone;
+        try
+        {
+            vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        var vnTime = TimeZoneInfo.ConvertTime(utcNow, vnTimeZone);
+        return DateOnly.FromDateTime(vnTime.DateTime);
+    }
+
+    private async Task ValidateEffectiveFromAgainstReplacedWageAsync(DateOnly? newEffectiveFrom, int? replacedWageId)
+    {
+        if (replacedWageId.HasValue && newEffectiveFrom.HasValue)
+        {
+            var replacedWage = await _repo.GetByIdAsync(replacedWageId.Value);
+            if (replacedWage != null && replacedWage.EffectiveFrom.HasValue)
+            {
+                if (newEffectiveFrom.Value <= replacedWage.EffectiveFrom.Value)
+                {
+                    throw new ArgumentException("EffectiveFrom must be later than the replaced wage effective date.");
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<RegionalMinimumWageResponse>> GetListAsync(string? status = null, string? search = null)
+    {
+        var entities = await _repo.GetListAsync(status, search);
+        return entities.Select(MapResponse).ToList();
+    }
+
     /// <inheritdoc />
     public async Task<List<RegionalMinimumWageResponse>> GetCurrentWagesAsync()
     {
-        var entities = await _repo.GetCurrentWagesAsync();
-
-        return entities.Select(e => new RegionalMinimumWageResponse
-        {
-            RegionalMinimumWageId = e.RegionalMinimumWageId,
-            WageName = e.WageName,
-            MinimumHourlyRate = e.MinimumHourlyRate
-        }).ToList();
+        return await GetListAsync(status: "ACTIVE");
     }
 
     /// <inheritdoc />
@@ -85,10 +119,19 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
             ? null
             : request.Description.Trim();
 
-        // Validate uniqueness of current active wage name
-        if (await _repo.CurrentNameExistsAsync(normalizedName))
+        if (request.ReplacedWageId.HasValue)
         {
-            throw new InvalidOperationException("Regional minimum wage name already exists.");
+            if (request.ReplacedWageId.Value <= 0)
+            {
+                throw new ArgumentException("ReplacedWageId must be greater than 0.");
+            }
+
+            if (!await _repo.IsActiveAsync(request.ReplacedWageId.Value))
+            {
+                throw new InvalidOperationException("The replaced regional minimum wage must be active.");
+            }
+
+            await ValidateEffectiveFromAgainstReplacedWageAsync(request.EffectiveFrom, request.ReplacedWageId.Value);
         }
 
         var entity = new RegionalMinimumWage
@@ -96,7 +139,10 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
             WageName = normalizedName,
             MinimumHourlyRate = request.MinimumHourlyRate,
             Description = normalizedDesc,
-            ReplacedWageId = null,
+            ReplacedWageId = request.ReplacedWageId,
+            EffectiveFrom = request.EffectiveFrom,
+            EffectiveTo = null,
+            Status = "DRAFT",
             CreatedBy = callerId,
             CreatedAt = DateTime.UtcNow
         };
@@ -106,7 +152,7 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
     }
 
     /// <inheritdoc />
-    public async Task<RegionalMinimumWageDetailResponse> UpdateAsync(int id, UpdateRegionalMinimumWageRequest request, Guid callerId)
+    public async Task<RegionalMinimumWageDetailResponse> UpdateDraftAsync(int id, UpdateRegionalMinimumWageRequest request, Guid callerId)
     {
         if (callerId == Guid.Empty)
         {
@@ -129,10 +175,9 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
             throw new KeyNotFoundException("Regional minimum wage not found.");
         }
 
-        // Check if the wage record has already been replaced
-        if (await _repo.IsAlreadyReplacedAsync(id))
+        if (existing.Status != "DRAFT")
         {
-            throw new InvalidOperationException("This regional minimum wage has already been replaced.");
+            throw new InvalidOperationException("Only draft regional minimum wages can be edited.");
         }
 
         if (string.IsNullOrWhiteSpace(request.WageName))
@@ -155,26 +200,161 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
             ? null
             : request.Description.Trim();
 
-        // Validate uniqueness of current active wage name excluding self
-        if (await _repo.CurrentNameExistsAsync(normalizedName, excludeId: id))
+        if (request.ReplacedWageId.HasValue)
         {
-            throw new InvalidOperationException("Regional minimum wage name already exists.");
+            if (request.ReplacedWageId.Value <= 0)
+            {
+                throw new ArgumentException("ReplacedWageId must be greater than 0.");
+            }
+
+            if (request.ReplacedWageId.Value == id)
+            {
+                throw new ArgumentException("A regional minimum wage cannot replace itself.");
+            }
+
+            if (!await _repo.IsActiveAsync(request.ReplacedWageId.Value))
+            {
+                throw new InvalidOperationException("The replaced regional minimum wage must be active.");
+            }
+
+            await ValidateEffectiveFromAgainstReplacedWageAsync(request.EffectiveFrom, request.ReplacedWageId.Value);
         }
 
-        var newWageEntity = new RegionalMinimumWage
-        {
-            WageName = normalizedName,
-            MinimumHourlyRate = request.MinimumHourlyRate,
-            Description = normalizedDesc,
-            ReplacedWageId = id,
-            CreatedBy = callerId,
-            CreatedAt = DateTime.UtcNow
-        };
+        existing.WageName = normalizedName;
+        existing.MinimumHourlyRate = request.MinimumHourlyRate;
+        existing.Description = normalizedDesc;
+        existing.ReplacedWageId = request.ReplacedWageId;
+        existing.EffectiveFrom = request.EffectiveFrom;
 
-        // Transactionally insert new replacement record & update referencing regions
-        var createdReplacement = await _repo.ReplaceWageAsync(id, newWageEntity);
-        return MapDetail(createdReplacement);
+        var updated = await _repo.UpdateAsync(existing);
+        return MapDetail(updated);
     }
+
+    /// <inheritdoc />
+    public async Task<RegionalMinimumWageDetailResponse> PublishAsync(int id, Guid callerId)
+    {
+        if (callerId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("Admin user identifier is invalid.");
+        }
+
+        if (id <= 0)
+        {
+            throw new ArgumentException("Wage id must be greater than 0.");
+        }
+
+        var existing = await _repo.GetByIdAsync(id);
+        if (existing == null)
+        {
+            throw new KeyNotFoundException("Regional minimum wage not found.");
+        }
+
+        if (existing.Status != "DRAFT")
+        {
+            throw new InvalidOperationException("Only draft regional minimum wages can be published.");
+        }
+
+        if (!existing.EffectiveFrom.HasValue)
+        {
+            throw new ArgumentException("EffectiveFrom date is required before publishing.");
+        }
+
+        var today = GetVietnamToday();
+        if (existing.EffectiveFrom.Value < today)
+        {
+            throw new ArgumentException("EffectiveFrom cannot be earlier than today.");
+        }
+
+        if (existing.MinimumHourlyRate <= 0)
+        {
+            throw new ArgumentException("Minimum hourly rate must be greater than 0.");
+        }
+
+        if (existing.ReplacedWageId.HasValue)
+        {
+            if (!await _repo.IsActiveAsync(existing.ReplacedWageId.Value))
+            {
+                throw new InvalidOperationException("The replaced regional minimum wage must be active.");
+            }
+
+            await ValidateEffectiveFromAgainstReplacedWageAsync(existing.EffectiveFrom, existing.ReplacedWageId.Value);
+
+            if (await _repo.HasPublishedReplacementAsync(existing.ReplacedWageId.Value))
+            {
+                throw new InvalidOperationException("Another published wage is already scheduled to replace this wage.");
+            }
+        }
+
+        existing.Status = "PUBLISH";
+        var updated = await _repo.UpdateAsync(existing);
+        return MapDetail(updated);
+    }
+
+    /// <inheritdoc />
+    public async Task<RegionalMinimumWageDetailResponse> CancelAsync(int id, Guid callerId)
+    {
+        if (callerId == Guid.Empty)
+        {
+            throw new UnauthorizedAccessException("Admin user identifier is invalid.");
+        }
+
+        if (id <= 0)
+        {
+            throw new ArgumentException("Wage id must be greater than 0.");
+        }
+
+        var existing = await _repo.GetByIdAsync(id);
+        if (existing == null)
+        {
+            throw new KeyNotFoundException("Regional minimum wage not found.");
+        }
+
+        if (existing.Status != "DRAFT" && existing.Status != "PUBLISH")
+        {
+            throw new InvalidOperationException($"Cannot cancel regional minimum wage with status '{existing.Status}'. Only draft or published wages can be cancelled.");
+        }
+
+        existing.Status = "CANCEL";
+        var updated = await _repo.UpdateAsync(existing);
+        return MapDetail(updated);
+    }
+
+    /// <inheritdoc />
+    public async Task<int> ActivateDueWagesAsync()
+    {
+        var today = GetVietnamToday();
+        var dueWages = await _repo.GetDuePublishedWagesAsync(today);
+        var activatedCount = 0;
+
+        foreach (var wage in dueWages)
+        {
+            try
+            {
+                if (await _repo.ActivateDueWageTransactionAsync(wage.RegionalMinimumWageId, today))
+                {
+                    activatedCount++;
+                }
+            }
+            catch
+            {
+                // Resilience: error on a single due wage should not prevent processing other due wages
+            }
+        }
+
+        return activatedCount;
+    }
+
+    private static RegionalMinimumWageResponse MapResponse(RegionalMinimumWage entity) => new()
+    {
+        RegionalMinimumWageId = entity.RegionalMinimumWageId,
+        WageName = entity.WageName,
+        MinimumHourlyRate = entity.MinimumHourlyRate,
+        Description = entity.Description,
+        Status = entity.Status,
+        EffectiveFrom = entity.EffectiveFrom,
+        EffectiveTo = entity.EffectiveTo,
+        ReplacedWageId = entity.ReplacedWageId
+    };
 
     private static RegionalMinimumWageDetailResponse MapDetail(RegionalMinimumWage entity) => new()
     {
@@ -183,6 +363,9 @@ public class RegionalMinimumWageService : IRegionalMinimumWageService
         MinimumHourlyRate = entity.MinimumHourlyRate,
         Description = entity.Description,
         ReplacedWageId = entity.ReplacedWageId,
+        Status = entity.Status,
+        EffectiveFrom = entity.EffectiveFrom,
+        EffectiveTo = entity.EffectiveTo,
         CreatedBy = entity.CreatedBy,
         CreatedAt = entity.CreatedAt
     };

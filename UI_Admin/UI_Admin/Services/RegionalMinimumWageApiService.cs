@@ -17,9 +17,25 @@ public class RegionalMinimumWageApiService
         _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
     }
 
-    public async Task<List<RegionalMinimumWageListItemViewModel>> GetAllAsync(CancellationToken cancellationToken = default)
+    public async Task<List<RegionalMinimumWageListItemViewModel>> GetAllAsync(
+        string? search = null,
+        string? status = null,
+        CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages";
+        var queryParams = new List<string>();
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            queryParams.Add($"status={Uri.EscapeDataString(status.Trim().ToUpperInvariant())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            queryParams.Add($"search={Uri.EscapeDataString(search.Trim())}");
+        }
+
+        var queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages{queryString}";
+
         using var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return [];
@@ -48,7 +64,9 @@ public class RegionalMinimumWageApiService
         {
             wageName = model.WageName.Trim(),
             minimumHourlyRate = model.MinimumHourlyRate,
-            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim()
+            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+            replacedWageId = model.ReplacedWageId,
+            effectiveFrom = model.EffectiveFrom
         };
 
         using var response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
@@ -73,7 +91,9 @@ public class RegionalMinimumWageApiService
         {
             wageName = model.WageName.Trim(),
             minimumHourlyRate = model.MinimumHourlyRate,
-            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim()
+            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+            replacedWageId = model.ReplacedWageId,
+            effectiveFrom = model.EffectiveFrom
         };
 
         using var response = await _httpClient.PutAsJsonAsync(url, payload, cancellationToken);
@@ -87,6 +107,38 @@ public class RegionalMinimumWageApiService
         var isNotFound = response.StatusCode == HttpStatusCode.NotFound;
         var error = await ReadErrorMessageAsync(response, cancellationToken);
         return (false, null, error, isConflict, isNotFound);
+    }
+
+    public async Task<(bool Success, RegionalMinimumWageDetailViewModel? Data, string? ErrorMessage)> PublishAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages/{id}/publish";
+        using var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            var data = await response.Content.ReadFromJsonAsync<RegionalMinimumWageDetailViewModel>(cancellationToken: cancellationToken);
+            return (true, data, null);
+        }
+
+        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        return (false, null, error);
+    }
+
+    public async Task<(bool Success, RegionalMinimumWageDetailViewModel? Data, string? ErrorMessage)> CancelAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages/{id}/cancel";
+        using var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            var data = await response.Content.ReadFromJsonAsync<RegionalMinimumWageDetailViewModel>(cancellationToken: cancellationToken);
+            return (true, data, null);
+        }
+
+        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        return (false, null, error);
     }
 
     private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
