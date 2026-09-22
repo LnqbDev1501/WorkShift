@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -1089,7 +1089,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(500)
                 .HasColumnName("description");
-            entity.Property(e => e.MaxShiftsPerWeek).HasColumnName("max_shifts_per_week");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'ACTIVE'::character varying")
@@ -1930,7 +1929,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("is_active");
             entity.Property(e => e.PayMultiplier)
                 .HasPrecision(5, 2)
-                .HasDefaultValueSql("3.00")
+                .HasDefaultValue(1m)
                 .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -1995,8 +1994,14 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.MinimumHourlyRate).HasColumnName("minimum_hourly_rate");
             entity.Property(e => e.ReplacedWageId).HasColumnName("replaced_wage_id");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
             entity.Property(e => e.WageName)
                 .HasColumnType("character varying")
                 .HasColumnName("wage_name");

@@ -11,8 +11,6 @@ public partial class EmployeeType
 
     public string? Description { get; set; }
 
-    public int? MaxShiftsPerWeek { get; set; }
-
     public string Status { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }

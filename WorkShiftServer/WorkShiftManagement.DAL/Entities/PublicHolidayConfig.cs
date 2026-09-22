@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -11,6 +11,8 @@ public partial class PublicHolidayConfig
 
     public DateOnly HolidayDate { get; set; }
 
+    public decimal PayMultiplier { get; set; }
+
     public bool IsActive { get; set; }
 
     public Guid? CreatedBy { get; set; }
@@ -18,8 +20,6 @@ public partial class PublicHolidayConfig
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
-
-    public decimal PayMultiplier { get; set; }
 
     public virtual User? CreatedByNavigation { get; set; }
 
