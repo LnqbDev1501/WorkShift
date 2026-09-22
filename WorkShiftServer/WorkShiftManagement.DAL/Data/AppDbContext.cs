@@ -1347,6 +1347,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.PayMultiplier)
                 .HasPrecision(5, 2)
                 .HasColumnName("pay_multiplier");

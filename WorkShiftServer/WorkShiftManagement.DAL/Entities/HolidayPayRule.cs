@@ -21,6 +21,8 @@ public partial class HolidayPayRule
 
     public string Status { get; set; } = null!;
 
+    public DateOnly? EffectiveTo { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<HolidayPayRule> InverseReplacedRule { get; set; } = new List<HolidayPayRule>();
