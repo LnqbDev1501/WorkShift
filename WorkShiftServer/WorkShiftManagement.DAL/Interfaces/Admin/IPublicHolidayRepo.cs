@@ -12,7 +12,7 @@ public interface IPublicHolidayRepo
         int? year, 
         int? month, 
         string? search,
-        bool includeInactive, 
+        bool includeInactive, bool? isActive, 
         CancellationToken ct = default);
 
     Task<PublicHolidayConfig?> GetByIdAsync(
@@ -37,3 +37,5 @@ public interface IPublicHolidayRepo
     Task WriteAuditAsync(Guid actorId, string action, int recordId,
         string? oldValueJson, string? newValueJson, CancellationToken ct = default);
 }
+
+

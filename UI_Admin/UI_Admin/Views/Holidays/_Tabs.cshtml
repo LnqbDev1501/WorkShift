@@ -1,0 +1,5 @@
+@{ var rules = ViewContext.RouteData.Values["action"]?.ToString() == "Rules"; }
+<nav class="holiday-tabs" aria-label="Public Holidays">
+    <a asp-action="List" class="@(!rules ? "selected" : "")" aria-current="@(!rules ? "page" : null)">Holiday Calendar</a>
+    <a asp-action="Rules" class="@(rules ? "selected" : "")" aria-current="@(rules ? "page" : null)">Holiday Pay Rules</a>
+</nav>

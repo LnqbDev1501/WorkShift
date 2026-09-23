@@ -106,6 +106,9 @@ builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
+builder.Services.AddScoped<HolidayConfigurationRepo>();
+builder.Services.AddScoped<HolidayPayRuleService>();
+builder.Services.AddHostedService<WorkShiftServer.API.Services.HolidayRuleActivationWorker>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
@@ -143,3 +146,4 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
+

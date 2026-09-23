@@ -10,29 +10,31 @@
         <div asp-validation-summary="All" class="holiday-validation"></div>
         <div class="create-workspace">
         <section class="holiday-form-card create-matrix">
-            <header><div><span class="material-symbols-outlined">calendar_add_on</span><div><h2>Holiday entries</h2><p>Names may contain up to 150 characters; multipliers must be greater than zero.</p></div></div><button type="button" id="add-holiday-row" class="secondary-button"><span class="material-symbols-outlined">add</span>Add another</button></header>
+            <header><div><span class="material-symbols-outlined">calendar_add_on</span><div><h2>Holiday entries</h2><p>Names can contain up to 150 characters. Multipliers are selected automatically by date.</p></div></div><button type="button" id="add-holiday-row" class="secondary-button"><span class="material-symbols-outlined">add</span>Add another</button></header>
             <div id="holiday-rows">
                 @for (var index = 0; index < Model.Holidays.Count; index++)
                 {
                     <div class="holiday-form-row holiday-range-row" data-row>
                         <div class="row-number">@(index + 1)</div>
                         <label><span>Holiday name *</span><input asp-for="Holidays[index].HolidayName" maxlength="150" placeholder="e.g., New Year's Day" /><span asp-validation-for="Holidays[index].HolidayName"></span></label>
-                        <label><span>From date *</span><input asp-for="Holidays[index].FromDate" type="date" /><span asp-validation-for="Holidays[index].FromDate"></span></label>
-                        <label><span>To date *</span><input asp-for="Holidays[index].ToDate" type="date" required /><span asp-validation-for="Holidays[index].ToDate"></span></label>
-                        <label><span>Pay multiplier *</span><div class="multiplier-input"><input asp-for="Holidays[index].PayMultiplier" type="number" min="0.01" max="999.99" step="0.01" /><b>×</b></div><span asp-validation-for="Holidays[index].PayMultiplier"></span></label>
+                        <label><span>From date *</span><input asp-for="Holidays[index].FromDate" type="date" min="@DateTime.UtcNow.AddHours(7).AddDays(1).ToString("yyyy-MM-dd")" /><span asp-validation-for="Holidays[index].FromDate"></span></label>
+                        <label><span>To date *</span><input asp-for="Holidays[index].ToDate" type="date" min="@DateTime.UtcNow.AddHours(7).AddDays(1).ToString("yyyy-MM-dd")" required /><span asp-validation-for="Holidays[index].ToDate"></span></label>
+                        <div><span>Status</span><span class="status active">Active</span></div>
                         <button type="button" class="remove-holiday-row" title="Remove row"><span class="material-symbols-outlined">delete</span></button>
                     </div>
                 }
             </div>
         </section>
         <aside class="holiday-form-sidebar">
-            <section class="guideline-card"><header><span class="material-symbols-outlined">verified_user</span><h2>Validation Guidelines</h2></header><ul><li><span class="material-symbols-outlined">check_circle</span><div><strong>Multiplier Range</strong><p>Use values from 0.01 to 999.99, with up to two decimal places.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Unique Calendar Dates</strong><p>Dates must be unique in this batch and must not duplicate an existing holiday.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Flexible Holiday Naming</strong><p>Use a clear statutory or operational holiday name, up to 150 characters.</p></div></li><li class="danger"><span class="material-symbols-outlined">warning</span><div><strong>All-or-Nothing Batch</strong><p>If one entry fails validation, no holiday in the batch is created.</p></div></li></ul></section>
+            <section class="guideline-card"><header><span class="material-symbols-outlined">verified_user</span><h2>Validation Guidelines</h2></header><ul><li><span class="material-symbols-outlined">check_circle</span><div><strong>Automatic pay multiplier</strong><p>Manage multipliers in the Holiday Pay Rules tab.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Unique Calendar Dates</strong><p>Dates must be unique in this batch and must not duplicate an existing holiday.</p></div></li><li><span class="material-symbols-outlined">check_circle</span><div><strong>Flexible Holiday Naming</strong><p>Use a clear statutory or operational holiday name, up to 150 characters.</p></div></li><li class="danger"><span class="material-symbols-outlined">warning</span><div><strong>All-or-Nothing Batch</strong><p>If one entry fails validation, no holiday in the batch is created.</p></div></li></ul></section>
             <section class="batch-summary"><span class="stat-label">Batch integrity summary</span><div><span>Total holiday days</span><strong id="batch-row-count">@Model.TotalDays</strong></div><div><span>Validation status</span><b>Pre-flight validation</b></div><div><span>Initial record state</span><b>Active</b></div></section>
         </aside>
         </div>
-        <section class="holiday-form-note full-note"><span class="material-symbols-outlined">sync</span><div><strong>Payroll engine synchronization</strong><p>Configured multipliers are used automatically when payroll is calculated for shifts scheduled on these dates.</p></div></section>
-        <div class="form-actions"><a asp-action="List" class="secondary-button">Cancel</a><button type="submit" class="primary-button"><span class="material-symbols-outlined">save</span>Create holidays</button></div>
+        <section class="holiday-form-note full-note"><span class="material-symbols-outlined">sync</span><div><strong>Payroll engine synchronization</strong><p>Multipliers are selected by work date. Affected unfinalized payroll periods return to draft and require recalculation.</p></div></section>
+        <div class="form-actions"><a asp-action="List" class="secondary-button">Cancel</a><button type="submit" class="primary-button"><span class="material-symbols-outlined">save</span>Save holidays</button></div>
     </form>
 </main>
 </div>
 @section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/holiday-create.js" asp-append-version="true"></script> }
+
+

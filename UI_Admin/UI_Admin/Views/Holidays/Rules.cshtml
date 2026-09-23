@@ -1,0 +1,20 @@
+@model List<UI_Admin.Models.Holidays.HolidayRuleViewModel>
+@{ ViewData["Title"] = "Public Holidays"; }
+@section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
+<div class="holiday-shell"><main class="holiday-page">
+    <div class="holiday-heading"><div><div class="list-eyebrow">System-wide Configuration</div><h1>Public Holidays</h1><p>Rules apply by work date and remain in effect across years.</p></div><a asp-action="Rule" class="primary-button">+ Add Pay Rule</a></div>
+    <partial name="_Tabs" />
+    @if (ViewData["LoadError"] is string loadError) { <div class="holiday-alert error">@loadError</div> }
+    @if (TempData["HolidayError"] is string error) { <div class="holiday-alert error">@error</div> }
+    @if (TempData["HolidaySuccess"] is string success) { <div class="holiday-alert">@success</div> }
+    <section class="holiday-table-card"><div class="table-scroll"><table class="holiday-table">
+        <thead><tr><th>Rule name</th><th>Pay multiplier</th><th>Effective from</th><th>Effective to (exclusive)</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>@foreach (var rule in Model) {
+            <tr><td><strong>@rule.RuleName</strong></td><td><span class="multiplier">×@rule.PayMultiplier?.ToString("0.00")</span></td><td>@rule.EffectiveFrom?.ToString("dd/MM/yyyy")</td><td>@(rule.EffectiveTo?.ToString("dd/MM/yyyy") ?? "—")</td><td><span class="status @(rule.Status == "ACTIVE" ? "active" : "inactive")">@rule.StatusLabel</span></td><td><a asp-action="Rule" asp-route-id="@rule.HolidayPayRuleId">@(rule.CanEdit ? "View / Edit" : "View")</a></td></tr>
+        }</tbody>
+    </table></div>
+    @if (Model.Count == 0 && ViewData["LoadError"] == null) { <div class="holiday-empty"><h2>No holiday pay rules yet</h2><p>Add your first rule to cover the dates needed for payroll.</p></div> }
+    </section>
+    <section class="holiday-form-note"><p>Drafts can be edited or deleted. Published rules can only be cancelled before their effective date. Active and inactive versions are retained for historical payroll.</p></section>
+</main></div>
+
