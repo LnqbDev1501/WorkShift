@@ -1,0 +1,14 @@
+@model UI_Admin.Models.WorkingTimeRuleCreateViewModel
+@{
+    ViewData["Title"] = "Create Working Time Version";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/working-time-rule-create.css" asp-append-version="true" />
+}
+
+<partial name="_VersionForm" model="Model" />
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

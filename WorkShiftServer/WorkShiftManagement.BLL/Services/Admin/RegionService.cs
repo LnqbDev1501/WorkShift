@@ -12,14 +12,17 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 public class RegionService : IRegionService
 {
     private readonly IRegionRepo _regionRepo;
+    private readonly IRegionalMinimumWageRepo _wageRepo;
 
     /// <summary>
     /// Initializes a new instance of <see cref="RegionService"/>.
     /// </summary>
     /// <param name="regionRepo">The region repository dependency.</param>
-    public RegionService(IRegionRepo regionRepo)
+    /// <param name="wageRepo">The regional minimum wage repository dependency.</param>
+    public RegionService(IRegionRepo regionRepo, IRegionalMinimumWageRepo wageRepo)
     {
         _regionRepo = regionRepo;
+        _wageRepo = wageRepo;
     }
 
     /// <inheritdoc />
@@ -32,6 +35,9 @@ public class RegionService : IRegionService
             RegionCode = region.RegionCode,
             RegionName = region.RegionName,
             Description = region.Description,
+            RegionalMinimumWageId = region.RegionalMinimumWageId,
+            WageName = region.RegionalMinimumWage?.WageName,
+            MinimumHourlyRate = region.RegionalMinimumWage?.MinimumHourlyRate,
             BranchCount = region.Branches.Count(),
             Status = region.IsActive ? "ACTIVE" : "INACTIVE"
         }).ToList();
@@ -77,6 +83,9 @@ public class RegionService : IRegionService
             RegionCode = item.RegionCode,
             RegionName = item.RegionName,
             Description = item.Description,
+            RegionalMinimumWageId = item.RegionalMinimumWageId,
+            WageName = item.WageName,
+            MinimumHourlyRate = item.MinimumHourlyRate,
             BranchCount = item.BranchCount,
             Status = item.IsActive ? "ACTIVE" : "INACTIVE"
         }).ToList();
@@ -111,6 +120,14 @@ public class RegionService : IRegionService
             RegionName = data.RegionName,
             Description = data.Description,
             Status = data.IsActive ? "ACTIVE" : "INACTIVE",
+            MinimumWage = data.RegionalMinimumWageId.HasValue
+                ? new RegionalMinimumWageResponse
+                {
+                    RegionalMinimumWageId = data.RegionalMinimumWageId.Value,
+                    WageName = data.WageName ?? string.Empty,
+                    MinimumHourlyRate = data.MinimumHourlyRate ?? 0m
+                }
+                : null,
             BranchCount = data.Branches.Count,
             Branches = data.Branches.Select(branch => new RegionBranchResponse
             {
@@ -162,6 +179,17 @@ public class RegionService : IRegionService
             }
         }
 
+        // Validate RegionalMinimumWageId
+        if (request.RegionalMinimumWageId <= 0)
+        {
+            throw new ArgumentException("RegionalMinimumWageId must be greater than 0.");
+        }
+
+        if (!await _wageRepo.ExistsAsync(request.RegionalMinimumWageId))
+        {
+            throw new ArgumentException("Regional minimum wage does not exist.");
+        }
+
         // Validate uniqueness of RegionCode and RegionName
         if (await _regionRepo.ExistsByCodeAsync(normalizedCode))
         {
@@ -178,6 +206,7 @@ public class RegionService : IRegionService
             RegionCode = normalizedCode,
             RegionName = normalizedName,
             Description = normalizedDescription,
+            RegionalMinimumWageId = request.RegionalMinimumWageId,
             IsActive = true
         };
 
@@ -189,6 +218,9 @@ public class RegionService : IRegionService
             RegionCode = createdData.RegionCode,
             RegionName = createdData.RegionName,
             Description = createdData.Description,
+            RegionalMinimumWageId = createdData.RegionalMinimumWageId,
+            WageName = createdData.WageName,
+            MinimumHourlyRate = createdData.MinimumHourlyRate,
             BranchCount = createdData.BranchCount,
             Status = createdData.IsActive ? "ACTIVE" : "INACTIVE"
         };
@@ -228,6 +260,17 @@ public class RegionService : IRegionService
             }
         }
 
+        // Validate RegionalMinimumWageId
+        if (request.RegionalMinimumWageId <= 0)
+        {
+            throw new ArgumentException("RegionalMinimumWageId must be greater than 0.");
+        }
+
+        if (!await _wageRepo.ExistsAsync(request.RegionalMinimumWageId))
+        {
+            throw new ArgumentException("Regional minimum wage does not exist.");
+        }
+
         var existingData = await _regionRepo.GetByIdAsync(id);
         if (existingData == null)
         {
@@ -240,7 +283,7 @@ public class RegionService : IRegionService
             throw new InvalidOperationException("Region name already exists.");
         }
 
-        var updatedData = await _regionRepo.UpdateAsync(id, normalizedName, normalizedDescription);
+        var updatedData = await _regionRepo.UpdateAsync(id, normalizedName, normalizedDescription, request.RegionalMinimumWageId);
         if (updatedData == null)
         {
             return null;
@@ -252,6 +295,9 @@ public class RegionService : IRegionService
             RegionCode = updatedData.RegionCode,
             RegionName = updatedData.RegionName,
             Description = updatedData.Description,
+            RegionalMinimumWageId = updatedData.RegionalMinimumWageId,
+            WageName = updatedData.WageName,
+            MinimumHourlyRate = updatedData.MinimumHourlyRate,
             BranchCount = updatedData.BranchCount,
             Status = updatedData.IsActive ? "ACTIVE" : "INACTIVE"
         };

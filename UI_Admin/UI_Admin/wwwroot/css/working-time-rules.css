@@ -1,0 +1,153 @@
+.time-rules {
+    max-width: 1200px;
+    margin: auto;
+    padding: 32px;
+    color: #172033;
+}
+
+.time-rules header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 28px;
+}
+
+.time-rules h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.time-rules p {
+    line-height: 1.6;
+}
+
+.time-rules header p, .rule-help {
+    color: #64748b;
+}
+
+.rule-button {
+    display: inline-block;
+    background: #4f46e5;
+    color: white;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.rule-card, .rule-table {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: auto;
+}
+
+.rule-card {
+    padding: 28px;
+}
+
+.rule-table table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.rule-table th, .rule-table td {
+    padding: 18px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.rule-table th {
+    background: #f8fafc;
+    font-size: 13px;
+    color: #64748b;
+    white-space: nowrap;
+}
+
+.rule-status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.rule-status.active {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.rule-status.inactive {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.rule-help {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.rule-error, .field-validation-error {
+    color: #b91c1c;
+}
+
+@media (max-width: 640px) {
+    .time-rules {
+        padding: 16px;
+    }
+    .time-rules header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .rule-card {
+        padding: 18px;
+    }
+}
+
+.rule-status.draft { color: #92400e; background: #fef3c7; }
+.rule-status.publish { color: #4338ca; background: #e0e7ff; }
+.rule-status.cancel { color: #9f1239; background: #ffe4e6; }
+.rule-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; font-size: 13px; }
+.rule-row-actions form { display: inline-flex; margin: 0; }
+.rule-row-actions a, .rule-row-actions button { color: #4f46e5; cursor: pointer; }
+.rule-row-actions .rule-danger { color: #be123c; }
+.rule-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 24px 0; }
+.rule-detail-grid dt { color: #64748b; font-size: 13px; margin-bottom: 6px; }
+.rule-detail-grid dd { font-weight: 600; }
+@media (max-width: 640px) { .rule-detail-grid { grid-template-columns: 1fr; } }
+
+/* Share the Shift Templates directory layout; keep these table-specific adjustments scoped. */
+.working-time-list .shift-primary { text-decoration: none; }
+.working-time-table { min-width: 1120px; }
+.working-time-table .working-time-version-column { width: 90px; }
+.working-time-table .working-time-name-column { width: 24%; }
+.working-time-table .working-time-actions-column { width: 156px; }
+.working-time-table td:first-child { min-width: 0; white-space: nowrap; }
+.working-time-table .working-time-name { text-align: left; white-space: normal; overflow-wrap: anywhere; }
+.working-time-table th:nth-child(2) { text-align: left; }
+.working-time-version { color: #4f46e5; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.working-time-action-group { display: flex; align-items: center; justify-content: center; gap: 4px; }
+.working-time-action-group .rule-row-actions { margin: 0; gap: 4px; flex-wrap: nowrap; }
+.working-time-action-group .rule-action-label { display: none; }
+.working-time-action-group a, .working-time-action-group button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 32px; padding: 0; border-radius: 6px; text-decoration: none; }
+.working-time-action-group a:hover, .working-time-action-group button:hover { background: #eef0ff; }
+.working-time-action-group .material-symbols-outlined { font-size: 19px; }
+.working-time-action-group .working-time-icon { color: #575e70; }
+.rule-row-actions a, .rule-row-actions button { display: inline-flex; align-items: center; gap: 5px; }
+.working-time-list-note { display: flex; gap: 8px; align-items: flex-start; color: #64748b; font-size: 12px; line-height: 1.6; margin-top: 18px; }
+.working-time-list-note .material-symbols-outlined { font-size: 18px; flex-shrink: 0; }
+
+.working-time-detail .working-time-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.working-time-detail .rule-row-actions { margin: 0; gap: 10px; }
+.working-time-detail .rule-row-actions a, .working-time-detail .rule-row-actions button { border: 1px solid #e7e8ec; border-radius: 8px; padding: 10px 14px; background: white; font-size: 13px; font-weight: 500; text-decoration: none; }
+.working-time-detail .rule-row-actions .rule-danger { background: #fceceb; border-color: transparent; color: #ba1a1a; }
+.working-time-detail .rule-row-actions .material-symbols-outlined { font-size: 18px; }
+.working-time-action-dialog { width: min(480px, calc(100vw - 32px)); }
+#working-time-action-confirm { background: #4f46e5; color: white; }
+.working-time-action-dialog.is-danger #working-time-action-confirm { background: #ba1a1a; }
+.working-time-action-dialog button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 600px) { .working-time-detail .working-time-metrics { grid-template-columns: 1fr; } }

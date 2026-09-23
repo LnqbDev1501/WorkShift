@@ -27,7 +27,9 @@ builder.Services.AddTransient<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<AuthApiService>();
 builder.Services.AddHttpClient<PayrollApiService>(client => client.Timeout = TimeSpan.FromSeconds(15))
     .AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<WorkingTimeRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<RegionApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<RegionalMinimumWageApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<DashboardApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<NotificationApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<UserApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();

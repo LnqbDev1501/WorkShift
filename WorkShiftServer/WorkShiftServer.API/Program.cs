@@ -100,8 +100,14 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
+builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
+builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
+builder.Services.AddHostedService<WorkingTimeRuleActivationWorker>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
+builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
+builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageService>();
+builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
@@ -113,7 +119,7 @@ builder.Services.AddHostedService<WorkShiftServer.API.Services.HolidayRuleActiva
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
 builder.Services.AddScoped<IShiftTemplateRepo, ShiftTemplateRepo>();
-builder.Services.AddScoped<ShiftTemplateService>();
+builder.Services.AddScoped<IShiftTemplateService, ShiftTemplateService>();
 builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepo, NotificationRepo>();

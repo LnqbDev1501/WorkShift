@@ -25,7 +25,10 @@ public class RegionRepo : IRegionRepo
     /// <inheritdoc />
     public async Task<List<Region>> GetAllAsync()
     {
-        return await _context.Regions.AsNoTracking().ToListAsync();
+        return await _context.Regions
+            .Include(r => r.RegionalMinimumWage)
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     /// <inheritdoc />
@@ -55,7 +58,7 @@ public class RegionRepo : IRegionRepo
         // Count total matching records before pagination
         var totalCount = await query.CountAsync();
 
-        // Project directly to RegionData and count associated branches in SQL
+        // Project directly to RegionData including regional minimum wage and count associated branches in SQL
         var items = await query
             .OrderBy(region => region.RegionId)
             .Skip((pageNumber - 1) * pageSize)
@@ -66,6 +69,9 @@ public class RegionRepo : IRegionRepo
                 RegionCode = region.RegionCode,
                 RegionName = region.RegionName,
                 Description = region.Description,
+                RegionalMinimumWageId = region.RegionalMinimumWageId,
+                WageName = region.RegionalMinimumWage != null ? region.RegionalMinimumWage.WageName : null,
+                MinimumHourlyRate = region.RegionalMinimumWage != null ? region.RegionalMinimumWage.MinimumHourlyRate : (decimal?)null,
                 IsActive = region.IsActive,
                 BranchCount = region.Branches.Count(),
                 CreatedAt = region.CreatedAt
@@ -83,7 +89,7 @@ public class RegionRepo : IRegionRepo
             return null;
         }
 
-        // Retrieve region details with branches sorted by BranchCode
+        // Retrieve region details with minimum wage and branches sorted by BranchCode
         return await _context.Regions
             .AsNoTracking()
             .Where(region => region.RegionId == id)
@@ -93,6 +99,9 @@ public class RegionRepo : IRegionRepo
                 RegionCode = region.RegionCode,
                 RegionName = region.RegionName,
                 Description = region.Description,
+                RegionalMinimumWageId = region.RegionalMinimumWageId,
+                WageName = region.RegionalMinimumWage != null ? region.RegionalMinimumWage.WageName : null,
+                MinimumHourlyRate = region.RegionalMinimumWage != null ? region.RegionalMinimumWage.MinimumHourlyRate : (decimal?)null,
                 IsActive = region.IsActive,
                 Branches = region.Branches
                     .OrderBy(branch => branch.BranchCode)
@@ -157,12 +166,19 @@ public class RegionRepo : IRegionRepo
         _context.Regions.Add(region);
         await _context.SaveChangesAsync();
 
+        var wage = region.RegionalMinimumWageId.HasValue
+            ? await _context.RegionalMinimumWages.AsNoTracking().FirstOrDefaultAsync(w => w.RegionalMinimumWageId == region.RegionalMinimumWageId.Value)
+            : null;
+
         return new RegionData
         {
             RegionId = region.RegionId,
             RegionCode = region.RegionCode,
             RegionName = region.RegionName,
             Description = region.Description,
+            RegionalMinimumWageId = region.RegionalMinimumWageId,
+            WageName = wage?.WageName,
+            MinimumHourlyRate = wage?.MinimumHourlyRate,
             IsActive = region.IsActive,
             BranchCount = 0,
             CreatedAt = region.CreatedAt
@@ -170,7 +186,7 @@ public class RegionRepo : IRegionRepo
     }
 
     /// <inheritdoc />
-    public async Task<RegionData?> UpdateAsync(int id, string regionName, string? description)
+    public async Task<RegionData?> UpdateAsync(int id, string regionName, string? description, int regionalMinimumWageId)
     {
         var region = await _context.Regions.FirstOrDefaultAsync(r => r.RegionId == id);
         if (region == null)
@@ -180,9 +196,11 @@ public class RegionRepo : IRegionRepo
 
         region.RegionName = regionName;
         region.Description = description;
+        region.RegionalMinimumWageId = regionalMinimumWageId;
 
         await _context.SaveChangesAsync();
 
+        var wage = await _context.RegionalMinimumWages.AsNoTracking().FirstOrDefaultAsync(w => w.RegionalMinimumWageId == regionalMinimumWageId);
         var branchCount = await _context.Branches.CountAsync(b => b.RegionId == id);
 
         return new RegionData
@@ -191,6 +209,9 @@ public class RegionRepo : IRegionRepo
             RegionCode = region.RegionCode,
             RegionName = region.RegionName,
             Description = region.Description,
+            RegionalMinimumWageId = region.RegionalMinimumWageId,
+            WageName = wage?.WageName,
+            MinimumHourlyRate = wage?.MinimumHourlyRate,
             IsActive = region.IsActive,
             BranchCount = branchCount,
             CreatedAt = region.CreatedAt

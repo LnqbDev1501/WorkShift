@@ -66,6 +66,9 @@ public class RegionApiService
             RegionCode = r.RegionCode,
             RegionName = r.RegionName,
             Description = r.Description,
+            RegionalMinimumWageId = r.RegionalMinimumWageId,
+            WageName = r.WageName,
+            MinimumHourlyRate = r.MinimumHourlyRate,
             BranchCount = r.BranchCount,
             Status = r.Status ?? "ACTIVE"
         }).ToList() ?? [];
@@ -80,6 +83,17 @@ public class RegionApiService
             Search = search,
             StatusFilter = status ?? "all"
         };
+    }
+
+    public async Task<List<RegionalMinimumWageViewModel>> GetRegionalMinimumWagesAsync(CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/regional-minimum-wages?status=ACTIVE";
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            return [];
+
+        var list = await response.Content.ReadFromJsonAsync<List<RegionalMinimumWageViewModel>>(cancellationToken: cancellationToken);
+        return list ?? [];
     }
 
     public async Task<RegionDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -100,6 +114,7 @@ public class RegionApiService
             RegionName = detail.RegionName,
             Description = detail.Description,
             Status = detail.Status ?? "ACTIVE",
+            MinimumWage = detail.MinimumWage,
             Branches = detail.Branches?.Select(b => new RegionBranchItemViewModel
             {
                 BranchId = b.BranchId,
@@ -120,7 +135,8 @@ public class RegionApiService
         {
             regionCode = model.RegionCode.Trim().ToUpperInvariant(),
             regionName = model.RegionName.Trim(),
-            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim()
+            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+            regionalMinimumWageId = model.RegionalMinimumWageId
         };
 
         using var response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
@@ -137,7 +153,8 @@ public class RegionApiService
         var payload = new
         {
             regionName = model.RegionName.Trim(),
-            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim()
+            description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim(),
+            regionalMinimumWageId = model.RegionalMinimumWageId
         };
 
         using var response = await _httpClient.PutAsJsonAsync(url, payload, cancellationToken);
@@ -200,6 +217,9 @@ public class RegionApiService
         public string RegionCode { get; set; } = string.Empty;
         public string RegionName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public int? RegionalMinimumWageId { get; set; }
+        public string? WageName { get; set; }
+        public decimal? MinimumHourlyRate { get; set; }
         public int BranchCount { get; set; }
         public string? Status { get; set; }
     }
@@ -211,6 +231,7 @@ public class RegionApiService
         public string RegionName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Status { get; set; }
+        public RegionalMinimumWageViewModel? MinimumWage { get; set; }
         public List<BranchApiResponse>? Branches { get; set; }
     }
 

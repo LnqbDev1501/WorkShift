@@ -14,4 +14,9 @@ public class UpdateRegionRequest
     /// Updated description for the region. Max length: 500.
     /// </summary>
     public string? Description { get; set; }
+
+    /// <summary>
+    /// Identifier of the associated regional minimum wage.
+    /// </summary>
+    public int RegionalMinimumWageId { get; set; }
 }

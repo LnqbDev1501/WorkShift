@@ -23,13 +23,13 @@ public partial class Notification
 
     public string TargetType { get; set; } = null!;
 
-    public List<string> TargetRoles { get; set; } = null!;
-
     public int? TargetRegionId { get; set; }
 
     public int? TargetBranchId { get; set; }
 
     public List<string> Channels { get; set; } = null!;
+
+    public List<string> TargetRoles { get; set; } = null!;
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 

@@ -26,6 +26,21 @@ public sealed class RegionData
     public string? Description { get; set; }
 
     /// <summary>
+    /// Identifier of the associated regional minimum wage.
+    /// </summary>
+    public int? RegionalMinimumWageId { get; set; }
+
+    /// <summary>
+    /// Display name of the minimum wage level (e.g. "Vùng II").
+    /// </summary>
+    public string? WageName { get; set; }
+
+    /// <summary>
+    /// Minimum hourly rate in VND.
+    /// </summary>
+    public decimal? MinimumHourlyRate { get; set; }
+
+    /// <summary>
     /// Active status flag from database table.
     /// </summary>
     public bool IsActive { get; set; }

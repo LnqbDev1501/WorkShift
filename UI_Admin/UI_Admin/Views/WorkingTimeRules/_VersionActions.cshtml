@@ -1,0 +1,22 @@
+@model UI_Admin.Models.WorkingTimeRuleListItemViewModel
+@if (Model.CanEdit || Model.CanCancel)
+{
+    <div class="rule-row-actions">
+        @if (Model.CanEdit)
+        {
+            <a asp-action="Edit" asp-route-id="@Model.WorkingTimeRuleId" title="Edit draft" aria-label="Edit @Model.RuleName"><span class="material-symbols-outlined" aria-hidden="true">edit</span><span class="rule-action-label">Edit</span></a>
+            <form asp-action="Publish" asp-route-id="@Model.WorkingTimeRuleId" method="post" data-rule-action="publish" data-rule-name="@Model.RuleName">
+                <button type="submit" title="Publish version" aria-label="Publish @Model.RuleName"><span class="material-symbols-outlined" aria-hidden="true">publish</span><span class="rule-action-label">Publish</span></button>
+            </form>
+            <form asp-action="Delete" asp-route-id="@Model.WorkingTimeRuleId" method="post" data-rule-action="delete" data-rule-name="@Model.RuleName">
+                <button type="submit" class="rule-danger" title="Delete draft" aria-label="Delete @Model.RuleName"><span class="material-symbols-outlined" aria-hidden="true">delete</span><span class="rule-action-label">Delete</span></button>
+            </form>
+        }
+        else if (Model.CanCancel)
+        {
+            <form asp-action="Cancel" asp-route-id="@Model.WorkingTimeRuleId" method="post" data-rule-action="cancel" data-rule-name="@Model.RuleName">
+                <button type="submit" class="rule-danger" title="Cancel publication" aria-label="Cancel publication of @Model.RuleName"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><span class="rule-action-label">Cancel</span></button>
+            </form>
+        }
+    </div>
+}

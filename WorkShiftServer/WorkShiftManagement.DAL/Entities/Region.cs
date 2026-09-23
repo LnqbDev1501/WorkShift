@@ -19,9 +19,15 @@ public partial class Region
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? RegionalMinimumWageId { get; set; }
+
     public virtual ICollection<Branch> Branches { get; set; } = new List<Branch>();
 
     public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
+    public virtual ICollection<Province> Provinces { get; set; } = new List<Province>();
+
+    public virtual RegionalMinimumWage? RegionalMinimumWage { get; set; }
 }

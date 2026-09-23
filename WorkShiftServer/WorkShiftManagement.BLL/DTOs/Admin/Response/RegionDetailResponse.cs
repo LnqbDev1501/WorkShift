@@ -31,6 +31,11 @@ public class RegionDetailResponse
     public string Status { get; set; } = null!;
 
     /// <summary>
+    /// Minimum wage tier details for this region.
+    /// </summary>
+    public RegionalMinimumWageResponse? MinimumWage { get; set; }
+
+    /// <summary>
     /// Total count of branches assigned to this region.
     /// </summary>
     public int BranchCount { get; set; }

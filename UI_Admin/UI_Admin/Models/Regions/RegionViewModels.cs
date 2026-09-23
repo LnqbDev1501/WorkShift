@@ -2,12 +2,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace UI_Admin.Models.Regions;
 
+public class RegionalMinimumWageViewModel
+{
+    public int RegionalMinimumWageId { get; set; }
+    public string WageName { get; set; } = string.Empty;
+    public decimal MinimumHourlyRate { get; set; }
+}
+
 public class RegionListItemViewModel
 {
     public int RegionId { get; set; }
     public string RegionCode { get; set; } = string.Empty;
     public string RegionName { get; set; } = string.Empty;
     public string? Description { get; set; }
+    public int? RegionalMinimumWageId { get; set; }
+    public string? WageName { get; set; }
+    public decimal? MinimumHourlyRate { get; set; }
     public int BranchCount { get; set; }
     public string Status { get; set; } = "ACTIVE";
 }
@@ -38,6 +48,11 @@ public class CreateRegionViewModel
 
     [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
     public string? Description { get; set; }
+
+    [Required(ErrorMessage = "Please select a regional minimum wage.")]
+    public int? RegionalMinimumWageId { get; set; }
+
+    public List<RegionalMinimumWageViewModel> MinimumWages { get; set; } = [];
 }
 
 public class EditRegionViewModel
@@ -53,6 +68,11 @@ public class EditRegionViewModel
     [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
     public string? Description { get; set; }
 
+    [Required(ErrorMessage = "Please select a regional minimum wage.")]
+    public int? RegionalMinimumWageId { get; set; }
+
+    public List<RegionalMinimumWageViewModel> MinimumWages { get; set; } = [];
+
     public string Status { get; set; } = "ACTIVE";
 
     public int BranchCount { get; set; }
@@ -65,6 +85,7 @@ public class RegionDetailViewModel
     public string RegionName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string Status { get; set; } = "ACTIVE";
+    public RegionalMinimumWageViewModel? MinimumWage { get; set; }
     public List<RegionBranchItemViewModel> Branches { get; set; } = [];
     public int ActiveBranchCount => Branches.Count(b => b.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase));
     public int InactiveBranchCount => Branches.Count(b => !b.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase));
