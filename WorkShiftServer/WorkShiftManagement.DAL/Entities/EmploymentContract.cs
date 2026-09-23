@@ -67,6 +67,16 @@ public partial class EmploymentContract
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? StaffAcceptedAt { get; set; }
+
+    public string? ContractTerms { get; set; }
+
+    public string? ContractFilePath { get; set; }
+
+    public string? ContractTemplateVersion { get; set; }
+
+    public DateTime? PdfGeneratedAt { get; set; }
+
     public virtual User? ApprovedByNavigation { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;

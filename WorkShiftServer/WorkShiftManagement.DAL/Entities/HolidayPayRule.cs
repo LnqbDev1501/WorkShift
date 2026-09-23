@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -13,8 +13,6 @@ public partial class HolidayPayRule
 
     public DateOnly? EffectiveFrom { get; set; }
 
-    public DateOnly? EffectiveTo { get; set; }
-
     public int? ReplacedRuleId { get; set; }
 
     public Guid CreatedBy { get; set; }
@@ -22,6 +20,8 @@ public partial class HolidayPayRule
     public DateTime CreatedAt { get; set; }
 
     public string Status { get; set; } = null!;
+
+    public DateOnly? EffectiveTo { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 
