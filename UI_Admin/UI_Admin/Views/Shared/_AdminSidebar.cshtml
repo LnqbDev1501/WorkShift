@@ -105,6 +105,12 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">schedule</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Shift Templates</span>
                         </a>
+                        <a asp-controller="EmployeeTypes" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "EmployeeTypes" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Employee Types">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">badge</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Types</span>
+                        </a>
                         <a asp-controller="WorkingTimeRules" asp-action="List"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "WorkingTimeRules" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Working Time Limits">

@@ -115,6 +115,8 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
+builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
+builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
 builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageService>();

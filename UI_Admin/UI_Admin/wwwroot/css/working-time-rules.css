@@ -130,8 +130,9 @@
 .working-time-table .working-time-name { text-align: left; white-space: normal; overflow-wrap: anywhere; }
 .working-time-table th:nth-child(2) { text-align: left; }
 .working-time-version { color: #4f46e5; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.working-time-action-group { display: flex; align-items: center; justify-content: center; gap: 4px; }
-.working-time-action-group .rule-row-actions { margin: 0; gap: 4px; flex-wrap: nowrap; }
+.working-time-action-group { display: grid; grid-template-columns: repeat(4, 30px); align-items: center; justify-content: center; gap: 4px; }
+.working-time-action-group .rule-row-actions { display: contents; }
+.working-time-action-group .rule-cancel-action { grid-column: 4; }
 .working-time-action-group .rule-action-label { display: none; }
 .working-time-action-group a, .working-time-action-group button { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 32px; padding: 0; border-radius: 6px; text-decoration: none; }
 .working-time-action-group a:hover, .working-time-action-group button:hover { background: #eef0ff; }

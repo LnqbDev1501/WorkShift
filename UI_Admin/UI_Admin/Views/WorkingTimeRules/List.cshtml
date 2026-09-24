@@ -70,14 +70,14 @@
                     <table class="shift-table working-time-table">
                         <colgroup>
                             <col class="working-time-version-column" /><col class="working-time-name-column" />
-                            <col /><col /><col /><col /><col /><col class="working-time-actions-column" />
+                            <col /><col /><col /><col /><col class="working-time-actions-column" />
                         </colgroup>
                         <thead>
                             <tr>
                                 <th scope="col">Version</th><th scope="col">Name / legal reference</th>
                                 <th scope="col">Hours / day</th><th scope="col">Hours / week</th>
                                 <th scope="col">Effective date</th><th scope="col">Status</th>
-                                <th scope="col">Created (UTC+7)</th><th scope="col" class="shift-actions">Actions</th>
+                                <th scope="col" class="shift-actions">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -90,7 +90,7 @@
                                     <td class="shift-number">@rule.MaxWeeklyHours.ToString("0.##") hrs</td>
                                     <td class="shift-number">@(rule.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—")</td>
                                     <td><span class="shift-status rule-status @rule.StatusCssClass"><span aria-hidden="true">●</span>@rule.StatusLabel</span></td>
-                                    <td class="shift-created">@rule.CreatedAt.AddHours(7).ToString("dd/MM/yyyy")</td>
+
                                     <td class="shift-actions">
                                         <div class="working-time-action-group">
                                             <a asp-action="Detail" asp-route-id="@rule.WorkingTimeRuleId" class="working-time-icon" title="View details" aria-label="View details for @rule.RuleName"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>

@@ -14,7 +14,7 @@
         }
         else if (Model.CanCancel)
         {
-            <form asp-action="Cancel" asp-route-id="@Model.WorkingTimeRuleId" method="post" data-rule-action="cancel" data-rule-name="@Model.RuleName">
+            <form class="rule-cancel-action" asp-action="Cancel" asp-route-id="@Model.WorkingTimeRuleId" method="post" data-rule-action="cancel" data-rule-name="@Model.RuleName">
                 <button type="submit" class="rule-danger" title="Cancel publication" aria-label="Cancel publication of @Model.RuleName"><span class="material-symbols-outlined" aria-hidden="true">cancel</span><span class="rule-action-label">Cancel</span></button>
             </form>
         }

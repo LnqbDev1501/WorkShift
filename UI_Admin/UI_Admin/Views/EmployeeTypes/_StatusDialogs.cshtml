@@ -1,0 +1,19 @@
+@foreach (var action in new[] { "Deactivate", "Restore" })
+{
+    var deactivate = action == "Deactivate";
+    <dialog id="@($"{action.ToLowerInvariant()}-employee-type-dialog")" aria-labelledby="@($"{action}-title")" class="w-full max-w-lg rounded-xl bg-surface-container-lowest text-on-surface shadow-xl p-unit-6 backdrop:bg-inverse-surface/50 backdrop:backdrop-blur-sm">
+        <div class="flex flex-col gap-unit-4">
+            <div class="flex items-start gap-unit-3">
+                <div class="w-10 h-10 rounded-full @(deactivate ? "bg-error-container text-error" : "bg-primary-fixed text-primary") flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-[24px]">@(deactivate ? "warning" : "restart_alt")</span></div>
+                <div class="flex-1"><h2 id="@($"{action}-title")" class="font-title-lg text-title-lg">@action Employee Type</h2><p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to @action.ToLowerInvariant() <strong class="text-on-surface" data-target-name></strong>?</p></div>
+                <button type="button" data-close-dialog aria-label="Close dialog" class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container"><span class="material-symbols-outlined text-[20px]">close</span></button>
+            </div>
+            <p class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary">@(deactivate ? "Existing employee records and their assignments will be preserved. This type can be restored later." : "This employee type will return to Active status. Existing employee records will be preserved.")</p>
+            <form method="post" asp-action="@action" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                <input type="hidden" name="id" />
+                <button type="button" data-close-dialog class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium">Cancel</button>
+                <button type="submit" class="h-[40px] px-unit-4 rounded-xl @(deactivate ? "bg-error text-white hover:bg-on-error-container" : "bg-primary-container text-on-primary hover:bg-primary") font-body-md-medium shadow-sm">@action Employee Type</button>
+            </form>
+        </div>
+    </dialog>
+}
