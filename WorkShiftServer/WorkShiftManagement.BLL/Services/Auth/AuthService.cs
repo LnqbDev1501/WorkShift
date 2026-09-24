@@ -136,7 +136,7 @@ public class AuthService : IAuthService
     {
         using var request = new HttpRequestMessage(HttpMethod.Put, "auth/v1/user")
         {
-            Content = JsonContent.Create(new { password })
+            Content = JsonContent.Create(new { password = password.Trim() })
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
@@ -171,7 +171,7 @@ public class AuthService : IAuthService
     {
         using var response = await _httpClient.PostAsJsonAsync(
             "auth/v1/token?grant_type=password",
-            new { email = request.Email.Trim(), password = request.Password });
+            new { email = request.Email.Trim(), password = request.Password.Trim() });
         var body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException(GetErrorMessage(body), null, response.StatusCode);
@@ -220,7 +220,7 @@ public class AuthService : IAuthService
     public async Task SendPasswordRecoveryAsync(string email)
     {
         var endpoint = $"auth/v1/recover?redirect_to={Uri.EscapeDataString(_passwordRecoveryRedirectUrl)}";
-        using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email });
+        using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email = email.Trim() });
         if (response.IsSuccessStatusCode)
             return;
 

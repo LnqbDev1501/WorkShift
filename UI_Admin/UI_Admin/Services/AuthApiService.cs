@@ -16,9 +16,9 @@ namespace UI_Admin.Services
             _configuration = configuration;
         }
 
-        public async Task SetPasswordAsync(
-            string accessToken,
-            string password)
+    public async Task SetPasswordAsync(
+        string accessToken,
+        string password)
         {
             var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
                 ?? throw new InvalidOperationException(
@@ -26,7 +26,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
-                new { accessToken, password });
+                new { accessToken, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
                 return;
@@ -42,7 +42,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/login",
-                new { email, password });
+                new { email = email.Trim(), password = password.Trim() });
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(GetErrorMessage(body));
@@ -76,7 +76,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
-                new { email });
+                new { email = email.Trim() });
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
         }
