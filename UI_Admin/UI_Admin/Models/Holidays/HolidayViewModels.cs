@@ -28,8 +28,6 @@ public sealed class HolidayIndexViewModel
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public int FirstItem => Result.Items.Count == 0 ? 0 : (Result.PageNumber - 1) * Result.PageSize + 1;
-    public int LastItem => Result.Items.Count == 0 ? 0 : FirstItem + Result.Items.Count - 1;
     public int ActiveCount => SummaryItems.Count(item => item.IsActive);
     public int InactiveCount => SummaryItems.Count(item => !item.IsActive);
     public decimal? DefaultMultiplier => SummaryItems.Where(item => item.IsActive)
@@ -141,4 +139,3 @@ public sealed class EditHolidayViewModel
 
     public bool IsActive { get; set; } = true;
 }
-

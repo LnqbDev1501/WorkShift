@@ -8,7 +8,6 @@
 
     <partial name="_NotificationModal" />
 
-
     <!-- Header Title & Action Bar -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
         <div class="flex flex-col">
@@ -165,52 +164,13 @@ new("Branch Deployment", Model.Items.Sum(x => x.BranchCount).ToString("N0"), "Ac
             </table>
         </div>
         <!-- Pagination / Footer Bar -->
-        <div class="flex items-center justify-between px-unit-5 py-unit-3 bg-surface-container-low text-secondary text-body-sm font-body-sm">
-            <span>Showing <strong class="text-on-surface">@(((Model.PageNumber - 1) * Model.PageSize) + (Model.Items.Count > 0 ? 1 : 0)) to @(((Model.PageNumber - 1) * Model.PageSize) + Model.Items.Count)</strong> of <strong class="text-on-surface">@Model.TotalItems</strong> registered regions</span>
-            <div class="flex items-center gap-unit-2">
-                @if (Model.PageNumber > 1)
-                {
-                    <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = Model.PageNumber - 1 })" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors">
-                        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                        <span>Previous</span>
-                    </a>
-                }
-                else
-                {
-                    <button class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant text-secondary opacity-50 cursor-not-allowed font-body-md-medium text-body-sm" disabled type="button">
-                        <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                        <span>Previous</span>
-                    </button>
-                }
-
-                @for (int p = 1; p <= Math.Max(Model.TotalPages, 1); p++)
-                {
-                    if (p == Model.PageNumber)
-                    {
-                        <span class="px-2 py-0.5 rounded bg-primary-container text-white font-code-num text-body-sm font-semibold">@p</span>
-                    }
-                    else if (p <= 3 || p == Model.TotalPages || Math.Abs(p - Model.PageNumber) <= 1)
-                    {
-                        <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = p })" class="px-2 py-0.5 rounded bg-surface-container text-secondary hover:text-on-surface font-code-num text-body-sm">@p</a>
-                    }
-                }
-
-                @if (Model.PageNumber < Model.TotalPages)
-                {
-                    <a href="@Url.Action("Index", "Regions", new { search = Model.Search, status = Model.StatusFilter, page = Model.PageNumber + 1 })" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors">
-                        <span>Next</span>
-                        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                    </a>
-                }
-                else
-                {
-                    <button class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant text-secondary opacity-50 cursor-not-allowed font-body-md-medium text-body-sm" disabled type="button">
-                        <span>Next</span>
-                        <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                    </button>
-                }
-            </div>
-        </div>
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            ItemLabel = "regions",
+        })" />
     </div>
 
     <!-- Deactivate Region Modal Dialog -->

@@ -42,20 +42,12 @@
 .shift-actions button { display:inline-flex; align-items:center; justify-content:center; width:30px; height:32px; vertical-align:middle; border:0; background:transparent; color:#575e70; font-size:19px; padding:0; }
 .shift-actions button:nth-child(2) { color:#4f46e5; }
 .shift-actions button:nth-child(3) { color:#ba1a1a; }
-.shift-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; color:#575e70; font-size:12px; background:#f8f9fd80; }
-.shift-footer strong { color:#191c1f; font-weight:500; }
-.shift-footer>div>span { margin-left:8px; }
-.shift-pagination { display:flex; align-items:center; gap:4px; }
-.shift-pagination a,.shift-pagination>span { display:grid; place-items:center; min-width:32px; height:32px; border-radius:6px; color:#575e70; text-decoration:none; }
-.shift-pagination a:hover { background:#e7e8ec; }
-.shift-pagination .current { background:#4f46e5; color:white; }
-.shift-pagination [aria-disabled] { color:#c7c4d8; }
 .shift-empty { padding:64px 24px; text-align:center; color:#575e70; }
 .shift-empty h2 { color:#191c1f; font-size:16px; font-weight:600; }
 .shift-empty-icon { display:grid; place-items:center; width:48px; height:48px; margin:0 auto 12px; border-radius:50%; background:#f2f3f7; font-size:28px; }
 .shift-limit { padding:0 24px 16px; margin:0; color:#575e70; font-size:12px; }
-@media(max-width:1100px) { .shift-toolbar,.shift-footer { align-items:flex-start; flex-direction:column; } .shift-search { width:100%; max-width:none; } .shift-scope { text-align:left; } }
-@media(max-width:600px) { .shift-content { padding:20px 16px; } .shift-topbar { padding:16px; } .shift-user { display:none; } .shift-heading { align-items:flex-start; flex-direction:column; } .shift-footer>div>span { display:block; margin:6px 0 0; } }
+@media(max-width:1100px) { .shift-toolbar{ align-items:flex-start; flex-direction:column; } .shift-search { width:100%; max-width:none; } .shift-scope { text-align:left; } }
+@media(max-width:600px) { .shift-content { padding:20px 16px; } .shift-topbar { padding:16px; } .shift-user { display:none; } .shift-heading { align-items:flex-start; flex-direction:column; } }
 .shift-toolbar:has(.shift-filters) { flex-wrap:wrap; }
 .shift-search.shift-filters { max-width:none; flex-basis:100%; flex-wrap:wrap; align-items:flex-end; gap:12px; }
 .shift-filter-field { display:flex; flex-direction:column; gap:6px; flex:1 1 140px; }

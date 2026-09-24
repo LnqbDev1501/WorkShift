@@ -141,26 +141,14 @@
                                         <p>Change the filters or add holidays for this year.</p>
                                     </div>
                                 }
-                                <footer class="table-footer"><span>@Model.FirstItem–@Model.LastItem / @Model.Result.TotalCount
-                                    holidays</span>
-                                    <nav aria-label="Pagination">
-                                        @if (Model.Result.PageNumber > 1)
-                                        {
-                                            <a asp-action="List"
-                                               asp-route-pageNumber="@(Model.Result.PageNumber - 1)" asp-route-year="@Model.Query.Year"
-                                               asp-route-search="@Model.Query.Search" asp-route-isActive="@Model.Query.IsActive"
-                                               asp-route-includeInactive="true">Previous</a>
-                                        }
-                                        <span>Page @Model.Result.PageNumber</span>
-                                        @if (Model.Result.PageNumber < Model.Result.TotalPages)
-                                        {
-                                            <a asp-action="List"
-                                               asp-route-pageNumber="@(Model.Result.PageNumber + 1)" asp-route-year="@Model.Query.Year"
-                                               asp-route-search="@Model.Query.Search" asp-route-isActive="@Model.Query.IsActive"
-                                               asp-route-includeInactive="true">Next</a>
-                                        }
-                                    </nav>
-                                </footer>
+                                <partial name="_ListPagination" model="@(new ListPaginationViewModel
+                                {
+                                    PageNumber = Model.Result.PageNumber,
+                                    PageSize = Model.Result.PageSize,
+                                    TotalItems = Model.Result.TotalCount,
+                                    ItemLabel = "holidays",
+                                    PageParameter = "pageNumber",
+                                })" />
                             </section>
                             <section class="holiday-form-note">
                                 <p>Past holidays remain available for historical payroll. Calendar changes return affected unfinalized

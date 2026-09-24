@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models;
 using UI_Admin.Models.Payroll;
 using UI_Admin.Services;
 
@@ -9,6 +10,8 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     [HttpGet]
     public async Task<IActionResult> List(PayrollFilter filter, CancellationToken ct)
     {
+        filter.PageSize = ListPaginationViewModel.DefaultPageSize;
+        ModelState.Remove(nameof(filter.PageSize));
         var model = new PayrollListViewModel { Filter = filter };
         if (!ModelState.IsValid)
         {
@@ -56,6 +59,8 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Details(int id, PayrollDetailQuery query, CancellationToken ct)
     {
+        query.PageSize = ListPaginationViewModel.DefaultPageSize;
+        ModelState.Remove(nameof(query.PageSize));
         if (id < 1 || !ModelState.IsValid) return BadRequest(ModelState);
         try
         {
