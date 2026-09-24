@@ -12,11 +12,11 @@ public class CloudinaryService : ICloudinaryService
 
     public CloudinaryService(IConfiguration configuration)
     {
-        var cloudName = configuration["Cloudinary:CloudName"] 
+        var cloudName = configuration["Cloudinary:CloudName"]
             ?? throw new ArgumentException("Cloudinary:CloudName is missing");
-        var apiKey = configuration["Cloudinary:ApiKey"] 
+        var apiKey = configuration["Cloudinary:ApiKey"]
             ?? throw new ArgumentException("Cloudinary:ApiKey is missing");
-        var apiSecret = configuration["Cloudinary:ApiSecret"] 
+        var apiSecret = configuration["Cloudinary:ApiSecret"]
             ?? throw new ArgumentException("Cloudinary:ApiSecret is missing");
 
         var account = new Account(cloudName, apiKey, apiSecret);

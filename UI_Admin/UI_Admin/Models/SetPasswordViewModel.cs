@@ -23,11 +23,11 @@ namespace UI_Admin.Models
             set => _password = value?.Trim() ?? string.Empty;
         }
 
-    [Required(ErrorMessage = "Please confirm your password.")]
-    [Display(Name = "Confirm Password")]
-    [Compare(
-            nameof(Password),
-            ErrorMessage = "The password confirmation does not match.")]
+        [Required(ErrorMessage = "Please confirm your password.")]
+        [Display(Name = "Confirm Password")]
+        [Compare(
+                nameof(Password),
+                ErrorMessage = "The password confirmation does not match.")]
         [DataType(DataType.Password)]
         public string ConfirmPassword
         {

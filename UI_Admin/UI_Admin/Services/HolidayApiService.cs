@@ -83,11 +83,11 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         {
             holidays = model.Holidays.SelectMany(item => Enumerable.Range(0,
                 item.ToDate!.Value.DayNumber - item.FromDate!.Value.DayNumber + 1).Select(offset => new
-            {
-                holidayName = item.HolidayName.Trim(),
-                holidayDate = item.FromDate.Value.AddDays(offset)
+                {
+                    holidayName = item.HolidayName.Trim(),
+                    holidayDate = item.FromDate.Value.AddDays(offset)
 
-            }))
+                }))
         };
         using var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/api/public-holidays", payload, cancellationToken);
         return response.IsSuccessStatusCode

@@ -188,7 +188,7 @@ public class BranchApiService
         if (response.IsSuccessStatusCode)
             return (true, null);
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, error);
     }
 
@@ -210,7 +210,7 @@ public class BranchApiService
         if (response.IsSuccessStatusCode)
             return (true, null);
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, error);
     }
 
@@ -221,7 +221,7 @@ public class BranchApiService
         if (response.IsSuccessStatusCode)
             return (true, null);
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, error);
     }
 
@@ -232,23 +232,8 @@ public class BranchApiService
         if (response.IsSuccessStatusCode)
             return (true, null);
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, error);
-    }
-
-    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>(cancellationToken: cancellationToken);
-            if (!string.IsNullOrWhiteSpace(problem?.Detail))
-                return problem.Detail;
-            if (!string.IsNullOrWhiteSpace(problem?.Title))
-                return problem.Title;
-        }
-        catch { }
-
-        return $"Request failed with status code {(int)response.StatusCode}.";
     }
 
     private class PagedApiResponse<T>
@@ -303,11 +288,6 @@ public class BranchApiService
         public string? Status { get; set; }
     }
 
-    private class ProblemDetailsResponse
-    {
-        public string? Title { get; set; }
-        public string? Detail { get; set; }
-    }
 
     private class BranchEmployeesApiResponse
     {

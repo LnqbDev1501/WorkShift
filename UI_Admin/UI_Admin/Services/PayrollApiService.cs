@@ -12,17 +12,24 @@ public class PayrollApiService(HttpClient client, IConfiguration configuration)
     {
         var query = new Dictionary<string, string?>
         {
-            ["search"] = filter.Search, ["status"] = filter.Status,
-            ["regionId"] = filter.RegionId?.ToString(), ["branchId"] = filter.BranchId?.ToString(),
-            ["pageNumber"] = filter.PageNumber.ToString(), ["pageSize"] = filter.PageSize.ToString()
+            ["search"] = filter.Search,
+            ["status"] = filter.Status,
+            ["regionId"] = filter.RegionId?.ToString(),
+            ["branchId"] = filter.BranchId?.ToString(),
+            ["pageNumber"] = filter.PageNumber.ToString(),
+            ["pageSize"] = filter.PageSize.ToString()
         };
         return await GetAsync<PayrollPeriodListResponse>(QueryHelpers.AddQueryString("/api/admin/payroll-periods", query), ct);
     }
 
     public Task<PayrollPeriodDetailResponse> GetDetailAsync(int id, PayrollDetailQuery query, CancellationToken ct) =>
         GetAsync<PayrollPeriodDetailResponse>(QueryHelpers.AddQueryString($"/api/admin/payroll-periods/{id}",
-            new Dictionary<string, string?> { ["search"] = query.Search,
-                ["pageNumber"] = query.PageNumber.ToString(), ["pageSize"] = query.PageSize.ToString() }), ct);
+            new Dictionary<string, string?>
+            {
+                ["search"] = query.Search,
+                ["pageNumber"] = query.PageNumber.ToString(),
+                ["pageSize"] = query.PageSize.ToString()
+            }), ct);
 
     public Task ApproveAsync(int id, CancellationToken ct) =>
         SendReviewAsync($"/api/admin/payroll-periods/{id}/approve", null, ct);

@@ -91,9 +91,12 @@ public class EmployeeTypeService : IEmployeeTypeService
 
     private static EmployeeTypeResponse Map(EmployeeType entity) => new()
     {
-        EmployeeTypeId = entity.EmployeeTypeId, TypeName = entity.TypeName,
-        Description = entity.Description, Status = entity.Status,
-        CreatedAt = entity.CreatedAt, UpdatedAt = entity.UpdatedAt
+        EmployeeTypeId = entity.EmployeeTypeId,
+        TypeName = entity.TypeName,
+        Description = entity.Description,
+        Status = entity.Status,
+        CreatedAt = entity.CreatedAt,
+        UpdatedAt = entity.UpdatedAt
     };
 }
 

@@ -23,14 +23,19 @@ public sealed class AdminHolidayPayRulesController(HolidayPayRuleService service
         }
     }
     [HttpGet] public Task<IActionResult> List(CancellationToken ct) => Run(async () => Ok(await service.ListAsync(ct)));
-    [HttpPost("{id:int}/publish")] public Task<IActionResult> Publish(int id, CancellationToken ct) =>
+    [HttpPost("{id:int}/publish")]
+    public Task<IActionResult> Publish(int id, CancellationToken ct) =>
         Run(async () => Ok(await service.PublishAsync(id, Actor, ct)));
-    [HttpPost("{id:int}/cancel")] public Task<IActionResult> Cancel(int id, CancellationToken ct) =>
+    [HttpPost("{id:int}/cancel")]
+    public Task<IActionResult> Cancel(int id, CancellationToken ct) =>
         Run(async () => Ok(await service.CancelAsync(id, Actor, ct)));
-    [HttpPost] public Task<IActionResult> Create(HolidayPayRuleRequest request, CancellationToken ct) =>
+    [HttpPost]
+    public Task<IActionResult> Create(HolidayPayRuleRequest request, CancellationToken ct) =>
         Run(async () => StatusCode(201, await service.SaveAsync(null, request, Actor, ct)));
-    [HttpPut("{id:int}")] public Task<IActionResult> Update(int id, HolidayPayRuleRequest request, CancellationToken ct) =>
+    [HttpPut("{id:int}")]
+    public Task<IActionResult> Update(int id, HolidayPayRuleRequest request, CancellationToken ct) =>
         Run(async () => Ok(await service.SaveAsync(id, request, Actor, ct)));
-    [HttpDelete("{id:int}")] public Task<IActionResult> Delete(int id, CancellationToken ct) =>
+    [HttpDelete("{id:int}")]
+    public Task<IActionResult> Delete(int id, CancellationToken ct) =>
         Run(async () => { await service.DeleteAsync(id, Actor, ct); return NoContent(); });
 }

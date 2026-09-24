@@ -24,7 +24,7 @@ public interface IPublicHolidayService
         Guid callerId,
         CancellationToken ct = default);
     Task DeleteAsync(
-        int id, 
+        int id,
         Guid callerId,
         CancellationToken ct = default);
 }

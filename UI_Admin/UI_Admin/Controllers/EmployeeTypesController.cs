@@ -23,8 +23,10 @@ public class EmployeeTypesController : Controller
     {
         var model = new EmployeeTypeListPagedViewModel
         {
-            Search = search, StatusFilter = status?.Trim().ToLowerInvariant() ?? "all",
-            PageNumber = Math.Clamp(page, 1, int.MaxValue / 100), PageSize = ListPaginationViewModel.DefaultPageSize
+            Search = search,
+            StatusFilter = status?.Trim().ToLowerInvariant() ?? "all",
+            PageNumber = Math.Clamp(page, 1, int.MaxValue / 100),
+            PageSize = ListPaginationViewModel.DefaultPageSize
         };
         try
         {
@@ -66,8 +68,10 @@ public class EmployeeTypesController : Controller
         if (detail == null) return RedirectToAction(nameof(Index));
         return View(new EditEmployeeTypeViewModel
         {
-            EmployeeTypeId = detail.EmployeeTypeId, TypeName = detail.TypeName,
-            Description = detail.Description, Status = detail.Status
+            EmployeeTypeId = detail.EmployeeTypeId,
+            TypeName = detail.TypeName,
+            Description = detail.Description,
+            Status = detail.Status
         });
     }
 

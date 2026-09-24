@@ -23,8 +23,14 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
             model.Page = await payroll.GetPeriodsAsync(filter, ct);
             foreach (var status in new[] { "", "SUBMITTED", "APPROVED", "REVISION_REQUIRED" })
             {
-                var result = await payroll.GetPeriodsAsync(new PayrollFilter { Status = status, PageSize = 1,
-                    Search = filter.Search, RegionId = filter.RegionId, BranchId = filter.BranchId }, ct);
+                var result = await payroll.GetPeriodsAsync(new PayrollFilter
+                {
+                    Status = status,
+                    PageSize = 1,
+                    Search = filter.Search,
+                    RegionId = filter.RegionId,
+                    BranchId = filter.BranchId
+                }, ct);
                 model.Counts[status] = result.TotalCount;
             }
         }

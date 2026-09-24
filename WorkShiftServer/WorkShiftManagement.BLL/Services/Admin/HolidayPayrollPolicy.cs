@@ -16,12 +16,20 @@ public static class HolidayPayrollPolicy
             ?? throw new InvalidOperationException($"Chưa có quy định hệ số cho ngày {holiday.HolidayDate:dd/MM/yyyy}.");
         return new PayrollDetail
         {
-            PayrollId = payrollId, Type = "WORK", ItemCode = "HOLIDAY_WORK",
-            Description = holiday.HolidayName, PublicHolidayId = holiday.PublicHolidayId,
-            HolidayPayRuleId = rule.HolidayPayRuleId, Multiplier = rule.PayMultiplier,
-            WorkFrom = holiday.HolidayDate, WorkTo = holiday.HolidayDate,
-            Quantity = hours, Rate = rate, Amount = hours * rate * rule.PayMultiplier,
-            SalaryHistoryId = salaryHistoryId, CreatedAt = DateTime.UtcNow
+            PayrollId = payrollId,
+            Type = "WORK",
+            ItemCode = "HOLIDAY_WORK",
+            Description = holiday.HolidayName,
+            PublicHolidayId = holiday.PublicHolidayId,
+            HolidayPayRuleId = rule.HolidayPayRuleId,
+            Multiplier = rule.PayMultiplier,
+            WorkFrom = holiday.HolidayDate,
+            WorkTo = holiday.HolidayDate,
+            Quantity = hours,
+            Rate = rate,
+            Amount = hours * rate * rule.PayMultiplier,
+            SalaryHistoryId = salaryHistoryId,
+            CreatedAt = DateTime.UtcNow
         };
     }
 
