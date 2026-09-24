@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -69,6 +71,16 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
 
+var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire")
+    ?? builder.Configuration.GetConnectionString("MyCnn")
+    ?? throw new InvalidOperationException("Missing Hangfire or MyCnn connection string.");
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
+builder.Services.AddHangfireServer();
+
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
 
@@ -102,7 +114,6 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 });
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
-builder.Services.AddHostedService<WorkingTimeRuleActivationWorker>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
@@ -136,6 +147,12 @@ builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificatio
 
 
 var app = builder.Build();
+
+app.Services.GetRequiredService<IRecurringJobManager>()
+    .AddOrUpdate<IWorkingTimeRuleService>(
+        "working-time-rules-activation",
+        service => service.ActivateDueAsync(CancellationToken.None),
+        Cron.Minutely());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
