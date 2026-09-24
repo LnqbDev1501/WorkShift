@@ -11,6 +11,97 @@ namespace UI_Admin.Controllers;
 [Authorize(Roles = "ADMIN")]
 public sealed class HolidaysController(HolidayApiService service, ILogger<HolidaysController> logger) : Controller
 {
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> PublishRule(int id, CancellationToken cancellationToken) => TransitionRule(id, true, cancellationToken);
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> CancelRule(int id, CancellationToken cancellationToken) => TransitionRule(id, false, cancellationToken);
+
+    private async Task<IActionResult> TransitionRule(int id, bool publish, CancellationToken ct)
+    {
+        try
+        {
+            var result = await service.TransitionRuleAsync(id, publish, ct);
+            TempData[result.Success ? "HolidaySuccess" : "HolidayError"] = result.Success
+                ? (publish ? "Rule published. Affected payroll periods require recalculation." : "Rule cancelled. Affected payroll periods require recalculation.") : result.Error;
+        }
+        catch (Exception ex) when (IsApiException(ex, ct))
+        {
+            logger.LogError(ex, "Unable to change holiday rule status.");
+            TempData["HolidayError"] = "Unable to confirm the action. Please reload the list.";
+        }
+        return RedirectToAction(nameof(Rules));
+    }
+    [HttpGet]
+    public async Task<IActionResult> Rules(CancellationToken cancellationToken)
+    {
+        try { return View(await service.GetRulesAsync(cancellationToken)); }
+        catch (Exception ex) when (IsApiException(ex, cancellationToken))
+        {
+            logger.LogError(ex, "Unable to load holiday rules.");
+            ViewData["LoadError"] = "Unable to load pay rules. Please try again.";
+            Response.StatusCode = 503;
+            return View(new List<HolidayRuleViewModel>());
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Rule(int? id, CancellationToken cancellationToken)
+    {
+        if (!id.HasValue) return View(new HolidayRuleViewModel { CanEdit = true });
+        try
+        {
+            var rule = (await service.GetRulesAsync(cancellationToken)).SingleOrDefault(r => r.HolidayPayRuleId == id);
+            return rule == null ? NotFound() : View(rule);
+        }
+        catch (Exception ex) when (IsApiException(ex, cancellationToken))
+        {
+            logger.LogError(ex, "Unable to load holiday rule.");
+            TempData["HolidayError"] = "Unable to load pay rules.";
+            return RedirectToAction(nameof(Rules));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Rule(HolidayRuleViewModel model, CancellationToken cancellationToken)
+    {
+        // This flag controls presentation only. The API enforces edit permissions.
+        model.CanEdit = true;
+        if (!ModelState.IsValid) return View(model);
+        try
+        {
+            var result = await service.SaveRuleAsync(model, cancellationToken);
+            if (result.Success)
+            {
+                TempData["HolidaySuccess"] = "Draft saved. Publish it when ready to apply the rule.";
+                return RedirectToAction(nameof(Rules));
+            }
+            ModelState.AddModelError("", result.Error ?? "Unable to save the pay rule.");
+        }
+        catch (Exception ex) when (IsApiException(ex, cancellationToken))
+        {
+            logger.LogError(ex, "Unable to save holiday rule.");
+            ModelState.AddModelError("", "Unable to reach the server. Your entered values have been kept.");
+        }
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteRule(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await service.DeleteRuleAsync(id, cancellationToken);
+            TempData[result.Success ? "HolidaySuccess" : "HolidayError"] = result.Success ? "Draft deleted." : result.Error;
+        }
+        catch (Exception ex) when (IsApiException(ex, cancellationToken))
+        {
+            logger.LogError(ex, "Unable to delete holiday rule.");
+            TempData["HolidayError"] = "Unable to confirm the action. Please reload the list.";
+        }
+        return RedirectToAction(nameof(Rules));
+    }
+
     [HttpGet]
     public IActionResult Index() => RedirectToActionPermanent(nameof(List));
 
@@ -42,7 +133,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
                 return RedirectToAction(nameof(List), new
                 {
                     pageNumber = Math.Max(1, model.Result.TotalPages), query.Year, query.Month,
-                    query.Search, query.IncludeInactive
+                    query.Search, query.IncludeInactive, query.IsActive
                 });
         }
         catch (Exception exception) when (IsApiException(exception, cancellationToken))
@@ -90,7 +181,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             var result = await service.CreateAsync(model, cancellationToken);
             if (result.Success)
             {
-                TempData["HolidaySuccess"] = $"Created {model.TotalDays} public holiday days successfully.";
+                TempData["HolidaySuccess"] = $"Created {model.TotalDays} public holiday days successfully. Affected payroll periods must be recalculated before approval.";
                 return RedirectToAction(nameof(List), new { year = model.Holidays[0].FromDate?.Year });
             }
             ModelState.AddModelError(string.Empty, result.Error ?? "The public holidays could not be created.");
@@ -111,17 +202,12 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             var item = await service.GetByIdAsync(id, cancellationToken);
             if (item is null) return NotFound();
-            if (!item.IsActive)
-            {
-                TempData["HolidayError"] = "Inactive public holidays are read-only.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
+            if (!item.IsActive || item.IsPayrollLocked) { TempData["HolidayError"] = "Inactive holidays and holidays used in payroll are read-only."; return RedirectToAction(nameof(Details), new { id }); }
             return View(new EditHolidayViewModel
             {
                 PublicHolidayId = item.PublicHolidayId,
                 HolidayName = item.HolidayName,
                 HolidayDate = item.HolidayDate,
-                PayMultiplier = item.PayMultiplier,
                 IsActive = item.IsActive
             });
         }
@@ -144,7 +230,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             var result = await service.UpdateAsync(id, model, cancellationToken);
             if (result.Success)
             {
-                TempData["HolidaySuccess"] = $"Public holiday ‘{model.HolidayName.Trim()}’ updated successfully.";
+                TempData["HolidaySuccess"] = $"Public holiday ‘{model.HolidayName.Trim()}’ updated successfully. Affected payroll periods have returned to draft and must be recalculated before approval.";
                 return RedirectToAction(nameof(List), new { year = model.HolidayDate?.Year });
             }
             ModelState.AddModelError(string.Empty, result.Error ?? "The public holiday could not be updated.");
@@ -166,7 +252,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             var result = await service.DeleteAsync(id, cancellationToken);
             TempData[result.Success ? "HolidaySuccess" : "HolidayError"] = result.Success
-                ? "Public holiday deactivated successfully. Its date remains reserved for audit history."
+                ? "Public holiday deactivated successfully. Affected payroll periods must be recalculated before approval."
                 : result.Error ?? "The public holiday could not be deactivated.";
         }
         catch (Exception exception) when (IsApiException(exception, cancellationToken))
@@ -186,7 +272,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             var result = await service.RestoreAsync(id, cancellationToken);
             TempData[result.Success ? "HolidaySuccess" : "HolidayError"] = result.Success
-                ? "Public holiday restored successfully."
+                ? "Public holiday restored successfully. Affected payroll periods must be recalculated before approval."
                 : result.Error ?? "Unable to restore this holiday.";
         }
         catch (Exception exception) when (IsApiException(exception, cancellationToken))
@@ -209,7 +295,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             foreach (var item in items)
                 csv.Append(Csv(item.HolidayName)).Append(',')
                     .Append(item.HolidayDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)).Append(',')
-                    .Append(item.PayMultiplier.ToString("0.00", CultureInfo.InvariantCulture)).Append(',')
+                    .Append((item.PayMultiplier?.ToString("0.00", CultureInfo.InvariantCulture) ?? "No applicable rule")).Append(',')
                     .Append(item.IsActive ? "Active" : "Inactive").Append("\r\n");
             return File(Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray(),
                 "text/csv", $"public-holidays-{year?.ToString() ?? "all"}.csv");
@@ -228,3 +314,6 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         exception is HttpRequestException or JsonException or InvalidOperationException
         || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested;
 }
+
+
+

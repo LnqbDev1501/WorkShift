@@ -9,6 +9,31 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
     private string BaseUrl => (configuration["WorkShiftApi:BaseUrl"]
         ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.")).TrimEnd('/');
 
+    public async Task<List<HolidayRuleViewModel>> GetRulesAsync(CancellationToken ct) =>
+        await httpClient.GetFromJsonAsync<List<HolidayRuleViewModel>>($"{BaseUrl}/api/holiday-pay-rules", ct)
+        ?? throw new JsonException("Unable to load pay rules.");
+
+    public async Task<(bool Success, string? Error)> TransitionRuleAsync(int id, bool publish, CancellationToken ct)
+    {
+        using var response = await httpClient.PostAsync($"{BaseUrl}/api/holiday-pay-rules/{id}/{(publish ? "publish" : "cancel")}", null, ct);
+        return response.IsSuccessStatusCode ? (true, null) : (false, await ReadErrorAsync(response, ct));
+    }
+
+    public async Task<(bool Success, string? Error)> SaveRuleAsync(HolidayRuleViewModel model, CancellationToken ct)
+    {
+        var payload = new { model.RuleName, model.PayMultiplier, model.EffectiveFrom };
+        using var response = model.HolidayPayRuleId == 0
+            ? await httpClient.PostAsJsonAsync($"{BaseUrl}/api/holiday-pay-rules", payload, ct)
+            : await httpClient.PutAsJsonAsync($"{BaseUrl}/api/holiday-pay-rules/{model.HolidayPayRuleId}", payload, ct);
+        return response.IsSuccessStatusCode ? (true, null) : (false, await ReadErrorAsync(response, ct));
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteRuleAsync(int id, CancellationToken ct)
+    {
+        using var response = await httpClient.DeleteAsync($"{BaseUrl}/api/holiday-pay-rules/{id}", ct);
+        return response.IsSuccessStatusCode ? (true, null) : (false, await ReadErrorAsync(response, ct));
+    }
+
     public async Task<HolidayPageViewModel> GetPageAsync(
         HolidayListQueryViewModel query, CancellationToken cancellationToken = default)
     {
@@ -60,8 +85,8 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
                 item.ToDate!.Value.DayNumber - item.FromDate!.Value.DayNumber + 1).Select(offset => new
             {
                 holidayName = item.HolidayName.Trim(),
-                holidayDate = item.FromDate.Value.AddDays(offset),
-                payMultiplier = item.PayMultiplier
+                holidayDate = item.FromDate.Value.AddDays(offset)
+
             }))
         };
         using var response = await httpClient.PostAsJsonAsync($"{BaseUrl}/api/public-holidays", payload, cancellationToken);
@@ -76,8 +101,8 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         var payload = new
         {
             holidayName = model.HolidayName.Trim(),
-            holidayDate = model.HolidayDate,
-            payMultiplier = model.PayMultiplier
+            holidayDate = model.HolidayDate
+
         };
         using var response = await httpClient.PutAsJsonAsync($"{BaseUrl}/api/public-holidays/{id}", payload, cancellationToken);
         return response.IsSuccessStatusCode
@@ -110,6 +135,7 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         if (!string.IsNullOrWhiteSpace(query.Search))
             parameters.Add($"search={Uri.EscapeDataString(query.Search.Trim())}");
         if (query.IncludeInactive) parameters.Add("includeInactive=true");
+        if (query.IsActive.HasValue) parameters.Add($"isActive={query.IsActive.Value.ToString().ToLowerInvariant()}");
         return $"{BaseUrl}/api/public-holidays?{string.Join('&', parameters)}";
     }
 
@@ -132,3 +158,5 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         public string? Detail { get; set; }
     }
 }
+
+

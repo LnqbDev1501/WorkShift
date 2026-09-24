@@ -33,7 +33,7 @@ public partial class EmployeeRequest
 
     public virtual Branch Branch { get; set; } = null!;
 
-    public virtual LeaveRequestDetail? LeaveRequestDetail { get; set; }
+    public virtual ICollection<LeaveRequestAssignment> LeaveRequestAssignments { get; set; } = new List<LeaveRequestAssignment>();
 
     public virtual User? ReviewedByNavigation { get; set; }
 

@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using WorkShiftManagement.DAL.Repositories.Admin;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -8,7 +10,15 @@ namespace WorkShiftManagement.BLL.Services.Admin
     public class PayrollApprovalService
         : IPayrollApprovalService
     {
+        private async Task ValidateHolidaySnapshotsAsync(int periodId)
+        {
+            var details = await _holidays.Details.AsNoTracking().Where(d => d.Payroll.PayrollPeriodId == periodId).ToListAsync();
+            var holidays = await _holidays.Holidays.AsNoTracking().Where(h => h.IsActive).ToListAsync();
+            var rules = await _holidays.Rules.AsNoTracking().ToListAsync();
+            HolidayPayrollPolicy.Validate(details, holidays, rules);
+        }
         private readonly IPayrollApprovalRepo _repo;
+        private readonly HolidayConfigurationRepo _holidays;
 
         private static readonly HashSet<string>
             AllowedPeriodStatuses =
@@ -20,9 +30,10 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 };
 
         public PayrollApprovalService(
-            IPayrollApprovalRepo repo)
+            IPayrollApprovalRepo repo, HolidayConfigurationRepo holidays)
         {
             _repo = repo;
+            _holidays = holidays;
         }
 
         // =====================================================
@@ -316,6 +327,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             var resolvedAdminId = await ResolveAdminIdAsync(adminId);
+            await using var holidayTransaction = await _holidays.BeginPayrollChangeAsync();
 
             var period =
                 await _repo
@@ -385,6 +397,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
             period.Status = "REVISION_REQUIRED";
 
             await _repo.SaveChangesAsync();
+            await holidayTransaction.CommitAsync();
 
             return new PayrollRejectResponse
             {
@@ -406,6 +419,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 Guid? adminId)
         {
             var resolvedAdminId = await ResolveAdminIdAsync(adminId);
+            await using var holidayTransaction = await _holidays.BeginPayrollChangeAsync();
 
             var period =
                 await _repo
@@ -459,6 +473,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             var now = DateTime.UtcNow;
 
+            await ValidateHolidaySnapshotsAsync(payrollPeriodId);
+
             // Approve toàn bộ Payroll
             foreach (var payroll in payrolls)
             {
@@ -476,6 +492,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
              * mặc định thực hiện trong transaction.
              */
             await _repo.SaveChangesAsync();
+            await holidayTransaction.CommitAsync();
 
             return new PayrollApprovalResponse
             {
@@ -500,6 +517,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 throw new KeyNotFoundException("Không tìm thấy Accountant đang hoạt động.");
             }
 
+            await using var holidayTransaction = await _holidays.BeginPayrollChangeAsync();
             var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId);
 
             if (period == null)
@@ -535,6 +553,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             var now = DateTime.UtcNow;
 
+            await ValidateHolidaySnapshotsAsync(payrollPeriodId);
             payroll.Status = "SUBMITTED";
             payroll.RejectedBy = null;
             payroll.RejectedAt = null;
@@ -554,6 +573,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             await _repo.SaveChangesAsync();
+            await holidayTransaction.CommitAsync();
 
             return new PayrollSubmitResponse
             {
@@ -575,6 +595,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 throw new KeyNotFoundException("Không tìm thấy Accountant đang hoạt động.");
             }
 
+            await using var holidayTransaction = await _holidays.BeginPayrollChangeAsync();
             var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId)
                 ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
 
@@ -596,6 +617,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     "Tất cả phiếu lương phải ở trạng thái CALCULATED trước khi gửi duyệt.");
             }
 
+            await ValidateHolidaySnapshotsAsync(payrollPeriodId);
             var assignedAdminId = await ResolveAdminIdAsync(null);
             var now = DateTime.UtcNow;
             foreach (var payroll in payrolls)
@@ -607,6 +629,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
             period.SubmittedBy = accountantId;
             period.SubmittedAt = now;
             await _repo.SaveChangesAsync();
+            await holidayTransaction.CommitAsync();
 
             return new PayrollPeriodSubmitResponse
             {
@@ -660,3 +683,4 @@ namespace WorkShiftManagement.BLL.Services.Admin
         }
     }
 }
+

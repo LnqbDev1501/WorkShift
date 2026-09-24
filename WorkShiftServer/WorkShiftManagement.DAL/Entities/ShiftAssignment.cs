@@ -35,6 +35,8 @@ public partial class ShiftAssignment
 
     public virtual User? CancelledByNavigation { get; set; }
 
+    public virtual ICollection<LeaveRequestAssignment> LeaveRequestAssignments { get; set; } = new List<LeaveRequestAssignment>();
+
     public virtual WorkShift Shift { get; set; } = null!;
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestSourceAssignments { get; set; } = new List<ShiftSwapRequest>();

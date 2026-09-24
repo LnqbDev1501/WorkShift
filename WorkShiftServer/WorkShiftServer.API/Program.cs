@@ -68,9 +68,9 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
-    
-builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
-builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
+
+builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
+builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
 
 
 builder.Services.AddHttpClient<AuthService>(client =>
@@ -110,8 +110,12 @@ builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageServi
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
-builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
-builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
+// Public Holiday - giữ code Duc
+builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
+builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
+builder.Services.AddScoped<HolidayConfigurationRepo>();
+builder.Services.AddScoped<HolidayPayRuleService>();
+builder.Services.AddHostedService<WorkShiftServer.API.Services.HolidayRuleActivationWorker>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 

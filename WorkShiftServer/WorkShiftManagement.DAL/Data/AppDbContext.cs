@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -65,7 +65,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HolidayPayRule> HolidayPayRules { get; set; }
 
-    public virtual DbSet<LeaveRequestDetail> LeaveRequestDetails { get; set; }
+    public virtual DbSet<LeaveRequestAssignment> LeaveRequestAssignments { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
@@ -118,11 +118,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -880,7 +875,9 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("contract_change_requests");
 
-            entity.HasIndex(e => e.ContractId, "contract_change_requests_contract_id_key").IsUnique();
+            entity.HasIndex(e => e.ContractId, "uq_contract_open_change_request")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying])::text[]))");
 
             entity.Property(e => e.ChangeRequestId).HasColumnName("change_request_id");
             entity.Property(e => e.ContractId).HasColumnName("contract_id");
@@ -1131,9 +1128,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
+            entity.Property(e => e.ContractFilePath)
+                .HasMaxLength(500)
+                .HasColumnName("contract_file_path");
             entity.Property(e => e.ContractNumber)
                 .HasMaxLength(50)
                 .HasColumnName("contract_number");
+            entity.Property(e => e.ContractTemplateVersion)
+                .HasMaxLength(30)
+                .HasColumnName("contract_template_version");
+            entity.Property(e => e.ContractTerms).HasColumnName("contract_terms");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1158,6 +1162,7 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasColumnName("hourly_rate");
             entity.Property(e => e.ManagerRejectionComment).HasColumnName("manager_rejection_comment");
+            entity.Property(e => e.PdfGeneratedAt).HasColumnName("pdf_generated_at");
             entity.Property(e => e.RegionId).HasColumnName("region_id");
             entity.Property(e => e.RegionNameSnapshot)
                 .HasMaxLength(150)
@@ -1166,6 +1171,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
             entity.Property(e => e.ReplacesContractId).HasColumnName("replaces_contract_id");
             entity.Property(e => e.SentToStaffAt).HasColumnName("sent_to_staff_at");
+            entity.Property(e => e.StaffAcceptedAt).HasColumnName("staff_accepted_at");
             entity.Property(e => e.StaffRespondedAt).HasColumnName("staff_responded_at");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
@@ -1371,25 +1377,34 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("holiday_pay_rules_replaced_rule_id_fkey");
         });
 
-        modelBuilder.Entity<LeaveRequestDetail>(entity =>
+        modelBuilder.Entity<LeaveRequestAssignment>(entity =>
         {
-            entity.HasKey(e => e.RequestId).HasName("leave_request_details_pkey");
+            entity.HasKey(e => e.LeaveRequestAssignmentId).HasName("leave_request_assignments_pkey");
 
-            entity.ToTable("leave_request_details");
+            entity.ToTable("leave_request_assignments");
 
-            entity.Property(e => e.RequestId)
-                .ValueGeneratedNever()
-                .HasColumnName("request_id");
-            entity.Property(e => e.EndDate).HasColumnName("end_date");
-            entity.Property(e => e.StartDate).HasColumnName("start_date");
-            entity.Property(e => e.TotalDays)
-                .HasPrecision(5, 2)
-                .HasColumnName("total_days");
+            entity.HasIndex(e => e.AssignmentId, "ix_leave_request_assignments_assignment");
 
-            entity.HasOne(d => d.Request).WithOne(p => p.LeaveRequestDetail)
-                .HasForeignKey<LeaveRequestDetail>(d => d.RequestId)
+            entity.HasIndex(e => new { e.RequestId, e.AssignmentId }, "uq_leave_request_assignment").IsUnique();
+
+            entity.Property(e => e.LeaveRequestAssignmentId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("leave_request_assignment_id");
+            entity.Property(e => e.AssignmentId).HasColumnName("assignment_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.RequestId).HasColumnName("request_id");
+
+            entity.HasOne(d => d.Assignment).WithMany(p => p.LeaveRequestAssignments)
+                .HasForeignKey(d => d.AssignmentId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("leave_request_details_request_id_fkey");
+                .HasConstraintName("leave_request_assignments_assignment_id_fkey");
+
+            entity.HasOne(d => d.Request).WithMany(p => p.LeaveRequestAssignments)
+                .HasForeignKey(d => d.RequestId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("leave_request_assignments_request_id_fkey");
         });
 
         modelBuilder.Entity<Notification>(entity =>
@@ -1934,10 +1949,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            entity.Property(e => e.PayMultiplier)
-                .HasPrecision(5, 2)
-                .HasDefaultValue(1m)
-                .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
