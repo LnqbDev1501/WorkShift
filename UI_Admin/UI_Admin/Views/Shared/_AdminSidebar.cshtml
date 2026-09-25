@@ -204,6 +204,7 @@
                     <span
                     class="font-label-sm text-[#9ca3af] text-[10px] truncate uppercase tracking-wider font-semibold">@userRole</span>
                 </div>
+                <a asp-controller="Auth" asp-action="Profile" class="flex-shrink-0 text-[#9ca3af] hover:text-rose-400 text-[11px] font-medium transition-colors cursor-pointer" title="My Profile">My Profile</a>
                 <form asp-controller="Auth" asp-action="Logout" method="post" class="flex-shrink-0">
                     @Html.AntiForgeryToken()
                     <button type="submit"
@@ -233,4 +234,5 @@
                 </form>
             </div>
         </div>
-    </aside>
+    </div>
+</aside>

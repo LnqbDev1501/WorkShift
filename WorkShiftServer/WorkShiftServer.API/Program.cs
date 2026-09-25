@@ -108,6 +108,7 @@ builder.Services.AddHttpClient<AuthService>(client =>
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");

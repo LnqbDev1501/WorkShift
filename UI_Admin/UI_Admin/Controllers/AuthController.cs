@@ -139,6 +139,25 @@ namespace UI_Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var profile = await _authService.GetMyProfileAsync(cancellationToken);
+                if (profile == null)
+                {
+                    return RedirectToAction(nameof(AccessDenied));
+                }
+                return View(profile);
+            }
+            catch (HttpRequestException)
+            {
+                return RedirectToAction(nameof(AccessDenied));
+            }
+        }
+
+        [HttpGet]
         public IActionResult SetPassword()
         {
             return View(new SetPasswordViewModel());

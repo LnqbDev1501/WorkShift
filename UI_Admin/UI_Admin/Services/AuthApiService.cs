@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
+using UI_Admin.Models;
 
 namespace UI_Admin.Services
 {
@@ -69,17 +70,34 @@ namespace UI_Admin.Services
                 ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
         }
 
-        public async Task RequestPasswordRecoveryAsync(string email)
-        {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+public async Task RequestPasswordRecoveryAsync(string email)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
 
-            using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
-                new { email = email.Trim() });
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
-        }
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
+            new { email = email.Trim() });
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+    }
+
+    public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var response = await _httpClient.GetAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/profile/me", cancellationToken);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        if (!response.IsSuccessStatusCode)
+            throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+
+        return await response.Content.ReadFromJsonAsync<UserDetailViewModel>(cancellationToken);
+    }
 
         private static string GetErrorMessage(string body)
         {
