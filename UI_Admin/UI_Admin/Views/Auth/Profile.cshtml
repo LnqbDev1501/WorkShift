@@ -1,0 +1,332 @@
+@model UI_Admin.Models.UserDetailViewModel
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "My Profile";
+    var isPending = Model.IsPending;
+    var isActive = Model.IsActive;
+
+    string FormatDateTime(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm:ss");
+    string FormatDateShort(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm");
+}
+
+<div class="flex flex-col w-full px-7 py-6">
+    <div class="w-full max-w-[1440px] mx-auto space-y-unit-6">
+        <!-- Profile Master Header Card -->
+        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5">
+            <div class="flex items-start sm:items-center gap-unit-5">
+                <div class="relative flex-shrink-0">
+                    @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                    {
+                        <img alt="@Model.FullName Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-surface-container shadow-sm" src="@Model.AvatarUrl" />
+                    }
+                    else
+                    {
+                        <div class="w-20 h-20 rounded-full bg-[#5146e5] text-white text-2xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm">
+                            @Model.Initials
+                        </div>
+                    }
+
+                    @if (isPending)
+                    {
+                        <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Pending Verification">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#f59e0b]"></span>
+                        </span>
+                    }
+                    else if (isActive)
+                    {
+                        <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Active Account">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#059669]"></span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Inactive Account">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#6b7280]"></span>
+                        </span>
+                    }
+                </div>
+                <div class="flex flex-col space-y-1">
+                    <div class="flex flex-wrap items-center gap-unit-3">
+                        <h1 class="font-display-md text-display-md text-on-surface">@Model.FullName</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#6d28d9] text-label-sm font-label-sm border border-[#ddd6fe]">
+                            <span class="material-symbols-outlined text-[14px]">account_balance</span>
+                            @Model.RoleName.ToUpperInvariant()
+                        </span>
+
+                        @if (isPending)
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#fef3c7] text-[#b45309] text-label-sm font-label-sm border border-[#fde68a]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                PENDING
+                            </span>
+                        }
+                        else if (isActive)
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ecfdf5] text-[#059669] text-label-sm font-label-sm border border-[#a7f3d0]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+                                ACTIVE
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f3f4f6] text-[#4b5563] text-label-sm font-label-sm border border-[#e5e7eb]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#9ca3af]"></span>
+                                INACTIVE
+                            </span>
+                        }
+                    </div>
+                    <p class="font-body-md text-secondary flex items-center gap-unit-2 flex-wrap text-[13px]">
+                        <span>@Model.RoleName</span>
+                        <span class="text-outline-variant">•</span>
+                        <span class="font-body-md-medium text-on-surface">@(Model.BranchName ?? "Unassigned Branch") @(string.IsNullOrWhiteSpace(Model.BranchCode) ? "" : $"({Model.BranchCode})")</span>
+                        <span class="text-outline-variant">•</span>
+                        <span class="text-secondary">Joined @FormatDateShort(Model.CreatedAt)</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-unit-3 flex-shrink-0">
+                <form asp-controller="Auth" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors border border-[#e2e8f0] shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                        <span>Sign Out</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Key Summary Stats (4 metric panels) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-unit-5">
+            <!-- Card 1: Account Status -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Account Status</span>
+                    <span class="p-2 rounded-lg @(isPending ? "bg-[#fef3c7] text-[#b45309]" : isActive ? "bg-[#ecfdf5] text-[#059669]" : "bg-[#f3f4f6] text-[#4b5563]") flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">@(isPending ? "pending" : isActive ? "check_circle" : "cancel")</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md @(isPending ? "text-[#b45309]" : isActive ? "text-[#059669]" : "text-[#4b5563]") flex items-center gap-2">
+                        <span>@Model.Status</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-1.5 h-1.5 rounded-full @(isPending ? "bg-[#f59e0b]" : isActive ? "bg-[#059669]" : "bg-[#9ca3af]")"></span>
+                        <span class="font-label-sm text-secondary text-[12px]">
+                            @(isPending ? "Awaiting password setup" : isActive ? "Active and operational" : "Account deactivated")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Assigned Role -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Assigned Role</span>
+                    <span class="p-2 rounded-lg bg-[#ede9fe] text-[#6d28d9] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">badge</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface flex items-center gap-2">
+                        <span>@Model.RoleName.ToUpperInvariant()</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="font-label-sm text-secondary truncate">
+                            @(Model.RoleName.Equals("Manager", StringComparison.OrdinalIgnoreCase) ? "Branch Operations & Staffing" : Model.RoleName.Equals("Accountant", StringComparison.OrdinalIgnoreCase) ? "Financial & Payroll Ops" : "System Administration")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Primary Branch -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Primary Branch</span>
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">storefront</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface truncate" title="@Model.BranchName">
+                        @(Model.BranchName ?? "Unassigned Branch")
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 truncate">
+                        @if (!string.IsNullOrWhiteSpace(Model.BranchCode))
+                        {
+                            <span class="px-1.5 py-0.5 rounded bg-surface-container font-code-num text-[11px] text-secondary font-medium">Code: @Model.BranchCode</span>
+                        }
+                        else
+                        {
+                            <span class="font-label-sm text-secondary">No branch assigned</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Employee Type -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Employee Type</span>
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">work</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface truncate">
+                        @(string.IsNullOrWhiteSpace(Model.EmployeeTypeName) ? "Not assigned" : Model.EmployeeTypeName)
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="font-label-sm text-secondary text-[12px]">Joined @FormatDateShort(Model.CreatedAt)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-unit-6">
+            <!-- CARD 1: Personal & Identity Information -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">person</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Personal &amp; Identity Information</h2>
+                                <p class="font-label-sm text-secondary">Your personal records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Full Name</span>
+                            <span class="font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold">@Model.FullName</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Email</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="font-body-md-medium text-on-surface text-body-md break-all">@Model.Email</span>
+                                @if (isActive)
+                                {
+                                    <span class="material-symbols-outlined text-[15px] text-[#059669]" title="Verified Email">check_circle</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Mobile Phone</span>
+                            <span class="font-body-md-medium text-on-surface text-body-md mt-0.5 font-code-num">@(string.IsNullOrWhiteSpace(Model.Phone) ? "—" : Model.Phone)</span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">National Citizen ID</span>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="px-2 py-0.5 rounded bg-surface-container font-code-num text-code-num text-on-surface font-semibold tracking-wide">
+                                    @(string.IsNullOrWhiteSpace(Model.IdentityNo) ? "—" : Model.IdentityNo)
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Gender</span>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <span class="material-symbols-outlined text-[16px] text-primary">
+                                    @(Model.Gender.Equals("MALE", StringComparison.OrdinalIgnoreCase) || Model.Gender.Equals("NAM", StringComparison.OrdinalIgnoreCase) ? "male" : "female")
+                                </span>
+                                <span class="font-body-md-medium text-on-surface text-body-md">@Model.GenderDisplay</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Date of Birth</span>
+                            <span class="font-body-md-medium text-on-surface text-body-md mt-0.5">@(Model.DateOfBirth == default ? "—" : Model.DateOfBirth.ToString("dd/MM/yyyy"))</span>
+                        </div>
+                        <div class="flex flex-col sm:col-span-2">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Residential Address</span>
+                            <div class="flex items-center gap-1.5 mt-0.5 text-on-surface">
+                                <span class="material-symbols-outlined text-[16px] text-secondary">location_on</span>
+                                <span class="font-body-md-medium text-body-md">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address recorded" : Model.Address)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: Account & System Info -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">database</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Account &amp; System Info</h2>
+                                <p class="font-label-sm text-secondary">System record details</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-unit-4 pt-unit-4">
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">User ID</span>
+                            <div class="flex items-center justify-between mt-1 p-2 bg-surface-container-low rounded-lg border border-surface-container-highest">
+                                <span class="font-code-num text-[12px] text-on-surface font-semibold break-all" id="account-uuid">@Model.UserId</span>
+                                <button class="text-secondary hover:text-primary transition-colors p-1 flex-shrink-0 cursor-pointer" onclick="copyUUID()" title="Copy User ID" type="button">
+                                    <span class="material-symbols-outlined text-[18px]" id="copy-icon">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">System Role</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="material-symbols-outlined text-[18px] text-primary">account_balance</span>
+                                    <span class="font-body-md-medium text-on-surface text-body-md font-semibold">@Model.RoleName.ToUpperInvariant()</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Current Status</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="w-2 h-2 rounded-full @(isPending ? "bg-[#f59e0b]" : isActive ? "bg-[#059669]" : "bg-[#9ca3af]")"></span>
+                                    <span class="font-body-md-medium @(isPending ? "text-[#b45309]" : isActive ? "text-[#059669]" : "text-[#4b5563]") text-body-md font-semibold">@Model.Status</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Joined</span>
+                                <span class="font-body-md-medium text-on-surface text-body-sm mt-0.5 block">@FormatDateTime(Model.CreatedAt)</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Last Updated</span>
+                                <span class="font-body-md-medium text-on-surface text-body-sm mt-0.5 block">@FormatDateTime(Model.UpdatedAt)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-unit-5 mt-unit-4 border-t border-surface-container-high">
+                    <div class="flex items-center justify-between text-secondary font-label-sm">
+                        <span>Record Integrity:</span>
+                        <span class="font-body-md-medium text-[#059669] flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">verified</span> Synchronized
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function copyUUID() {
+        const text = document.getElementById('account-uuid').innerText.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = document.getElementById('copy-icon');
+            if (icon) {
+                icon.innerText = 'check';
+                icon.classList.add('text-[#059669]');
+                setTimeout(() => {
+                    icon.innerText = 'content_copy';
+                    icon.classList.remove('text-[#059669]');
+                }, 1500);
+            }
+        });
+    }
+</script>
+}

@@ -5,9 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - WorkShift Admin</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
-    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
     <style>
         @@layer base {
             html, body { margin: 0; padding: 0; }
@@ -16,6 +18,21 @@
             main > :last-child { margin-bottom: 0 !important; }
         }
         ::-webkit-scrollbar { display: none; }
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined', sans-serif;
+            font-weight: normal;
+            font-style: normal;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            user-select: none;
+        }
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -29,6 +46,9 @@
                         "on-primary-fixed": "#0f0069",
                         "on-primary-container": "#dad7ff",
                         "on-primary-fixed-variant": "#3323cc",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "on-primary-container": "#dad7ff",
+                        "on-primary-fixed": "#0f0069",
                         "surface": "#f8f9fd",
                         "surface-container-low": "#f2f3f7",
                         "surface-dim": "#d9dade",
@@ -81,10 +101,10 @@
                         "unit-3": "0.75rem", "table-row-height": "3.5rem", "unit-5": "1.25rem"
                     },
                     "fontFamily": {
-                        "title-md": ["Arial", "Helvetica", "sans-serif"], "label-md": ["Arial", "Helvetica", "sans-serif"], "label-sm": ["Arial", "Helvetica", "sans-serif"],
-                        "display-lg": ["Arial", "Helvetica", "sans-serif"], "code-num": ["Arial", "Helvetica", "sans-serif"], "display-md": ["Arial", "Helvetica", "sans-serif"],
-                        "title-lg": ["Arial", "Helvetica", "sans-serif"], "body-md-medium": ["Arial", "Helvetica", "sans-serif"], "body-md": ["Arial", "Helvetica", "sans-serif"],
-                        "body-sm": ["Arial", "Helvetica", "sans-serif"]
+                        "title-md": ["Inter", "Arial", "Helvetica", "sans-serif"], "label-md": ["Inter", "Arial", "Helvetica", "sans-serif"], "label-sm": ["Inter", "Arial", "Helvetica", "sans-serif"],
+                        "display-lg": ["Inter", "Arial", "Helvetica", "sans-serif"], "code-num": ["Inter", "Arial", "Helvetica", "sans-serif"], "display-md": ["Inter", "Arial", "Helvetica", "sans-serif"],
+                        "title-lg": ["Inter", "Arial", "Helvetica", "sans-serif"], "body-md-medium": ["Inter", "Arial", "Helvetica", "sans-serif"], "body-md": ["Inter", "Arial", "Helvetica", "sans-serif"],
+                        "body-sm": ["Inter", "Arial", "Helvetica", "sans-serif"]
                     },
                     "fontSize": {
                         "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" }],
