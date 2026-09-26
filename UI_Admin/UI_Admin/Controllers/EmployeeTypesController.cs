@@ -44,11 +44,11 @@ public class EmployeeTypesController : Controller
         => Index(search, status, page, pageSize, cancellationToken);
 
     [HttpGet]
-    public IActionResult Create() => View(new CreateEmployeeTypeViewModel());
+    public IActionResult Create() => View(new EmployeeTypeFormViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(CreateEmployeeTypeViewModel model, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Create(EmployeeTypeFormViewModel model, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid) return View(model);
         var (success, errorMessage) = await RunMutationAsync(() => _employeeTypeApiService.CreateAsync(model, cancellationToken), cancellationToken);

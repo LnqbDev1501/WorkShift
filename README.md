@@ -33,7 +33,6 @@ dotnet run --project UI_Admin/UI_Admin
 ```powershell
 dotnet format WorkShiftServer/WorkShiftServer.sln whitespace --no-restore --verify-no-changes --exclude WorkShiftServer/WorkShiftManagement.DAL/Migrations
 dotnet format WorkShiftServer/WorkShiftServer.sln analyzers --no-restore --verify-no-changes --severity warn
-dotnet run --project tests/WorkShift.Checks
 ```
 
-Các kiểm tra trong `tests/WorkShift.Checks` chạy offline, kiểm tra xử lý lỗi HTTP và việc truyền lỗi hủy request. Build và kiểm tra tĩnh không thay thế kiểm thử các luồng nghiệp vụ với database và dịch vụ bên ngoài.
+Build và kiểm tra tĩnh không thay thế kiểm thử các luồng nghiệp vụ với database và dịch vụ bên ngoài.

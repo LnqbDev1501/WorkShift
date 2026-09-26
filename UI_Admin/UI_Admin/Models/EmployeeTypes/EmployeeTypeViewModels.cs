@@ -34,8 +34,6 @@ public class EmployeeTypeFormViewModel
     public string? Description { get; set; }
 }
 
-public class CreateEmployeeTypeViewModel : EmployeeTypeFormViewModel { }
-
 public class EditEmployeeTypeViewModel : EmployeeTypeFormViewModel
 {
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace UI_Admin.Models;
 
-public abstract class WorkingTimeRuleFormViewModel : IValidatableObject
+public class WorkingTimeRuleFormViewModel : IValidatableObject
 {
     public virtual bool IsEdit => false;
     public virtual int? VersionId => null;

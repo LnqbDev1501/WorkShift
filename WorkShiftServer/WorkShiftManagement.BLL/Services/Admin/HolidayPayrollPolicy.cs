@@ -4,34 +4,8 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 
 public static class HolidayPayrollPolicy
 {
-    public static HolidayPayRule? Resolve(IEnumerable<HolidayPayRule> rules, DateOnly workDate) =>
+    private static HolidayPayRule? Resolve(IEnumerable<HolidayPayRule> rules, DateOnly workDate) =>
         rules.Where(r => (r.Status == "ACTIVE" || r.Status == "INACTIVE" || r.Status == "PUBLISH") && r.EffectiveFrom <= workDate && (r.EffectiveTo == null || workDate < r.EffectiveTo)).OrderByDescending(r => r.EffectiveFrom).FirstOrDefault();
-
-    // A holiday WORK line represents the full holiday-work component, not an extra top-up.
-    public static PayrollDetail CreateWorkDetail(int payrollId, PublicHolidayConfig holiday,
-        IEnumerable<HolidayPayRule> rules, decimal hours, decimal rate, int? salaryHistoryId)
-    {
-        if (!holiday.IsActive || hours < 0 || rate < 0) throw new ArgumentException("Ngày lễ, số giờ hoặc đơn giá không hợp lệ.");
-        var rule = Resolve(rules, holiday.HolidayDate)
-            ?? throw new InvalidOperationException($"Chưa có quy định hệ số cho ngày {holiday.HolidayDate:dd/MM/yyyy}.");
-        return new PayrollDetail
-        {
-            PayrollId = payrollId,
-            Type = "WORK",
-            ItemCode = "HOLIDAY_WORK",
-            Description = holiday.HolidayName,
-            PublicHolidayId = holiday.PublicHolidayId,
-            HolidayPayRuleId = rule.HolidayPayRuleId,
-            Multiplier = rule.PayMultiplier,
-            WorkFrom = holiday.HolidayDate,
-            WorkTo = holiday.HolidayDate,
-            Quantity = hours,
-            Rate = rate,
-            Amount = hours * rate * rule.PayMultiplier,
-            SalaryHistoryId = salaryHistoryId,
-            CreatedAt = DateTime.UtcNow
-        };
-    }
 
     public static void Validate(IEnumerable<PayrollDetail> details, IReadOnlyList<PublicHolidayConfig> holidays,
         IReadOnlyList<HolidayPayRule> rules)

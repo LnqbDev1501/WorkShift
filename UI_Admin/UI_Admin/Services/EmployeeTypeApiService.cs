@@ -40,7 +40,7 @@ public class EmployeeTypeApiService
         return await response.Content.ReadFromJsonAsync<EmployeeTypeDetailViewModel>(cancellationToken: cancellationToken);
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> CreateAsync(CreateEmployeeTypeViewModel model, CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? ErrorMessage)> CreateAsync(EmployeeTypeFormViewModel model, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync(_apiBaseUrl, CreatePayload(model), cancellationToken);
         return await ReadResultAsync(response, cancellationToken);

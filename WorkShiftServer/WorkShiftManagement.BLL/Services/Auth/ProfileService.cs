@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.DAL.Data;
-using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
@@ -37,10 +36,10 @@ public sealed class ProfileService : IProfileService
                 RoleId = u.RoleId,
                 RoleName = u.Role.RoleName,
                 BranchId = u.BranchId,
-                BranchCode = u.Branch.BranchCode,
-                BranchName = u.Branch.BranchName,
+                BranchCode = u.Branch == null ? null : u.Branch.BranchCode,
+                BranchName = u.Branch == null ? null : u.Branch.BranchName,
                 EmployeeTypeId = u.EmployeeTypeId,
-                EmployeeTypeName = u.EmployeeType.TypeName,
+                EmployeeTypeName = u.EmployeeType == null ? null : u.EmployeeType.TypeName,
                 Status = u.Status,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt

@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WorkShiftManagement.BLL.DTOs.Admin.Request;
 
-public abstract class WorkingTimeRuleRequest : IValidatableObject
+public sealed class WorkingTimeRuleRequest : IValidatableObject
 {
     [Required, StringLength(150)]
     public string RuleName { get; set; } = string.Empty;

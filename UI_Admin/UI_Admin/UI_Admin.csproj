@@ -7,8 +7,4 @@
     <UserSecretsId>3bb1c2eb-78e1-4479-868a-f08360a41370</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\mascots\" />
-  </ItemGroup>
-
 </Project>

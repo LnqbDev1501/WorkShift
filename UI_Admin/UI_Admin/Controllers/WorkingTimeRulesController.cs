@@ -42,11 +42,11 @@ public class WorkingTimeRulesController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new WorkingTimeRuleCreateViewModel());
+    public IActionResult Create() => View(new WorkingTimeRuleFormViewModel());
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        WorkingTimeRuleCreateViewModel model, CancellationToken cancellationToken)
+        WorkingTimeRuleFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return View(model);
 

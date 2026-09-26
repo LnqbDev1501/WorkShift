@@ -36,7 +36,7 @@ public class AdminWorkingTimeRuleController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status201Created)]
-    public Task<IActionResult> Create([FromBody] CreateWorkingTimeRuleRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> Create([FromBody] WorkingTimeRuleRequest request, CancellationToken cancellationToken)
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub")
@@ -49,7 +49,7 @@ public class AdminWorkingTimeRuleController : ControllerBase
 
     [HttpPut("{id:int}")]
     [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
-    public Task<IActionResult> Update(int id, [FromBody] UpdateWorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
+    public Task<IActionResult> Update(int id, [FromBody] WorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
         ExecuteAsync(async () => Ok(await _workingTimeRuleService.UpdateAsync(id, request, cancellationToken)));
 
     [HttpDelete("{id:int}")]

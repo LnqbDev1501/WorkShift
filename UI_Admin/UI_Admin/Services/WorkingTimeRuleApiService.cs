@@ -26,7 +26,7 @@ public sealed class WorkingTimeRuleApiService
         return new WorkingTimeRuleListViewModel { Items = items };
     }
 
-    public async Task CreateAsync(WorkingTimeRuleCreateViewModel model, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(WorkingTimeRuleFormViewModel model, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync(
             BuildUrl("api/working-time-rules"), CreatePayload(model), cancellationToken);

@@ -26,7 +26,7 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
             ?? throw new KeyNotFoundException("Working time version was not found."));
     }
 
-    public async Task<WorkingTimeRuleResponse> CreateAsync(CreateWorkingTimeRuleRequest request, Guid createdBy, CancellationToken cancellationToken)
+    public async Task<WorkingTimeRuleResponse> CreateAsync(WorkingTimeRuleRequest request, Guid createdBy, CancellationToken cancellationToken)
     {
         if (createdBy == Guid.Empty) throw new ArgumentException("An authenticated administrator is required.");
         var rule = CreateValues(request);
@@ -36,7 +36,7 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
         return Map(await _workingTimeRuleRepo.CreateVersionAsync(rule, cancellationToken));
     }
 
-    public async Task<WorkingTimeRuleResponse> UpdateAsync(int id, UpdateWorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
+    public async Task<WorkingTimeRuleResponse> UpdateAsync(int id, WorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
         Map(await _workingTimeRuleRepo.UpdateDraftAsync(id, CreateValues(request), cancellationToken));
 
     public Task DeleteAsync(int id, CancellationToken cancellationToken) => _workingTimeRuleRepo.DeleteDraftAsync(id, cancellationToken);
