@@ -17,9 +17,9 @@ namespace UI_Admin.Services
             _configuration = configuration;
         }
 
-    public async Task SetPasswordAsync(
-        string accessToken,
-        string password)
+        public async Task SetPasswordAsync(
+            string accessToken,
+            string password)
         {
             var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
                 ?? throw new InvalidOperationException(

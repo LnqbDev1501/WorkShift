@@ -4,7 +4,6 @@ using UI_Admin.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -39,11 +38,8 @@ builder.Services.AddHttpClient<ShiftTemplateApiService>(client => client.Timeout
 builder.Services.AddHttpClient<HolidayApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<IVietMapService, VietMapService>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
-
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");

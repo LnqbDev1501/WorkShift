@@ -1,6 +1,7 @@
 @model UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageListViewModel
 
 @{
+    var pagination = ListPaginationViewModel.ForCollection(Model.Items.Count, Context.Request.Query["page"], "minimum wages");
     ViewData["Title"] = "Regional Minimum Wages";
     var items = Model.Items;
 }
@@ -106,7 +107,7 @@
                     }
                     else
                     {
-                        @foreach (var item in items)
+                        @foreach (var item in items.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
                         {
                             var statusUpper = item.Status?.ToUpperInvariant() ?? "DRAFT";
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group">
@@ -214,7 +215,8 @@
                     }
                 </tbody>
             </table>
-        </div>
+            </div>
+            <partial name="_ListPagination" model="pagination" />
     </div>
 </div>
 

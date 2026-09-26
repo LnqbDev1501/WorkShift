@@ -7,22 +7,22 @@ public interface IPublicHolidayRepo
     Task<string?> GetActiveRoleNameAsync(Guid userId, CancellationToken ct = default);
 
     Task<(IReadOnlyList<PublicHolidayConfig> Items, int TotalCount)> GetPagedAsync(
-        int pageNumber, 
-        int pageSize, 
-        int? year, 
-        int? month, 
+        int pageNumber,
+        int pageSize,
+        int? year,
+        int? month,
         string? search,
-        bool includeInactive, bool? isActive, 
+        bool includeInactive, bool? isActive,
         CancellationToken ct = default);
 
     Task<PublicHolidayConfig?> GetByIdAsync(
-        int id, 
-        bool includeInactive, 
+        int id,
+        bool includeInactive,
         CancellationToken ct = default);
 
     // Must be called inside ExecuteInTransactionAsync.
     Task<PublicHolidayConfig?> GetForUpdateAsync(
-        int id, 
+        int id,
         CancellationToken ct = default);
 
     Task<IReadOnlyList<DateOnly>> GetExistingDatesAsync(

@@ -1,5 +1,6 @@
 @model UI_Admin.Models.WorkingTimeRuleListViewModel
 @{
+    var pagination = ListPaginationViewModel.ForCollection(Model.Items.Count, Context.Request.Query["page"], "versions");
     ViewData["Title"] = "Working Time Limits";
 }
 @section Styles {
@@ -28,7 +29,6 @@
         </div>
     </div>
 }
-
 
 <partial name="_NotificationModal" />
 <div class="shift-page working-time-list">
@@ -81,7 +81,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var rule in Model.Items)
+                            @foreach (var rule in Model.Items.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
                             {
                                 <tr>
                                     <td><span class="working-time-version">@($"V{rule.WorkingTimeRuleId}")</span></td>
@@ -102,8 +102,9 @@
                         </tbody>
                     </table>
                 </div>
-                <footer class="shift-footer"><div>Showing <strong>@Model.Items.Count</strong> versions</div><span>Effective dates use Vietnam time (UTC+7)</span></footer>
+
             }
+            <partial name="_ListPagination" model="pagination" />
         </div>
         <p class="working-time-list-note"><span class="material-symbols-outlined" aria-hidden="true">info</span>Only one version can be Publish. Cancel the current publication before publishing another version. Active, Inactive and Cancelled versions are read-only.</p>
     </section>

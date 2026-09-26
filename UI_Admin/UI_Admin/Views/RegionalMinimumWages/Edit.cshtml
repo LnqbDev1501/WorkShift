@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = $"Edit Minimum Wage - {Model.WageName}";
-    var activeWages = Model?.ActiveWages ?? [];
+    var activeWages = Model.ActiveWages ?? [];
 }
 
 <div class="flex flex-col w-full px-7 py-4">
@@ -114,10 +114,10 @@
                             <select id="replacedWageId"
                                     name="ReplacedWageId"
                                     class="w-full h-11 pl-10 pr-10 bg-surface-container-lowest rounded-lg text-on-surface font-body-md border border-surface-container-high focus:ring-2 focus:ring-primary focus:outline-none transition-all cursor-pointer">
-                                <option value="" selected="@(Model?.ReplacedWageId == null)">No replacement (New standalone wage)</option>
+                                <option value="" selected="@(Model.ReplacedWageId == null)">No replacement (New standalone wage)</option>
                                 @foreach (var activeWage in activeWages)
                                 {
-                                    <option value="@activeWage.RegionalMinimumWageId" selected="@(Model?.ReplacedWageId == activeWage.RegionalMinimumWageId)">
+                                    <option value="@activeWage.RegionalMinimumWageId" selected="@(Model.ReplacedWageId == activeWage.RegionalMinimumWageId)">
                                         @activeWage.WageName — @activeWage.MinimumHourlyRate.ToString("N0") VND/hour (ID #@activeWage.RegionalMinimumWageId)
                                     </option>
                                 }
@@ -137,7 +137,7 @@
                                    class="w-full h-11 pl-10 pr-4 bg-surface-container-lowest rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md font-mono border border-surface-container-high focus:ring-2 focus:ring-primary focus:outline-none transition-all"
                                    id="effectiveFrom"
                                    name="EffectiveFrom"
-                                   value="@(Model?.EffectiveFrom.HasValue == true ? Model.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "")"
+                                   value="@(Model.EffectiveFrom.HasValue == true ? Model.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "")"
                                    type="date" />
                         </div>
                     </div>

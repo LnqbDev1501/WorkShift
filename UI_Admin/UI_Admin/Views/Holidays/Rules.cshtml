@@ -1,6 +1,7 @@
 @model List<UI_Admin.Models.Holidays.HolidayRuleViewModel>
 
 @{
+    var pagination = ListPaginationViewModel.ForCollection(Model.Count, Context.Request.Query["page"], "pay rules");
     ViewData["Title"] = "Public Holidays";
 }
 
@@ -73,7 +74,7 @@
 
                     <tbody>
 
-                        @foreach (var rule in Model)
+                        @foreach (var rule in Model.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
                         {
                             <tr>
 
@@ -141,8 +142,8 @@
                     </tbody>
 
                 </table>
-
             </div>
+            <partial name="_ListPagination" model="pagination" />
 
             @if (Model.Count == 0 &&
                  ViewData["LoadError"] == null)

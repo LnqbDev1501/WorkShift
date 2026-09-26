@@ -23,7 +23,7 @@ public sealed class NotificationsController : Controller
         try
         {
             query.Page = Math.Max(query.Page, 1);
-            query.PageSize = Math.Clamp(query.PageSize, 1, 100);
+            query.PageSize = ListPaginationViewModel.DefaultPageSize;
             return View(await _notificationApiService.GetPagedAsync(query, cancellationToken));
         }
         catch (Exception exception)

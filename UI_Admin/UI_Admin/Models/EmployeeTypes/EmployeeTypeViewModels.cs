@@ -14,7 +14,7 @@ public class EmployeeTypeListPagedViewModel
 {
     public List<EmployeeTypeListItemViewModel> Items { get; set; } = [];
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = ListPaginationViewModel.DefaultPageSize;
     public int TotalItems { get; set; }
     public int TotalPages { get; set; }
     public string? Search { get; set; }
@@ -49,4 +49,3 @@ public class EmployeeTypeDetailViewModel : EmployeeTypeListItemViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
-

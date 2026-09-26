@@ -70,23 +70,13 @@
                 </tbody>
             </table>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-unit-3 px-unit-5 py-unit-3 bg-surface-container-low text-secondary text-body-sm font-body-sm">
-            <span>Showing <strong class="text-on-surface">@(Model.Items.Count == 0 ? 0 : (Model.PageNumber - 1) * Model.PageSize + 1) to @(Model.Items.Count == 0 ? 0 : (Model.PageNumber - 1) * Model.PageSize + Model.Items.Count)</strong> of <strong class="text-on-surface">@Model.TotalItems</strong> employee types</span>
-            <nav aria-label="Employee type pagination" class="flex items-center gap-unit-2">
-                @if (Model.PageNumber > 1)
-                {
-                    <a asp-action="Index" asp-route-page="@(Model.PageNumber - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.StatusFilter" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface"><span class="material-symbols-outlined text-[16px]">chevron_left</span>Previous</a>
-                }
-                else { <button type="button" disabled class="px-unit-3 py-1 opacity-50">Previous</button> }
-                <span class="px-2 py-0.5 rounded bg-primary-container text-white font-code-num text-body-sm font-semibold" aria-current="page">@Model.PageNumber</span>
-                <span>of @Math.Max(1, Model.TotalPages)</span>
-                @if (Model.PageNumber < Model.TotalPages)
-                {
-                    <a asp-action="Index" asp-route-page="@(Model.PageNumber + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.StatusFilter" class="inline-flex items-center gap-1 px-unit-3 py-1 rounded-lg border border-outline-variant bg-surface-container-lowest hover:bg-surface-container text-on-surface">Next<span class="material-symbols-outlined text-[16px]">chevron_right</span></a>
-                }
-                else { <button type="button" disabled class="px-unit-3 py-1 opacity-50">Next</button> }
-            </nav>
-        </div>
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            ItemLabel = "employee types",
+        })" />
     </div>
     <partial name="_StatusDialogs" />
 </div>

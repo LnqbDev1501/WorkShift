@@ -6,11 +6,11 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Controllers.Admin
 {
-[ApiController]
-[Authorize(Policy = "Admin")]
+    [ApiController]
+    [Authorize(Policy = "Admin")]
     [Route("api/admin/payroll-periods")]
     public class AdminPayrollApprovalController
-        : ControllerBase
+            : ControllerBase
     {
         private readonly IPayrollApprovalService
             _service;

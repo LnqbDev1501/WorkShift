@@ -80,18 +80,18 @@ public sealed class PublicHolidayService : IPublicHolidayService
     {
         var rule = await _config.Rules.AsNoTracking().Where(r => (r.Status == "ACTIVE" || r.Status == "INACTIVE" || r.Status == "PUBLISH") && r.EffectiveFrom <= e.HolidayDate && (r.EffectiveTo == null || e.HolidayDate < r.EffectiveTo)).OrderByDescending(r => r.EffectiveFrom).FirstOrDefaultAsync(ct);
         return new()
-    {
-        PublicHolidayId = e.PublicHolidayId,
-        HolidayName = e.HolidayName,
-        HolidayDate = e.HolidayDate,
-        PayMultiplier = rule?.PayMultiplier,
-        HolidayPayRuleId = rule?.HolidayPayRuleId,
-        IsPayrollLocked = !e.IsActive || await _repo.IsUsedInPayrollAsync(e.PublicHolidayId, ct) || await _config.IsLockedAsync(e.PublicHolidayId, e.HolidayDate, ct),
-        IsActive = e.IsActive,
-        CreatedBy = e.CreatedBy,
-        CreatedAt = e.CreatedAt,
-        UpdatedAt = e.UpdatedAt
-    };
+        {
+            PublicHolidayId = e.PublicHolidayId,
+            HolidayName = e.HolidayName,
+            HolidayDate = e.HolidayDate,
+            PayMultiplier = rule?.PayMultiplier,
+            HolidayPayRuleId = rule?.HolidayPayRuleId,
+            IsPayrollLocked = !e.IsActive || await _repo.IsUsedInPayrollAsync(e.PublicHolidayId, ct) || await _config.IsLockedAsync(e.PublicHolidayId, e.HolidayDate, ct),
+            IsActive = e.IsActive,
+            CreatedBy = e.CreatedBy,
+            CreatedAt = e.CreatedAt,
+            UpdatedAt = e.UpdatedAt
+        };
     }
 
     private static object AuditSnapshot(PublicHolidayConfig e) => new

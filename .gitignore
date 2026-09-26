@@ -16,5 +16,3 @@ appsettings.json
 
 artifacts/
 **/artifacts/
-bin/
-obj/
