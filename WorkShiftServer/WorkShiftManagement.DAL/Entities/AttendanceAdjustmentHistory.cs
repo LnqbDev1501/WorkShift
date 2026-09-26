@@ -5,13 +5,15 @@ namespace WorkShiftManagement.DAL.Entities;
 
 public partial class AttendanceAdjustmentHistory
 {
-    public long AdjustmentId { get; set; }
+    public long AdjustmentHistoryId { get; set; }
 
     public int AttendanceId { get; set; }
 
     public Guid AdjustedBy { get; set; }
 
-    public string AdjustmentReason { get; set; } = null!;
+    public string AdjustmentSource { get; set; } = null!;
+
+    public string Reason { get; set; } = null!;
 
     public DateTime? OldCheckInTime { get; set; }
 
@@ -21,37 +23,27 @@ public partial class AttendanceAdjustmentHistory
 
     public DateTime? NewCheckOutTime { get; set; }
 
-    public string OldStatus { get; set; } = null!;
+    public int? OldActualWorkingMinutes { get; set; }
 
-    public string NewStatus { get; set; } = null!;
+    public int? NewActualWorkingMinutes { get; set; }
 
-    public int OldActualWorkingMinutes { get; set; }
+    public int? OldTotalLateMinutes { get; set; }
 
-    public int NewActualWorkingMinutes { get; set; }
+    public int? NewTotalLateMinutes { get; set; }
 
-    public decimal OldWorkingHours { get; set; }
+    public int? OldChargeableLateMinutes { get; set; }
 
-    public decimal NewWorkingHours { get; set; }
+    public int? NewChargeableLateMinutes { get; set; }
 
-    public int OldTotalLateMinutes { get; set; }
+    public int? OldTotalEarlyLeaveMinutes { get; set; }
 
-    public int NewTotalLateMinutes { get; set; }
+    public int? NewTotalEarlyLeaveMinutes { get; set; }
 
-    public int OldChargeableLateMinutes { get; set; }
+    public int? OldChargeableEarlyLeaveMinutes { get; set; }
 
-    public int NewChargeableLateMinutes { get; set; }
-
-    public int OldTotalEarlyLeaveMinutes { get; set; }
-
-    public int NewTotalEarlyLeaveMinutes { get; set; }
-
-    public int OldChargeableEarlyLeaveMinutes { get; set; }
-
-    public int NewChargeableEarlyLeaveMinutes { get; set; }
+    public int? NewChargeableEarlyLeaveMinutes { get; set; }
 
     public DateTime AdjustedAt { get; set; }
-
-    public string AdjustmentType { get; set; } = null!;
 
     public virtual User AdjustedByNavigation { get; set; } = null!;
 

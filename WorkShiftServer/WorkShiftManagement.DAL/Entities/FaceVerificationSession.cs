@@ -31,6 +31,8 @@ public partial class FaceVerificationSession
 
     public int? MatchedFaceProfileId { get; set; }
 
+    public DateTime? CancelledAt { get; set; }
+
     public virtual ICollection<Attendance> AttendanceCheckInFaceSessions { get; set; } = new List<Attendance>();
 
     public virtual ICollection<Attendance> AttendanceCheckOutFaceSessions { get; set; } = new List<Attendance>();

@@ -29,6 +29,8 @@ public partial class ShiftAssignment
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? ShiftRequirementId { get; set; }
+
     public virtual User AssignedByNavigation { get; set; } = null!;
 
     public virtual Attendance? Attendance { get; set; }
@@ -38,6 +40,8 @@ public partial class ShiftAssignment
     public virtual ICollection<LeaveRequestAssignment> LeaveRequestAssignments { get; set; } = new List<LeaveRequestAssignment>();
 
     public virtual WorkShift Shift { get; set; } = null!;
+
+    public virtual ShiftEmployeeRequirement? ShiftEmployeeRequirement { get; set; }
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestSourceAssignments { get; set; } = new List<ShiftSwapRequest>();
 
