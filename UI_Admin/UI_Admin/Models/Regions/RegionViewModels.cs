@@ -26,7 +26,7 @@ public class RegionListPagedViewModel
 {
     public List<RegionListItemViewModel> Items { get; set; } = [];
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = ListPaginationViewModel.DefaultPageSize;
     public int TotalItems { get; set; }
     public int TotalPages { get; set; }
     public string? Search { get; set; }

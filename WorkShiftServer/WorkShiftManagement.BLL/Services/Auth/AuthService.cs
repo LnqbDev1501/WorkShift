@@ -156,7 +156,7 @@ public class AuthService : IAuthService
         using var response = await _httpClient.PutAsJsonAsync(
             $"auth/v1/admin/users/{userId}",
             new { email = email, email_confirm = true });
-        
+
         if (response.IsSuccessStatusCode)
             return;
 

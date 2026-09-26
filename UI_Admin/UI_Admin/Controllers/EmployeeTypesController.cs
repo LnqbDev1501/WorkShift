@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models;
 using UI_Admin.Models.EmployeeTypes;
 using UI_Admin.Services;
 
@@ -18,12 +19,14 @@ public class EmployeeTypesController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? search, string? status = "all", int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index(string? search, string? status = "all", int page = 1, int pageSize = ListPaginationViewModel.DefaultPageSize, CancellationToken cancellationToken = default)
     {
         var model = new EmployeeTypeListPagedViewModel
         {
-            Search = search, StatusFilter = status?.Trim().ToLowerInvariant() ?? "all",
-            PageNumber = Math.Clamp(page, 1, int.MaxValue / 100), PageSize = Math.Clamp(pageSize, 1, 100)
+            Search = search,
+            StatusFilter = status?.Trim().ToLowerInvariant() ?? "all",
+            PageNumber = Math.Clamp(page, 1, int.MaxValue / 100),
+            PageSize = ListPaginationViewModel.DefaultPageSize
         };
         try
         {
@@ -37,7 +40,7 @@ public class EmployeeTypesController : Controller
     }
 
     [HttpGet]
-    public Task<IActionResult> List(string? search, string? status = "all", int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public Task<IActionResult> List(string? search, string? status = "all", int page = 1, int pageSize = ListPaginationViewModel.DefaultPageSize, CancellationToken cancellationToken = default)
         => Index(search, status, page, pageSize, cancellationToken);
 
     [HttpGet]
@@ -65,8 +68,10 @@ public class EmployeeTypesController : Controller
         if (detail == null) return RedirectToAction(nameof(Index));
         return View(new EditEmployeeTypeViewModel
         {
-            EmployeeTypeId = detail.EmployeeTypeId, TypeName = detail.TypeName,
-            Description = detail.Description, Status = detail.Status
+            EmployeeTypeId = detail.EmployeeTypeId,
+            TypeName = detail.TypeName,
+            Description = detail.Description,
+            Status = detail.Status
         });
     }
 
@@ -145,4 +150,3 @@ public class EmployeeTypesController : Controller
         return exception.StatusCode.HasValue ? exception.Message : "Unable to connect to the server. Please try again.";
     }
 }
-

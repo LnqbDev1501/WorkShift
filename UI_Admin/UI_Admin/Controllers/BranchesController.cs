@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models;
 using UI_Admin.Models.Branches;
 using UI_Admin.Services;
 
@@ -66,18 +67,17 @@ public class BranchesController : Controller
         return Ok(result);
     }
 
-
     [HttpGet]
     public async Task<IActionResult> Index(
         [FromQuery] string? search,
         [FromQuery] int? regionId,
         [FromQuery] string? status = "ALL",
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery] int pageSize = ListPaginationViewModel.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = ListPaginationViewModel.DefaultPageSize;
 
         var viewModel = await _branchApiService.GetPagedAsync(search, regionId, status, page, pageSize, cancellationToken);
         viewModel.AvailableRegions = await _branchApiService.GetRegionsAsync(cancellationToken);
@@ -101,7 +101,7 @@ public class BranchesController : Controller
         [FromQuery] int? regionId,
         [FromQuery] string? status = "ALL",
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery] int pageSize = ListPaginationViewModel.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         return Index(search, regionId, status, page, pageSize, cancellationToken);

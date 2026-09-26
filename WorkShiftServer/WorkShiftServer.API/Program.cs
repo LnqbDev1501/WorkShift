@@ -16,10 +16,7 @@ using WorkShiftServer.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -67,7 +64,6 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, SupabaseRoleClaimsTransformation>();
 
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
 
@@ -83,7 +79,6 @@ builder.Services.AddHangfireServer();
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
-
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
@@ -103,9 +98,6 @@ builder.Services.AddHttpClient<AuthService>(client =>
     return new AuthService(client, setPasswordUrl, resetPasswordUrl);
 });
 
-
-
-
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
@@ -124,12 +116,11 @@ builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageServi
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
-// Public Holiday - giữ code Duc
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
-builder.Services.AddHostedService<WorkShiftServer.API.Services.HolidayRuleActivationWorker>();
+builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
@@ -145,10 +136,6 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 });
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 
-
-
-
-
 var app = builder.Build();
 
 app.Services.GetRequiredService<IRecurringJobManager>()
@@ -157,7 +144,6 @@ app.Services.GetRequiredService<IRecurringJobManager>()
         service => service.ActivateDueAsync(CancellationToken.None),
         Cron.Minutely());
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

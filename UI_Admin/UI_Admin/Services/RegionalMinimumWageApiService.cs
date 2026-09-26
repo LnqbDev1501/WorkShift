@@ -77,7 +77,7 @@ public class RegionalMinimumWageApiService
         }
 
         var isConflict = response.StatusCode == HttpStatusCode.Conflict;
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, null, error, isConflict);
     }
 
@@ -105,7 +105,7 @@ public class RegionalMinimumWageApiService
 
         var isConflict = response.StatusCode == HttpStatusCode.Conflict;
         var isNotFound = response.StatusCode == HttpStatusCode.NotFound;
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, null, error, isConflict, isNotFound);
     }
 
@@ -121,7 +121,7 @@ public class RegionalMinimumWageApiService
             return (true, data, null);
         }
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, null, error);
     }
 
@@ -137,28 +137,8 @@ public class RegionalMinimumWageApiService
             return (true, data, null);
         }
 
-        var error = await ReadErrorMessageAsync(response, cancellationToken);
+        var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
         return (false, null, error);
     }
 
-    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>(cancellationToken: cancellationToken);
-            if (!string.IsNullOrWhiteSpace(problem?.Detail))
-                return problem.Detail;
-            if (!string.IsNullOrWhiteSpace(problem?.Title))
-                return problem.Title;
-        }
-        catch { }
-
-        return $"Request failed with status code {(int)response.StatusCode}.";
-    }
-
-    private class ProblemDetailsResponse
-    {
-        public string? Title { get; set; }
-        public string? Detail { get; set; }
-    }
 }

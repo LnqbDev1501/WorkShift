@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models;
 using UI_Admin.Models.Regions;
 using UI_Admin.Services;
 
@@ -20,10 +21,10 @@ public class RegionsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index([FromQuery] string? search, [FromQuery] string? status = "all", [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Index([FromQuery] string? search, [FromQuery] string? status = "all", [FromQuery] int page = 1, [FromQuery] int pageSize = ListPaginationViewModel.DefaultPageSize, CancellationToken cancellationToken = default)
     {
         page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = ListPaginationViewModel.DefaultPageSize;
 
         var viewModel = await _regionApiService.GetPagedAsync(search, status, page, pageSize, cancellationToken);
 
@@ -41,7 +42,7 @@ public class RegionsController : Controller
     }
 
     [HttpGet]
-    public Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? status = "all", [FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
+    public Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? status = "all", [FromQuery] int page = 1, [FromQuery] int pageSize = ListPaginationViewModel.DefaultPageSize, CancellationToken cancellationToken = default)
     {
         return Index(search, status, page, pageSize, cancellationToken);
     }

@@ -77,9 +77,13 @@ public sealed class HolidayConfigurationRepo(AppDbContext db)
 
     public void Audit(Guid? actor, string action, string table, int id, object? before, object? after) => db.AuditLogs.Add(new AuditLog
     {
-        UserId = actor, Action = action, TableName = table, RecordId = id.ToString(),
+        UserId = actor,
+        Action = action,
+        TableName = table,
+        RecordId = id.ToString(),
         OldValue = before == null ? null : JsonSerializer.Serialize(before),
-        NewValue = after == null ? null : JsonSerializer.Serialize(after), CreatedAt = DateTime.UtcNow
+        NewValue = after == null ? null : JsonSerializer.Serialize(after),
+        CreatedAt = DateTime.UtcNow
     });
     public void Add(HolidayPayRule rule) => db.HolidayPayRules.Add(rule);
     public void Remove(HolidayPayRule rule) => db.HolidayPayRules.Remove(rule);

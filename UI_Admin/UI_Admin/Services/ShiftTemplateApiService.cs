@@ -13,8 +13,11 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
         using var response = await httpClient.PutAsJsonAsync(
             $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{model.Id}", new
             {
-                shiftName = model.ShiftName?.Trim(), model.StartTime, model.EndTime,
-                model.BreakMinutes, description = model.Description?.Trim()
+                shiftName = model.ShiftName?.Trim(),
+                model.StartTime,
+                model.EndTime,
+                model.BreakMinutes,
+                description = model.Description?.Trim()
             }, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.OK) return (true, null, false);
         if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
@@ -77,8 +80,11 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
         using var response = await httpClient.PostAsJsonAsync(
             $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates", new
             {
-                shiftName = model.ShiftName?.Trim(), model.StartTime, model.EndTime,
-                model.BreakMinutes, description = model.Description?.Trim()
+                shiftName = model.ShiftName?.Trim(),
+                model.StartTime,
+                model.EndTime,
+                model.BreakMinutes,
+                description = model.Description?.Trim()
             }, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.Created)
             return (true, null, false);

@@ -132,8 +132,12 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
             if (query.PageNumber > Math.Max(1, model.Result.TotalPages))
                 return RedirectToAction(nameof(List), new
                 {
-                    pageNumber = Math.Max(1, model.Result.TotalPages), query.Year, query.Month,
-                    query.Search, query.IncludeInactive, query.IsActive
+                    pageNumber = Math.Max(1, model.Result.TotalPages),
+                    query.Year,
+                    query.Month,
+                    query.Search,
+                    query.IncludeInactive,
+                    query.IsActive
                 });
         }
         catch (Exception exception) when (IsApiException(exception, cancellationToken))

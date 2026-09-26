@@ -13,7 +13,7 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
                 int pageNumber,
                 int pageSize);
 
-        Task<PayrollPeriod?> GetPayrollPeriodDetailAsync( int payrollPeriodId);
+        Task<PayrollPeriod?> GetPayrollPeriodDetailAsync(int payrollPeriodId);
 
         Task<(List<Payroll> Items, int TotalCount)>
             GetPayrollsByPeriodAsync(

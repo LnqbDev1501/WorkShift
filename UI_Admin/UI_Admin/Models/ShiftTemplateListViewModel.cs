@@ -29,8 +29,6 @@ public sealed class ShiftTemplateListViewModel
     public bool HasFilters => !string.IsNullOrWhiteSpace(Query.Search) || !string.IsNullOrEmpty(Query.Status)
         || Query.StartTime.HasValue || Query.EndTime.HasValue;
     public int LastPage => Math.Min(20, Result.TotalPages);
-    public int FirstItem => Result.Items.Count == 0 ? 0 : (Result.PageNumber - 1) * Result.PageSize + 1;
-    public int LastItem => Result.Items.Count == 0 ? 0 : FirstItem + Result.Items.Count - 1;
 }
 
 public sealed class ShiftTemplatePage
