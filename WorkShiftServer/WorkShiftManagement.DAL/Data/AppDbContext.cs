@@ -99,6 +99,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ShiftAssignment> ShiftAssignments { get; set; }
 
+    public virtual DbSet<ShiftEmployeeRequirement> ShiftEmployeeRequirements { get; set; }
+
     public virtual DbSet<ShiftSwapRequest> ShiftSwapRequests { get; set; }
 
     public virtual DbSet<ShiftTemplate> ShiftTemplates { get; set; }
@@ -118,6 +120,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -214,6 +217,7 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(10, 6)
                 .HasColumnName("check_out_longitude");
             entity.Property(e => e.CheckOutTime).HasColumnName("check_out_time");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -283,57 +287,48 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<AttendanceAdjustmentHistory>(entity =>
         {
-            entity.HasKey(e => e.AdjustmentId).HasName("attendance_adjustment_histories_pkey");
+            entity.HasKey(e => e.AdjustmentHistoryId).HasName("attendance_adjustment_histories_pkey");
 
             entity.ToTable("attendance_adjustment_histories");
 
-            entity.HasIndex(e => e.AttendanceId, "attendance_adjustment_histories_attendance_id_key").IsUnique();
+            entity.HasIndex(e => new { e.AdjustedBy, e.AdjustedAt }, "ix_attendance_adjustment_history_adjusted_by").IsDescending(false, true);
 
-            entity.Property(e => e.AdjustmentId).HasColumnName("adjustment_id");
+            entity.HasIndex(e => new { e.AttendanceId, e.AdjustedAt }, "ix_attendance_adjustment_history_attendance").IsDescending(false, true);
+
+            entity.Property(e => e.AdjustmentHistoryId).HasColumnName("adjustment_history_id");
             entity.Property(e => e.AdjustedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("adjusted_at");
             entity.Property(e => e.AdjustedBy).HasColumnName("adjusted_by");
-            entity.Property(e => e.AdjustmentReason).HasColumnName("adjustment_reason");
-            entity.Property(e => e.AdjustmentType)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'ADJUSTED'::character varying")
-                .HasColumnName("adjustment_type");
+            entity.Property(e => e.AdjustmentSource)
+                .HasMaxLength(30)
+                .HasColumnName("adjustment_source");
             entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
             entity.Property(e => e.NewActualWorkingMinutes).HasColumnName("new_actual_working_minutes");
             entity.Property(e => e.NewChargeableEarlyLeaveMinutes).HasColumnName("new_chargeable_early_leave_minutes");
             entity.Property(e => e.NewChargeableLateMinutes).HasColumnName("new_chargeable_late_minutes");
             entity.Property(e => e.NewCheckInTime).HasColumnName("new_check_in_time");
             entity.Property(e => e.NewCheckOutTime).HasColumnName("new_check_out_time");
-            entity.Property(e => e.NewStatus)
-                .HasMaxLength(40)
-                .HasColumnName("new_status");
             entity.Property(e => e.NewTotalEarlyLeaveMinutes).HasColumnName("new_total_early_leave_minutes");
             entity.Property(e => e.NewTotalLateMinutes).HasColumnName("new_total_late_minutes");
-            entity.Property(e => e.NewWorkingHours)
-                .HasPrecision(10, 4)
-                .HasColumnName("new_working_hours");
             entity.Property(e => e.OldActualWorkingMinutes).HasColumnName("old_actual_working_minutes");
             entity.Property(e => e.OldChargeableEarlyLeaveMinutes).HasColumnName("old_chargeable_early_leave_minutes");
             entity.Property(e => e.OldChargeableLateMinutes).HasColumnName("old_chargeable_late_minutes");
             entity.Property(e => e.OldCheckInTime).HasColumnName("old_check_in_time");
             entity.Property(e => e.OldCheckOutTime).HasColumnName("old_check_out_time");
-            entity.Property(e => e.OldStatus)
-                .HasMaxLength(40)
-                .HasColumnName("old_status");
             entity.Property(e => e.OldTotalEarlyLeaveMinutes).HasColumnName("old_total_early_leave_minutes");
             entity.Property(e => e.OldTotalLateMinutes).HasColumnName("old_total_late_minutes");
-            entity.Property(e => e.OldWorkingHours)
-                .HasPrecision(10, 4)
-                .HasColumnName("old_working_hours");
+            entity.Property(e => e.Reason)
+                .HasMaxLength(500)
+                .HasColumnName("reason");
 
             entity.HasOne(d => d.AdjustedByNavigation).WithMany(p => p.AttendanceAdjustmentHistories)
                 .HasForeignKey(d => d.AdjustedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("attendance_adjustment_histories_adjusted_by_fkey");
 
-            entity.HasOne(d => d.Attendance).WithOne(p => p.AttendanceAdjustmentHistory)
-                .HasForeignKey<AttendanceAdjustmentHistory>(d => d.AttendanceId)
+            entity.HasOne(d => d.Attendance).WithMany(p => p.AttendanceAdjustmentHistories)
+                .HasForeignKey(d => d.AttendanceId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("attendance_adjustment_histories_attendance_id_fkey");
         });
@@ -1296,6 +1291,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ActionType)
                 .HasMaxLength(30)
                 .HasColumnName("action_type");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.ChallengeSequence)
                 .HasColumnType("jsonb")
                 .HasColumnName("challenge_sequence");
@@ -2154,6 +2150,8 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("shift_assignments");
 
+            entity.HasIndex(e => new { e.ShiftRequirementId, e.Status }, "ix_shift_assignments_requirement_status");
+
             entity.HasIndex(e => new { e.ShiftId, e.Status }, "ix_shift_assignments_shift_status");
 
             entity.HasIndex(e => new { e.UserId, e.Status }, "ix_shift_assignments_user_status");
@@ -2177,6 +2175,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+            entity.Property(e => e.ShiftRequirementId).HasColumnName("shift_requirement_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'ASSIGNED'::character varying")
@@ -2205,6 +2204,47 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("shift_assignments_user_id_fkey");
+
+            entity.HasOne(d => d.ShiftEmployeeRequirement).WithMany(p => p.ShiftAssignments)
+                .HasPrincipalKey(p => new { p.ShiftRequirementId, p.ShiftId })
+                .HasForeignKey(d => new { d.ShiftRequirementId, d.ShiftId })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_shift_assignments_requirement_shift");
+        });
+
+        modelBuilder.Entity<ShiftEmployeeRequirement>(entity =>
+        {
+            entity.HasKey(e => e.ShiftRequirementId).HasName("shift_employee_requirements_pkey");
+
+            entity.ToTable("shift_employee_requirements");
+
+            entity.HasIndex(e => e.EmployeeTypeId, "ix_shift_employee_requirements_employee_type");
+
+            entity.HasIndex(e => e.ShiftId, "ix_shift_employee_requirements_shift");
+
+            entity.HasIndex(e => new { e.ShiftRequirementId, e.ShiftId }, "uq_shift_employee_requirements_requirement_shift").IsUnique();
+
+            entity.HasIndex(e => new { e.ShiftId, e.EmployeeTypeId }, "uq_shift_employee_requirements_shift_type").IsUnique();
+
+            entity.Property(e => e.ShiftRequirementId).HasColumnName("shift_requirement_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmployeeTypeId).HasColumnName("employee_type_id");
+            entity.Property(e => e.RequiredCount).HasColumnName("required_count");
+            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.EmployeeType).WithMany(p => p.ShiftEmployeeRequirements)
+                .HasForeignKey(d => d.EmployeeTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_shift_employee_requirements_employee_type");
+
+            entity.HasOne(d => d.Shift).WithMany(p => p.ShiftEmployeeRequirements)
+                .HasForeignKey(d => d.ShiftId)
+                .HasConstraintName("fk_shift_employee_requirements_shift");
         });
 
         modelBuilder.Entity<ShiftSwapRequest>(entity =>
@@ -2387,6 +2427,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId }, "uq_timesheet_user_period").IsUnique();
 
+            entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId }, "uq_timesheets_user_payroll_period").IsUnique();
+
             entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
             entity.Property(e => e.AbsentShiftCount)
                 .HasDefaultValue(0)
@@ -2410,13 +2452,25 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
+            entity.Property(e => e.IncompleteShiftCount)
+                .HasDefaultValue(0)
+                .HasColumnName("incomplete_shift_count");
             entity.Property(e => e.LockedAt).HasColumnName("locked_at");
+            entity.Property(e => e.LockedBy).HasColumnName("locked_by");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
             entity.Property(e => e.ReviewNote)
                 .HasMaxLength(500)
                 .HasColumnName("review_note");
             entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
             entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
+            entity.Property(e => e.StaffReviewNote)
+                .HasMaxLength(500)
+                .HasColumnName("staff_review_note");
+            entity.Property(e => e.StaffReviewStatus)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'PENDING'::character varying")
+                .HasColumnName("staff_review_status");
+            entity.Property(e => e.StaffReviewedAt).HasColumnName("staff_reviewed_at");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'::character varying")
@@ -2430,16 +2484,20 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TotalLateMinutes)
                 .HasDefaultValue(0)
                 .HasColumnName("total_late_minutes");
-            entity.Property(e => e.TotalScheduledHours)
-                .HasPrecision(8, 2)
-                .HasColumnName("total_scheduled_hours");
-            entity.Property(e => e.TotalWorkHours)
-                .HasPrecision(8, 2)
-                .HasColumnName("total_work_hours");
+            entity.Property(e => e.TotalScheduledMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_scheduled_minutes");
+            entity.Property(e => e.TotalWorkMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_work_minutes");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.LockedByNavigation).WithMany(p => p.TimesheetLockedByNavigations)
+                .HasForeignKey(d => d.LockedBy)
+                .HasConstraintName("timesheets_locked_by_fkey");
 
             entity.HasOne(d => d.PayrollPeriod).WithMany(p => p.Timesheets)
                 .HasForeignKey(d => d.PayrollPeriodId)

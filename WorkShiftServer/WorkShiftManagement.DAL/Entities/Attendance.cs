@@ -87,9 +87,11 @@ public partial class Attendance
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? CompletedAt { get; set; }
+
     public virtual ShiftAssignment Assignment { get; set; } = null!;
 
-    public virtual AttendanceAdjustmentHistory? AttendanceAdjustmentHistory { get; set; }
+    public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
 
     public virtual ICollection<AttendancePenaltyRecord> AttendancePenaltyRecords { get; set; } = new List<AttendancePenaltyRecord>();
 

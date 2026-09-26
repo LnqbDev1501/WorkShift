@@ -17,9 +17,9 @@ public partial class Timesheet
 
     public int AbsentShiftCount { get; set; }
 
-    public decimal TotalScheduledHours { get; set; }
+    public int TotalScheduledMinutes { get; set; }
 
-    public decimal TotalWorkHours { get; set; }
+    public int TotalWorkMinutes { get; set; }
 
     public int TotalLateMinutes { get; set; }
 
@@ -48,6 +48,18 @@ public partial class Timesheet
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public string StaffReviewStatus { get; set; } = null!;
+
+    public DateTime? StaffReviewedAt { get; set; }
+
+    public string? StaffReviewNote { get; set; }
+
+    public int IncompleteShiftCount { get; set; }
+
+    public Guid? LockedBy { get; set; }
+
+    public virtual User? LockedByNavigation { get; set; }
 
     public virtual Payroll? Payroll { get; set; }
 
