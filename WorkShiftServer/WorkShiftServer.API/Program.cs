@@ -138,11 +138,19 @@ builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificatio
 
 var app = builder.Build();
 
-app.Services.GetRequiredService<IRecurringJobManager>()
-    .AddOrUpdate<IWorkingTimeRuleService>(
-        "working-time-rules-activation",
-        service => service.ActivateDueAsync(CancellationToken.None),
-        Cron.Minutely());
+try
+{
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IWorkingTimeRuleService>(
+            "working-time-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+}
+catch (Exception ex)
+{
+    // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'working-time-rules-activation'.");
+}
 
 if (app.Environment.IsDevelopment())
 {

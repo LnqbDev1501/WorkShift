@@ -120,6 +120,7 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
