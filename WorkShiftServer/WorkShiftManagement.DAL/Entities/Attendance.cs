@@ -104,4 +104,6 @@ public partial class Attendance
     public virtual TimeAdjustmentRequestDetail? EarlyLeaveRequest { get; set; }
 
     public virtual TimeAdjustmentRequestDetail? LateArrivalRequest { get; set; }
+
+    public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
 }

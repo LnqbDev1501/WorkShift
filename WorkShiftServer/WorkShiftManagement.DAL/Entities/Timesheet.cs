@@ -61,9 +61,9 @@ public partial class Timesheet
 
     public virtual User? LockedByNavigation { get; set; }
 
-    public virtual Payroll? Payroll { get; set; }
-
     public virtual PayrollPeriod PayrollPeriod { get; set; } = null!;
+
+    public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
 
     public virtual User? ReviewedByNavigation { get; set; }
 

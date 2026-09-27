@@ -77,9 +77,13 @@ public partial class User
 
     public virtual ICollection<EmployeeRequest> EmployeeRequestUsers { get; set; } = new List<EmployeeRequest>();
 
+    public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenaltyApprovedByNavigations { get; set; } = new List<EmployeeRewardsPenalty>();
+
     public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenaltyCreatedByNavigations { get; set; } = new List<EmployeeRewardsPenalty>();
 
     public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenaltyDeletedByNavigations { get; set; } = new List<EmployeeRewardsPenalty>();
+
+    public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenaltyRejectedByNavigations { get; set; } = new List<EmployeeRewardsPenalty>();
 
     public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenaltyUsers { get; set; } = new List<EmployeeRewardsPenalty>();
 
@@ -105,15 +109,31 @@ public partial class User
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    public virtual ICollection<Payroll> PayrollApprovedByNavigations { get; set; } = new List<Payroll>();
+
+    public virtual ICollection<Payroll> PayrollCalculatedByNavigations { get; set; } = new List<Payroll>();
+
+    public virtual ICollection<PayrollCarryForwardDeduction> PayrollCarryForwardDeductions { get; set; } = new List<PayrollCarryForwardDeduction>();
+
+    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestEmployees { get; set; } = new List<PayrollFeedbackRequest>();
+
+    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestProcessedByNavigations { get; set; } = new List<PayrollFeedbackRequest>();
+
+    public virtual ICollection<Payroll> PayrollPaymentConfirmedByNavigations { get; set; } = new List<Payroll>();
+
     public virtual ICollection<PayrollPeriod> PayrollPeriodApprovedByNavigations { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<PayrollPeriod> PayrollPeriodCalculatedByNavigations { get; set; } = new List<PayrollPeriod>();
+
+    public virtual ICollection<PayrollPeriod> PayrollPeriodClosedByNavigations { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<PayrollPeriod> PayrollPeriodCreatedByNavigations { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<PayrollPeriod> PayrollPeriodSubmittedByNavigations { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<Payroll> PayrollRejectedByNavigations { get; set; } = new List<Payroll>();
+
+    public virtual ICollection<Payroll> PayrollSubmittedByNavigations { get; set; } = new List<Payroll>();
 
     public virtual ICollection<Payroll> PayrollUsers { get; set; } = new List<Payroll>();
 

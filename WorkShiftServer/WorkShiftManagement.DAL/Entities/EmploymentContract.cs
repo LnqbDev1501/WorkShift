@@ -77,6 +77,8 @@ public partial class EmploymentContract
 
     public DateTime? PdfGeneratedAt { get; set; }
 
+    public DateTime? TerminationEffectiveAt { get; set; }
+
     public virtual User? ApprovedByNavigation { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;

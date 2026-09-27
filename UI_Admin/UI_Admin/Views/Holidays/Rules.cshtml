@@ -74,7 +74,8 @@
 
                     <tbody>
 
-                        @foreach (var rule in Model.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
+                        @foreach (var rule in Model.Skip((pagination.PageNumber - 1) *
+                        pagination.PageSize).Take(pagination.PageSize))
                         {
                             <tr>
 

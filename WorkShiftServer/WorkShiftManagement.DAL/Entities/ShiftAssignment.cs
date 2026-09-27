@@ -39,6 +39,8 @@ public partial class ShiftAssignment
 
     public virtual ICollection<LeaveRequestAssignment> LeaveRequestAssignments { get; set; } = new List<LeaveRequestAssignment>();
 
+    public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
+
     public virtual WorkShift Shift { get; set; } = null!;
 
     public virtual ShiftEmployeeRequirement? ShiftEmployeeRequirement { get; set; }

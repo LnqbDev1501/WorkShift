@@ -33,6 +33,20 @@ public partial class EmployeeRewardsPenalty
 
     public string? DeletionReason { get; set; }
 
+    public string? ApprovalStatus { get; set; }
+
+    public Guid? ApprovedBy { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
+    public Guid? RejectedBy { get; set; }
+
+    public DateTime? RejectedAt { get; set; }
+
+    public string? ReviewNote { get; set; }
+
+    public virtual User? ApprovedByNavigation { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual User? DeletedByNavigation { get; set; }
@@ -42,6 +56,8 @@ public partial class EmployeeRewardsPenalty
     public virtual PayrollDetail? PayrollDetail { get; set; }
 
     public virtual PayrollPeriod PayrollPeriod { get; set; } = null!;
+
+    public virtual User? RejectedByNavigation { get; set; }
 
     public virtual User User { get; set; } = null!;
 }
