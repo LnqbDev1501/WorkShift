@@ -1,5 +1,7 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using UI_Admin.Models;
 
 namespace UI_Admin.Services
@@ -8,13 +10,16 @@ namespace UI_Admin.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthApiService(
             HttpClient httpClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task SetPasswordAsync(
@@ -87,8 +92,19 @@ namespace UI_Admin.Services
             var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
                 ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
 
-            using var response = await _httpClient.GetAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/profile/me", cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me");
+
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null)
+            {
+                var accessToken = await context.GetTokenAsync("access_token");
+                if (!string.IsNullOrWhiteSpace(accessToken))
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
+            }
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
 
             if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;

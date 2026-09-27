@@ -17,6 +17,10 @@ public sealed class ApiBearerTokenHandler(
         if (context is null)
             return await base.SendAsync(request, cancellationToken);
 
+        var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+        if (path.Contains("/api/auth/", StringComparison.OrdinalIgnoreCase))
+            return await base.SendAsync(request, cancellationToken);
+
         var accessToken = await context.GetTokenAsync("access_token");
         var expiresAt = await context.GetTokenAsync("access_token_expires_at");
         if (DateTimeOffset.TryParse(expiresAt, out var expiration) &&

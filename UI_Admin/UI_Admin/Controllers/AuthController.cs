@@ -158,6 +158,7 @@ namespace UI_Admin.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public IActionResult SetPassword()
         {
             return View(new SetPasswordViewModel());
@@ -196,6 +197,7 @@ namespace UI_Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> SetPassword(
             SetPasswordViewModel model)
         {

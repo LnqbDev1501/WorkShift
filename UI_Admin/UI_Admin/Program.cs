@@ -23,7 +23,7 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddTransient<ApiBearerTokenHandler>();
 
-builder.Services.AddHttpClient<AuthApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<AuthApiService>();
 builder.Services.AddHttpClient<PayrollApiService>(client => client.Timeout = TimeSpan.FromSeconds(15))
     .AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<WorkingTimeRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
