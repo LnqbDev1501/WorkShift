@@ -1,0 +1,109 @@
+<!-- Publish Confirmation Modal -->
+<div id="publishModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="publishModalTitle">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[26px]">publish</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface font-bold text-lg" id="publishModalTitle">Publish Pay Rule?</h3>
+                <p class="font-label-sm text-on-surface-variant text-xs text-gray-500">Holiday Pay Rules</p>
+            </div>
+        </div>
+
+        <p class="font-body-md text-on-surface-variant text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to publish draft <strong id="publishModalRuleName" class="text-on-surface font-semibold text-gray-900"></strong>? Its contents will be locked and it will schedule activation on its effective date.
+        </p>
+
+        <form id="publishForm" method="post" asp-controller="RuleHolidays" asp-action="Publish" class="mt-2 flex items-center justify-end gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="publishModalRuleId" value="0" />
+            <button type="button" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer" onclick="closePublishModal()">
+                Cancel
+            </button>
+            <button type="submit" class="h-10 px-5 rounded-xl bg-primary hover:bg-primary-container text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">publish</span>
+                <span>Confirm Publish</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Cancel Confirmation Modal -->
+<div id="cancelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="cancelModalTitle">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[26px]">block</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface font-bold text-lg" id="cancelModalTitle">Cancel Pay Rule?</h3>
+                <p class="font-label-sm text-on-surface-variant text-xs text-gray-500">Holiday Pay Rules</p>
+            </div>
+        </div>
+
+        <p class="font-body-md text-on-surface-variant text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to cancel this published rule? Cancelled rules will not take effect on payroll.
+        </p>
+
+        <form id="cancelForm" method="post" asp-controller="RuleHolidays" asp-action="Cancel" class="mt-2 flex items-center justify-end gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="cancelModalRuleId" value="0" />
+            <button type="button" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer" onclick="closeCancelModal()">
+                Back
+            </button>
+            <button type="submit" class="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">block</span>
+                <span>Confirm Cancel</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openPublishModal(id, ruleName) {
+        var idInput = document.getElementById('publishModalRuleId');
+        var nameSpan = document.getElementById('publishModalRuleName');
+        var modal = document.getElementById('publishModal');
+        if (idInput) idInput.value = id;
+        if (nameSpan) nameSpan.textContent = '"' + ruleName + '"';
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closePublishModal() {
+        var modal = document.getElementById('publishModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function openCancelModal(id, ruleName) {
+        var idInput = document.getElementById('cancelModalRuleId');
+        var modal = document.getElementById('cancelModal');
+        if (idInput) idInput.value = id;
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeCancelModal() {
+        var modal = document.getElementById('cancelModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    document.getElementById('publishModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closePublishModal();
+    });
+
+    document.getElementById('cancelModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeCancelModal();
+    });
+</script>
