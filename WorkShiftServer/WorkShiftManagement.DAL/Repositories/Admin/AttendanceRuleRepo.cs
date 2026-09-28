@@ -44,6 +44,42 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
         _context.AttendanceRules
             .AsNoTracking()
             .Include(r => r.CreatedByNavigation)
-            .OrderBy(r => r.AttendanceRuleId)
+            .OrderByDescending(r => r.CreatedAt)
             .ToListAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<AttendanceRule> Items, int TotalItems)> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? search,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.AttendanceRules
+            .AsNoTracking()
+            .Include(r => r.CreatedByNavigation)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+            query = query.Where(r => r.RuleName.ToLower().Contains(normalizedSearch) ||
+                                     (r.Description != null && r.Description.ToLower().Contains(normalizedSearch)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalizedStatus = status.Trim().ToUpperInvariant();
+            query = query.Where(r => r.Status.ToUpper() == normalizedStatus);
+        }
+
+        var totalItems = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalItems);
+    }
 }

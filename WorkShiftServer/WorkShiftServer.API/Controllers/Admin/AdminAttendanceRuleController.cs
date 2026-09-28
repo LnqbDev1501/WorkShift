@@ -24,14 +24,21 @@ public class AdminAttendanceRuleController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(List<AttendanceRuleResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AttendanceRuleListResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<List<AttendanceRuleResponse>>> GetAllAttendanceRules(CancellationToken cancellationToken)
+    public async Task<ActionResult<AttendanceRuleListResponse>> GetAttendanceRules(
+        [FromQuery] GetAttendanceRulesRequest request,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var rules = await _attendanceRuleService.GetAllAsync(cancellationToken);
-            return Ok(rules);
+            var result = await _attendanceRuleService.GetAttendanceRulesAsync(request, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
         }
         catch (Exception exception)
         {
@@ -52,6 +59,11 @@ public class AdminAttendanceRuleController : ControllerBase
     {
         try
         {
+            if (id <= 0)
+            {
+                return BadRequest(new { message = "id must be a positive integer." });
+            }
+
             var rule = await _attendanceRuleService.GetByIdAsync(id, cancellationToken);
             return Ok(rule);
         }

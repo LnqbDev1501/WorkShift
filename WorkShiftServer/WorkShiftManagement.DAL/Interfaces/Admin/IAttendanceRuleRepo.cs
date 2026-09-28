@@ -8,4 +8,10 @@ public interface IAttendanceRuleRepo
     Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken);
     Task<AttendanceRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<List<AttendanceRule>> GetAllAsync(CancellationToken cancellationToken);
+    Task<(IReadOnlyList<AttendanceRule> Items, int TotalItems)> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? search,
+        string? status,
+        CancellationToken cancellationToken);
 }

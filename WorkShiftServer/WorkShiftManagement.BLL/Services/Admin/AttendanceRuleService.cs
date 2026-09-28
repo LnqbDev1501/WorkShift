@@ -8,12 +8,54 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 
 public class AttendanceRuleService : IAttendanceRuleService
 {
+    private const int AttendanceRulePageSize = 20;
     private const string StatusDraft = "DRAFT";
+    private const string StatusScheduled = "SCHEDULED";
+    private const string StatusActive = "ACTIVE";
+    private const string StatusInactive = "INACTIVE";
+    private const string StatusCancelled = "CANCELLED";
+
     private readonly IAttendanceRuleRepo _attendanceRuleRepo;
 
     public AttendanceRuleService(IAttendanceRuleRepo attendanceRuleRepo)
     {
         _attendanceRuleRepo = attendanceRuleRepo;
+    }
+
+    public async Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.PageNumber <= 0)
+        {
+            throw new ArgumentException("PageNumber must be greater than 0.");
+        }
+
+        var search = string.IsNullOrWhiteSpace(request.Search) ? null : request.Search.Trim();
+        var status = string.IsNullOrWhiteSpace(request.Status)
+            ? null
+            : request.Status.Trim().ToUpperInvariant();
+
+        if (status is not null and not (StatusDraft or StatusScheduled or StatusActive or StatusInactive or StatusCancelled))
+        {
+            throw new ArgumentException("Status must be DRAFT, SCHEDULED, ACTIVE, INACTIVE, or CANCELLED.");
+        }
+
+        var (rules, totalItems) = await _attendanceRuleRepo.GetPagedAsync(
+            request.PageNumber,
+            AttendanceRulePageSize,
+            search,
+            status,
+            cancellationToken);
+
+        return new AttendanceRuleListResponse
+        {
+            Items = rules.Select(Map).ToList(),
+            PageNumber = request.PageNumber,
+            PageSize = AttendanceRulePageSize,
+            TotalItems = totalItems,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)AttendanceRulePageSize)
+        };
     }
 
     public async Task<AttendanceRuleResponse> CreateAsync(CreateAttendanceRuleRequest request, Guid createdBy, CancellationToken cancellationToken)
