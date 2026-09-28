@@ -107,6 +107,8 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 });
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
+builder.Services.AddScoped<IAttendanceRuleRepo, AttendanceRuleRepo>();
+builder.Services.AddScoped<IAttendanceRuleService, AttendanceRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
 builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
 builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
