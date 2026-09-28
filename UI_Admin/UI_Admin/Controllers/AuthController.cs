@@ -163,6 +163,37 @@ namespace UI_Admin.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["PasswordError"] = ModelState.Values
+                    .SelectMany(state => state.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "The new password is invalid.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            try
+            {
+                await _authService.ChangePasswordAsync(model.NewPassword, cancellationToken);
+                TempData["PasswordChanged"] = true;
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["PasswordError"] = exception.Message;
+            }
+            catch (HttpRequestException)
+            {
+                TempData["PasswordError"] = "The authentication service is temporarily unavailable. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
         [HttpGet]
         [AllowAnonymous]
         public IActionResult SetPassword()

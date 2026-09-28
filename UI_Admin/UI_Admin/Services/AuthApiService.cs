@@ -87,7 +87,24 @@ namespace UI_Admin.Services
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
         }
 
-        public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
+        public async Task ChangePasswordAsync(string newPassword, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/profile/password",
+            new { password = newPassword.Trim() },
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
         {
             var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
                 ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");

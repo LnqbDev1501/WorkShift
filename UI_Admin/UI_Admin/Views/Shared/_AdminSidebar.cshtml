@@ -165,6 +165,18 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
                         </a>
+                        <a asp-controller="Categories" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Categories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Categories">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">category</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Categories</span>
+                        </a>
+                        <a asp-controller="Products" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Products" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Products">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
+                        </a>
                     </nav>
                 }
                 else
@@ -182,6 +194,27 @@
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">My Workspace</span>
                         </a>
                     </nav>
+                    @if (User.IsInRole("MANAGER") || User.IsInRole("ACCOUNTANT"))
+                    {
+                        <nav class="space-y-unit-1">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                                <span
+                                class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CATALOG</span>
+                            </div>
+                            <a asp-controller="Categories" asp-action="Index"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Categories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                               title="Categories">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">category</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Categories</span>
+                            </a>
+                            <a asp-controller="Products" asp-action="Index"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Products" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                               title="Products">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
+                            </a>
+                        </nav>
+                    }
                 }
             </div>
         </div>
@@ -190,21 +223,22 @@
         <div class="p-unit-3 border-t border-[#1f2937] bg-[#0d131f]">
             <!-- Full Profile View -->
             <div class="sidebar-user-full flex items-center gap-unit-3 px-unit-2 py-unit-1">
-                <img alt="Admin Profile"
-                     class="w-8 h-8 rounded-full object-cover border border-[#374151] flex-shrink-0 shadow-sm"
-                     src="@defaultAdminAvatar"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                <div
-                    class="hidden w-8 h-8 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] flex-shrink-0 shadow-sm">
-                    @initials
-                </div>
-                <div class="flex flex-col min-w-0 flex-1">
-                    <span class="font-title-md text-white text-[13px] leading-snug truncate font-medium"
-                          title="@userName">@userName</span>
-                    <span
-                    class="font-label-sm text-[#9ca3af] text-[10px] truncate uppercase tracking-wider font-semibold">@userRole</span>
-                </div>
-                <a asp-controller="Auth" asp-action="Profile" class="flex-shrink-0 text-[#9ca3af] hover:text-rose-400 text-[11px] font-medium transition-colors cursor-pointer" title="My Profile">My Profile</a>
+                <a asp-controller="Auth" asp-action="Profile" class="flex items-center gap-unit-3 min-w-0 flex-1 group" title="My Profile">
+                    <img alt="Admin Profile"
+                         class="w-8 h-8 rounded-full object-cover border border-[#374151] flex-shrink-0 shadow-sm group-hover:border-rose-400/80 transition-all"
+                         src="@defaultAdminAvatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div
+                        class="hidden w-8 h-8 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] flex-shrink-0 shadow-sm">
+                        @initials
+                    </div>
+                    <span class="flex flex-col min-w-0 flex-1">
+                        <span class="font-title-md text-white text-[13px] leading-snug truncate font-medium group-hover:underline"
+                              title="@userName">@userName</span>
+                        <span
+                        class="font-label-sm text-[#9ca3af] text-[10px] truncate uppercase tracking-wider font-semibold">@userRole</span>
+                    </span>
+                </a>
                 <form asp-controller="Auth" asp-action="Logout" method="post" class="flex-shrink-0">
                     @Html.AntiForgeryToken()
                     <button type="submit"
