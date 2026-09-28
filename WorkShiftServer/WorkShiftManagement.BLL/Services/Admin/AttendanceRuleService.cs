@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -81,88 +80,48 @@ public class AttendanceRuleService : IAttendanceRuleService
 
         if (string.IsNullOrWhiteSpace(request.RuleName))
         {
-            throw new ArgumentException("Rule name is required.");
+            throw new ArgumentException("ruleName must be a valid text string.");
         }
 
         if (request.RuleName.Trim().Length > 150)
         {
-            throw new ArgumentException("Rule name cannot exceed 150 characters.");
+            throw new ArgumentException("ruleName cannot exceed 150 characters.");
         }
 
         // 1. CheckInBeforeMinutes
-        if (!request.CheckInBeforeMinutes.HasValue)
+        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 1440)
         {
-            throw new ArgumentException("Check-in before minutes is required.");
-        }
-        if (request.CheckInBeforeMinutes.Value < 0)
-        {
-            throw new ArgumentException("Check-in before minutes cannot be negative.");
-        }
-        if (request.CheckInBeforeMinutes.Value > 1440)
-        {
-            throw new ArgumentException("Check-in before minutes cannot exceed 1440 minutes.");
+            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 1440.");
         }
 
         // 2. CheckInGraceMinutes
-        if (!request.CheckInGraceMinutes.HasValue)
+        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 1440)
         {
-            throw new ArgumentException("Check-in grace minutes is required.");
-        }
-        if (request.CheckInGraceMinutes.Value < 0)
-        {
-            throw new ArgumentException("Check-in grace minutes cannot be negative.");
-        }
-        if (request.CheckInGraceMinutes.Value > 1440)
-        {
-            throw new ArgumentException("Check-in grace minutes cannot exceed 1440 minutes.");
+            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 1440.");
         }
 
         // 3. CheckOutGraceMinutes
-        if (!request.CheckOutGraceMinutes.HasValue)
+        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 1440)
         {
-            throw new ArgumentException("Check-out grace minutes is required.");
-        }
-        if (request.CheckOutGraceMinutes.Value < 0)
-        {
-            throw new ArgumentException("Check-out grace minutes cannot be negative.");
-        }
-        if (request.CheckOutGraceMinutes.Value > 1440)
-        {
-            throw new ArgumentException("Check-out grace minutes cannot exceed 1440 minutes.");
+            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 1440.");
         }
 
         // 4. CheckOutAfterMinutes
-        if (!request.CheckOutAfterMinutes.HasValue)
+        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 1440)
         {
-            throw new ArgumentException("Check-out after minutes is required.");
-        }
-        if (request.CheckOutAfterMinutes.Value < 0)
-        {
-            throw new ArgumentException("Check-out after minutes cannot be negative.");
-        }
-        if (request.CheckOutAfterMinutes.Value > 1440)
-        {
-            throw new ArgumentException("Check-out after minutes cannot exceed 1440 minutes.");
+            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 1440.");
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value <= 0 || request.MaxAttendanceDistanceMeters.Value > 100000)
         {
-            throw new ArgumentException("Maximum attendance distance is required.");
-        }
-        if (request.MaxAttendanceDistanceMeters.Value <= 0)
-        {
-            throw new ArgumentException("Maximum attendance distance must be greater than 0.");
-        }
-        if (request.MaxAttendanceDistanceMeters.Value > 100000)
-        {
-            throw new ArgumentException("Maximum attendance distance cannot exceed 100000 meters.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number greater than 0.");
         }
 
         // 6. EffectiveFrom
         if (!request.EffectiveFrom.HasValue)
         {
-            throw new ArgumentException("Effective From date is required.");
+            throw new ArgumentException("effectiveFrom must be a valid date in YYYY-MM-DD format (e.g. '2026-10-01').");
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
