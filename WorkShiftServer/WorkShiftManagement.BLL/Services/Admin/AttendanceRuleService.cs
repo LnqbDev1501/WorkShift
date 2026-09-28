@@ -1,5 +1,7 @@
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Response;
+using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -16,10 +18,20 @@ public class AttendanceRuleService : IAttendanceRuleService
     private const string StatusCancelled = "CANCELLED";
 
     private readonly IAttendanceRuleRepo _attendanceRuleRepo;
+    private readonly INotificationRepo _notificationRepo;
+    private readonly INotificationRealtimePublisher _realtimePublisher;
+    private readonly ILogger<AttendanceRuleService> _logger;
 
-    public AttendanceRuleService(IAttendanceRuleRepo attendanceRuleRepo)
+    public AttendanceRuleService(
+        IAttendanceRuleRepo attendanceRuleRepo,
+        INotificationRepo notificationRepo,
+        INotificationRealtimePublisher realtimePublisher,
+        ILogger<AttendanceRuleService> logger)
     {
         _attendanceRuleRepo = attendanceRuleRepo;
+        _notificationRepo = notificationRepo;
+        _realtimePublisher = realtimePublisher;
+        _logger = logger;
     }
 
     public async Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken)
@@ -133,6 +145,84 @@ public class AttendanceRuleService : IAttendanceRuleService
         return Map(updated);
     }
 
+    public async Task<AttendanceRuleResponse> PublishAsync(int id, Guid adminUserId, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        if (adminUserId == Guid.Empty)
+        {
+            throw new ArgumentException("An authenticated administrator is required.");
+        }
+
+        var rule = await _attendanceRuleRepo.GetByIdForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance rule with ID {id} was not found.");
+
+        if (!string.Equals(rule.Status, StatusDraft, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"This action requires DRAFT status. Current status: {rule.Status}.");
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        {
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+        }
+
+        var existingScheduled = await _attendanceRuleRepo.GetScheduledRuleAsync(cancellationToken);
+        if (existingScheduled != null && existingScheduled.AttendanceRuleId != id)
+        {
+            throw new InvalidOperationException($"An attendance rule '{existingScheduled.RuleName}' is already scheduled (effective from {existingScheduled.EffectiveFrom:yyyy-MM-dd}). Cancel that rule before publishing another.");
+        }
+
+        var currentActive = await _attendanceRuleRepo.GetActiveRuleAsync(cancellationToken);
+        if (currentActive != null && currentActive.EffectiveFrom >= rule.EffectiveFrom.Value)
+        {
+            throw new InvalidOperationException("The effective date must be after the current active version.");
+        }
+
+        rule.Status = StatusScheduled;
+        rule.PublishedBy = adminUserId;
+        rule.PublishedAt = DateTime.UtcNow;
+        rule.UpdatedAt = DateTime.UtcNow;
+
+        var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
+
+        await SendPublishNotificationAsync(rule, adminUserId);
+
+        return Map(updated);
+    }
+
+    public async Task ActivateDueAsync(CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var dueScheduledRules = await _attendanceRuleRepo.GetDueScheduledRulesAsync(today, cancellationToken);
+        if (dueScheduledRules.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var nextRule in dueScheduledRules)
+        {
+            var activeRules = await _attendanceRuleRepo.GetActiveRulesAsync(cancellationToken);
+            foreach (var activeRule in activeRules)
+            {
+                if (activeRule.AttendanceRuleId == nextRule.AttendanceRuleId) continue;
+                activeRule.Status = StatusInactive;
+                activeRule.EffectiveTo = nextRule.EffectiveFrom;
+                activeRule.UpdatedAt = now;
+            }
+
+            nextRule.Status = StatusActive;
+            nextRule.EffectiveTo = null;
+            nextRule.UpdatedAt = now;
+
+            await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+
+            await SendActiveNotificationAsync(nextRule);
+        }
+    }
+
     public async Task<AttendanceRuleResponse> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         if (id <= 0)
@@ -149,6 +239,108 @@ public class AttendanceRuleService : IAttendanceRuleService
     {
         var rules = await _attendanceRuleRepo.GetAllAsync(cancellationToken);
         return rules.Select(Map).ToList();
+    }
+
+    private async Task SendPublishNotificationAsync(AttendanceRule rule, Guid adminUserId)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"New Attendance Rule Published: {rule.RuleName}",
+                Content = $"A new attendance rule '{rule.RuleName}' has been published and will take effect on {rule.EffectiveFrom:yyyy-MM-dd}. Details: Check-in before {rule.CheckInBeforeMinutes} mins, check-in grace {rule.CheckInGraceMinutes} mins, check-out grace {rule.CheckOutGraceMinutes} mins, check-out after {rule.CheckOutAfterMinutes} mins, max distance {rule.MaxAttendanceDistanceMeters}m.",
+                NotificationType = "Broadcast",
+                CreatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app broadcast notification for attendance rule {RuleId}", rule.AttendanceRuleId);
+        }
+    }
+
+    private async Task SendActiveNotificationAsync(AttendanceRule rule)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"Attendance Rule '{rule.RuleName}' is Now Active",
+                Content = $"Attendance rule '{rule.RuleName}' has officially taken effect starting today ({rule.EffectiveFrom:yyyy-MM-dd}).",
+                NotificationType = "Broadcast",
+                CreatedBy = rule.CreatedBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app active notification for attendance rule {RuleId}", rule.AttendanceRuleId);
+        }
     }
 
     private static void ValidateCreateRequest(CreateAttendanceRuleRequest request)

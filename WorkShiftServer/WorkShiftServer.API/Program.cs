@@ -147,6 +147,12 @@ try
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
             Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendanceRuleService>(
+            "attendance-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
 }
 catch (Exception ex)
 {
@@ -158,6 +164,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHangfireDashboard();
 }
 
 app.UseHttpsRedirection();

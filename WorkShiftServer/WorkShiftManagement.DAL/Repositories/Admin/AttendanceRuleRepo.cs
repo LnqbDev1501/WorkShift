@@ -8,6 +8,8 @@ namespace WorkShiftManagement.DAL.Repositories.Admin;
 public class AttendanceRuleRepo : IAttendanceRuleRepo
 {
     private const string StatusDraft = "DRAFT";
+    private const string StatusScheduled = "SCHEDULED";
+    private const string StatusActive = "ACTIVE";
     private const string StatusCancelled = "CANCELLED";
 
     private readonly AppDbContext _context;
@@ -52,6 +54,28 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
             .Include(r => r.CreatedByNavigation)
             .SingleOrDefaultAsync(r => r.AttendanceRuleId == id, cancellationToken);
 
+    public Task<AttendanceRule?> GetScheduledRuleAsync(CancellationToken cancellationToken) =>
+        _context.AttendanceRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Status == StatusScheduled, cancellationToken);
+
+    public Task<AttendanceRule?> GetActiveRuleAsync(CancellationToken cancellationToken) =>
+        _context.AttendanceRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Status == StatusActive, cancellationToken);
+
+    public Task<List<AttendanceRule>> GetDueScheduledRulesAsync(DateOnly today, CancellationToken cancellationToken) =>
+        _context.AttendanceRules
+            .Where(r => r.Status == StatusScheduled && r.EffectiveFrom <= today)
+            .OrderBy(r => r.EffectiveFrom)
+            .ThenBy(r => r.AttendanceRuleId)
+            .ToListAsync(cancellationToken);
+
+    public Task<List<AttendanceRule>> GetActiveRulesAsync(CancellationToken cancellationToken) =>
+        _context.AttendanceRules
+            .Where(r => r.Status == StatusActive)
+            .ToListAsync(cancellationToken);
+
     public Task<List<AttendanceRule>> GetAllAsync(CancellationToken cancellationToken) =>
         _context.AttendanceRules
             .AsNoTracking()
@@ -94,4 +118,7 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
 
         return (items, totalItems);
     }
+
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken) =>
+        _context.SaveChangesAsync(cancellationToken);
 }

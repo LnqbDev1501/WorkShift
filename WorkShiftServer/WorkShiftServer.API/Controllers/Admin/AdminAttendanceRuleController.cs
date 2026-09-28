@@ -156,6 +156,48 @@ public class AdminAttendanceRuleController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/publish")]
+    [ProducesResponseType(typeof(AttendanceRuleResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendanceRuleResponse>> PublishAttendanceRule(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { message = "Could not identify authenticated admin identity from token." });
+            }
+
+            var publishedRule = await _attendanceRuleService.PublishAsync(id, userId, cancellationToken);
+            return Ok(publishedRule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while publishing attendance rule {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The attendance rule could not be published. Please try again later." });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
