@@ -11,6 +11,10 @@ using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.BLL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Services.Manager;
+using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Repositories.Manager;
 using WorkShiftServer.API.Hubs;
 using WorkShiftServer.API.Services;
 
@@ -134,6 +138,8 @@ builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepo, NotificationRepo>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IScheduleWeekRepo, ScheduleWeekRepo>();
+builder.Services.AddScoped<IScheduleWeekService, ScheduleWeekService>();
 builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
