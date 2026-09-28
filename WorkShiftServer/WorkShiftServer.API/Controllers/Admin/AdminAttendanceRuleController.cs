@@ -120,6 +120,42 @@ public class AdminAttendanceRuleController : ControllerBase
         }
     }
 
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(AttendanceRuleResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendanceRuleResponse>> UpdateAttendanceRule(
+        int id,
+        [FromBody] UpdateAttendanceRuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var updatedRule = await _attendanceRuleService.UpdateAsync(id, request, cancellationToken);
+            return Ok(updatedRule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while updating attendance rule {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The attendance rule could not be updated. Please try again later." });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)

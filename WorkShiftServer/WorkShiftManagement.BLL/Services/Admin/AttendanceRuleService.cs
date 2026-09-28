@@ -95,6 +95,44 @@ public class AttendanceRuleService : IAttendanceRuleService
         return Map(created);
     }
 
+    public async Task<AttendanceRuleResponse> UpdateAsync(int id, UpdateAttendanceRuleRequest request, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        ValidateUpdateRequest(request);
+
+        var rule = await _attendanceRuleRepo.GetByIdForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance rule with ID {id} was not found.");
+
+        if (!string.Equals(rule.Status, StatusDraft, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only attendance rules in DRAFT status can be updated.");
+        }
+
+        var normalizedName = request.RuleName.Trim();
+        var exists = await _attendanceRuleRepo.ExistsByNameAsync(normalizedName, id, cancellationToken);
+        if (exists)
+        {
+            throw new InvalidOperationException($"An attendance rule with the name '{normalizedName}' already exists.");
+        }
+
+        rule.RuleName = normalizedName;
+        rule.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
+        rule.CheckInBeforeMinutes = request.CheckInBeforeMinutes!.Value;
+        rule.CheckInGraceMinutes = request.CheckInGraceMinutes!.Value;
+        rule.CheckOutGraceMinutes = request.CheckOutGraceMinutes!.Value;
+        rule.CheckOutAfterMinutes = request.CheckOutAfterMinutes!.Value;
+        rule.MaxAttendanceDistanceMeters = request.MaxAttendanceDistanceMeters!.Value;
+        rule.EffectiveFrom = request.EffectiveFrom!.Value;
+        rule.UpdatedAt = DateTime.UtcNow;
+
+        var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
+        return Map(updated);
+    }
+
     public async Task<AttendanceRuleResponse> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         if (id <= 0)
@@ -114,6 +152,66 @@ public class AttendanceRuleService : IAttendanceRuleService
     }
 
     private static void ValidateCreateRequest(CreateAttendanceRuleRequest request)
+    {
+        if (request is null)
+        {
+            throw new ArgumentException("Request payload is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RuleName))
+        {
+            throw new ArgumentException("ruleName must be a valid text string.");
+        }
+
+        if (request.RuleName.Trim().Length > 150)
+        {
+            throw new ArgumentException("ruleName cannot exceed 150 characters.");
+        }
+
+        // 1. CheckInBeforeMinutes
+        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 1440)
+        {
+            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 1440.");
+        }
+
+        // 2. CheckInGraceMinutes
+        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 1440)
+        {
+            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 1440.");
+        }
+
+        // 3. CheckOutGraceMinutes
+        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 1440)
+        {
+            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 1440.");
+        }
+
+        // 4. CheckOutAfterMinutes
+        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 1440)
+        {
+            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 1440.");
+        }
+
+        // 5. MaxAttendanceDistanceMeters
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value <= 0 || request.MaxAttendanceDistanceMeters.Value > 100000)
+        {
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number greater than 0.");
+        }
+
+        // 6. EffectiveFrom
+        if (!request.EffectiveFrom.HasValue)
+        {
+            throw new ArgumentException("effectiveFrom must be a valid date in YYYY-MM-DD format (e.g. '2026-10-01').");
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (request.EffectiveFrom.Value <= today)
+        {
+            throw new ArgumentException("Effective From date must be in the future (after today).");
+        }
+    }
+
+    private static void ValidateUpdateRequest(UpdateAttendanceRuleRequest request)
     {
         if (request is null)
         {

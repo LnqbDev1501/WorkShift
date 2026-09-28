@@ -22,6 +22,13 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
         return rule;
     }
 
+    public async Task<AttendanceRule> UpdateAsync(AttendanceRule rule, CancellationToken cancellationToken)
+    {
+        _context.AttendanceRules.Update(rule);
+        await _context.SaveChangesAsync(cancellationToken);
+        return rule;
+    }
+
     public async Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken)
     {
         var normalizedName = ruleName.Trim().ToLower();
@@ -37,6 +44,11 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
     public Task<AttendanceRule?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
         _context.AttendanceRules
             .AsNoTracking()
+            .Include(r => r.CreatedByNavigation)
+            .SingleOrDefaultAsync(r => r.AttendanceRuleId == id, cancellationToken);
+
+    public Task<AttendanceRule?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken) =>
+        _context.AttendanceRules
             .Include(r => r.CreatedByNavigation)
             .SingleOrDefaultAsync(r => r.AttendanceRuleId == id, cancellationToken);
 
