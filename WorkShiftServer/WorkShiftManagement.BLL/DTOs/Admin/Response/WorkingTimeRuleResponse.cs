@@ -9,4 +9,6 @@ public sealed class WorkingTimeRuleResponse
     public string Status { get; set; } = string.Empty;
     public Guid CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateOnly? EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
 }

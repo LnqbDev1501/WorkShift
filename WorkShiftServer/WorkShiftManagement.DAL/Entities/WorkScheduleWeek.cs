@@ -39,5 +39,7 @@ public partial class WorkScheduleWeek
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 
+    public virtual PayrollPeriod? PayrollPeriod { get; set; }
+
     public virtual ICollection<WorkShift> WorkShifts { get; set; } = new List<WorkShift>();
 }

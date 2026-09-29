@@ -27,8 +27,6 @@ public partial class FaceProfile
 
     public DateTime? RevokedAt { get; set; }
 
-    public DateTime CreatedAt { get; set; }
-
     public virtual ICollection<FaceVerificationSession> FaceVerificationSessions { get; set; } = new List<FaceVerificationSession>();
 
     public virtual FaceVerificationSession RegistrationSession { get; set; } = null!;

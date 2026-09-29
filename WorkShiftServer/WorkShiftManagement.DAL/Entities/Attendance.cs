@@ -87,9 +87,11 @@ public partial class Attendance
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? CompletedAt { get; set; }
+
     public virtual ShiftAssignment Assignment { get; set; } = null!;
 
-    public virtual AttendanceAdjustmentHistory? AttendanceAdjustmentHistory { get; set; }
+    public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
 
     public virtual ICollection<AttendancePenaltyRecord> AttendancePenaltyRecords { get; set; } = new List<AttendancePenaltyRecord>();
 
@@ -102,4 +104,6 @@ public partial class Attendance
     public virtual TimeAdjustmentRequestDetail? EarlyLeaveRequest { get; set; }
 
     public virtual TimeAdjustmentRequestDetail? LateArrivalRequest { get; set; }
+
+    public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
 }

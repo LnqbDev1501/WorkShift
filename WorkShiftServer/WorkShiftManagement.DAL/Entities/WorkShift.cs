@@ -47,6 +47,8 @@ public partial class WorkShift
 
     public virtual ICollection<ShiftAssignment> ShiftAssignments { get; set; } = new List<ShiftAssignment>();
 
+    public virtual ICollection<ShiftEmployeeRequirement> ShiftEmployeeRequirements { get; set; } = new List<ShiftEmployeeRequirement>();
+
     public virtual ShiftTemplate ShiftTemplate { get; set; } = null!;
 
     public virtual ICollection<TimeAdjustmentRequestDetail> TimeAdjustmentRequestDetails { get; set; } = new List<TimeAdjustmentRequestDetail>();

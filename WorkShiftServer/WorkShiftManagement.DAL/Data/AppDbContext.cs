@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -65,7 +65,7 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<HolidayPayRule> HolidayPayRules { get; set; }
 
-    public virtual DbSet<LeaveRequestDetail> LeaveRequestDetails { get; set; }
+    public virtual DbSet<LeaveRequestAssignment> LeaveRequestAssignments { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
@@ -75,9 +75,19 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Payroll> Payrolls { get; set; }
 
+    public virtual DbSet<PayrollCarryForwardApplication> PayrollCarryForwardApplications { get; set; }
+
+    public virtual DbSet<PayrollCarryForwardDeduction> PayrollCarryForwardDeductions { get; set; }
+
     public virtual DbSet<PayrollDetail> PayrollDetails { get; set; }
 
+    public virtual DbSet<PayrollFeedbackRequest> PayrollFeedbackRequests { get; set; }
+
     public virtual DbSet<PayrollPeriod> PayrollPeriods { get; set; }
+
+    public virtual DbSet<Payslip> Payslips { get; set; }
+
+    public virtual DbSet<PayslipWorkDetail> PayslipWorkDetails { get; set; }
 
     public virtual DbSet<Product> Products { get; set; }
 
@@ -99,6 +109,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ShiftAssignment> ShiftAssignments { get; set; }
 
+    public virtual DbSet<ShiftEmployeeRequirement> ShiftEmployeeRequirements { get; set; }
+
     public virtual DbSet<ShiftSwapRequest> ShiftSwapRequests { get; set; }
 
     public virtual DbSet<ShiftTemplate> ShiftTemplates { get; set; }
@@ -118,10 +130,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +227,7 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(10, 6)
                 .HasColumnName("check_out_longitude");
             entity.Property(e => e.CheckOutTime).HasColumnName("check_out_time");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -288,57 +297,48 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<AttendanceAdjustmentHistory>(entity =>
         {
-            entity.HasKey(e => e.AdjustmentId).HasName("attendance_adjustment_histories_pkey");
+            entity.HasKey(e => e.AdjustmentHistoryId).HasName("attendance_adjustment_histories_pkey");
 
             entity.ToTable("attendance_adjustment_histories");
 
-            entity.HasIndex(e => e.AttendanceId, "attendance_adjustment_histories_attendance_id_key").IsUnique();
+            entity.HasIndex(e => new { e.AdjustedBy, e.AdjustedAt }, "ix_attendance_adjustment_history_adjusted_by").IsDescending(false, true);
 
-            entity.Property(e => e.AdjustmentId).HasColumnName("adjustment_id");
+            entity.HasIndex(e => new { e.AttendanceId, e.AdjustedAt }, "ix_attendance_adjustment_history_attendance").IsDescending(false, true);
+
+            entity.Property(e => e.AdjustmentHistoryId).HasColumnName("adjustment_history_id");
             entity.Property(e => e.AdjustedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("adjusted_at");
             entity.Property(e => e.AdjustedBy).HasColumnName("adjusted_by");
-            entity.Property(e => e.AdjustmentReason).HasColumnName("adjustment_reason");
-            entity.Property(e => e.AdjustmentType)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'ADJUSTED'::character varying")
-                .HasColumnName("adjustment_type");
+            entity.Property(e => e.AdjustmentSource)
+                .HasMaxLength(30)
+                .HasColumnName("adjustment_source");
             entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
             entity.Property(e => e.NewActualWorkingMinutes).HasColumnName("new_actual_working_minutes");
             entity.Property(e => e.NewChargeableEarlyLeaveMinutes).HasColumnName("new_chargeable_early_leave_minutes");
             entity.Property(e => e.NewChargeableLateMinutes).HasColumnName("new_chargeable_late_minutes");
             entity.Property(e => e.NewCheckInTime).HasColumnName("new_check_in_time");
             entity.Property(e => e.NewCheckOutTime).HasColumnName("new_check_out_time");
-            entity.Property(e => e.NewStatus)
-                .HasMaxLength(40)
-                .HasColumnName("new_status");
             entity.Property(e => e.NewTotalEarlyLeaveMinutes).HasColumnName("new_total_early_leave_minutes");
             entity.Property(e => e.NewTotalLateMinutes).HasColumnName("new_total_late_minutes");
-            entity.Property(e => e.NewWorkingHours)
-                .HasPrecision(10, 4)
-                .HasColumnName("new_working_hours");
             entity.Property(e => e.OldActualWorkingMinutes).HasColumnName("old_actual_working_minutes");
             entity.Property(e => e.OldChargeableEarlyLeaveMinutes).HasColumnName("old_chargeable_early_leave_minutes");
             entity.Property(e => e.OldChargeableLateMinutes).HasColumnName("old_chargeable_late_minutes");
             entity.Property(e => e.OldCheckInTime).HasColumnName("old_check_in_time");
             entity.Property(e => e.OldCheckOutTime).HasColumnName("old_check_out_time");
-            entity.Property(e => e.OldStatus)
-                .HasMaxLength(40)
-                .HasColumnName("old_status");
             entity.Property(e => e.OldTotalEarlyLeaveMinutes).HasColumnName("old_total_early_leave_minutes");
             entity.Property(e => e.OldTotalLateMinutes).HasColumnName("old_total_late_minutes");
-            entity.Property(e => e.OldWorkingHours)
-                .HasPrecision(10, 4)
-                .HasColumnName("old_working_hours");
+            entity.Property(e => e.Reason)
+                .HasMaxLength(500)
+                .HasColumnName("reason");
 
             entity.HasOne(d => d.AdjustedByNavigation).WithMany(p => p.AttendanceAdjustmentHistories)
                 .HasForeignKey(d => d.AdjustedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("attendance_adjustment_histories_adjusted_by_fkey");
 
-            entity.HasOne(d => d.Attendance).WithOne(p => p.AttendanceAdjustmentHistory)
-                .HasForeignKey<AttendanceAdjustmentHistory>(d => d.AttendanceId)
+            entity.HasOne(d => d.Attendance).WithMany(p => p.AttendanceAdjustmentHistories)
+                .HasForeignKey(d => d.AttendanceId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("attendance_adjustment_histories_attendance_id_fkey");
         });
@@ -880,7 +880,9 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("contract_change_requests");
 
-            entity.HasIndex(e => e.ContractId, "contract_change_requests_contract_id_key").IsUnique();
+            entity.HasIndex(e => e.ContractId, "uq_contract_open_change_request")
+                .IsUnique()
+                .HasFilter("((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying])::text[]))");
 
             entity.Property(e => e.ChangeRequestId).HasColumnName("change_request_id");
             entity.Property(e => e.ContractId).HasColumnName("contract_id");
@@ -1029,6 +1031,12 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Amount)
                 .HasPrecision(18, 2)
                 .HasColumnName("amount");
+            entity.Property(e => e.ApprovalStatus)
+                .HasDefaultValueSql("'PENDING'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("approval_status");
+            entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1046,7 +1054,14 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Reason)
                 .HasMaxLength(500)
                 .HasColumnName("reason");
+            entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
+            entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
+            entity.Property(e => e.ReviewNote).HasColumnName("review_note");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.EmployeeRewardsPenaltyApprovedByNavigations)
+                .HasForeignKey(d => d.ApprovedBy)
+                .HasConstraintName("employee_rewards_penalties_approved_by_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.EmployeeRewardsPenaltyCreatedByNavigations)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1067,6 +1082,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.PayrollPeriodId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employee_rewards_penalties_payroll_period_id_fkey");
+
+            entity.HasOne(d => d.RejectedByNavigation).WithMany(p => p.EmployeeRewardsPenaltyRejectedByNavigations)
+                .HasForeignKey(d => d.RejectedBy)
+                .HasConstraintName("employee_rewards_penalties_rejected_by_fkey");
 
             entity.HasOne(d => d.User).WithMany(p => p.EmployeeRewardsPenaltyUsers)
                 .HasForeignKey(d => d.UserId)
@@ -1131,9 +1150,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
+            entity.Property(e => e.ContractFilePath)
+                .HasMaxLength(500)
+                .HasColumnName("contract_file_path");
             entity.Property(e => e.ContractNumber)
                 .HasMaxLength(50)
                 .HasColumnName("contract_number");
+            entity.Property(e => e.ContractTemplateVersion)
+                .HasMaxLength(30)
+                .HasColumnName("contract_template_version");
+            entity.Property(e => e.ContractTerms).HasColumnName("contract_terms");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1158,6 +1184,7 @@ public partial class AppDbContext : DbContext
                 .HasPrecision(18, 2)
                 .HasColumnName("hourly_rate");
             entity.Property(e => e.ManagerRejectionComment).HasColumnName("manager_rejection_comment");
+            entity.Property(e => e.PdfGeneratedAt).HasColumnName("pdf_generated_at");
             entity.Property(e => e.RegionId).HasColumnName("region_id");
             entity.Property(e => e.RegionNameSnapshot)
                 .HasMaxLength(150)
@@ -1166,6 +1193,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
             entity.Property(e => e.ReplacesContractId).HasColumnName("replaces_contract_id");
             entity.Property(e => e.SentToStaffAt).HasColumnName("sent_to_staff_at");
+            entity.Property(e => e.StaffAcceptedAt).HasColumnName("staff_accepted_at");
             entity.Property(e => e.StaffRespondedAt).HasColumnName("staff_responded_at");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
@@ -1174,6 +1202,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("status");
             entity.Property(e => e.TerminatedAt).HasColumnName("terminated_at");
             entity.Property(e => e.TerminatedBy).HasColumnName("terminated_by");
+            entity.Property(e => e.TerminationEffectiveAt).HasColumnName("termination_effective_at");
             entity.Property(e => e.TerminationReason).HasColumnName("termination_reason");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -1233,10 +1262,11 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("((status)::text = 'ACTIVE'::text)");
 
+            entity.HasIndex(e => e.UserId, "ux_face_profiles_one_active_per_user")
+                .IsUnique()
+                .HasFilter("((status)::text = 'ACTIVE'::text)");
+
             entity.Property(e => e.FaceProfileId).HasColumnName("face_profile_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
             entity.Property(e => e.EmbeddingVersion)
                 .HasMaxLength(50)
                 .HasColumnName("embedding_version");
@@ -1290,6 +1320,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ActionType)
                 .HasMaxLength(30)
                 .HasColumnName("action_type");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.ChallengeSequence)
                 .HasColumnType("jsonb")
                 .HasColumnName("challenge_sequence");
@@ -1333,9 +1364,11 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("holiday_pay_rules");
 
-            entity.HasIndex(e => e.EffectiveFrom, "holiday_pay_rules_effective_from_key").IsUnique();
-
             entity.HasIndex(e => e.EffectiveFrom, "idx_holiday_pay_rules_effective_from").IsDescending();
+
+            entity.HasIndex(e => e.EffectiveFrom, "ux_holiday_pay_rules_effective_from_active")
+                .IsUnique()
+                .HasFilter("((status)::text <> 'INACTIVE'::text)");
 
             entity.Property(e => e.HolidayPayRuleId)
                 .UseIdentityAlwaysColumn()
@@ -1345,6 +1378,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.PayMultiplier)
                 .HasPrecision(5, 2)
                 .HasColumnName("pay_multiplier");
@@ -1352,6 +1386,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RuleName)
                 .HasColumnType("character varying")
                 .HasColumnName("rule_name");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.HolidayPayRules)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1364,25 +1402,34 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("holiday_pay_rules_replaced_rule_id_fkey");
         });
 
-        modelBuilder.Entity<LeaveRequestDetail>(entity =>
+        modelBuilder.Entity<LeaveRequestAssignment>(entity =>
         {
-            entity.HasKey(e => e.RequestId).HasName("leave_request_details_pkey");
+            entity.HasKey(e => e.LeaveRequestAssignmentId).HasName("leave_request_assignments_pkey");
 
-            entity.ToTable("leave_request_details");
+            entity.ToTable("leave_request_assignments");
 
-            entity.Property(e => e.RequestId)
-                .ValueGeneratedNever()
-                .HasColumnName("request_id");
-            entity.Property(e => e.EndDate).HasColumnName("end_date");
-            entity.Property(e => e.StartDate).HasColumnName("start_date");
-            entity.Property(e => e.TotalDays)
-                .HasPrecision(5, 2)
-                .HasColumnName("total_days");
+            entity.HasIndex(e => e.AssignmentId, "ix_leave_request_assignments_assignment");
 
-            entity.HasOne(d => d.Request).WithOne(p => p.LeaveRequestDetail)
-                .HasForeignKey<LeaveRequestDetail>(d => d.RequestId)
+            entity.HasIndex(e => new { e.RequestId, e.AssignmentId }, "uq_leave_request_assignment").IsUnique();
+
+            entity.Property(e => e.LeaveRequestAssignmentId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("leave_request_assignment_id");
+            entity.Property(e => e.AssignmentId).HasColumnName("assignment_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.RequestId).HasColumnName("request_id");
+
+            entity.HasOne(d => d.Assignment).WithMany(p => p.LeaveRequestAssignments)
+                .HasForeignKey(d => d.AssignmentId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("leave_request_details_request_id_fkey");
+                .HasConstraintName("leave_request_assignments_assignment_id_fkey");
+
+            entity.HasOne(d => d.Request).WithMany(p => p.LeaveRequestAssignments)
+                .HasForeignKey(d => d.RequestId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("leave_request_assignments_request_id_fkey");
         });
 
         modelBuilder.Entity<Notification>(entity =>
@@ -1550,11 +1597,13 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.CreatedAt }, "ix_payrolls_user_created").IsDescending(false, true);
 
-            entity.HasIndex(e => e.TimesheetId, "payrolls_timesheet_id_key").IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId, e.VersionNo }, "uq_payroll_employee_period_version").IsUnique();
 
-            entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId }, "uq_payroll_user_period").IsUnique();
+            entity.HasIndex(e => e.PreviousPayrollId, "uq_payroll_previous").IsUnique();
 
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
+            entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
+            entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
             entity.Property(e => e.AttendanceDeduction)
                 .HasPrecision(18, 2)
                 .HasColumnName("attendance_deduction");
@@ -1563,9 +1612,13 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
             entity.Property(e => e.CalculatedAt).HasColumnName("calculated_at");
+            entity.Property(e => e.CalculatedBy).HasColumnName("calculated_by");
+            entity.Property(e => e.CarryForwardDeduction).HasColumnName("carry_forward_deduction");
+            entity.Property(e => e.CorrectionReason).HasColumnName("correction_reason");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DeferredDeductionAmount).HasColumnName("deferred_deduction_amount");
             entity.Property(e => e.EmployeeFullNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("employee_full_name_snapshot");
@@ -1581,15 +1634,29 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.NetSalary)
                 .HasPrecision(18, 2)
                 .HasColumnName("net_salary");
+            entity.Property(e => e.PaidAt).HasColumnName("paid_at");
+            entity.Property(e => e.PaymentConfirmedAt).HasColumnName("payment_confirmed_at");
+            entity.Property(e => e.PaymentConfirmedBy).HasColumnName("payment_confirmed_by");
+            entity.Property(e => e.PaymentNote).HasColumnName("payment_note");
+            entity.Property(e => e.PaymentReference)
+                .HasColumnType("character varying")
+                .HasColumnName("payment_reference");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.PreviousPayrollId).HasColumnName("previous_payroll_id");
             entity.Property(e => e.RejectReason).HasColumnName("reject_reason");
             entity.Property(e => e.RejectedAt).HasColumnName("rejected_at");
             entity.Property(e => e.RejectedBy).HasColumnName("rejected_by");
+            entity.Property(e => e.RejectionCategory)
+                .HasColumnType("character varying")
+                .HasColumnName("rejection_category");
+            entity.Property(e => e.ReplacedAt).HasColumnName("replaced_at");
             entity.Property(e => e.SalaryHistoryId).HasColumnName("salary_history_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'::character varying")
                 .HasColumnName("status");
+            entity.Property(e => e.SubmittedAt).HasColumnName("submitted_at");
+            entity.Property(e => e.SubmittedBy).HasColumnName("submitted_by");
             entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
             entity.Property(e => e.TotalDeduction)
                 .HasPrecision(18, 2)
@@ -1607,19 +1674,41 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+            entity.Property(e => e.VersionNo)
+                .HasDefaultValue(1)
+                .HasColumnName("version_no");
+            entity.Property(e => e.WorkInputSnapshot)
+                .HasColumnType("jsonb")
+                .HasColumnName("work_input_snapshot");
             entity.Property(e => e.WorkPay)
                 .HasPrecision(18, 2)
                 .HasColumnName("work_pay");
+
+            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PayrollApprovedByNavigations)
+                .HasForeignKey(d => d.ApprovedBy)
+                .HasConstraintName("payrolls_approved_by_fkey");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.Payrolls)
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_branch_id_fkey");
 
+            entity.HasOne(d => d.CalculatedByNavigation).WithMany(p => p.PayrollCalculatedByNavigations)
+                .HasForeignKey(d => d.CalculatedBy)
+                .HasConstraintName("payrolls_calculated_by_fkey");
+
+            entity.HasOne(d => d.PaymentConfirmedByNavigation).WithMany(p => p.PayrollPaymentConfirmedByNavigations)
+                .HasForeignKey(d => d.PaymentConfirmedBy)
+                .HasConstraintName("payrolls_payment_confirmed_by_fkey");
+
             entity.HasOne(d => d.PayrollPeriod).WithMany(p => p.Payrolls)
                 .HasForeignKey(d => d.PayrollPeriodId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_payroll_period_id_fkey");
+
+            entity.HasOne(d => d.PreviousPayroll).WithOne(p => p.InversePreviousPayroll)
+                .HasForeignKey<Payroll>(d => d.PreviousPayrollId)
+                .HasConstraintName("payrolls_previous_payroll_id_fkey");
 
             entity.HasOne(d => d.RejectedByNavigation).WithMany(p => p.PayrollRejectedByNavigations)
                 .HasForeignKey(d => d.RejectedBy)
@@ -1631,8 +1720,12 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_salary_history_id_fkey");
 
-            entity.HasOne(d => d.Timesheet).WithOne(p => p.Payroll)
-                .HasForeignKey<Payroll>(d => d.TimesheetId)
+            entity.HasOne(d => d.SubmittedByNavigation).WithMany(p => p.PayrollSubmittedByNavigations)
+                .HasForeignKey(d => d.SubmittedBy)
+                .HasConstraintName("payrolls_submitted_by_fkey");
+
+            entity.HasOne(d => d.Timesheet).WithMany(p => p.Payrolls)
+                .HasForeignKey(d => d.TimesheetId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_timesheet_id_fkey");
 
@@ -1640,6 +1733,81 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payrolls_user_id_fkey");
+        });
+
+        modelBuilder.Entity<PayrollCarryForwardApplication>(entity =>
+        {
+            entity.HasKey(e => e.ApplicationId).HasName("payroll_carry_forward_applications_pkey");
+
+            entity.ToTable("payroll_carry_forward_applications");
+
+            entity.HasIndex(e => e.PayrollId, "ix_carry_applications_payroll");
+
+            entity.HasIndex(e => new { e.CarryForwardId, e.PayrollId }, "payroll_carry_forward_applicati_carry_forward_id_payroll_id_key").IsUnique();
+
+            entity.Property(e => e.ApplicationId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("application_id");
+            entity.Property(e => e.AppliedAmount).HasColumnName("applied_amount");
+            entity.Property(e => e.AppliedAt).HasColumnName("applied_at");
+            entity.Property(e => e.CarryForwardId).HasColumnName("carry_forward_id");
+            entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
+
+            entity.HasOne(d => d.CarryForward).WithMany(p => p.PayrollCarryForwardApplications)
+                .HasForeignKey(d => d.CarryForwardId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_carry_forward_applications_carry_forward_id_fkey");
+
+            entity.HasOne(d => d.Payroll).WithMany(p => p.PayrollCarryForwardApplications)
+                .HasForeignKey(d => d.PayrollId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_carry_forward_applications_payroll_id_fkey");
+        });
+
+        modelBuilder.Entity<PayrollCarryForwardDeduction>(entity =>
+        {
+            entity.HasKey(e => e.CarryForwardId).HasName("payroll_carry_forward_deductions_pkey");
+
+            entity.ToTable("payroll_carry_forward_deductions");
+
+            entity.HasIndex(e => e.UserId, "ix_carry_forward_available").HasFilter("((status)::text = ANY ((ARRAY['OPEN'::character varying, 'PARTIALLY_APPLIED'::character varying])::text[]))");
+
+            entity.HasIndex(e => e.SourcePayrollDetailId, "payroll_carry_forward_deductions_source_payroll_detail_id_key").IsUnique();
+
+            entity.Property(e => e.CarryForwardId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("carry_forward_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.OriginalAmount).HasColumnName("original_amount");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.RemainingAmount).HasColumnName("remaining_amount");
+            entity.Property(e => e.SourcePayrollDetailId).HasColumnName("source_payroll_detail_id");
+            entity.Property(e => e.SourcePayrollId).HasColumnName("source_payroll_id");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'OPEN'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.SourcePayrollDetail).WithOne(p => p.PayrollCarryForwardDeduction)
+                .HasForeignKey<PayrollCarryForwardDeduction>(d => d.SourcePayrollDetailId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_carry_forward_deductions_source_payroll_detail_id_fkey");
+
+            entity.HasOne(d => d.SourcePayroll).WithMany(p => p.PayrollCarryForwardDeductions)
+                .HasForeignKey(d => d.SourcePayrollId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_carry_forward_deductions_source_payroll_id_fkey");
+
+            entity.HasOne(d => d.User).WithMany(p => p.PayrollCarryForwardDeductions)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_carry_forward_deductions_user_id_fkey");
         });
 
         modelBuilder.Entity<PayrollDetail>(entity =>
@@ -1664,7 +1832,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Amount)
                 .HasPrecision(18, 2)
                 .HasColumnName("amount");
+            entity.Property(e => e.AppliedAmount).HasColumnName("applied_amount");
             entity.Property(e => e.AttendancePenaltyId).HasColumnName("attendance_penalty_id");
+            entity.Property(e => e.CarryForwardId).HasColumnName("carry_forward_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1706,6 +1876,10 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_details_attendance_penalty_id_fkey");
 
+            entity.HasOne(d => d.CarryForward).WithMany(p => p.PayrollDetails)
+                .HasForeignKey(d => d.CarryForwardId)
+                .HasConstraintName("payroll_details_carry_forward_id_fkey");
+
             entity.HasOne(d => d.HolidayPayRule).WithMany(p => p.PayrollDetails)
                 .HasForeignKey(d => d.HolidayPayRuleId)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -1732,6 +1906,67 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("payroll_details_salary_history_id_fkey");
         });
 
+        modelBuilder.Entity<PayrollFeedbackRequest>(entity =>
+        {
+            entity.HasKey(e => e.FeedbackId).HasName("payroll_feedback_requests_pkey");
+
+            entity.ToTable("payroll_feedback_requests");
+
+            entity.HasIndex(e => new { e.PayrollId, e.Status, e.CorrectionStatus }, "ix_payroll_feedback_status");
+
+            entity.Property(e => e.FeedbackId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("feedback_id");
+            entity.Property(e => e.CorrectionStatus)
+                .HasColumnType("character varying")
+                .HasColumnName("correction_status");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.EmployeeId).HasColumnName("employee_id");
+            entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
+            entity.Property(e => e.PayslipId).HasColumnName("payslip_id");
+            entity.Property(e => e.ProcessedAt).HasColumnName("processed_at");
+            entity.Property(e => e.ProcessedBy).HasColumnName("processed_by");
+            entity.Property(e => e.ReasonCode)
+                .HasColumnType("character varying")
+                .HasColumnName("reason_code");
+            entity.Property(e => e.ResolutionNote).HasColumnName("resolution_note");
+            entity.Property(e => e.ResolvedAt).HasColumnName("resolved_at");
+            entity.Property(e => e.ResolvedPayrollId).HasColumnName("resolved_payroll_id");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'SUBMITTED'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Employee).WithMany(p => p.PayrollFeedbackRequestEmployees)
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_feedback_requests_employee_id_fkey");
+
+            entity.HasOne(d => d.Payroll).WithMany(p => p.PayrollFeedbackRequestPayrolls)
+                .HasForeignKey(d => d.PayrollId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_feedback_requests_payroll_id_fkey");
+
+            entity.HasOne(d => d.Payslip).WithMany(p => p.PayrollFeedbackRequests)
+                .HasForeignKey(d => d.PayslipId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payroll_feedback_requests_payslip_id_fkey");
+
+            entity.HasOne(d => d.ProcessedByNavigation).WithMany(p => p.PayrollFeedbackRequestProcessedByNavigations)
+                .HasForeignKey(d => d.ProcessedBy)
+                .HasConstraintName("payroll_feedback_requests_processed_by_fkey");
+
+            entity.HasOne(d => d.ResolvedPayroll).WithMany(p => p.PayrollFeedbackRequestResolvedPayrolls)
+                .HasForeignKey(d => d.ResolvedPayrollId)
+                .HasConstraintName("payroll_feedback_requests_resolved_payroll_id_fkey");
+        });
+
         modelBuilder.Entity<PayrollPeriod>(entity =>
         {
             entity.HasKey(e => e.PayrollPeriodId).HasName("payroll_periods_pkey");
@@ -1742,9 +1977,14 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.PeriodCode, "payroll_periods_period_code_key").IsUnique();
 
-            entity.HasIndex(e => new { e.BranchId, e.StartDate, e.EndDate }, "uq_payroll_period_branch_dates").IsUnique();
+            entity.HasIndex(e => new { e.BranchId, e.StartDate, e.EndDate }, "uq_payroll_period_active_branch_dates")
+                .IsUnique()
+                .HasFilter("((status)::text <> 'CANCELLED'::text)");
+
+            entity.HasIndex(e => e.ScheduleWeekId, "uq_payroll_period_schedule_week").IsUnique();
 
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.ApprovalDeadlineAt).HasColumnName("approval_deadline_at");
             entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
             entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
@@ -1753,21 +1993,25 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("branch_name_snapshot");
             entity.Property(e => e.CalculatedAt).HasColumnName("calculated_at");
             entity.Property(e => e.CalculatedBy).HasColumnName("calculated_by");
+            entity.Property(e => e.ClosedAt).HasColumnName("closed_at");
+            entity.Property(e => e.ClosedBy).HasColumnName("closed_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.PaidAt).HasColumnName("paid_at");
             entity.Property(e => e.PeriodCode)
                 .HasMaxLength(50)
                 .HasColumnName("period_code");
             entity.Property(e => e.PeriodName)
                 .HasMaxLength(150)
                 .HasColumnName("period_name");
+            entity.Property(e => e.ScheduleWeekId).HasColumnName("schedule_week_id");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'OPEN'::character varying")
+                .HasDefaultValueSql("'DRAFT'::character varying")
                 .HasColumnName("status");
             entity.Property(e => e.SubmittedAt).HasColumnName("submitted_at");
             entity.Property(e => e.SubmittedBy).HasColumnName("submitted_by");
@@ -1790,15 +2034,138 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_periods_calculated_by_fkey");
 
+            entity.HasOne(d => d.ClosedByNavigation).WithMany(p => p.PayrollPeriodClosedByNavigations)
+                .HasForeignKey(d => d.ClosedBy)
+                .HasConstraintName("payroll_periods_closed_by_fkey");
+
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.PayrollPeriodCreatedByNavigations)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_periods_created_by_fkey");
 
+            entity.HasOne(d => d.ScheduleWeek).WithOne(p => p.PayrollPeriod)
+                .HasForeignKey<PayrollPeriod>(d => d.ScheduleWeekId)
+                .HasConstraintName("payroll_periods_schedule_week_id_fkey");
+
             entity.HasOne(d => d.SubmittedByNavigation).WithMany(p => p.PayrollPeriodSubmittedByNavigations)
                 .HasForeignKey(d => d.SubmittedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_periods_submitted_by_fkey");
+        });
+
+        modelBuilder.Entity<Payslip>(entity =>
+        {
+            entity.HasKey(e => e.PayslipId).HasName("payslips_pkey");
+
+            entity.ToTable("payslips");
+
+            entity.HasIndex(e => e.PayrollId, "payslips_payroll_id_key").IsUnique();
+
+            entity.HasIndex(e => e.PreviousPayslipId, "payslips_previous_payslip_id_key").IsUnique();
+
+            entity.Property(e => e.PayslipId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("payslip_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
+            entity.Property(e => e.PeriodCodeSnapshot)
+                .HasColumnType("character varying")
+                .HasColumnName("period_code_snapshot");
+            entity.Property(e => e.PeriodEndSnapshot).HasColumnName("period_end_snapshot");
+            entity.Property(e => e.PeriodNameSnapshot)
+                .HasColumnType("character varying")
+                .HasColumnName("period_name_snapshot");
+            entity.Property(e => e.PeriodStartSnapshot).HasColumnName("period_start_snapshot");
+            entity.Property(e => e.PreviousPayslipId).HasColumnName("previous_payslip_id");
+            entity.Property(e => e.PublishedAt).HasColumnName("published_at");
+            entity.Property(e => e.ReplacedAt).HasColumnName("replaced_at");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'PUBLISHED'::character varying")
+                .HasColumnType("character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.VersionNo).HasColumnName("version_no");
+
+            entity.HasOne(d => d.Payroll).WithOne(p => p.Payslip)
+                .HasForeignKey<Payslip>(d => d.PayrollId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payslips_payroll_id_fkey");
+
+            entity.HasOne(d => d.PreviousPayslip).WithOne(p => p.InversePreviousPayslip)
+                .HasForeignKey<Payslip>(d => d.PreviousPayslipId)
+                .HasConstraintName("payslips_previous_payslip_id_fkey");
+        });
+
+        modelBuilder.Entity<PayslipWorkDetail>(entity =>
+        {
+            entity.HasKey(e => e.PayslipWorkDetailId).HasName("payslip_work_details_pkey");
+
+            entity.ToTable("payslip_work_details");
+
+            entity.HasIndex(e => new { e.PayslipId, e.SourceAssignmentId }, "payslip_work_details_payslip_id_source_assignment_id_key").IsUnique();
+
+            entity.Property(e => e.PayslipWorkDetailId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("payslip_work_detail_id");
+            entity.Property(e => e.ActualWorkingMinutes).HasColumnName("actual_working_minutes");
+            entity.Property(e => e.AttendanceStatusSnapshot)
+                .HasColumnType("character varying")
+                .HasColumnName("attendance_status_snapshot");
+            entity.Property(e => e.BreakMinutesSnapshot)
+                .HasDefaultValue(0)
+                .HasColumnName("break_minutes_snapshot");
+            entity.Property(e => e.ChargeableEarlyLeaveMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("chargeable_early_leave_minutes");
+            entity.Property(e => e.ChargeableLateMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("chargeable_late_minutes");
+            entity.Property(e => e.CheckInTime).HasColumnName("check_in_time");
+            entity.Property(e => e.CheckOutTime).HasColumnName("check_out_time");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DisplayOrder)
+                .HasDefaultValue(0)
+                .HasColumnName("display_order");
+            entity.Property(e => e.ExcusedEarlyLeaveMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("excused_early_leave_minutes");
+            entity.Property(e => e.ExcusedLateMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("excused_late_minutes");
+            entity.Property(e => e.Note).HasColumnName("note");
+            entity.Property(e => e.PayableMinutes).HasColumnName("payable_minutes");
+            entity.Property(e => e.PayslipId).HasColumnName("payslip_id");
+            entity.Property(e => e.ScheduledEndAt).HasColumnName("scheduled_end_at");
+            entity.Property(e => e.ScheduledStartAt).HasColumnName("scheduled_start_at");
+            entity.Property(e => e.ShiftNameSnapshot)
+                .HasColumnType("character varying")
+                .HasColumnName("shift_name_snapshot");
+            entity.Property(e => e.SourceAssignmentId).HasColumnName("source_assignment_id");
+            entity.Property(e => e.SourceAttendanceId).HasColumnName("source_attendance_id");
+            entity.Property(e => e.TotalEarlyLeaveMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_early_leave_minutes");
+            entity.Property(e => e.TotalLateMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_late_minutes");
+            entity.Property(e => e.WorkDate).HasColumnName("work_date");
+
+            entity.HasOne(d => d.Payslip).WithMany(p => p.PayslipWorkDetails)
+                .HasForeignKey(d => d.PayslipId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payslip_work_details_payslip_id_fkey");
+
+            entity.HasOne(d => d.SourceAssignment).WithMany(p => p.PayslipWorkDetails)
+                .HasForeignKey(d => d.SourceAssignmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("payslip_work_details_source_assignment_id_fkey");
+
+            entity.HasOne(d => d.SourceAttendance).WithMany(p => p.PayslipWorkDetails)
+                .HasForeignKey(d => d.SourceAttendanceId)
+                .HasConstraintName("payslip_work_details_source_attendance_id_fkey");
         });
 
         modelBuilder.Entity<Product>(entity =>
@@ -1927,10 +2294,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.IsActive)
                 .HasDefaultValue(true)
                 .HasColumnName("is_active");
-            entity.Property(e => e.PayMultiplier)
-                .HasPrecision(5, 2)
-                .HasDefaultValue(1m)
-                .HasColumnName("pay_multiplier");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
@@ -2136,6 +2499,8 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("shift_assignments");
 
+            entity.HasIndex(e => new { e.ShiftRequirementId, e.Status }, "ix_shift_assignments_requirement_status");
+
             entity.HasIndex(e => new { e.ShiftId, e.Status }, "ix_shift_assignments_shift_status");
 
             entity.HasIndex(e => new { e.UserId, e.Status }, "ix_shift_assignments_user_status");
@@ -2159,6 +2524,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+            entity.Property(e => e.ShiftRequirementId).HasColumnName("shift_requirement_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'ASSIGNED'::character varying")
@@ -2187,6 +2553,47 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("shift_assignments_user_id_fkey");
+
+            entity.HasOne(d => d.ShiftEmployeeRequirement).WithMany(p => p.ShiftAssignments)
+                .HasPrincipalKey(p => new { p.ShiftRequirementId, p.ShiftId })
+                .HasForeignKey(d => new { d.ShiftRequirementId, d.ShiftId })
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_shift_assignments_requirement_shift");
+        });
+
+        modelBuilder.Entity<ShiftEmployeeRequirement>(entity =>
+        {
+            entity.HasKey(e => e.ShiftRequirementId).HasName("shift_employee_requirements_pkey");
+
+            entity.ToTable("shift_employee_requirements");
+
+            entity.HasIndex(e => e.EmployeeTypeId, "ix_shift_employee_requirements_employee_type");
+
+            entity.HasIndex(e => e.ShiftId, "ix_shift_employee_requirements_shift");
+
+            entity.HasIndex(e => new { e.ShiftRequirementId, e.ShiftId }, "uq_shift_employee_requirements_requirement_shift").IsUnique();
+
+            entity.HasIndex(e => new { e.ShiftId, e.EmployeeTypeId }, "uq_shift_employee_requirements_shift_type").IsUnique();
+
+            entity.Property(e => e.ShiftRequirementId).HasColumnName("shift_requirement_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EmployeeTypeId).HasColumnName("employee_type_id");
+            entity.Property(e => e.RequiredCount).HasColumnName("required_count");
+            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.EmployeeType).WithMany(p => p.ShiftEmployeeRequirements)
+                .HasForeignKey(d => d.EmployeeTypeId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("fk_shift_employee_requirements_employee_type");
+
+            entity.HasOne(d => d.Shift).WithMany(p => p.ShiftEmployeeRequirements)
+                .HasForeignKey(d => d.ShiftId)
+                .HasConstraintName("fk_shift_employee_requirements_shift");
         });
 
         modelBuilder.Entity<ShiftSwapRequest>(entity =>
@@ -2369,6 +2776,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId }, "uq_timesheet_user_period").IsUnique();
 
+            entity.HasIndex(e => new { e.UserId, e.PayrollPeriodId }, "uq_timesheets_user_payroll_period").IsUnique();
+
             entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
             entity.Property(e => e.AbsentShiftCount)
                 .HasDefaultValue(0)
@@ -2392,13 +2801,25 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
+            entity.Property(e => e.IncompleteShiftCount)
+                .HasDefaultValue(0)
+                .HasColumnName("incomplete_shift_count");
             entity.Property(e => e.LockedAt).HasColumnName("locked_at");
+            entity.Property(e => e.LockedBy).HasColumnName("locked_by");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
             entity.Property(e => e.ReviewNote)
                 .HasMaxLength(500)
                 .HasColumnName("review_note");
             entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
             entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
+            entity.Property(e => e.StaffReviewNote)
+                .HasMaxLength(500)
+                .HasColumnName("staff_review_note");
+            entity.Property(e => e.StaffReviewStatus)
+                .HasMaxLength(30)
+                .HasDefaultValueSql("'PENDING'::character varying")
+                .HasColumnName("staff_review_status");
+            entity.Property(e => e.StaffReviewedAt).HasColumnName("staff_reviewed_at");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'::character varying")
@@ -2412,16 +2833,20 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.TotalLateMinutes)
                 .HasDefaultValue(0)
                 .HasColumnName("total_late_minutes");
-            entity.Property(e => e.TotalScheduledHours)
-                .HasPrecision(8, 2)
-                .HasColumnName("total_scheduled_hours");
-            entity.Property(e => e.TotalWorkHours)
-                .HasPrecision(8, 2)
-                .HasColumnName("total_work_hours");
+            entity.Property(e => e.TotalScheduledMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_scheduled_minutes");
+            entity.Property(e => e.TotalWorkMinutes)
+                .HasDefaultValue(0)
+                .HasColumnName("total_work_minutes");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.LockedByNavigation).WithMany(p => p.TimesheetLockedByNavigations)
+                .HasForeignKey(d => d.LockedBy)
+                .HasConstraintName("timesheets_locked_by_fkey");
 
             entity.HasOne(d => d.PayrollPeriod).WithMany(p => p.Timesheets)
                 .HasForeignKey(d => d.PayrollPeriodId)
@@ -2686,13 +3111,15 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effective_from");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effective_to");
             entity.Property(e => e.MaxDailyMinutes).HasColumnName("max_daily_minutes");
             entity.Property(e => e.MaxWeeklyMinutes).HasColumnName("max_weekly_minutes");
             entity.Property(e => e.RuleName)
                 .HasColumnType("character varying")
                 .HasColumnName("rule_name");
             entity.Property(e => e.Status)
-                .HasDefaultValueSql("'ACTIVE'::character varying")
+                .HasDefaultValueSql("'DRAFT'::character varying")
                 .HasColumnType("character varying")
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)

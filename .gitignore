@@ -1,6 +1,7 @@
 # .NET
 bin/
 obj/
+.buildcheck/
 
 # Visual Studio
 .vs/
@@ -16,5 +17,3 @@ appsettings.json
 
 artifacts/
 **/artifacts/
-bin/
-obj/

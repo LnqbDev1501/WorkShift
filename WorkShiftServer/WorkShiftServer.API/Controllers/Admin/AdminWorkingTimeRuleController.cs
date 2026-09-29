@@ -26,48 +26,73 @@ public class AdminWorkingTimeRuleController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(List<WorkingTimeRuleResponse>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<List<WorkingTimeRuleResponse>>> GetAll(CancellationToken cancellationToken)
-    {
-        try
-        {
-            return Ok(await _workingTimeRuleService.GetAllAsync(cancellationToken));
-        }
-        catch (Exception exception) when (exception is not OperationCanceledException)
-        {
-            _logger.LogError(exception, "Unexpected error while retrieving working time rules.");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "Working time versions could not be retrieved. Please try again later." });
-        }
-    }
+    public Task<IActionResult> GetAll(CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await _workingTimeRuleService.GetAllAsync(cancellationToken)));
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetById(int id, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await _workingTimeRuleService.GetByIdAsync(id, cancellationToken)));
 
     [HttpPost]
     [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status201Created)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<WorkingTimeRuleResponse>> Create(
-        [FromBody] CreateWorkingTimeRuleRequest request, CancellationToken cancellationToken)
+    public Task<IActionResult> Create([FromBody] WorkingTimeRuleRequest request, CancellationToken cancellationToken)
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub")
             ?? User.FindFirstValue("user_id");
-        if (!Guid.TryParse(claim, out var userId) || userId == Guid.Empty) return Unauthorized();
+        if (!Guid.TryParse(claim, out var userId) || userId == Guid.Empty)
+            return Task.FromResult<IActionResult>(Unauthorized());
+        return ExecuteAsync(async () => StatusCode(StatusCodes.Status201Created,
+            await _workingTimeRuleService.CreateAsync(request, userId, cancellationToken)));
+    }
 
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
+    public Task<IActionResult> Update(int id, [FromBody] WorkingTimeRuleRequest request, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await _workingTimeRuleService.UpdateAsync(id, request, cancellationToken)));
+
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public Task<IActionResult> Delete(int id, CancellationToken cancellationToken) => ExecuteAsync(async () =>
+    {
+        await _workingTimeRuleService.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    });
+
+    [HttpPost("{id:int}/publish")]
+    [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
+    public Task<IActionResult> Publish(int id, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await _workingTimeRuleService.PublishAsync(id, cancellationToken)));
+
+    [HttpPost("{id:int}/cancel")]
+    [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
+    public Task<IActionResult> Cancel(int id, CancellationToken cancellationToken) =>
+        ExecuteAsync(async () => Ok(await _workingTimeRuleService.CancelAsync(id, cancellationToken)));
+
+    private async Task<IActionResult> ExecuteAsync(Func<Task<IActionResult>> action)
+    {
         try
         {
-            var result = await _workingTimeRuleService.CreateAsync(request, userId, cancellationToken);
-            return StatusCode(StatusCodes.Status201Created, result);
+            return await action();
         }
         catch (Exception exception) when (exception is ArgumentException or ValidationException)
         {
             return BadRequest(new { message = exception.Message });
         }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
-            _logger.LogError(exception, "Unexpected error while creating a working time version.");
+            _logger.LogError(exception, "Working time operation failed.");
             return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "The version could not be created. Please try again later." });
+                new { message = "The operation could not be completed. Please refresh and try again." });
         }
     }
 }

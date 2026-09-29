@@ -1,5 +1,8 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
+using UI_Admin.Models;
 
 namespace UI_Admin.Services
 {
@@ -7,13 +10,16 @@ namespace UI_Admin.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthApiService(
             HttpClient httpClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task SetPasswordAsync(
@@ -26,7 +32,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
-                new { accessToken, password });
+                new { accessToken, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
                 return;
@@ -42,7 +48,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/login",
-                new { email, password });
+                new { email = email.Trim(), password = password.Trim() });
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(GetErrorMessage(body));
@@ -76,9 +82,54 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
-                new { email });
+                new { email = email.Trim() });
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+        }
+
+        public async Task ChangePasswordAsync(string newPassword, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/profile/password",
+            new { password = newPassword.Trim() },
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me");
+
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null)
+            {
+                var accessToken = await context.GetTokenAsync("access_token");
+                if (!string.IsNullOrWhiteSpace(accessToken))
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
+            }
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+
+            return await response.Content.ReadFromJsonAsync<UserDetailViewModel>(cancellationToken);
         }
 
         private static string GetErrorMessage(string body)

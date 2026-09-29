@@ -7,7 +7,7 @@ namespace UI_Admin.Services;
 
 public sealed class ApiBearerTokenHandler(
     IHttpContextAccessor httpContextAccessor,
-    AuthApiService authApiService) : DelegatingHandler
+    IServiceProvider serviceProvider) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -15,6 +15,10 @@ public sealed class ApiBearerTokenHandler(
     {
         var context = httpContextAccessor.HttpContext;
         if (context is null)
+            return await base.SendAsync(request, cancellationToken);
+
+        var path = request.RequestUri?.AbsolutePath ?? string.Empty;
+        if (path.Contains("/api/auth/", StringComparison.OrdinalIgnoreCase))
             return await base.SendAsync(request, cancellationToken);
 
         var accessToken = await context.GetTokenAsync("access_token");
@@ -25,6 +29,7 @@ public sealed class ApiBearerTokenHandler(
             var refreshToken = await context.GetTokenAsync("refresh_token");
             try
             {
+                var authApiService = serviceProvider.GetRequiredService<AuthApiService>();
                 var refreshed = await authApiService.RefreshAsync(refreshToken ?? string.Empty);
                 var now = DateTimeOffset.UtcNow;
                 var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);

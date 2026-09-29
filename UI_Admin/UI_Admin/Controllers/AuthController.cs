@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -90,7 +90,13 @@ namespace UI_Admin.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+        public IActionResult ForgotPassword()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleLanding();
+
+            return View(new ForgotPasswordViewModel());
+        }
 
         [HttpPost]
         [AllowAnonymous]
@@ -139,14 +145,74 @@ namespace UI_Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var profile = await _authService.GetMyProfileAsync(cancellationToken);
+                if (profile == null)
+                {
+                    return RedirectToAction(nameof(AccessDenied));
+                }
+                return View(profile);
+            }
+            catch (HttpRequestException)
+            {
+                return RedirectToAction(nameof(AccessDenied));
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken cancellationToken)
+        {
+            if (!ModelState.IsValid)
+            {
+                TempData["PasswordError"] = ModelState.Values
+                    .SelectMany(state => state.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "The new password is invalid.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            try
+            {
+                await _authService.ChangePasswordAsync(model.NewPassword, cancellationToken);
+                TempData["PasswordChanged"] = true;
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["PasswordError"] = exception.Message;
+            }
+            catch (HttpRequestException)
+            {
+                TempData["PasswordError"] = "The authentication service is temporarily unavailable. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
         public IActionResult SetPassword()
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleLanding();
+
             return View(new SetPasswordViewModel());
         }
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult ResetPassword() => View(new SetPasswordViewModel());
+        public IActionResult ResetPassword()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleLanding();
+
+            return View(new SetPasswordViewModel());
+        }
 
         [HttpPost]
         [AllowAnonymous]
@@ -177,6 +243,7 @@ namespace UI_Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> SetPassword(
             SetPasswordViewModel model)
         {

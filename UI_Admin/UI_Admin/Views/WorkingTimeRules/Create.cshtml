@@ -1,4 +1,4 @@
-@model UI_Admin.Models.WorkingTimeRuleCreateViewModel
+@model UI_Admin.Models.WorkingTimeRuleFormViewModel
 @{
     ViewData["Title"] = "Create Working Time Version";
 }
@@ -7,81 +7,7 @@
     <link rel="stylesheet" href="~/css/working-time-rule-create.css" asp-append-version="true" />
 }
 
-<main class="time-rules rule-create-page">
-    <header class="rule-create-heading">
-        <div>
-            <span class="rule-eyebrow">WORKING TIME POLICY</span>
-            <h1>Create a new version</h1>
-            <p>Set the daily and weekly limits for your next working time policy.</p>
-        </div>
-        <span class="rule-version-badge"><span class="material-symbols-outlined" aria-hidden="true">history</span>Version management</span>
-    </header>
-
-    <div class="rule-create-layout">
-        <form asp-action="Create" method="post" class="rule-create-form">
-            <div class="rule-section-heading">
-                <span class="rule-section-icon material-symbols-outlined" aria-hidden="true">tune</span>
-                <div><h2>Policy details</h2><p>All fields are required.</p></div>
-            </div>
-            <div class="rule-create-fields">
-                <div asp-validation-summary="All" class="rule-create-validation" role="alert"></div>
-                <div class="rule-field">
-                    <label asp-for="RuleName">Version name / legal reference <span>*</span></label>
-                    <input asp-for="RuleName" maxlength="150" required placeholder="e.g. Working time regulation 2026" aria-describedby="rule-name-help" />
-                    <span asp-validation-for="RuleName"></span>
-                    <p id="rule-name-help" class="rule-field-help">Use a clear name to identify this version in your history.</p>
-                </div>
-
-                <div class="rule-limits-heading"><h3>Working hour limits</h3><span>Hours</span></div>
-                <div class="rule-limit-grid">
-                    <div class="rule-limit-field">
-                        <span class="material-symbols-outlined rule-limit-icon" aria-hidden="true">light_mode</span>
-                        <label asp-for="MaxDailyHours">Maximum per day <span>*</span></label>
-                        <div class="rule-hour-input">
-                            <input asp-for="MaxDailyHours" type="number" min="0.25" max="24" step="0.25" required placeholder="8" aria-describedby="rule-daily-help rule-increment-help" />
-                            <span aria-hidden="true">hrs / day</span>
-                        </div>
-                        <p id="rule-daily-help" class="rule-field-help">Up to 24 hours per day.</p>
-                        <span asp-validation-for="MaxDailyHours"></span>
-                    </div>
-                    <div class="rule-limit-field">
-                        <span class="material-symbols-outlined rule-limit-icon" aria-hidden="true">date_range</span>
-                        <label asp-for="MaxWeeklyHours">Maximum per week <span>*</span></label>
-                        <div class="rule-hour-input">
-                            <input asp-for="MaxWeeklyHours" type="number" min="0.25" max="168" step="0.25" required placeholder="48" aria-describedby="rule-weekly-help rule-increment-help" />
-                            <span aria-hidden="true">hrs / week</span>
-                        </div>
-                        <p id="rule-weekly-help" class="rule-field-help">Must be at least the daily limit.</p>
-                        <span asp-validation-for="MaxWeeklyHours"></span>
-                    </div>
-                </div>
-                <p id="rule-increment-help" class="rule-increment-note"><span class="material-symbols-outlined" aria-hidden="true">info</span>Enter hours in 15-minute steps. For example, 8.25 = 8 hours 15 minutes.</p>
-            </div>
-            <footer class="rule-create-actions">
-                <span><span class="material-symbols-outlined" aria-hidden="true">lock</span>Saved versions are read-only</span>
-                <div>
-                    <a asp-action="List" class="rule-cancel-button">Cancel</a>
-                    <button type="submit" class="rule-button"><span class="material-symbols-outlined" aria-hidden="true">add_circle</span>Create and activate</button>
-                </div>
-            </footer>
-        </form>
-
-        <aside class="rule-create-aside" aria-label="Version information">
-            <section class="rule-activation-card">
-                <span class="rule-aside-icon material-symbols-outlined" aria-hidden="true">published_with_changes</span>
-                <h2>A new version.<br />A clear history.</h2>
-                <p>Each update keeps a record of the limits that came before it.</p>
-                <div class="rule-state-row"><span>New version</span><span class="rule-state-active"><i></i>Active</span></div>
-                <div class="rule-state-row"><span>Previous version</span><span class="rule-state-inactive">Inactive</span></div>
-                <p class="rule-activation-footnote">The change takes effect as soon as you create this version.</p>
-            </section>
-            <section class="rule-review-note">
-                <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
-                <div><h3>Review before creating</h3><p>Versions cannot be edited or deleted. To change the limits later, create another version.</p></div>
-            </section>
-        </aside>
-    </div>
-</main>
+<partial name="_VersionForm" model="Model" />
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

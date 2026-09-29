@@ -12,11 +12,11 @@ public class CloudinaryService : ICloudinaryService
 
     public CloudinaryService(IConfiguration configuration)
     {
-        var cloudName = configuration["Cloudinary:CloudName"] 
+        var cloudName = configuration["Cloudinary:CloudName"]
             ?? throw new ArgumentException("Cloudinary:CloudName is missing");
-        var apiKey = configuration["Cloudinary:ApiKey"] 
+        var apiKey = configuration["Cloudinary:ApiKey"]
             ?? throw new ArgumentException("Cloudinary:ApiKey is missing");
-        var apiSecret = configuration["Cloudinary:ApiSecret"] 
+        var apiSecret = configuration["Cloudinary:ApiSecret"]
             ?? throw new ArgumentException("Cloudinary:ApiSecret is missing");
 
         var account = new Account(cloudName, apiKey, apiSecret);
@@ -60,6 +60,54 @@ public class CloudinaryService : ICloudinaryService
         }
 
         return uploadResult.SecureUrl.AbsoluteUri;
+    }
+
+    public async Task<string> UploadProductImageAsync(string productCode, IFormFile file)
+    {
+        ValidateImageFile(file);
+
+        var code = (productCode ?? "product").Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(code))
+            code = "product";
+
+        using var stream = file.OpenReadStream();
+        var uploadParams = new ImageUploadParams
+        {
+            File = new FileDescription(file.FileName, stream),
+            Folder = $"products/{code}",
+            PublicId = "main",
+            Overwrite = true,
+            Transformation = new Transformation().Width(800).Height(800).Crop("limit")
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.Error != null)
+        {
+            throw new InvalidOperationException($"Cloudinary upload failed: {uploadResult.Error.Message}");
+        }
+
+        return uploadResult.SecureUrl.AbsoluteUri;
+    }
+
+    private static void ValidateImageFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new ArgumentException("File is empty or null.");
+        }
+
+        if (file.Length > 5 * 1024 * 1024)
+        {
+            throw new InvalidOperationException("File size must not exceed 5MB.");
+        }
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(extension))
+        {
+            throw new InvalidOperationException("Invalid file format. Only JPG, PNG and WEBP are allowed.");
+        }
     }
 
     public async Task DeleteImageAsync(string publicId)

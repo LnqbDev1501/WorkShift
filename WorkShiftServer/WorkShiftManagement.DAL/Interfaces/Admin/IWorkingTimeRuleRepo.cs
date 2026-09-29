@@ -6,9 +6,11 @@ public interface IWorkingTimeRuleRepo
 {
     Task<List<WorkingTimeRule>> GetAllAsync(CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Creates the active version and deactivates previous versions atomically,
-    /// serializing concurrent creation requests.
-    /// </summary>
     Task<WorkingTimeRule> CreateVersionAsync(WorkingTimeRule rule, CancellationToken cancellationToken);
+    Task<WorkingTimeRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
+    Task<WorkingTimeRule> UpdateDraftAsync(int id, WorkingTimeRule values, CancellationToken cancellationToken);
+    Task DeleteDraftAsync(int id, CancellationToken cancellationToken);
+    Task<WorkingTimeRule> PublishAsync(int id, CancellationToken cancellationToken);
+    Task<WorkingTimeRule> CancelAsync(int id, CancellationToken cancellationToken);
+    Task ActivateDueAsync(CancellationToken cancellationToken);
 }

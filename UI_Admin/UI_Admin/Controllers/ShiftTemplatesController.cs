@@ -24,10 +24,15 @@ public sealed class ShiftTemplatesController(
             }
             return View(new EditShiftTemplateViewModel
             {
-                Id = id, ShiftName = template.ShiftName, Description = template.Description,
-                StartTime = template.StartTime.ToString("HH:mm:ss"), EndTime = template.EndTime.ToString("HH:mm:ss"),
-                BreakMinutes = template.BreakMinutes, Status = template.Status,
-                CreatedAt = template.CreatedAt, UpdatedAt = template.UpdatedAt
+                Id = id,
+                ShiftName = template.ShiftName,
+                Description = template.Description,
+                StartTime = template.StartTime.ToString("HH:mm:ss"),
+                EndTime = template.EndTime.ToString("HH:mm:ss"),
+                BreakMinutes = template.BreakMinutes,
+                Status = template.Status,
+                CreatedAt = template.CreatedAt,
+                UpdatedAt = template.UpdatedAt
             });
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
@@ -131,7 +136,9 @@ public sealed class ShiftTemplatesController(
     [HttpGet]
     public IActionResult Create() => View(new CreateShiftTemplateViewModel
     {
-        StartTime = "08:00:00", EndTime = "16:30:00", BreakMinutes = 45
+        StartTime = "08:00:00",
+        EndTime = "16:30:00",
+        BreakMinutes = 45
     });
 
     [HttpPost]
@@ -178,8 +185,14 @@ public sealed class ShiftTemplatesController(
         {
             model.Result = await service.GetAllAsync(query, cancellationToken);
             if (query.Page > Math.Max(1, model.LastPage))
-                return RedirectToAction(nameof(List), new { page = Math.Max(1, model.LastPage), search = query.Search,
-                    status = query.Status, startTime = query.StartTime?.ToString("HH:mm:ss"), endTime = query.EndTime?.ToString("HH:mm:ss") });
+                return RedirectToAction(nameof(List), new
+                {
+                    page = Math.Max(1, model.LastPage),
+                    search = query.Search,
+                    status = query.Status,
+                    startTime = query.StartTime?.ToString("HH:mm:ss"),
+                    endTime = query.EndTime?.ToString("HH:mm:ss")
+                });
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException
             || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)

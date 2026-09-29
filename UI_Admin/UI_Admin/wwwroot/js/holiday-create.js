@@ -55,8 +55,9 @@ document.addEventListener('DOMContentLoaded', function () {
             '<label><span>Holiday name *</span><input name="Holidays[' + index + '].HolidayName" id="Holidays_' + index + '__HolidayName" maxlength="150" placeholder="e.g., National Day" required /><span data-valmsg-for="Holidays[' + index + '].HolidayName"></span></label>' +
             '<label><span>From date *</span><input name="Holidays[' + index + '].FromDate" id="Holidays_' + index + '__FromDate" type="date" required /><span data-valmsg-for="Holidays[' + index + '].FromDate"></span></label>' +
             '<label><span>To date *</span><input name="Holidays[' + index + '].ToDate" id="Holidays_' + index + '__ToDate" type="date" required /><span data-valmsg-for="Holidays[' + index + '].ToDate"></span></label>' +
-            '<label><span>Pay multiplier *</span><div class="multiplier-input"><input name="Holidays[' + index + '].PayMultiplier" id="Holidays_' + index + '__PayMultiplier" type="number" min="0.01" max="999.99" step="0.01" value="3.00" required /><b>×</b></div><span data-valmsg-for="Holidays[' + index + '].PayMultiplier"></span></label>' +
+            '<div><span>Status</span><span class="status active">Active</span></div>' +
             '<button type="button" class="remove-holiday-row" title="Remove row"><span class="material-symbols-outlined">delete</span></button>';
+        row.querySelector('[name$=".FromDate"] ').min = container.querySelector('[name$=".FromDate"] ').min;
         container.appendChild(row);
         wireRemove(row.querySelector('.remove-holiday-row'));
         reindex();
@@ -65,3 +66,5 @@ document.addEventListener('DOMContentLoaded', function () {
     container.addEventListener('input', reindex);
     reindex();
 });
+
+

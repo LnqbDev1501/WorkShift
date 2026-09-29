@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +16,7 @@ using WorkShiftServer.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -65,13 +64,21 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, SupabaseRoleClaimsTransformation>();
 
-
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
-    
-builder.Services.AddScoped<IPayrollApprovalRepo,PayrollApprovalRepo>();
-builder.Services.AddScoped<IPayrollApprovalService,PayrollApprovalService>();
 
+var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire")
+    ?? builder.Configuration.GetConnectionString("MyCnn")
+    ?? throw new InvalidOperationException("Missing Hangfire or MyCnn connection string.");
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
+builder.Services.AddHangfireServer();
+
+builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
+builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
@@ -91,11 +98,9 @@ builder.Services.AddHttpClient<AuthService>(client =>
     return new AuthService(client, setPasswordUrl, resetPasswordUrl);
 });
 
-
-
-
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
@@ -103,6 +108,8 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
+builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
+builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
 builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageService>();
@@ -111,8 +118,15 @@ builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
 builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
-builder.Services.AddScoped<IPublicHolidayRepo,PublicHolidayRepo>();
-builder.Services.AddScoped<IPublicHolidayService,PublicHolidayService>();
+builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductRepo, ProductRepo>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
+builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
+builder.Services.AddScoped<HolidayConfigurationRepo>();
+builder.Services.AddScoped<HolidayPayRuleService>();
+builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
@@ -128,13 +142,22 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 });
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 
-
-
-
-
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+try
+{
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IWorkingTimeRuleService>(
+            "working-time-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+}
+catch (Exception ex)
+{
+    // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'working-time-rules-activation'.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

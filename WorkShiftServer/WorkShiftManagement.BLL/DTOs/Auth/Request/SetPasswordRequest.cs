@@ -4,6 +4,8 @@ namespace WorkShiftManagement.BLL.DTOs.Auth.Request;
 
 public class SetPasswordRequest
 {
+    private string _password = string.Empty;
+
     [Required(ErrorMessage = "Access token is required.")]
     public string AccessToken { get; set; } = string.Empty;
 
@@ -13,5 +15,9 @@ public class SetPasswordRequest
     [RegularExpression(
         @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s])\S{6,16}$",
         ErrorMessage = "Password must contain uppercase and lowercase letters, a number, and a special character. Spaces are not allowed.")]
-    public string Password { get; set; } = string.Empty;
+    public string Password
+    {
+        get => _password;
+        set => _password = value?.Trim() ?? string.Empty;
+    }
 }

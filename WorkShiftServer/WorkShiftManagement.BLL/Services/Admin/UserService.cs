@@ -313,7 +313,7 @@ public class UserService : IUserService
                 {
                     var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
                         .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-                    
+
                     var hasEmployeeRequests = await _dbContext.EmployeeRequests
                         .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
 
@@ -323,7 +323,7 @@ public class UserService : IUserService
 
                     var hasContracts = await _dbContext.EmploymentContracts
                         .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-                    
+
                     var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
                         .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
 
@@ -518,7 +518,7 @@ public class UserService : IUserService
             {
                 var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
                     .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-                
+
                 var hasEmployeeRequests = await _dbContext.EmployeeRequests
                     .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
 
@@ -528,7 +528,7 @@ public class UserService : IUserService
 
                 var hasContracts = await _dbContext.EmploymentContracts
                     .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-                
+
                 var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
                     .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
 

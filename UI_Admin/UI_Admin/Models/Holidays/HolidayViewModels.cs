@@ -16,7 +16,8 @@ public sealed class HolidayListQueryViewModel
     [StringLength(150, ErrorMessage = "Search cannot exceed 150 characters.")]
     public string? Search { get; set; }
 
-    public bool IncludeInactive { get; set; }
+    public bool IncludeInactive { get; set; } = true;
+    public bool? IsActive { get; set; }
 }
 
 public sealed class HolidayIndexViewModel
@@ -27,11 +28,9 @@ public sealed class HolidayIndexViewModel
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public int FirstItem => Result.Items.Count == 0 ? 0 : (Result.PageNumber - 1) * Result.PageSize + 1;
-    public int LastItem => Result.Items.Count == 0 ? 0 : FirstItem + Result.Items.Count - 1;
     public int ActiveCount => SummaryItems.Count(item => item.IsActive);
     public int InactiveCount => SummaryItems.Count(item => !item.IsActive);
-    public decimal DefaultMultiplier => SummaryItems.Where(item => item.IsActive)
+    public decimal? DefaultMultiplier => SummaryItems.Where(item => item.IsActive)
         .GroupBy(item => item.PayMultiplier)
         .OrderByDescending(group => group.Count())
         .ThenByDescending(group => group.Key)
@@ -57,8 +56,10 @@ public sealed class HolidayItemViewModel
     public int PublicHolidayId { get; set; }
     public string HolidayName { get; set; } = string.Empty;
     public DateOnly HolidayDate { get; set; }
-    public decimal PayMultiplier { get; set; }
+    public decimal? PayMultiplier { get; set; }
     public bool IsActive { get; set; }
+    public bool IsPayrollLocked { get; set; }
+    public List<int> AffectedPayrollPeriodIds { get; set; } = [];
     public Guid? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -78,9 +79,7 @@ public sealed class HolidayFormItemViewModel
     [DataType(DataType.Date)]
     public DateOnly? ToDate { get; set; }
 
-    [Required(ErrorMessage = "Pay multiplier is required.")]
-    [Range(typeof(decimal), "0.01", "999.99", ErrorMessage = "Pay multiplier must be between 0.01 and 999.99.")]
-    public decimal? PayMultiplier { get; set; } = 3m;
+    public bool IsActive { get; set; } = true;
 }
 
 public sealed class CreateHolidaysViewModel : IValidatableObject
@@ -129,7 +128,6 @@ public sealed class CreateHolidaysViewModel : IValidatableObject
 public sealed class EditHolidayViewModel
 {
     public int PublicHolidayId { get; set; }
-    public bool IsActive { get; set; } = true;
 
     [Required(ErrorMessage = "Holiday name is required.")]
     [StringLength(150, MinimumLength = 1, ErrorMessage = "Holiday name must contain 1 to 150 characters.")]
@@ -139,7 +137,5 @@ public sealed class EditHolidayViewModel
     [DataType(DataType.Date)]
     public DateOnly? HolidayDate { get; set; }
 
-    [Required(ErrorMessage = "Pay multiplier is required.")]
-    [Range(typeof(decimal), "0.01", "999.99", ErrorMessage = "Pay multiplier must be between 0.01 and 999.99.")]
-    public decimal? PayMultiplier { get; set; }
+    public bool IsActive { get; set; } = true;
 }

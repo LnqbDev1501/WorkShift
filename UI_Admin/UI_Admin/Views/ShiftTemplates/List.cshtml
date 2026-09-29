@@ -88,21 +88,13 @@ new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", 
                         @if (Model.HasFilters) { <a asp-action="List" class="shift-reset">Reset Search</a> }
                     </div>
                 }
-                <footer class="shift-footer">
-                    <div>Showing <strong>@Model.FirstItem to @Model.LastItem</strong> of <strong>@Model.Result.TotalItems</strong> templates <span>· 20 records per page, maximum page 20</span></div>
-                    <nav class="shift-pagination" aria-label="Template pagination">
-                        @if (Model.Query.Page > 1) { <a asp-action="List" asp-route-page="@(Model.Query.Page - 1)" asp-all-route-data="filterRoutes" aria-label="Previous page">‹</a> }
-                        else { <span aria-disabled="true" aria-label="Previous page">‹</span> }
-                        @for (var page = 1; page <= Model.LastPage; page++)
-                        {
-                            if (page == Model.Query.Page) { <span class="current" aria-current="page">@(page)</span> }
-                            else if (page == 1 || page == Model.LastPage || Math.Abs(page - Model.Query.Page) <= 1) { <a asp-action="List" asp-route-page="@(page)" asp-all-route-data="filterRoutes" aria-label="Page @(page)">@(page)</a> }
-                            else if (page == Model.Query.Page - 2 || page == Model.Query.Page + 2) { <span>…</span> }
-                        }
-                        @if (Model.Query.Page < Model.LastPage) { <a asp-action="List" asp-route-page="@(Model.Query.Page + 1)" asp-all-route-data="filterRoutes" aria-label="Next page">›</a> }
-                        else { <span aria-disabled="true" aria-label="Next page">›</span> }
-                    </nav>
-                </footer>
+                <partial name="_ListPagination" model="@(new ListPaginationViewModel
+                {
+                    PageNumber = Model.Query.Page,
+                    TotalItems = Model.Result.TotalItems,
+                    ItemLabel = "templates",
+                    MaximumPages = 20,
+                })" />
                 @if (Model.Result.TotalPages > 20) { <p class="shift-limit">Only the first 20 pages are available. Refine your search to find more templates.</p> }
             }
         </div>

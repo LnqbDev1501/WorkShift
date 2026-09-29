@@ -21,5 +21,9 @@ public partial class WorkingTimeRule
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateOnly? EffectiveFrom { get; set; }
+
+    public DateOnly? EffectiveTo { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 }

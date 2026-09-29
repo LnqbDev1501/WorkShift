@@ -43,11 +43,19 @@ public partial class PayrollDetail
 
     public int? HolidayPayRuleId { get; set; }
 
+    public decimal? AppliedAmount { get; set; }
+
+    public int? CarryForwardId { get; set; }
+
     public virtual AttendancePenaltyRecord? AttendancePenalty { get; set; }
+
+    public virtual PayrollCarryForwardDeduction? CarryForward { get; set; }
 
     public virtual HolidayPayRule? HolidayPayRule { get; set; }
 
     public virtual Payroll Payroll { get; set; } = null!;
+
+    public virtual PayrollCarryForwardDeduction? PayrollCarryForwardDeduction { get; set; }
 
     public virtual PublicHolidayConfig? PublicHoliday { get; set; }
 

@@ -153,12 +153,14 @@
                             <span
                             class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">OPERATIONS</span>
                         </div>
+
                         <a asp-controller="EmploymentContracts" asp-action="Index"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "EmploymentContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Employment Contracts">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">contract</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employment Contracts</span>
                         </a>
+
                         <a asp-controller="Payroll" asp-action="List"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Payroll" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Payroll Approvals">

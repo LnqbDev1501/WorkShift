@@ -42,11 +42,11 @@ public class WorkingTimeRulesController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new WorkingTimeRuleCreateViewModel());
+    public IActionResult Create() => View(new WorkingTimeRuleFormViewModel());
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(
-        WorkingTimeRuleCreateViewModel model, CancellationToken cancellationToken)
+        WorkingTimeRuleFormViewModel model, CancellationToken cancellationToken)
     {
         if (!ModelState.IsValid) return View(model);
 
@@ -68,6 +68,110 @@ public class WorkingTimeRulesController : Controller
         }
 
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return View(await _workingTimeRuleApiService.GetDetailAsync(id, cancellationToken));
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
+        catch (Exception exception) when (IsApiException(exception, cancellationToken))
+        {
+            _logger.LogError(exception, "Unable to load working time version {VersionId}.", id);
+            TempData["ErrorMessage"] = "Unable to load this version. Please try again.";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var rule = await _workingTimeRuleApiService.GetDetailAsync(id, cancellationToken);
+            if (!rule.CanEdit)
+            {
+                TempData["ErrorMessage"] = "Only Draft versions can be edited.";
+                return RedirectToAction(nameof(Detail), new { id });
+            }
+            return View(new WorkingTimeRuleEditViewModel
+            {
+                WorkingTimeRuleId = id,
+                RuleName = rule.RuleName,
+                MaxDailyHours = rule.MaxDailyHours,
+                MaxWeeklyHours = rule.MaxWeeklyHours,
+                EffectiveFrom = rule.EffectiveFrom
+            });
+        }
+        catch (Exception exception) when (IsApiException(exception, cancellationToken))
+        {
+            _logger.LogError(exception, "Unable to load working time draft {VersionId} for editing.", id);
+            TempData["ErrorMessage"] = "Unable to load this version. Please try again.";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, WorkingTimeRuleEditViewModel model, CancellationToken cancellationToken)
+    {
+        model.WorkingTimeRuleId = id;
+        if (!ModelState.IsValid) return View(model);
+        try
+        {
+            await _workingTimeRuleApiService.UpdateAsync(id, model, cancellationToken);
+            TempData["SuccessMessage"] = "Draft updated successfully.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (Exception exception) when (IsApiException(exception, cancellationToken))
+        {
+            _logger.LogError(exception, "Unable to update working time draft {VersionId}.", id);
+            ModelState.AddModelError(string.Empty, "Could not confirm the update. Refresh before trying again.");
+        }
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Delete(int id, CancellationToken cancellationToken) =>
+        RunActionAsync(() => _workingTimeRuleApiService.DeleteAsync(id, cancellationToken),
+            "Draft deleted successfully.", cancellationToken);
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Publish(int id, CancellationToken cancellationToken) =>
+        RunActionAsync(() => _workingTimeRuleApiService.PublishAsync(id, cancellationToken),
+            "Version published. It activates on its effective date (Vietnam time).", cancellationToken);
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public Task<IActionResult> Cancel(int id, CancellationToken cancellationToken) =>
+        RunActionAsync(() => _workingTimeRuleApiService.CancelAsync(id, cancellationToken),
+            "Publication cancelled successfully.", cancellationToken);
+
+    private async Task<IActionResult> RunActionAsync(Func<Task> action, string successMessage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await action();
+            TempData["SuccessMessage"] = successMessage;
+        }
+        catch (HttpRequestException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+        catch (Exception exception) when (IsApiException(exception, cancellationToken))
+        {
+            _logger.LogError(exception, "Unable to complete working time version action.");
+            TempData["ErrorMessage"] = "Could not confirm the operation. Refresh before trying again.";
+        }
+        return RedirectToAction(nameof(List));
     }
 
     private static bool IsApiException(Exception exception, CancellationToken cancellationToken) =>

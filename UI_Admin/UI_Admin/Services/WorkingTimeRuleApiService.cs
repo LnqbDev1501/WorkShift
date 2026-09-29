@@ -26,16 +26,39 @@ public sealed class WorkingTimeRuleApiService
         return new WorkingTimeRuleListViewModel { Items = items };
     }
 
-    public async Task CreateAsync(WorkingTimeRuleCreateViewModel model, CancellationToken cancellationToken = default)
+    public async Task CreateAsync(WorkingTimeRuleFormViewModel model, CancellationToken cancellationToken = default)
     {
-        var request = new
-        {
-            RuleName = model.RuleName,
-            MaxDailyHours = model.MaxDailyHours,
-            MaxWeeklyHours = model.MaxWeeklyHours
-        };
         using var response = await _httpClient.PostAsJsonAsync(
-            BuildUrl("api/working-time-rules"), request, cancellationToken);
+            BuildUrl("api/working-time-rules"), CreatePayload(model), cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public async Task<WorkingTimeRuleListItemViewModel> GetDetailAsync(int id, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(BuildUrl($"api/working-time-rules/{id}"), cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<WorkingTimeRuleListItemViewModel>(cancellationToken: cancellationToken)
+            ?? throw new JsonException("The working time API returned an empty response.");
+    }
+
+    public async Task UpdateAsync(int id, WorkingTimeRuleEditViewModel model, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PutAsJsonAsync(
+            BuildUrl($"api/working-time-rules/{id}"), CreatePayload(model), cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
+    public Task DeleteAsync(int id, CancellationToken cancellationToken) =>
+        SendActionAsync(HttpMethod.Delete, $"api/working-time-rules/{id}", cancellationToken);
+    public Task PublishAsync(int id, CancellationToken cancellationToken) =>
+        SendActionAsync(HttpMethod.Post, $"api/working-time-rules/{id}/publish", cancellationToken);
+    public Task CancelAsync(int id, CancellationToken cancellationToken) =>
+        SendActionAsync(HttpMethod.Post, $"api/working-time-rules/{id}/cancel", cancellationToken);
+
+    private async Task SendActionAsync(HttpMethod method, string path, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(method, BuildUrl(path));
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
@@ -58,6 +81,14 @@ public sealed class WorkingTimeRuleApiService
 
         throw new HttpRequestException(message, null, response.StatusCode);
     }
+
+    private static object CreatePayload(WorkingTimeRuleFormViewModel model) => new
+    {
+        model.RuleName,
+        model.MaxDailyHours,
+        model.MaxWeeklyHours,
+        model.EffectiveFrom
+    };
 
     private string BuildUrl(string relativeUrl) =>
         $"{_apiBaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";

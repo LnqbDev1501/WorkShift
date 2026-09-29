@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models;
 using UI_Admin.Models.Payroll;
 using UI_Admin.Services;
 
@@ -9,6 +10,8 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     [HttpGet]
     public async Task<IActionResult> List(PayrollFilter filter, CancellationToken ct)
     {
+        filter.PageSize = ListPaginationViewModel.DefaultPageSize;
+        ModelState.Remove(nameof(filter.PageSize));
         var model = new PayrollListViewModel { Filter = filter };
         if (!ModelState.IsValid)
         {
@@ -20,8 +23,14 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
             model.Page = await payroll.GetPeriodsAsync(filter, ct);
             foreach (var status in new[] { "", "SUBMITTED", "APPROVED", "REVISION_REQUIRED" })
             {
-                var result = await payroll.GetPeriodsAsync(new PayrollFilter { Status = status, PageSize = 1,
-                    Search = filter.Search, RegionId = filter.RegionId, BranchId = filter.BranchId }, ct);
+                var result = await payroll.GetPeriodsAsync(new PayrollFilter
+                {
+                    Status = status,
+                    PageSize = 1,
+                    Search = filter.Search,
+                    RegionId = filter.RegionId,
+                    BranchId = filter.BranchId
+                }, ct);
                 model.Counts[status] = result.TotalCount;
             }
         }
@@ -56,6 +65,8 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> Details(int id, PayrollDetailQuery query, CancellationToken ct)
     {
+        query.PageSize = ListPaginationViewModel.DefaultPageSize;
+        ModelState.Remove(nameof(query.PageSize));
         if (id < 1 || !ModelState.IsValid) return BadRequest(ModelState);
         try
         {

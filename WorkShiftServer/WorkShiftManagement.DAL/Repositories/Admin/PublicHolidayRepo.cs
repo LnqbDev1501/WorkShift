@@ -27,11 +27,11 @@ public sealed class PublicHolidayRepo : IPublicHolidayRepo
 
     public async Task<(IReadOnlyList<PublicHolidayConfig> Items, int TotalCount)> GetPagedAsync(
         int pageNumber, int pageSize, int? year, int? month, string? search,
-        bool includeInactive, CancellationToken ct = default)
+        bool includeInactive, bool? isActive, CancellationToken ct = default)
     {
         IQueryable<PublicHolidayConfig> query = _context.PublicHolidayConfigs.AsNoTracking();
-        if (!includeInactive)
-            query = query.Where(x => x.IsActive);
+        if (isActive.HasValue) query = query.Where(x => x.IsActive == isActive.Value);
+        else if (!includeInactive) query = query.Where(x => x.IsActive);
 
         if (year.HasValue)
         {
@@ -131,3 +131,5 @@ public sealed class PublicHolidayRepo : IPublicHolidayRepo
                 CAST({oldValueJson} AS jsonb), CAST({newValueJson} AS jsonb))", ct);
     }
 }
+
+
