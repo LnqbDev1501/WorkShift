@@ -46,4 +46,40 @@ public class AdminAttendancePenaltyRuleController : ControllerBase
                 new { message = "Attendance penalty rules could not be retrieved. Please try again later." });
         }
     }
+
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(AttendancePenaltyRuleDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendancePenaltyRuleDetailResponse>> GetAttendancePenaltyRuleById(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new { message = "id must be a positive integer." });
+            }
+
+            var rule = await _attendancePenaltyRuleService.GetByIdAsync(id, cancellationToken);
+            return Ok(rule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving attendance penalty rule {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The attendance penalty rule could not be retrieved. Please try again later." });
+        }
+    }
 }
+

@@ -10,4 +10,7 @@ public interface IAttendancePenaltyRuleRepo
         string? search,
         string? status,
         CancellationToken cancellationToken);
+
+    Task<AttendancePenaltyRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
 }
+

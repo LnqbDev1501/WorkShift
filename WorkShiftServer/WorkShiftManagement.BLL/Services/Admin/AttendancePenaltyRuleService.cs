@@ -57,6 +57,21 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         };
     }
 
+    public async Task<AttendancePenaltyRuleDetailResponse> GetByIdAsync(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        var rule = await _attendancePenaltyRuleRepo.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance penalty rule with ID {id} was not found.");
+
+        return MapDetail(rule);
+    }
+
     private static AttendancePenaltyRuleItemResponse MapListItem(AttendancePenaltyRule rule) => new()
     {
         PenaltyRuleId = rule.PenaltyRuleId,
@@ -66,4 +81,43 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         Status = rule.Status,
         CreatedAt = rule.CreatedAt
     };
+
+    private static AttendancePenaltyRuleDetailResponse MapDetail(AttendancePenaltyRule rule) => new()
+    {
+        PenaltyRuleId = rule.PenaltyRuleId,
+        RuleName = rule.RuleName,
+        Description = rule.Description,
+        EffectiveFrom = rule.EffectiveFrom,
+        EffectiveTo = rule.EffectiveTo,
+        Status = rule.Status,
+        CreatedBy = rule.CreatedBy,
+        CreatedByName = rule.CreatedByNavigation?.FullName ?? rule.CreatedByNavigation?.Email,
+        PublishedBy = rule.PublishedBy,
+        PublishedByName = rule.PublishedByNavigation?.FullName ?? rule.PublishedByNavigation?.Email,
+        PublishedAt = rule.PublishedAt,
+        CancelledBy = rule.CancelledBy,
+        CancelledByName = rule.CancelledByNavigation?.FullName ?? rule.CancelledByNavigation?.Email,
+        CancelledAt = rule.CancelledAt,
+        CancellationReason = rule.CancellationReason,
+        CreatedAt = rule.CreatedAt,
+        UpdatedAt = rule.UpdatedAt,
+        PenaltyLevels = rule.AttendancePenaltyLevels
+            .OrderBy(l => l.ViolationType)
+            .ThenBy(l => l.FromMinutes)
+            .Select(MapLevel)
+            .ToList()
+    };
+
+    private static AttendancePenaltyLevelResponse MapLevel(AttendancePenaltyLevel level) => new()
+    {
+        PenaltyLevelId = level.PenaltyLevelId,
+        PenaltyRuleId = level.PenaltyRuleId,
+        ViolationType = level.ViolationType,
+        FromMinutes = level.FromMinutes,
+        ToMinutes = level.ToMinutes,
+        PenaltyAmount = level.PenaltyAmount,
+        CreatedAt = level.CreatedAt,
+        UpdatedAt = level.UpdatedAt
+    };
 }
+

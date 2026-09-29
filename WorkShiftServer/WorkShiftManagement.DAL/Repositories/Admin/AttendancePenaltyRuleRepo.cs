@@ -45,4 +45,14 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
 
         return (items, totalItems);
     }
+
+    public Task<AttendancePenaltyRule?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .Include(r => r.CreatedByNavigation)
+            .Include(r => r.PublishedByNavigation)
+            .Include(r => r.CancelledByNavigation)
+            .Include(r => r.AttendancePenaltyLevels)
+            .SingleOrDefaultAsync(r => r.PenaltyRuleId == id, cancellationToken);
 }
+
