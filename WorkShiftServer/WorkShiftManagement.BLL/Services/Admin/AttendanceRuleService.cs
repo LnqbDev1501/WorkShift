@@ -195,8 +195,48 @@ public class AttendanceRuleService : IAttendanceRuleService
         return Map(updated);
     }
 
+    public async Task<AttendanceRuleResponse> CancelAsync(int id, CancelAttendanceRuleRequest? request, Guid adminUserId, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        if (adminUserId == Guid.Empty)
+        {
+            throw new ArgumentException("An authenticated administrator is required.");
+        }
+
+        var rule = await _attendanceRuleRepo.GetByIdForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance rule with ID {id} was not found.");
+
+        if (rule.Status != StatusDraft && rule.Status != StatusScheduled)
+        {
+            throw new InvalidOperationException($"Only rules with status '{StatusDraft}' or '{StatusScheduled}' can be cancelled. Current status is '{rule.Status}'.");
+        }
+
+        var previousStatus = rule.Status;
+        var now = DateTime.UtcNow;
+
+        rule.Status = StatusCancelled;
+        rule.CancelledBy = adminUserId;
+        rule.CancelledAt = now;
+        rule.CancellationReason = string.IsNullOrWhiteSpace(request?.CancellationReason) ? null : request.CancellationReason.Trim();
+        rule.UpdatedAt = now;
+
+        await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+
+        if (previousStatus == StatusScheduled)
+        {
+            await SendCancelNotificationAsync(rule);
+        }
+
+        return Map(rule);
+    }
+
     public async Task ActivateDueAsync(CancellationToken cancellationToken)
     {
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var dueScheduledRules = await _attendanceRuleRepo.GetDueScheduledRulesAsync(today, cancellationToken);
         if (dueScheduledRules.Count == 0) return;
@@ -343,7 +383,67 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
     }
 
+    private async Task SendCancelNotificationAsync(AttendanceRule rule)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var reasonText = !string.IsNullOrWhiteSpace(rule.CancellationReason)
+                ? $" Reason: {rule.CancellationReason.Trim()}."
+                : string.Empty;
+
+            var effectiveDateText = rule.EffectiveFrom.HasValue
+                ? $" (previously planned for {rule.EffectiveFrom.Value:yyyy-MM-dd})"
+                : string.Empty;
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"Cancelled: Scheduled Attendance Rule '{rule.RuleName}'",
+                Content = $"The scheduled attendance rule '{rule.RuleName}'{effectiveDateText} has been cancelled by the administration.{reasonText}",
+                NotificationType = "Broadcast",
+                CreatedBy = rule.CancelledBy ?? rule.CreatedBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app cancel notification for attendance rule {RuleId}", rule.AttendanceRuleId);
+        }
+    }
+
     private static void ValidateCreateRequest(CreateAttendanceRuleRequest request)
+
     {
         if (request is null)
         {
