@@ -111,6 +111,19 @@ public sealed class ScheduleWeekRepo(AppDbContext context) : IScheduleWeekRepo
             return false;
         }
 
+        // Recheck after acquiring the week row lock: a draft shift may have been
+        // deleted or edited while the service was validating the publication.
+        var shifts = context.WorkShifts.Where(shift => shift.ScheduleWeekId == scheduleWeekId);
+        if (!await shifts.AnyAsync() ||
+            await shifts.AnyAsync(shift => shift.Status != "DRAFT" ||
+                !shift.ShiftEmployeeRequirements.Any() ||
+                shift.ShiftEmployeeRequirements.Any(requirement =>
+                    requirement.RequiredCount <= 0 || requirement.EmployeeType.Status != "ACTIVE")))
+        {
+            throw new InvalidOperationException(
+                "The draft shifts changed or contain invalid staffing requirements. Reload the schedule before opening registration.");
+        }
+
         await context.WorkShifts
             .Where(shift => shift.ScheduleWeekId == scheduleWeekId && shift.Status == "DRAFT")
             .ExecuteUpdateAsync(setters => setters
