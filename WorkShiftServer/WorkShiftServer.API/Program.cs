@@ -109,7 +109,10 @@ builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
 builder.Services.AddScoped<IAttendanceRuleRepo, AttendanceRuleRepo>();
 builder.Services.AddScoped<IAttendanceRuleService, AttendanceRuleService>();
+builder.Services.AddScoped<IAttendancePenaltyRuleRepo, AttendancePenaltyRuleRepo>();
+builder.Services.AddScoped<IAttendancePenaltyRuleService, AttendancePenaltyRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
+
 builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
 builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
