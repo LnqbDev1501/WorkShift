@@ -9,7 +9,31 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
 {
     private readonly AppDbContext _context;
 
+    private const string StatusDraft = "DRAFT";
+    private const string StatusCancelled = "CANCELLED";
+
     public AttendancePenaltyRuleRepo(AppDbContext context) => _context = context;
+
+    public async Task<AttendancePenaltyRule> CreateAsync(AttendancePenaltyRule rule, CancellationToken cancellationToken)
+    {
+        rule.Status = StatusDraft;
+        _context.AttendancePenaltyRules.Add(rule);
+        await _context.SaveChangesAsync(cancellationToken);
+        return rule;
+    }
+
+    public async Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken)
+    {
+        var normalizedName = ruleName.Trim().ToLower();
+        return await _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .AnyAsync(
+                r => r.RuleName.ToLower() == normalizedName
+                     && (!excludeId.HasValue || r.PenaltyRuleId != excludeId.Value)
+                     && r.Status != StatusCancelled,
+                cancellationToken);
+    }
+
 
     public async Task<(IReadOnlyList<AttendancePenaltyRule> Items, int TotalItems)> GetPagedAsync(
         int pageNumber,

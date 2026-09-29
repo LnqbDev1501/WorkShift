@@ -9,8 +9,14 @@ public interface IAttendancePenaltyRuleService
         GetAttendancePenaltyRulesRequest request,
         CancellationToken cancellationToken);
 
+    Task<AttendancePenaltyRuleDetailResponse> CreateAsync(
+        CreateAttendancePenaltyRuleRequest request,
+        Guid createdBy,
+        CancellationToken cancellationToken);
+
     Task<AttendancePenaltyRuleDetailResponse> GetByIdAsync(
         int id,
         CancellationToken cancellationToken);
 }
+
 

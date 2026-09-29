@@ -11,6 +11,9 @@ public interface IAttendancePenaltyRuleRepo
         string? status,
         CancellationToken cancellationToken);
 
+    Task<AttendancePenaltyRule> CreateAsync(AttendancePenaltyRule rule, CancellationToken cancellationToken);
+    Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken);
     Task<AttendancePenaltyRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
 }
+
 

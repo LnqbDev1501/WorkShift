@@ -72,6 +72,161 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         return MapDetail(rule);
     }
 
+    public async Task<AttendancePenaltyRuleDetailResponse> CreateAsync(
+        CreateAttendancePenaltyRuleRequest request,
+        Guid createdBy,
+        CancellationToken cancellationToken)
+    {
+        if (createdBy == Guid.Empty)
+        {
+            throw new ArgumentException("An authenticated administrator is required.");
+        }
+
+        ValidateCreateRequest(request);
+
+        if (await _attendancePenaltyRuleRepo.ExistsByNameAsync(request.RuleName, null, cancellationToken))
+        {
+            throw new InvalidOperationException($"An attendance penalty rule with the name '{request.RuleName.Trim()}' already exists.");
+        }
+
+        var now = DateTime.UtcNow;
+        var rule = new AttendancePenaltyRule
+        {
+            RuleName = request.RuleName.Trim(),
+            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
+            EffectiveFrom = request.EffectiveFrom,
+            EffectiveTo = null,
+            CreatedBy = createdBy,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        foreach (var level in request.PenaltyLevels!)
+        {
+            var normalizedType = NormalizeViolationType(level.ViolationType);
+            var normalizedAmount = NormalizePenaltyAmount(level.PenaltyAmount);
+            rule.AttendancePenaltyLevels.Add(new AttendancePenaltyLevel
+            {
+                PenaltyRule = rule,
+                ViolationType = normalizedType,
+                FromMinutes = level.FromMinutes!.Value,
+                ToMinutes = level.ToMinutes!.Value,
+                PenaltyAmount = normalizedAmount,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+        }
+
+        var created = await _attendancePenaltyRuleRepo.CreateAsync(rule, cancellationToken);
+        return await GetByIdAsync(created.PenaltyRuleId, cancellationToken);
+    }
+
+    private static decimal NormalizePenaltyAmount(decimal? amount)
+    {
+        if (!amount.HasValue || amount.Value <= 0)
+        {
+            throw new ArgumentException("penaltyAmount must be greater than 0.");
+        }
+
+        var value = amount.Value;
+        if (value < 1000)
+        {
+            value *= 1000;
+        }
+
+        return value;
+    }
+
+    private static string NormalizeViolationType(string? violationType)
+    {
+        var normalized = violationType?.Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "LATE" => "LATE",
+            "EARLY_LEAVE" => "EARLY_LEAVE",
+            _ => throw new ArgumentException("violationType must be either 'LATE' or 'EARLY_LEAVE'.")
+        };
+    }
+
+
+
+    private static void ValidateCreateRequest(CreateAttendancePenaltyRuleRequest request)
+    {
+        if (request is null)
+        {
+            throw new ArgumentException("Request payload is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RuleName))
+        {
+            throw new ArgumentException("ruleName must be a valid text string.");
+        }
+
+        if (request.RuleName.Trim().Length > 150)
+        {
+            throw new ArgumentException("ruleName cannot exceed 150 characters.");
+        }
+
+        if (!request.EffectiveFrom.HasValue)
+        {
+            throw new ArgumentException("effectiveFrom must be a valid date in YYYY-MM-DD format (e.g. '2026-10-01').");
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (request.EffectiveFrom.Value <= today)
+        {
+            throw new ArgumentException("Effective From date must be in the future (after today).");
+        }
+
+        if (request.PenaltyLevels is null || request.PenaltyLevels.Count == 0)
+        {
+            throw new ArgumentException("At least one penalty level is required.");
+        }
+
+        foreach (var level in request.PenaltyLevels)
+        {
+            // Validate violation type
+            NormalizeViolationType(level.ViolationType);
+
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 1440)
+            {
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 1440.");
+            }
+
+            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 1440)
+            {
+                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 1440.");
+            }
+
+            if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)
+            {
+                throw new ArgumentException("penaltyAmount must be greater than 0.");
+            }
+        }
+
+        // Validate overlapping intervals per violation type
+        var grouped = request.PenaltyLevels
+            .GroupBy(l => NormalizeViolationType(l.ViolationType));
+
+        foreach (var group in grouped)
+        {
+            var sortedLevels = group.OrderBy(l => l.FromMinutes!.Value).ToList();
+            for (var i = 0; i < sortedLevels.Count - 1; i++)
+            {
+                var current = sortedLevels[i];
+                var next = sortedLevels[i + 1];
+
+                if (current.ToMinutes!.Value >= next.FromMinutes!.Value)
+                {
+                    throw new ArgumentException(
+                        $"Penalty levels for {group.Key} have overlapping minute ranges ({current.FromMinutes}-{current.ToMinutes} and {next.FromMinutes}-{next.ToMinutes}).");
+                }
+            }
+        }
+    }
+
+
+
     private static AttendancePenaltyRuleItemResponse MapListItem(AttendancePenaltyRule rule) => new()
     {
         PenaltyRuleId = rule.PenaltyRuleId,

@@ -81,5 +81,60 @@ public class AdminAttendancePenaltyRuleController : ControllerBase
                 new { message = "The attendance penalty rule could not be retrieved. Please try again later." });
         }
     }
+
+    [HttpPost]
+    [ProducesResponseType(typeof(AttendancePenaltyRuleDetailResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendancePenaltyRuleDetailResponse>> CreateAttendancePenaltyRule(
+        [FromBody] CreateAttendancePenaltyRuleRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { message = "Could not identify authenticated admin identity from token." });
+            }
+
+            var createdRule = await _attendancePenaltyRuleService.CreateAsync(request, userId, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, createdRule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException exception)
+        {
+            _logger.LogError(exception, "Database error while creating attendance penalty rule");
+            var innerMessage = exception.InnerException?.Message ?? exception.Message;
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = $"Database error: {innerMessage}" });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while creating attendance penalty rule");
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = exception.Message });
+        }
+    }
+
+
+    private Guid GetCurrentUserId()
+    {
+        var claim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("user_id")?.Value;
+
+        return Guid.TryParse(claim, out var userId) ? userId : Guid.Empty;
+    }
 }
+
 
