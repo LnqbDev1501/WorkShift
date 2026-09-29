@@ -59,6 +59,9 @@ public sealed class HolidayItemViewModel
     public decimal? PayMultiplier { get; set; }
     public bool IsActive { get; set; }
     public bool IsPayrollLocked { get; set; }
+    public bool IsFuture => HolidayDate > DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+    public bool CanEdit => IsActive && IsFuture && !IsPayrollLocked;
+    public bool CanRestore => !IsActive && IsFuture && !IsPayrollLocked;
     public List<int> AffectedPayrollPeriodIds { get; set; } = [];
     public Guid? CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }

@@ -179,7 +179,7 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         {
             var item = await service.GetByIdAsync(id, cancellationToken);
             if (item is null) return NotFound();
-            if (!item.IsActive || item.IsPayrollLocked) { TempData["HolidayError"] = "Inactive holidays and holidays used in payroll are read-only."; return RedirectToAction(nameof(Details), new { id }); }
+            if (!item.CanEdit) { TempData["HolidayError"] = "Only future active holidays not locked by payroll can be edited. Today's and past holidays are read-only."; return RedirectToAction(nameof(Details), new { id }); }
             return View(new EditHolidayViewModel
             {
                 PublicHolidayId = item.PublicHolidayId,
