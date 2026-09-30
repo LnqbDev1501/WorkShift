@@ -3,6 +3,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -19,17 +20,20 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
     private readonly IAttendancePenaltyRuleRepo _attendancePenaltyRuleRepo;
     private readonly INotificationRepo _notificationRepo;
     private readonly INotificationRealtimePublisher _realtimePublisher;
+    private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendancePenaltyRuleService> _logger;
 
     public AttendancePenaltyRuleService(
         IAttendancePenaltyRuleRepo attendancePenaltyRuleRepo,
         INotificationRepo notificationRepo,
         INotificationRealtimePublisher realtimePublisher,
+        IAdminRealtimePublisher adminRealtimePublisher,
         ILogger<AttendancePenaltyRuleService> logger)
     {
         _attendancePenaltyRuleRepo = attendancePenaltyRuleRepo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
+        _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
     }
 
@@ -127,6 +131,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var created = await _attendancePenaltyRuleRepo.CreateAsync(rule, cancellationToken);
+        await PublishAdminSyncEventAsync("CREATED", created);
         return await GetByIdAsync(created.PenaltyRuleId, cancellationToken);
     }
 
@@ -178,6 +183,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         await _attendancePenaltyRuleRepo.UpdateDraftAsync(rule, newLevels, cancellationToken);
+        await PublishAdminSyncEventAsync("UPDATED", rule);
         return await GetByIdAsync(id, cancellationToken);
     }
 
@@ -236,6 +242,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
 
         await SendPublishNotificationAsync(rule, adminUserId);
+        await PublishAdminSyncEventAsync("PUBLISHED", rule);
 
         return await GetByIdAsync(id, cancellationToken);
     }
@@ -331,6 +338,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
 
             await SendActiveNotificationAsync(nextRule);
+            await PublishAdminSyncEventAsync("ACTIVATED", nextRule);
         }
     }
 
@@ -385,10 +393,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
     }
 
-
-
-
-
     public async Task<AttendancePenaltyRuleDetailResponse> CancelAsync(
         int id,
         CancelAttendancePenaltyRuleRequest? request,
@@ -430,7 +434,27 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             await SendCancelNotificationAsync(rule);
         }
 
+        await PublishAdminSyncEventAsync("CANCELLED", rule);
+
         return await GetByIdAsync(id, cancellationToken);
+    }
+
+    private async Task PublishAdminSyncEventAsync(string action, AttendancePenaltyRule rule)
+    {
+        try
+        {
+            await _adminRealtimePublisher.PublishDataChangedAsync("AttendancePenaltyRuleChanged", new
+            {
+                action,
+                ruleId = rule.PenaltyRuleId,
+                ruleName = rule.RuleName,
+                status = rule.Status
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to publish admin data sync event for attendance penalty rule {RuleId}", rule.PenaltyRuleId);
+        }
     }
 
     private async Task SendCancelNotificationAsync(AttendancePenaltyRule rule)

@@ -11,8 +11,10 @@ using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftServer.API.Hubs;
 using WorkShiftServer.API.Services;
+using WorkShiftServer.API.Services.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +47,16 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 var supabaseUrl = builder.Configuration["Supabase:Url"]
     ?? throw new InvalidOperationException("Missing Supabase:Url configuration.");
@@ -140,6 +152,7 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
+builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
 var app = builder.Build();
 
@@ -178,11 +191,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 
 app.Run();
