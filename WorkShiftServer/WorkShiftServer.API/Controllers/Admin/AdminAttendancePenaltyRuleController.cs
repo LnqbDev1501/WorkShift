@@ -218,8 +218,55 @@ public class AdminAttendancePenaltyRuleController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/cancel")]
+    [ProducesResponseType(typeof(AttendancePenaltyRuleDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendancePenaltyRuleDetailResponse>> CancelAttendancePenaltyRule(
+        int id,
+        [FromBody] CancelAttendancePenaltyRuleRequest? request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { message = "Could not identify authenticated admin identity from token." });
+            }
 
-
+            var cancelledRule = await _attendancePenaltyRuleService.CancelAsync(id, request, userId, cancellationToken);
+            return Ok(cancelledRule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException exception)
+        {
+            _logger.LogError(exception, "Database error while cancelling attendance penalty rule {Id}", id);
+            var innerMessage = exception.InnerException?.Message ?? exception.Message;
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = $"Database error: {innerMessage}" });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while cancelling attendance penalty rule {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = exception.Message });
+        }
+    }
 
     private Guid GetCurrentUserId()
     {

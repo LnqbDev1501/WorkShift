@@ -389,6 +389,109 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
 
 
 
+    public async Task<AttendancePenaltyRuleDetailResponse> CancelAsync(
+        int id,
+        CancelAttendancePenaltyRuleRequest? request,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        if (adminUserId == Guid.Empty)
+        {
+            throw new ArgumentException("An authenticated administrator is required.");
+        }
+
+        var rule = await _attendancePenaltyRuleRepo.GetByIdForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance penalty rule with ID {id} was not found.");
+
+        if (!string.Equals(rule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(rule.Status, "SCHEDULED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Only rules with status 'DRAFT' or 'SCHEDULED' can be cancelled. Current status is '{rule.Status}'.");
+        }
+
+        var previousStatus = rule.Status;
+        var now = DateTime.UtcNow;
+
+        rule.Status = "CANCELLED";
+        rule.CancelledBy = adminUserId;
+        rule.CancelledAt = now;
+        rule.CancellationReason = string.IsNullOrWhiteSpace(request?.CancellationReason) ? null : request.CancellationReason.Trim();
+        rule.UpdatedAt = now;
+
+        await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+
+        if (string.Equals(previousStatus, "SCHEDULED", StringComparison.OrdinalIgnoreCase))
+        {
+            await SendCancelNotificationAsync(rule);
+        }
+
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
+    private async Task SendCancelNotificationAsync(AttendancePenaltyRule rule)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var reasonText = !string.IsNullOrWhiteSpace(rule.CancellationReason)
+                ? $" Reason: {rule.CancellationReason.Trim()}."
+                : string.Empty;
+
+            var effectiveDateText = rule.EffectiveFrom.HasValue
+                ? $" (previously planned for {rule.EffectiveFrom.Value:yyyy-MM-dd})"
+                : string.Empty;
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"Cancelled: Scheduled Attendance Penalty Rule '{rule.RuleName}'",
+                Content = $"The scheduled attendance penalty rule '{rule.RuleName}'{effectiveDateText} has been cancelled by the administration.{reasonText}",
+                NotificationType = "Broadcast",
+                CreatedBy = rule.CancelledBy ?? rule.CreatedBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app cancel notification for attendance penalty rule {RuleId}", rule.PenaltyRuleId);
+        }
+    }
+
     private static decimal NormalizePenaltyAmount(decimal? amount)
     {
         if (!amount.HasValue || amount.Value <= 0)
