@@ -142,8 +142,8 @@ builder.Services.AddScoped<IScheduleWeekRepo, ScheduleWeekRepo>();
 builder.Services.AddScoped<IScheduleWeekService, ScheduleWeekService>();
 builder.Services.AddScoped<IShiftRepo, ShiftRepo>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
-builder.Services.AddScoped<IShiftCancellationRequestRepo, ShiftCancellationRequestRepo>();
-builder.Services.AddScoped<IShiftCancellationRequestService, ShiftCancellationRequestService>();
+builder.Services.AddScoped<IShiftAssignmentRepo, ShiftAssignmentRepo>();
+builder.Services.AddScoped<IShiftAssignmentService, ShiftAssignmentService>();
 builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
