@@ -112,6 +112,32 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
             .Include(r => r.CancelledByNavigation)
             .Include(r => r.AttendancePenaltyLevels)
             .SingleOrDefaultAsync(r => r.PenaltyRuleId == id, cancellationToken);
+
+    public Task<AttendancePenaltyRule?> GetScheduledRuleAsync(CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Status == "SCHEDULED", cancellationToken);
+
+    public Task<AttendancePenaltyRule?> GetActiveRuleAsync(CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Status == "ACTIVE", cancellationToken);
+
+    public Task<List<AttendancePenaltyRule>> GetDueScheduledRulesAsync(DateOnly today, CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .Where(r => r.Status == "SCHEDULED" && r.EffectiveFrom <= today)
+            .OrderBy(r => r.EffectiveFrom)
+            .ThenBy(r => r.PenaltyRuleId)
+            .ToListAsync(cancellationToken);
+
+    public Task<List<AttendancePenaltyRule>> GetActiveRulesAsync(CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .Where(r => r.Status == "ACTIVE")
+            .ToListAsync(cancellationToken);
+
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken) =>
+        _context.SaveChangesAsync(cancellationToken);
 }
+
 
 

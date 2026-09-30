@@ -19,10 +19,18 @@ public interface IAttendancePenaltyRuleService
         UpdateAttendancePenaltyRuleRequest request,
         CancellationToken cancellationToken);
 
+    Task<AttendancePenaltyRuleDetailResponse> PublishAsync(
+        int id,
+        Guid adminUserId,
+        CancellationToken cancellationToken);
+
+    Task ActivateDueAsync(CancellationToken cancellationToken);
+
     Task<AttendancePenaltyRuleDetailResponse> GetByIdAsync(
         int id,
         CancellationToken cancellationToken);
 }
+
 
 
 

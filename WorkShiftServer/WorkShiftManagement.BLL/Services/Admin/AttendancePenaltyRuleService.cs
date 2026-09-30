@@ -1,9 +1,11 @@
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Response;
+using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -15,15 +17,22 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
     };
 
     private readonly IAttendancePenaltyRuleRepo _attendancePenaltyRuleRepo;
+    private readonly INotificationRepo _notificationRepo;
+    private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly ILogger<AttendancePenaltyRuleService> _logger;
 
     public AttendancePenaltyRuleService(
         IAttendancePenaltyRuleRepo attendancePenaltyRuleRepo,
+        INotificationRepo notificationRepo,
+        INotificationRealtimePublisher realtimePublisher,
         ILogger<AttendancePenaltyRuleService> logger)
     {
         _attendancePenaltyRuleRepo = attendancePenaltyRuleRepo;
+        _notificationRepo = notificationRepo;
+        _realtimePublisher = realtimePublisher;
         _logger = logger;
     }
+
 
     public async Task<AttendancePenaltyRuleListResponse> GetAttendancePenaltyRulesAsync(
         GetAttendancePenaltyRulesRequest request,
@@ -171,6 +180,212 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         await _attendancePenaltyRuleRepo.UpdateDraftAsync(rule, newLevels, cancellationToken);
         return await GetByIdAsync(id, cancellationToken);
     }
+
+    public async Task<AttendancePenaltyRuleDetailResponse> PublishAsync(
+        int id,
+        Guid adminUserId,
+        CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            throw new ArgumentException("id must be a positive integer.");
+        }
+
+        if (adminUserId == Guid.Empty)
+        {
+            throw new ArgumentException("An authenticated administrator is required.");
+        }
+
+        var rule = await _attendancePenaltyRuleRepo.GetByIdForUpdateAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance penalty rule with ID {id} was not found.");
+
+        if (!string.Equals(rule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"This action requires DRAFT status. Current status: {rule.Status}.");
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        {
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+        }
+
+        if (rule.AttendancePenaltyLevels.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot publish an attendance penalty rule without any penalty levels.");
+        }
+
+        var existingScheduled = await _attendancePenaltyRuleRepo.GetScheduledRuleAsync(cancellationToken);
+        if (existingScheduled != null && existingScheduled.PenaltyRuleId != id)
+        {
+            throw new InvalidOperationException($"An attendance penalty rule '{existingScheduled.RuleName}' is already scheduled (effective from {existingScheduled.EffectiveFrom:yyyy-MM-dd}). Cancel that rule before publishing another.");
+        }
+
+        var currentActive = await _attendancePenaltyRuleRepo.GetActiveRuleAsync(cancellationToken);
+        if (currentActive != null && currentActive.EffectiveFrom.HasValue && currentActive.EffectiveFrom >= rule.EffectiveFrom.Value)
+        {
+            throw new InvalidOperationException("The effective date must be after the current active version.");
+        }
+
+        var now = DateTime.UtcNow;
+        rule.Status = "SCHEDULED";
+        rule.PublishedBy = adminUserId;
+        rule.PublishedAt = now;
+        rule.UpdatedAt = now;
+
+        await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
+
+        await SendPublishNotificationAsync(rule, adminUserId);
+
+        return await GetByIdAsync(id, cancellationToken);
+    }
+
+    private async Task SendPublishNotificationAsync(AttendancePenaltyRule rule, Guid adminUserId)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var levelSummaries = rule.AttendancePenaltyLevels
+                .OrderBy(l => l.ViolationType)
+                .ThenBy(l => l.FromMinutes)
+                .Select(l =>
+                {
+                    var typeName = l.ViolationType == "LATE" ? "Late" : "Early leave";
+                    var toText = l.ToMinutes.HasValue ? $"{l.FromMinutes}-{l.ToMinutes.Value} mins" : $">={l.FromMinutes} mins";
+                    return $"{typeName} {toText} ({l.PenaltyAmount:N0} VND)";
+                });
+
+            var detailsText = levelSummaries.Any()
+                ? $" Penalty details: {string.Join(", ", levelSummaries)}."
+                : string.Empty;
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"New Attendance Penalty Rule Published: {rule.RuleName}",
+                Content = $"A new attendance penalty rule '{rule.RuleName}' has been published and will take effect on {rule.EffectiveFrom:yyyy-MM-dd}.{detailsText}",
+                NotificationType = "Broadcast",
+                CreatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app broadcast notification for attendance penalty rule {RuleId}", rule.PenaltyRuleId);
+        }
+    }
+
+    public async Task ActivateDueAsync(CancellationToken cancellationToken)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var dueScheduledRules = await _attendancePenaltyRuleRepo.GetDueScheduledRulesAsync(today, cancellationToken);
+        if (dueScheduledRules.Count == 0) return;
+
+        var now = DateTime.UtcNow;
+        foreach (var nextRule in dueScheduledRules)
+        {
+            var activeRules = await _attendancePenaltyRuleRepo.GetActiveRulesAsync(cancellationToken);
+            foreach (var activeRule in activeRules)
+            {
+                if (activeRule.PenaltyRuleId == nextRule.PenaltyRuleId) continue;
+                activeRule.Status = "INACTIVE";
+                activeRule.EffectiveTo = nextRule.EffectiveFrom;
+                activeRule.UpdatedAt = now;
+            }
+
+            nextRule.Status = "ACTIVE";
+            nextRule.EffectiveTo = null;
+            nextRule.UpdatedAt = now;
+
+            await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+
+            await SendActiveNotificationAsync(nextRule);
+        }
+    }
+
+    private async Task SendActiveNotificationAsync(AttendancePenaltyRule rule)
+    {
+        try
+        {
+            var targetRoles = new List<string> { "STAFF", "MANAGER", "ACCOUNTANT" };
+            var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
+
+            var now = DateTime.UtcNow;
+            var notification = new Notification
+            {
+                Title = $"Attendance Penalty Rule '{rule.RuleName}' is Now Active",
+                Content = $"Attendance penalty rule '{rule.RuleName}' has officially taken effect starting today ({rule.EffectiveFrom:yyyy-MM-dd}).",
+                NotificationType = "Broadcast",
+                CreatedBy = rule.CreatedBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetRoles = targetRoles,
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = recipients.Select(u => u.UserId).ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Content,
+                CreatedAt = notification.CreatedAt
+            };
+
+            foreach (var recipient in recipients)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(recipient.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", recipient.UserId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send in-app active notification for attendance penalty rule {RuleId}", rule.PenaltyRuleId);
+        }
+    }
+
+
 
 
 

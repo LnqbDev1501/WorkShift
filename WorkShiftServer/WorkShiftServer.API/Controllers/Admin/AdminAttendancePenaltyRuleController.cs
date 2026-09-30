@@ -169,6 +169,56 @@ public class AdminAttendancePenaltyRuleController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/publish")]
+    [ProducesResponseType(typeof(AttendancePenaltyRuleDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<AttendancePenaltyRuleDetailResponse>> PublishAttendancePenaltyRule(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = GetCurrentUserId();
+            if (userId == Guid.Empty)
+            {
+                return Unauthorized(new { message = "Could not identify authenticated admin identity from token." });
+            }
+
+            var publishedRule = await _attendancePenaltyRuleService.PublishAsync(id, userId, cancellationToken);
+            return Ok(publishedRule);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new { message = exception.Message });
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException exception)
+        {
+            _logger.LogError(exception, "Database error while publishing attendance penalty rule {Id}", id);
+            var innerMessage = exception.InnerException?.Message ?? exception.Message;
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = $"Database error: {innerMessage}" });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while publishing attendance penalty rule {Id}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = exception.Message });
+        }
+    }
+
+
 
 
     private Guid GetCurrentUserId()

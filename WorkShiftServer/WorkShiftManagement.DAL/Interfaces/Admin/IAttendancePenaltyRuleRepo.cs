@@ -21,7 +21,13 @@ public interface IAttendancePenaltyRuleRepo
 
     Task<AttendancePenaltyRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<AttendancePenaltyRule?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken);
+    Task<AttendancePenaltyRule?> GetScheduledRuleAsync(CancellationToken cancellationToken);
+    Task<AttendancePenaltyRule?> GetActiveRuleAsync(CancellationToken cancellationToken);
+    Task<List<AttendancePenaltyRule>> GetDueScheduledRulesAsync(DateOnly today, CancellationToken cancellationToken);
+    Task<List<AttendancePenaltyRule>> GetActiveRulesAsync(CancellationToken cancellationToken);
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
+
 
 
 

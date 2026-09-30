@@ -156,7 +156,14 @@ try
             "attendance-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
             Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendancePenaltyRuleService>(
+            "attendance-penalty-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
 }
+
 catch (Exception ex)
 {
     // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
