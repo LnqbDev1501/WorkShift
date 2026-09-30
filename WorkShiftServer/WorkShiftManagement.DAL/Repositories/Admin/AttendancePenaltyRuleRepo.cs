@@ -22,6 +22,32 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
         return rule;
     }
 
+    public async Task<AttendancePenaltyRule> UpdateAsync(AttendancePenaltyRule rule, CancellationToken cancellationToken)
+    {
+        _context.AttendancePenaltyRules.Update(rule);
+        await _context.SaveChangesAsync(cancellationToken);
+        return rule;
+    }
+
+    public async Task<AttendancePenaltyRule> UpdateDraftAsync(
+        AttendancePenaltyRule existingRule,
+        List<AttendancePenaltyLevel> newLevels,
+        CancellationToken cancellationToken)
+    {
+        _context.AttendancePenaltyLevels.RemoveRange(existingRule.AttendancePenaltyLevels);
+
+        foreach (var level in newLevels)
+        {
+            level.PenaltyRuleId = existingRule.PenaltyRuleId;
+            _context.AttendancePenaltyLevels.Add(level);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return existingRule;
+    }
+
+
+
     public async Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken)
     {
         var normalizedName = ruleName.Trim().ToLower();
@@ -78,5 +104,14 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
             .Include(r => r.CancelledByNavigation)
             .Include(r => r.AttendancePenaltyLevels)
             .SingleOrDefaultAsync(r => r.PenaltyRuleId == id, cancellationToken);
+
+    public Task<AttendancePenaltyRule?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .Include(r => r.CreatedByNavigation)
+            .Include(r => r.PublishedByNavigation)
+            .Include(r => r.CancelledByNavigation)
+            .Include(r => r.AttendancePenaltyLevels)
+            .SingleOrDefaultAsync(r => r.PenaltyRuleId == id, cancellationToken);
 }
+
 
