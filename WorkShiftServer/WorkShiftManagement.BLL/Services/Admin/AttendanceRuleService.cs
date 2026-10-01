@@ -488,27 +488,27 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 1. CheckInBeforeMinutes
-        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 1440)
+        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 120)
         {
-            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 120.");
         }
 
         // 2. CheckInGraceMinutes
-        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 1440)
+        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 60)
         {
-            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 60.");
         }
 
         // 3. CheckOutGraceMinutes
-        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 1440)
+        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 60)
         {
-            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 60.");
         }
 
         // 4. CheckOutAfterMinutes
-        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 1440)
+        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 120)
         {
-            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 120.");
         }
 
         // 5. MaxAttendanceDistanceMeters
@@ -548,27 +548,27 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 1. CheckInBeforeMinutes
-        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 1440)
+        if (!request.CheckInBeforeMinutes.HasValue || request.CheckInBeforeMinutes.Value < 0 || request.CheckInBeforeMinutes.Value > 120)
         {
-            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkInBeforeMinutes must be a valid integer number between 0 and 120.");
         }
 
         // 2. CheckInGraceMinutes
-        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 1440)
+        if (!request.CheckInGraceMinutes.HasValue || request.CheckInGraceMinutes.Value < 0 || request.CheckInGraceMinutes.Value > 60)
         {
-            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkInGraceMinutes must be a valid integer number between 0 and 60.");
         }
 
         // 3. CheckOutGraceMinutes
-        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 1440)
+        if (!request.CheckOutGraceMinutes.HasValue || request.CheckOutGraceMinutes.Value < 0 || request.CheckOutGraceMinutes.Value > 60)
         {
-            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkOutGraceMinutes must be a valid integer number between 0 and 60.");
         }
 
         // 4. CheckOutAfterMinutes
-        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 1440)
+        if (!request.CheckOutAfterMinutes.HasValue || request.CheckOutAfterMinutes.Value < 0 || request.CheckOutAfterMinutes.Value > 120)
         {
-            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 1440.");
+            throw new ArgumentException("checkOutAfterMinutes must be a valid integer number between 0 and 120.");
         }
 
         // 5. MaxAttendanceDistanceMeters

@@ -36,6 +36,7 @@ builder.Services.AddHttpClient<UserApiService>().AddHttpMessageHandler<ApiBearer
 builder.Services.AddHttpClient<BranchApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ShiftTemplateApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<HolidayApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<AttendanceRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<IVietMapService, VietMapService>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
 var app = builder.Build();

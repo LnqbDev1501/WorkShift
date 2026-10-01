@@ -12,19 +12,19 @@ public sealed class CreateAttendanceRuleRequest
     public string? Description { get; set; }
 
     [Required(ErrorMessage = "Check-in before minutes is required.")]
-    [Range(0, 1440, ErrorMessage = "Check-in before minutes must be between 0 and 1440 minutes.")]
+    [Range(0, 120, ErrorMessage = "Check-in before minutes must be between 0 and 120 minutes.")]
     public int? CheckInBeforeMinutes { get; set; } = 30;
 
     [Required(ErrorMessage = "Check-in grace minutes is required.")]
-    [Range(0, 1440, ErrorMessage = "Check-in grace minutes must be between 0 and 1440 minutes.")]
+    [Range(0, 60, ErrorMessage = "Check-in grace minutes must be between 0 and 60 minutes.")]
     public int? CheckInGraceMinutes { get; set; } = 0;
 
     [Required(ErrorMessage = "Check-out grace minutes is required.")]
-    [Range(0, 1440, ErrorMessage = "Check-out grace minutes must be between 0 and 1440 minutes.")]
+    [Range(0, 60, ErrorMessage = "Check-out grace minutes must be between 0 and 60 minutes.")]
     public int? CheckOutGraceMinutes { get; set; } = 0;
 
     [Required(ErrorMessage = "Check-out after minutes is required.")]
-    [Range(0, 1440, ErrorMessage = "Check-out after minutes must be between 0 and 1440 minutes.")]
+    [Range(0, 120, ErrorMessage = "Check-out after minutes must be between 0 and 120 minutes.")]
     public int? CheckOutAfterMinutes { get; set; } = 30;
 
     [Required(ErrorMessage = "Maximum attendance distance is required.")]
