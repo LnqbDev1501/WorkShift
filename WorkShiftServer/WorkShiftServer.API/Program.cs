@@ -113,7 +113,12 @@ builder.Services.AddHttpClient<AuthService>(client =>
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddSingleton<ProfileEmailChangeTokenService>();
 builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com/");
+});
+builder.Services.AddHttpClient<IProfileEmailChangeSender, ResendProfileEmailChangeSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });

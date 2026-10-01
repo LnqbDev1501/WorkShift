@@ -362,6 +362,166 @@
                     </form>
                 </div>
             </div>
+
+            <!-- CARD 4: Edit Personal Information -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between lg:col-span-2">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Edit Personal Information</h2>
+                                <p class="font-label-sm text-secondary">Update your full name, phone, gender, date of birth and address.</p>
+                            </div>
+                        </div>
+                    </div>
+                    @if (TempData["ProfileUpdated"] is true or "true")
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            <span>Your personal information has been updated.</span>
+                        </div>
+                    }
+                    @if (TempData["ProfileError"] is string profileError && !string.IsNullOrWhiteSpace(profileError))
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">error</span>
+                            <span>@profileError</span>
+                        </div>
+                    }
+                    <form asp-controller="Auth" asp-action="UpdateProfile" method="post" class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4 pt-unit-4">
+                        @Html.AntiForgeryToken()
+                        <div class="flex flex-col gap-unit-2">
+                            <label for="edit-fullname" class="font-label-md text-label-md text-on-surface">Full Name <span class="text-error">*</span></label>
+                            <input name="FullName" id="edit-fullname" type="text" value="@Model.FullName" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                        </div>
+                        <div class="flex flex-col gap-unit-2">
+                            <label for="edit-phone" class="font-label-md text-label-md text-on-surface">Phone <span class="text-error">*</span></label>
+                            <input name="Phone" id="edit-phone" type="text" value="@Model.Phone" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                        </div>
+                        <div class="flex flex-col gap-unit-2">
+                            <label for="edit-gender" class="font-label-md text-label-md text-on-surface">Gender <span class="text-error">*</span></label>
+                            <select name="Gender" id="edit-gender" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                                <option value="MALE" selected="@(Model.Gender.Equals("MALE", StringComparison.OrdinalIgnoreCase))">Male</option>
+                                <option value="FEMALE" selected="@(Model.Gender.Equals("FEMALE", StringComparison.OrdinalIgnoreCase))">Female</option>
+                                <option value="OTHER" selected="@(Model.Gender.Equals("OTHER", StringComparison.OrdinalIgnoreCase))">Other</option>
+                            </select>
+                        </div>
+                        <div class="flex flex-col gap-unit-2">
+                            <label for="edit-dob" class="font-label-md text-label-md text-on-surface">Date of Birth <span class="text-error">*</span></label>
+                            <input name="DateOfBirth" id="edit-dob" type="date" value="@(Model.DateOfBirth == default ? "" : Model.DateOfBirth.ToString("yyyy-MM-dd"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                        </div>
+                        <div class="flex flex-col gap-unit-2 sm:col-span-2">
+                            <label for="edit-address" class="font-label-md text-label-md text-on-surface">Address <span class="text-error">*</span></label>
+                            <input name="Address" id="edit-address" type="text" value="@Model.Address" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                        </div>
+                        <div class="sm:col-span-2 flex items-center justify-end">
+                            <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[20px]">save</span>
+                                <span>Save Changes</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CARD 5: Change Avatar -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">photo_camera</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Change Avatar</h2>
+                                <p class="font-label-sm text-secondary">JPG, PNG or WEBP, max 5MB.</p>
+                            </div>
+                        </div>
+                    </div>
+                    @if (TempData["AvatarUpdated"] is true or "true")
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            <span>Your avatar has been updated.</span>
+                        </div>
+                    }
+                    @if (TempData["AvatarError"] is string avatarError && !string.IsNullOrWhiteSpace(avatarError))
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">error</span>
+                            <span>@avatarError</span>
+                        </div>
+                    }
+                    <form asp-controller="Auth" asp-action="UpdateAvatar" method="post" enctype="multipart/form-data" class="flex flex-col gap-unit-4 pt-unit-4">
+                        @Html.AntiForgeryToken()
+                        <div class="flex items-center gap-unit-4">
+                            @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                            {
+                                <img id="current-avatar" src="@Model.AvatarUrl" alt="Current avatar" class="w-20 h-20 rounded-full object-cover border-2 border-surface-container shadow-sm" />
+                            }
+                            <img id="avatar-preview" alt="Preview" class="hidden w-20 h-20 rounded-full object-cover border-2 border-surface-container shadow-sm" />
+                            <input name="AvatarFile" id="avatar-file" type="file" accept=".jpg,.jpeg,.png,.webp" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container file:mr-3 file:h-full file:border-0 file:bg-surface-container file:text-on-surface file:font-body-md-medium cursor-pointer" />
+                        </div>
+                        <div class="flex items-center justify-end">
+                            <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[20px]">upload</span>
+                                <span>Upload Avatar</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CARD 6: Change Email -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">mail</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Change Email</h2>
+                                <p class="font-label-sm text-secondary">A verification link will be sent to the new address.</p>
+                            </div>
+                        </div>
+                    </div>
+                    @if (TempData["EmailChangeSent"] is true or "true")
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                            <span>A verification link has been sent. Please check the new inbox (valid for 3 minutes).</span>
+                        </div>
+                    }
+                    @if (TempData["EmailChangeError"] is string emailError && !string.IsNullOrWhiteSpace(emailError))
+                    {
+                        <div class="mt-unit-4 p-3 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium text-body-sm flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px]">error</span>
+                            <span>@emailError</span>
+                        </div>
+                    }
+                    <form asp-controller="Auth" asp-action="RequestEmailChange" method="post" class="flex flex-col gap-unit-4 pt-unit-4">
+                        @Html.AntiForgeryToken()
+                        <div class="flex flex-col gap-unit-2">
+                            <label class="font-label-md text-label-md text-on-surface">Current Email</label>
+                            <span class="font-body-md-medium text-secondary text-body-md break-all">@Model.Email</span>
+                        </div>
+                        <div class="flex flex-col gap-unit-2">
+                            <label for="new-email" class="font-label-md text-label-md text-on-surface">New Email <span class="text-error">*</span></label>
+                            <input name="Email" id="new-email" type="email" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="new-email@example.com" />
+                        </div>
+                        <div class="flex items-center justify-end">
+                            <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[20px]">send</span>
+                                <span>Send Verification Link</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -376,6 +536,21 @@
             input.type = show ? 'text' : 'password';
             button.textContent = show ? 'Hide' : 'Show';
         });
+    });
+
+    document.getElementById('avatar-file')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        const preview = document.getElementById('avatar-preview');
+        const current = document.getElementById('current-avatar');
+        if (!preview) return;
+        if (file) {
+            preview.src = URL.createObjectURL(file);
+            preview.classList.remove('hidden');
+            current?.classList.add('hidden');
+        } else {
+            preview.classList.add('hidden');
+            current?.classList.remove('hidden');
+        }
     });
 
     function copyUUID() {

@@ -166,6 +166,135 @@ namespace UI_Admin.Controllers
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProfile(
+            string fullName,
+            string phone,
+            string gender,
+            DateOnly? dateOfBirth,
+            string address,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _authService.UpdateProfileAsync(fullName, phone, gender, dateOfBirth, address, cancellationToken);
+                TempData["ProfileUpdated"] = true;
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["ProfileError"] = exception.Message;
+            }
+            catch (HttpRequestException)
+            {
+                TempData["ProfileError"] = "The authentication service is temporarily unavailable. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateAvatar(IFormFile? avatarFile, CancellationToken cancellationToken)
+        {
+            if (avatarFile == null || avatarFile.Length == 0)
+            {
+                TempData["AvatarError"] = "Please select an image file.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            try
+            {
+                await _authService.UpdateAvatarAsync(avatarFile, cancellationToken);
+                TempData["AvatarUpdated"] = true;
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["AvatarError"] = exception.Message;
+            }
+            catch (HttpRequestException)
+            {
+                TempData["AvatarError"] = "The authentication service is temporarily unavailable. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestEmailChange(string email, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["EmailChangeError"] = "Please enter a new email address.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            try
+            {
+                await _authService.RequestEmailChangeAsync(email, cancellationToken);
+                TempData["EmailChangeSent"] = true;
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["EmailChangeError"] = exception.Message;
+            }
+            catch (HttpRequestException)
+            {
+                TempData["EmailChangeError"] = "The authentication service is temporarily unavailable. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyEmail(string? token, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return View("VerifyEmailFailed", "The verification link is invalid or has expired.");
+
+            try
+            {
+                var profile = await _authService.ConfirmEmailChangeAsync(token, cancellationToken);
+                await RefreshEmailClaimAsync(profile.Email);
+                return View("VerifyEmailSuccess", profile.Email);
+            }
+            catch (InvalidOperationException exception)
+            {
+                _logger.LogWarning(exception, "Email verification failed.");
+                return View("VerifyEmailFailed", exception.Message);
+            }
+            catch (HttpRequestException exception)
+            {
+                _logger.LogError(exception, "Unable to connect to the authentication service.");
+                return View("VerifyEmailFailed", "The authentication service is temporarily unavailable. Please try again.");
+            }
+        }
+
+        private async Task RefreshEmailClaimAsync(string newEmail)
+        {
+            if (User.Identity?.IsAuthenticated != true)
+                return;
+
+            var authResult = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (!authResult.Succeeded || authResult.Principal == null)
+                return;
+
+            var identity = new ClaimsIdentity(
+                authResult.Principal.Claims.Where(claim => claim.Type != ClaimTypes.Email),
+                CookieAuthenticationDefaults.AuthenticationScheme);
+            identity.AddClaim(new Claim(ClaimTypes.Email, newEmail));
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity),
+                authResult.Properties ?? new AuthenticationProperties());
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
