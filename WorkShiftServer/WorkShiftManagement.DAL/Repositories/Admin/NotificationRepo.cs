@@ -106,7 +106,10 @@ public class NotificationRepo : INotificationRepo
     {
         var query = _context.Users
             .AsNoTracking()
-            .Where(user => user.Status == "ACTIVE" && user.DeletedAt == null && targetRoles.Contains(user.Role.RoleName));
+            .Where(user => user.Status == "ACTIVE"
+                        && user.DeletedAt == null
+                        && targetRoles.Contains(user.Role.RoleName)
+                        && (user.Role.RoleName != "STAFF" || (user.EmploymentContractUser != null && user.EmploymentContractUser.Status == "ACTIVE")));
 
         if (regionId.HasValue)
         {

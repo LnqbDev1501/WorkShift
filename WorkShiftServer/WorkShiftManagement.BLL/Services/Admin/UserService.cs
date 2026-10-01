@@ -7,6 +7,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Data;
@@ -32,6 +33,7 @@ public class UserService : IUserService
     private readonly string _defaultAvatarUrl;
     private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IAdminRealtimePublisher _adminRealtimePublisher;
 
     public UserService(
         IUserRepo userRepo,
@@ -40,7 +42,8 @@ public class UserService : IUserService
         ILogger<UserService> logger,
         IConfiguration configuration,
         AppDbContext dbContext,
-        ICloudinaryService cloudinaryService)
+        ICloudinaryService cloudinaryService,
+        IAdminRealtimePublisher adminRealtimePublisher)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -51,6 +54,7 @@ public class UserService : IUserService
                 "Cloudinary:DefaultAvatarUrl is not configured.");
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -248,6 +252,7 @@ public class UserService : IUserService
         user.Status = ActiveStatus;
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepo.SaveChangesAsync();
+        await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
     }
 
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(

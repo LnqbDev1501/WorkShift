@@ -11,12 +11,19 @@ using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
+using WorkShiftManagement.BLL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Services.Manager;
+using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Repositories.Manager;
 using WorkShiftServer.API.Hubs;
 using WorkShiftServer.API.Services;
+using WorkShiftServer.API.Services.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<AdminDataChangedFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<AdminDataChangedFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -45,6 +52,16 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 var supabaseUrl = builder.Configuration["Supabase:Url"]
     ?? throw new InvalidOperationException("Missing Supabase:Url configuration.");
@@ -101,21 +118,37 @@ builder.Services.AddHttpClient<AuthService>(client =>
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddSingleton<ProfileEmailChangeTokenService>();
 builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com/");
+});
+builder.Services.AddHttpClient<IProfileEmailChangeSender, ResendProfileEmailChangeSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
+builder.Services.AddScoped<IAttendanceRuleRepo, AttendanceRuleRepo>();
+builder.Services.AddScoped<IAttendanceRuleService, AttendanceRuleService>();
+builder.Services.AddScoped<IAttendancePenaltyRuleRepo, AttendancePenaltyRuleRepo>();
+builder.Services.AddScoped<IAttendancePenaltyRuleService, AttendancePenaltyRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
+
 builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
 builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
 builder.Services.AddScoped<IRegionalMinimumWageRepo, RegionalMinimumWageRepo>();
 builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageService>();
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
+builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
+builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
+builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IProductRepo, ProductRepo>();
+builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
@@ -130,11 +163,18 @@ builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepo, NotificationRepo>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IScheduleWeekRepo, ScheduleWeekRepo>();
+builder.Services.AddScoped<IScheduleWeekService, ScheduleWeekService>();
+builder.Services.AddScoped<IShiftRepo, ShiftRepo>();
+builder.Services.AddScoped<IShiftService, ShiftService>();
+builder.Services.AddScoped<IShiftAssignmentRepo, ShiftAssignmentRepo>();
+builder.Services.AddScoped<IShiftAssignmentService, ShiftAssignmentService>();
 builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
+builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
 var app = builder.Build();
 
@@ -145,7 +185,20 @@ try
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
             Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendanceRuleService>(
+            "attendance-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendancePenaltyRuleService>(
+            "attendance-penalty-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
 }
+
 catch (Exception ex)
 {
     // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
@@ -156,14 +209,17 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHangfireDashboard();
 }
 
 app.UseHttpsRedirection();
+app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 
 app.Run();

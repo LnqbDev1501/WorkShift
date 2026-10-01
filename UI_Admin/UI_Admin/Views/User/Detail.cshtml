@@ -12,7 +12,7 @@
     string FormatDateShort(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm");
 }
 
-<div class="flex flex-col w-full px-7 py-6">
+<div id="userDetailContainer" class="flex flex-col w-full px-7 py-6">
     <!-- Top Action Header -->
     <div class="flex items-center justify-between gap-4 mb-6">
         <a asp-action="List" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors border border-[#e2e8f0] shadow-sm">
@@ -605,6 +605,7 @@
 </div>
 
 @section Scripts {
+
 <script>
     function copyUUID() {
         const text = document.getElementById('account-uuid').innerText.trim();
@@ -620,5 +621,6 @@
             }
         });
     }
+
 </script>
 }

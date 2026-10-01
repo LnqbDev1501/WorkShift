@@ -1,0 +1,643 @@
+@model UI_Admin.Models.AttendanceRule.AttendanceRuleDetailViewModel
+
+@{
+    ViewData["Title"] = $"Attendance Rule Details - {Model.RuleName}";
+    var statusUpper = Model.Status.ToUpperInvariant();
+
+    var statusBadgeClass = statusUpper switch
+    {
+        "ACTIVE" => "bg-[#d1fae5] text-[#065f46] border-[#a7f3d0]",
+        "SCHEDULED" => "bg-[#ede9fe] text-[#5b21b6] border-[#ddd6fe]",
+        "DRAFT" => "bg-[#fef3c7] text-[#92400e] border-[#fde68a]",
+        "CANCELLED" => "bg-[#e8e9ed] text-[#596071] border-[#d1d5db]",
+        _ => "bg-[#f3f4f6] text-[#4b5563] border-[#e5e7eb]"
+    };
+
+    var statusDotClass = statusUpper switch
+    {
+        "ACTIVE" => "bg-[#10b981]",
+        "SCHEDULED" => "bg-[#8b5cf6]",
+        "DRAFT" => "bg-[#f59e0b]",
+        "CANCELLED" => "bg-[#89909d]",
+        _ => "bg-[#9ca3af]"
+    };
+
+    var iconBoxClass = statusUpper switch
+    {
+        "ACTIVE" => "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]",
+        "SCHEDULED" => "bg-[#f5f3ff] text-[#7c3aed] border-[#ddd6fe]",
+        "DRAFT" => "bg-[#fffbeb] text-[#d97706] border-[#fde68a]",
+        "CANCELLED" => "bg-[#e9eaee] text-[#868a98] border-[#d1d5db]",
+        _ => "bg-[#f3f4f6] text-[#6b7280] border-[#e5e7eb]"
+    };
+}
+
+<div id="ruleDetailContainer" class="flex flex-col w-full px-7 py-6 space-y-6 max-w-[1440px] mx-auto">
+    <!-- Top Action & Navigation Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <!-- Back Link -->
+        <div class="flex items-center gap-3">
+            <a asp-action="List" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                <span>Back to Rules</span>
+            </a>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2.5">
+            @if (Model.CanEdit)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.AttendanceRuleId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit Draft</span>
+                </a>
+            }
+
+            @if (Model.CanPublish)
+            {
+                <button type="button"
+                        onclick="openPublishModal(@Model.AttendanceRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">publish</span>
+                    <span>Publish Policy</span>
+                </button>
+            }
+
+            @if (Model.CanCancel)
+            {
+                <button type="button"
+                        onclick="openCancelModal(@Model.AttendanceRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">cancel</span>
+                    <span>Cancel Policy</span>
+                </button>
+            }
+
+            @if (Model.CanDelete)
+            {
+                <button type="button"
+                        onclick="openDeleteModal(@Model.AttendanceRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold text-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                    <span>Delete Draft</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Success Modal Popup -->
+    @if (TempData["SuccessMessage"] is string successMsg && !string.IsNullOrWhiteSpace(successMsg))
+    {
+        <div id="successModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+            <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                <div class="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs ring-8 ring-emerald-50/70">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="space-y-1 text-center">
+                    <h3 class="text-lg font-bold text-slate-900 tracking-tight">Success</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        @successMsg
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-600/20 cursor-pointer" onclick="document.getElementById('successModal').remove()">
+                    OK
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Error Modal Popup -->
+    @if (TempData["ErrorMessage"] is string errorMsg && !string.IsNullOrWhiteSpace(errorMsg))
+    {
+        <div id="errorModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+            <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                <div class="w-16 h-16 rounded-full bg-rose-50 border-2 border-rose-100 text-rose-600 flex items-center justify-center shadow-xs ring-8 ring-rose-50/70">
+                    <span class="material-symbols-outlined text-[30px]">error</span>
+                </div>
+                <div class="space-y-1 text-center">
+                    <h3 class="text-lg font-bold text-slate-900 tracking-tight">Action Failed</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        @errorMsg
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer" onclick="document.getElementById('errorModal').remove()">
+                    Close
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Cancellation Banner (if rule is cancelled) -->
+    @if (Model.IsCancelled)
+    {
+        <div class="p-5 rounded-2xl bg-rose-50/80 border border-rose-200/80 flex flex-col sm:flex-row sm:items-start gap-4">
+            <div class="w-10 h-10 rounded-xl bg-rose-100 border border-rose-300 text-rose-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[22px]">event_busy</span>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-sm font-bold text-rose-900 uppercase tracking-wide">This Policy Has Been Cancelled</h3>
+                <div class="flex items-center gap-3 text-xs text-rose-600 font-medium pt-0.5">
+                    @if (Model.CancelledAt.HasValue)
+                    {
+                        <span>Cancelled on: <strong>@Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Master Header Card -->
+    <div class="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-start sm:items-center gap-5">
+            <!-- Icon Box -->
+            <div class="w-16 h-16 rounded-2xl @iconBoxClass border flex items-center justify-center shrink-0 shadow-sm">
+                <span class="material-symbols-outlined text-[32px]">
+                    @(statusUpper switch
+                    {
+                        "ACTIVE" => "verified",
+                        "SCHEDULED" => "event_upcoming",
+                        "DRAFT" => "edit_document",
+                        "CANCELLED" => "cancel",
+                        _ => "policy"
+                    })
+                </span>
+            </div>
+
+            <!-- Title & Metadata -->
+            <div class="space-y-1.5 min-w-0">
+                <div class="flex flex-wrap items-center gap-3">
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight break-words">@Model.RuleName</h1>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border @statusBadgeClass">
+                        <span class="w-2 h-2 rounded-full @statusDotClass"></span>
+                        @(statusUpper switch
+                        {
+                            "ACTIVE" => "Active",
+                            "SCHEDULED" => "Scheduled",
+                            "DRAFT" => "Draft",
+                            "CANCELLED" => "Cancelled",
+                            _ => Model.Status
+                        })
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs sm:text-sm text-slate-500">
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] text-slate-400">calendar_today</span>
+                        Effective: <strong>@(Model.EffectiveFrom.HasValue ? Model.EffectiveFrom.Value.ToString("dd/MM/yyyy") : "Immediately")</strong>
+                        @(Model.EffectiveTo.HasValue ? $" to {Model.EffectiveTo.Value:dd/MM/yyyy}" : " (Indefinite)")
+                    </span>
+                    <span class="text-slate-300">•</span>
+                    <span class="flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px] text-slate-400">person</span>
+                        Created by <strong>@(Model.CreatedByName ?? "System Admin")</strong>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4 Metric KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- 1. Policy Status -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Lifecycle Status</span>
+                <span class="p-2 rounded-xl @statusBadgeClass">
+                    <span class="material-symbols-outlined text-[18px]">verified</span>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900">
+                    @(statusUpper switch
+                    {
+                        "ACTIVE" => "Active",
+                        "SCHEDULED" => "Scheduled",
+                        "DRAFT" => "Draft",
+                        "CANCELLED" => "Cancelled",
+                        _ => Model.Status
+                    })
+                </div>
+                <p class="text-xs text-slate-500 mt-1">
+                    @(statusUpper switch
+                    {
+                        "ACTIVE" => "Currently enforced for shifts",
+                        "SCHEDULED" => "Scheduled for future activation",
+                        "DRAFT" => "Pending review & publication",
+                        "CANCELLED" => "Deactivated policy",
+                        _ => "Attendance policy state"
+                    })
+                </p>
+            </div>
+        </div>
+
+        <!-- 2. Check-in Parameters -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Check-in Timing</span>
+                <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <span class="material-symbols-outlined text-[18px]">login</span>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-indigo-950">@Model.CheckInBeforeMinutes <span class="text-sm font-semibold text-slate-500">mins before</span></div>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                        Grace: @Model.CheckInGraceMinutes mins
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Check-out Parameters -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Check-out Timing</span>
+                <span class="p-2 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-emerald-950">@Model.CheckOutAfterMinutes <span class="text-sm font-semibold text-slate-500">mins after</span></div>
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        Grace: @Model.CheckOutGraceMinutes mins
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Geofencing Radius -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">GPS Geofence</span>
+                <span class="p-2 rounded-xl bg-purple-50 text-purple-600 border border-purple-100">
+                    <span class="material-symbols-outlined text-[18px]">pin_drop</span>
+                </span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-purple-950">@Model.MaxAttendanceDistanceMeters <span class="text-sm font-semibold text-slate-500">meters</span></div>
+                <p class="text-xs text-slate-500 mt-1">Allowed branch distance radius</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Detail Content (2 Column Grid) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left 2 Columns: Time Windows & Geofencing Detailed Breakdown -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Time Windows Section -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-outlined text-indigo-600 text-[22px]">schedule</span>
+                        <h2 class="text-base font-bold text-slate-800">Time Windows & Grace Periods</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200">Enforcement Rules</span>
+                </div>
+
+                <div class="p-6 space-y-6">
+                    <!-- Check-in Window Card -->
+                    <div class="p-5 bg-indigo-50/40 rounded-2xl border border-indigo-100/70 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-indigo-950 font-bold text-sm">
+                                <span class="material-symbols-outlined text-indigo-600 text-[20px]">login</span>
+                                <span>Check-in Controls (Start of Shift)</span>
+                            </div>
+                            <span class="text-xs font-bold text-indigo-700 bg-white px-2.5 py-1 rounded-lg border border-indigo-200 shadow-2xs">
+                                Allowed early: @Model.CheckInBeforeMinutes mins
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-white p-3.5 rounded-xl border border-indigo-100/80">
+                                <span class="text-xs text-slate-500 font-semibold block uppercase">Check-in Window</span>
+                                <span class="text-base font-bold text-slate-900 mt-0.5 block">@Model.CheckInBeforeMinutes minutes</span>
+                                <p class="text-xs text-slate-500 mt-1">Staff can check in up to this duration prior to shift commencement.</p>
+                            </div>
+                            <div class="bg-white p-3.5 rounded-xl border border-indigo-100/80">
+                                <span class="text-xs text-slate-500 font-semibold block uppercase">Check-in Grace Period</span>
+                                <span class="text-base font-bold text-slate-900 mt-0.5 block">@Model.CheckInGraceMinutes minutes</span>
+                                <p class="text-xs text-slate-500 mt-1">Tolerance allowance after shift start without incurring late arrival penalties.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Check-out Window Card -->
+                    <div class="p-5 bg-emerald-50/40 rounded-2xl border border-emerald-100/70 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-emerald-950 font-bold text-sm">
+                                <span class="material-symbols-outlined text-emerald-600 text-[20px]">logout</span>
+                                <span>Check-out Controls (End of Shift)</span>
+                            </div>
+                            <span class="text-xs font-bold text-emerald-700 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs">
+                                Allowed after: @Model.CheckOutAfterMinutes mins
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                            <div class="bg-white p-3.5 rounded-xl border border-emerald-100/80">
+                                <span class="text-xs text-slate-500 font-semibold block uppercase">Check-out Window</span>
+                                <span class="text-base font-bold text-slate-900 mt-0.5 block">@Model.CheckOutAfterMinutes minutes</span>
+                                <p class="text-xs text-slate-500 mt-1">Maximum allowed time to record departure after shift has concluded.</p>
+                            </div>
+                            <div class="bg-white p-3.5 rounded-xl border border-emerald-100/80">
+                                <span class="text-xs text-slate-500 font-semibold block uppercase">Check-out Grace Period</span>
+                                <span class="text-base font-bold text-slate-900 mt-0.5 block">@Model.CheckOutGraceMinutes minutes</span>
+                                <p class="text-xs text-slate-500 mt-1">Allowed early departure window before shift end without early departure penalty.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Geofencing & Location Policy Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <span class="material-symbols-outlined text-purple-600 text-[22px]">location_on</span>
+                        <h2 class="text-base font-bold text-slate-800">Geofencing & GPS Radius</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-100">GPS Validation</span>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-purple-50/40 rounded-2xl border border-purple-100/70">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-xl bg-purple-100 border border-purple-200 text-purple-700 flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined text-[24px]">radar</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-bold text-purple-950">Maximum Attendance Radius</h3>
+                                <p class="text-xs text-slate-600 mt-0.5">Physical perimeter boundary for all attendance check-ins and check-outs.</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-2xl font-black text-purple-900">@Model.MaxAttendanceDistanceMeters <span class="text-sm font-bold text-purple-700">m</span></span>
+                            <span class="block text-[11px] font-medium text-slate-400">10 m - 1,000 m range</span>
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/60 text-xs text-slate-600 leading-relaxed space-y-1">
+                        <div class="flex items-center gap-1.5 font-semibold text-slate-700">
+                            <span class="material-symbols-outlined text-[16px] text-indigo-600">info</span>
+                            <span>Policy Enforcement Mechanism:</span>
+                        </div>
+                        <p>When staff submit check-in or check-out requests via the mobile application, their real-time device coordinates (GPS latitude & longitude) are measured against the registered coordinates of their assigned branch. Transactions exceeding @Model.MaxAttendanceDistanceMeters meters will be rejected as out-of-range.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Schedule, Description & Audit History -->
+        <div class="space-y-6">
+            <!-- Schedule & Validity Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center gap-2 text-slate-800 font-bold text-sm">
+                    <span class="material-symbols-outlined text-indigo-600 text-[20px]">calendar_month</span>
+                    <span>Schedule & Validity</span>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div class="space-y-1">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Effective From Date</span>
+                        <div class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px] text-indigo-600">event</span>
+                            <span>@(Model.EffectiveFrom.HasValue ? Model.EffectiveFrom.Value.ToString("dd/MM/yyyy") : "Immediately upon activation")</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 pt-3 border-t border-slate-100">
+                        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Effective To Date</span>
+                        <div class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[18px] text-indigo-600">event_repeat</span>
+                            <span>@(Model.EffectiveTo.HasValue ? Model.EffectiveTo.Value.ToString("dd/MM/yyyy") : "Indefinite (Until superseded)")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center gap-2 text-slate-800 font-bold text-sm">
+                    <span class="material-symbols-outlined text-indigo-600 text-[20px]">description</span>
+                    <span>Description & Notes</span>
+                </div>
+                <div class="p-5">
+                    @if (!string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">@Model.Description</p>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-slate-400 italic">No description provided for this attendance rule policy.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Audit Trail Card -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex items-center gap-2 text-slate-800 font-bold text-sm">
+                    <span class="material-symbols-outlined text-indigo-600 text-[20px]">history</span>
+                    <span>Audit & Governance Trail</span>
+                </div>
+                <div class="p-5 space-y-4 text-xs">
+                    <!-- Created -->
+                    <div class="flex items-start gap-3">
+                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[16px]">add_circle</span>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-bold text-slate-900 block">Created Policy</span>
+                            <span class="text-slate-500">by @(Model.CreatedByName ?? "System Admin")</span>
+                            <span class="text-slate-400 block mt-0.5">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        </div>
+                    </div>
+
+                    <!-- Published -->
+                    @if (Model.PublishedAt.HasValue)
+                    {
+                        <div class="flex items-start gap-3 pt-3 border-t border-slate-100">
+                            <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined text-[16px]">publish</span>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="font-bold text-slate-900 block">Published Policy</span>
+                                <span class="text-slate-400 block mt-0.5">@Model.PublishedAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Cancelled -->
+                    @if (Model.CancelledAt.HasValue)
+                    {
+                        <div class="flex items-start gap-3 pt-3 border-t border-slate-100">
+                            <div class="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                                <span class="material-symbols-outlined text-[16px]">cancel</span>
+                            </div>
+                            <div class="min-w-0">
+                                <span class="font-bold text-slate-900 block">Cancelled Policy</span>
+                                <span class="text-slate-400 block mt-0.5">@Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Last Updated -->
+                    <div class="flex items-start gap-3 pt-3 border-t border-slate-100">
+                        <div class="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-[16px]">update</span>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="font-bold text-slate-900 block">Last Modified</span>
+                            <span class="text-slate-400 block mt-0.5">@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- 1. Publish Modal -->
+<div id="publishModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner ring-8 ring-indigo-50/60">
+            <span class="material-symbols-outlined text-[32px]">rocket_launch</span>
+        </div>
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Publish Attendance Rule</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to publish this policy? Once published, it will take effect according to its scheduled effective date.
+            </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words" id="publishRuleName">@Model.RuleName</div>
+        </div>
+        <form asp-action="Publish" method="post" class="w-full flex gap-3 pt-1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="publishRuleId" value="" />
+            <input type="hidden" name="returnToDetail" value="true" />
+            <button type="button" onclick="closePublishModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+                Cancel
+            </button>
+            <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-600/20 cursor-pointer">
+                Publish Now
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 2. Cancel Modal -->
+<div id="cancelModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner ring-8 ring-rose-50/60">
+            <span class="material-symbols-outlined text-[32px]">event_busy</span>
+        </div>
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Cancel Attendance Rule</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                @if (Model.IsDraft)
+                {
+                    <span>Are you sure you want to cancel this draft policy?</span>
+                }
+                else
+                {
+                    <span>Are you sure you want to cancel this scheduled policy? This will revoke its upcoming activation.</span>
+                }
+            </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words">@Model.RuleName</div>
+        </div>
+
+        <form asp-action="Cancel" method="post" class="w-full space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="cancelRuleId" value="" />
+            <input type="hidden" name="returnToDetail" value="true" />
+
+            @if (!Model.IsDraft)
+            {
+                <div class="text-left">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Cancellation Reason</label>
+                    <textarea name="cancellationReason" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-slate-900" placeholder="Optional reason for cancellation..."></textarea>
+                </div>
+            }
+
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="closeCancelModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer">
+                    Confirm Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. Delete Modal -->
+<div id="deleteModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner ring-8 ring-rose-50/60">
+            <span class="material-symbols-outlined text-[32px]">delete</span>
+        </div>
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Delete Draft Policy</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete this draft policy? This action cannot be undone.
+            </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words" id="deleteRuleName">@Model.RuleName</div>
+        </div>
+        <form asp-action="Delete" method="post" class="w-full flex gap-3 pt-1">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="deleteRuleId" value="" />
+            <button type="button" onclick="closeDeleteModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+                Cancel
+            </button>
+            <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer">
+                Delete Draft
+            </button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+
+    <script>
+        function openPublishModal(id, name) {
+            document.getElementById('publishRuleId').value = id;
+            document.getElementById('publishRuleName').textContent = name;
+            document.getElementById('publishModal').classList.remove('hidden');
+        }
+
+        function closePublishModal() {
+            document.getElementById('publishModal').classList.add('hidden');
+        }
+
+        function openCancelModal(id, name) {
+            document.getElementById('cancelRuleId').value = id;
+            document.getElementById('cancelModal').classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelModal').classList.add('hidden');
+        }
+
+        function openDeleteModal(id, name) {
+            document.getElementById('deleteRuleId').value = id;
+            document.getElementById('deleteRuleName').textContent = name;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        // Close on ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePublishModal();
+                closeCancelModal();
+                closeDeleteModal();
+            }
+        });
+
+</script>
+}
