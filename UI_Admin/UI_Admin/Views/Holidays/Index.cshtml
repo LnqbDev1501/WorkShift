@@ -84,7 +84,7 @@
                                                                 <span class="material-symbols-outlined">visibility</span>
                                                             </a>
 
-                                                            @if (item.IsActive && !item.IsPayrollLocked)
+                                                            @if (item.CanEdit)
                                                             {
                                                                 <!-- Edit -->
                                                                 <a asp-action="Edit" asp-route-id="@item.PublicHolidayId"
@@ -107,20 +107,22 @@
                                                                     </button>
                                                                 </form>
                                                             }
-                                                            else if (!item.IsActive)
+                                                            else if (item.CanRestore)
                                                             {
                                                                 <!-- Inactive -->
-                                                                <span class="action-icon action-inactive" title="Inactive" aria-label="Inactive">
+                                                                <form asp-action="Restore" asp-route-id="@item.PublicHolidayId" method="post" class="action-form" onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
+                                                                <button type="submit" class="action-icon action-inactive" title="Restore" aria-label="Restore">
                                                                     <span class="material-symbols-outlined">
                                                                         history
                                                                     </span>
-                                                                </span>
+                                                                </button>
+                                                                </form>
                                                             }
                                                             else
                                                             {
                                                                 <!-- Payroll Locked -->
-                                                                <span class="action-icon action-locked" title="Locked by payroll"
-                                                                      aria-label="Locked by payroll">
+                                                                <span class="action-icon action-locked" title="Read-only: today, past date, or payroll lock"
+                                                                      aria-label="Read-only">
                                                                     <span class="material-symbols-outlined">
                                                                         lock
                                                                     </span>
@@ -151,7 +153,7 @@
                                 })" />
                             </section>
                             <section class="holiday-form-note">
-                                <p>Past holidays remain available for historical payroll. Calendar changes return affected unfinalized
+                                <p>Today's and past holidays are read-only and remain available for historical payroll. Only future holidays not locked by payroll can be changed or restored. Calendar changes return affected unfinalized
                                     payroll periods to draft for recalculation before approval.</p>
                                 </section>
                             </main>

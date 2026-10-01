@@ -86,7 +86,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
             HolidayDate = e.HolidayDate,
             PayMultiplier = rule?.PayMultiplier,
             HolidayPayRuleId = rule?.HolidayPayRuleId,
-            IsPayrollLocked = !e.IsActive || await _repo.IsUsedInPayrollAsync(e.PublicHolidayId, ct) || await _config.IsLockedAsync(e.PublicHolidayId, e.HolidayDate, ct),
+            IsPayrollLocked = await _repo.IsUsedInPayrollAsync(e.PublicHolidayId, ct) || await _config.IsLockedAsync(e.PublicHolidayId, e.HolidayDate, ct),
             IsActive = e.IsActive,
             CreatedBy = e.CreatedBy,
             CreatedAt = e.CreatedAt,
@@ -223,6 +223,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
                     throw Error(new KeyNotFoundException("Active public holiday not found."), "HOLIDAY_NOT_FOUND");
 
                 HolidayWorkflowPolicy.RequireEditable(holiday.IsActive, await _repo.IsUsedInPayrollAsync(id, ct));
+                HolidayWorkflowPolicy.RequireFuture(holiday.HolidayDate, HolidayPayRuleService.Today);
                 if (await _config.IsLockedAsync(id, holiday.HolidayDate, ct)) throw HolidayConfigurationRepo.Conflict("This holiday belongs to finalized payroll and is read-only.", "HOLIDAY_READ_ONLY");
                 if (holiday.HolidayDate != data.Date) HolidayWorkflowPolicy.RequireFuture(data.Date, HolidayPayRuleService.Today);
                 var existing = await _repo.GetExistingDatesAsync(new[] { data.Date }, id, ct);
@@ -258,8 +259,30 @@ public sealed class PublicHolidayService : IPublicHolidayService
         }
     }
 
-    public Task<PublicHolidayResponse> RestoreAsync(int id, Guid callerId, CancellationToken ct = default) =>
-        throw HolidayConfigurationRepo.Conflict("Inactive holidays are read-only and cannot be restored.", "HOLIDAY_RESTORE_DISABLED");
+    public async Task<PublicHolidayResponse> RestoreAsync(int id, Guid callerId, CancellationToken ct = default)
+    {
+        ValidateId(id);
+        return await _config.TransactionAsync(async () =>
+        {
+            var holiday = await _repo.GetForUpdateAsync(id, ct);
+            if (holiday == null)
+                throw Error(new KeyNotFoundException("Public holiday not found."), "HOLIDAY_NOT_FOUND");
+            if (holiday.IsActive)
+                throw HolidayConfigurationRepo.Conflict("Only inactive holidays can be restored.", "HOLIDAY_ALREADY_ACTIVE");
+            HolidayWorkflowPolicy.RequireFuture(holiday.HolidayDate, HolidayPayRuleService.Today);
+            if (await _repo.IsUsedInPayrollAsync(id, ct) || await _config.IsLockedAsync(id, holiday.HolidayDate, ct))
+                throw HolidayConfigurationRepo.Conflict("This holiday is locked by payroll and cannot be restored.", "HOLIDAY_READ_ONLY");
+            var affected = await _config.InvalidateAsync(new[] { holiday.HolidayDate }, id, callerId, ct);
+            var oldValue = Json(AuditSnapshot(holiday));
+            holiday.IsActive = true;
+            holiday.UpdatedAt = DateTime.UtcNow;
+            await _repo.SaveChangesAsync(ct);
+            await WriteAuditIfKnownAsync(callerId, "RESTORE_PUBLIC_HOLIDAY", id, oldValue, Json(AuditSnapshot(holiday)), ct);
+            var result = await Map(holiday, ct);
+            result.AffectedPayrollPeriodIds = affected;
+            return result;
+        }, ct);
+    }
 
     public async Task DeleteAsync(int id, Guid callerId, CancellationToken ct = default)
     {
@@ -270,6 +293,7 @@ public sealed class PublicHolidayService : IPublicHolidayService
             if (holiday == null)
                 throw Error(new KeyNotFoundException("Public holiday not found."), "HOLIDAY_NOT_FOUND");
             HolidayWorkflowPolicy.RequireEditable(holiday.IsActive, await _repo.IsUsedInPayrollAsync(id, ct));
+            HolidayWorkflowPolicy.RequireFuture(holiday.HolidayDate, HolidayPayRuleService.Today);
 
 
             var affected = await _config.InvalidateAsync(new[] { holiday.HolidayDate }, id, callerId, ct);
