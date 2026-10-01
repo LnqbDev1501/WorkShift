@@ -1,4 +1,5 @@
 @model UI_Admin.Models.AttendanceRule.AttendanceRuleDetailViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Attendance Rule Details - {Model.RuleName}";
@@ -32,7 +33,7 @@
     };
 }
 
-<div class="flex flex-col w-full px-7 py-6 space-y-6 max-w-[1440px] mx-auto">
+<div id="ruleDetailContainer" class="flex flex-col w-full px-7 py-6 space-y-6 max-w-[1440px] mx-auto">
     <!-- Top Action & Navigation Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <!-- Back Link -->
@@ -85,30 +86,47 @@
         </div>
     </div>
 
-    <!-- Alert / Toast Messages -->
+    <!-- Success Modal Popup -->
     @if (TempData["SuccessMessage"] is string successMsg && !string.IsNullOrWhiteSpace(successMsg))
     {
-        <div id="successBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between gap-3 shadow-sm">
-            <div class="flex items-center gap-2.5">
-                <span class="material-symbols-outlined text-[20px] text-emerald-600">check_circle</span>
-                <span class="text-sm font-semibold">@successMsg</span>
+        <div id="successModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+            <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                <div class="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs ring-8 ring-emerald-50/70">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <div class="space-y-1 text-center">
+                    <h3 class="text-lg font-bold text-slate-900 tracking-tight">Success</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        @successMsg
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-600/20 cursor-pointer" onclick="document.getElementById('successModal').remove()">
+                    OK
+                </button>
             </div>
-            <button type="button" onclick="document.getElementById('successBanner').remove()" class="p-1 rounded-lg hover:bg-emerald-100 text-emerald-700">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
         </div>
     }
 
+    <!-- Error Modal Popup -->
     @if (TempData["ErrorMessage"] is string errorMsg && !string.IsNullOrWhiteSpace(errorMsg))
     {
-        <div id="errorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 flex items-center justify-between gap-3 shadow-sm">
-            <div class="flex items-center gap-2.5">
-                <span class="material-symbols-outlined text-[20px] text-rose-600">error</span>
-                <span class="text-sm font-semibold">@errorMsg</span>
+        <div id="errorModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+            <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+                <div class="w-16 h-16 rounded-full bg-rose-50 border-2 border-rose-100 text-rose-600 flex items-center justify-center shadow-xs ring-8 ring-rose-50/70">
+                    <span class="material-symbols-outlined text-[30px]">error</span>
+                </div>
+                <div class="space-y-1 text-center">
+                    <h3 class="text-lg font-bold text-slate-900 tracking-tight">Action Failed</h3>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        @errorMsg
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer" onclick="document.getElementById('errorModal').remove()">
+                    Close
+                </button>
             </div>
-            <button type="button" onclick="document.getElementById('errorBanner').remove()" class="p-1 rounded-lg hover:bg-rose-100 text-rose-700">
-                <span class="material-symbols-outlined text-[18px]">close</span>
-            </button>
         </div>
     }
 
@@ -121,10 +139,7 @@
             </div>
             <div class="space-y-1">
                 <h3 class="text-sm font-bold text-rose-900 uppercase tracking-wide">This Policy Has Been Cancelled</h3>
-                <p class="text-sm text-rose-800">
-                    @(string.IsNullOrWhiteSpace(Model.CancellationReason) ? "No formal cancellation reason was specified." : Model.CancellationReason)
-                </p>
-                <div class="flex items-center gap-3 text-xs text-rose-600 font-medium pt-1">
+                <div class="flex items-center gap-3 text-xs text-rose-600 font-medium pt-0.5">
                     @if (Model.CancelledAt.HasValue)
                     {
                         <span>Cancelled on: <strong>@Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm")</strong></span>
@@ -486,59 +501,71 @@
 <!-- ================= MODALS ================= -->
 
 <!-- 1. Publish Modal -->
-<div id="publishModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in duration-150">
-        <div class="w-14 h-14 rounded-2xl bg-emerald-50 border-2 border-emerald-200 text-emerald-600 flex items-center justify-center shadow-sm">
-            <span class="material-symbols-outlined text-[32px]">publish</span>
+<div id="publishModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-inner ring-8 ring-indigo-50/60">
+            <span class="material-symbols-outlined text-[32px]">rocket_launch</span>
         </div>
-        <div class="space-y-1">
-            <h3 class="text-lg font-bold text-slate-900">Publish Attendance Rule</h3>
-            <p class="text-sm text-slate-500">
-                Are you sure you want to publish <strong id="publishRuleName" class="text-slate-900"></strong>? Once published, it will be activated on its effective start date and cannot be modified.
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Publish Attendance Rule</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to publish this policy? Once published, it will take effect according to its scheduled effective date.
             </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words" id="publishRuleName">@Model.RuleName</div>
         </div>
-        <form asp-action="Publish" method="post" class="w-full flex gap-3 pt-2">
+        <form asp-action="Publish" method="post" class="w-full flex gap-3 pt-1">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="publishRuleId" value="" />
             <input type="hidden" name="returnToDetail" value="true" />
-            <button type="button" onclick="closePublishModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+            <button type="button" onclick="closePublishModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
                 Cancel
             </button>
-            <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm transition-all shadow-sm cursor-pointer">
-                Confirm Publish
+            <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-600/20 cursor-pointer">
+                Publish Now
             </button>
         </form>
     </div>
 </div>
 
 <!-- 2. Cancel Modal -->
-<div id="cancelModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in zoom-in duration-150">
-        <div class="flex items-center gap-3">
-            <div class="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
-                <span class="material-symbols-outlined text-[26px]">cancel</span>
-            </div>
-            <div>
-                <h3 class="text-base font-bold text-slate-900">Cancel Attendance Rule</h3>
-                <p class="text-xs text-slate-500">Provide an optional cancellation reason</p>
-            </div>
+<div id="cancelModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner ring-8 ring-rose-50/60">
+            <span class="material-symbols-outlined text-[32px]">event_busy</span>
+        </div>
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Cancel Attendance Rule</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                @if (Model.IsDraft)
+                {
+                    <span>Are you sure you want to cancel this draft policy?</span>
+                }
+                else
+                {
+                    <span>Are you sure you want to cancel this scheduled policy? This will revoke its upcoming activation.</span>
+                }
+            </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words">@Model.RuleName</div>
         </div>
         
-        <form asp-action="Cancel" method="post" class="space-y-4">
+        <form asp-action="Cancel" method="post" class="w-full space-y-4">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="cancelRuleId" value="" />
             <input type="hidden" name="returnToDetail" value="true" />
 
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Cancellation Reason</label>
-                <textarea name="cancellationReason" rows="3" maxlength="500" class="w-full px-3.5 py-2.5 text-sm bg-slate-50/60 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 transition-all text-slate-900" placeholder="e.g. Superseded by new operational policy..."></textarea>
-            </div>
+            @if (!Model.IsDraft)
+            {
+                <div class="text-left">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Cancellation Reason</label>
+                    <textarea name="cancellationReason" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-slate-900" placeholder="Optional reason for cancellation..."></textarea>
+                </div>
+            }
 
-            <div class="flex gap-3 pt-2">
-                <button type="button" onclick="closeCancelModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
-                    Keep Policy
+            <div class="flex gap-3 pt-1">
+                <button type="button" onclick="closeCancelModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+                    Cancel
                 </button>
-                <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-sm cursor-pointer">
+                <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer">
                     Confirm Cancel
                 </button>
             </div>
@@ -547,24 +574,25 @@
 </div>
 
 <!-- 3. Delete Modal -->
-<div id="deleteModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 hidden">
-    <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in duration-150">
-        <div class="w-14 h-14 rounded-2xl bg-rose-50 border-2 border-rose-200 text-rose-600 flex items-center justify-center shadow-sm">
+<div id="deleteModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 hidden">
+    <div class="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shadow-inner ring-8 ring-rose-50/60">
             <span class="material-symbols-outlined text-[32px]">delete</span>
         </div>
-        <div class="space-y-1">
-            <h3 class="text-lg font-bold text-slate-900">Delete Draft Policy</h3>
-            <p class="text-sm text-slate-500">
-                Are you sure you want to permanently delete draft <strong id="deleteRuleName" class="text-slate-900"></strong>? This action cannot be undone.
+        <div class="space-y-2 text-center w-full">
+            <h3 class="text-xl font-bold text-slate-900 tracking-tight">Delete Draft Policy</h3>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Are you sure you want to permanently delete this draft policy? This action cannot be undone.
             </p>
+            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words" id="deleteRuleName">@Model.RuleName</div>
         </div>
-        <form asp-action="Delete" method="post" class="w-full flex gap-3 pt-2">
+        <form asp-action="Delete" method="post" class="w-full flex gap-3 pt-1">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="deleteRuleId" value="" />
-            <button type="button" onclick="closeDeleteModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
+            <button type="button" onclick="closeDeleteModal()" class="flex-1 py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all cursor-pointer">
                 Cancel
             </button>
-            <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-sm cursor-pointer">
+            <button type="submit" class="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer">
                 Delete Draft
             </button>
         </form>
@@ -572,6 +600,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
     <script>
         function openPublishModal(id, name) {
             document.getElementById('publishRuleId').value = id;
@@ -610,5 +639,61 @@
                 closeDeleteModal();
             }
         });
+
+        // Realtime Admin Data Sync via SignalR
+        const currentRuleId = @Model.AttendanceRuleId;
+
+        async function reloadRuleDetailData() {
+            try {
+                const response = await fetch(window.location.href, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    cache: 'no-store'
+                });
+                if (response.status === 404) {
+                    window.location.href = '@Url.Action("List", "AttendanceRules")';
+                    return;
+                }
+                if (!response.ok) return;
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                const newContainer = doc.getElementById('ruleDetailContainer');
+                const currentContainer = document.getElementById('ruleDetailContainer');
+                if (newContainer && currentContainer) {
+                    currentContainer.innerHTML = newContainer.innerHTML;
+                }
+            } catch (err) {
+                console.warn('[SignalR] Failed to reload rule detail data:', err);
+            }
+        }
+
+        (function () {
+            const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
+                    skipNegotiation: false,
+                    transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+                })
+                .withAutomaticReconnect([0, 2000, 5000, 10000])
+                .build();
+
+            connection.on("AttendanceRuleChanged", function (payload) {
+                console.log("[SignalR] Attendance rule changed on Detail:", payload);
+                if (!payload || !payload.id || payload.id === currentRuleId || payload.action === "ACTIVATED" || payload.action === "PUBLISHED" || payload.action === "CANCELLED" || payload.action === "DELETED") {
+                    reloadRuleDetailData();
+                }
+            });
+
+            connection.start()
+                .then(function () {
+                    console.log("[SignalR] Connected to AdminRealtimeHub on Detail page");
+                    return connection.invoke("JoinAdminGroup");
+                })
+                .catch(function (err) {
+                    console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
+                });
+        })();
     </script>
 }

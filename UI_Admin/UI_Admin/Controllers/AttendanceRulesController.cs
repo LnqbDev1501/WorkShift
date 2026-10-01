@@ -130,6 +130,92 @@ public class AttendanceRulesController : Controller
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid attendance rule ID.";
+            return RedirectToAction(nameof(List));
+        }
+
+        try
+        {
+            var detail = await _attendanceRuleApiService.GetDetailAsync(id, cancellationToken);
+            if (!detail.CanEdit)
+            {
+                TempData["ErrorMessage"] = "Only attendance rules in Draft status can be edited.";
+                return RedirectToAction(nameof(Detail), new { id });
+            }
+
+            var model = new UpdateAttendanceRuleViewModel
+            {
+                AttendanceRuleId = detail.AttendanceRuleId,
+                RuleName = detail.RuleName,
+                Description = detail.Description,
+                CheckInBeforeMinutes = detail.CheckInBeforeMinutes,
+                CheckInGraceMinutes = detail.CheckInGraceMinutes,
+                CheckOutGraceMinutes = detail.CheckOutGraceMinutes,
+                CheckOutAfterMinutes = detail.CheckOutAfterMinutes,
+                MaxAttendanceDistanceMeters = detail.MaxAttendanceDistanceMeters,
+                EffectiveFrom = detail.EffectiveFrom
+            };
+
+            return View(model);
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Failed to load attendance rule {Id} for edit.", id);
+            TempData["ErrorMessage"] = exception.Message;
+            return RedirectToAction(nameof(List));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while loading attendance rule {Id} for edit.", id);
+            TempData["ErrorMessage"] = "Unable to load attendance rule for editing. Please try again later.";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(
+        int id,
+        UpdateAttendanceRuleViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid attendance rule ID.";
+            return RedirectToAction(nameof(List));
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.AttendanceRuleId = id;
+            return View(model);
+        }
+
+        try
+        {
+            await _attendanceRuleApiService.UpdateAsync(id, model, cancellationToken);
+            TempData["SuccessMessage"] = "Attendance rule updated successfully.";
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            model.AttendanceRuleId = id;
+            return View(model);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to update attendance rule {Id}.", id);
+            ModelState.AddModelError(string.Empty, "Unable to update attendance rule. Please try again.");
+            model.AttendanceRuleId = id;
+            return View(model);
+        }
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Publish(int id, bool returnToDetail = false, CancellationToken cancellationToken = default)
     {

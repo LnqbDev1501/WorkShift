@@ -75,28 +75,35 @@
     .actions{display:flex;align-items:center;gap:6px;white-space:nowrap}
     .icon-button{display:grid;width:32px;height:32px;padding:0;place-items:center;color:#4338ca;background:transparent;border:0;border-radius:7px;cursor:pointer;transition:background .15s}
     .icon-button:hover{background:#eef0ff}
-    .icon-button.success{color:#059669}
-    .icon-button.success:hover{background:#ecfdf5}
-    .icon-button.danger{color:#c62828}
-    .icon-button.danger:hover{background:#fee2e2}
+    .icon-button.success{color:#4f46e5}
+    .icon-button.success:hover{background:#eef2ff}
+    .icon-button.danger{color:#e11d48}
+    .icon-button.danger:hover{background:#ffe4e6}
     .icon-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .empty-row{text-align:center!important;color:#6b7280!important;height:100px!important}
-    .filter-submit{color:#fff;background:#5146e5;box-shadow:none}
-    .modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.5);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
-    .modal-box{background:#fff;border-radius:16px;max-width:460px;width:100%;padding:24px;box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:16px}
-    .modal-icon{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto}
-    .modal-icon.danger{background:#fef2f2;border:2px solid #fecaca;color:#dc2626}
-    .modal-icon.success{background:#ecfdf5;border:2px solid #a7f3d0;color:#059669}
-    .modal-title{font-size:18px;font-weight:600;color:#191c2a;text-align:center}
-    .modal-desc{font-size:14px;color:#5b6074;text-align:center;line-height:1.5}
-    .modal-actions{display:flex;gap:12px;margin-top:8px}
-    .modal-btn{flex:1;height:40px;border-radius:10px;font-weight:500;font-size:14px;cursor:pointer;transition:background .15s}
-    .modal-btn.cancel{background:#f3f4f6;color:#374151;border:0}
-    .modal-btn.cancel:hover{background:#e5e7eb}
-    .modal-btn.danger{background:#dc2626;color:#fff;border:0}
-    .modal-btn.danger:hover{background:#b91c1c}
-    .modal-btn.success{background:#059669;color:#fff;border:0}
+    
+    /* Modern Premium Modals */
+    .modal-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);animation:modalFade .15s ease-out}
+    .modal-box{background:#ffffff;border-radius:24px;max-width:440px;width:100%;padding:28px 24px;box-shadow:0 25px 50px -12px rgba(15,23,42,0.25);border:1px solid rgba(226,232,240,0.8);display:flex;flex-direction:column;gap:18px;animation:modalPop .2s cubic-bezier(0.16,1,0.3,1)}
+    .modal-icon{width:60px;height:60px;border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+    .modal-icon.danger{background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;outline:6px solid rgba(255,241,242,0.8)}
+    .modal-icon.success{background:#ecfdf5;border:1px solid #a7f3d0;color:#059669;outline:6px solid rgba(236,253,245,0.8)}
+    .modal-icon.publish{background:#eef2ff;border:1px solid #c7d2fe;color:#4f46e5;outline:6px solid rgba(238,242,255,0.8)}
+    .modal-title{font-size:18px;font-weight:700;color:#0f172a;text-align:center;letter-spacing:-0.01em}
+    .modal-desc{font-size:13.5px;color:#64748b;text-align:center;line-height:1.55}
+    .modal-item-badge{background:#f8fafc;border:1px solid #e2e8f0;padding:10px 14px;border-radius:12px;font-size:13px;font-weight:600;color:#1e293b;text-align:center;word-break:break-word}
+    .modal-actions{display:flex;gap:12px;margin-top:6px}
+    .modal-btn{flex:1;height:42px;border-radius:12px;font-weight:600;font-size:14px;cursor:pointer;transition:all .15s ease;display:flex;align-items:center;justify-content:center;border:0}
+    .modal-btn.cancel{background:#f1f5f9;color:#475569}
+    .modal-btn.cancel:hover{background:#e2e8f0;color:#1e293b}
+    .modal-btn.danger{background:#e11d48;color:#ffffff;box-shadow:0 4px 12px rgba(225,29,72,0.25)}
+    .modal-btn.danger:hover{background:#be123c}
+    .modal-btn.success{background:#059669;color:#ffffff;box-shadow:0 4px 12px rgba(5,150,105,0.25)}
     .modal-btn.success:hover{background:#047857}
+    .modal-btn.publish{background:#4f46e5;color:#ffffff;box-shadow:0 4px 12px rgba(79,70,229,0.25)}
+    .modal-btn.publish:hover{background:#4338ca}
+    @@keyframes modalFade{from{opacity:0}to{opacity:1}}
+    @@keyframes modalPop{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
     @@media(max-width:1100px){.metrics{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr 1fr auto}.table-card{overflow-x:auto}.rules-table{min-width:1050px}}
     @@media(max-width:700px){.rules-page{padding:16px 16px 32px}.page-heading{align-items:flex-start;flex-direction:column}.metrics{grid-template-columns:1fr}.filters{grid-template-columns:1fr}}
 </style>
@@ -105,48 +112,56 @@
 <!-- System Notification Modals (TempData) -->
 @if (TempData["SuccessMessage"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
 {
-    <div id="successModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-icon success">
-                <span class="material-symbols-outlined text-[32px]">check_circle</span>
+    <div id="successModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+        <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="w-16 h-16 rounded-full bg-emerald-50 border-2 border-emerald-100 text-emerald-600 flex items-center justify-center shadow-xs ring-8 ring-emerald-50/70">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
             </div>
-            <div>
-                <h3 class="modal-title">Success</h3>
-                <p class="modal-desc">@successMessage</p>
+            <div class="space-y-1 text-center">
+                <h3 class="text-lg font-bold text-slate-900 tracking-tight">Success</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">@successMessage</p>
             </div>
-            <button type="button" class="modal-btn success" onclick="document.getElementById('successModal').remove()">OK</button>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-all shadow-md shadow-indigo-600/20 cursor-pointer" onclick="document.getElementById('successModal').remove()">
+                OK
+            </button>
         </div>
     </div>
 }
 
 @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
 {
-    <div id="errorModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-icon danger">
-                <span class="material-symbols-outlined text-[32px]">error</span>
+    <div id="errorModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+        <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="w-16 h-16 rounded-full bg-rose-50 border-2 border-rose-100 text-rose-600 flex items-center justify-center shadow-xs ring-8 ring-rose-50/70">
+                <span class="material-symbols-outlined text-[30px]">error</span>
             </div>
-            <div>
-                <h3 class="modal-title">Action Failed</h3>
-                <p class="modal-desc">@errorMessage</p>
+            <div class="space-y-1 text-center">
+                <h3 class="text-lg font-bold text-slate-900 tracking-tight">Action Failed</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">@errorMessage</p>
             </div>
-            <button type="button" class="modal-btn danger" onclick="document.getElementById('errorModal').remove()">Close</button>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer" onclick="document.getElementById('errorModal').remove()">
+                Close
+            </button>
         </div>
     </div>
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
 {
-    <div id="apiErrorModal" class="modal-overlay">
-        <div class="modal-box">
-            <div class="modal-icon danger">
-                <span class="material-symbols-outlined text-[32px]">warning</span>
+    <div id="apiErrorModal" class="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+        <div class="bg-white rounded-3xl p-7 max-w-sm w-full shadow-2xl border border-slate-100 flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div class="w-16 h-16 rounded-full bg-rose-50 border-2 border-rose-100 text-rose-600 flex items-center justify-center shadow-xs ring-8 ring-rose-50/70">
+                <span class="material-symbols-outlined text-[30px]">warning</span>
             </div>
-            <div>
-                <h3 class="modal-title">Unable to Load Data</h3>
-                <p class="modal-desc">@Model.ErrorMessage</p>
+            <div class="space-y-1 text-center">
+                <h3 class="text-lg font-bold text-slate-900 tracking-tight">Unable to Load Data</h3>
+                <p class="text-sm text-slate-600 leading-relaxed">@Model.ErrorMessage</p>
             </div>
-            <button type="button" class="modal-btn danger" onclick="document.getElementById('apiErrorModal').remove()">Close</button>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm transition-all shadow-md shadow-rose-600/20 cursor-pointer" onclick="document.getElementById('apiErrorModal').remove()">
+                Close
+            </button>
         </div>
     </div>
 }
@@ -155,18 +170,19 @@
 <div id="cancelRuleModal" class="modal-overlay hidden">
     <div class="modal-box">
         <div class="modal-icon danger">
-            <span class="material-symbols-outlined text-[32px]">cancel</span>
+            <span class="material-symbols-outlined text-[30px]">event_busy</span>
         </div>
-        <div>
-            <h3 class="modal-title">Cancel Attendance Rule?</h3>
-            <p class="modal-desc">Are you sure you want to cancel <strong id="cancelRuleNameText"></strong>? This will revoke scheduled activations or terminate this rule version.</p>
+        <div class="space-y-2 text-center">
+            <h3 class="modal-title">Cancel Attendance Rule</h3>
+            <p class="modal-desc" id="cancelModalSubtext">Are you sure you want to cancel this policy?</p>
+            <div class="modal-item-badge" id="cancelRuleNameText"></div>
         </div>
         <form asp-action="Cancel" method="post" id="cancelRuleForm" class="space-y-3">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="cancelRuleIdInput" value="" />
-            <div>
-                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Cancellation Reason</label>
-                <textarea name="cancellationReason" id="cancelReasonInput" rows="2" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Optional reason for cancellation..."></textarea>
+            <div id="cancelReasonContainer">
+                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Cancellation Reason</label>
+                <textarea name="cancellationReason" id="cancelReasonInput" rows="2" maxlength="500" class="w-full px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all text-slate-900" placeholder="Optional reason for cancellation..."></textarea>
             </div>
             <div class="modal-actions">
                 <button type="button" class="modal-btn cancel" onclick="closeCancelRuleModal()">Cancel</button>
@@ -179,19 +195,20 @@
 <!-- Publish Rule Modal -->
 <div id="publishRuleModal" class="modal-overlay hidden">
     <div class="modal-box">
-        <div class="modal-icon success">
-            <span class="material-symbols-outlined text-[32px]">publish</span>
+        <div class="modal-icon publish">
+            <span class="material-symbols-outlined text-[30px]">publish</span>
         </div>
-        <div>
-            <h3 class="modal-title">Publish Attendance Rule?</h3>
-            <p class="modal-desc">Are you sure you want to publish <strong id="publishRuleNameText"></strong>? If the effective date is today or earlier, it will become active immediately.</p>
+        <div class="space-y-2 text-center">
+            <h3 class="modal-title">Publish Attendance Rule</h3>
+            <p class="modal-desc">Are you sure you want to publish this policy? It will take effect according to its scheduled effective date.</p>
+            <div class="modal-item-badge" id="publishRuleNameText"></div>
         </div>
         <form asp-action="Publish" method="post" id="publishRuleForm">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="publishRuleIdInput" value="" />
             <div class="modal-actions">
                 <button type="button" class="modal-btn cancel" onclick="closePublishRuleModal()">Cancel</button>
-                <button type="submit" class="modal-btn success">Publish Now</button>
+                <button type="submit" class="modal-btn publish">Publish Now</button>
             </div>
         </form>
     </div>
@@ -347,18 +364,18 @@
                                     <!-- Edit & Publish (Only Draft) -->
                                     @if (rule.CanEdit)
                                     {
-                                        <a href="javascript:void(0)" class="icon-button" title="Edit draft" aria-label="Edit draft">
+                                        <a asp-action="Edit" asp-route-id="@rule.AttendanceRuleId" class="icon-button" title="Edit draft" aria-label="Edit draft">
                                             <svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg>
                                         </a>
                                         <button type="button" class="icon-button success" title="Publish rule" aria-label="Publish rule" onclick="openPublishRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
-                                            <svg viewBox="0 0 24 24"><path d="m5 12 5 5L20 7"/></svg>
+                                            <span class="material-symbols-outlined text-[18px]">publish</span>
                                         </button>
                                     }
 
                                     <!-- Cancel (Draft or Scheduled) -->
                                     @if (rule.CanCancel)
                                     {
-                                        <button type="button" class="icon-button danger" title="Cancel rule" aria-label="Cancel rule" onclick="openCancelRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
+                                        <button type="button" class="icon-button danger" title="Cancel rule" aria-label="Cancel rule" onclick="openCancelRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))', '@rule.Status')">
                                             <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
                                         </button>
                                     }
@@ -385,10 +402,24 @@
 @section Scripts {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script>
-    function openCancelRuleModal(id, name) {
+    function openCancelRuleModal(id, name, status) {
         document.getElementById('cancelRuleIdInput').value = id;
         document.getElementById('cancelRuleNameText').textContent = name;
         document.getElementById('cancelReasonInput').value = '';
+
+        const isDraft = (status || '').toUpperCase() === 'DRAFT';
+        const reasonContainer = document.getElementById('cancelReasonContainer');
+        const modalSubtext = document.getElementById('cancelModalSubtext');
+
+        if (reasonContainer) {
+            if (isDraft) {
+                reasonContainer.classList.add('hidden');
+                if (modalSubtext) modalSubtext.textContent = 'Are you sure you want to cancel this draft policy?';
+            } else {
+                reasonContainer.classList.remove('hidden');
+                if (modalSubtext) modalSubtext.textContent = 'Are you sure you want to cancel this scheduled policy? This will revoke its upcoming activation.';
+            }
+        }
         document.getElementById('cancelRuleModal').classList.remove('hidden');
     }
     function closeCancelRuleModal() {
