@@ -1,5 +1,4 @@
 @model UI_Admin.Models.AttendanceRule.AttendanceRuleDetailViewModel
-@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Attendance Rule Details - {Model.RuleName}";
@@ -547,7 +546,7 @@
             </p>
             <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3 text-xs font-semibold text-slate-800 break-words">@Model.RuleName</div>
         </div>
-        
+
         <form asp-action="Cancel" method="post" class="w-full space-y-4">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" id="cancelRuleId" value="" />
@@ -600,7 +599,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+
     <script>
         function openPublishModal(id, name) {
             document.getElementById('publishRuleId').value = id;
@@ -640,60 +639,5 @@
             }
         });
 
-        // Realtime Admin Data Sync via SignalR
-        const currentRuleId = @Model.AttendanceRuleId;
-
-        async function reloadRuleDetailData() {
-            try {
-                const response = await fetch(window.location.href, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    cache: 'no-store'
-                });
-                if (response.status === 404) {
-                    window.location.href = '@Url.Action("List", "AttendanceRules")';
-                    return;
-                }
-                if (!response.ok) return;
-
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                const newContainer = doc.getElementById('ruleDetailContainer');
-                const currentContainer = document.getElementById('ruleDetailContainer');
-                if (newContainer && currentContainer) {
-                    currentContainer.innerHTML = newContainer.innerHTML;
-                }
-            } catch (err) {
-                console.warn('[SignalR] Failed to reload rule detail data:', err);
-            }
-        }
-
-        (function () {
-            const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
-            const connection = new signalR.HubConnectionBuilder()
-                .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
-                    skipNegotiation: false,
-                    transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
-                })
-                .withAutomaticReconnect([0, 2000, 5000, 10000])
-                .build();
-
-            connection.on("AttendanceRuleChanged", function (payload) {
-                console.log("[SignalR] Attendance rule changed on Detail:", payload);
-                if (!payload || !payload.id || payload.id === currentRuleId || payload.action === "ACTIVATED" || payload.action === "PUBLISHED" || payload.action === "CANCELLED" || payload.action === "DELETED") {
-                    reloadRuleDetailData();
-                }
-            });
-
-            connection.start()
-                .then(function () {
-                    console.log("[SignalR] Connected to AdminRealtimeHub on Detail page");
-                    return connection.invoke("JoinAdminGroup");
-                })
-                .catch(function (err) {
-                    console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
-                });
-        })();
-    </script>
+</script>
 }

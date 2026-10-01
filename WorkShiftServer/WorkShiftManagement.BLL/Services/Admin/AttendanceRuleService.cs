@@ -108,7 +108,7 @@ public class AttendanceRuleService : IAttendanceRuleService
         };
 
         var created = await _attendanceRuleRepo.CreateAsync(rule, cancellationToken);
-        await PublishAdminSyncEventAsync("CREATED", created);
+
         return Map(created);
     }
 
@@ -147,7 +147,7 @@ public class AttendanceRuleService : IAttendanceRuleService
         rule.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
-        await PublishAdminSyncEventAsync("UPDATED", updated);
+
         return Map(updated);
     }
 
@@ -197,7 +197,6 @@ public class AttendanceRuleService : IAttendanceRuleService
         var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
 
         await SendPublishNotificationAsync(rule, adminUserId);
-        await PublishAdminSyncEventAsync("PUBLISHED", updated);
 
         return Map(updated);
     }
@@ -238,8 +237,6 @@ public class AttendanceRuleService : IAttendanceRuleService
             await SendCancelNotificationAsync(rule);
         }
 
-        await PublishAdminSyncEventAsync("CANCELLED", rule);
-
         return Map(rule);
     }
 
@@ -268,25 +265,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
 
             await SendActiveNotificationAsync(nextRule);
-            await PublishAdminSyncEventAsync("ACTIVATED", nextRule);
-        }
-    }
-
-    private async Task PublishAdminSyncEventAsync(string action, AttendanceRule rule)
-    {
-        try
-        {
-            await _adminRealtimePublisher.PublishDataChangedAsync("AttendanceRuleChanged", new
-            {
-                action,
-                ruleId = rule.AttendanceRuleId,
-                ruleName = rule.RuleName,
-                status = rule.Status
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to publish admin data sync event for attendance rule {RuleId}", rule.AttendanceRuleId);
+            await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
         }
     }
 

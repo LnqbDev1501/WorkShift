@@ -7,7 +7,6 @@ using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 
-
 namespace WorkShiftManagement.BLL.Services.Admin;
 
 public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
@@ -37,7 +36,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         _logger = logger;
     }
 
-
     public async Task<AttendancePenaltyRuleListResponse> GetAttendancePenaltyRulesAsync(
         GetAttendancePenaltyRulesRequest request,
         CancellationToken cancellationToken)
@@ -49,7 +47,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         {
             throw new ArgumentException("status must be one of: DRAFT, SCHEDULED, ACTIVE, INACTIVE, CANCELLED.");
         }
-
 
         var (items, totalItems) = await _attendancePenaltyRuleRepo.GetPagedAsync(
             pageNumber,
@@ -131,7 +128,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var created = await _attendancePenaltyRuleRepo.CreateAsync(rule, cancellationToken);
-        await PublishAdminSyncEventAsync("CREATED", created);
+
         return await GetByIdAsync(created.PenaltyRuleId, cancellationToken);
     }
 
@@ -183,7 +180,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         await _attendancePenaltyRuleRepo.UpdateDraftAsync(rule, newLevels, cancellationToken);
-        await PublishAdminSyncEventAsync("UPDATED", rule);
+
         return await GetByIdAsync(id, cancellationToken);
     }
 
@@ -242,7 +239,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
 
         await SendPublishNotificationAsync(rule, adminUserId);
-        await PublishAdminSyncEventAsync("PUBLISHED", rule);
 
         return await GetByIdAsync(id, cancellationToken);
     }
@@ -282,7 +278,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
                 TargetRoles = targetRoles,
                 Channels = new List<string> { "InApp" }
             };
-
 
             var recipientUserIds = recipients.Select(u => u.UserId).ToList();
             await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
@@ -338,7 +333,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
 
             await SendActiveNotificationAsync(nextRule);
-            await PublishAdminSyncEventAsync("ACTIVATED", nextRule);
+            await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
         }
     }
 
@@ -434,27 +429,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             await SendCancelNotificationAsync(rule);
         }
 
-        await PublishAdminSyncEventAsync("CANCELLED", rule);
-
         return await GetByIdAsync(id, cancellationToken);
-    }
-
-    private async Task PublishAdminSyncEventAsync(string action, AttendancePenaltyRule rule)
-    {
-        try
-        {
-            await _adminRealtimePublisher.PublishDataChangedAsync("AttendancePenaltyRuleChanged", new
-            {
-                action,
-                ruleId = rule.PenaltyRuleId,
-                ruleName = rule.RuleName,
-                status = rule.Status
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to publish admin data sync event for attendance penalty rule {RuleId}", rule.PenaltyRuleId);
-        }
     }
 
     private async Task SendCancelNotificationAsync(AttendancePenaltyRule rule)
@@ -542,8 +517,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             _ => throw new ArgumentException("violationType must be either 'LATE' or 'EARLY_LEAVE'.")
         };
     }
-
-
 
     private static void ValidateCreateRequest(CreateAttendancePenaltyRuleRequest request)
     {
@@ -694,9 +667,6 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             }
         }
     }
-
-
-
 
     private static AttendancePenaltyRuleItemResponse MapListItem(AttendancePenaltyRule rule) => new()
     {

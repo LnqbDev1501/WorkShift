@@ -1,5 +1,4 @@
 @model UI_Admin.Models.AttendanceRule.AttendanceRuleListViewModel
-@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = "Attendance Rules";
@@ -400,7 +399,7 @@
 </section>
 
 @section Scripts {
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+
 <script>
     function openCancelRuleModal(id, name, status) {
         document.getElementById('cancelRuleIdInput').value = id;
@@ -435,58 +434,5 @@
         document.getElementById('publishRuleModal').classList.add('hidden');
     }
 
-    async function reloadAttendanceRuleTableData() {
-        try {
-            const response = await fetch(window.location.href, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                cache: 'no-store'
-            });
-            if (!response.ok) return;
-
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-
-            const newMetrics = doc.querySelector('.metrics');
-            const currentMetrics = document.querySelector('.metrics');
-            if (newMetrics && currentMetrics) {
-                currentMetrics.innerHTML = newMetrics.innerHTML;
-            }
-
-            const newTableCard = doc.querySelector('.table-card');
-            const currentTableCard = document.querySelector('.table-card');
-            if (newTableCard && currentTableCard) {
-                currentTableCard.innerHTML = newTableCard.innerHTML;
-            }
-        } catch (err) {
-            console.warn('[SignalR] Failed to reload attendance rule table:', err);
-        }
-    }
-
-    // Realtime Admin Data Sync via SignalR
-    (function () {
-        const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
-                skipNegotiation: false,
-                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
-            })
-            .withAutomaticReconnect([0, 2000, 5000, 10000])
-            .build();
-
-        connection.on("AttendanceRuleChanged", function (payload) {
-            console.log("[SignalR] Attendance rule changed:", payload);
-            reloadAttendanceRuleTableData();
-        });
-
-        connection.start()
-            .then(function () {
-                console.log("[SignalR] Connected to AdminRealtimeHub for Attendance Rules");
-                return connection.invoke("JoinAdminGroup");
-            })
-            .catch(function (err) {
-                console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
-            });
-    })();
 </script>
 }

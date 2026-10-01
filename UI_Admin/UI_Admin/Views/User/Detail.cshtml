@@ -1,5 +1,4 @@
 @model UI_Admin.Models.UserDetailViewModel
-@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Account Details - {Model.FullName}";
@@ -606,7 +605,7 @@
 </div>
 
 @section Scripts {
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+
 <script>
     function copyUUID() {
         const text = document.getElementById('account-uuid').innerText.trim();
@@ -623,60 +622,5 @@
         });
     }
 
-    // Realtime Admin Data Sync via SignalR
-    const currentUserId = '@Model.UserId';
-
-    async function reloadUserDetailData() {
-        try {
-            const response = await fetch(window.location.href, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                cache: 'no-store'
-            });
-            if (response.status === 404) {
-                window.location.href = '@Url.Action("List", "User")';
-                return;
-            }
-            if (!response.ok) return;
-
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-
-            const newContainer = doc.getElementById('userDetailContainer');
-            const currentContainer = document.getElementById('userDetailContainer');
-            if (newContainer && currentContainer) {
-                currentContainer.innerHTML = newContainer.innerHTML;
-            }
-        } catch (err) {
-            console.warn('[SignalR] Failed to reload user detail data:', err);
-        }
-    }
-
-    (function () {
-        const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
-                skipNegotiation: false,
-                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
-            })
-            .withAutomaticReconnect([0, 2000, 5000, 10000])
-            .build();
-
-        connection.on("AdminUserChanged", function (payload) {
-            console.log("[SignalR] User changed on Detail:", payload);
-            if (!payload || !payload.userId || payload.userId.toLowerCase() === currentUserId.toLowerCase()) {
-                reloadUserDetailData();
-            }
-        });
-
-        connection.start()
-            .then(function () {
-                console.log("[SignalR] Connected to AdminRealtimeHub on User Detail page");
-                return connection.invoke("JoinAdminGroup");
-            })
-            .catch(function (err) {
-                console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
-            });
-    })();
 </script>
 }

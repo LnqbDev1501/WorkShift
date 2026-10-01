@@ -22,7 +22,8 @@ using WorkShiftServer.API.Services.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<AdminDataChangedFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<AdminDataChangedFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
