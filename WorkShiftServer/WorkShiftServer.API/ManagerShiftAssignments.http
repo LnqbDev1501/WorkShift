@@ -1,0 +1,19 @@
+@host = https://localhost:7000
+@token = REPLACE_WITH_MANAGER_ACCESS_TOKEN
+@shiftId = 1
+@assignmentId = 1
+
+### The staff's employee type must match a requirement with a remaining slot.
+### Both operations require SCHEDULED future shifts in OPEN_REGISTRATION or REGISTRATION_CLOSED weeks.
+POST {{host}}/api/manager/shifts/{{shiftId}}/assignments
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "userId": "00000000-0000-0000-0000-000000000001" }
+
+### Soft cancellation; preserves assignment and records the manager/reason in the audit log.
+POST {{host}}/api/manager/assignments/{{assignmentId}}/cancel
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "reason": "Điều chỉnh phân công nhân sự." }

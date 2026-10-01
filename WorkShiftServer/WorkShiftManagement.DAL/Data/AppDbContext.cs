@@ -929,7 +929,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => e.ContractId, "uq_contract_open_change_request")
                 .IsUnique()
-                .HasFilter("((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying])::text[]))");
+                .HasFilter("((status)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying, 'APPROVED'::character varying])::text[]))");
 
             entity.Property(e => e.ChangeRequestId).HasColumnName("change_request_id");
             entity.Property(e => e.ContractId).HasColumnName("contract_id");
