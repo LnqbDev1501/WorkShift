@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Upload;
+using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -12,17 +14,21 @@ public class ProductService : IProductService
 {
     private readonly IProductRepo _productRepo;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly AppDbContext _context;
 
-    public ProductService(IProductRepo productRepo, ICloudinaryService cloudinaryService)
+    public ProductService(IProductRepo productRepo, ICloudinaryService cloudinaryService, AppDbContext context)
     {
         _productRepo = productRepo;
         _cloudinaryService = cloudinaryService;
+        _context = context;
     }
 
-    public async Task<PagedResponse<ProductResponse>> GetPagedAsync(ProductListQuery query)
+    public async Task<PagedResponse<ProductResponse>> GetPagedAsync(ProductListQuery query, Guid actorId)
     {
         if (query == null)
             throw new ArgumentException("Query is required.");
+
+        var actor = await GetActorAsync(actorId);
 
         var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
         var pageSize = query.PageSize < 1 ? 10 : query.PageSize;
@@ -39,7 +45,10 @@ public class ProductService : IProductService
 
         int? categoryId = query.CategoryId is > 0 ? query.CategoryId : null;
 
-        var (items, totalCount) = await _productRepo.GetPagedAsync(query.Search, categoryId, status, pageNumber, pageSize);
+        // Managers only see products of their own branch.
+        int? branchId = actor.Role == "MANAGER" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
+
+        var (items, totalCount) = await _productRepo.GetPagedAsync(query.Search, branchId, categoryId, status, pageNumber, pageSize);
 
         return new PagedResponse<ProductResponse>
         {
@@ -50,18 +59,25 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<ProductDetailResponse?> GetByIdAsync(int id)
+    public async Task<ProductDetailResponse?> GetByIdAsync(int id, Guid actorId)
     {
         if (id <= 0)
             return null;
+
+        var actor = await GetActorAsync(actorId);
 
         var data = await _productRepo.GetByIdAsync(id);
         if (data == null)
             return null;
 
+        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+            return null;
+
         return new ProductDetailResponse
         {
             ProductId = data.ProductId,
+            BranchId = data.BranchId,
+            BranchName = data.BranchName,
             CategoryId = data.CategoryId,
             CategoryName = data.CategoryName,
             ProductCode = data.ProductCode,
@@ -75,8 +91,10 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<ProductResponse> CreateAsync(CreateProductRequest request)
+    public async Task<ProductResponse> CreateAsync(CreateProductRequest request, Guid actorId)
     {
+        var branchId = await RequireManagerBranchAsync(actorId);
+
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
 
@@ -84,14 +102,15 @@ public class ProductService : IProductService
         var (categoryId, name, price, description, imageUrl) = await ValidateFieldsAsync(
             request.CategoryId, request.ProductName, request.Price, request.Description, request.ImageUrl);
 
-        if (await _productRepo.ExistsByCodeAsync(code))
-            throw new InvalidOperationException("Product code already exists.");
+        if (await _productRepo.ExistsByCodeInBranchAsync(code, branchId))
+            throw new InvalidOperationException("Product code already exists in this branch.");
 
         var resolvedImageUrl = await ResolveImageUrlAsync(code, request.ImageFile, imageUrl);
 
         var now = DateTime.UtcNow;
         var entity = new Product
         {
+            BranchId = branchId,
             CategoryId = categoryId,
             ProductCode = code,
             ProductName = name,
@@ -107,19 +126,21 @@ public class ProductService : IProductService
         return Map(created);
     }
 
-    public async Task<ProductResponse?> UpdateAsync(int id, UpdateProductRequest request)
+    public async Task<ProductResponse?> UpdateAsync(int id, UpdateProductRequest request, Guid actorId)
     {
+        var branchId = await RequireManagerBranchAsync(actorId);
+
         if (id <= 0)
             throw new ArgumentException("Product id must be greater than 0.");
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
 
+        var existing = await _productRepo.GetByIdAsync(id);
+        if (existing == null || existing.BranchId != branchId)
+            return null;
+
         var (categoryId, name, price, description, imageUrl) = await ValidateFieldsAsync(
             request.CategoryId, request.ProductName, request.Price, request.Description, request.ImageUrl);
-
-        var existing = await _productRepo.GetByIdAsync(id);
-        if (existing == null)
-            return null;
 
         var resolvedImageUrl = await ResolveImageUrlAsync(existing.ProductCode, request.ImageFile, imageUrl);
 
@@ -127,13 +148,15 @@ public class ProductService : IProductService
         return updated == null ? null : Map(updated);
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id, Guid actorId)
     {
+        var branchId = await RequireManagerBranchAsync(actorId);
+
         if (id <= 0)
             throw new ArgumentException("Product id must be greater than 0.");
 
         var detail = await _productRepo.GetByIdAsync(id);
-        if (detail == null)
+        if (detail == null || detail.BranchId != branchId)
             return false;
         if (detail.Status != "ACTIVE")
             throw new InvalidOperationException("Product is already inactive.");
@@ -141,13 +164,15 @@ public class ProductService : IProductService
         return await _productRepo.SoftDeleteAsync(id);
     }
 
-    public async Task<bool> RestoreAsync(int id)
+    public async Task<bool> RestoreAsync(int id, Guid actorId)
     {
+        var branchId = await RequireManagerBranchAsync(actorId);
+
         if (id <= 0)
             throw new ArgumentException("Product id must be greater than 0.");
 
         var detail = await _productRepo.GetByIdAsync(id);
-        if (detail == null)
+        if (detail == null || detail.BranchId != branchId)
             return false;
         if (detail.Status == "ACTIVE")
             throw new InvalidOperationException("Product is already active.");
@@ -156,6 +181,31 @@ public class ProductService : IProductService
             throw new InvalidOperationException("The product's category is inactive. Activate the category first.");
 
         return await _productRepo.RestoreAsync(id);
+    }
+
+    private async Task<(string Role, int? BranchId)> GetActorAsync(Guid actorId)
+    {
+        if (actorId == Guid.Empty)
+            throw new UnauthorizedAccessException("The authenticated user ID is invalid.");
+
+        var actor = await _context.Users.AsNoTracking()
+            .Where(user => user.UserId == actorId && user.Status == "ACTIVE" && user.DeletedAt == null)
+            .Select(user => new { Role = user.Role.RoleName, user.BranchId })
+            .SingleOrDefaultAsync()
+            ?? throw new UnauthorizedAccessException("Your WorkShift account is inactive or unavailable.");
+
+        return (actor.Role.Trim().ToUpperInvariant(), actor.BranchId);
+    }
+
+    private async Task<int> RequireManagerBranchAsync(Guid actorId)
+    {
+        var actor = await GetActorAsync(actorId);
+        if (actor.Role != "MANAGER")
+            throw new UnauthorizedAccessException("Only branch managers can manage products.");
+        if (!actor.BranchId.HasValue)
+            throw new UnauthorizedAccessException("The manager account is not assigned to a branch.");
+
+        return actor.BranchId.Value;
     }
 
     private async Task<string?> ResolveImageUrlAsync(string productCode, IFormFile? imageFile, string? imageUrl)
@@ -214,6 +264,8 @@ public class ProductService : IProductService
     private static ProductResponse Map(DAL.Models.Admin.ProductData data) => new()
     {
         ProductId = data.ProductId,
+        BranchId = data.BranchId,
+        BranchName = data.BranchName,
         CategoryId = data.CategoryId,
         CategoryName = data.CategoryName,
         ProductCode = data.ProductCode,

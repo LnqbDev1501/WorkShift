@@ -14,6 +14,8 @@ public class CategoryData
 public class CategoryProductData
 {
     public int ProductId { get; set; }
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public string ProductCode { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public decimal Price { get; set; }

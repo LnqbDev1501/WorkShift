@@ -91,7 +91,7 @@
                         <a asp-controller="Products" asp-action="Details" asp-route-id="@product.ProductId" class="flex items-center justify-between gap-unit-3 p-unit-3 rounded-xl hover:bg-surface-container-low transition-colors border border-transparent hover:border-surface-container-high">
                             <div class="flex flex-col min-w-0">
                                 <span class="font-body-md-medium text-body-md-medium @(productActive ? "text-on-surface" : "text-secondary") truncate">@product.ProductName</span>
-                                <span class="font-code-num text-[12px] text-secondary">@product.ProductCode • @UI_Admin.Helpers.CurrencyHelper.FormatVnd(product.Price)</span>
+                                <span class="font-code-num text-[12px] text-secondary">@product.ProductCode • @product.BranchName • @UI_Admin.Helpers.CurrencyHelper.FormatVnd(product.Price)</span>
                             </div>
                             <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm flex-shrink-0 @(productActive ? "bg-emerald-50 text-emerald-700" : "bg-surface-container text-secondary")">
                                 @(productActive ? "Active" : "Inactive")

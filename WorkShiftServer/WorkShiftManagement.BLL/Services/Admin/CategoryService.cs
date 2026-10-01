@@ -62,6 +62,8 @@ public class CategoryService : ICategoryService
             Products = data.Products.Select(product => new CategoryProductResponse
             {
                 ProductId = product.ProductId,
+                BranchId = product.BranchId,
+                BranchName = product.BranchName,
                 ProductCode = product.ProductCode,
                 ProductName = product.ProductName,
                 Price = product.Price,

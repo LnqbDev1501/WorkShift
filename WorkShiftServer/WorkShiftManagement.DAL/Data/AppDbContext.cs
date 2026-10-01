@@ -133,7 +133,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
 
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -2221,11 +2220,14 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("products");
 
+            entity.HasIndex(e => e.BranchId, "ix_products_branch_id");
+
             entity.HasIndex(e => new { e.CategoryId, e.Status }, "ix_products_category_status");
 
-            entity.HasIndex(e => e.ProductCode, "products_product_code_key").IsUnique();
+            entity.HasIndex(e => new { e.BranchId, e.ProductCode }, "uq_products_branch_code").IsUnique();
 
             entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CategoryId).HasColumnName("category_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
@@ -2252,6 +2254,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Products)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("products_branch_id_fkey");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.CategoryId)

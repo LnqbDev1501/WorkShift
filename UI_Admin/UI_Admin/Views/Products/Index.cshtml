@@ -2,7 +2,8 @@
 
 @{
     ViewData["Title"] = "Products";
-    var canWrite = User.IsInRole("ADMIN") || User.IsInRole("MANAGER");
+    var canWrite = User.IsInRole("MANAGER");
+    var showBranchFilter = Model.Branches.Count > 0;
 }
 
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
@@ -16,7 +17,11 @@
             <div class="flex items-center gap-unit-3">
                 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Products</h1>
             </div>
-            <p class="font-body-md text-body-md text-secondary mt-1">Manage sellable products, pricing and availability for order processing.</p>
+            <p class="font-body-md text-body-md text-secondary mt-1">Manage sellable products, pricing and availability for order processing. Products belong to a specific branch.</p>
+            @if (User.IsInRole("MANAGER"))
+            {
+                <p class="font-body-sm text-body-sm text-primary mt-1">Showing products of your branch.</p>
+            }
         </div>
         @if (canWrite)
         {
@@ -48,6 +53,23 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                        placeholder="Search product code or name..."
                        type="text">
             </div>
+            <!-- Branch Filter Dropdown -->
+            @if (showBranchFilter)
+            {
+                <div class="relative sm:w-56">
+                    <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
+                            id="branch-filter"
+                            name="branchId"
+                            onchange="this.form.submit()">
+                        <option value="">All Branches</option>
+                        @foreach (var branch in Model.Branches)
+                        {
+                            <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
+                        }
+                    </select>
+                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
+                </div>
+            }
             <!-- Category Filter Dropdown -->
             <div class="relative sm:w-56">
                 <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
@@ -86,6 +108,7 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                     <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
                         <th class="px-unit-5 py-2" scope="col">Product Code</th>
                         <th class="px-unit-4 py-2" scope="col">Product Name</th>
+                        <th class="px-unit-4 py-2" scope="col">Branch</th>
                         <th class="px-unit-4 py-2" scope="col">Category</th>
                         <th class="px-unit-4 py-2 text-right" scope="col">Price</th>
                         <th class="px-unit-4 py-2" scope="col">Status</th>
@@ -96,7 +119,7 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                     @if (Model.Items.Count == 0)
                     {
                         <tr>
-                            <td colspan="6" class="px-unit-5 py-8 text-center text-secondary font-body-md">
+                            <td colspan="7" class="px-unit-5 py-8 text-center text-secondary font-body-md">
                                 No products found matching your filter criteria.
                             </td>
                         </tr>
@@ -112,6 +135,9 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary")">
                                     @item.ProductName
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
+                                    @item.BranchName
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
                                     @item.CategoryName

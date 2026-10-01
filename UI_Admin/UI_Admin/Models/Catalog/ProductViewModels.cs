@@ -8,9 +8,17 @@ public class CategoryOptionViewModel
     public string Name { get; set; } = string.Empty;
 }
 
+public class BranchOptionItemViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
 public class ProductListItemViewModel
 {
     public int ProductId { get; set; }
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public string ProductCode { get; set; } = string.Empty;
@@ -27,9 +35,11 @@ public class ProductListPagedViewModel
     public int TotalItems { get; set; }
     public int TotalPages { get; set; }
     public string? Search { get; set; }
+    public int? BranchId { get; set; }
     public int? CategoryId { get; set; }
     public string StatusFilter { get; set; } = "all";
     public List<CategoryOptionViewModel> Categories { get; set; } = [];
+    public List<BranchOptionItemViewModel> Branches { get; set; } = [];
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 }
@@ -97,6 +107,8 @@ public class EditProductViewModel
 public class ProductDetailViewModel
 {
     public int ProductId { get; set; }
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public int CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public string ProductCode { get; set; } = string.Empty;

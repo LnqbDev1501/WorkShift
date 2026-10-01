@@ -21,6 +21,7 @@ public sealed class ProductApiService
 
     public async Task<ProductListPagedViewModel> GetPagedAsync(
         string? search,
+        int? branchId,
         int? categoryId,
         string? status = "all",
         int pageNumber = 1,
@@ -36,6 +37,9 @@ public sealed class ProductApiService
         if (!string.IsNullOrWhiteSpace(search))
             parameters.Add($"search={Uri.EscapeDataString(search.Trim())}");
 
+        if (branchId is > 0)
+            parameters.Add($"branchId={branchId.Value}");
+
         if (categoryId is > 0)
             parameters.Add($"categoryId={categoryId.Value}");
 
@@ -48,6 +52,7 @@ public sealed class ProductApiService
 
         var paged = result ?? new ProductListPagedViewModel();
         paged.Search = search;
+        paged.BranchId = branchId is > 0 ? branchId : null;
         paged.CategoryId = categoryId is > 0 ? categoryId : null;
         paged.StatusFilter = normalizedStatus is "active" or "inactive" ? normalizedStatus : "all";
         return paged;
