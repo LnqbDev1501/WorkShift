@@ -8,6 +8,11 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface IEmploymentContractRepo
 {
+    Task<IReadOnlyList<User>> GetEligibleStaffAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<User?> GetCreationUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<bool> HasPendingContractAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task CreateDraftAsync(EmploymentContract contract, CancellationToken cancellationToken = default);
+
     Task<(IReadOnlyList<EmploymentContract> Items, int TotalCount)> GetPagedAsync(
         string? search,
         string? status,

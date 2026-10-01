@@ -116,6 +116,8 @@ builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageServi
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
 builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmploymentContractService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerEmploymentContractService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
