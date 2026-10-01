@@ -28,8 +28,8 @@ public sealed class UpdateAttendanceRuleRequest
     public int? CheckOutAfterMinutes { get; set; } = 30;
 
     [Required(ErrorMessage = "Maximum attendance distance is required.")]
-    [Range(1, 100000, ErrorMessage = "Maximum attendance distance must be greater than 0.")]
-    public int? MaxAttendanceDistanceMeters { get; set; }
+    [Range(10, 1000, ErrorMessage = "Maximum attendance distance must be between 10 and 1000 meters.")]
+    public int? MaxAttendanceDistanceMeters { get; set; } = 100;
 
     [Required(ErrorMessage = "Effective From date is required.")]
     [DataType(DataType.Date)]

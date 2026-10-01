@@ -66,6 +66,28 @@ public sealed class AttendanceRuleApiService
         return MapToViewModel(dto);
     }
 
+    public async Task CreateAsync(CreateAttendanceRuleViewModel model, CancellationToken cancellationToken = default)
+    {
+        var payload = new
+        {
+            model.RuleName,
+            model.Description,
+            model.CheckInBeforeMinutes,
+            model.CheckInGraceMinutes,
+            model.CheckOutGraceMinutes,
+            model.CheckOutAfterMinutes,
+            model.MaxAttendanceDistanceMeters,
+            EffectiveFrom = model.EffectiveFrom?.ToString("yyyy-MM-dd")
+        };
+
+        using var response = await _httpClient.PostAsJsonAsync(
+            BuildUrl("api/admin/attendance-rules"),
+            payload,
+            cancellationToken);
+
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task PublishAsync(int id, CancellationToken cancellationToken = default)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl($"api/admin/attendance-rules/{id}/publish"));

@@ -55,6 +55,51 @@ public class AttendanceRulesController : Controller
         }
     }
 
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7).AddDays(1));
+        var model = new CreateAttendanceRuleViewModel
+        {
+            CheckInBeforeMinutes = 30,
+            CheckInGraceMinutes = 5,
+            CheckOutGraceMinutes = 5,
+            CheckOutAfterMinutes = 30,
+            MaxAttendanceDistanceMeters = 100,
+            EffectiveFrom = tomorrow
+        };
+        return View(model);
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(
+        CreateAttendanceRuleViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            await _attendanceRuleApiService.CreateAsync(model, cancellationToken);
+            TempData["SuccessMessage"] = "Attendance rule created successfully as Draft.";
+            return RedirectToAction(nameof(List));
+        }
+        catch (HttpRequestException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return View(model);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to create attendance rule.");
+            ModelState.AddModelError(string.Empty, "Unable to create attendance rule. Please try again.");
+            return View(model);
+        }
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Publish(int id, CancellationToken cancellationToken)
     {
