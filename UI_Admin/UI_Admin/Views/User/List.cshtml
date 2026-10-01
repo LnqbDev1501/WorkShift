@@ -1,4 +1,5 @@
 @model UserListViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = "User Accounts";
@@ -354,6 +355,7 @@
 </section>
 
 @section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script>
     function openDeactivateModal(userId, fullName) {
         document.getElementById('deactivateUserIdInput').value = userId;
@@ -363,5 +365,61 @@
     function closeDeactivateModal() {
         document.getElementById('deactivateConfirmModal').classList.add('hidden');
     }
+
+    async function reloadUserTableData() {
+        try {
+            const response = await fetch(window.location.href, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store'
+            });
+            if (!response.ok) return;
+
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            // 1. Smoothly update Metrics Cards
+            const newMetrics = doc.querySelector('.metrics');
+            const currentMetrics = document.querySelector('.metrics');
+            if (newMetrics && currentMetrics) {
+                currentMetrics.innerHTML = newMetrics.innerHTML;
+            }
+
+            // 2. Smoothly update Table & Pagination
+            const newTableCard = doc.querySelector('.table-card');
+            const currentTableCard = document.querySelector('.table-card');
+            if (newTableCard && currentTableCard) {
+                currentTableCard.innerHTML = newTableCard.innerHTML;
+            }
+        } catch (err) {
+            console.warn('[SignalR] Failed to reload user table:', err);
+        }
+    }
+
+    // Realtime Admin Data Sync via SignalR
+    (function () {
+        const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
+                skipNegotiation: false,
+                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
+            })
+            .withAutomaticReconnect([0, 2000, 5000, 10000])
+            .build();
+
+        connection.on("AdminUserChanged", function (payload) {
+            console.log("[SignalR] User account changed:", payload);
+            reloadUserTableData();
+        });
+
+        connection.start()
+            .then(function () {
+                console.log("[SignalR] Connected to AdminRealtimeHub");
+                return connection.invoke("JoinAdminGroup");
+            })
+            .catch(function (err) {
+                console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
+            });
+    })();
 </script>
 }

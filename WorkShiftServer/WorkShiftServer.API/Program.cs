@@ -11,8 +11,10 @@ using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftServer.API.Hubs;
 using WorkShiftServer.API.Services;
+using WorkShiftServer.API.Services.Realtime;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +47,16 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddSignalR();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRPolicy", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
 
 var supabaseUrl = builder.Configuration["Supabase:Url"]
     ?? throw new InvalidOperationException("Missing Supabase:Url configuration.");
@@ -107,7 +119,12 @@ builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmail
 });
 builder.Services.AddScoped<IWorkingTimeRuleRepo, WorkingTimeRuleRepo>();
 builder.Services.AddScoped<IWorkingTimeRuleService, WorkingTimeRuleService>();
+builder.Services.AddScoped<IAttendanceRuleRepo, AttendanceRuleRepo>();
+builder.Services.AddScoped<IAttendanceRuleService, AttendanceRuleService>();
+builder.Services.AddScoped<IAttendancePenaltyRuleRepo, AttendancePenaltyRuleRepo>();
+builder.Services.AddScoped<IAttendancePenaltyRuleService, AttendancePenaltyRuleService>();
 builder.Services.AddScoped<IRegionRepo, RegionRepo>();
+
 builder.Services.AddScoped<IEmployeeTypeRepo, EmployeeTypeRepo>();
 builder.Services.AddScoped<IEmployeeTypeService, EmployeeTypeService>();
 builder.Services.AddScoped<IRegionService, RegionService>();
@@ -141,6 +158,7 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
+builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
 var app = builder.Build();
 
@@ -151,7 +169,20 @@ try
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
             Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendanceRuleService>(
+            "attendance-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IAttendancePenaltyRuleService>(
+            "attendance-penalty-rules-activation",
+            service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
 }
+
 catch (Exception ex)
 {
     // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
@@ -162,14 +193,17 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseHangfireDashboard();
 }
 
 app.UseHttpsRedirection();
+app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 
 app.Run();

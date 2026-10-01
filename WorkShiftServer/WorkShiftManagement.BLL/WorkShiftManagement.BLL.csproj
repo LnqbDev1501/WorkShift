@@ -22,5 +22,12 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOs\Admin\AttendancePenaltyRule\Response\" />
+    <Folder Include="DTOs\Admin\AttendancePenaltyRule\Request\" />
+    <Folder Include="DTOs\Admin\AttendanceRule\Response\" />
+    <Folder Include="DTOs\Admin\AttendanceRule\Request\" />
+  </ItemGroup>
+
 </Project>
 
