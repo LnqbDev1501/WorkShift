@@ -56,6 +56,34 @@ public class AttendanceRulesController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> Detail(int id, CancellationToken cancellationToken)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid attendance rule ID.";
+            return RedirectToAction(nameof(List));
+        }
+
+        try
+        {
+            var model = await _attendanceRuleApiService.GetDetailAsync(id, cancellationToken);
+            return View(model);
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Failed to load attendance rule {Id} from API.", id);
+            TempData["ErrorMessage"] = exception.Message;
+            return RedirectToAction(nameof(List));
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while retrieving attendance rule {Id}.", id);
+            TempData["ErrorMessage"] = "Unable to load attendance rule details. Please try again later.";
+            return RedirectToAction(nameof(List));
+        }
+    }
+
+    [HttpGet]
     public IActionResult Create()
     {
         var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7).AddDays(1));
@@ -83,9 +111,11 @@ public class AttendanceRulesController : Controller
 
         try
         {
-            await _attendanceRuleApiService.CreateAsync(model, cancellationToken);
+            var createdId = await _attendanceRuleApiService.CreateAsync(model, cancellationToken);
             TempData["SuccessMessage"] = "Attendance rule created successfully as Draft.";
-            return RedirectToAction(nameof(List));
+            return createdId > 0
+                ? RedirectToAction(nameof(Detail), new { id = createdId })
+                : RedirectToAction(nameof(List));
         }
         catch (HttpRequestException exception)
         {
@@ -101,7 +131,7 @@ public class AttendanceRulesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Publish(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Publish(int id, bool returnToDetail = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -118,11 +148,13 @@ public class AttendanceRulesController : Controller
             TempData["ErrorMessage"] = "Unable to publish attendance rule. Please try again.";
         }
 
-        return RedirectToAction(nameof(List));
+        return returnToDetail
+            ? RedirectToAction(nameof(Detail), new { id })
+            : RedirectToAction(nameof(List));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Cancel(int id, string? cancellationReason, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(int id, string? cancellationReason, bool returnToDetail = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -139,7 +171,9 @@ public class AttendanceRulesController : Controller
             TempData["ErrorMessage"] = "Unable to cancel attendance rule. Please try again.";
         }
 
-        return RedirectToAction(nameof(List));
+        return returnToDetail
+            ? RedirectToAction(nameof(Detail), new { id })
+            : RedirectToAction(nameof(List));
     }
 
     [HttpPost, ValidateAntiForgeryToken]

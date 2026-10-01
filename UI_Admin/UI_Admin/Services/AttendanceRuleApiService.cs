@@ -55,7 +55,7 @@ public sealed class AttendanceRuleApiService
         };
     }
 
-    public async Task<AttendanceRuleListItemViewModel> GetDetailAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<AttendanceRuleDetailViewModel> GetDetailAsync(int id, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.GetAsync(BuildUrl($"api/admin/attendance-rules/{id}"), cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -63,10 +63,10 @@ public sealed class AttendanceRuleApiService
         var dto = await response.Content.ReadFromJsonAsync<AttendanceRuleApiItemResponse>(cancellationToken: cancellationToken)
             ?? throw new JsonException("Attendance rule API returned an empty response.");
 
-        return MapToViewModel(dto);
+        return MapToDetailViewModel(dto);
     }
 
-    public async Task CreateAsync(CreateAttendanceRuleViewModel model, CancellationToken cancellationToken = default)
+    public async Task<int> CreateAsync(CreateAttendanceRuleViewModel model, CancellationToken cancellationToken = default)
     {
         var payload = new
         {
@@ -86,6 +86,9 @@ public sealed class AttendanceRuleApiService
             cancellationToken);
 
         await EnsureSuccessAsync(response, cancellationToken);
+
+        var createdDto = await response.Content.ReadFromJsonAsync<AttendanceRuleApiItemResponse>(cancellationToken: cancellationToken);
+        return createdDto?.AttendanceRuleId ?? 0;
     }
 
     public async Task PublishAsync(int id, CancellationToken cancellationToken = default)
@@ -126,6 +129,30 @@ public sealed class AttendanceRuleApiService
         Status = dto.Status,
         CreatedByName = dto.CreatedByName,
         CreatedAt = dto.CreatedAt
+    };
+
+    private static AttendanceRuleDetailViewModel MapToDetailViewModel(AttendanceRuleApiItemResponse dto) => new()
+    {
+        AttendanceRuleId = dto.AttendanceRuleId,
+        RuleName = dto.RuleName,
+        Description = dto.Description,
+        CheckInBeforeMinutes = dto.CheckInBeforeMinutes,
+        CheckInGraceMinutes = dto.CheckInGraceMinutes,
+        CheckOutGraceMinutes = dto.CheckOutGraceMinutes,
+        CheckOutAfterMinutes = dto.CheckOutAfterMinutes,
+        MaxAttendanceDistanceMeters = dto.MaxAttendanceDistanceMeters,
+        EffectiveFrom = dto.EffectiveFrom,
+        EffectiveTo = dto.EffectiveTo,
+        Status = dto.Status,
+        CreatedBy = dto.CreatedBy,
+        CreatedByName = dto.CreatedByName,
+        PublishedBy = dto.PublishedBy,
+        PublishedAt = dto.PublishedAt,
+        CancelledBy = dto.CancelledBy,
+        CancelledAt = dto.CancelledAt,
+        CancellationReason = dto.CancellationReason,
+        CreatedAt = dto.CreatedAt,
+        UpdatedAt = dto.UpdatedAt
     };
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
@@ -172,8 +199,15 @@ public sealed class AttendanceRuleApiService
         public DateOnly? EffectiveFrom { get; set; }
         public DateOnly? EffectiveTo { get; set; }
         public string Status { get; set; } = string.Empty;
+        public Guid CreatedBy { get; set; }
         public string? CreatedByName { get; set; }
+        public Guid? PublishedBy { get; set; }
+        public DateTime? PublishedAt { get; set; }
+        public Guid? CancelledBy { get; set; }
+        public DateTime? CancelledAt { get; set; }
+        public string? CancellationReason { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
     }
 
     private sealed class ApiErrorResponse
