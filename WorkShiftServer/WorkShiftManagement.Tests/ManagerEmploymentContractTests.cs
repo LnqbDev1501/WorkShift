@@ -80,11 +80,119 @@ public class ManagerEmploymentContractTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Service().CreateAsync(manager.UserId, Request()));
         Assert.Null(saved);
     }
-    [Fact] public async Task RejectsDifferentBranch()
+    [Fact] public async Task RejectsDifferentBranchInRenewal()
     {
         staff.BranchId = 4;
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Service().CreateAsync(manager.UserId, Request()));
+        var req = Request();
+        req.ContractType = "RENEWAL";
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Service().CreateAsync(manager.UserId, req));
         Assert.Null(saved);
+    }
+    [Fact] public async Task AllowsStaffWithoutBranchInNewContract()
+    {
+        staff.BranchId = null;
+        var response = await Service().CreateAsync(manager.UserId, Request());
+        Assert.NotNull(saved);
+        Assert.Equal(3, saved.BranchId);
+        Assert.Null(saved.ReplacesContractId);
+    }
+    [Fact] public async Task RejectsStaffWithAnyExistingContractInNewMode()
+    {
+        repo.Setup(r => r.HasAnyContractAsync(staff.UserId, It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Service().CreateAsync(manager.UserId, Request()));
+        Assert.Null(saved);
+    }
+    [Fact] public async Task RenewalModeLinksOldContract()
+    {
+        var oldContract = new EmploymentContract { ContractId = 88, UserId = staff.UserId, BranchId = 3, Status = "ACTIVE" };
+        repo.Setup(r => r.GetByIdAsync(88, It.IsAny<CancellationToken>())).ReturnsAsync(oldContract);
+        var req = Request();
+        req.ContractType = "RENEWAL";
+        req.ReplacesContractId = 88;
+        var response = await Service().CreateAsync(manager.UserId, req);
+        Assert.NotNull(saved);
+        Assert.Equal(88, saved.ReplacesContractId);
+        Assert.Equal("DRAFT", saved.Status);
+        Assert.Equal("ACTIVE", oldContract.Status);
+    }
+    [Fact] public async Task NewContractUsesManagerBranchAndWageNotStaffBranch()
+    {
+        var managerBranch = new Branch
+        {
+            BranchId = 3,
+            BranchName = "Manager Branch",
+            Address = "Manager Branch Address",
+            Status = "ACTIVE",
+            RegionId = 5,
+            Region = new Region
+            {
+                RegionId = 5,
+                RegionName = "Manager Region",
+                IsActive = true,
+                RegionalMinimumWageId = 10,
+                RegionalMinimumWage = new RegionalMinimumWage
+                {
+                    RegionalMinimumWageId = 10,
+                    Status = "ACTIVE",
+                    MinimumHourlyRate = 30000,
+                    EffectiveFrom = new DateOnly(2025, 1, 1),
+                    EffectiveTo = new DateOnly(2027, 1, 1)
+                }
+            }
+        };
+        manager.Branch = managerBranch;
+
+        var otherStaff = new User
+        {
+            UserId = Guid.NewGuid(),
+            BranchId = 99,
+            Status = "ACTIVE",
+            Role = new() { RoleName = "STAFF" },
+            FullName = "Tran Thi B",
+            Phone = "0987654321",
+            Address = "Staff B address",
+            IdentityNo = "987654321098",
+            Branch = new()
+            {
+                BranchId = 99,
+                BranchName = "Staff Other Branch",
+                Address = "Other Address",
+                Status = "ACTIVE",
+                RegionId = 88,
+                Region = new()
+                {
+                    RegionId = 88,
+                    RegionName = "Other Region",
+                    IsActive = true,
+                    RegionalMinimumWageId = 88,
+                    RegionalMinimumWage = new()
+                    {
+                        RegionalMinimumWageId = 88,
+                        Status = "ACTIVE",
+                        MinimumHourlyRate = 15000,
+                        EffectiveFrom = new DateOnly(2025, 1, 1),
+                        EffectiveTo = new DateOnly(2027, 1, 1)
+                    }
+                }
+            }
+        };
+        repo.Setup(r => r.GetCreationUserAsync(otherStaff.UserId, It.IsAny<CancellationToken>())).ReturnsAsync(otherStaff);
+
+        var req = new CreateEmploymentContractRequest
+        {
+            StaffUserId = otherStaff.UserId,
+            StartDate = new DateOnly(2026, 2, 1),
+            EmployeePosition = "Phục vụ"
+        };
+        var res = await Service().CreateAsync(manager.UserId, req);
+        Assert.NotNull(saved);
+        Assert.Equal(3, saved.BranchId);
+        Assert.Equal("Manager Branch", saved.BranchNameSnapshot);
+        Assert.Equal("Manager Region", saved.RegionNameSnapshot);
+        Assert.Equal(30000m, saved.HourlyRate);
+        Assert.Equal("Tran Thi B", saved.EmployeeFullNameSnapshot);
+        Assert.Equal("0987654321", saved.EmployeePhoneSnapshot);
+        Assert.Null(saved.ReplacesContractId);
     }
     [Fact] public async Task RejectsMissingStaff()
     {
@@ -178,3 +286,4 @@ public class ManagerEmploymentContractTests
         Assert.Equal(3, saved.BranchId); Assert.Equal(manager.UserId, saved.CreatedBy);
     }
 }
+

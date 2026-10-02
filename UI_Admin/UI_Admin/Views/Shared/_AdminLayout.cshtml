@@ -165,10 +165,14 @@
         })();
     </script>
 
+    @if (User.IsInRole("MANAGER"))
+    {
+        <link rel="stylesheet" href="~/css/manager-workspace.css" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/workshift-theme.css" asp-append-version="true" />
 </head>
-<body class="workshift-theme bg-background font-body-md text-on-surface">
+<body class="workshift-theme bg-background font-body-md text-on-surface @(User.IsInRole("MANAGER") ? "manager-workspace" : "")">
     <partial name="_AdminSidebar" />
 
     <div id="main-content-wrapper" class="pl-[232px]">

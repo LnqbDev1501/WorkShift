@@ -7,6 +7,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Data;
@@ -32,6 +33,7 @@ public class UserService : IUserService
     private readonly string _defaultAvatarUrl;
     private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IAdminRealtimePublisher _adminRealtimePublisher;
 
     public UserService(
         IUserRepo userRepo,
@@ -40,7 +42,8 @@ public class UserService : IUserService
         ILogger<UserService> logger,
         IConfiguration configuration,
         AppDbContext dbContext,
-        ICloudinaryService cloudinaryService)
+        ICloudinaryService cloudinaryService,
+        IAdminRealtimePublisher adminRealtimePublisher)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -51,6 +54,7 @@ public class UserService : IUserService
                 "Cloudinary:DefaultAvatarUrl is not configured.");
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -204,6 +208,7 @@ public class UserService : IUserService
 
             _userRepo.Create(user);
             await _userRepo.SaveChangesAsync();
+            await PublishAdminSyncEventAsync("CREATED", user);
 
             return new CreateAdminUserResponse
             {
@@ -248,6 +253,7 @@ public class UserService : IUserService
         user.Status = ActiveStatus;
         user.UpdatedAt = DateTime.UtcNow;
         await _userRepo.SaveChangesAsync();
+        await PublishAdminSyncEventAsync("ACTIVATED", user);
     }
 
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
@@ -453,6 +459,8 @@ public class UserService : IUserService
             await _dbContext.Entry(user).Reference(u => u.Branch).LoadAsync();
         }
 
+        await PublishAdminSyncEventAsync("UPDATED", user);
+
         return new UpdateAdminUserResponse
         {
             UserId = user.UserId,
@@ -586,6 +594,7 @@ public class UserService : IUserService
             user.DeletedAt = now;
             user.UpdatedAt = now;
             await _userRepo.SaveChangesAsync();
+            await PublishAdminSyncEventAsync("DELETED", user);
         }
         catch
         {
@@ -658,6 +667,7 @@ public class UserService : IUserService
             user.DeletedAt = null;
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepo.SaveChangesAsync();
+            await PublishAdminSyncEventAsync("RESTORED", user);
         }
         catch (Exception exception)
         {
@@ -786,5 +796,26 @@ public class UserService : IUserService
             throw new ArgumentException("User must be at least 18 years old.");
         if (request.Address.Length is 0 or > 500)
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
+    }
+
+    private async Task PublishAdminSyncEventAsync(string action, User user)
+    {
+        try
+        {
+            await _adminRealtimePublisher.PublishDataChangedAsync("AdminUserChanged", new
+            {
+                action,
+                userId = user.UserId,
+                fullName = user.FullName,
+                email = user.Email,
+                roleId = user.RoleId,
+                branchId = user.BranchId,
+                status = user.Status
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to publish admin data sync event for user {UserId}", user.UserId);
+        }
     }
 }

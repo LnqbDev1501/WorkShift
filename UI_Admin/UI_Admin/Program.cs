@@ -6,6 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<ManagerContractApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -39,6 +41,7 @@ builder.Services.AddHttpClient<CategoryApiService>().AddHttpMessageHandler<ApiBe
 builder.Services.AddHttpClient<ProductApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<HolidayApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<EmploymentContractApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<AttendanceRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<IVietMapService, VietMapService>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
 var app = builder.Build();
