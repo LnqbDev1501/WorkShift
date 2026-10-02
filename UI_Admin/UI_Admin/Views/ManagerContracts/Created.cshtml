@@ -1,0 +1,25 @@
+@model UI_Admin.Models.Manager.ContractCreatedResponse
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = "Draft Contract Created";
+}
+<div class="bg-white rounded-xl border shadow-sm p-6 sm:p-8">
+    <div class="flex items-center gap-3 mb-6">
+        <i data-lucide="circle-check" class="text-emerald-600"></i>
+        <h1 class="text-2xl font-bold">Draft Contract Created</h1>
+    </div>
+    <dl class="grid sm:grid-cols-2 gap-6 break-words">
+        <div><dt class="text-sm text-slate-500">Contract Number</dt><dd class="font-semibold">@Model.ContractNumber</dd></div>
+        <div><dt class="text-sm text-slate-500">Status</dt><dd class="font-semibold text-indigo-700">@Model.Status</dd></div>
+        <div><dt class="text-sm text-slate-500">Staff Member</dt><dd>@Model.EmployeeFullName</dd></div>
+        <div><dt class="text-sm text-slate-500">Position</dt><dd>@Model.EmployeePosition</dd></div>
+        <div><dt class="text-sm text-slate-500">Branch / Region</dt><dd>@Model.BranchName / @Model.RegionName</dd></div>
+        <div><dt class="text-sm text-slate-500">Hourly Rate</dt><dd>@Model.HourlyRate.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) VND/hr</dd></div>
+        <div><dt class="text-sm text-slate-500">Start Date</dt><dd>@Model.StartDate.ToString("dd/MM/yyyy")</dd></div>
+        <div><dt class="text-sm text-slate-500">End Date</dt><dd>@(Model.EndDate?.ToString("dd/MM/yyyy") ?? "Indefinite")</dd></div>
+    </dl>
+    <div class="flex flex-wrap gap-3 mt-8">
+        <a asp-action="Create" class="bg-indigo-600 text-white rounded-lg px-5 py-3 hover:bg-indigo-700 font-medium">Create Another Contract</a>
+        <a asp-action="Index" class="border rounded-lg px-5 py-3 text-slate-700 hover:bg-slate-50 font-medium">Back to Contract List</a>
+    </div>
+</div>

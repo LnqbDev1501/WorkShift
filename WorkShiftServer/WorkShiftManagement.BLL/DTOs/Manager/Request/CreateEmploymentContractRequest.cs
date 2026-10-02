@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
@@ -10,4 +11,6 @@ public class CreateEmploymentContractRequest
     [Required, StringLength(100)]
     public string EmployeePosition { get; set; } = string.Empty;
     public string? ContractTerms { get; set; }
+    public string? ContractType { get; set; } = "NEW";
+    public int? ReplacesContractId { get; set; }
 }

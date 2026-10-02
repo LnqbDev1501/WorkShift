@@ -28,8 +28,7 @@
                         <span
                         class="font-title-md text-white text-[14px] font-semibold leading-tight tracking-tight truncate">WorkShift</span>
                         <span
-                            class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">ADMIN
-                            ENGINE</span>
+                            class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">@(User.IsInRole("MANAGER") ? "MANAGER WORKSPACE" : "ADMIN ENGINE")</span>
                         </div>
                     </div>
                     <!-- Stylish Collapse Toggle Button -->
@@ -202,12 +201,24 @@
                         </div>
                         <a asp-controller="Landing"
                            asp-action="@(User.IsInRole("ACCOUNTANT") ? "Accountant" : User.IsInRole("MANAGER") ? "Manager" : "Staff")"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg bg-primary-container text-white font-title-md shadow-sm"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Landing" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white")"
                            title="My Workspace">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">My Workspace</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">@(User.IsInRole("MANAGER") ? "Tổng quan" : "My Workspace")</span>
                         </a>
                     </nav>
+                    @if (User.IsInRole("MANAGER"))
+                    {
+                        <nav class="space-y-unit-1" aria-label="Quản lý nhân sự">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">NHÂN SỰ</span></div>
+                            <a asp-controller="ManagerContracts" asp-action="Index" title="Quản lý hợp đồng"
+                               aria-current="@(currentController == "ManagerContracts" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">contract</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý hợp đồng</span>
+                            </a>
+                        </nav>
+                    }
                     @if (User.IsInRole("MANAGER") || User.IsInRole("ACCOUNTANT"))
                     {
                         <nav class="space-y-unit-1">

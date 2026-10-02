@@ -1,4 +1,4 @@
-using System.Net.Http.Json;
+
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,8 +12,13 @@ internal static class ApiErrorReader
     {
         try
         {
-            var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>(
-                cancellationToken: cancellationToken);
+            var json = await response.Content.ReadAsStringAsync(cancellationToken);
+            using var document = JsonDocument.Parse(json);
+            if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("message", out var message) &&
+                message.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(message.GetString()))
+                return message.GetString()!;
+            var problem = JsonSerializer.Deserialize<ProblemDetails>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             if (!string.IsNullOrWhiteSpace(problem?.Detail))
                 return problem.Detail;
             if (!string.IsNullOrWhiteSpace(problem?.Title))

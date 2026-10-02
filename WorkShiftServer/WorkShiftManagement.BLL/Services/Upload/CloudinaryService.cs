@@ -120,4 +120,82 @@ public class CloudinaryService : ICloudinaryService
         var deletionParams = new DeletionParams(publicId);
         await _cloudinary.DestroyAsync(deletionParams);
     }
+
+    public async Task<string> UploadContractPdfAsync(string contractNumber, byte[] pdfBytes)
+    {
+        if (pdfBytes == null || pdfBytes.Length == 0)
+        {
+            throw new ArgumentException("PDF file content is empty.");
+        }
+
+        var safeContractNumber = (contractNumber ?? "contract").Trim();
+        var publicIdWithExt = safeContractNumber.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? safeContractNumber
+            : $"{safeContractNumber}.pdf";
+
+        using var stream = new MemoryStream(pdfBytes);
+        var uploadParams = new RawUploadParams
+        {
+            File = new FileDescription(publicIdWithExt, stream),
+            Folder = "workshift/contracts",
+            PublicId = safeContractNumber,
+            Type = "authenticated",
+            Overwrite = true
+        };
+
+        var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+
+        if (uploadResult.Error != null)
+        {
+            throw new InvalidOperationException($"Cloudinary PDF upload failed: {uploadResult.Error.Message}");
+        }
+
+        return uploadResult.PublicId;
+    }
+
+    public async Task<byte[]> DownloadRawFileAsync(string publicId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            throw new ArgumentException("PublicId is required for download.");
+        }
+
+        var targetPublicId = publicId.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+            ? publicId
+            : $"{publicId}.pdf";
+
+        var signedUrl = _cloudinary.Api.Url.ResourceType("raw").Type("authenticated").Signed(true).BuildUrl(targetPublicId);
+
+        using var httpClient = new HttpClient();
+        var response = await httpClient.GetAsync(signedUrl);
+        if (!response.IsSuccessStatusCode)
+        {
+            // If fetching with .pdf failed, try fetching with original publicId as fallback
+            var fallbackSignedUrl = _cloudinary.Api.Url.ResourceType("raw").Type("authenticated").Signed(true).BuildUrl(publicId);
+            var fallbackResponse = await httpClient.GetAsync(fallbackSignedUrl);
+            if (!fallbackResponse.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new InvalidOperationException($"Không tải được file PDF từ Cloudinary ({response.StatusCode}): {errorBody}");
+            }
+            return await fallbackResponse.Content.ReadAsByteArrayAsync();
+        }
+
+        return await response.Content.ReadAsByteArrayAsync();
+    }
+
+    public async Task DeleteRawFileAsync(string publicId)
+    {
+        if (string.IsNullOrWhiteSpace(publicId))
+        {
+            return;
+        }
+
+        var deletionParams = new DeletionParams(publicId)
+        {
+            ResourceType = ResourceType.Raw,
+            Type = "authenticated"
+        };
+        await _cloudinary.DestroyAsync(deletionParams);
+    }
 }

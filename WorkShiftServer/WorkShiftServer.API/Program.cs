@@ -149,6 +149,10 @@ builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
 builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmploymentContractService,
     WorkShiftManagement.BLL.Services.Manager.ManagerEmploymentContractService>();
+builder.Services.AddSingleton<WorkShiftManagement.BLL.Interfaces.Manager.IContractPdfGenerator,
+    WorkShiftManagement.BLL.Services.Manager.ContractPdfGenerator>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService,
+    WorkShiftManagement.BLL.Services.Staff.StaffEmploymentContractService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
@@ -160,6 +164,7 @@ builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
+builder.Services.AddHostedService<EmploymentContractActivationWorker>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
@@ -202,6 +207,11 @@ try
         .AddOrUpdate<IAttendancePenaltyRuleService>(
             "attendance-penalty-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
+            "scheduled-contracts-activation",
+            service => service.ActivateDueScheduledContractsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 
