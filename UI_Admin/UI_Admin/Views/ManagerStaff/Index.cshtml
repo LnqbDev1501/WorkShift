@@ -122,7 +122,8 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                                             <button type="button"
                                                     class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn cursor-pointer"
                                                     data-id="@item.UserId"
-                                                    data-name="@item.FullName">
+                                                    data-name="@item.FullName"
+                                                    onclick="openStaffModal('deactivate-staff-modal','deactivate-target-name','deactivate-staff-id',this)">
                                                 Deactivate
                                             </button>
                                         }
@@ -131,7 +132,8 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                                             <button type="button"
                                                     class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors open-restore-btn cursor-pointer"
                                                     data-id="@item.UserId"
-                                                    data-name="@item.FullName">
+                                                    data-name="@item.FullName"
+                                                    onclick="openStaffModal('restore-staff-modal','restore-target-name','restore-staff-id',this)">
                                                 <span class="material-symbols-outlined text-[16px]">restore</span>
                                                 <span>Restore</span>
                                             </button>
@@ -165,7 +167,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                     <h2 class="font-title-lg text-title-lg text-on-surface">Deactivate Staff</h2>
                     <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface" id="deactivate-target-name">this staff</strong>?</p>
                 </div>
-                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button">
+                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button" onclick="closeStaffModal('deactivate-staff-modal')">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
@@ -175,7 +177,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
             <form method="post" asp-controller="ManagerStaff" asp-action="Deactivate" id="deactivate-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="deactivate-staff-id" value="0" />
-                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-deactivate-modal" type="button">Cancel</button>
+                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-deactivate-modal" type="button" onclick="closeStaffModal('deactivate-staff-modal')">Cancel</button>
                 <button class="h-[40px] px-unit-4 rounded-xl bg-error hover:bg-error-container hover:text-on-error-container text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-deactivate-btn" type="submit">Deactivate Staff</button>
             </form>
         </div>
@@ -192,7 +194,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                     <h2 class="font-title-lg text-title-lg text-on-surface">Restore Staff</h2>
                     <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface" id="restore-target-name">this staff</strong>?</p>
                 </div>
-                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button">
+                <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button" onclick="closeStaffModal('restore-staff-modal')">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
@@ -202,7 +204,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
             <form method="post" asp-controller="ManagerStaff" asp-action="Restore" id="restore-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="restore-staff-id" value="0" />
-                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-restore-modal" type="button">Cancel</button>
+                <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-restore-modal" type="button" onclick="closeStaffModal('restore-staff-modal')">Cancel</button>
                 <button class="h-[40px] px-unit-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-restore-btn" type="submit">Confirm Restore</button>
             </form>
         </div>
@@ -211,4 +213,21 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
 
 @section Scripts {
     <script src="~/js/manager-staff.js" asp-append-version="true"></script>
+    <script>
+        function openStaffModal(modalId, nameId, inputId, btn) {
+            var modal = document.getElementById(modalId);
+            if (!modal) return;
+            var name = btn ? btn.getAttribute('data-name') : '';
+            var id = btn ? btn.getAttribute('data-id') : '';
+            var nameEl = document.getElementById(nameId);
+            if (nameEl) nameEl.textContent = name || 'this staff';
+            var inputEl = document.getElementById(inputId);
+            if (inputEl) inputEl.value = id || '';
+            modal.classList.remove('hidden');
+        }
+        function closeStaffModal(modalId) {
+            var modal = document.getElementById(modalId);
+            if (modal) modal.classList.add('hidden');
+        }
+    </script>
 }

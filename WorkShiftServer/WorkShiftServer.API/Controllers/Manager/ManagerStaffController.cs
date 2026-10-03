@@ -137,6 +137,26 @@ public sealed class ManagerStaffController : ControllerBase
                 Detail = exception.Message
             });
         }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Supabase Auth failed while creating staff account.");
+            return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+            {
+                Status = StatusCodes.Status502BadGateway,
+                Title = "Bad Gateway",
+                Detail = $"Authentication service rejected the request: {exception.Message}"
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unexpected error while creating staff account.");
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Internal Server Error",
+                Detail = "Staff account could not be created. Please try again later."
+            });
+        }
     }
 
 /// <summary>

@@ -118,14 +118,26 @@
         </div>
 
         <div class="flex items-center gap-3 pt-2 border-t border-gray-200">
-            <form asp-controller="ManagerStaff" asp-action="Deactivate" method="post">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@Model.UserId" />
-                <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px] mr-2">block</span>
-                    <span>Deactivate</span>
-                </button>
-            </form>
+            @if (Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                <form asp-controller="ManagerStaff" asp-action="Deactivate" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.UserId" />
+                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+                        <span>Deactivate</span>
+                    </button>
+                </form>
+            }
+            else
+            {
+                <form asp-controller="ManagerStaff" asp-action="Restore" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.UserId" />
+                    <button type="submit" class="inline-flex items-center px-4 py-2 rounded-xl bg-[#4f46e5] text-sm font-medium text-white hover:bg-[#4338ca] transition-colors shadow-sm cursor-pointer">
+                        <span>Restore</span>
+                    </button>
+                </form>
+            }
         </div>
     </div>
 </div>

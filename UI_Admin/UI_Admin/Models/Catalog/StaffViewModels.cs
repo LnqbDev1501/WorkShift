@@ -74,8 +74,9 @@ public class CreateStaffAccountViewModel
     [Required(ErrorMessage = "Date of birth is required.")]
     public DateOnly? DateOfBirth { get; set; }
 
+    [Required(ErrorMessage = "Address is required.")]
     [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters.")]
-    public string? Address { get; set; }
+    public string Address { get; set; } = string.Empty;
 
     public IFormFile? ImageFile { get; set; }
 
@@ -110,8 +111,9 @@ public class EditStaffAccountViewModel
         [Required(ErrorMessage = "Date of birth is required.")]
         public DateOnly? DateOfBirth { get; set; }
 
+        [Required(ErrorMessage = "Address is required.")]
         [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters.")]
-        public string? Address { get; set; }
+        public string Address { get; set; } = string.Empty;
 
         public string Status { get; set; } = string.Empty;
 

@@ -18,17 +18,21 @@ public class ManagerStaffService : IManagerStaffService
     private readonly IAuthService _authService;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly AppDbContext _context;
+    private readonly string _defaultAvatarUrl;
 
     public ManagerStaffService(
         IManagerStaffRepo staffRepo,
         IAuthService authService,
         ICloudinaryService cloudinaryService,
-        AppDbContext context)
+        AppDbContext context,
+        Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _staffRepo = staffRepo;
         _authService = authService;
         _cloudinaryService = cloudinaryService;
         _context = context;
+        _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
+            ?? throw new InvalidOperationException("Cloudinary:DefaultAvatarUrl is not configured.");
     }
 
     public async Task<StaffAccountPagedResponse> GetStaffListAsync(ManagerStaffListQuery query, Guid managerId)
@@ -108,7 +112,16 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Identity number is already in use.");
         }
 
-        var authUserId = await _authService.CreateUserWithPasswordAsync(request.Email, "WorkShift@fa26");
+        Guid authUserId;
+        try
+        {
+            authUserId = await _authService.CreateUserWithPasswordAsync(request.Email, "WorkShift@fa26");
+        }
+        catch (HttpRequestException exception) when (exception.Message.Contains("already been registered", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("This email is already registered. Please use another email address or delete the existing authentication account.");
+        }
+
         var now = DateTime.UtcNow;
 
         var staff = new User
@@ -122,13 +135,23 @@ public class ManagerStaffService : IManagerStaffService
             IdentityNo = request.IdentityNo.Trim(),
             Gender = request.Gender.Trim().ToUpperInvariant(),
             DateOfBirth = request.DateOfBirth.Value,
-            Address = request.Address?.Trim(),
+            AvatarUrl = _defaultAvatarUrl,
+            Address = request.Address?.Trim() ?? string.Empty,
             Status = "ACTIVE",
             CreatedAt = now,
             UpdatedAt = now
         };
 
-        await _staffRepo.CreateStaffAsync(staff, managerId);
+        try
+        {
+            await _staffRepo.CreateStaffAsync(staff, managerId);
+        }
+        catch
+        {
+            // Roll back the Supabase user so a failed DB insert does not orphan an auth account.
+            try { await _authService.DeleteUserAsync(authUserId); } catch { /* best effort */ }
+            throw;
+        }
 
         var createdStaff = await _staffRepo.GetStaffByIdAsync(staff.UserId, branchId)
             ?? throw new InvalidOperationException("Failed to retrieve created staff.");
@@ -151,6 +174,11 @@ public class ManagerStaffService : IManagerStaffService
         if (staff == null || staff.BranchId != branchId)
         {
             return null;
+        }
+
+        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Deactivated staff cannot be edited. Restore the account first.");
         }
 
         await ValidateUpdateFieldsAsync(phone, identityNo, branchId, staff.UserId);
@@ -183,7 +211,7 @@ public class ManagerStaffService : IManagerStaffService
             return false;
         }
 
-        if (staff.Status != "ACTIVE")
+        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Staff is already inactive.");
         }
@@ -318,23 +346,15 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Date of birth is required.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (request.DateOfBirth.Value < new DateOnly(1900, 1, 1))
+        ValidateDateOfBirth(request.DateOfBirth.Value);
+
+        var address = request.Address?.Trim() ?? string.Empty;
+        if (address.Length is 0 or > 500)
         {
-            throw new ArgumentException("Date of birth must be on or after January 1, 1900.");
-        }
-        if (request.DateOfBirth.Value > today.AddYears(-18))
-        {
-            throw new ArgumentException("Staff must be at least 18 years old.");
+            throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
 
-        var address = request.Address?.Trim();
-        if (!string.IsNullOrWhiteSpace(address) && address.Length > 500)
-        {
-            throw new ArgumentException("Address cannot exceed 500 characters.");
-        }
-
-        return (request.FullName.Trim(), phone, identityNo, gender, request.DateOfBirth.Value, request.Address?.Trim());
+        return (request.FullName.Trim(), phone, identityNo, gender, request.DateOfBirth.Value, address);
     }
 
     private async Task ValidateStaffFieldsAsync(CreateStaffAccountRequest request, int branchId)
@@ -389,20 +409,29 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Date of birth is required.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        if (request.DateOfBirth.Value < new DateOnly(1900, 1, 1))
-        {
-            throw new ArgumentException("Date of birth must be on or after 1900-01-01.");
-        }
-        if (request.DateOfBirth.Value > today.AddYears(-18))
-        {
-            throw new ArgumentException("Staff must be at least 18 years old.");
-        }
+        ValidateDateOfBirth(request.DateOfBirth.Value);
 
-        var address = request.Address?.Trim();
-        if (!string.IsNullOrWhiteSpace(address) && address.Length > 500)
+        var address = request.Address?.Trim() ?? string.Empty;
+        if (address.Length is 0 or > 500)
         {
-            throw new ArgumentException("Address cannot exceed 500 characters.");
+            throw new ArgumentException("Address must contain between 1 and 500 characters.");
+        }
+    }
+
+    private static void ValidateDateOfBirth(DateOnly dateOfBirth)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        if (dateOfBirth > today)
+        {
+            throw new ArgumentException("Date of birth cannot be in the future.");
+        }
+        if (dateOfBirth > today.AddYears(-16))
+        {
+            throw new ArgumentException("Staff must be at least 16 years old.");
+        }
+        if (dateOfBirth < today.AddYears(-99))
+        {
+            throw new ArgumentException("Staff must be at most 99 years old.");
         }
     }
 

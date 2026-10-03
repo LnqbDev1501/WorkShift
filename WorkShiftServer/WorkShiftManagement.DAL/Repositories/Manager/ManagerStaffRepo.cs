@@ -24,7 +24,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
     {
         var query = _context.Users
             .AsNoTracking()
-            .Where(u => u.BranchId == managerBranchId && u.Role.RoleName == "STAFF" && u.DeletedAt == null);
+            .Where(u => u.BranchId == managerBranchId && u.Role.RoleName == "STAFF");
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -38,10 +38,11 @@ public class ManagerStaffRepo : IManagerStaffRepo
         if (!string.IsNullOrWhiteSpace(status))
         {
             var normalizedStatus = status.Trim().ToUpperInvariant();
-            query = query.Where(u => u.Status == normalizedStatus);
+            if (normalizedStatus == "ACTIVE")
+                query = query.Where(u => u.Status == "ACTIVE" && u.DeletedAt == null);
+            else
+                query = query.Where(u => u.Status == normalizedStatus);
         }
-
-        query = query.Where(u => u.Status != "PENDING" && u.Status != "INACTIVE" && u.DeletedAt == null);
 
         var totalCount = await query.CountAsync();
 
@@ -62,8 +63,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
             .FirstOrDefaultAsync(u =>
                 u.UserId == staffId &&
                 u.BranchId == managerBranchId &&
-                u.Role.RoleName == "STAFF" &&
-                u.DeletedAt == null);
+                u.Role.RoleName == "STAFF");
     }
 
     public async Task<bool> ExistsByEmailAsync(string email)
