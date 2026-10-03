@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -48,6 +48,8 @@ public partial class ShiftAssignment
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestSourceAssignments { get; set; } = new List<ShiftSwapRequest>();
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestTargetAssignments { get; set; } = new List<ShiftSwapRequest>();
+
+    public virtual ICollection<TimeAdjustmentRequestDetail> TimeAdjustmentRequestDetails { get; set; } = new List<TimeAdjustmentRequestDetail>();
 
     public virtual User User { get; set; } = null!;
 }

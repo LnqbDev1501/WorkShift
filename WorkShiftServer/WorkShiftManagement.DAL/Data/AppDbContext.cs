@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -2802,23 +2802,21 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("time_adjustment_request_details");
 
-            entity.HasIndex(e => e.ShiftId, "ix_time_adjustment_shift");
-
             entity.Property(e => e.RequestId)
                 .ValueGeneratedNever()
                 .HasColumnName("request_id");
+            entity.Property(e => e.AssignmentId).HasColumnName("assignment_id");
             entity.Property(e => e.RequestedTime).HasColumnName("requested_time");
-            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+
+            entity.HasOne(d => d.Assignment).WithMany(p => p.TimeAdjustmentRequestDetails)
+                .HasForeignKey(d => d.AssignmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("time_adjustment_request_details_assignment_id_fkey");
 
             entity.HasOne(d => d.Request).WithOne(p => p.TimeAdjustmentRequestDetail)
                 .HasForeignKey<TimeAdjustmentRequestDetail>(d => d.RequestId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("time_adjustment_request_details_request_id_fkey");
-
-            entity.HasOne(d => d.Shift).WithMany(p => p.TimeAdjustmentRequestDetails)
-                .HasForeignKey(d => d.ShiftId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("time_adjustment_request_details_shift_id_fkey");
         });
 
         modelBuilder.Entity<Timesheet>(entity =>
