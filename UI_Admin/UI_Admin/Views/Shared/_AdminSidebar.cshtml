@@ -211,11 +211,17 @@
                     {
                         <nav class="space-y-unit-1" aria-label="Quản lý nhân sự">
                             <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">NHÂN SỰ</span></div>
-                            <a asp-controller="ManagerContracts" asp-action="Index" title="Quản lý hợp đồng"
-                               aria-current="@(currentController == "ManagerContracts" ? "page" : null)"
-                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+<a asp-controller="ManagerContracts" asp-action="Index" title="Quản lý hợp đồng"
+                           aria-current="@(currentController == "ManagerContracts" ? "page" : null)"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">contract</span>
                                 <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý hợp đồng</span>
+                            </a>
+                            <a asp-controller="ManagerStaff" asp-action="Index" title="Quản lý nhân viên"
+                               aria-current="@(currentController == "ManagerStaff" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerStaff" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">groups</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý nhân viên</span>
                             </a>
                         </nav>
                     }

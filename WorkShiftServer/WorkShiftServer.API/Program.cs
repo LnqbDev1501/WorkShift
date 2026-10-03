@@ -165,6 +165,8 @@ builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
+builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
+builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
