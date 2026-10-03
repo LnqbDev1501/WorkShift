@@ -108,7 +108,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Identity number is already in use.");
         }
 
-        var authUserId = await _authService.CreateUserAndSendInviteAsync(request.Email);
+        var authUserId = await _authService.CreateUserWithPasswordAsync(request.Email, "WorkShift@fa26");
         var now = DateTime.UtcNow;
 
         var staff = new User
