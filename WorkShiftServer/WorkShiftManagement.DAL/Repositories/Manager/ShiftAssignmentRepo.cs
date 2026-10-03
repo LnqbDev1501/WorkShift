@@ -5,6 +5,7 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Rules;
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignmentRepo
@@ -21,7 +22,9 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
 
     public Task<List<WorkingTimeRule>> GetRulesAsync(CancellationToken ct) =>
         context.WorkingTimeRules.AsNoTracking()
-            .Where(r => r.Status == "ACTIVE" || r.Status == "SCHEDULED" || r.Status == "INACTIVE").ToListAsync(ct);
+            .Where(r => r.Status == WorkingTimeRuleLifecycle.Active ||
+                r.Status == WorkingTimeRuleLifecycle.Published ||
+                r.Status == WorkingTimeRuleLifecycle.Inactive).ToListAsync(ct);
 
     public void Add(ShiftAssignment assignment) => context.ShiftAssignments.Add(assignment);
 

@@ -4,6 +4,7 @@ using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Rules;
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo) : IShiftAssignmentService
@@ -141,9 +142,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var all = others.Append(candidate).ToList();
         for (var day = first; day <= last; day = day.AddDays(1))
         {
-            var rule = rules.Where(r => (r.Status is "ACTIVE" or "SCHEDULED" || r.Status == "INACTIVE" && r.EffectiveTo.HasValue) &&
-                    (!r.EffectiveFrom.HasValue || r.EffectiveFrom <= day) && (!r.EffectiveTo.HasValue || day <= r.EffectiveTo))
-                .OrderByDescending(r => r.EffectiveFrom).ThenByDescending(r => r.WorkingTimeRuleId).FirstOrDefault()
+            var rule = WorkingTimeRuleLifecycle.SelectApplicable(rules, day)
                 ?? throw new InvalidOperationException($"No working time rule applies on {day:yyyy-MM-dd}.");
             var dayStart = ToUtc(day);
             var weekStart = ToUtc(StartOfWeek(day));
