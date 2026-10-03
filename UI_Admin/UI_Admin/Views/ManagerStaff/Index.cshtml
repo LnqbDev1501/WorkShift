@@ -173,7 +173,8 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
             </div>
             <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
                 <p>Deactivating this staff will prevent them from accessing the system.</p>
-                <p>The staff account can be restored later if needed.</            </div>
+                <p>The staff account can be restored later if needed.</p>
+            </div>
             <form method="post" asp-controller="ManagerStaff" asp-action="Deactivate" id="deactivate-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" id="deactivate-staff-id" value="0" />
