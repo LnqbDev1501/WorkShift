@@ -28,6 +28,26 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
 
     public void Add(ShiftAssignment assignment) => context.ShiftAssignments.Add(assignment);
 
+    public async Task CancelPendingSwapsAsync(int assignmentId, Guid actor, DateTime cancelledAt,
+        string reason, CancellationToken ct)
+    {
+        if (context.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Swap cancellation must run inside the assignment transaction.");
+
+        // The conditional update locks matching request rows and never overwrites a
+        // terminal outcome. A conflicting concurrent transition causes the outer
+        // serializable transaction to roll back instead of partially cancelling.
+        await context.ShiftSwapRequests
+            .Where(request => request.Status == "PENDING" &&
+                (request.SourceAssignmentId == assignmentId || request.TargetAssignmentId == assignmentId))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(request => request.Status, "CANCELLED")
+                .SetProperty(request => request.RespondedBy, actor)
+                .SetProperty(request => request.RespondedAt, cancelledAt)
+                .SetProperty(request => request.ResponseNote, reason)
+                .SetProperty(request => request.UpdatedAt, cancelledAt), ct);
+    }
+
     public Task<bool> HasApprovedLeaveAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct) =>
         context.LeaveRequestAssignments.AnyAsync(l => l.Request.UserId == staffId &&
             l.Request.RequestType == "LEAVE" && l.Request.Status == "APPROVED" &&

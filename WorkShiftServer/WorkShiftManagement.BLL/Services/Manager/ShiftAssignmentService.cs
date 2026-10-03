@@ -83,7 +83,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var branchId = await GetBranchAsync(actor);
         var reference = await repo.FindAsync(assignmentId, branchId, ct)
             ?? throw new KeyNotFoundException("Assignment not found.");
-        var result = await repo.ExecuteAsync(reference.ShiftId, reference.UserId, branchId, (shift, _) =>
+        var result = await repo.ExecuteAsync(reference.ShiftId, reference.UserId, branchId, async (shift, _) =>
         {
             ValidateShift(shift);
             var assignment = shift.ShiftAssignments.SingleOrDefault(a => a.AssignmentId == assignmentId && a.UserId == reference.UserId)
@@ -92,13 +92,16 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
                 throw new InvalidOperationException("Only ASSIGNED assignments can be cancelled.");
             ValidateHistory(assignment, restoring: false);
             var oldValue = JsonSerializer.Serialize(Map(assignment));
+            var cancelledAt = DateTime.UtcNow;
+            var reason = request.Reason.Trim();
+            await repo.CancelPendingSwapsAsync(assignmentId, actor, cancelledAt, reason, ct);
             assignment.Status = "CANCELLED";
             assignment.CancelledBy = actor;
-            assignment.CancelledAt = DateTime.UtcNow;
-            assignment.CancelReason = request.Reason.Trim();
+            assignment.CancelledAt = cancelledAt;
+            assignment.CancelReason = reason;
             assignment.UpdatedAt = assignment.CancelledAt.Value;
             repo.Audit(actor, "CANCEL_SHIFT_ASSIGNMENT", assignment, oldValue);
-            return Task.FromResult(assignment);
+            return assignment;
         }, ct);
         return Map(result);
     }
@@ -127,8 +130,8 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         if (assignment.Attendance != null || assignment.PayslipWorkDetails.Count != 0)
             throw new InvalidOperationException("The assignment has attendance or payroll data.");
         if (assignment.LeaveRequestAssignments.Any(l => restoring || l.Request.Status is "PENDING" or "APPROVED") ||
-            assignment.ShiftSwapRequestSourceAssignments.Any(r => restoring || r.Status == "PENDING") ||
-            assignment.ShiftSwapRequestTargetAssignments.Any(r => restoring || r.Status == "PENDING"))
+            (restoring && (assignment.ShiftSwapRequestSourceAssignments.Any() ||
+                assignment.ShiftSwapRequestTargetAssignments.Any())))
             throw new InvalidOperationException("Resolve the linked leave or shift-swap request before changing this assignment; assignments with request history cannot be restored.");
     }
 
