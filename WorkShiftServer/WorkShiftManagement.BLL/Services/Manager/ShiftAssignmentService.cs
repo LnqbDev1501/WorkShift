@@ -1,4 +1,8 @@
 using System.Text.Json;
+using System.Globalization;
+using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.DTOs.Admin.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -7,7 +11,8 @@ using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Rules;
 namespace WorkShiftManagement.BLL.Services.Manager;
 
-public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo) : IShiftAssignmentService
+public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo,
+    INotificationRealtimePublisher realtimePublisher, ILogger<ShiftAssignmentService> logger) : IShiftAssignmentService
 {
     public async Task<ShiftAssignmentResponse> AssignAsync(Guid actor, int shiftId, AssignShiftRequest request, CancellationToken ct = default)
     {
@@ -15,6 +20,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         if (shiftId <= 0 || request.UserId == Guid.Empty)
             throw new ArgumentException("A positive shift ID and valid staff ID are required.");
         var branchId = await GetBranchAsync(actor);
+        Notification? notification = null;
         var result = await repo.ExecuteAsync(shiftId, request.UserId, branchId, async (shift, staff) =>
         {
             ValidateShift(shift);
@@ -68,8 +74,10 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
             assignment.UpdatedAt = now;
             if (existing == null) repo.Add(assignment);
             else repo.Audit(actor, "RESTORE_SHIFT_ASSIGNMENT", assignment, oldValue);
+            notification = QueueAssignmentNotification(actor, staff.UserId, shift, now, cancelled: false);
             return assignment;
         }, ct);
+        await PublishNotificationAsync(notification!);
         return Map(result);
     }
 
@@ -83,6 +91,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var branchId = await GetBranchAsync(actor);
         var reference = await repo.FindAsync(assignmentId, branchId, ct)
             ?? throw new KeyNotFoundException("Assignment not found.");
+        Notification? notification = null;
         var result = await repo.ExecuteAsync(reference.ShiftId, reference.UserId, branchId, async (shift, _) =>
         {
             ValidateShift(shift);
@@ -101,9 +110,52 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
             assignment.CancelReason = reason;
             assignment.UpdatedAt = assignment.CancelledAt.Value;
             repo.Audit(actor, "CANCEL_SHIFT_ASSIGNMENT", assignment, oldValue);
+            notification = QueueAssignmentNotification(actor, assignment.UserId, shift, cancelledAt,
+                cancelled: true, reason);
             return assignment;
         }, ct);
+        await PublishNotificationAsync(notification!);
         return Map(result);
+    }
+
+    private Notification QueueAssignmentNotification(Guid actor, Guid recipient, WorkShift shift,
+        DateTime timestamp, bool cancelled, string? reason = null)
+    {
+        var start = shift.ScheduledStartAt.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+        var end = shift.ScheduledEndAt.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+        var notification = new Notification
+        {
+            Title = cancelled ? "Shift assignment cancelled" : "New shift assignment",
+            Content = $"Your assignment to {shift.ShiftNameSnapshot} (shift #{shift.ShiftId}), {start}–{end} (UTC+7), " +
+                (cancelled ? $"has been cancelled by your manager. Reason: {reason}" : "has been confirmed by your manager."),
+            NotificationType = "ShiftAssignment",
+            CreatedBy = actor, CreatedAt = timestamp, UpdatedAt = timestamp,
+            TargetType = "Custom", Channels = ["InApp"], TargetRoles = ["STAFF"],
+            UserNotifications = [new UserNotification { UserId = recipient, CreatedAt = timestamp }]
+        };
+        // Persist the recipient's inbox item atomically with the assignment.
+        repo.AddNotification(notification);
+        return notification;
+    }
+
+    private async Task PublishNotificationAsync(Notification notification)
+    {
+        try
+        {
+            await realtimePublisher.PublishAsync(notification.UserNotifications.Single().UserId,
+                new RealtimeNotificationResponse
+                {
+                    NotificationId = notification.NotificationId, Title = notification.Title,
+                    Message = notification.Content, CreatedAt = notification.CreatedAt
+                });
+        }
+        catch (Exception exception)
+        {
+            // The transaction has committed and the inbox item is durable. A
+            // realtime failure must not report the assignment as unsuccessful.
+            logger.LogWarning(exception, "Realtime delivery failed for assignment notification {NotificationId}.",
+                notification.NotificationId);
+        }
     }
 
     private async Task<int> GetBranchAsync(Guid actor)

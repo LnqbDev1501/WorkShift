@@ -11,5 +11,6 @@ public interface IShiftAssignmentRepo
     Task<bool> HasApprovedLeaveAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct);
     Task CancelPendingSwapsAsync(int assignmentId, Guid actor, DateTime cancelledAt, string reason, CancellationToken ct);
     void Add(ShiftAssignment assignment);
+    void AddNotification(Notification notification);
     void Audit(Guid actor, string action, ShiftAssignment assignment, string? oldValue);
 }
