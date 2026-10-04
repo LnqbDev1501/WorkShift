@@ -147,6 +147,8 @@ builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageServi
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
 builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
+builder.Services.AddScoped<IAdminEmployeeRequestRepo, AdminEmployeeRequestRepo>();
+builder.Services.AddScoped<IAdminEmployeeRequestService, AdminEmployeeRequestService>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmploymentContractService,
     WorkShiftManagement.BLL.Services.Manager.ManagerEmploymentContractService>();
 builder.Services.AddSingleton<WorkShiftManagement.BLL.Interfaces.Manager.IContractPdfGenerator,
@@ -167,6 +169,14 @@ builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerEmployeeRequestService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffEmployeeRequestRepo,
+    WorkShiftManagement.DAL.Repositories.Staff.StaffEmployeeRequestRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService,
+    WorkShiftManagement.BLL.Services.Staff.StaffEmployeeRequestService>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
