@@ -172,6 +172,10 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IRequestLi
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IRequestLimitRuleService,
     WorkShiftManagement.BLL.Services.Manager.RequestLimitRuleService>();
 builder.Services.AddHostedService<RequestLimitRuleActivationWorker>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerDashboardRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerDashboardRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerDashboardService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
