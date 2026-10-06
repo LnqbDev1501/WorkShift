@@ -167,6 +167,11 @@ builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IRequestLimitRuleRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.RequestLimitRuleRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IRequestLimitRuleService,
+    WorkShiftManagement.BLL.Services.Manager.RequestLimitRuleService>();
+builder.Services.AddHostedService<RequestLimitRuleActivationWorker>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
