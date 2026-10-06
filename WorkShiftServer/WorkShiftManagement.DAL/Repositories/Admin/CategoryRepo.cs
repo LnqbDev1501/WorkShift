@@ -70,6 +70,8 @@ public class CategoryRepo : ICategoryRepo
                     .Select(product => new CategoryProductData
                     {
                         ProductId = product.ProductId,
+                        BranchId = product.BranchId,
+                        BranchName = product.Branch.BranchName,
                         ProductCode = product.ProductCode,
                         ProductName = product.ProductName,
                         Price = product.Price,

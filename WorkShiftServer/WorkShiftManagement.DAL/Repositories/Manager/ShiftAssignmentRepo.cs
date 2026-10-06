@@ -5,6 +5,7 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Rules;
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignmentRepo
@@ -21,9 +22,38 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
 
     public Task<List<WorkingTimeRule>> GetRulesAsync(CancellationToken ct) =>
         context.WorkingTimeRules.AsNoTracking()
-            .Where(r => r.Status == "ACTIVE" || r.Status == "SCHEDULED" || r.Status == "INACTIVE").ToListAsync(ct);
+            .Where(r => r.Status == WorkingTimeRuleLifecycle.Active ||
+                r.Status == WorkingTimeRuleLifecycle.Published ||
+                r.Status == WorkingTimeRuleLifecycle.Inactive).ToListAsync(ct);
 
     public void Add(ShiftAssignment assignment) => context.ShiftAssignments.Add(assignment);
+
+    public void AddNotification(Notification notification)
+    {
+        if (context.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Assignment notifications must be saved in the assignment transaction.");
+        context.Notifications.Add(notification);
+    }
+
+    public async Task CancelPendingSwapsAsync(int assignmentId, Guid actor, DateTime cancelledAt,
+        string reason, CancellationToken ct)
+    {
+        if (context.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Swap cancellation must run inside the assignment transaction.");
+
+        // The conditional update locks matching request rows and never overwrites a
+        // terminal outcome. A conflicting concurrent transition causes the outer
+        // serializable transaction to roll back instead of partially cancelling.
+        await context.ShiftSwapRequests
+            .Where(request => request.Status == "PENDING" &&
+                (request.SourceAssignmentId == assignmentId || request.TargetAssignmentId == assignmentId))
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(request => request.Status, "CANCELLED")
+                .SetProperty(request => request.RespondedBy, actor)
+                .SetProperty(request => request.RespondedAt, cancelledAt)
+                .SetProperty(request => request.ResponseNote, reason)
+                .SetProperty(request => request.UpdatedAt, cancelledAt), ct);
+    }
 
     public Task<bool> HasApprovedLeaveAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct) =>
         context.LeaveRequestAssignments.AnyAsync(l => l.Request.UserId == staffId &&

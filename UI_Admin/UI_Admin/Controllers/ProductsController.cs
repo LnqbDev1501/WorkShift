@@ -9,24 +9,30 @@ namespace UI_Admin.Controllers;
 [Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT")]
 public class ProductsController : Controller
 {
-    private const string WriteRoles = "ADMIN,MANAGER";
+    private const string WriteRoles = "MANAGER";
     private readonly ProductApiService _productApiService;
     private readonly CategoryApiService _categoryApiService;
+    private readonly UserApiService _userApiService;
     private readonly ILogger<ProductsController> _logger;
 
     public ProductsController(
         ProductApiService productApiService,
         CategoryApiService categoryApiService,
+        UserApiService userApiService,
         ILogger<ProductsController> logger)
     {
         _productApiService = productApiService;
         _categoryApiService = categoryApiService;
+        _userApiService = userApiService;
         _logger = logger;
     }
+
+    private bool IsManager => User.IsInRole("MANAGER");
 
     [HttpGet]
     public async Task<IActionResult> Index(
         [FromQuery] string? search,
+        [FromQuery] int? branchId,
         [FromQuery] int? categoryId,
         [FromQuery] string? status = "all",
         [FromQuery] int page = 1,
@@ -36,8 +42,25 @@ public class ProductsController : Controller
         page = Math.Max(page, 1);
         pageSize = ListPaginationViewModel.DefaultPageSize;
 
-        var viewModel = await _productApiService.GetPagedAsync(search, categoryId, status, page, pageSize, cancellationToken);
+        // Managers are scoped to their own branch server-side; the filter is only for Admin/Accountant.
+        var effectiveBranchId = IsManager ? null : branchId;
+        var viewModel = await _productApiService.GetPagedAsync(search, effectiveBranchId, categoryId, status, page, pageSize, cancellationToken);
         viewModel.Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
+        if (!IsManager)
+        {
+            try
+            {
+                var branches = await _userApiService.GetActiveBranchesAsync(cancellationToken);
+                viewModel.Branches = branches
+                    .Select(branch => new BranchOptionItemViewModel { Id = branch.Id, Name = branch.Name })
+                    .OrderBy(branch => branch.Name)
+                    .ToList();
+            }
+            catch
+            {
+                viewModel.Branches = [];
+            }
+        }
 
         if (TempData["SuccessMessage"] is string success)
             viewModel.SuccessMessage = success;
@@ -50,13 +73,14 @@ public class ProductsController : Controller
     [HttpGet]
     public Task<IActionResult> List(
         [FromQuery] string? search,
+        [FromQuery] int? branchId,
         [FromQuery] int? categoryId,
         [FromQuery] string? status = "all",
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = ListPaginationViewModel.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
-        return Index(search, categoryId, status, page, pageSize, cancellationToken);
+        return Index(search, branchId, categoryId, status, page, pageSize, cancellationToken);
     }
 
     [HttpGet]
@@ -78,10 +102,19 @@ public class ProductsController : Controller
     [Authorize(Roles = WriteRoles)]
     public async Task<IActionResult> Create(CancellationToken cancellationToken = default)
     {
-        return View(new CreateProductViewModel
+        try
         {
-            Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
-        });
+            return View(new CreateProductViewModel
+            {
+                Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
+            });
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Unable to load categories for product creation.");
+            TempData["ErrorMessage"] = "Categories could not be loaded. Please try again.";
+            return RedirectToAction(nameof(Index));
+        }
     }
 
     [HttpPost]
@@ -113,10 +146,33 @@ public class ProductsController : Controller
     {
         if (id <= 0) return NotFound();
 
-        var detail = await _productApiService.GetByIdAsync(id, cancellationToken);
+        ProductDetailViewModel? detail;
+        try
+        {
+            detail = await _productApiService.GetByIdAsync(id, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Unable to load product {ProductId} for editing.", id);
+            TempData["ErrorMessage"] = "Product could not be loaded. Please try again.";
+            return RedirectToAction(nameof(Index));
+        }
+
         if (detail == null)
         {
             TempData["ErrorMessage"] = "Product not found.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        List<CategoryOptionViewModel> categories;
+        try
+        {
+            categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            _logger.LogError(exception, "Unable to load categories for product editing.");
+            TempData["ErrorMessage"] = "Categories could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -130,7 +186,7 @@ public class ProductsController : Controller
             Description = detail.Description,
             ImageUrl = detail.ImageUrl,
             Status = detail.Status,
-            Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
+            Categories = categories
         });
     }
 

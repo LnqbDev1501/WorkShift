@@ -12,6 +12,17 @@ public static class WorkingTimeRuleLifecycle
 
     public static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
+    public static WorkingTimeRule? SelectApplicable(IEnumerable<WorkingTimeRule> rules, DateOnly workDate) =>
+        rules.Where(rule =>
+                (rule.Status is Active or Published || rule.Status == Inactive && rule.EffectiveTo.HasValue) &&
+                rule.EffectiveFrom.HasValue && rule.EffectiveFrom.Value <= workDate &&
+                (!rule.EffectiveTo.HasValue || workDate < rule.EffectiveTo.Value))
+            // A published replacement takes precedence from its effective date,
+            // even before the current active version has been retired.
+            .OrderByDescending(rule => rule.EffectiveFrom)
+            .ThenByDescending(rule => rule.WorkingTimeRuleId)
+            .FirstOrDefault();
+
     public static void RequireStatus(WorkingTimeRule rule, string status)
     {
         if (rule.Status != status)

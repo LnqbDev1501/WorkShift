@@ -30,6 +30,25 @@ public class AuthService : IAuthService
         return await SendInvitationAsync(email, "create");
     }
 
+    public async Task<Guid> CreateUserWithPasswordAsync(string email, string password)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "auth/v1/admin/users",
+            new { email = email, password = password, email_confirm = true });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to create user with password: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        if (!Guid.TryParse(root.GetProperty("id").GetString(), out var userId))
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+        return userId;
+    }
+
     public async Task<string?> ResendSetupLinkAsync(Guid userId, string email)
     {
         using var userResponse = await _httpClient.GetAsync($"auth/v1/admin/users/{userId}");

@@ -43,6 +43,8 @@ public partial class Branch
 
     public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
 
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+
     public virtual Region Region { get; set; } = null!;
 
     public virtual ICollection<RequestLimitRule> RequestLimitRules { get; set; } = new List<RequestLimitRule>();

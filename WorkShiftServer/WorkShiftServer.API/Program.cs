@@ -81,18 +81,22 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransformation, SupabaseRoleClaimsTransformation>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("MyCnn")));
+var myCnn = builder.Configuration.GetConnectionString("MyCnn")
+    ?? throw new InvalidOperationException("Missing MyCnn connection string.");
+// The Supabase pooler allows only 15 session clients: bound client-side pooling
+// and Hangfire workers so background jobs cannot starve web requests.
+var pooledConnectionString = new Npgsql.NpgsqlConnectionStringBuilder(myCnn) { MaxPoolSize = 8 }.ToString();
 
-var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire")
-    ?? builder.Configuration.GetConnectionString("MyCnn")
-    ?? throw new InvalidOperationException("Missing Hangfire or MyCnn connection string.");
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(pooledConnectionString));
+
+var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire") ?? pooledConnectionString;
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
     .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
-builder.Services.AddHangfireServer();
+builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
@@ -143,6 +147,14 @@ builder.Services.AddScoped<IRegionalMinimumWageService, RegionalMinimumWageServi
 builder.Services.AddHostedService<RegionalMinimumWageActivationWorker>();
 builder.Services.AddScoped<IEmploymentContractRepo, EmploymentContractRepo>();
 builder.Services.AddScoped<IAdminEmploymentContractService, AdminEmploymentContractService>();
+builder.Services.AddScoped<IAdminEmployeeRequestRepo, AdminEmployeeRequestRepo>();
+builder.Services.AddScoped<IAdminEmployeeRequestService, AdminEmployeeRequestService>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmploymentContractService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerEmploymentContractService>();
+builder.Services.AddSingleton<WorkShiftManagement.BLL.Interfaces.Manager.IContractPdfGenerator,
+    WorkShiftManagement.BLL.Services.Manager.ContractPdfGenerator>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService,
+    WorkShiftManagement.BLL.Services.Staff.StaffEmploymentContractService>();
 builder.Services.AddScoped<IBranchRepo, BranchRepo>();
 builder.Services.AddScoped<IBranchService, BranchService>();
 builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
@@ -154,6 +166,17 @@ builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
+builder.Services.AddHostedService<EmploymentContractActivationWorker>();
+builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
+builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerEmployeeRequestService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffEmployeeRequestRepo,
+    WorkShiftManagement.DAL.Repositories.Staff.StaffEmployeeRequestRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService,
+    WorkShiftManagement.BLL.Services.Staff.StaffEmployeeRequestService>();
 
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
@@ -196,6 +219,11 @@ try
         .AddOrUpdate<IAttendancePenaltyRuleService>(
             "attendance-penalty-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
+            Cron.Minutely());
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
+            "scheduled-contracts-activation",
+            service => service.ActivateDueScheduledContractsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 

@@ -130,19 +130,27 @@ public sealed class UserApiService
             // fallback to general branches API if endpoint unavailable
         }
 
-        var pagedBranches = await GetBranchesAsync(cancellationToken);
-        return pagedBranches.Items
-            .Where(branch => branch.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
-            .Select(branch => new BranchOptionViewModel
-            {
-                Id = branch.BranchId,
-                Name = branch.BranchName,
-                BranchCode = branch.BranchCode,
-                ManagerCount = 0,
-                AccountantCount = 0
-            })
-            .OrderBy(branch => branch.Name)
-            .ToList();
+        try
+        {
+            var pagedBranches = await GetBranchesAsync(cancellationToken);
+            return pagedBranches.Items
+                .Where(branch => branch.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                .Select(branch => new BranchOptionViewModel
+                {
+                    Id = branch.BranchId,
+                    Name = branch.BranchName,
+                    BranchCode = branch.BranchCode,
+                    ManagerCount = 0,
+                    AccountantCount = 0
+                })
+                .OrderBy(branch => branch.Name)
+                .ToList();
+        }
+        catch
+        {
+            // Non-admin roles may not access the general branches API.
+            return [];
+        }
     }
 
     public async Task CreateAsync(UserCreateViewModel model, CancellationToken cancellationToken = default)

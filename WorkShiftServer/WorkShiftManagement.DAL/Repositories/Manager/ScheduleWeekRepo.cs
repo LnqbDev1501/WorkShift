@@ -70,8 +70,7 @@ public sealed class ScheduleWeekRepo(AppDbContext context) : IScheduleWeekRepo
             .Where(shift => shift.ScheduleWeekId == scheduleWeekId)
             .AnyAsync(shift =>
                 shift.ShiftAssignments.Any() ||
-                shift.Checklists.Any() ||
-                shift.TimeAdjustmentRequestDetails.Any());
+                shift.Checklists.Any());
     }
 
     public async Task AddAsync(WorkScheduleWeek scheduleWeek)

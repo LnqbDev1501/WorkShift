@@ -2,7 +2,7 @@
 
 @{
     ViewData["Title"] = $"Product - {Model.ProductName}";
-    var canWrite = User.IsInRole("ADMIN") || User.IsInRole("MANAGER");
+    var canWrite = User.IsInRole("MANAGER");
     var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -76,6 +76,10 @@
                 <h2 class="font-title-md text-title-md text-on-surface">Catalog Information</h2>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
+                <div class="flex flex-col">
+                    <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Branch</span>
+                    <span class="font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold">@Model.BranchName</span>
+                </div>
                 <div class="flex flex-col">
                     <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Category</span>
                     <a asp-controller="Categories" asp-action="Details" asp-route-id="@Model.CategoryId" class="font-body-md-medium text-primary text-body-md mt-0.5 hover:underline">@Model.CategoryName</a>

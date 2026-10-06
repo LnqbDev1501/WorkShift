@@ -12,7 +12,7 @@ public class ProductRepo : IProductRepo
 
     public ProductRepo(AppDbContext context) => _context = context;
 
-    public async Task<(List<ProductData> Items, int TotalCount)> GetPagedAsync(string? search, int? categoryId, string? status, int pageNumber, int pageSize)
+    public async Task<(List<ProductData> Items, int TotalCount)> GetPagedAsync(string? search, int? branchId, int? categoryId, string? status, int pageNumber, int pageSize)
     {
         var query = _context.Products.AsNoTracking().AsQueryable();
 
@@ -22,6 +22,11 @@ public class ProductRepo : IProductRepo
             query = query.Where(product =>
                 EF.Functions.ILike(product.ProductCode, pattern) ||
                 EF.Functions.ILike(product.ProductName, pattern));
+        }
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query = query.Where(product => product.BranchId == branchId.Value);
         }
 
         if (categoryId.HasValue && categoryId.Value > 0)
@@ -43,6 +48,8 @@ public class ProductRepo : IProductRepo
             .Select(product => new ProductData
             {
                 ProductId = product.ProductId,
+                BranchId = product.BranchId,
+                BranchName = product.Branch.BranchName,
                 CategoryId = product.CategoryId,
                 CategoryName = product.Category.CategoryName,
                 ProductCode = product.ProductCode,
@@ -68,6 +75,8 @@ public class ProductRepo : IProductRepo
             .Select(product => new ProductDetailData
             {
                 ProductId = product.ProductId,
+                BranchId = product.BranchId,
+                BranchName = product.Branch.BranchName,
                 CategoryId = product.CategoryId,
                 CategoryName = product.Category.CategoryName,
                 ProductCode = product.ProductCode,
@@ -82,19 +91,23 @@ public class ProductRepo : IProductRepo
             .FirstOrDefaultAsync();
     }
 
-    public Task<bool> ExistsByCodeAsync(string productCode)
-    {
-        return _context.Products
-            .AsNoTracking()
-            .AnyAsync(product => EF.Functions.ILike(product.ProductCode, productCode.Trim()));
-    }
-
-    public Task<bool> ExistsByCodeExceptIdAsync(string productCode, int excludeProductId)
+    public Task<bool> ExistsByCodeInBranchAsync(string productCode, int branchId)
     {
         var trimmed = productCode.Trim();
         return _context.Products
             .AsNoTracking()
             .AnyAsync(product =>
+                product.BranchId == branchId &&
+                EF.Functions.ILike(product.ProductCode, trimmed));
+    }
+
+    public Task<bool> ExistsByCodeExceptIdInBranchAsync(string productCode, int branchId, int excludeProductId)
+    {
+        var trimmed = productCode.Trim();
+        return _context.Products
+            .AsNoTracking()
+            .AnyAsync(product =>
+                product.BranchId == branchId &&
                 product.ProductId != excludeProductId &&
                 EF.Functions.ILike(product.ProductCode, trimmed));
     }

@@ -6,6 +6,7 @@ namespace WorkShiftManagement.BLL.Interfaces.Auth;
 public interface IAuthService
 {
     Task<Guid> CreateUserAndSendInviteAsync(string email);
+    Task<Guid> CreateUserWithPasswordAsync(string email, string password);
     Task<string?> ResendSetupLinkAsync(Guid userId, string email);
     Task DeleteUserAsync(Guid userId);
     Task BanUserAsync(Guid userId);

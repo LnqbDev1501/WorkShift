@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -2221,11 +2221,14 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("products");
 
+            entity.HasIndex(e => e.BranchId, "ix_products_branch_id");
+
             entity.HasIndex(e => new { e.CategoryId, e.Status }, "ix_products_category_status");
 
-            entity.HasIndex(e => e.ProductCode, "products_product_code_key").IsUnique();
+            entity.HasIndex(e => new { e.BranchId, e.ProductCode }, "uq_products_branch_code").IsUnique();
 
             entity.Property(e => e.ProductId).HasColumnName("product_id");
+            entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CategoryId).HasColumnName("category_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
@@ -2252,6 +2255,11 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Branch).WithMany(p => p.Products)
+                .HasForeignKey(d => d.BranchId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("products_branch_id_fkey");
 
             entity.HasOne(d => d.Category).WithMany(p => p.Products)
                 .HasForeignKey(d => d.CategoryId)
@@ -2794,23 +2802,21 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("time_adjustment_request_details");
 
-            entity.HasIndex(e => e.ShiftId, "ix_time_adjustment_shift");
-
             entity.Property(e => e.RequestId)
                 .ValueGeneratedNever()
                 .HasColumnName("request_id");
+            entity.Property(e => e.AssignmentId).HasColumnName("assignment_id");
             entity.Property(e => e.RequestedTime).HasColumnName("requested_time");
-            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
+
+            entity.HasOne(d => d.Assignment).WithMany(p => p.TimeAdjustmentRequestDetails)
+                .HasForeignKey(d => d.AssignmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("time_adjustment_request_details_assignment_id_fkey");
 
             entity.HasOne(d => d.Request).WithOne(p => p.TimeAdjustmentRequestDetail)
                 .HasForeignKey<TimeAdjustmentRequestDetail>(d => d.RequestId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("time_adjustment_request_details_request_id_fkey");
-
-            entity.HasOne(d => d.Shift).WithMany(p => p.TimeAdjustmentRequestDetails)
-                .HasForeignKey(d => d.ShiftId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("time_adjustment_request_details_shift_id_fkey");
         });
 
         modelBuilder.Entity<Timesheet>(entity =>
