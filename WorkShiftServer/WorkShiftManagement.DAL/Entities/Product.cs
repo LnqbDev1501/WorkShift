@@ -25,6 +25,10 @@ public partial class Product
 
     public DateTime UpdatedAt { get; set; }
 
+    public int BranchId { get; set; }
+
+    public virtual Branch Branch { get; set; } = null!;
+
     public virtual ProductCategory Category { get; set; } = null!;
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

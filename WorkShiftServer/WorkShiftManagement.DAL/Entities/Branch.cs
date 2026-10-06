@@ -29,8 +29,6 @@ public partial class Branch
 
     public DateTime UpdatedAt { get; set; }
 
-    public virtual ChatConversation? ChatConversation { get; set; }
-
     public virtual ICollection<EmployeeRequest> EmployeeRequests { get; set; } = new List<EmployeeRequest>();
 
     public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
@@ -42,6 +40,8 @@ public partial class Branch
     public virtual ICollection<PayrollPeriod> PayrollPeriods { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
+
+    public virtual ICollection<Product> Products { get; set; } = new List<Product>();
 
     public virtual Region Region { get; set; } = null!;
 

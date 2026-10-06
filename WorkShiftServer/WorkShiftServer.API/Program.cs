@@ -8,9 +8,13 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Auth;
+using WorkShiftManagement.BLL.Interfaces.Staff;
+using WorkShiftManagement.BLL.Services.Staff;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Repositories.Staff;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftServer.API.Hubs;
 using WorkShiftServer.API.Services;
@@ -151,6 +155,8 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
+builder.Services.AddScoped<IFaceRegistrationRepo, FaceRegistrationRepo>();
+builder.Services.AddScoped<IFaceRegistrationService, FaceRegistrationService>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 

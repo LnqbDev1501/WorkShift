@@ -49,5 +49,7 @@ public partial class ShiftAssignment
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestTargetAssignments { get; set; } = new List<ShiftSwapRequest>();
 
+    public virtual ICollection<TimeAdjustmentRequestDetail> TimeAdjustmentRequestDetails { get; set; } = new List<TimeAdjustmentRequestDetail>();
+
     public virtual User User { get; set; } = null!;
 }
