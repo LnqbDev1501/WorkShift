@@ -583,14 +583,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 1440)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 1440.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 1440)
+            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 1440.");
+                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)
@@ -658,14 +658,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 1440)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 1440.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 1440)
+            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 1440.");
+                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)

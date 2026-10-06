@@ -93,7 +93,7 @@ public class AttendanceRulesController : Controller
             CheckInGraceMinutes = 5,
             CheckOutGraceMinutes = 5,
             CheckOutAfterMinutes = 30,
-            MaxAttendanceDistanceMeters = 100,
+            MaxAttendanceDistanceMeters = 20,
             EffectiveFrom = tomorrow
         };
         return View(model);

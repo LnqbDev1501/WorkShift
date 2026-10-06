@@ -36,9 +36,9 @@ public sealed class UpdateAttendanceRuleViewModel
     public int? CheckOutGraceMinutes { get; set; } = 5;
 
     [Required(ErrorMessage = "Maximum GPS distance is required.")]
-    [Range(10, 1000, ErrorMessage = "Maximum GPS distance must be between 10 and 1000 meters.")]
+    [Range(1, 20, ErrorMessage = "Maximum GPS distance must be between 1 and 20 meters.")]
     [Display(Name = "Max GPS Radius (Meters)")]
-    public int? MaxAttendanceDistanceMeters { get; set; } = 100;
+    public int? MaxAttendanceDistanceMeters { get; set; } = 20;
 
     [Required(ErrorMessage = "Effective From date is required.")]
     [DataType(DataType.Date)]
