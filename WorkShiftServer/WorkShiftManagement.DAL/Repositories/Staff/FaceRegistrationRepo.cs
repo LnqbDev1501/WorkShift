@@ -14,6 +14,26 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         _context = context;
     }
 
+    public async Task<User?> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.UserId == userId, cancellationToken);
+    }
+
+    public async Task<EmploymentContract?> GetActiveContractByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        return await _context.EmploymentContracts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c =>
+                c.UserId == userId &&
+                c.Status == "ACTIVE" &&
+                c.StartDate <= today &&
+                (!c.EndDate.HasValue || c.EndDate.Value >= today),
+                cancellationToken);
+    }
+
     public async Task<FaceProfile?> GetActiveFaceProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.FaceProfiles

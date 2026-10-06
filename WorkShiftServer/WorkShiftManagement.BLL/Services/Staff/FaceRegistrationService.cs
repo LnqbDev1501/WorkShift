@@ -78,14 +78,17 @@ public class FaceRegistrationService : IFaceRegistrationService
             throw new ArgumentException("Authenticated user identity is required.");
         }
 
-        // 1. Check if user already has an active face profile
+        // 1. Validate User Account (Active & not deleted) and Active Employment Contract
+        await ValidateUserAndContractEligibilityAsync(userId, cancellationToken);
+
+        // 2. Check if user already has an active face profile
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
             throw new InvalidOperationException("You have already registered your face profile.");
         }
 
-        // 2. Invalidate any previously pending session for this user
+        // 3. Invalidate any previously pending session for this user
         var latestSession = await _faceRegistrationRepo.GetLatestSessionByUserIdAsync(userId, cancellationToken);
         if (latestSession != null && latestSession.UsedAt == null && latestSession.CancelledAt == null && latestSession.ExpiresAt > DateTime.UtcNow)
         {
@@ -206,14 +209,17 @@ public class FaceRegistrationService : IFaceRegistrationService
             throw new InvalidOperationException("Face registration session has expired (exceeded 90 seconds). Please start a new registration session.");
         }
 
-        // 2. Validate active profile doesn't already exist
+        // 2. Validate User Account (Active & not deleted) and Active Employment Contract
+        await ValidateUserAndContractEligibilityAsync(userId, cancellationToken);
+
+        // 3. Validate active profile doesn't already exist
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
             throw new InvalidOperationException("You already have an active face profile registered.");
         }
 
-        // 3. Validate image file
+        // 4. Validate image file
         ValidateImageFile(request.FaceImage);
 
         // 4. Biometric Feature & Liveness Verification
@@ -333,6 +339,25 @@ public class FaceRegistrationService : IFaceRegistrationService
         // WEBP / RIFF
         if (header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46) return true;
         return false;
+    }
+
+    private async Task ValidateUserAndContractEligibilityAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        // 1. Validate User Account Status
+        var user = await _faceRegistrationRepo.GetUserByIdAsync(userId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Tài khoản người dùng không tồn tại trong hệ thống.");
+
+        if (user.DeletedAt.HasValue || !string.Equals(user.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Tài khoản của bạn hiện đang bị khóa hoặc không khả dụng. Vui lòng liên hệ Quản lý.");
+        }
+
+        // 2. Validate Employment Contract Status
+        var activeContract = await _faceRegistrationRepo.GetActiveContractByUserIdAsync(userId, cancellationToken);
+        if (activeContract == null)
+        {
+            throw new InvalidOperationException("Hợp đồng lao động của bạn chưa được kích hoạt hoặc đã hết hạn. Vui lòng liên hệ bộ phận Quản lý/Nhân sự (HR) để được hỗ trợ.");
+        }
     }
 
     private static (decimal QualityScore, decimal LivenessScore) ProcessFaceBiometrics(IFormFile file)
