@@ -123,6 +123,12 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">how_to_reg</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Attendance Rules</span>
                         </a>
+                        <a asp-controller="AttendancePenaltyRules" asp-action="List"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AttendancePenaltyRules" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Attendance Penalty Rules">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">gavel</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Attendance Penalty Rules</span>
+                        </a>
                         <a asp-controller="Holidays" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg
                             @(currentController == "Holidays" && currentAction == "List"
                  ? "bg-primary-container text-white font-title-md shadow-sm"
