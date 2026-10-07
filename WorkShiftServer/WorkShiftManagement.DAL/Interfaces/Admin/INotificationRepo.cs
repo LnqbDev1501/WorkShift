@@ -4,7 +4,7 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface INotificationRepo
 {
-    Task<(List<Notification> Items, int TotalCount)> GetPagedAsync(
+    Task<(List<WorkShiftManagement.DAL.Entities.Notification> Items, int TotalCount)> GetPagedAsync(
         string? search,
         string? type,
         DateTime? dateFrom,
@@ -14,7 +14,7 @@ public interface INotificationRepo
         string sortBy,
         string sortOrder);
 
-    Task<Notification?> GetByIdAsync(int notificationId);
+    Task<WorkShiftManagement.DAL.Entities.Notification?> GetByIdAsync(int notificationId);
 
     Task<User?> GetActiveAdminByEmailAsync(string email);
 
@@ -26,7 +26,7 @@ public interface INotificationRepo
 
     Task<NotificationAudienceOptionsData> GetAudienceOptionsAsync();
 
-    Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);
+    Task CreateAsync(WorkShiftManagement.DAL.Entities.Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);
 }
 
 public class NotificationAudienceOptionsData

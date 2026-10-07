@@ -7,4 +7,13 @@
     <UserSecretsId>3bb1c2eb-78e1-4479-868a-f08360a41370</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Controllers\Manager\" />
+    <Folder Include="Controllers\Accountant\" />
+    <Folder Include="Models\Accountant\" />
+    <Folder Include="Models\Manager\" />
+    <Folder Include="Services\Accountant\" />
+    <Folder Include="Services\Manager\" />
+  </ItemGroup>
+
 </Project>

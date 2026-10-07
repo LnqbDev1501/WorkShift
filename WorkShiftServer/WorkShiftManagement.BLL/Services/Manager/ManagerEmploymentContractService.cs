@@ -325,7 +325,7 @@ public class ManagerEmploymentContractService(
 
         try
         {
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
                 Title = "Hợp đồng lao động mới",

@@ -1,0 +1,93 @@
+@model UI_Admin.Models.PersonalNotificationListPageViewModel
+@{
+    ViewData["Title"] = "Personal Notifications";
+}
+@section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
+
+<section class="notifications-page">
+    <header class="notification-header">
+        <div>
+            <span class="list-eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
+            <h1>Personal Notifications</h1>
+            <p>Notifications sent directly to you.</p>
+        </div>
+        <div class="header-actions"><a asp-action="BroadcastHistory" class="detail-link">Broadcast history →</a></div>
+    </header>
+
+    <div class="list-summary-grid">
+        <div class="summary-card"><span class="summary-icon">◎</span><span>Total</span><strong>@Model.TotalCount</strong><small>Matching current filters</small></div>
+        <div class="summary-card"><span class="summary-icon">▤</span><span>Current page</span><strong>@Model.Page</strong><small>@Model.Items.Count notifications shown</small></div>
+        <div class="summary-card"><span class="summary-icon">↕</span><span>Sort order</span><strong>@(Model.SortOrder == "asc" ? "Oldest" : "Newest")</strong><small>By received date</small></div>
+    </div>
+
+    <form method="get" class="notification-filter-card">
+        <input name="Search" value="@Model.Search" placeholder="Search notification title or message..." />
+        <select name="Filter">
+            <option value="all" selected="@(Model.Filter == "all")">All</option>
+            <option value="unread" selected="@(Model.Filter == "unread")">Unread only</option>
+            <option value="read" selected="@(Model.Filter == "read")">Read only</option>
+        </select>
+        <select name="SortOrder">
+            <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
+            <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
+        </select>
+        <input type="hidden" name="SortBy" value="CreatedAt" />
+        <partial name="_ListFilterActions" model='"Personal"' />
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
+
+    <div class="notification-table-card">
+        @if (Model.Items.Count == 0)
+        {
+            <div class="notification-empty">
+                <span class="material-symbols-outlined">notifications_off</span>
+                <p>No personal notifications match the selected filters.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-scroll"><table class="notification-table"><thead><tr><th>Title</th><th>Type</th><th>Channels</th><th>Received</th><th>Status</th></tr></thead><tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr class="@(item.IsRead ? "read" : "unread") notification-row" data-url="@Url.Action("PersonalDetail", new { id = item.UserNotificationId })">
+                        <td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td>
+                        <td><span class="type-pill">@item.NotificationType</span></td>
+                        <td><div class="channel-list">@foreach (var channel in item.Channels ?? Enumerable.Empty<string>()) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td>
+                        <td>
+                            <span class="status-pill @(item.IsRead ? "read" : "unread")">
+                                @(item.IsRead ? "Read" : "Unread")
+                                @if (item.ReadAt.HasValue)
+                                {
+                                    <span class="read-time">@item.ReadAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</span>
+                                }
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody></table></div>
+            <partial name="_ListPagination" model="@(new ListPaginationViewModel
+            {
+                PageNumber = Model.Page,
+                PageSize = Model.PageSize,
+                TotalItems = Model.TotalCount,
+                ItemLabel = "notifications"
+            })" />
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.notification-row[data-url]').forEach(function (row) {
+                row.style.cursor = 'pointer';
+                row.addEventListener('click', function (e) {
+                    if (e.target.closest('a, button, form, input, select')) return;
+                    window.location.href = this.dataset.url;
+                });
+            });
+        });
+    </script>
+}

@@ -295,7 +295,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"New Attendance Rule Published: {rule.RuleName}",
                 Content = $"A new attendance rule '{rule.RuleName}' has been published and will take effect on {rule.EffectiveFrom:yyyy-MM-dd}. Details: Check-in before {rule.CheckInBeforeMinutes} mins, check-in grace {rule.CheckInGraceMinutes} mins, check-out grace {rule.CheckOutGraceMinutes} mins, check-out after {rule.CheckOutAfterMinutes} mins, max distance {rule.MaxAttendanceDistanceMeters}m.",
@@ -346,7 +346,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Attendance Rule '{rule.RuleName}' is Now Active",
                 Content = $"Attendance rule '{rule.RuleName}' has officially taken effect starting today ({rule.EffectiveFrom:yyyy-MM-dd}).",
@@ -405,7 +405,7 @@ public class AttendanceRuleService : IAttendanceRuleService
                 : string.Empty;
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Cancelled: Scheduled Attendance Rule '{rule.RuleName}'",
                 Content = $"The scheduled attendance rule '{rule.RuleName}'{effectiveDateText} has been cancelled by the administration.{reasonText}",
@@ -491,9 +491,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 10 || request.MaxAttendanceDistanceMeters.Value > 1000)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 10 and 1000.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom
@@ -551,9 +551,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 10 || request.MaxAttendanceDistanceMeters.Value > 1000)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 10 and 1000.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom

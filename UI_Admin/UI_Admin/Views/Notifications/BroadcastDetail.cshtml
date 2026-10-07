@@ -1,0 +1,49 @@
+@model UI_Admin.Models.PersonalNotificationDetailViewModel
+@{
+    ViewData["Title"] = "Broadcast Detail";
+}
+@section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
+
+<section class="notifications-page detail-page">
+    <a asp-action="BroadcastHistory" class="back-link">&larr; Back to Broadcast History</a>
+
+    <header class="detail-header">
+        <div>
+            <div class="detail-badges">
+                <span class="type-pill">@Model.NotificationType</span>
+                <span class="status-pill @(Model.IsRead ? "read" : "unread")">
+                    @(Model.IsRead ? "Read" : "Unread")
+                    @if (Model.ReadAt.HasValue)
+                    {
+                        <span class="read-time">@Model.ReadAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</span>
+                    }
+                </span>
+            </div>
+            <span class="eyebrow">BROADCAST #@Model.NotificationId</span>
+            <h1>@Model.Title</h1>
+            <p>&#9655; Sent @Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
+               @if (Model.IsRead && Model.ReadAt.HasValue)
+               {
+                   <text><span class="dot">&bull;</span> <span class="check-mark">&#10003;</span> You read this @Model.ReadAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</text>
+               }
+               <text><span class="dot">&bull;</span> &bull; Dispatched by <strong>@Model.CreatedByName</strong></text></p>
+        </div>
+    </header>
+
+    <div class="metric-grid">
+        <div><span>In-App recipients</span><strong>@Model.InAppRecipientCount</strong></div>
+        <div><span>Channels</span><strong>@string.Join(" + ", Model.Channels ?? Enumerable.Empty<string>())</strong></div>
+        <div><span>Target scope</span><strong>@(Model.TargetBranchId.HasValue ? $"Branch #{Model.TargetBranchId}" : Model.TargetRegionId.HasValue ? $"Region #{Model.TargetRegionId}" : "Organization / role")</strong></div>
+    </div>
+
+    <article class="detail-card">
+        <div class="detail-card-heading">
+            <span class="payload-icon">&#128226;</span>
+            <div>
+                <span class="eyebrow">BROADCAST MESSAGE</span>
+                <h2>Broadcast payload</h2>
+            </div>
+        </div>
+        <p class="message-body">@Model.Message</p>
+    </article>
+</section>

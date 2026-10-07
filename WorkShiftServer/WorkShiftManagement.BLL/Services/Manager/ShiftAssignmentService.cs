@@ -20,7 +20,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         if (shiftId <= 0 || request.UserId == Guid.Empty)
             throw new ArgumentException("A positive shift ID and valid staff ID are required.");
         var branchId = await GetBranchAsync(actor);
-        Notification? notification = null;
+        WorkShiftManagement.DAL.Entities.Notification? notification = null;
         var result = await repo.ExecuteAsync(shiftId, request.UserId, branchId, async (shift, staff) =>
         {
             ValidateShift(shift);
@@ -91,7 +91,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var branchId = await GetBranchAsync(actor);
         var reference = await repo.FindAsync(assignmentId, branchId, ct)
             ?? throw new KeyNotFoundException("Assignment not found.");
-        Notification? notification = null;
+        WorkShiftManagement.DAL.Entities.Notification? notification = null;
         var result = await repo.ExecuteAsync(reference.ShiftId, reference.UserId, branchId, async (shift, _) =>
         {
             ValidateShift(shift);
@@ -118,12 +118,12 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         return Map(result);
     }
 
-    private Notification QueueAssignmentNotification(Guid actor, Guid recipient, WorkShift shift,
+    private WorkShiftManagement.DAL.Entities.Notification QueueAssignmentNotification(Guid actor, Guid recipient, WorkShift shift,
         DateTime timestamp, bool cancelled, string? reason = null)
     {
         var start = shift.ScheduledStartAt.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
         var end = shift.ScheduledEndAt.AddHours(7).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-        var notification = new Notification
+        var notification = new WorkShiftManagement.DAL.Entities.Notification
         {
             Title = cancelled ? "Shift assignment cancelled" : "New shift assignment",
             Content = $"Your assignment to {shift.ShiftNameSnapshot} (shift #{shift.ShiftId}), {start}–{end} (UTC+7), " +
@@ -138,7 +138,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         return notification;
     }
 
-    private async Task PublishNotificationAsync(Notification notification)
+    private async Task PublishNotificationAsync(WorkShiftManagement.DAL.Entities.Notification notification)
     {
         try
         {

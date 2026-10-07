@@ -152,7 +152,7 @@ public class StaffEmploymentContractService(
         // Notify Manager post-commit
         try
         {
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
                 Title = "Nhân viên đã chấp nhận hợp đồng",

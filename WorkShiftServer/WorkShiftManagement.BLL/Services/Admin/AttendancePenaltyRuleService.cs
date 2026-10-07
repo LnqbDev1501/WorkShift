@@ -265,7 +265,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
                 : string.Empty;
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"New Attendance Penalty Rule Published: {rule.RuleName}",
                 Content = $"A new attendance penalty rule '{rule.RuleName}' has been published and will take effect on {rule.EffectiveFrom:yyyy-MM-dd}.{detailsText}",
@@ -345,7 +345,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Attendance Penalty Rule '{rule.RuleName}' is Now Active",
                 Content = $"Attendance penalty rule '{rule.RuleName}' has officially taken effect starting today ({rule.EffectiveFrom:yyyy-MM-dd}).",
@@ -448,7 +448,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
                 : string.Empty;
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Cancelled: Scheduled Attendance Penalty Rule '{rule.RuleName}'",
                 Content = $"The scheduled attendance penalty rule '{rule.RuleName}'{effectiveDateText} has been cancelled by the administration.{reasonText}",
@@ -556,14 +556,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 1440)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 1440.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 1440)
+            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 1440.");
+                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)
@@ -631,14 +631,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 1440)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 1440.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 1440)
+            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 1440.");
+                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)

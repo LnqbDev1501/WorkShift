@@ -8,6 +8,10 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Auth;
+using WorkShiftManagement.BLL.Interfaces.Staff;
+using WorkShiftManagement.BLL.Services.Staff;
+using WorkShiftManagement.BLL.Interfaces.Notification;
+using WorkShiftManagement.BLL.Services.Notification;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
@@ -15,6 +19,10 @@ using WorkShiftManagement.BLL.Interfaces.Accountant;
 using WorkShiftManagement.BLL.Services.Accountant;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 using WorkShiftManagement.DAL.Repositories.Accountant;
+using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Repositories.Staff;
+using WorkShiftManagement.DAL.Interfaces.Notification;
+using WorkShiftManagement.DAL.Repositories.Notification;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Services.Manager;
@@ -100,7 +108,11 @@ builder.Services.AddHangfire(configuration => configuration
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
     .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
-builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
+
+builder.Services.AddHangfireServer(options =>
+{
+    options.WorkerCount = 2;
+});
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
@@ -177,6 +189,15 @@ builder.Services.AddScoped<HolidayConfigurationRepo>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IRequestLimitRuleRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.RequestLimitRuleRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IRequestLimitRuleService,
+    WorkShiftManagement.BLL.Services.Manager.RequestLimitRuleService>();
+builder.Services.AddHostedService<RequestLimitRuleActivationWorker>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerDashboardRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerDashboardRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerDashboardService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
@@ -196,6 +217,9 @@ builder.Services.AddScoped<IDashboardRepo, DashboardRepo>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<INotificationRepo, NotificationRepo>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IPersonalNotificationRepo, PersonalNotificationRepo>();
+builder.Services.AddScoped<IPersonalNotificationService, PersonalNotificationService>();
+builder.Services.AddScoped<IBroadcastNotificationService, BroadcastNotificationService>();
 builder.Services.AddScoped<IScheduleWeekRepo, ScheduleWeekRepo>();
 builder.Services.AddScoped<IScheduleWeekService, ScheduleWeekService>();
 builder.Services.AddScoped<IShiftRepo, ShiftRepo>();
@@ -206,6 +230,8 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
+builder.Services.AddScoped<IFaceRegistrationRepo, FaceRegistrationRepo>();
+builder.Services.AddScoped<IFaceRegistrationService, FaceRegistrationService>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
