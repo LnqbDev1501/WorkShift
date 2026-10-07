@@ -386,7 +386,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task AddNotificationAsync(Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default)
+    public async Task AddNotificationAsync(WorkShiftManagement.DAL.Entities.Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default)
     {
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync(cancellationToken);

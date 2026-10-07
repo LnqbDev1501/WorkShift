@@ -45,7 +45,7 @@ public interface IEmploymentContractRepo
     Task UpdateDraftAsync(EmploymentContract contract, Guid managerId, object oldValue, CancellationToken cancellationToken = default);
     Task CancelDraftAsync(int contractId, Guid managerId, string reason, CancellationToken cancellationToken = default);
     Task SendContractPdfAsync(int contractId, string filePath, string templateVersion, DateTime generatedAt, DateTime sentAt, Guid managerId, CancellationToken cancellationToken = default);
-    Task AddNotificationAsync(Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default);
+    Task AddNotificationAsync(WorkShiftManagement.DAL.Entities.Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default);
 
     Task<EmploymentContract?> GetStaffContractByIdAsync(int contractId, Guid staffUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmploymentContract>> GetStaffContractsAsync(Guid staffUserId, CancellationToken cancellationToken = default);

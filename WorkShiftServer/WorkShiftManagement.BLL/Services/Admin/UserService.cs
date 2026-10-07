@@ -23,8 +23,7 @@ public class UserService : IUserService
     private const string PendingStatus = "PENDING";
     private const string ActiveStatus = "ACTIVE";
     private const string InactiveStatus = "INACTIVE";
-    private static readonly TimeZoneInfo VietnamTimeZone =
-        TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+    private static readonly TimeZoneInfo VietnamTimeZone = GetVietnamTimeZone();
 
     private readonly IUserRepo _userRepo;
     private readonly IAuthService _authService;
@@ -696,6 +695,18 @@ public class UserService : IUserService
             : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 
         return TimeZoneInfo.ConvertTime(new DateTimeOffset(utcDateTime), VietnamTimeZone);
+    }
+
+    private static TimeZoneInfo GetVietnamTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
     }
 
     private async Task ValidateBranchRuleAsync(int branchId, int roleId, bool isManager)

@@ -14,7 +14,7 @@ public class NotificationRepo : INotificationRepo
         _context = context;
     }
 
-    public async Task<(List<Notification> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(List<WorkShiftManagement.DAL.Entities.Notification> Items, int TotalCount)> GetPagedAsync(
         string? search,
         string? type,
         DateTime? dateFrom,
@@ -67,7 +67,7 @@ public class NotificationRepo : INotificationRepo
         return (items, totalCount);
     }
 
-    public Task<Notification?> GetByIdAsync(int notificationId)
+    public Task<WorkShiftManagement.DAL.Entities.Notification?> GetByIdAsync(int notificationId)
     {
         return _context.Notifications
             .AsNoTracking()
@@ -153,7 +153,7 @@ public class NotificationRepo : INotificationRepo
     }
 
 
-    public async Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications)
+    public async Task CreateAsync(WorkShiftManagement.DAL.Entities.Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
 

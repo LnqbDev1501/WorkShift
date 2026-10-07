@@ -82,13 +82,13 @@ public class NotificationService : INotificationService
             Title = notification.Title,
             NotificationType = notification.NotificationType,
             Audience = GetAudience(notification),
-            Channels = notification.Channels,
+            Channels = notification.Channels ?? [],
             CreatedAt = notification.CreatedAt,
             Message = notification.Content,
             TargetRegionId = notification.TargetRegionId,
             TargetBranchId = notification.TargetBranchId,
-            TargetRoles = notification.TargetRoles,
-            CreatedByName = notification.CreatedByNavigation.FullName,
+            TargetRoles = notification.TargetRoles ?? [],
+            CreatedByName = notification.CreatedByNavigation?.FullName ?? string.Empty,
             InAppRecipientCount = notification.UserNotifications.Count(userNotification => !userNotification.IsDeleted)
         };
     }
@@ -123,7 +123,7 @@ public class NotificationService : INotificationService
 
         var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, request.RegionId, request.BranchId);
         var now = DateTime.UtcNow;
-        var notification = new Notification
+        var notification = new WorkShiftManagement.DAL.Entities.Notification
         {
             Title = request.Title.Trim(),
             Content = request.Message.Trim(),
@@ -271,7 +271,7 @@ public class NotificationService : INotificationService
         }
     }
 
-    private static NotificationListResponse ToListResponse(Notification notification)
+    private static NotificationListResponse ToListResponse(WorkShiftManagement.DAL.Entities.Notification notification)
     {
         return new NotificationListResponse
         {
@@ -279,12 +279,12 @@ public class NotificationService : INotificationService
             Title = notification.Title,
             NotificationType = notification.NotificationType,
             Audience = GetAudience(notification),
-            Channels = notification.Channels,
+            Channels = notification.Channels ?? [],
             CreatedAt = notification.CreatedAt
         };
     }
 
-    private static string GetAudience(Notification notification)
+    private static string GetAudience(WorkShiftManagement.DAL.Entities.Notification notification)
     {
         return notification.TargetType switch
         {
@@ -295,7 +295,7 @@ public class NotificationService : INotificationService
             "Region" => $"Specific Region: {notification.TargetRegion?.RegionName}",
             "Branch" => $"Specific Branch: {notification.TargetBranch?.BranchName}",
             "Custom" => GetCustomAudience(notification),
-            _ => notification.TargetType
+            _ => string.IsNullOrWhiteSpace(notification.TargetType) ? "System" : notification.TargetType
         };
     }
 
@@ -309,9 +309,9 @@ public class NotificationService : INotificationService
         };
     }
 
-    private static string GetCustomAudience(Notification notification)
+    private static string GetCustomAudience(WorkShiftManagement.DAL.Entities.Notification notification)
     {
-        if (notification.TargetRoles.Count == 0)
+        if (notification.TargetRoles == null || notification.TargetRoles.Count == 0)
         {
             return "Custom audience";
         }

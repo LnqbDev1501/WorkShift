@@ -40,6 +40,82 @@ public sealed class NotificationDetailViewModel : NotificationListItemViewModel
     public int InAppRecipientCount { get; set; }
 }
 
+public sealed class PersonalNotificationListPageViewModel
+{
+    public List<PersonalNotificationListItemViewModel> Items { get; set; } = [];
+    public string? Search { get; set; }
+    public string Filter { get; set; } = "all";
+    [JsonPropertyName("pageNumber")]
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string SortBy { get; set; } = "CreatedAt";
+    public string SortOrder { get; set; } = "desc";
+    [JsonPropertyName("totalItems")]
+    public int TotalCount { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class PersonalNotificationListItemViewModel
+{
+    public int UserNotificationId { get; set; }
+    public int NotificationId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string NotificationType { get; set; } = string.Empty;
+    public string Audience { get; set; } = string.Empty;
+    public List<string> Channels { get; set; } = [];
+    public DateTime CreatedAt { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+}
+
+public sealed class PersonalNotificationDetailViewModel
+{
+    public int UserNotificationId { get; set; }
+    public int NotificationId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string NotificationType { get; set; } = string.Empty;
+    public string Audience { get; set; } = string.Empty;
+    public List<string> Channels { get; set; } = [];
+    public DateTime CreatedAt { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public int? TargetRegionId { get; set; }
+    public int? TargetBranchId { get; set; }
+    public List<string> TargetRoles { get; set; } = [];
+    public string CreatedByName { get; set; } = string.Empty;
+    public int InAppRecipientCount { get; set; }
+}
+
+public sealed class BroadcastHistoryPageViewModel
+{
+    public List<BroadcastHistoryItemViewModel> Items { get; set; } = [];
+    public string? Search { get; set; }
+    public string? Type { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+    [JsonPropertyName("pageNumber")]
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
+    public string SortBy { get; set; } = "CreatedAt";
+    public string SortOrder { get; set; } = "desc";
+    [JsonPropertyName("totalItems")]
+    public int TotalCount { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class BroadcastHistoryItemViewModel
+{
+    public int NotificationId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string NotificationType { get; set; } = string.Empty;
+    public string Audience { get; set; } = string.Empty;
+    public List<string> Channels { get; set; } = [];
+    public DateTime CreatedAt { get; set; }
+    public bool IsRead { get; set; }
+    public DateTime? ReadAt { get; set; }
+}
+
 public sealed class SendNotificationViewModel
 {
     [Required, StringLength(200)]

@@ -28,7 +28,7 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
 
     public void Add(ShiftAssignment assignment) => context.ShiftAssignments.Add(assignment);
 
-    public void AddNotification(Notification notification)
+    public void AddNotification(WorkShiftManagement.DAL.Entities.Notification notification)
     {
         if (context.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Assignment notifications must be saved in the assignment transaction.");

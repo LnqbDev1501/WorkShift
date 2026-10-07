@@ -295,7 +295,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"New Attendance Rule Published: {rule.RuleName}",
                 Content = $"A new attendance rule '{rule.RuleName}' has been published and will take effect on {rule.EffectiveFrom:yyyy-MM-dd}. Details: Check-in before {rule.CheckInBeforeMinutes} mins, check-in grace {rule.CheckInGraceMinutes} mins, check-out grace {rule.CheckOutGraceMinutes} mins, check-out after {rule.CheckOutAfterMinutes} mins, max distance {rule.MaxAttendanceDistanceMeters}m.",
@@ -346,7 +346,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, null, null);
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Attendance Rule '{rule.RuleName}' is Now Active",
                 Content = $"Attendance rule '{rule.RuleName}' has officially taken effect starting today ({rule.EffectiveFrom:yyyy-MM-dd}).",
@@ -405,7 +405,7 @@ public class AttendanceRuleService : IAttendanceRuleService
                 : string.Empty;
 
             var now = DateTime.UtcNow;
-            var notification = new Notification
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 Title = $"Cancelled: Scheduled Attendance Rule '{rule.RuleName}'",
                 Content = $"The scheduled attendance rule '{rule.RuleName}'{effectiveDateText} has been cancelled by the administration.{reasonText}",
