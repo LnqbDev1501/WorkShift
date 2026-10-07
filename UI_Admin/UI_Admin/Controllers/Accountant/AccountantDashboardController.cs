@@ -24,7 +24,7 @@ public class AccountantDashboardController(AccountantDashboardApiService dashboa
         catch (Exception exception) when (exception is HttpRequestException or JsonException or OperationCanceledException or InvalidOperationException)
         {
             logger.LogWarning(exception, "Unable to load the accountant dashboard.");
-            model.ErrorMessage = "Không thể tải dữ liệu tổng quan. Vui lòng thử lại sau.";
+            model.ErrorMessage = "Unable to load dashboard data. Please try again shortly.";
         }
         return View(model);
     }

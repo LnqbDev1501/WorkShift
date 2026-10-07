@@ -1,95 +1,77 @@
+@model UI_Admin.Models.Manager.ManagerDashboardViewModel
+@using M = UI_Admin.Models.Manager.ManagerDashboardViewModel
+@using System.Globalization
 @{
-    ViewData["Title"] = "Tổng quan chi nhánh (Manager)";
+    ViewData["Title"] = "Manager Dashboard";
+    var data = Model.Data;
 }
-
-<div class="p-6 max-w-[1440px] mx-auto space-y-6">
-    <!-- Header Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-            <div class="flex items-center gap-2 mb-1.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-                    MANAGER WORKSPACE
-                </span>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Tổng quan Quản lý Chi nhánh</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Bảng điều khiển &amp; vận hành ca làm việc chi nhánh</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-dashboard.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard manager-dashboard">
+    <header class="ad-heading"><div><span class="ad-eyebrow">WORKSPACE / MANAGER</span><h1>Branch Overview</h1><p>Your team, daily operations, and requests at a glance.</p></div><a class="ad-refresh" asp-action="Index"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    @if (Model.ErrorMessage is not null)
+    {
+        <section class="ad-error" role="alert"><span class="material-symbols-outlined" aria-hidden="true">cloud_off</span><div><h2>Dashboard temporarily unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Index">Try again</a></div></section>
+    }
+    @if (data is not null)
+    {
+        <div class="ad-scope"><span class="material-symbols-outlined" aria-hidden="true">store</span>@data.BranchName<span>@data.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) · UTC+7</span></div>
+        <section class="ad-stats" aria-label="Branch statistics">
+            @foreach (var card in new[] {
+                (Label: "Total Staff", Value: data.TotalStaff, Icon: "group", Tone: "accent", Note: $"{DashboardViewModel.Number(data.ActiveStaff)} active · {DashboardViewModel.Number(data.InactiveStaff)} inactive"),
+                (Label: "Today's Shifts", Value: data.TodayShifts, Icon: "work_history", Tone: "success", Note: "Noncancelled shifts starting today"),
+                (Label: "Today's Assignments", Value: data.TodayAssignments, Icon: "assignment_ind", Tone: "accent", Note: "Assigned slots, including repeat staff"),
+                (Label: "Pending Requests", Value: data.PendingRequests, Icon: "pending_actions", Tone: "warning", Note: "Branch requests awaiting review") })
+            {
+                <article class="ad-card ad-stat"><div class="ad-card-top"><span>@card.Label</span><span class="ad-icon @card.Tone material-symbols-outlined" aria-hidden="true">@card.Icon</span></div><strong>@DashboardViewModel.Number(card.Value)</strong><p>@card.Note</p></article>
+            }
+        </section>
+        <section class="md-week" aria-labelledby="current-week-title"><div><span class="ad-eyebrow">WEEKLY OPERATIONS</span><h2 id="current-week-title">Current Schedule Week</h2>
+            @if (data.CurrentScheduleWeek is { } week)
+            {
+                <p>@week.WeekStartDate.ToString("dd MMM", CultureInfo.InvariantCulture) – @week.WeekEndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p><small>Registration deadline: @M.VietnamTime(week.RegistrationDeadline) · UTC+7</small><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@week.ScheduleWeekId">View schedule details →</a>
+            }
+            else { <p>No active schedule week covers today.</p><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Index">View weekly schedules →</a> }
+            </div><div class="md-week-status"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>@if (data.CurrentScheduleWeek is { } current) { <span>@M.Label(current.Status)</span> }</div>
+        </section>
+        <div class="ad-panels">
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Today's Attendance</h2><span>@DashboardViewModel.Number(data.TodayAttendance.Total) records</span></div><p>Attendance for shifts starting today, by recorded status.</p>
+                @if (data.TodayAttendance.Total == 0) { <div class="md-empty"><span class="material-symbols-outlined" aria-hidden="true">fact_check</span><strong>No attendance recorded yet</strong><p>Today's attendance will appear here when records are available.</p></div> }
+                else
+                {
+                    var position = 0m;
+                    var stops = new List<string>();
+                    foreach (var group in data.TodayAttendance.ByStatus)
+                    {
+                        var start = position;
+                        position += group.Count * 100m / data.TodayAttendance.Total;
+                        stops.Add($"{M.Color(group.Status)} {start.ToString(CultureInfo.InvariantCulture)}% {position.ToString(CultureInfo.InvariantCulture)}%");
+                    }
+                    <div class="ad-pie-layout"><div class="md-donut" style="background:conic-gradient(@string.Join(", ", stops))" aria-hidden="true"><div><strong>@DashboardViewModel.Number(data.TodayAttendance.Total)</strong><span>records</span></div></div><ul class="ad-pie-legend" aria-label="Attendance percentages">
+                        @foreach (var group in data.TodayAttendance.ByStatus)
+                        {
+                            <li><span><i style="background:@M.Color(group.Status)" aria-hidden="true"></i>@M.Label(group.Status)</span><strong>@DashboardViewModel.Percent(group.Count, data.TodayAttendance.Total)%<small>@DashboardViewModel.Number(group.Count) records</small></strong></li>
+                        }
+                    </ul></div>
+                }
+                <div class="md-footnote">Recorded attendance is separate from assigned shift slots.</div>
+            </section>
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Requests Awaiting Review</h2><span>@DashboardViewModel.Number(data.PendingRequests) pending</span></div><p>Pending employee requests grouped by type.</p>
+                @if (data.PendingRequestsByType.Count == 0) { <div class="md-empty"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span><strong>You're all caught up</strong><p>No pending requests for your branch.</p></div> }
+                @foreach (var group in data.PendingRequestsByType)
+                {
+                    <div class="md-request-row"><div><span>@M.Label(group.RequestType)</span><strong>@DashboardViewModel.Number(group.Count)<small> @DashboardViewModel.Percent(group.Count, data.PendingRequests)%</small></strong></div><div class="ad-track"><div style="width:@(DashboardViewModel.Percent(group.Count, data.PendingRequests))%;background:#6256db"></div></div></div>
+                }
+            </section>
         </div>
-        <div>
-            <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
-                <span class="material-symbols-outlined text-[16px]">refresh</span>
-                Làm mới
-            </a>
-        </div>
-    </div>
-
-    <!-- Stat Cards Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tổng nhân sự</span>
-                <span class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[20px]">group</span>
-                </span>
-            </div>
-            <div class="my-3">
-                <div class="text-3xl font-bold text-gray-900">24</div>
-                <div class="text-xs text-emerald-600 font-medium mt-1">22 hợp đồng hoạt động</div>
-            </div>
-            <div class="text-[11px] text-gray-400 border-t border-gray-50 pt-2">Chi nhánh hiện tại</div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Đi làm hôm nay</span>
-                <span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[20px]">work</span>
-                </span>
-            </div>
-            <div class="my-3">
-                <div class="text-3xl font-bold text-gray-900">14</div>
-                <div class="text-xs text-indigo-600 font-medium mt-1">3 ca trong ngày</div>
-            </div>
-            <div class="text-[11px] text-gray-400 border-t border-gray-50 pt-2">Theo lịch phân công</div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Yêu cầu chờ duyệt</span>
-                <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[20px]">pending_actions</span>
-                </span>
-            </div>
-            <div class="my-3">
-                <div class="text-3xl font-bold text-amber-600">6</div>
-                <div class="text-xs text-gray-500 font-medium mt-1">3 ca · 2 đổi ca · 1 nghỉ phép</div>
-            </div>
-            <div class="text-[11px] text-gray-400 border-t border-gray-50 pt-2">Cần xử lý sớm</div>
-        </div>
-
-        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tỷ lệ đúng giờ</span>
-                <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-[20px]">verified</span>
-                </span>
-            </div>
-            <div class="my-3">
-                <div class="text-3xl font-bold text-emerald-600">92.8%</div>
-                <div class="text-xs text-gray-500 font-medium mt-1">13/14 nhân viên</div>
-            </div>
-            <div class="text-[11px] text-gray-400 border-t border-gray-50 pt-2">Hôm nay</div>
-        </div>
-    </div>
-
-    <!-- Developer Notice Frame -->
-    <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-2xl border border-indigo-100 text-indigo-950">
-        <div class="flex items-center gap-2 font-bold text-base mb-1.5 text-indigo-900">
-            <span class="material-symbols-outlined text-[22px]">developer_mode</span>
-            Khuôn mẫu làm việc cho Manager
-        </div>
-        <p class="text-sm text-indigo-800/80 leading-relaxed">
-            Thư mục <code>Controllers/Manager</code>, <code>Models/Manager</code>, <code>Services/Manager</code> đã sẵn sàng. Bạn có thể tạo thêm các Controller (ví dụ: <code>ManagerStaffController</code>, <code>ManagerScheduleController</code>, ...) và tạo View tương ứng trong <code>Views/[TênController]/</code>.
-        </p>
-    </div>
+        <section class="ad-card ad-recent"><div class="ad-panel-heading"><div><h2>Recent Employee Requests</h2><p>The 5 latest requests across all statuses in your branch.</p></div><span class="material-symbols-outlined" aria-hidden="true">inbox</span></div><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Recent employee requests"><table><thead><tr><th scope="col">Employee</th><th scope="col">Request Type</th><th scope="col">Status</th><th scope="col">Submitted At · UTC+7</th><th scope="col" class="ad-number">Request ID</th></tr></thead><tbody>
+            @if (data.RecentRequests.Count == 0) { <tr><td colspan="5" class="ad-empty">No employee requests to display.</td></tr> }
+            @foreach (var request in data.RecentRequests)
+            {
+                <tr><td><strong>@request.FullName</strong></td><td>@M.Label(request.RequestType)</td><td><span class="ad-badge" style="color:@M.Color(request.Status);background:@(M.Color(request.Status))14">@M.Label(request.Status)</span></td><td>@M.VietnamTime(request.CreatedAt)</td><td class="ad-number">#@request.RequestId</td></tr>
+            }
+        </tbody></table></div><footer>Only data for your assigned branch is shown.</footer></section>
+    }
 </div>

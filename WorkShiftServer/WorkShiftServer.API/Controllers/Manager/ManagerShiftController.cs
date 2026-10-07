@@ -18,6 +18,10 @@ namespace WorkShiftServer.API.Controllers.Manager;
 [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
 public sealed class ManagerShiftController(IShiftService service, ILogger<ManagerShiftController> logger) : ControllerBase
 {
+    [HttpGet("options")]
+    [ProducesResponseType(typeof(ShiftOptionsResponse), StatusCodes.Status200OK)]
+    public Task<IActionResult> GetOptions(CancellationToken ct) =>
+        ExecuteAsync(async actor => Ok(await service.GetOptionsAsync(actor, ct)));
     [HttpPost("/api/manager/schedule-weeks/{weekId:int}/shifts")]
     [ProducesResponseType(typeof(ShiftDetailResponse), StatusCodes.Status201Created)]
     public Task<IActionResult> Create(int weekId, [FromBody] CreateShiftRequest request, CancellationToken ct) =>
