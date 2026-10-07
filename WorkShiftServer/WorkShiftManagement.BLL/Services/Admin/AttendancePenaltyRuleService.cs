@@ -123,7 +123,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
                 PenaltyRule = rule,
                 ViolationType = normalizedType,
                 FromMinutes = level.FromMinutes!.Value,
-                ToMinutes = level.ToMinutes!.Value,
+                ToMinutes = level.ToMinutes,
                 PenaltyAmount = normalizedAmount,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -175,7 +175,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             {
                 ViolationType = normalizedType,
                 FromMinutes = level.FromMinutes!.Value,
-                ToMinutes = level.ToMinutes!.Value,
+                ToMinutes = level.ToMinutes,
                 PenaltyAmount = normalizedAmount,
                 CreatedAt = now,
                 UpdatedAt = now
@@ -583,14 +583,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 480)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 480.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
+            if (level.ToMinutes.HasValue && (level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 480))
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
+                throw new ArgumentException("toMinutes must be greater than or equal to fromMinutes and at most 480, or left null for open-ended intervals.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)
@@ -599,23 +599,49 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             }
         }
 
-        // Validate overlapping intervals per violation type
+        // Validate continuous intervals per violation type (no gaps, no overlaps, starts at 1, last is open-ended)
         var grouped = request.PenaltyLevels
             .GroupBy(l => NormalizeViolationType(l.ViolationType));
 
         foreach (var group in grouped)
         {
             var sortedLevels = group.OrderBy(l => l.FromMinutes!.Value).ToList();
+
+            if (sortedLevels[0].FromMinutes!.Value != 1)
+            {
+                throw new ArgumentException(
+                    $"The first penalty tier for {group.Key} must start at minute 1 (found {sortedLevels[0].FromMinutes}).");
+            }
+
             for (var i = 0; i < sortedLevels.Count - 1; i++)
             {
                 var current = sortedLevels[i];
                 var next = sortedLevels[i + 1];
 
-                if (current.ToMinutes!.Value >= next.FromMinutes!.Value)
+                if (!current.ToMinutes.HasValue)
                 {
                     throw new ArgumentException(
-                        $"Penalty levels for {group.Key} have overlapping minute ranges ({current.FromMinutes}-{current.ToMinutes} and {next.FromMinutes}-{next.ToMinutes}).");
+                        $"Penalty tier for {group.Key} starting at {current.FromMinutes} mins has no upper bound and cannot be followed by another tier ({next.FromMinutes} mins).");
                 }
+
+                if (current.ToMinutes.Value >= next.FromMinutes!.Value)
+                {
+                    throw new ArgumentException(
+                        $"Penalty tiers for {group.Key} have overlapping minute ranges ({current.FromMinutes}-{current.ToMinutes} and {next.FromMinutes}-{next.ToMinutes}).");
+                }
+
+                if (next.FromMinutes.Value != current.ToMinutes.Value + 1)
+                {
+                    throw new ArgumentException(
+                        $"Gap detected in penalty tiers for {group.Key}: tier starting at {next.FromMinutes} mins must start immediately at minute {current.ToMinutes.Value + 1} (right after {current.ToMinutes.Value} mins).");
+                }
+            }
+
+            var lastLevel = sortedLevels[sortedLevels.Count - 1];
+            if (lastLevel.ToMinutes.HasValue && lastLevel.ToMinutes.Value != 480)
+            {
+                throw new ArgumentException(
+                    $"The last penalty tier for {group.Key} (from {lastLevel.FromMinutes} mins) must either reach 480 mins or leave ToMinutes empty to apply for all remaining minutes.");
             }
         }
     }
@@ -658,14 +684,14 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             // Validate violation type
             NormalizeViolationType(level.ViolationType);
 
-            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 60)
+            if (!level.FromMinutes.HasValue || level.FromMinutes.Value < 1 || level.FromMinutes.Value > 480)
             {
-                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 60.");
+                throw new ArgumentException("fromMinutes must be a valid integer between 1 and 480.");
             }
 
-            if (!level.ToMinutes.HasValue || level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 60)
+            if (level.ToMinutes.HasValue && (level.ToMinutes.Value < level.FromMinutes.Value || level.ToMinutes.Value > 480))
             {
-                throw new ArgumentException("toMinutes must be a valid integer between fromMinutes and 60.");
+                throw new ArgumentException("toMinutes must be greater than or equal to fromMinutes and at most 480, or left null for open-ended intervals.");
             }
 
             if (!level.PenaltyAmount.HasValue || level.PenaltyAmount.Value <= 0)
@@ -674,23 +700,49 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             }
         }
 
-        // Validate overlapping intervals per violation type
+        // Validate continuous intervals per violation type (no gaps, no overlaps, starts at 1, last is open-ended)
         var grouped = request.PenaltyLevels
             .GroupBy(l => NormalizeViolationType(l.ViolationType));
 
         foreach (var group in grouped)
         {
             var sortedLevels = group.OrderBy(l => l.FromMinutes!.Value).ToList();
+
+            if (sortedLevels[0].FromMinutes!.Value != 1)
+            {
+                throw new ArgumentException(
+                    $"The first penalty tier for {group.Key} must start at minute 1 (found {sortedLevels[0].FromMinutes}).");
+            }
+
             for (var i = 0; i < sortedLevels.Count - 1; i++)
             {
                 var current = sortedLevels[i];
                 var next = sortedLevels[i + 1];
 
-                if (current.ToMinutes!.Value >= next.FromMinutes!.Value)
+                if (!current.ToMinutes.HasValue)
                 {
                     throw new ArgumentException(
-                        $"Penalty levels for {group.Key} have overlapping minute ranges ({current.FromMinutes}-{current.ToMinutes} and {next.FromMinutes}-{next.ToMinutes}).");
+                        $"Penalty tier for {group.Key} starting at {current.FromMinutes} mins has no upper bound and cannot be followed by another tier ({next.FromMinutes} mins).");
                 }
+
+                if (current.ToMinutes.Value >= next.FromMinutes!.Value)
+                {
+                    throw new ArgumentException(
+                        $"Penalty tiers for {group.Key} have overlapping minute ranges ({current.FromMinutes}-{current.ToMinutes} and {next.FromMinutes}-{next.ToMinutes}).");
+                }
+
+                if (next.FromMinutes.Value != current.ToMinutes.Value + 1)
+                {
+                    throw new ArgumentException(
+                        $"Gap detected in penalty tiers for {group.Key}: tier starting at {next.FromMinutes} mins must start immediately at minute {current.ToMinutes.Value + 1} (right after {current.ToMinutes.Value} mins).");
+                }
+            }
+
+            var lastLevel = sortedLevels[sortedLevels.Count - 1];
+            if (lastLevel.ToMinutes.HasValue && lastLevel.ToMinutes.Value != 480)
+            {
+                throw new ArgumentException(
+                    $"The last penalty tier for {group.Key} (from {lastLevel.FromMinutes} mins) must either reach 480 mins or leave ToMinutes empty to apply for all remaining minutes.");
             }
         }
     }
