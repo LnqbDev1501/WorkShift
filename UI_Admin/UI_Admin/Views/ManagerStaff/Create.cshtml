@@ -1,3 +1,4 @@
+@using Microsoft.AspNetCore.Mvc.Rendering
 @model UI_Admin.Models.Catalog.CreateStaffAccountViewModel
 
 @{
@@ -54,6 +55,14 @@
                     <option value="OTHER">Other</option>
                 </select>
                 <span asp-validation-for="Gender" class="text-error font-body-sm text-body-sm"></span>
+            </div>
+
+            <div class="flex flex-col gap-unit-2">
+                <label asp-for="EmployeeTypeId" class="font-label-md text-label-md text-on-surface">Employee Type <span class="text-error">*</span></label>
+                <select asp-for="EmployeeTypeId" asp-items="@(new SelectList(Model.EmployeeTypes, "Id", "Name"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                    <option value="">-- Select Employee Type --</option>
+                </select>
+                <span asp-validation-for="EmployeeTypeId" class="text-error font-body-sm text-body-sm"></span>
             </div>
 
             <div class="flex flex-col gap-unit-2">

@@ -9,6 +9,7 @@ using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Interfaces.Upload;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
@@ -17,6 +18,7 @@ public class ManagerStaffService : IManagerStaffService
     private readonly IManagerStaffRepo _staffRepo;
     private readonly IAuthService _authService;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IEmployeeTypeService _employeeTypeService;
     private readonly AppDbContext _context;
     private readonly string _defaultAvatarUrl;
 
@@ -24,12 +26,14 @@ public class ManagerStaffService : IManagerStaffService
         IManagerStaffRepo staffRepo,
         IAuthService authService,
         ICloudinaryService cloudinaryService,
+        IEmployeeTypeService employeeTypeService,
         AppDbContext context,
         Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _staffRepo = staffRepo;
         _authService = authService;
         _cloudinaryService = cloudinaryService;
+        _employeeTypeService = employeeTypeService;
         _context = context;
         _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
             ?? throw new InvalidOperationException("Cloudinary:DefaultAvatarUrl is not configured.");
@@ -137,6 +141,7 @@ public class ManagerStaffService : IManagerStaffService
             DateOfBirth = request.DateOfBirth.Value,
             AvatarUrl = _defaultAvatarUrl,
             Address = request.Address?.Trim() ?? string.Empty,
+            EmployeeTypeId = request.EmployeeTypeId,
             Status = "ACTIVE",
             CreatedAt = now,
             UpdatedAt = now
@@ -416,6 +421,19 @@ public class ManagerStaffService : IManagerStaffService
         {
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
+
+        if (!request.EmployeeTypeId.HasValue)
+        {
+            throw new ArgumentException("Employee type is required.");
+        }
+
+        {
+            var employeeType = await _employeeTypeService.GetByIdAsync(request.EmployeeTypeId.Value);
+            if (employeeType == null || !employeeType.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException("Employee type was not found or is inactive.");
+            }
+        }
     }
 
     private static void ValidateDateOfBirth(DateOnly dateOfBirth)
@@ -479,6 +497,8 @@ public class ManagerStaffService : IManagerStaffService
             AvatarUrl = staff.AvatarUrl,
             Status = staff.Status,
             RoleName = staff.Role?.RoleName ?? "STAFF",
+            EmployeeTypeId = staff.EmployeeTypeId,
+            EmployeeTypeName = staff.EmployeeType?.TypeName,
             BranchId = staff.BranchId ?? 0,
             BranchName = staff.Branch?.BranchName ?? string.Empty,
             BranchCode = staff.Branch?.BranchCode ?? string.Empty,

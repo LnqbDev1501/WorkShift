@@ -30,4 +30,8 @@ public class CreateStaffAccountRequest
 
     [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters.")]
     public string? Address { get; set; }
+
+    [Required(ErrorMessage = "Employee type is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Employee type is invalid.")]
+    public int? EmployeeTypeId { get; set; }
 }

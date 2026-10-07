@@ -73,7 +73,8 @@ public class ManagerStaffController : Controller
     {
         return View(new CreateStaffAccountViewModel
         {
-            Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
+            Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken),
+            EmployeeTypes = await _managerStaffApiService.GetActiveEmployeeTypeOptionsAsync(cancellationToken)
         });
     }
 
@@ -82,7 +83,11 @@ public class ManagerStaffController : Controller
     public async Task<IActionResult> Create(CreateStaffAccountViewModel model, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
+        {
+            model.Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
+            model.EmployeeTypes = await _managerStaffApiService.GetActiveEmployeeTypeOptionsAsync(cancellationToken);
             return View(model);
+        }
 
         var (success, errorMessage) = await _managerStaffApiService.CreateStaffAsync(model, cancellationToken);
         if (success)
@@ -92,6 +97,7 @@ public class ManagerStaffController : Controller
         }
 
         model.Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
+        model.EmployeeTypes = await _managerStaffApiService.GetActiveEmployeeTypeOptionsAsync(cancellationToken);
         ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to create staff account.");
         return View(model);
     }
