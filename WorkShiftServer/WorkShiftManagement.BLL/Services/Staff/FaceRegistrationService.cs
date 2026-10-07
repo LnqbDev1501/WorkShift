@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Staff.FaceRegistration.Request;
@@ -13,16 +14,18 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 public class FaceRegistrationService : IFaceRegistrationService
 {
     private const int SessionTtlSeconds = 90;
-    private const string ActionTypeFirstTime = "REGISTER_FIRST_TIME";
+    private const string ActionTypeFirstTime = "INITIAL_REGISTRATION";
     private const string EmbeddingVersionStandard = "MobileNetV2-128";
+    private const decimal MinFaceQualityThreshold = 0.8500m;
+    private const decimal MinLivenessThreshold = 0.8500m;
 
     private static readonly (string Action, string Instruction)[] PossibleChallenges =
     {
-        ("BLINK", "Vui lòng chớp mắt"),
-        ("TURN_LEFT", "Vui lòng quay mặt sang trái"),
-        ("TURN_RIGHT", "Vui lòng quay mặt sang phải"),
-        ("SMILE", "Vui lòng mỉm cười"),
-        ("NOD", "Vui lòng gật đầu nhẹ")
+        ("BLINK", "Please blink your eyes"),
+        ("TURN_LEFT", "Please turn your face to the left"),
+        ("TURN_RIGHT", "Please turn your face to the right"),
+        ("SMILE", "Please smile"),
+        ("NOD", "Please nod your head slightly")
     };
 
     private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -98,7 +101,7 @@ public class FaceRegistrationService : IFaceRegistrationService
 
         // 3. Generate random active liveness challenge sequence
         var challenges = GenerateRandomChallenges();
-        var challengeSequence = string.Join(",", challenges.Select(c => c.Action));
+        var challengeSequence = JsonSerializer.Serialize(challenges.Select(c => c.Action).ToList());
 
         var now = DateTime.UtcNow;
         var sessionId = Guid.NewGuid();
@@ -225,13 +228,23 @@ public class FaceRegistrationService : IFaceRegistrationService
         // 4. Biometric Feature & Liveness Verification
         var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
 
+        if (qualityScore < MinFaceQualityThreshold)
+        {
+            throw new InvalidOperationException($"Face image quality score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please retake in a well-lit environment facing the camera directly.");
+        }
+
+        if (livenessScore < MinLivenessThreshold)
+        {
+            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please perform the challenge actions correctly.");
+        }
+
         // 5. Create active FaceProfile entity (Zero Raw Biometric Storage: only vector & quality scores)
         var faceProfile = new FaceProfile
         {
             UserId = userId,
             RegistrationSessionId = session.SessionId,
             EmbeddingVersion = EmbeddingVersionStandard,
-            RegistrationType = "FIRST_TIME",
+            RegistrationType = "INITIAL",
             FaceQualityScore = qualityScore,
             LivenessScore = livenessScore,
             Status = "ACTIVE",
@@ -256,7 +269,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         return new FaceRegistrationVerifyResponse
         {
             Success = true,
-            Message = "Đăng ký gương mặt thành công!",
+            Message = "Face profile registered successfully!",
             FaceProfileId = faceProfile.FaceProfileId,
             Status = faceProfile.Status,
             FaceQualityScore = faceProfile.FaceQualityScore,
@@ -289,7 +302,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         {
             Order = order,
             Action = "LOOK_STRAIGHT",
-            Instruction = "Vui lòng giữ thẳng khuôn mặt"
+            Instruction = "Please look straight into the camera"
         });
 
         return result;
@@ -306,18 +319,18 @@ public class FaceRegistrationService : IFaceRegistrationService
     {
         if (file == null || file.Length == 0)
         {
-            throw new ArgumentException("Vui lòng tải lên file ảnh khuôn mặt hợp lệ.");
+            throw new ArgumentException("Please upload a valid face image file.");
         }
 
         if (file.Length > 15 * 1024 * 1024)
         {
-            throw new ArgumentException("Dung lượng file ảnh không được vượt quá 15MB.");
+            throw new ArgumentException("Image file size must not exceed 15MB.");
         }
 
         var extension = Path.GetExtension(file.FileName);
         if (string.IsNullOrEmpty(extension) || !AllowedImageExtensions.Contains(extension))
         {
-            throw new ArgumentException("Định dạng file ảnh không được hỗ trợ. Vui lòng tải lên ảnh .jpg, .jpeg, .png hoặc .webp.");
+            throw new ArgumentException("Unsupported image format. Please upload a .jpg, .jpeg, .png, or .webp image.");
         }
 
         // Validate basic image signature (Magic bytes)
@@ -326,7 +339,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         var read = stream.Read(buffer, 0, buffer.Length);
         if (read < 4 || !IsValidImageHeader(buffer))
         {
-            throw new ArgumentException("Nội dung file không phải là ảnh hợp lệ hoặc bị lỗi.");
+            throw new ArgumentException("The uploaded file content is corrupted or not a valid image.");
         }
     }
 
@@ -345,18 +358,18 @@ public class FaceRegistrationService : IFaceRegistrationService
     {
         // 1. Validate User Account Status
         var user = await _faceRegistrationRepo.GetUserByIdAsync(userId, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Tài khoản người dùng không tồn tại trong hệ thống.");
+            ?? throw new UnauthorizedAccessException("User account does not exist in the system.");
 
         if (user.DeletedAt.HasValue || !string.Equals(user.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
         {
-            throw new UnauthorizedAccessException("Tài khoản của bạn hiện đang bị khóa hoặc không khả dụng. Vui lòng liên hệ Quản lý.");
+            throw new UnauthorizedAccessException("Your account is currently locked or inactive. Please contact your Manager.");
         }
 
         // 2. Validate Employment Contract Status
         var activeContract = await _faceRegistrationRepo.GetActiveContractByUserIdAsync(userId, cancellationToken);
         if (activeContract == null)
         {
-            throw new InvalidOperationException("Hợp đồng lao động của bạn chưa được kích hoạt hoặc đã hết hạn. Vui lòng liên hệ bộ phận Quản lý/Nhân sự (HR) để được hỗ trợ.");
+            throw new InvalidOperationException("Your employment contract is not active or has expired. Please contact HR / Management.");
         }
     }
 

@@ -61,6 +61,14 @@ public sealed class StaffFaceRegistrationController : ControllerBase
             var result = await _faceRegistrationService.CreateSessionAsync(userId, cancellationToken);
             return Ok(result);
         }
+        catch (UnauthorizedAccessException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
         catch (InvalidOperationException exception)
         {
             return BadRequest(new { message = exception.Message });
@@ -157,7 +165,10 @@ public sealed class StaffFaceRegistrationController : ControllerBase
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unexpected error verifying face registration for user {UserId}", userId);
-            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to verify face registration. Please try again." });
+            return StatusCode(StatusCodes.Status500InternalServerError, new { 
+                message = "Failed to verify face registration. Please try again.",
+                detail = exception.InnerException?.Message ?? exception.Message
+            });
         }
     }
 
