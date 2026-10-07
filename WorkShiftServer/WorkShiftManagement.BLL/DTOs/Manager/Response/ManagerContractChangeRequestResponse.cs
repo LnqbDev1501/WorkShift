@@ -1,0 +1,24 @@
+using System;
+using System.Collections.Generic;
+using WorkShiftManagement.BLL.DTOs.Staff.Response;
+
+namespace WorkShiftManagement.BLL.DTOs.Manager.Response;
+
+public class ManagerContractChangeRequestResponse
+{
+    public int ChangeRequestId { get; set; }
+    public int ContractId { get; set; }
+    public string ContractNumber { get; set; } = null!;
+    public Guid StaffUserId { get; set; }
+    public string StaffFullName { get; set; } = null!;
+    public string RequestType { get; set; } = null!;
+    public string? StaffComment { get; set; }
+    public string Status { get; set; } = null!;
+    public DateTime? SubmittedAt { get; set; }
+    public Guid? ReviewedBy { get; set; }
+    public string? ReviewedByName { get; set; }
+    public DateTime? ReviewedAt { get; set; }
+    public string? ReviewComment { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public List<ContractChangeRequestItemDetailDto> Items { get; set; } = new();
+}

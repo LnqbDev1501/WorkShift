@@ -124,6 +124,16 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+
+        if (!optionsBuilder.IsConfigured)
+        {
+            optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909;No Reset On Close=true;");
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -1039,6 +1049,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
+            entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+            entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
             entity.Property(e => e.ContractFilePath)
                 .HasMaxLength(500)
                 .HasColumnName("contract_file_path");
@@ -1132,6 +1145,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.TerminatedBy)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
+
+            entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.EmploymentContractCancelledByNavigations)
+                .HasForeignKey(d => d.CancelledBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("employment_contracts_cancelled_by_fkey");
 
             entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
                 .HasForeignKey<EmploymentContract>(d => d.UserId)

@@ -14,4 +14,11 @@ public interface IAdminEmploymentContractService
     Task<AdminEmploymentContractDetailResponse> GetByIdAsync(
         int contractId,
         CancellationToken cancellationToken = default);
+
+    Task<AdminContractHistoryResponse> GetContractHistoryAsync(
+        int contractId,
+        int pageNumber = 1,
+        int pageSize = 20,
+        string? sortOrder = "desc",
+        CancellationToken cancellationToken = default);
 }

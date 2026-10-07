@@ -1,6 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
@@ -170,7 +176,7 @@ public class ManagerEmploymentContractController(
             return Unauthorized(new { message = "A valid authenticated user ID is required." });
         try
         {
-            return Ok(await service.CancelDraftAsync(managerId.Value, id, request, cancellationToken));
+            return Ok(await service.CancelContractAsync(managerId.Value, id, request, cancellationToken));
         }
         catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
@@ -179,8 +185,37 @@ public class ManagerEmploymentContractController(
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to cancel draft employment contract {ContractId}", id);
+            logger.LogError(ex, "Failed to cancel employment contract {ContractId}", id);
             return StatusCode(500, new { message = "The employment contract could not be cancelled. Please try again later." });
+        }
+    }
+
+    [HttpPost("{id:int}/terminate")]
+    [ProducesResponseType(typeof(ManagerEmploymentContractDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<ManagerEmploymentContractDetailResponse>> Terminate(
+        [FromRoute] int id, [FromBody] TerminateEmploymentContractRequest request, CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+        try
+        {
+            return Ok(await service.TerminateContractAsync(managerId.Value, id, request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to terminate employment contract {ContractId}", id);
+            return StatusCode(500, new { message = "The employment contract could not be terminated. Please try again later." });
         }
     }
 
@@ -268,6 +303,151 @@ public class ManagerEmploymentContractController(
         {
             logger.LogError(ex, "Failed to download PDF for contract {ContractId}", id);
             return StatusCode(500, new { message = "The contract PDF could not be downloaded." });
+        }
+    }
+
+    // Contract Change Requests
+    [HttpGet("change-requests")]
+    public async Task<ActionResult<PagedResponse<ManagerContractChangeRequestResponse>>> GetChangeRequests(
+        [FromQuery] string? status,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.GetChangeRequestsAsync(managerId.Value, status, pageNumber, pageSize, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get contract change requests for manager {ManagerId}", managerId.Value);
+            return StatusCode(500, new { message = "Could not retrieve contract change requests." });
+        }
+    }
+
+    [HttpGet("change-requests/{changeRequestId:int}")]
+    public async Task<ActionResult<ManagerContractChangeRequestResponse>> GetChangeRequestById(
+        [FromRoute] int changeRequestId, CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.GetChangeRequestByIdAsync(managerId.Value, changeRequestId, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get contract change request {ChangeRequestId}", changeRequestId);
+            return StatusCode(500, new { message = "Could not retrieve change request detail." });
+        }
+    }
+
+    [HttpPost("change-requests/{changeRequestId:int}/approve")]
+    public async Task<ActionResult<ManagerContractChangeRequestResponse>> ApproveChangeRequest(
+        [FromRoute] int changeRequestId,
+        [FromBody] ApproveContractChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.ApproveChangeRequestAsync(managerId.Value, changeRequestId, request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to approve contract change request {ChangeRequestId}", changeRequestId);
+            return StatusCode(500, new { message = "Could not approve contract change request." });
+        }
+    }
+
+    [HttpPost("change-requests/{changeRequestId:int}/reject")]
+    public async Task<ActionResult<ManagerContractChangeRequestResponse>> RejectChangeRequest(
+        [FromRoute] int changeRequestId,
+        [FromBody] RejectContractChangeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.RejectChangeRequestAsync(managerId.Value, changeRequestId, request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to reject contract change request {ChangeRequestId}", changeRequestId);
+            return StatusCode(500, new { message = "Could not reject contract change request." });
+        }
+    }
+
+    // History
+    [HttpGet("{id:int}/history")]
+    public async Task<ActionResult<ManagerContractHistoryResponse>> GetContractHistory(
+        [FromRoute] int id,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? sort = "desc",
+        CancellationToken cancellationToken = default)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.GetContractHistoryAsync(managerId.Value, id, pageNumber, pageSize, sort, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get history for contract {ContractId}", id);
+            return StatusCode(500, new { message = "Could not retrieve contract history." });
+        }
+    }
+
+    [HttpGet("staff/{staffUserId:guid}/history")]
+    public async Task<ActionResult<IReadOnlyList<StaffContractHistoryItemResponse>>> GetStaffContractHistory(
+        [FromRoute] Guid staffUserId, CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+
+        try
+        {
+            return Ok(await service.GetStaffContractHistoryAsync(managerId.Value, staffUserId, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get contract history for staff {StaffUserId}", staffUserId);
+            return StatusCode(500, new { message = "Could not retrieve staff contract history." });
         }
     }
 }

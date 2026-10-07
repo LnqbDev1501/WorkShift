@@ -1,14 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
-using System.Text.Json;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.DAL.Repositories.Admin;
 
@@ -97,27 +98,61 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
             _context.EmploymentContracts.Add(contract);
             await _context.SaveChangesAsync(cancellationToken);
+
+            var action = contract.ReplacesContractId.HasValue ? "CREATE_RENEWAL_CONTRACT" : "CREATE_DRAFT";
+            var note = contract.ReplacesContractId.HasValue
+                ? $"Tạo hợp đồng gia hạn/thay thế cho hợp đồng cũ #{contract.ReplacesContractId.Value}."
+                : "Tạo dự thảo hợp đồng lao động mới.";
+
             _context.AuditLogs.Add(new AuditLog
             {
                 UserId = contract.CreatedBy,
-                Action = "CREATE",
+                Action = action,
                 TableName = "employment_contracts",
                 RecordId = contract.ContractId.ToString(),
+                OldValue = null,
                 NewValue = JsonSerializer.Serialize(new
                 {
-                    contract.ContractId, contract.ContractNumber, contract.UserId, contract.BranchId,
-                    contract.RegionId, contract.StartDate, contract.EndDate, contract.HourlyRate,
-                    contract.EmployeePositionSnapshot, contract.Status, contract.CreatedBy, contract.CreatedAt,
-                    contract.ReplacesContractId
+                    contractId = contract.ContractId,
+                    contractNumber = contract.ContractNumber,
+                    fromStatus = (string?)null,
+                    toStatus = "DRAFT",
+                    startDate = contract.StartDate,
+                    endDate = contract.EndDate,
+                    hourlyRate = contract.HourlyRate,
+                    employeePosition = contract.EmployeePositionSnapshot,
+                    replacesContractId = contract.ReplacesContractId,
+                    note = note
                 }),
                 CreatedAt = contract.CreatedAt
             });
+
+            if (contract.ReplacesContractId.HasValue)
+            {
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    UserId = contract.CreatedBy,
+                    Action = "LINKED_REPLACEMENT_CONTRACT",
+                    TableName = "employment_contracts",
+                    RecordId = contract.ReplacesContractId.Value.ToString(),
+                    OldValue = null,
+                    NewValue = JsonSerializer.Serialize(new
+                    {
+                        contractId = contract.ReplacesContractId.Value,
+                        replacementContractId = contract.ContractId,
+                        replacementContractNumber = contract.ContractNumber,
+                        note = $"Hợp đồng thay thế #{contract.ContractNumber} đã được tạo dự thảo."
+                    }),
+                    CreatedAt = contract.CreatedAt
+                });
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
-            { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "uq_one_pending_contract_per_staff" })
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
         {
+            await transaction.RollbackAsync(cancellationToken);
             throw new InvalidOperationException("Staff already has a draft or pending employment contract.", ex);
         }
     }
@@ -137,59 +172,44 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         var query = _context.EmploymentContracts
             .AsNoTracking()
-            .Include(c => c.User)
-                .ThenInclude(u => u.EmployeeType)
             .Include(c => c.Branch)
             .Include(c => c.Region)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var pattern = $"%{search.Trim()}%";
+            var searchLower = search.Trim().ToLower();
             query = query.Where(c =>
-                EF.Functions.ILike(c.ContractNumber, pattern) ||
-                (
-                    !string.IsNullOrWhiteSpace(c.EmployeeFullNameSnapshot)
-                        ? EF.Functions.ILike(c.EmployeeFullNameSnapshot, pattern)
-                        : (c.User != null && EF.Functions.ILike(c.User.FullName, pattern))
-                )
-            );
+                c.ContractNumber.ToLower().Contains(searchLower) ||
+                c.EmployeeFullNameSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeeIdentityNoSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeePhoneSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeePositionSnapshot.ToLower().Contains(searchLower));
         }
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            query = query.Where(c => c.Status.ToUpper() == status);
+            var normalizedStatus = status.Trim().ToUpper();
+            query = query.Where(c => c.Status.ToUpper() == normalizedStatus);
         }
 
         if (branchId.HasValue)
-        {
             query = query.Where(c => c.BranchId == branchId.Value);
-        }
 
         if (regionId.HasValue)
-        {
             query = query.Where(c => c.RegionId == regionId.Value);
-        }
 
         if (startDateFrom.HasValue)
-        {
             query = query.Where(c => c.StartDate >= startDateFrom.Value);
-        }
 
         if (startDateTo.HasValue)
-        {
             query = query.Where(c => c.StartDate <= startDateTo.Value);
-        }
 
         if (endDateFrom.HasValue)
-        {
-            query = query.Where(c => c.EndDate != null && c.EndDate.Value >= endDateFrom.Value);
-        }
+            query = query.Where(c => c.EndDate.HasValue && c.EndDate.Value >= endDateFrom.Value);
 
         if (endDateTo.HasValue)
-        {
-            query = query.Where(c => c.EndDate != null && c.EndDate.Value <= endDateTo.Value);
-        }
+            query = query.Where(c => c.EndDate.HasValue && c.EndDate.Value <= endDateTo.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -207,12 +227,10 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         return await _context.EmploymentContracts
             .AsNoTracking()
-            .Include(c => c.User)
-                .ThenInclude(u => u.EmployeeType)
             .Include(c => c.Branch)
             .Include(c => c.Region)
-                .ThenInclude(r => r.RegionalMinimumWage)
             .Include(c => c.CreatedByNavigation)
+            .Include(c => c.ContractChangeRequest)
             .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
     }
 
@@ -228,16 +246,15 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         var query = _context.EmploymentContracts
             .AsNoTracking()
-            .Include(c => c.User)
-                .ThenInclude(u => u.EmployeeType)
             .Include(c => c.Branch)
             .Include(c => c.Region)
             .Where(c => c.BranchId == branchId);
 
         if (staffUserId.HasValue && staffUserId.Value != Guid.Empty)
-        {
             query = query.Where(c => c.UserId == staffUserId.Value);
-        }
+
+        if (!string.IsNullOrWhiteSpace(contractNumber))
+            query = query.Where(c => c.ContractNumber.ToLower().Contains(contractNumber.Trim().ToLower()));
 
         if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
         {
@@ -245,21 +262,15 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             query = query.Where(c => c.Status.ToUpper() == normalizedStatus);
         }
 
-        if (!string.IsNullOrWhiteSpace(contractNumber))
-        {
-            var pattern = $"%{contractNumber.Trim()}%";
-            query = query.Where(c => EF.Functions.ILike(c.ContractNumber, pattern));
-        }
-
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var searchPattern = $"%{search.Trim()}%";
+            var searchLower = search.Trim().ToLower();
             query = query.Where(c =>
-                EF.Functions.ILike(c.ContractNumber, searchPattern) ||
-                (!string.IsNullOrWhiteSpace(c.EmployeeFullNameSnapshot)
-                    ? EF.Functions.ILike(c.EmployeeFullNameSnapshot, searchPattern)
-                    : (c.User != null && EF.Functions.ILike(c.User.FullName, searchPattern)))
-            );
+                c.ContractNumber.ToLower().Contains(searchLower) ||
+                c.EmployeeFullNameSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeeIdentityNoSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeePhoneSnapshot.ToLower().Contains(searchLower) ||
+                c.EmployeePositionSnapshot.ToLower().Contains(searchLower));
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -282,62 +293,182 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         if (existing == null)
             throw new KeyNotFoundException("Employment contract was not found.");
         if (existing.Status != "DRAFT")
-            throw new InvalidOperationException("Only draft contracts can be edited.");
+            throw new InvalidOperationException("Only draft contracts can be updated.");
 
+        var hasApprovedCr = await _context.ContractChangeRequests
+            .AnyAsync(cr => cr.ContractId == contract.ContractId && cr.Status == "APPROVED", cancellationToken);
+
+        var action = hasApprovedCr ? "UPDATE_DRAFT_AFTER_APPROVAL" : "UPDATE_DRAFT";
+        var note = hasApprovedCr
+            ? "Cập nhật nội dung hợp đồng theo yêu cầu thay đổi đã duyệt."
+            : "Cập nhật nội dung dự thảo hợp đồng.";
+
+        var now = DateTime.UtcNow;
         existing.StartDate = contract.StartDate;
         existing.EndDate = contract.EndDate;
+        existing.HourlyRate = contract.HourlyRate;
         existing.EmployeePositionSnapshot = contract.EmployeePositionSnapshot;
         existing.ContractTerms = contract.ContractTerms;
-        existing.HourlyRate = contract.HourlyRate;
-        existing.UpdatedAt = DateTime.UtcNow;
+        existing.UpdatedAt = now;
 
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = managerId,
-            Action = "UPDATE",
+            Action = action,
             TableName = "employment_contracts",
             RecordId = existing.ContractId.ToString(),
             OldValue = JsonSerializer.Serialize(oldValue),
             NewValue = JsonSerializer.Serialize(new
             {
-                existing.StartDate,
-                existing.EndDate,
-                existing.HourlyRate,
-                existing.EmployeePositionSnapshot,
-                existing.ContractTerms,
-                existing.UpdatedAt
+                fromStatus = "DRAFT",
+                toStatus = "DRAFT",
+                startDate = existing.StartDate,
+                endDate = existing.EndDate,
+                hourlyRate = existing.HourlyRate,
+                employeePosition = existing.EmployeePositionSnapshot,
+                contractTerms = existing.ContractTerms,
+                note = note,
+                updatedAt = now
             }),
-            CreatedAt = existing.UpdatedAt
+            CreatedAt = now
         });
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
 
-    public async Task CancelDraftAsync(int contractId, Guid managerId, string reason, CancellationToken cancellationToken = default)
+    public Task CancelDraftAsync(int contractId, Guid managerId, string reason, CancellationToken cancellationToken = default)
+        => CancelContractAsync(contractId, managerId, reason, cancellationToken);
+
+    public async Task CancelContractAsync(int contractId, Guid managerId, string reason, CancellationToken cancellationToken = default)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         var existing = await _context.EmploymentContracts
             .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
         if (existing == null)
             throw new KeyNotFoundException("Employment contract was not found.");
-        if (existing.Status != "DRAFT")
-            throw new InvalidOperationException("Only draft contracts can be cancelled.");
+
+        var cancellableStatuses = new[] { "DRAFT", "PENDING_STAFF", "PENDING_MANAGER_APPROVAL", "SCHEDULED" };
+        if (!cancellableStatuses.Contains(existing.Status, StringComparer.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"Không thể hủy hợp đồng ở trạng thái {existing.Status}. Đối với hợp đồng đang có hiệu lực (ACTIVE), vui lòng sử dụng chức năng Chấm dứt hợp đồng.");
+
+        var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (todayVn > existing.StartDate)
+            throw new InvalidOperationException("Chỉ có thể hủy hợp đồng trước hoặc tại ngày bắt đầu.");
 
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
         existing.Status = "CANCELLED";
-        existing.TerminationReason = reason;
+        existing.CancellationReason = reason;
+        existing.CancelledBy = managerId;
+        existing.CancelledAt = now;
         existing.UpdatedAt = now;
+
+        // Cancel any open change request on this contract
+        var openChangeRequests = await _context.ContractChangeRequests
+            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+            .ToListAsync(cancellationToken);
+        foreach (var cr in openChangeRequests)
+        {
+            cr.Status = "CANCELLED";
+            cr.UpdatedAt = now;
+        }
+
+        // Deactivate salary history if any
+        var salaries = await _context.StaffSalaryHistories
+            .Where(s => s.ContractId == contractId)
+            .ToListAsync(cancellationToken);
+        foreach (var s in salaries)
+        {
+            s.Status = "INACTIVE";
+            s.Reason = (s.Reason ?? "") + $" (Hợp đồng đã bị hủy: {reason})";
+        }
 
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = managerId,
-            Action = "CANCEL",
+            Action = "CANCEL_CONTRACT",
             TableName = "employment_contracts",
             RecordId = existing.ContractId.ToString(),
-            OldValue = JsonSerializer.Serialize(new { Status = oldStatus }),
-            NewValue = JsonSerializer.Serialize(new { Status = "CANCELLED", Reason = reason }),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                fromStatus = oldStatus,
+                toStatus = "CANCELLED",
+                reason = reason,
+                cancelledAt = now,
+                terminatedBy = managerId,
+                note = $"Hủy hợp đồng trước ngày bắt đầu. Lý do: {reason}"
+            }),
+            CreatedAt = now
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task TerminateContractAsync(int contractId, Guid managerId, string reason, DateTime effectiveAtUtc, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var existing = await _context.EmploymentContracts
+            .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
+        if (existing == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+
+        if (!string.Equals(existing.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+
+        var oldStatus = existing.Status;
+        var now = DateTime.UtcNow;
+        existing.Status = "TERMINATED";
+        existing.TerminationReason = reason;
+        existing.TerminatedBy = managerId;
+        existing.TerminatedAt = now;
+        existing.TerminationEffectiveAt = effectiveAtUtc;
+        existing.UpdatedAt = now;
+
+        // Close any open change request
+        var openChangeRequests = await _context.ContractChangeRequests
+            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+            .ToListAsync(cancellationToken);
+        foreach (var cr in openChangeRequests)
+        {
+            cr.Status = "CANCELLED";
+            cr.UpdatedAt = now;
+        }
+
+        // Deactivate active salary history and adjust effective_to to termination date
+        var effectiveVnDate = DateOnly.FromDateTime(effectiveAtUtc.AddHours(7));
+        var activeSalaries = await _context.StaffSalaryHistories
+            .Where(s => s.ContractId == contractId && s.Status == "ACTIVE")
+            .ToListAsync(cancellationToken);
+        foreach (var s in activeSalaries)
+        {
+            s.Status = "INACTIVE";
+            if (s.EffectiveTo == null || s.EffectiveTo > effectiveVnDate)
+            {
+                s.EffectiveTo = effectiveVnDate >= s.EffectiveFrom ? effectiveVnDate : s.EffectiveFrom;
+            }
+            s.Reason = (s.Reason ?? "") + $" (Hợp đồng chấm dứt: {reason})";
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = managerId,
+            Action = "TERMINATE_CONTRACT",
+            TableName = "employment_contracts",
+            RecordId = existing.ContractId.ToString(),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                fromStatus = oldStatus,
+                toStatus = "TERMINATED",
+                reason = reason,
+                terminationEffectiveAt = effectiveAtUtc,
+                terminatedAt = now,
+                terminatedBy = managerId,
+                note = $"Chấm dứt hợp đồng đang hiệu lực. Lý do: {reason}"
+            }),
             CreatedAt = now
         });
 
@@ -356,6 +487,12 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             throw new InvalidOperationException("Only draft contracts can be sent to staff.");
 
         var oldStatus = existing.Status;
+        var isResend = existing.SentToStaffAt.HasValue;
+        var action = isResend ? "RESEND_CONTRACT" : "SEND_CONTRACT";
+        var note = isResend
+            ? $"Gửi lại hợp đồng phiên bản {templateVersion} cho nhân viên."
+            : $"Tạo PDF và gửi hợp đồng chính thức phiên bản {templateVersion} cho nhân viên.";
+
         existing.ContractFilePath = filePath;
         existing.ContractTemplateVersion = templateVersion;
         existing.PdfGeneratedAt = generatedAt;
@@ -364,20 +501,37 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.Status = "PENDING_STAFF";
         existing.UpdatedAt = sentAt;
 
+        // If there was an approved change request, mark it RESOLVED
+        var approvedChangeRequests = await _context.ContractChangeRequests
+            .Where(cr => cr.ContractId == contractId && cr.Status == "APPROVED")
+            .ToListAsync(cancellationToken);
+        foreach (var cr in approvedChangeRequests)
+        {
+            cr.Status = "RESOLVED";
+            cr.UpdatedAt = sentAt;
+        }
+
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = managerId,
-            Action = "SEND_CONTRACT",
+            Action = action,
             TableName = "employment_contracts",
             RecordId = existing.ContractId.ToString(),
-            OldValue = JsonSerializer.Serialize(new { Status = oldStatus }),
+            OldValue = JsonSerializer.Serialize(new
+            {
+                fromStatus = oldStatus,
+                contractFilePath = existing.ContractFilePath,
+                contractTemplateVersion = existing.ContractTemplateVersion
+            }),
             NewValue = JsonSerializer.Serialize(new
             {
-                Status = "PENDING_STAFF",
-                ContractFilePath = filePath,
-                ContractTemplateVersion = templateVersion,
-                PdfGeneratedAt = generatedAt,
-                SentToStaffAt = sentAt
+                fromStatus = oldStatus,
+                toStatus = "PENDING_STAFF",
+                contractFilePath = filePath,
+                contractTemplateVersion = templateVersion,
+                pdfGeneratedAt = generatedAt,
+                sentToStaffAt = sentAt,
+                note = note
             }),
             CreatedAt = sentAt
         });
@@ -410,34 +564,165 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             .Include(c => c.Branch)
             .Include(c => c.Region)
             .Include(c => c.CreatedByNavigation)
+            .Include(c => c.ContractChangeRequest)
             .FirstOrDefaultAsync(c => c.ContractId == contractId && c.UserId == staffUserId && c.Status != "DRAFT", cancellationToken);
     }
 
-    public async Task<IReadOnlyList<EmploymentContract>> GetStaffContractsAsync(Guid staffUserId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<EmploymentContract>> GetStaffContractsAsync(Guid staffUserId, string? status = null, string? search = null, DateOnly? startDateFrom = null, DateOnly? startDateTo = null, CancellationToken cancellationToken = default)
     {
-        return await _context.EmploymentContracts
+        var query = _context.EmploymentContracts
             .AsNoTracking()
             .Include(c => c.Branch)
             .Include(c => c.Region)
-            .Where(c => c.UserId == staffUserId && c.Status != "DRAFT")
+            .Where(c => c.UserId == staffUserId && c.Status != "DRAFT");
+
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalized = status.Trim().ToUpper();
+            query = query.Where(c => c.Status.ToUpper() == normalized);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(c => c.ContractNumber.ToLower().Contains(term) ||
+                                     c.EmployeePositionSnapshot.ToLower().Contains(term) ||
+                                     c.BranchNameSnapshot.ToLower().Contains(term));
+        }
+
+        if (startDateFrom.HasValue)
+        {
+            query = query.Where(c => c.StartDate >= startDateFrom.Value);
+        }
+
+        if (startDateTo.HasValue)
+        {
+            query = query.Where(c => c.StartDate <= startDateTo.Value);
+        }
+
+        return await query
             .OrderByDescending(c => c.CreatedAt)
             .ToListAsync(cancellationToken);
     }
 
     public async Task StaffAcceptContractAsync(int contractId, Guid staffUserId, string newStatus, DateTime acceptedAtUtc, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        var existing = await _context.EmploymentContracts
-            .FirstOrDefaultAsync(c => c.ContractId == contractId && c.UserId == staffUserId, cancellationToken);
-        if (existing == null)
-            throw new KeyNotFoundException("Employment contract was not found.");
-        if (existing.Status != "PENDING_STAFF")
-            throw new InvalidOperationException("Only contracts in PENDING_STAFF status can be accepted.");
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            EmploymentContract? existing;
+            if (_context.Database.IsRelational())
+            {
+                try
+                {
+                    var lockedList = await _context.EmploymentContracts
+                        .FromSqlInterpolated($"SELECT * FROM public.employment_contracts WHERE contract_id = {contractId} AND user_id = {staffUserId} FOR UPDATE")
+                        .AsTracking()
+                        .ToListAsync(cancellationToken);
+                    existing = lockedList.FirstOrDefault();
+                }
+                catch
+                {
+                    existing = await _context.EmploymentContracts
+                        .FirstOrDefaultAsync(c => c.ContractId == contractId && c.UserId == staffUserId, cancellationToken);
+                }
+            }
+            else
+            {
+                existing = await _context.EmploymentContracts
+                    .FirstOrDefaultAsync(c => c.ContractId == contractId && c.UserId == staffUserId, cancellationToken);
+            }
+
+            if (existing == null)
+                throw new KeyNotFoundException("Employment contract was not found.");
+            if (existing.Status != "PENDING_STAFF")
+                throw new InvalidOperationException("Only contracts in PENDING_STAFF status can be accepted.");
+
+            var todayVn = GetVietnamDate(acceptedAtUtc);
+            if (todayVn > existing.StartDate)
+            {
+                throw new InvalidOperationException("Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.");
+            }
 
         var oldStatus = existing.Status;
         existing.Status = newStatus;
         existing.StaffAcceptedAt = acceptedAtUtc;
         existing.UpdatedAt = acceptedAtUtc;
+
+        var note = newStatus == "ACTIVE"
+            ? "Nhân viên đã chấp thuận hợp đồng. Hợp đồng có hiệu lực ngay lập tức."
+            : "Nhân viên đã chấp thuận hợp đồng. Hợp đồng chuyển sang trạng thái SCHEDULED chờ đến ngày bắt đầu.";
+
+        var salaryStatus = (newStatus == "ACTIVE") ? "ACTIVE" : "SCHEDULED";
+
+        if (salaryStatus == "ACTIVE")
+        {
+            var otherActiveSalaries = await _context.StaffSalaryHistories
+                .Where(s => s.UserId == staffUserId && s.Status == "ACTIVE")
+                .ToListAsync(cancellationToken);
+
+            foreach (var oldSalary in otherActiveSalaries)
+            {
+                oldSalary.Status = "INACTIVE";
+                if (oldSalary.EffectiveTo == null || oldSalary.EffectiveTo >= existing.StartDate)
+                {
+                    var dayBefore = existing.StartDate.AddDays(-1);
+                    if (dayBefore >= oldSalary.EffectiveFrom)
+                    {
+                        oldSalary.EffectiveTo = dayBefore;
+                    }
+                }
+            }
+        }
+        else if (existing.ReplacesContractId.HasValue)
+        {
+            var predSalaries = await _context.StaffSalaryHistories
+                .Where(s => s.ContractId == existing.ReplacesContractId.Value && s.UserId == staffUserId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var predSalary in predSalaries)
+            {
+                if (predSalary.EffectiveTo == null || predSalary.EffectiveTo >= existing.StartDate)
+                {
+                    var dayBefore = existing.StartDate.AddDays(-1);
+                    if (dayBefore >= predSalary.EffectiveFrom)
+                    {
+                        predSalary.EffectiveTo = dayBefore;
+                    }
+                }
+            }
+        }
+
+        var existingSalary = await _context.StaffSalaryHistories
+            .FirstOrDefaultAsync(s => s.ContractId == contractId && s.ChangeType == "INITIAL", cancellationToken);
+
+        if (existingSalary == null)
+        {
+            var salaryHistory = new StaffSalaryHistory
+            {
+                UserId = existing.UserId,
+                ContractId = existing.ContractId,
+                HourlyRate = existing.HourlyRate,
+                PreviousHourlyRate = null,
+                ChangeType = "INITIAL",
+                EffectiveFrom = existing.StartDate,
+                EffectiveTo = existing.EndDate,
+                Status = salaryStatus,
+                Reason = $"Mức lương ban đầu theo hợp đồng lao động {existing.ContractNumber}.",
+                CreatedBy = existing.CreatedBy,
+                CreatedAt = acceptedAtUtc
+            };
+            _context.StaffSalaryHistories.Add(salaryHistory);
+        }
+        else
+        {
+            existingSalary.Status = salaryStatus;
+            existingSalary.EffectiveFrom = existing.StartDate;
+            existingSalary.EffectiveTo = existing.EndDate;
+            existingSalary.HourlyRate = existing.HourlyRate;
+        }
 
         _context.AuditLogs.Add(new AuditLog
         {
@@ -445,13 +730,20 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             Action = "STAFF_ACCEPT_CONTRACT",
             TableName = "employment_contracts",
             RecordId = existing.ContractId.ToString(),
-            OldValue = JsonSerializer.Serialize(new { Status = oldStatus }),
-            NewValue = JsonSerializer.Serialize(new { Status = newStatus, StaffAcceptedAt = acceptedAtUtc }),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                fromStatus = oldStatus,
+                toStatus = newStatus,
+                staffAcceptedAt = acceptedAtUtc,
+                note = note
+            }),
             CreatedAt = acceptedAtUtc
         });
 
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     public async Task<int> ActivateDueScheduledContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default)
@@ -474,14 +766,64 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             c.Status = "ACTIVE";
             c.UpdatedAt = now;
 
+            var salaryHistory = await _context.StaffSalaryHistories
+                .FirstOrDefaultAsync(s => s.ContractId == c.ContractId && s.ChangeType == "INITIAL", cancellationToken);
+
+            if (salaryHistory != null)
+            {
+                salaryHistory.Status = "ACTIVE";
+            }
+            else
+            {
+                salaryHistory = new StaffSalaryHistory
+                {
+                    UserId = c.UserId,
+                    ContractId = c.ContractId,
+                    HourlyRate = c.HourlyRate,
+                    PreviousHourlyRate = null,
+                    ChangeType = "INITIAL",
+                    EffectiveFrom = c.StartDate,
+                    EffectiveTo = c.EndDate,
+                    Status = "ACTIVE",
+                    Reason = $"Mức lương ban đầu theo hợp đồng lao động {c.ContractNumber}.",
+                    CreatedBy = c.CreatedBy,
+                    CreatedAt = now
+                };
+                _context.StaffSalaryHistories.Add(salaryHistory);
+            }
+
+            var otherActiveSalaries = await _context.StaffSalaryHistories
+                .Where(s => s.UserId == c.UserId && (salaryHistory == null || s.SalaryHistoryId != salaryHistory.SalaryHistoryId) && s.Status == "ACTIVE")
+                .ToListAsync(cancellationToken);
+
+            foreach (var otherSalary in otherActiveSalaries)
+            {
+                otherSalary.Status = "INACTIVE";
+                if (otherSalary.EffectiveTo == null || otherSalary.EffectiveTo >= c.StartDate)
+                {
+                    var dayBefore = c.StartDate.AddDays(-1);
+                    if (dayBefore >= otherSalary.EffectiveFrom)
+                    {
+                        otherSalary.EffectiveTo = dayBefore;
+                    }
+                }
+            }
+
             _context.AuditLogs.Add(new AuditLog
             {
-                UserId = c.UserId,
-                Action = "WORKER_ACTIVATE_CONTRACT",
+                UserId = null,
+                Action = "AUTO_ACTIVATE_CONTRACT",
                 TableName = "employment_contracts",
                 RecordId = c.ContractId.ToString(),
-                OldValue = JsonSerializer.Serialize(new { Status = oldStatus }),
-                NewValue = JsonSerializer.Serialize(new { Status = "ACTIVE", ActivatedAt = now }),
+                OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                NewValue = JsonSerializer.Serialize(new
+                {
+                    fromStatus = oldStatus,
+                    toStatus = "ACTIVE",
+                    activatedAt = now,
+                    reason = "Hệ thống tự động kích hoạt hợp đồng khi đến ngày bắt đầu.",
+                    note = "Hợp đồng đã có hiệu lực (ACTIVE)."
+                }),
                 CreatedAt = now
             });
         }
@@ -489,6 +831,209 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return dueContracts.Count;
+    }
+
+    public async Task<int> ExpireDueContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var expiredContracts = await _context.EmploymentContracts
+            .Where(c => c.Status == "ACTIVE" &&
+                        c.EndDate != null &&
+                        c.EndDate < todayVnDate)
+            .ToListAsync(cancellationToken);
+
+        if (expiredContracts.Count == 0)
+            return 0;
+
+        var now = DateTime.UtcNow;
+        foreach (var c in expiredContracts)
+        {
+            var oldStatus = c.Status;
+            c.Status = "EXPIRED";
+            c.UpdatedAt = now;
+
+            var activeSalaries = await _context.StaffSalaryHistories
+                .Where(s => s.ContractId == c.ContractId && s.Status == "ACTIVE")
+                .ToListAsync(cancellationToken);
+            foreach (var sh in activeSalaries)
+            {
+                sh.Status = "INACTIVE";
+            }
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = null,
+                Action = "AUTO_EXPIRE_CONTRACT",
+                TableName = "employment_contracts",
+                RecordId = c.ContractId.ToString(),
+                OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                NewValue = JsonSerializer.Serialize(new
+                {
+                    fromStatus = oldStatus,
+                    toStatus = "EXPIRED",
+                    expiredAt = now,
+                    reason = "Hệ thống tự động chuyển trạng thái khi qua ngày kết thúc hợp đồng.",
+                    note = "Hợp đồng đã hết hạn (EXPIRED)."
+                }),
+                CreatedAt = now
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return expiredContracts.Count;
+    }
+
+    public async Task<int> CancelOverduePendingContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default)
+    {
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+            List<EmploymentContract> overdueContracts;
+            if (_context.Database.IsRelational())
+            {
+                try
+                {
+                    overdueContracts = await _context.EmploymentContracts
+                        .FromSqlInterpolated($"SELECT * FROM public.employment_contracts WHERE status = 'PENDING_STAFF' AND start_date < {todayVnDate} FOR UPDATE SKIP LOCKED")
+                        .Include(c => c.CreatedByNavigation)
+                        .Include(c => c.User)
+                        .AsTracking()
+                        .ToListAsync(cancellationToken);
+                }
+                catch
+                {
+                    overdueContracts = await _context.EmploymentContracts
+                        .Where(c => c.Status == "PENDING_STAFF" && c.StartDate < todayVnDate)
+                        .Include(c => c.CreatedByNavigation)
+                        .Include(c => c.User)
+                        .ToListAsync(cancellationToken);
+                }
+            }
+            else
+            {
+                overdueContracts = await _context.EmploymentContracts
+                    .Where(c => c.Status == "PENDING_STAFF" && c.StartDate < todayVnDate)
+                    .Include(c => c.CreatedByNavigation)
+                    .Include(c => c.User)
+                    .ToListAsync(cancellationToken);
+            }
+
+            if (overdueContracts.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return 0;
+            }
+
+            var now = DateTime.UtcNow;
+            var notificationsToCreate = new List<(NotificationEntity Notification, List<Guid> TargetUserIds)>();
+
+            foreach (var c in overdueContracts)
+            {
+                if (c.Status != "PENDING_STAFF")
+                    continue;
+
+                var oldStatus = c.Status;
+                c.Status = "CANCELLED";
+                c.CancellationReason = "NOT_ACCEPTED_BY_START_DATE";
+                c.CancelledBy = null;
+                c.CancelledAt = now;
+                c.UpdatedAt = now;
+
+                var openChangeRequests = await _context.ContractChangeRequests
+                    .Where(cr => cr.ContractId == c.ContractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+                    .ToListAsync(cancellationToken);
+                foreach (var cr in openChangeRequests)
+                {
+                    cr.Status = "CANCELLED";
+                    cr.UpdatedAt = now;
+                }
+
+                var salaries = await _context.StaffSalaryHistories
+                    .Where(s => s.ContractId == c.ContractId)
+                    .ToListAsync(cancellationToken);
+                foreach (var s in salaries)
+                {
+                    s.Status = "INACTIVE";
+                }
+
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    UserId = null,
+                    Action = "AUTO_CANCEL_CONTRACT",
+                    TableName = "employment_contracts",
+                    RecordId = c.ContractId.ToString(),
+                    OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                    NewValue = JsonSerializer.Serialize(new
+                    {
+                        fromStatus = oldStatus,
+                        toStatus = "CANCELLED",
+                        reason = "NOT_ACCEPTED_BY_START_DATE",
+                        cancelledAt = now,
+                        note = "Hệ thống tự động hủy hợp đồng do hết ngày bắt đầu mà nhân viên chưa chấp nhận."
+                    }),
+                    CreatedAt = now
+                });
+
+                var notif = new NotificationEntity
+                {
+                    NotificationType = "SYSTEM",
+                    Title = "Hợp đồng lao động đã bị tự động hủy",
+                    Content = $"Hợp đồng lao động {c.ContractNumber} của nhân viên {c.EmployeeFullNameSnapshot} đã bị tự động hủy do quá ngày bắt đầu ({c.StartDate:yyyy-MM-dd}) mà nhân viên chưa chấp nhận.",
+                    CreatedBy = c.CreatedBy != Guid.Empty ? c.CreatedBy : c.UserId,
+                    TargetBranchId = c.BranchId,
+                    CreatedAt = now,
+                    IsDeleted = false
+                };
+
+                var targets = new HashSet<Guid>();
+                if (c.UserId != Guid.Empty) targets.Add(c.UserId);
+                if (c.CreatedBy != Guid.Empty) targets.Add(c.CreatedBy);
+
+                notificationsToCreate.Add((notif, targets.ToList()));
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            foreach (var (notif, targetIds) in notificationsToCreate)
+            {
+                _context.Notifications.Add(notif);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                foreach (var targetId in targetIds)
+                {
+                    _context.UserNotifications.Add(new UserNotification
+                    {
+                        NotificationId = notif.NotificationId,
+                        UserId = targetId,
+                        IsRead = false
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return overdueContracts.Count;
+        });
+    }
+
+    private static DateOnly GetVietnamDate(DateTime? utcDateTime = null)
+    {
+        var dt = utcDateTime ?? DateTime.UtcNow;
+        var utcOffset = new DateTimeOffset(DateTime.SpecifyKind(dt, DateTimeKind.Utc));
+        TimeZoneInfo vnTimeZone;
+        try
+        {
+            vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            vnTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        var vnTime = TimeZoneInfo.ConvertTime(utcOffset, vnTimeZone);
+        return DateOnly.FromDateTime(vnTime.DateTime);
     }
 
     public async Task<bool> HasActiveContractForShiftRegistrationAsync(
@@ -505,5 +1050,262 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                            c.StartDate <= shiftEndVnDate &&
                            (c.EndDate == null || (shiftStartVnDate <= c.EndDate.Value && shiftEndVnDate <= c.EndDate.Value)),
                       cancellationToken);
+    }
+
+    public Task<ContractChangeRequest?> GetOpenChangeRequestByContractIdAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return _context.ContractChangeRequests
+            .AsNoTracking()
+            .Include(cr => cr.ContractChangeRequestItems)
+            .FirstOrDefaultAsync(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"), cancellationToken);
+    }
+
+    public Task<ContractChangeRequest?> GetChangeRequestByIdAsync(int changeRequestId, CancellationToken cancellationToken = default)
+    {
+        return _context.ContractChangeRequests
+            .Include(cr => cr.ContractChangeRequestItems)
+            .Include(cr => cr.Contract).ThenInclude(c => c.Branch)
+            .Include(cr => cr.RequestedByNavigation)
+            .Include(cr => cr.ReviewedByNavigation)
+            .FirstOrDefaultAsync(cr => cr.ChangeRequestId == changeRequestId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<ContractChangeRequest>> GetChangeRequestsByContractIdAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return await _context.ContractChangeRequests
+            .AsNoTracking()
+            .Include(cr => cr.ContractChangeRequestItems)
+            .Include(cr => cr.ReviewedByNavigation)
+            .Where(cr => cr.ContractId == contractId)
+            .OrderByDescending(cr => cr.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<ContractChangeRequest> Items, int TotalCount)> GetManagerChangeRequestsPagedAsync(
+        int branchId, string? status, int pageNumber, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = _context.ContractChangeRequests
+            .AsNoTracking()
+            .Include(cr => cr.ContractChangeRequestItems)
+            .Include(cr => cr.Contract)
+            .Include(cr => cr.RequestedByNavigation)
+            .Include(cr => cr.ReviewedByNavigation)
+            .Where(cr => cr.Contract.BranchId == branchId);
+
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalized = status.Trim().ToUpper();
+            query = query.Where(cr => cr.Status.ToUpper() == normalized);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(cr => cr.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
+
+    public async Task CreateChangeRequestAsync(ContractChangeRequest changeRequest, string? previousContractStatus, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        _context.ContractChangeRequests.Add(changeRequest);
+
+        EmploymentContract? contract = null;
+        if (string.Equals(previousContractStatus, "PENDING_STAFF", StringComparison.OrdinalIgnoreCase))
+        {
+            contract = await _context.EmploymentContracts.FirstOrDefaultAsync(c => c.ContractId == changeRequest.ContractId, cancellationToken);
+            if (contract != null)
+            {
+                contract.Status = "PENDING_MANAGER_APPROVAL";
+                contract.UpdatedAt = changeRequest.CreatedAt;
+            }
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = changeRequest.RequestedBy,
+            Action = "SUBMIT_CHANGE_REQUEST",
+            TableName = "employment_contracts",
+            RecordId = changeRequest.ContractId.ToString(),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = previousContractStatus }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                contractId = changeRequest.ContractId,
+                changeRequestId = changeRequest.ChangeRequestId,
+                requestType = changeRequest.RequestType,
+                fromStatus = previousContractStatus,
+                toStatus = contract != null ? contract.Status : previousContractStatus,
+                reason = changeRequest.StaffComment,
+                staffComment = changeRequest.StaffComment,
+                note = "Nhân viên gửi yêu cầu thay đổi điều khoản hợp đồng.",
+                items = changeRequest.ContractChangeRequestItems.Select(i => new
+                {
+                    changeRequestItemId = i.ChangeRequestItemId,
+                    fieldName = i.FieldName,
+                    originalValue = i.OriginalValue,
+                    proposedValue = i.ProposedValue,
+                    reason = i.Reason
+                })
+            }),
+            CreatedAt = changeRequest.CreatedAt
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task ApproveChangeRequestAsync(int changeRequestId, Guid managerId, string? comment, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var changeRequest = await _context.ContractChangeRequests
+            .Include(cr => cr.Contract)
+            .FirstOrDefaultAsync(cr => cr.ChangeRequestId == changeRequestId, cancellationToken);
+
+        if (changeRequest == null)
+            throw new KeyNotFoundException("Contract change request was not found.");
+        if (changeRequest.Status != "SUBMITTED")
+            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
+
+        var now = DateTime.UtcNow;
+        changeRequest.Status = "APPROVED";
+        changeRequest.ReviewedBy = managerId;
+        changeRequest.ReviewedAt = now;
+        changeRequest.ReviewComment = comment;
+        changeRequest.UpdatedAt = now;
+
+        // If contract is PENDING_MANAGER_APPROVAL, set it back to DRAFT so manager can edit and resend
+        if (changeRequest.Contract.Status == "PENDING_MANAGER_APPROVAL")
+        {
+            changeRequest.Contract.Status = "DRAFT";
+            changeRequest.Contract.UpdatedAt = now;
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = managerId,
+            Action = "APPROVE_CHANGE_REQUEST",
+            TableName = "employment_contracts",
+            RecordId = changeRequest.ContractId.ToString(),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = "PENDING_MANAGER_APPROVAL" }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                contractId = changeRequest.ContractId,
+                changeRequestId = changeRequestId,
+                fromStatus = "PENDING_MANAGER_APPROVAL",
+                toStatus = "DRAFT",
+                reason = comment,
+                reviewComment = comment,
+                note = "Quản lý đã phê duyệt yêu cầu thay đổi. Hợp đồng chuyển về DRAFT để cập nhật."
+            }),
+            CreatedAt = now
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task RejectChangeRequestAsync(int changeRequestId, Guid managerId, string reason, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var changeRequest = await _context.ContractChangeRequests
+            .Include(cr => cr.Contract)
+            .FirstOrDefaultAsync(cr => cr.ChangeRequestId == changeRequestId, cancellationToken);
+
+        if (changeRequest == null)
+            throw new KeyNotFoundException("Contract change request was not found.");
+        if (changeRequest.Status != "SUBMITTED")
+            throw new InvalidOperationException("Chỉ có thể từ chối yêu cầu thay đổi ở trạng thái SUBMITTED.");
+
+        var now = DateTime.UtcNow;
+        changeRequest.Status = "REJECTED";
+        changeRequest.ReviewedBy = managerId;
+        changeRequest.ReviewedAt = now;
+        changeRequest.ReviewComment = reason;
+        changeRequest.UpdatedAt = now;
+
+        // If contract was PENDING_MANAGER_APPROVAL, revert to PENDING_STAFF so staff can accept original
+        if (changeRequest.Contract.Status == "PENDING_MANAGER_APPROVAL")
+        {
+            changeRequest.Contract.Status = "PENDING_STAFF";
+            changeRequest.Contract.UpdatedAt = now;
+        }
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = managerId,
+            Action = "REJECT_CHANGE_REQUEST",
+            TableName = "employment_contracts",
+            RecordId = changeRequest.ContractId.ToString(),
+            OldValue = JsonSerializer.Serialize(new { fromStatus = "PENDING_MANAGER_APPROVAL" }),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                contractId = changeRequest.ContractId,
+                changeRequestId = changeRequestId,
+                fromStatus = "PENDING_MANAGER_APPROVAL",
+                toStatus = "PENDING_STAFF",
+                reason = reason,
+                reviewComment = reason,
+                note = $"Quản lý đã từ chối yêu cầu thay đổi hợp đồng. Lý do: {reason}"
+            }),
+            CreatedAt = now
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmploymentContract>> GetStaffContractsInBranchAsync(Guid staffUserId, int branchId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EmploymentContracts
+            .AsNoTracking()
+            .Where(c => c.UserId == staffUserId && c.BranchId == branchId)
+            .OrderBy(c => c.StartDate)
+            .ThenBy(c => c.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<EmploymentContract?> GetSuccessorContractAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return _context.EmploymentContracts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.ReplacesContractId == contractId, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<AuditLog>> GetContractAuditLogsAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return await _context.AuditLogs
+            .AsNoTracking()
+            .Include(a => a.User).ThenInclude(u => u!.Role)
+            .Where(a => a.TableName == "employment_contracts" && a.RecordId == contractId.ToString())
+            .OrderByDescending(a => a.CreatedAt)
+            .ThenByDescending(a => a.AuditLogId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetContractAuditLogsPagedAsync(
+        int contractId, int pageNumber, int pageSize, string? sortOrder = "desc", CancellationToken cancellationToken = default)
+    {
+        var query = _context.AuditLogs
+            .AsNoTracking()
+            .Include(a => a.User).ThenInclude(u => u!.Role)
+            .Where(a => a.TableName == "employment_contracts" && a.RecordId == contractId.ToString());
+
+        if (string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.OrderBy(a => a.CreatedAt).ThenBy(a => a.AuditLogId);
+        }
+        else
+        {
+            query = query.OrderByDescending(a => a.CreatedAt).ThenByDescending(a => a.AuditLogId);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+        return (items, total);
     }
 }
