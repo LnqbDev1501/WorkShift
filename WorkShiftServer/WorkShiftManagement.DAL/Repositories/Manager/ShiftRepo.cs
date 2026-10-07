@@ -8,6 +8,14 @@ namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftRepo(AppDbContext context) : IShiftRepo
 {
+    public Task<List<ShiftTemplate>> GetActiveTemplatesAsync(CancellationToken ct) => context.ShiftTemplates.AsNoTracking()
+        .Where(x => x.Status == "ACTIVE").OrderBy(x => x.ShiftName).ToListAsync(ct);
+    public Task<List<EmployeeType>> GetActiveTypesAsync(CancellationToken ct) => context.EmployeeTypes.AsNoTracking()
+        .Where(x => x.Status == "ACTIVE").OrderBy(x => x.TypeName).ToListAsync(ct);
+    public Task<List<User>> GetActiveStaffAsync(int branchId, CancellationToken ct) => context.Users.AsNoTracking().Include(x => x.EmployeeType)
+        .Where(x => x.BranchId == branchId && x.DeletedAt == null && x.Status == "ACTIVE" && x.Role.RoleName == "STAFF" &&
+            x.Role.Status == "ACTIVE" && x.EmployeeType != null && x.EmployeeType.Status == "ACTIVE")
+        .OrderBy(x => x.FullName).ThenBy(x => x.UserId).ToListAsync(ct);
     public Task<WorkShift?> GetForUpdateAsync(int shiftId, int branchId, CancellationToken ct) =>
         context.WorkShifts.Include(x => x.ShiftEmployeeRequirements)
             .FirstOrDefaultAsync(x => x.ShiftId == shiftId && x.ScheduleWeek.BranchId == branchId, ct);

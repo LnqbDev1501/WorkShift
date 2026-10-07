@@ -1,0 +1,35 @@
+@model UI_Admin.Models.Manager.ManagerShiftEditViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{
+    var editing = Model.Id.HasValue;
+    ViewData["Title"] = editing ? "Update Shift" : "Create Shift";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    <a class="ms-back" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@Model.WeekId">← Back to weekly schedule</a>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFTS</span><h1>@ViewData["Title"]</h1><p>Choose a template and define staffing requirements for schedule #@Model.WeekId.</p></div></header>
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.CanSave && Model.Week is { } week)
+    {
+        <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" asp-route-weekId="@Model.WeekId" method="post" class="ad-card ms-edit-form" id="shift-form">
+            <div class="ms-form-section-title"><span class="material-symbols-outlined" aria-hidden="true">work_history</span><div><h2>Shift settings</h2><p>Define when the team works and how many employees are needed.</p></div></div><div asp-validation-summary="All" class="ms-validation" role="alert"></div>
+            <div class="ms-form-field"><label asp-for="ShiftTemplateId"></label><select asp-for="ShiftTemplateId" required><option value="">Select a shift template</option>@foreach (var template in Model.Options.Templates) { <option value="@template.Id">@template.Name · @template.StartTime.ToString("HH:mm") – @template.EndTime.ToString("HH:mm") · @template.BreakMinutes min break</option> }</select><span asp-validation-for="ShiftTemplateId" class="ms-field-error"></span><p>Shift times and break duration come from the selected template. Overnight shifts end the next day.</p></div>
+            <div class="ms-form-field"><label asp-for="WorkDate"></label><input asp-for="WorkDate" type="date" min="@week.WeekStartDate.ToString("yyyy-MM-dd")" max="@week.WeekEndDate.ToString("yyyy-MM-dd")" required /><span asp-validation-for="WorkDate" class="ms-field-error"></span><p>@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate) · UTC+7</p></div>
+            <fieldset class="sh-requirements"><legend>Employee Requirements</legend><p>Select each employee type once and specify the number of slots.</p><div id="requirement-rows">
+                @for (var i = 0; i < Model.EmployeeRequirements.Count; i++)
+                {
+                    <div class="sh-requirement-row"><div><label for="EmployeeRequirements_@(i)__EmployeeTypeId">Employee type</label><select asp-for="EmployeeRequirements[i].EmployeeTypeId" data-field="EmployeeTypeId" required><option value="">Select employee type</option>@foreach (var type in Model.Options.EmployeeTypes) { <option value="@type.Id">@type.Name</option> }</select></div><div><label for="EmployeeRequirements_@(i)__RequiredCount">Required slots</label><input asp-for="EmployeeRequirements[i].RequiredCount" data-field="RequiredCount" type="number" min="1" max="2147483647" required /></div><button type="button" class="sh-remove" aria-label="Remove employee requirement">Remove</button></div>
+                }
+            </div><button type="button" class="sh-add" id="add-requirement">+ Add employee type</button></fieldset>
+            <template id="requirement-template"><div class="sh-requirement-row"><div><label>Employee type</label><select data-field="EmployeeTypeId" required><option value="">Select employee type</option>@foreach (var type in Model.Options.EmployeeTypes) { <option value="@type.Id">@type.Name</option> }</select></div><div><label>Required slots</label><input data-field="RequiredCount" type="number" value="1" min="1" max="2147483647" required /></div><button type="button" class="sh-remove" aria-label="Remove employee requirement">Remove</button></div></template>
+            <div class="ms-form-field"><label asp-for="Note"></label><textarea asp-for="Note" rows="3" maxlength="500"></textarea><span asp-validation-for="Note" class="ms-field-error"></span><p>Optional · Up to 500 characters.</p></div>
+            <div class="ms-form-info"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>Shifts must start in the future and after the registration deadline. Only draft shifts in a draft schedule can be changed.</p></div>
+            <div class="ms-form-actions"><a class="ms-reset" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@Model.WeekId">Cancel</a><button type="submit" class="ms-primary">@(editing ? "Save changes" : "Create shift")</button></div>
+        </form>
+    }
+</div>
+@section Scripts { <script src="~/js/manager-shifts.js" asp-append-version="true"></script> }

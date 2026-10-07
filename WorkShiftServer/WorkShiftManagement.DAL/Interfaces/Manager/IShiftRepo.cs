@@ -4,6 +4,9 @@ namespace WorkShiftManagement.DAL.Interfaces.Manager;
 
 public interface IShiftRepo
 {
+    Task<List<ShiftTemplate>> GetActiveTemplatesAsync(CancellationToken ct);
+    Task<List<EmployeeType>> GetActiveTypesAsync(CancellationToken ct);
+    Task<List<User>> GetActiveStaffAsync(int branchId, CancellationToken ct);
     Task<WorkShift?> GetByIdAsync(int shiftId, int branchId, CancellationToken ct);
     Task<WorkShift?> GetForUpdateAsync(int shiftId, int branchId, CancellationToken ct);
     Task<ShiftTemplate?> GetTemplateAsync(int templateId, CancellationToken ct);

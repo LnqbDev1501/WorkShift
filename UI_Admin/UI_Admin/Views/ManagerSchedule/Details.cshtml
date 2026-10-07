@@ -1,0 +1,86 @@
+@model UI_Admin.Models.Manager.ManagerScheduleDetailViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@using System.Globalization
+@{
+    ViewData["Title"] = "Weekly Schedule Details";
+    var week = Model.Week;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    @if (TempData["ScheduleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    <a asp-action="Index" class="ms-back">← Back to weekly schedules</a>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>Weekly Schedule Details</h1><p>@(week is null ? $"Schedule #{Model.Id}" : $"{S.Date(week.WeekStartDate)} – {S.Date(week.WeekEndDate)}")</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    @if (TempData["ScheduleError"] is string registrationError) { <div class="ad-error" role="alert">@registrationError</div> }
+    @if (Model.ErrorMessage is not null) { <section class="ad-error" role="alert"><div><h2>Schedule unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Details" asp-route-id="@Model.Id">Try again</a></div></section> }
+    @if (week is not null)
+    {
+        @if (week.Status == "DRAFT") { <div class="ms-action-row"><a class="ms-secondary" asp-action="Edit" asp-route-id="@week.ScheduleWeekId">Edit schedule</a><a class="ms-delete-link" asp-action="Delete" asp-route-id="@week.ScheduleWeekId">Delete schedule</a></div> }
+        <section class="ad-card ms-week-overview"><div><span class="ad-eyebrow">SCHEDULE #@week.ScheduleWeekId · BRANCH #@week.BranchId</span><h2>@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</h2><p>Registration deadline: <strong>@S.Time(week.RegistrationDeadline)</strong> · UTC+7</p></div><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></section>
+        <section class="ad-stats ms-stats" aria-label="Schedule staffing summary">
+            @foreach (var stat in new[] { (Label: "Total Shifts", Value: week.TotalShifts, Icon: "work_history"), (Label: "Required Slots", Value: week.RequiredEmployees, Icon: "groups"), (Label: "Assigned Slots", Value: week.AssignedEmployees, Icon: "assignment_ind"), (Label: "Remaining Slots", Value: week.RemainingEmployees, Icon: "person_add") })
+            { <article class="ad-card ad-stat"><div class="ad-card-top"><span>@stat.Label</span><span class="ad-icon accent material-symbols-outlined" aria-hidden="true">@stat.Icon</span></div><strong>@stat.Value</strong></article> }
+        </section>
+        <section class="ad-card sh-registration-panel">
+            <div><span class="ms-section-kicker">REGISTRATION CONTROL</span><h2>Shift Registration</h2><p>@(week.Status == "DRAFT" ? "Add shifts and staffing requirements before opening registration. Opening registration locks draft editing and makes shifts scheduled." : week.Status == "OPEN_REGISTRATION" ? "Employees can register until the deadline. Closing registration ends new registrations; managers can still manage eligible assignments." : "Registration is not open for this schedule.")</p></div>
+            @if (week.Status == "DRAFT") { <div class="ms-action-row"><a class="ms-primary" asp-controller="ManagerShift" asp-action="Create" asp-route-weekId="@week.ScheduleWeekId">+ Create shift</a><form asp-action="OpenRegistration" asp-route-id="@week.ScheduleWeekId" method="post"><button class="ms-primary" type="submit" disabled="@(week.Shifts.Count == 0 || S.Vietnam(week.RegistrationDeadline) <= DateTime.UtcNow.AddHours(7))">Open registration</button></form></div> }
+            @if (week.Status == "OPEN_REGISTRATION") { <form asp-action="CloseRegistration" asp-route-id="@week.ScheduleWeekId" method="post"><button class="ms-secondary" type="submit">Close registration</button></form> }
+        </section>
+        <section class="ad-card ms-timeline" aria-label="Schedule activity"><div><span>Created</span><strong>@S.Time(week.CreatedAt)</strong></div><div><span>Last updated</span><strong>@S.Time(week.UpdatedAt)</strong></div><div><span>Registration opened</span><strong>@(week.OpenedAt is { } opened ? S.Time(opened) : "Not opened")</strong></div><div><span>Registration closed</span><strong>@(week.RegistrationClosedAt is { } closed ? S.Time(closed) : "Not closed")</strong></div></section>
+        <div class="ms-section-heading"><h2>Weekly Shift Timetable</h2><span>UTC+7 · Select a shift to view details</span></div>
+
+            var days = Enumerable.Range(0, 7).Select(offset => week.WeekStartDate.AddDays(offset)).ToArray();
+            var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            var timeBands = week.Shifts.GroupBy(shift => (
+                Start: TimeOnly.FromDateTime(S.Vietnam(shift.ScheduledStartAt)),
+                End: TimeOnly.FromDateTime(S.Vietnam(shift.ScheduledEndAt)),
+                EndDayOffset: (S.Vietnam(shift.ScheduledEndAt).Date - S.Vietnam(shift.ScheduledStartAt).Date).Days
+            )).OrderBy(band => band.Key.Start).ThenBy(band => band.Key.End).ToList();
+        <section class="ad-card wt-timetable">
+            <div class="wt-scroll" tabindex="0" role="region" aria-label="Weekly shift timetable, scroll horizontally to view all days">
+                <table class="wt-table">
+                    <caption class="wt-sr-only">Shifts from @S.Date(week.WeekStartDate) to @S.Date(week.WeekEndDate), grouped by start and end time in UTC+7.</caption>
+                    <thead><tr>
+                        @foreach (var day in days)
+                        {
+                            <th scope="col" class="@(day == today ? "wt-today" : "")"><span>@day.ToString("dddd", CultureInfo.InvariantCulture)</span><strong>@day.ToString("dd/MM")</strong>@if (day == today) { <small>Today</small> }</th>
+                        }
+                    </tr></thead>
+                    <tbody>
+                        @if (timeBands.Count == 0)
+                        {
+                            <tr>@foreach (var day in days) { <td class="wt-empty-cell"><span aria-label="No shifts">—</span></td> }</tr>
+                        }
+                        @foreach (var band in timeBands)
+                        {
+                            <tr>
+                                @foreach (var day in days)
+                                {
+                                    var dayShifts = band.Where(shift => DateOnly.FromDateTime(S.Vietnam(shift.ScheduledStartAt)) == day).OrderBy(shift => shift.ShiftName).ThenBy(shift => shift.ShiftId).ToList();
+                                    <td class="@(day == today ? "wt-today-cell" : "")">
+                                        @if (dayShifts.Count == 0) { <span class="wt-empty" aria-label="No shifts at this time">—</span> }
+                                        @foreach (var shift in dayShifts)
+                                        {
+                                            <article class="wt-shift @(shift.Status == "CANCELLED" ? "wt-cancelled" : "")">
+                                                <a class="wt-shift-name" asp-controller="ManagerShift" asp-action="Details" asp-route-id="@shift.ShiftId"><span class="material-symbols-outlined" aria-hidden="true">work_history</span><span>@shift.ShiftName</span></a>
+                                                <div class="wt-time"><span class="material-symbols-outlined" aria-hidden="true">schedule</span><strong>@band.Key.Start.ToString("HH:mm") – @band.Key.End.ToString("HH:mm")</strong>@if (band.Key.EndDayOffset > 0) { <small>+@band.Key.EndDayOffset day</small> }</div>
+                                                <span class="ad-badge @S.Tone(shift.Status)">@S.Label(shift.Status)</span>
+                                                <div class="wt-staff"><span class="material-symbols-outlined" aria-hidden="true">group</span><span>@shift.AssignedEmployees / @shift.RequiredEmployees assigned</span></div>
+                                                <div class="wt-slot-note @(shift.RemainingEmployees == 0 ? "wt-filled" : "")">@(shift.Status == "CANCELLED" ? "Cancelled shift" : shift.RemainingEmployees == 0 ? "Fully staffed" : $"{shift.RemainingEmployees} slots remaining")</div>
+                                                <details class="wt-requirements"><summary>Staffing details</summary><ul>@foreach (var requirement in shift.EmployeeRequirements) { <li><span>@requirement.EmployeeTypeName</span><strong>@requirement.AssignedCount / @requirement.RequiredCount</strong></li> }</ul><p>@shift.BreakMinutes min break</p>@if (!string.IsNullOrWhiteSpace(shift.Note)) { <p class="wt-note">@shift.Note</p> }</details>
+                                            </article>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <footer>@(timeBands.Count == 0 ? "No shifts added to this week yet." : "Each row groups shifts with the same start and end time. Overnight shifts are shown on their start day.")</footer>
+        </section>
+    }
+</div>
