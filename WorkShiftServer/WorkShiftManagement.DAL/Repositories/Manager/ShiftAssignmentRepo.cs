@@ -5,7 +5,7 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
-using WorkShiftManagement.DAL.Rules;
+using WorkShiftManagement.DAL.Version.Rules;
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignmentRepo
@@ -63,15 +63,28 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
     public void Audit(Guid actor, string action, ShiftAssignment assignment, string? oldValue) =>
         context.AuditLogs.Add(new AuditLog
         {
-            UserId = actor, Action = action, TableName = "shift_assignments",
-            RecordId = assignment.AssignmentId.ToString(), OldValue = oldValue,
-            NewValue = Snapshot(assignment), CreatedAt = DateTime.UtcNow
+            UserId = actor,
+            Action = action,
+            TableName = "shift_assignments",
+            RecordId = assignment.AssignmentId.ToString(),
+            OldValue = oldValue,
+            NewValue = Snapshot(assignment),
+            CreatedAt = DateTime.UtcNow
         });
 
     public static string Snapshot(ShiftAssignment a) => JsonSerializer.Serialize(new
     {
-        a.AssignmentId, a.ShiftId, a.UserId, a.ShiftRequirementId, a.Status, a.AssignmentSource,
-        a.AssignedBy, a.AssignedAt, a.CancelledBy, a.CancelledAt, a.CancelReason
+        a.AssignmentId,
+        a.ShiftId,
+        a.UserId,
+        a.ShiftRequirementId,
+        a.Status,
+        a.AssignmentSource,
+        a.AssignedBy,
+        a.AssignedAt,
+        a.CancelledBy,
+        a.CancelledAt,
+        a.CancelReason
     });
 
     public async Task<ShiftAssignment> ExecuteAsync(int shiftId, Guid staffId, int branchId,

@@ -32,7 +32,9 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromQuery] int? branchId = null,
                 [FromQuery] string? search = null,
                 [FromQuery] int pageNumber = 1,
-                [FromQuery] int pageSize = 20)
+                [FromQuery] int pageSize = 20,
+                [FromQuery] DateOnly? startDateFrom = null,
+                [FromQuery] DateOnly? startDateTo = null)
         {
             try
             {
@@ -44,7 +46,9 @@ namespace WorkShiftServer.API.Controllers.Admin
                             branchId,
                             search,
                             pageNumber,
-                            pageSize);
+                            pageSize,
+                            startDateFrom,
+                            startDateTo);
 
                 return Ok(result);
             }

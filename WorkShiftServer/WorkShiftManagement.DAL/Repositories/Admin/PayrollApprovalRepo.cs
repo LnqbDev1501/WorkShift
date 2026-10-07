@@ -24,7 +24,9 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 int? branchId,
                 string? search,
                 int pageNumber,
-                int pageSize)
+                int pageSize,
+                DateOnly? startDateFrom = null,
+                DateOnly? startDateTo = null)
         {
             var query = _context.PayrollPeriods
                 .AsNoTracking()
@@ -32,6 +34,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .Include(x => x.SubmittedByNavigation)
                 .Include(x => x.ApprovedByNavigation)
                 .Include(x => x.Payrolls)
+                .Include(x => x.Timesheets)
                 .AsSplitQuery()
                 .AsQueryable();
 
@@ -50,20 +53,23 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 query = query.Where(x => x.BranchId == branchId.Value);
             }
 
+            if (startDateFrom.HasValue) query = query.Where(x => x.StartDate >= startDateFrom.Value);
+            if (startDateTo.HasValue) query = query.Where(x => x.StartDate <= startDateTo.Value);
+
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var keyword = $"%{search.Trim()}%";
+                var keyword = $"%{search.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
 
                 query = query.Where(x =>
                     EF.Functions.ILike(
                         x.PeriodCode,
-                        keyword) ||
+                        keyword, "\\") ||
                     EF.Functions.ILike(
                         x.PeriodName,
-                        keyword) ||
+                        keyword, "\\") ||
                     EF.Functions.ILike(
                         x.BranchNameSnapshot,
-                        keyword));
+                        keyword, "\\"));
             }
 
             var totalCount = await query.CountAsync();
@@ -92,6 +98,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .Include(x => x.SubmittedByNavigation)
                 .Include(x => x.ApprovedByNavigation)
                 .Include(x => x.Payrolls)
+                .Include(x => x.Timesheets)
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(x =>
                     x.PayrollPeriodId ==
@@ -108,18 +115,14 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 int pageNumber,
                 int pageSize)
         {
-            var query = _context.Payrolls
-                .AsNoTracking()
-                .Where(x =>
-                    x.PayrollPeriodId ==
-                    payrollPeriodId);
+            var query = CurrentQuery(payrollPeriodId).AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var keyword = $"%{search.Trim()}%";
+                var keyword = $"%{search.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")}%";
 
                 query = query.Where(x =>
-                    EF.Functions.ILike(x.EmployeeFullNameSnapshot, keyword));
+                    EF.Functions.ILike(x.EmployeeFullNameSnapshot, keyword, "\\"));
             }
 
             var totalCount =
@@ -157,6 +160,8 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 int payrollId)
         {
             return await _context.Payrolls
+                .Include(x => x.PreviousPayroll).ThenInclude(x => x!.PayrollDetails)
+                .Include(x => x.PayrollDetails)
                 .FirstOrDefaultAsync(x => x.PayrollId == payrollId);
         }
 
@@ -167,9 +172,41 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             GetAllPayrollsForUpdateAsync(
                 int payrollPeriodId)
         {
-            return await _context.Payrolls
-                .Where(x => x.PayrollPeriodId == payrollPeriodId)
+            return await CurrentQuery(payrollPeriodId)
+                .Include(x => x.PayrollDetails)
+                .Include(x => x.Timesheet)
                 .ToListAsync();
+        }
+
+        private IQueryable<Payroll> CurrentQuery(int periodId)
+        {
+            var candidates = _context.Payrolls.Where(x => x.PayrollPeriodId == periodId && x.Status != "REPLACED")
+                .Where(x => (x.PayrollPeriod.Status != "APPROVED" && x.PayrollPeriod.Status != "PAID" && x.PayrollPeriod.Status != "CLOSED")
+                    || x.Status == "APPROVED" || x.Status == "PAID");
+            return candidates.Where(x => !candidates.Any(y => y.UserId == x.UserId
+                && (y.VersionNo > x.VersionNo || y.VersionNo == x.VersionNo && y.PayrollId > x.PayrollId)));
+        }
+
+        public Task<int?> GetAccountantBranchIdAsync(Guid userId) => _context.Users.AsNoTracking()
+            .Where(u => u.UserId == userId && u.Status == "ACTIVE" && u.DeletedAt == null
+                && u.Role.RoleName == "ACCOUNTANT" && u.Role.Status == "ACTIVE")
+            .Select(u => u.BranchId).SingleOrDefaultAsync();
+
+        private IQueryable<Guid> ExpectedUsers(int periodId) => _context.Timesheets.Where(t => t.PayrollPeriodId == periodId)
+            .Select(t => t.UserId).Union(_context.ShiftAssignments.Where(a => a.Status != "CANCELLED" && a.Shift.Status != "CANCELLED"
+                && _context.PayrollPeriods.Any(p => p.PayrollPeriodId == periodId && p.ScheduleWeekId == a.Shift.ScheduleWeekId))
+                .Select(a => a.UserId));
+
+        public Task<int> GetExpectedEmployeeCountAsync(int periodId) => ExpectedUsers(periodId).Distinct().CountAsync();
+
+        public async Task<bool> HasCompleteLockedTimesheetsAsync(int periodId, IReadOnlyCollection<Guid> payrollUsers)
+        {
+            var expected = await ExpectedUsers(periodId).Distinct().ToListAsync();
+            var actual = payrollUsers.ToHashSet();
+            if (actual.Count == 0 || !actual.SetEquals(expected)) return false;
+            var locked = await _context.Timesheets.Where(t => t.PayrollPeriodId == periodId && t.Status == "LOCKED")
+                .Select(t => t.UserId).Distinct().ToListAsync();
+            return actual.IsSubsetOf(locked);
         }
 
         public async Task<bool> UserHasActiveRoleAsync(Guid userId, string roleName)
@@ -177,14 +214,14 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             return await _context.Users
                 .AsNoTracking()
                 .AnyAsync(x => x.UserId == userId &&
-                    x.Status == "ACTIVE" && x.Role.RoleName == roleName);
+                    x.Status == "ACTIVE" && x.DeletedAt == null && x.Role.Status == "ACTIVE" && x.Role.RoleName == roleName);
         }
 
         public async Task<List<Guid>> GetActiveUserIdsByRoleAsync(string roleName)
         {
             return await _context.Users
                 .AsNoTracking()
-                .Where(x => x.Status == "ACTIVE" && x.Role.RoleName == roleName)
+                .Where(x => x.Status == "ACTIVE" && x.DeletedAt == null && x.Role.Status == "ACTIVE" && x.Role.RoleName == roleName)
                 .Select(x => x.UserId)
                 .ToListAsync();
         }

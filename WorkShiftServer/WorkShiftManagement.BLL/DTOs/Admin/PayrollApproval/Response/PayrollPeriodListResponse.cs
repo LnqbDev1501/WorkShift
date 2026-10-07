@@ -16,6 +16,10 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response
 
     public class PayrollPeriodListItemResponse
     {
+        public int? ScheduleWeekId { get; set; }
+        public DateTime? ApprovalDeadlineAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public DateTime? ClosedAt { get; set; }
         public int PayrollPeriodId { get; set; }
 
         public string PeriodCode { get; set; } = string.Empty;

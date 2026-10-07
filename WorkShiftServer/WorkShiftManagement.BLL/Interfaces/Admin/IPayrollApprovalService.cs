@@ -12,7 +12,9 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin
                 int? branchId,
                 string? search,
                 int pageNumber,
-                int pageSize);
+                int pageSize,
+                DateOnly? startDateFrom = null,
+                DateOnly? startDateTo = null);
 
         Task<PayrollPeriodDetailResponse>
             GetPayrollPeriodDetailAsync(

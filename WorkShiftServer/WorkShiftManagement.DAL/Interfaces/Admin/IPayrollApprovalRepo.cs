@@ -11,7 +11,9 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
                 int? branchId,
                 string? search,
                 int pageNumber,
-                int pageSize);
+                int pageSize,
+                DateOnly? startDateFrom = null,
+                DateOnly? startDateTo = null);
 
         Task<PayrollPeriod?> GetPayrollPeriodDetailAsync(int payrollPeriodId);
 
@@ -29,6 +31,9 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
         Task<List<Payroll>> GetAllPayrollsForUpdateAsync(int payrollPeriodId);
 
         Task<bool> UserHasActiveRoleAsync(Guid userId, string roleName);
+        Task<int?> GetAccountantBranchIdAsync(Guid userId);
+        Task<int> GetExpectedEmployeeCountAsync(int periodId);
+        Task<bool> HasCompleteLockedTimesheetsAsync(int periodId, IReadOnlyCollection<Guid> payrollUsers);
 
         Task<List<Guid>> GetActiveUserIdsByRoleAsync(string roleName);
 

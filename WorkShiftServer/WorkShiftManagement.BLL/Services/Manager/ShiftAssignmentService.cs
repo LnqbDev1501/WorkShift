@@ -8,7 +8,7 @@ using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
-using WorkShiftManagement.DAL.Rules;
+using WorkShiftManagement.DAL.Version.Rules;
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo,

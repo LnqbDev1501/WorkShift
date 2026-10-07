@@ -1652,7 +1652,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
             entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
             entity.Property(e => e.AttendanceDeduction)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("attendance_deduction");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.BranchNameSnapshot)
@@ -1673,13 +1673,13 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("employee_position_snapshot");
             entity.Property(e => e.GrossSalary)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("gross_salary");
             entity.Property(e => e.HourlyRateSnapshot)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("hourly_rate_snapshot");
             entity.Property(e => e.NetSalary)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("net_salary");
             entity.Property(e => e.PaidAt).HasColumnName("paid_at");
             entity.Property(e => e.PaymentConfirmedAt).HasColumnName("payment_confirmed_at");
@@ -1706,16 +1706,16 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SubmittedBy).HasColumnName("submitted_by");
             entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
             entity.Property(e => e.TotalDeduction)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("total_deduction");
             entity.Property(e => e.TotalPenalty)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("total_penalty");
             entity.Property(e => e.TotalReward)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("total_reward");
             entity.Property(e => e.TotalWorkHours)
-                .HasPrecision(8, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("total_work_hours");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
@@ -1728,7 +1728,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("jsonb")
                 .HasColumnName("work_input_snapshot");
             entity.Property(e => e.WorkPay)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("work_pay");
 
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PayrollApprovedByNavigations)
@@ -1877,7 +1877,7 @@ public partial class AppDbContext : DbContext
 
             entity.Property(e => e.PayrollDetailId).HasColumnName("payroll_detail_id");
             entity.Property(e => e.Amount)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("amount");
             entity.Property(e => e.AppliedAmount).HasColumnName("applied_amount");
             entity.Property(e => e.AttendancePenaltyId).HasColumnName("attendance_penalty_id");
@@ -1896,7 +1896,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("item_code");
             entity.Property(e => e.Multiplier)
-                .HasPrecision(5, 2)
+                .HasColumnType("numeric")
                 .HasDefaultValueSql("1")
                 .HasColumnName("multiplier");
             entity.Property(e => e.Note)
@@ -1905,10 +1905,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
             entity.Property(e => e.PublicHolidayId).HasColumnName("public_holiday_id");
             entity.Property(e => e.Quantity)
-                .HasPrecision(8, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("quantity");
             entity.Property(e => e.Rate)
-                .HasPrecision(18, 2)
+                .HasColumnType("numeric")
                 .HasColumnName("rate");
             entity.Property(e => e.RewardPenaltyId).HasColumnName("reward_penalty_id");
             entity.Property(e => e.SalaryHistoryId).HasColumnName("salary_history_id");

@@ -6,7 +6,7 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 namespace WorkShiftServer.API.Controllers.Accountant
 {
     [ApiController]
-    [Authorize(Policy = "Accountant")]
+    [Authorize(Roles = "ACCOUNTANT")]
     [Route("api/accountant/payroll-periods")]
     public class AccountantPayrollSubmissionController
         : ControllerBase
@@ -44,6 +44,10 @@ namespace WorkShiftServer.API.Controllers.Accountant
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (UnauthorizedAccessException ex)
+            { return StatusCode(403, new { message = ex.Message }); }
+            catch (ArgumentException ex)
+            { return BadRequest(new { message = ex.Message }); }
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
@@ -85,6 +89,8 @@ namespace WorkShiftServer.API.Controllers.Accountant
                     message = ex.Message
                 });
             }
+            catch (UnauthorizedAccessException ex)
+            { return StatusCode(403, new { message = ex.Message }); }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new

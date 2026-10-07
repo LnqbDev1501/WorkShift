@@ -11,6 +11,10 @@ using WorkShiftManagement.BLL.Services.Auth;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
+using WorkShiftManagement.BLL.Interfaces.Accountant;
+using WorkShiftManagement.BLL.Services.Accountant;
+using WorkShiftManagement.DAL.Interfaces.Accountant;
+using WorkShiftManagement.DAL.Repositories.Accountant;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Services.Manager;
@@ -100,6 +104,12 @@ builder.Services.AddHangfireServer(options => options.WorkerCount = 2);
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
+builder.Services.AddScoped<ISalaryHistoryRepo, SalaryHistoryRepo>();
+builder.Services.AddScoped<ISalaryHistoryService, SalaryHistoryService>();
+builder.Services.AddScoped<IPayrollPeriodRepo, PayrollPeriodRepo>();
+builder.Services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
+builder.Services.AddScoped<IPayrollCalculationRepo, PayrollCalculationRepo>();
+builder.Services.AddScoped<IPayrollCalculationService, PayrollCalculationService>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {

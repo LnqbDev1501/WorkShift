@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Nodes;
+using WorkShiftManagement.DAL;
+using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Version.Payroll;
 using WorkShiftManagement.DAL.Repositories.Admin;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response;
@@ -12,10 +16,25 @@ namespace WorkShiftManagement.BLL.Services.Admin
     {
         private async Task ValidateHolidaySnapshotsAsync(int periodId)
         {
-            var details = await _holidays.Details.AsNoTracking().Where(d => d.Payroll.PayrollPeriodId == periodId).ToListAsync();
-            var holidays = await _holidays.Holidays.AsNoTracking().Where(h => h.IsActive).ToListAsync();
-            var rules = await _holidays.Rules.AsNoTracking().ToListAsync();
-            HolidayPayrollPolicy.Validate(details, holidays, rules);
+            // Validate the saved calculation, without re-resolving live holiday configuration.
+            var current = await _repo.GetAllPayrollsForUpdateAsync(periodId);
+            foreach (var payroll in current)
+            {
+                if (payroll.Timesheet.Status != "LOCKED" || payroll.Timesheet.UserId != payroll.UserId
+                    || payroll.Timesheet.PayrollPeriodId != periodId)
+                    throw new InvalidOperationException("Payroll must reference its employee's LOCKED timesheet in this period.");
+                try
+                {
+                    if (JsonNode.Parse(payroll.WorkInputSnapshot ?? "null") is not JsonObject)
+                        throw new InvalidOperationException("Payroll must contain its frozen work input snapshot.");
+                }
+                catch (System.Text.Json.JsonException ex)
+                { throw new InvalidOperationException("Payroll work snapshot is invalid.", ex); }
+                foreach (var detail in payroll.PayrollDetails.Where(d => d.Type == "WORK"))
+                    if (detail.WorkFrom == null || detail.WorkTo == null || detail.WorkFrom > detail.WorkTo
+                        || detail.Quantity is null or < 0 || detail.Rate is null or < 0 || detail.Multiplier <= 0)
+                        throw new InvalidOperationException("Work calculation details must contain dates, quantity, rate and multiplier.");
+            }
         }
         private readonly IPayrollApprovalRepo _repo;
         private readonly HolidayConfigurationRepo _holidays;
@@ -24,9 +43,14 @@ namespace WorkShiftManagement.BLL.Services.Admin
             AllowedPeriodStatuses =
                 new(StringComparer.OrdinalIgnoreCase)
                 {
+                    "DRAFT",
+                    "OPEN",
+                    "CALCULATED",
                     "SUBMITTED",
                     "REVISION_REQUIRED",
-                    "APPROVED"
+                    "APPROVED",
+                    "PAID",
+                    "CLOSED"
                 };
 
         public PayrollApprovalService(
@@ -46,11 +70,17 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int? branchId,
                 string? search,
                 int pageNumber,
-                int pageSize)
+                int pageSize,
+                DateOnly? startDateFrom = null,
+                DateOnly? startDateTo = null)
         {
             ValidatePagination(
                 pageNumber,
                 pageSize);
+
+            if (startDateFrom > startDateTo) throw new ArgumentException("StartDateFrom must not exceed StartDateTo.");
+            if (regionId is <= 0 || branchId is <= 0) throw new ArgumentException("RegionId and BranchId must be positive.");
+            if (search?.Trim().Length > 200) throw new ArgumentException("Search cannot exceed 200 characters.");
 
             if (!string.IsNullOrWhiteSpace(status))
             {
@@ -60,8 +90,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 if (!AllowedPeriodStatuses.Contains(status))
                 {
                     throw new ArgumentException(
-                        "Status chỉ chấp nhận " +
-                        "SUBMITTED, REVISION_REQUIRED hoặc APPROVED.");
+                        "Status không hợp lệ cho kỳ lương.");
                 }
             }
 
@@ -72,7 +101,9 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     branchId,
                     search,
                     pageNumber,
-                    pageSize);
+                    pageSize,
+                    startDateFrom,
+                    startDateTo);
 
             var response =
                 new PayrollPeriodListResponse
@@ -86,6 +117,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             foreach (var period in result.Items)
             {
+                var current = PayrollVersionPolicy.Current(period.Payrolls, period.Status);
                 var item =
                     new PayrollPeriodListItemResponse
                     {
@@ -97,9 +129,13 @@ namespace WorkShiftManagement.BLL.Services.Admin
                         StartDate = period.StartDate,
                         EndDate = period.EndDate,
                         Status = period.Status,
-                        TotalPayrolls = period.Payrolls.Count,
-                        RejectedPayrollCount = period.Payrolls.Count(x => x.Status == "REJECTED"),
-                        TotalNetSalary = period.Payrolls.Sum(x => x.NetSalary),
+                        ScheduleWeekId = period.ScheduleWeekId,
+                        ApprovalDeadlineAt = period.ApprovalDeadlineAt,
+                        PaidAt = period.PaidAt,
+                        ClosedAt = period.ClosedAt,
+                        TotalPayrolls = current.Count,
+                        RejectedPayrollCount = current.Count(x => x.Status == "REJECTED"),
+                        TotalNetSalary = current.Sum(x => x.NetSalary),
                         SubmittedAt = period.SubmittedAt,
                         ApprovedAt = period.ApprovedAt
                     };
@@ -164,9 +200,16 @@ namespace WorkShiftManagement.BLL.Services.Admin
                         pageNumber,
                         pageSize);
 
+            var current = PayrollVersionPolicy.Current(period.Payrolls, period.Status);
             var response =
                 new PayrollPeriodDetailResponse
                 {
+                    ScheduleWeekId = period.ScheduleWeekId,
+                    ApprovalDeadlineAt = period.ApprovalDeadlineAt,
+                    PaidAt = period.PaidAt,
+                    ClosedAt = period.ClosedAt,
+                    ExpectedEmployeeCount = await _repo.GetExpectedEmployeeCountAsync(payrollPeriodId),
+                    LockedTimesheetCount = period.Timesheets.Where(t => t.Status == "LOCKED").Select(t => t.UserId).Distinct().Count(),
                     PayrollPeriodId = period.PayrollPeriodId,
                     PeriodCode = period.PeriodCode,
                     PeriodName = period.PeriodName,
@@ -180,13 +223,13 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     ApprovedAt = period.ApprovedAt,
                     Summary = new PayrollSummaryResponse
                     {
-                        TotalPayrolls = period.Payrolls.Count,
-                        RejectedPayrollCount = period.Payrolls.Count(x => x.Status == "REJECTED"),
-                        TotalWorkPay = period.Payrolls.Sum(x => x.WorkPay),
-                        TotalReward = period.Payrolls.Sum(x => x.TotalReward),
-                        TotalPenalty = period.Payrolls.Sum(x => x.TotalPenalty),
-                        TotalAttendanceDeduction = period.Payrolls.Sum(x => x.AttendanceDeduction),
-                        TotalNetSalary = period.Payrolls.Sum(x => x.NetSalary)
+                        TotalPayrolls = current.Count,
+                        RejectedPayrollCount = current.Count(x => x.Status == "REJECTED"),
+                        TotalWorkPay = current.Sum(x => x.WorkPay),
+                        TotalReward = current.Sum(x => x.TotalReward),
+                        TotalPenalty = current.Sum(x => x.TotalPenalty),
+                        TotalAttendanceDeduction = current.Sum(x => x.AttendanceDeduction),
+                        TotalNetSalary = current.Sum(x => x.NetSalary)
                     },
                     Payrolls = new PayrollPageResponse
                     {
@@ -240,6 +283,11 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     new PayrollResponse
                     {
                         PayrollId = payroll.PayrollId,
+                        VersionNo = payroll.VersionNo,
+                        PreviousPayrollId = payroll.PreviousPayrollId,
+                        CorrectionReason = payroll.CorrectionReason,
+                        CarryForwardDeduction = payroll.CarryForwardDeduction,
+                        DeferredDeductionAmount = payroll.DeferredDeductionAmount,
                         UserId = payroll.UserId,
                         EmployeeFullName = payroll.EmployeeFullNameSnapshot,
                         EmployeePosition = payroll.EmployeePositionSnapshot,
@@ -264,7 +312,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
                             RejectedById = payroll.RejectedBy,
                             RejectedByName = payroll.RejectedByNavigation?.FullName,
                             RejectedAt = payroll.RejectedAt,
-                            Reason = payroll.RejectReason
+                            Reason = payroll.RejectReason,
+                            Category = payroll.RejectionCategory
                         };
                 }
 
@@ -327,6 +376,8 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             var resolvedAdminId = await ResolveAdminIdAsync(adminId);
+            if (request.RejectionCategory is not ("CALCULATION" or "RATE" or "REWARD" or "DEDUCTION" or "OTHER"))
+                throw new ArgumentException("A valid rejection category is required.");
             await using var holidayTransaction = await _holidays.BeginPayrollChangeAsync();
 
             var period =
@@ -388,13 +439,19 @@ namespace WorkShiftManagement.BLL.Services.Admin
             }
 
             var now = DateTime.UtcNow;
+            var currentPayrolls = await _repo.GetAllPayrollsForUpdateAsync(payrollPeriodId);
+            if (!currentPayrolls.Any(p => p.PayrollId == payrollId))
+                throw new InvalidOperationException("Only the current payroll version can be rejected.");
             payroll.Status = "REJECTED";
+            payroll.RejectionCategory = request.RejectionCategory;
             payroll.RejectedBy = resolvedAdminId;
             payroll.RejectedAt = now;
             payroll.RejectReason = reason;
 
             // Có ít nhất một Payroll sai
             period.Status = "REVISION_REQUIRED";
+            period.UpdatedAt = now;
+            payroll.UpdatedAt = now;
 
             await _repo.SaveChangesAsync();
             await holidayTransaction.CommitAsync();
@@ -449,6 +506,11 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 throw new InvalidOperationException("Kỳ lương chưa có phiếu lương.");
             }
 
+            if (!await _repo.HasCompleteLockedTimesheetsAsync(payrollPeriodId, payrolls.Select(p => p.UserId).ToArray()))
+                throw new InvalidOperationException("The period must have payrolls for all expected employees with LOCKED timesheets.");
+            if (period.ApprovalDeadlineAt.HasValue && DateTime.UtcNow >= period.ApprovalDeadlineAt.Value)
+                throw new InvalidOperationException("The period approval deadline has passed.");
+
             // Còn REJECTED
             if (payrolls.Any(x => x.Status == "REJECTED"))
             {
@@ -480,12 +542,16 @@ namespace WorkShiftManagement.BLL.Services.Admin
             {
                 payroll.Status =
                     "APPROVED";
+                payroll.ApprovedBy = resolvedAdminId;
+                payroll.ApprovedAt = now;
+                payroll.UpdatedAt = now;
             }
 
             // Approve Period
             period.Status = "APPROVED";
             period.ApprovedBy = resolvedAdminId;
             period.ApprovedAt = now;
+            period.UpdatedAt = now;
 
             /*
              * EF SaveChanges với nhiều update như trên
@@ -544,33 +610,59 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     "mới cho phép gửi lại Payroll.");
             }
 
-            if (payroll.Status != "REJECTED")
+            var branchId = await _repo.GetAccountantBranchIdAsync(accountantId);
+            if (branchId == null || branchId != period.BranchId)
+                throw new UnauthorizedAccessException("The payroll period does not belong to your branch.");
+
+            var previous = payroll.PreviousPayroll;
+            var currentVersions = await _repo.GetAllPayrollsForUpdateAsync(payrollPeriodId);
+            if (payroll.Status != "CALCULATED" || previous == null || previous.Status != "REJECTED"
+                || !currentVersions.Any(p => p.PayrollId == payroll.PayrollId))
             {
                 throw new InvalidOperationException(
-                    "Chỉ phiếu lương đang REJECTED " +
-                    "mới được gửi lại duyệt.");
+                    "Submit the latest CALCULATED correction version linked to the rejected payroll, not the rejected version itself.");
             }
+
+            if (previous.UserId != payroll.UserId || previous.PayrollPeriodId != payroll.PayrollPeriodId
+                || previous.BranchId != payroll.BranchId || payroll.VersionNo != previous.VersionNo + 1
+                || payroll.TimesheetId != previous.TimesheetId || string.IsNullOrWhiteSpace(payroll.CorrectionReason))
+                throw new InvalidOperationException("The correction must preserve employee, period, branch and timesheet, with a reason and the next version number.");
+            if (payroll.TotalWorkHours != previous.TotalWorkHours)
+                throw new InvalidOperationException("The correction cannot change locked work hours.");
+            try
+            {
+                if (JsonNode.Parse(previous.WorkInputSnapshot ?? "null") is not JsonObject
+                    || !JsonNode.DeepEquals(JsonNode.Parse(payroll.WorkInputSnapshot ?? "null"), JsonNode.Parse(previous.WorkInputSnapshot!)))
+                    throw new InvalidOperationException("The correction must preserve the frozen work snapshot.");
+            }
+            catch (System.Text.Json.JsonException ex)
+            { throw new InvalidOperationException("The work snapshot is invalid.", ex); }
+            if (!HasCalculationChange(previous, payroll))
+                throw new InvalidOperationException("The correction must change calculation data before it can be resubmitted.");
 
             var now = DateTime.UtcNow;
 
             await ValidateHolidaySnapshotsAsync(payrollPeriodId);
             payroll.Status = "SUBMITTED";
-            payroll.RejectedBy = null;
-            payroll.RejectedAt = null;
-            payroll.RejectReason = null;
+            payroll.SubmittedBy = accountantId;
+            payroll.SubmittedAt = now;
+            payroll.UpdatedAt = now;
 
             var payrolls = await _repo.GetAllPayrollsForUpdateAsync(payrollPeriodId);
 
-            if (payrolls.Any(x => x.Status == "REJECTED"))
+            if (payrolls.Any(x => x.Status != "SUBMITTED"))
             {
                 period.Status = "REVISION_REQUIRED";
             }
+
             else
             {
                 period.Status = "SUBMITTED";
                 period.SubmittedBy = accountantId;
                 period.SubmittedAt = now;
             }
+
+            period.UpdatedAt = now;
 
             await _repo.SaveChangesAsync();
             await holidayTransaction.CommitAsync();
@@ -599,6 +691,10 @@ namespace WorkShiftManagement.BLL.Services.Admin
             var period = await _repo.GetPayrollPeriodForUpdateAsync(payrollPeriodId)
                 ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
 
+            var branchId = await _repo.GetAccountantBranchIdAsync(accountantId);
+            if (branchId == null || branchId != period.BranchId)
+                throw new UnauthorizedAccessException("The payroll period does not belong to your branch.");
+
             if (period.Status != "CALCULATED")
             {
                 throw new InvalidOperationException(
@@ -617,17 +713,24 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     "Tất cả phiếu lương phải ở trạng thái CALCULATED trước khi gửi duyệt.");
             }
 
+            if (!await _repo.HasCompleteLockedTimesheetsAsync(payrollPeriodId, payrolls.Select(p => p.UserId).ToArray()))
+                throw new InvalidOperationException("Payrolls must cover all expected employees with LOCKED timesheets.");
+
             await ValidateHolidaySnapshotsAsync(payrollPeriodId);
             var assignedAdminId = await ResolveAdminIdAsync(null);
             var now = DateTime.UtcNow;
             foreach (var payroll in payrolls)
             {
                 payroll.Status = "SUBMITTED";
+                payroll.SubmittedBy = accountantId;
+                payroll.SubmittedAt = now;
+                payroll.UpdatedAt = now;
             }
 
             period.Status = "SUBMITTED";
             period.SubmittedBy = accountantId;
             period.SubmittedAt = now;
+            period.UpdatedAt = now;
             await _repo.SaveChangesAsync();
             await holidayTransaction.CommitAsync();
 
@@ -640,6 +743,35 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 Status = period.Status,
                 SubmittedAt = now
             };
+        }
+
+        private static bool HasCalculationChange(Payroll before, Payroll after)
+        {
+            if (before.SalaryHistoryId != after.SalaryHistoryId || before.HourlyRateSnapshot != after.HourlyRateSnapshot
+                || before.WorkPay != after.WorkPay || before.TotalReward != after.TotalReward || before.TotalPenalty != after.TotalPenalty
+                || before.AttendanceDeduction != after.AttendanceDeduction || before.GrossSalary != after.GrossSalary
+                || before.TotalDeduction != after.TotalDeduction || before.NetSalary != after.NetSalary
+                || before.CarryForwardDeduction != after.CarryForwardDeduction || before.DeferredDeductionAmount != after.DeferredDeductionAmount)
+                return true;
+            static string Signature(PayrollDetail d) => System.Text.Json.JsonSerializer.Serialize(new
+            {
+                d.Type,
+                d.Quantity,
+                d.Rate,
+                d.Multiplier,
+                d.Amount,
+                d.AppliedAmount,
+                d.WorkFrom,
+                d.WorkTo,
+                d.SalaryHistoryId,
+                d.PublicHolidayId,
+                d.HolidayPayRuleId,
+                d.RewardPenaltyId,
+                d.AttendancePenaltyId,
+                d.CarryForwardId
+            });
+            return !before.PayrollDetails.Select(Signature).OrderBy(s => s, StringComparer.Ordinal)
+                .SequenceEqual(after.PayrollDetails.Select(Signature).OrderBy(s => s, StringComparer.Ordinal));
         }
 
         private async Task<Guid> ResolveAdminIdAsync(Guid? requestedAdminId)
@@ -680,6 +812,9 @@ namespace WorkShiftManagement.BLL.Services.Admin
             {
                 throw new ArgumentException("pageSize phải từ 1 đến 100.");
             }
+
+            if ((long)(pageNumber - 1) * pageSize > int.MaxValue)
+                throw new ArgumentException("PageNumber is out of range.");
         }
     }
 }
