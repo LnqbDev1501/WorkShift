@@ -1,0 +1,33 @@
+@model UI_Admin.Models.Manager.ManagerScheduleListViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{
+    ViewData["Title"] = "Weekly Schedules";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    @if (TempData["ScheduleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    <div class="ms-create-row"><a asp-action="Create" class="ms-primary">+ Create weekly schedule</a></div>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SCHEDULES &amp; SHIFTS</span><h1>Weekly Schedules</h1><p>Review weekly schedules and staffing coverage for your branch.</p></div><a class="ad-refresh" asp-action="Index" asp-route-fromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" asp-route-status="@Model.Filter.Status"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    <form method="get" class="ad-card ms-filters" aria-label="Filter weekly schedules">
+        <div><label for="FromDate">From date</label><input id="FromDate" name="FromDate" type="date" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></div>
+        <div><label for="ToDate">To date</label><input id="ToDate" name="ToDate" type="date" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></div>
+        <div><label for="Status">Status</label><select id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in S.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@S.Label(status)</option> }</select></div>
+        <button type="submit" class="ms-primary">Apply filters</button><a asp-action="Index" class="ms-reset">Reset</a>
+        <div asp-validation-summary="All" class="ms-validation" role="alert"></div>
+    </form>
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Weeks is { } weeks)
+    {
+        <div class="ms-summary"><span><strong>@weeks.Count</strong> schedules matching your filters</span><span>All times in UTC+7</span></div>
+        <section class="ad-card ad-recent"><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Weekly schedules"><table><thead><tr><th scope="col">Schedule Week</th><th scope="col">Status</th><th scope="col">Registration Deadline</th><th scope="col" class="ad-number">Shifts</th><th scope="col">Staffing Coverage</th><th scope="col">Details</th></tr></thead><tbody>
+            @if (weeks.Count == 0) { <tr><td colspan="6" class="ad-empty"><span class="material-symbols-outlined ms-empty-icon" aria-hidden="true">calendar_month</span><strong>No weekly schedules found</strong><small>Try changing the dates or selecting a different status.</small></td></tr> }
+            @foreach (var week in weeks.OrderByDescending(x => x.WeekStartDate).ThenByDescending(x => x.ScheduleWeekId))
+            {
+                <tr><td><a class="ms-week-link" asp-action="Details" asp-route-id="@week.ScheduleWeekId">@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</a><small>Schedule #@week.ScheduleWeekId</small></td><td><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></td><td>@S.Time(week.RegistrationDeadline)</td><td class="ad-number">@week.TotalShifts</td><td><div class="ms-coverage"><span>@week.AssignedEmployees / @week.RequiredEmployees slots</span><strong>@(week.RequiredEmployees == 0 ? "—" : S.Coverage(week.AssignedEmployees, week.RequiredEmployees) + "%")</strong></div><div class="ad-track"><div style="width:@(S.Coverage(week.AssignedEmployees, week.RequiredEmployees))%;background:#6256db"></div></div><small>@week.RemainingEmployees remaining</small></td><td><a class="ms-detail-link" asp-action="Details" asp-route-id="@week.ScheduleWeekId" aria-label="View schedule @week.ScheduleWeekId">View details <span aria-hidden="true">→</span></a></td></tr>
+            }
+        </tbody></table></div><footer>Staffing counts represent assignment slots across shifts, rather than distinct employees.</footer></section>
+    }
+</div>

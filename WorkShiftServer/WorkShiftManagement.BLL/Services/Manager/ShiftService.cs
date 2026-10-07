@@ -8,6 +8,22 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : IShiftService
 {
+    public async Task<ShiftOptionsResponse> GetOptionsAsync(Guid managerId, CancellationToken ct = default)
+    {
+        var branchId = await GetBranchAsync(managerId);
+        // Sequential queries share a scoped DbContext.
+        var templates = await repo.GetActiveTemplatesAsync(ct);
+        var types = await repo.GetActiveTypesAsync(ct);
+        var staff = await repo.GetActiveStaffAsync(branchId, ct);
+        return new ShiftOptionsResponse
+        {
+            Templates = templates.Select(x => new ShiftTemplateOptionResponse { Id = x.ShiftTemplateId, Name = x.ShiftName,
+                StartTime = x.StartTime, EndTime = x.EndTime, BreakMinutes = x.BreakMinutes }).ToList(),
+            EmployeeTypes = types.Select(x => new ShiftTypeOptionResponse { Id = x.EmployeeTypeId, Name = x.TypeName }).ToList(),
+            Staff = staff.Select(x => new ShiftStaffOptionResponse { UserId = x.UserId, FullName = x.FullName,
+                EmployeeTypeId = x.EmployeeTypeId!.Value, EmployeeTypeName = x.EmployeeType!.TypeName }).ToList()
+        };
+    }
     private static readonly TimeSpan VietnamOffset = TimeSpan.FromHours(7);
 
     public async Task<ShiftDetailResponse> CreateAsync(Guid managerId, int weekId, CreateShiftRequest request, CancellationToken ct = default)

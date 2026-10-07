@@ -31,9 +31,9 @@
         <section class="md-week" aria-labelledby="current-week-title"><div><span class="ad-eyebrow">WEEKLY OPERATIONS</span><h2 id="current-week-title">Current Schedule Week</h2>
             @if (data.CurrentScheduleWeek is { } week)
             {
-                <p>@week.WeekStartDate.ToString("dd MMM", CultureInfo.InvariantCulture) – @week.WeekEndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p><small>Registration deadline: @M.VietnamTime(week.RegistrationDeadline) · UTC+7</small>
+                <p>@week.WeekStartDate.ToString("dd MMM", CultureInfo.InvariantCulture) – @week.WeekEndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p><small>Registration deadline: @M.VietnamTime(week.RegistrationDeadline) · UTC+7</small><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@week.ScheduleWeekId">View schedule details →</a>
             }
-            else { <p>No active schedule week covers today.</p> }
+            else { <p>No active schedule week covers today.</p><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Index">View weekly schedules →</a> }
             </div><div class="md-week-status"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>@if (data.CurrentScheduleWeek is { } current) { <span>@M.Label(current.Status)</span> }</div>
         </section>
         <div class="ad-panels">

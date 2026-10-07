@@ -1,0 +1,49 @@
+@model UI_Admin.Models.Manager.ManagerScheduleDetailViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@using System.Globalization
+@{
+    ViewData["Title"] = "Weekly Schedule Details";
+    var week = Model.Week;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    @if (TempData["ScheduleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    <a asp-action="Index" class="ms-back">← Back to weekly schedules</a>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>Weekly Schedule Details</h1><p>@(week is null ? $"Schedule #{Model.Id}" : $"{S.Date(week.WeekStartDate)} – {S.Date(week.WeekEndDate)}")</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    @if (TempData["ScheduleError"] is string registrationError) { <div class="ad-error" role="alert">@registrationError</div> }
+    @if (Model.ErrorMessage is not null) { <section class="ad-error" role="alert"><div><h2>Schedule unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Details" asp-route-id="@Model.Id">Try again</a></div></section> }
+    @if (week is not null)
+    {
+        @if (week.Status == "DRAFT") { <div class="ms-action-row"><a class="ms-primary" asp-action="Edit" asp-route-id="@week.ScheduleWeekId">Edit schedule</a><a class="ms-delete-link" asp-action="Delete" asp-route-id="@week.ScheduleWeekId">Delete schedule</a></div> }
+        <section class="ad-card sh-registration-panel">
+            <div><h2>Shift Registration</h2><p>@(week.Status == "DRAFT" ? "Add shifts and staffing requirements before opening registration. Opening registration locks draft editing and makes shifts scheduled." : week.Status == "OPEN_REGISTRATION" ? "Employees can register until the deadline. Closing registration ends new registrations; managers can still manage eligible assignments." : "Registration is not open for this schedule.")</p></div>
+            @if (week.Status == "DRAFT") { <div class="ms-action-row"><a class="ms-primary" asp-controller="ManagerShift" asp-action="Create" asp-route-weekId="@week.ScheduleWeekId">+ Create shift</a><form asp-action="OpenRegistration" asp-route-id="@week.ScheduleWeekId" method="post"><button class="ms-primary" type="submit" disabled="@(week.Shifts.Count == 0 || S.Vietnam(week.RegistrationDeadline) <= DateTime.UtcNow.AddHours(7))">Open registration</button></form></div> }
+            @if (week.Status == "OPEN_REGISTRATION") { <form asp-action="CloseRegistration" asp-route-id="@week.ScheduleWeekId" method="post"><button class="ms-danger-button" type="submit">Close registration</button></form> }
+        </section>
+        <section class="ad-card ms-week-overview"><div><span class="ad-eyebrow">SCHEDULE #@week.ScheduleWeekId · BRANCH #@week.BranchId</span><h2>@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</h2><p>Registration deadline: <strong>@S.Time(week.RegistrationDeadline)</strong> · UTC+7</p></div><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></section>
+        <section class="ad-stats ms-stats" aria-label="Schedule staffing summary">
+            @foreach (var stat in new[] { (Label: "Total Shifts", Value: week.TotalShifts, Icon: "work_history"), (Label: "Required Slots", Value: week.RequiredEmployees, Icon: "groups"), (Label: "Assigned Slots", Value: week.AssignedEmployees, Icon: "assignment_ind"), (Label: "Remaining Slots", Value: week.RemainingEmployees, Icon: "person_add") })
+            { <article class="ad-card ad-stat"><div class="ad-card-top"><span>@stat.Label</span><span class="ad-icon accent material-symbols-outlined" aria-hidden="true">@stat.Icon</span></div><strong>@stat.Value</strong></article> }
+        </section>
+        <section class="ad-card ms-timeline" aria-label="Schedule activity"><div><span>Created</span><strong>@S.Time(week.CreatedAt)</strong></div><div><span>Last updated</span><strong>@S.Time(week.UpdatedAt)</strong></div><div><span>Registration opened</span><strong>@(week.OpenedAt is { } opened ? S.Time(opened) : "Not opened")</strong></div><div><span>Registration closed</span><strong>@(week.RegistrationClosedAt is { } closed ? S.Time(closed) : "Not closed")</strong></div></section>
+        <div class="ms-section-heading"><h2>Daily Shifts</h2><span>UTC+7 · Staffing counts are assignment slots</span></div>
+        @if (week.Shifts.Count == 0) { <section class="ad-card ad-empty"><span class="material-symbols-outlined ms-empty-icon" aria-hidden="true">event_busy</span><strong>No shifts in this schedule</strong><p>Shifts will appear here once they are added to the week.</p></section> }
+        @foreach (var day in week.Shifts.OrderBy(x => x.ScheduledStartAt).GroupBy(x => DateOnly.FromDateTime(S.Vietnam(x.ScheduledStartAt))))
+        {
+            <section class="ms-day"><div class="ms-day-heading"><h3>@day.Key.ToString("dddd, dd MMM yyyy", CultureInfo.InvariantCulture)</h3><span>@day.Count() shifts</span></div><div class="ms-shift-grid">
+                @foreach (var shift in day)
+                {
+                    <article class="ad-card ms-shift"><div class="ad-panel-heading"><h4><a class="ms-week-link" asp-controller="ManagerShift" asp-action="Details" asp-route-id="@shift.ShiftId">@shift.ShiftName</a></h4><span class="ad-badge @S.Tone(shift.Status)">@S.Label(shift.Status)</span></div><div class="ms-shift-time"><span class="material-symbols-outlined" aria-hidden="true">schedule</span>@S.Vietnam(shift.ScheduledStartAt).ToString("HH:mm") – @S.Vietnam(shift.ScheduledEndAt).ToString("HH:mm") @if (S.Vietnam(shift.ScheduledEndAt).Date != S.Vietnam(shift.ScheduledStartAt).Date) { <small>(@S.Vietnam(shift.ScheduledEndAt).ToString("dd MMM", CultureInfo.InvariantCulture))</small> }</div><p class="ms-shift-meta">Shift #@shift.ShiftId · @shift.BreakMinutes min break</p>
+                        <div class="ms-coverage"><span>@shift.AssignedEmployees / @shift.RequiredEmployees assigned slots</span><strong>@shift.RemainingEmployees remaining</strong></div><div class="ad-track"><div style="width:@(S.Coverage(shift.AssignedEmployees, shift.RequiredEmployees))%;background:#6256db"></div></div>
+                        <div class="ms-requirements"><h5>Employee Type Requirements</h5>@if (shift.EmployeeRequirements.Count == 0) { <p>No employee type requirements.</p> }<ul>@foreach (var requirement in shift.EmployeeRequirements) { <li><span>@requirement.EmployeeTypeName</span><span class="@(requirement.IsFulfilled ? "ms-filled" : "ms-open")">@requirement.AssignedCount / @requirement.RequiredCount <small>· @requirement.RemainingCount open</small></span></li> }</ul></div>
+                        @if (!string.IsNullOrWhiteSpace(shift.Note)) { <div class="ms-note"><strong>Note</strong><p>@shift.Note</p></div> }
+                    <a class="ms-detail-link sh-view-link" asp-controller="ManagerShift" asp-action="Details" asp-route-id="@shift.ShiftId">View shift details →</a></article>
+                }
+            </div></section>
+        }
+    }
+</div>
