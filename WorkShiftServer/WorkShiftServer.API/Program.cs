@@ -198,6 +198,10 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerDa
     WorkShiftManagement.DAL.Repositories.Manager.ManagerDashboardRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerDashboardService,
     WorkShiftManagement.BLL.Services.Manager.ManagerDashboardService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Accountant.IAccountantDashboardRepo,
+    WorkShiftManagement.DAL.Repositories.Accountant.AccountantDashboardRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IAccountantDashboardService,
+    WorkShiftManagement.BLL.Services.Accountant.AccountantDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
