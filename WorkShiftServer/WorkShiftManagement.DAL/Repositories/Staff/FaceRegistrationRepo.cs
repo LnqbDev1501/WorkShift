@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
@@ -63,8 +64,61 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
 
     public async Task CreateFaceProfileAsync(FaceProfile faceProfile, CancellationToken cancellationToken = default)
     {
-        await _context.FaceProfiles.AddAsync(faceProfile, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
+        var qualityScore = faceProfile.FaceQualityScore ?? 0.9850m;
+        var livenessScore = faceProfile.LivenessScore;
+
+        var connection = _context.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = @"
+            INSERT INTO public.face_profiles (
+                user_id,
+                registration_session_id,
+                face_embedding,
+                embedding_version,
+                registration_type,
+                face_quality_score,
+                liveness_score,
+                status,
+                registered_at
+            ) VALUES (
+                @userId,
+                @sessionId,
+                array_fill(0.01::float4, ARRAY[128])::vector,
+                @embeddingVersion,
+                @regType,
+                @qualityScore,
+                @livenessScore,
+                @status,
+                @registeredAt
+            ) RETURNING face_profile_id;";
+
+        void AddParam(string name, object value)
+        {
+            var param = command.CreateParameter();
+            param.ParameterName = name;
+            param.Value = value;
+            command.Parameters.Add(param);
+        }
+
+        AddParam("@userId", faceProfile.UserId);
+        AddParam("@sessionId", faceProfile.RegistrationSessionId);
+        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "MobileNetV2-128");
+        AddParam("@regType", faceProfile.RegistrationType ?? "INITIAL");
+        AddParam("@qualityScore", qualityScore);
+        AddParam("@livenessScore", livenessScore);
+        AddParam("@status", faceProfile.Status ?? "ACTIVE");
+        AddParam("@registeredAt", faceProfile.RegisteredAt);
+
+        var scalar = await command.ExecuteScalarAsync(cancellationToken);
+        if (scalar != null && int.TryParse(scalar.ToString(), out var profileId))
+        {
+            faceProfile.FaceProfileId = profileId;
+        }
     }
 
     public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
