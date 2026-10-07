@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
 var builder = WebApplication.CreateBuilder(args);
 

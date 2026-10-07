@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models;
+namespace UI_Admin.Models.Admin.UserAdmin;
 
 public sealed class UserRestoreViewModel
 {

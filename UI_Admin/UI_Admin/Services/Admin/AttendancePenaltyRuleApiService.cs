@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using UI_Admin.Models.AttendancePenaltyRule;
+using UI_Admin.Models.Admin.AttendancePenaltyRule;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public sealed class AttendancePenaltyRuleApiService
 {

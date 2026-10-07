@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 
-namespace UI_Admin.Models;
+namespace UI_Admin.Models.Admin.UserAdmin;
 
 public sealed class UserEditViewModel
 {
