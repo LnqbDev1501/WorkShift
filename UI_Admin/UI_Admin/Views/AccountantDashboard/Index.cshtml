@@ -1,36 +1,111 @@
+@model UI_Admin.Models.Accountant.AccountantDashboardViewModel
+@using D = UI_Admin.Models.Accountant.AccountantDashboardViewModel
 @{
-    ViewData["Title"] = "Tổng quan Kế toán (Accountant)";
+    ViewData["Title"] = "Tổng quan kế toán";
+    var data = Model.Data;
 }
-
-<div class="p-6 max-w-[1440px] mx-auto space-y-6">
-    <!-- Header Banner -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-        <div>
-            <div class="flex items-center gap-2 mb-1.5">
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                    ACCOUNTANT WORKSPACE
-                </span>
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard">
+    <header class="ad-heading">
+        <div><span class="ad-eyebrow">WORKSPACE / KẾ TOÁN</span><h1>Tổng quan kế toán</h1><p>Theo dõi bảng lương và tiến độ thanh toán trên toàn bộ chi nhánh.</p></div>
+        <a class="ad-refresh" asp-action="Index"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Làm mới</a>
+    </header>
+    @if (Model.ErrorMessage is not null)
+    {
+        <section class="ad-error" role="alert"><span class="material-symbols-outlined" aria-hidden="true">cloud_off</span><div><h2>Dữ liệu tạm thời chưa khả dụng</h2><p>@Model.ErrorMessage</p><a asp-action="Index">Thử lại</a></div></section>
+    }
+    @if (data is not null)
+    {
+        <div class="ad-scope"><span class="material-symbols-outlined" aria-hidden="true">public</span>Toàn bộ chi nhánh · Số liệu lũy kế<span>Ngày @data.Date.ToString("dd/MM/yyyy") · UTC+7</span></div>
+        <section class="ad-stats" aria-label="Tổng quan trạng thái bảng lương">
+            @foreach (var card in new[] {
+                (Label: "Sẵn sàng gửi duyệt", Count: data.CalculatedPayrolls, Icon: "calculate", Tone: "accent", Note: "Bảng lương đã tính toán"),
+                (Label: "Đang chờ duyệt", Count: data.SubmittedPayrolls, Icon: "hourglass_top", Tone: "warning", Note: "Đã gửi và chờ xét duyệt"),
+                (Label: "Cần xử lý lại", Count: data.RejectedPayrolls, Icon: "assignment_late", Tone: "danger", Note: "Bảng lương bị từ chối"),
+                (Label: "Chờ thanh toán", Count: data.AwaitingPaymentPayrolls, Icon: "account_balance_wallet", Tone: "success", Note: "Bảng lương đã được duyệt") })
+            {
+                <article class="ad-card ad-stat"><div class="ad-card-top"><span>@card.Label</span><span class="ad-icon @card.Tone material-symbols-outlined" aria-hidden="true">@card.Icon</span></div><strong>@D.Number(card.Count)</strong><p>@card.Note</p></article>
+            }
+        </section>
+        <section class="ad-payment" aria-label="Số tiền chờ thanh toán"><div><span class="ad-eyebrow">NGÂN SÁCH THANH TOÁN</span><h2>@D.Money(data.AwaitingPaymentNetSalary)</h2><p>Tổng lương thực nhận của @D.Number(data.AwaitingPaymentPayrolls) bảng lương đã duyệt, đang chờ thanh toán.</p></div><span class="material-symbols-outlined" aria-hidden="true">payments</span></section>
+        <div class="ad-panels">
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Tiến độ bảng lương</h2><span>@D.Number(data.TotalPayrolls) bảng lương</span></div><p>Phiên bản hiện tại trong các kỳ chưa hủy.</p>
+                @if (data.PayrollsByStatus.Count == 0) { <div class="ad-empty">Chưa có dữ liệu bảng lương.</div> }
+                @if (data.TotalPayrolls > 0 && data.PayrollsByStatus.Count > 0)
+                {
+                    var groups = data.PayrollsByStatus.Where(group => group.Count > 0).ToList();
+                    var shares = groups.Select(group => 100m * group.Count / data.TotalPayrolls).ToArray();
+                    var stops = new List<string>();
+                    var position = 0m;
+                    for (var i = 0; i < groups.Count; i++)
+                    {
+                        var start = position;
+                        position += shares[i];
+                        stops.Add($"{D.ChartColor(groups[i].Status)} {start.ToString(System.Globalization.CultureInfo.InvariantCulture)}% {position.ToString(System.Globalization.CultureInfo.InvariantCulture)}%");
+                    }
+                    <div class="ad-pie-layout">
+                        <div class="ad-pie" style="background: conic-gradient(@string.Join(", ", stops))" aria-hidden="true">
+                            @for (var i = 0; i < groups.Count; i++)
+                            {
+                                var midpoint = (shares.Take(i).Sum() + shares[i] / 2m) / 100m * 2m * (decimal)Math.PI;
+                                var x = (50 + 32 * Math.Sin((double)midpoint)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                                var y = (50 - 32 * Math.Cos((double)midpoint)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+                                if (shares[i] >= 5)
+                                {
+                                    <span style="left:@(x)%;top:@(y)%">@D.Percent(groups[i].Count, data.TotalPayrolls)%</span>
+                                }
+                            }
+                        </div>
+                        <ul class="ad-pie-legend" aria-label="Tỷ lệ bảng lương theo trạng thái">
+                            @foreach (var group in data.PayrollsByStatus)
+                            {
+                                <li><span><i style="background:@D.ChartColor(group.Status)" aria-hidden="true"></i>@D.Label(group.Status)</span><strong>@D.Percent(group.Count, data.TotalPayrolls)%<small>@D.Number(group.Count) bảng lương</small></strong></li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Trạng thái kỳ lương</h2><span>@D.Number(data.TotalPayrollPeriods) kỳ</span></div><p>Tất cả kỳ lương, bao gồm các kỳ đã hủy.</p>
+                @if (data.PayrollPeriodsByStatus.Count == 0) { <div class="ad-empty">Chưa có kỳ lương nào.</div> }
+                <div class="ad-period-grid">
+                    @foreach (var group in data.PayrollPeriodsByStatus)
+                    {
+                        <div><span class="ad-badge @D.Tone(group.Status)">@D.Label(group.Status)</span><strong>@D.Number(group.Count)</strong><small>kỳ lương</small></div>
+                    }
+                </div>
+            </section>
+        </div>
+        <section class="ad-salary-chart" data-current-month="@data.Date.Month" aria-labelledby="salary-chart-title">
+            <div class="ad-panel-heading"><div><h2 id="salary-chart-title">So sánh bảng lương theo tháng</h2><p>Năm @data.Date.Year · Theo ngày kết thúc kỳ lương · Đơn vị VND</p></div><span class="ad-current-badge">Tháng hiện tại: @data.Date.Month</span></div>
+            <div class="ad-chart-tabs" role="group" aria-label="Chọn chỉ tiêu so sánh">
+                <button type="button" data-metric="GrossSalary" aria-pressed="false">Tổng lương</button>
+                <button type="button" data-metric="TotalDeduction" aria-pressed="false">Khấu trừ</button>
+                <button type="button" data-metric="NetSalary" aria-pressed="true">Thực nhận</button>
             </div>
-            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Tổng quan Nghiệp vụ Kế toán</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Quản lý kỳ lương, tính lương và xử lý thanh toán nhân viên</p>
-        </div>
-        <div>
-            <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
-                <span class="material-symbols-outlined text-[16px]">refresh</span>
-                Làm mới
-            </a>
-        </div>
-    </div>
-
-    <!-- Developer Notice Frame -->
-    <div class="bg-gradient-to-br from-emerald-50 to-teal-50 p-6 rounded-2xl border border-emerald-100 text-emerald-950">
-        <div class="flex items-center gap-2 font-bold text-base mb-1.5 text-emerald-900">
-            <span class="material-symbols-outlined text-[22px]">developer_mode</span>
-            Khuôn mẫu làm việc cho Accountant
-        </div>
-        <p class="text-sm text-emerald-800/80 leading-relaxed">
-            Thư mục <code>Controllers/Accountant</code>, <code>Models/Accountant</code>, <code>Services/Accountant</code> đã sẵn sàng. Bạn có thể tạo thêm các Controller (ví dụ: <code>AccountantPayrollController</code>, ...) và tạo View tương ứng trong <code>Views/[TênController]/</code>.
-        </p>
-    </div>
+            <div class="ad-chart-summary"><strong data-chart-total></strong><span data-chart-caption></span></div>
+            <div class="ad-line-chart"><svg viewBox="0 0 960 300" role="img" aria-label="Biểu đồ lương theo tháng"></svg></div>
+            <p class="ad-chart-note">Tháng không có bảng lương được hiển thị bằng 0. Số liệu bao gồm mọi trạng thái của phiên bản hiện tại, kể cả bản nháp.</p>
+            <details class="ad-chart-data"><summary>Xem dữ liệu từng tháng</summary><div class="ad-table-scroll"><table><thead><tr><th>Tháng</th><th>Bảng lương</th><th>Tổng lương</th><th>Khấu trừ</th><th>Thực nhận</th></tr></thead><tbody>
+                @for (var month = 1; month <= 12; month++)
+                {
+                    var salary = data.MonthlySalaries.FirstOrDefault(x => x.Month == month);
+                    <tr data-salary-month="@month" data-count="@(salary?.PayrollCount ?? 0)" data-gross-salary="@((salary?.GrossSalary ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))" data-total-deduction="@((salary?.TotalDeduction ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))" data-net-salary="@((salary?.NetSalary ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture))"><th scope="row">Tháng @month @(month == data.Date.Month ? "(hiện tại)" : "")</th><td>@D.Number(salary?.PayrollCount ?? 0)</td><td>@D.Money(salary?.GrossSalary ?? 0)</td><td>@D.Money(salary?.TotalDeduction ?? 0)</td><td>@D.Money(salary?.NetSalary ?? 0)</td></tr>
+                }
+            </tbody></table></div></details>
+        </section>
+        <section class="ad-card ad-recent"><div class="ad-panel-heading"><div><h2>Kỳ lương gần đây</h2><p>5 kỳ chưa hủy có ngày kết thúc gần nhất.</p></div><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span></div>
+            <div class="ad-table-scroll" tabindex="0" role="region" aria-label="Danh sách kỳ lương gần đây"><table><thead><tr><th scope="col">Kỳ lương</th><th scope="col">Chi nhánh</th><th scope="col">Thời gian</th><th scope="col">Trạng thái</th><th scope="col" class="ad-number">Bảng lương</th><th scope="col" class="ad-number">Lương thực nhận</th></tr></thead><tbody>
+                @if (data.RecentPayrollPeriods.Count == 0) { <tr><td colspan="6" class="ad-empty">Chưa có kỳ lương để hiển thị.</td></tr> }
+                @foreach (var period in data.RecentPayrollPeriods)
+                {
+                    <tr><td><strong>@period.PeriodName</strong><small>@period.PeriodCode</small></td><td>@period.BranchName</td><td>@period.StartDate.ToString("dd/MM/yyyy") – @period.EndDate.ToString("dd/MM/yyyy")</td><td><span class="ad-badge @D.Tone(period.Status)">@D.Label(period.Status)</span></td><td class="ad-number">@D.Number(period.TotalPayrolls)</td><td class="ad-number"><strong>@D.Money(period.TotalNetSalary)</strong></td></tr>
+                }
+            </tbody></table></div><footer>Tổng lương thực nhận bao gồm mọi trạng thái bảng lương hiện tại trong kỳ, kể cả bản nháp.</footer>
+        </section>
+    }
 </div>
+@section Scripts {
+    <script src="~/js/accountant-dashboard.js" asp-append-version="true"></script>
+}
