@@ -1,3 +1,5 @@
+using System;
+
 namespace WorkShiftManagement.BLL.DTOs.Staff.Response;
 
 public class StaffContractDetailResponse
@@ -25,4 +27,14 @@ public class StaffContractDetailResponse
 
     public bool CanAccept { get; set; }
     public string? CannotAcceptReason { get; set; }
+
+    public bool CanSubmitChangeRequest { get; set; }
+    public string? CannotSubmitChangeRequestReason { get; set; }
+    public int? OpenChangeRequestId { get; set; }
+    public string? OpenChangeRequestStatus { get; set; }
+
+    public string? TerminationReason { get; set; }
+    public DateTime? TerminationEffectiveAt { get; set; }
+    public string? CancellationReason { get; set; }
+    public DateTime? CancelledAt { get; set; }
 }

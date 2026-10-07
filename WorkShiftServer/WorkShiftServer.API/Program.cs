@@ -96,7 +96,10 @@ var myCnn = builder.Configuration.GetConnectionString("MyCnn")
 var pooledConnectionString = new Npgsql.NpgsqlConnectionStringBuilder(myCnn) { MaxPoolSize = 8 }.ToString();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(pooledConnectionString));
+{
+    options.UseNpgsql(pooledConnectionString);
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+});
 
 var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire") ?? pooledConnectionString;
 builder.Services.AddHangfire(configuration => configuration
@@ -195,6 +198,11 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffEmploy
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService,
     WorkShiftManagement.BLL.Services.Staff.StaffEmployeeRequestService>();
 
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffSalaryHistoryRepo,
+    WorkShiftManagement.DAL.Repositories.Staff.StaffSalaryHistoryRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffSalaryHistoryService,
+    WorkShiftManagement.BLL.Services.Staff.StaffSalaryHistoryService>();
+
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Upload.ICloudinaryService, WorkShiftManagement.BLL.Services.Upload.CloudinaryService>();
 
 builder.Services.AddScoped<IShiftTemplateRepo, ShiftTemplateRepo>();
@@ -246,6 +254,11 @@ try
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
             "scheduled-contracts-activation",
             service => service.ActivateDueScheduledContractsAsync(CancellationToken.None),
+            Cron.Minutely());
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
+            "expired-contracts-worker",
+            service => service.ExpireDueContractsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 

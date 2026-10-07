@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -7,9 +7,9 @@ public partial class TimeAdjustmentRequestDetail
 {
     public int RequestId { get; set; }
 
-    public int AssignmentId { get; set; }
-
     public DateTime RequestedTime { get; set; }
+
+    public int AssignmentId { get; set; }
 
     public virtual ShiftAssignment Assignment { get; set; } = null!;
 

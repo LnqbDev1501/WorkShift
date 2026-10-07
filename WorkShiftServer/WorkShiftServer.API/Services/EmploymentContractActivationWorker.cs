@@ -9,7 +9,10 @@ using WorkShiftManagement.BLL.Interfaces.Staff;
 namespace WorkShiftServer.API.Services;
 
 /// <summary>
-/// Background worker that periodically checks for SCHEDULED employment contracts whose start date is due and activates them.
+/// Background worker that periodically checks for:
+/// 1. SCHEDULED employment contracts whose start date is due and activates them.
+/// 2. ACTIVE employment contracts past their end date and expires them.
+/// 3. PENDING_STAFF employment contracts past their start date without acceptance and cancels them.
 /// </summary>
 public class EmploymentContractActivationWorker : BackgroundService
 {
@@ -35,11 +38,23 @@ public class EmploymentContractActivationWorker : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var contractService = scope.ServiceProvider.GetRequiredService<IStaffEmploymentContractService>();
-                var activatedCount = await contractService.ActivateDueScheduledContractsAsync(stoppingToken);
 
+                var activatedCount = await contractService.ActivateDueScheduledContractsAsync(stoppingToken);
                 if (activatedCount > 0)
                 {
                     _logger.LogInformation("Employment Contract Activation Worker activated {Count} due scheduled contract(s).", activatedCount);
+                }
+
+                var expiredCount = await contractService.ExpireDueContractsAsync(stoppingToken);
+                if (expiredCount > 0)
+                {
+                    _logger.LogInformation("Employment Contract Activation Worker expired {Count} contract(s) past end date.", expiredCount);
+                }
+
+                var cancelledCount = await contractService.CancelOverduePendingContractsAsync(stoppingToken);
+                if (cancelledCount > 0)
+                {
+                    _logger.LogInformation("Employment Contract Activation Worker auto-cancelled {Count} overdue pending contract(s).", cancelledCount);
                 }
             }
             catch (Exception exception)

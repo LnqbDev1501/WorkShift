@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
+using WorkShiftManagement.BLL.Helpers;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -129,6 +130,64 @@ public class AdminEmploymentContractService : IAdminEmploymentContractService
         }
 
         return MapToDetailResponse(contract);
+    }
+
+    public async Task<AdminContractHistoryResponse> GetContractHistoryAsync(
+        int contractId,
+        int pageNumber = 1,
+        int pageSize = 20,
+        string? sortOrder = "desc",
+        CancellationToken cancellationToken = default)
+    {
+        if (contractId <= 0)
+        {
+            throw new ArgumentException("ContractId must be greater than 0.");
+        }
+
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+        var contract = await _contractRepo.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+        {
+            throw new KeyNotFoundException($"Employment contract with ID {contractId} was not found.");
+        }
+
+        var successor = await _contractRepo.GetSuccessorContractAsync(contractId, cancellationToken);
+        EmploymentContract? predecessor = null;
+        if (contract.ReplacesContractId.HasValue)
+        {
+            predecessor = await _contractRepo.GetByIdAsync(contract.ReplacesContractId.Value, cancellationToken);
+        }
+
+        var (auditLogs, totalCount) = await _contractRepo.GetContractAuditLogsPagedAsync(
+            contractId, pageNumber, pageSize, sortOrder, cancellationToken);
+
+        var items = auditLogs.Select(EmploymentContractAuditLogMapper.MapAuditLogToEntry).ToList();
+
+        return new AdminContractHistoryResponse
+        {
+            ContractId = contract.ContractId,
+            ContractNumber = contract.ContractNumber,
+            CurrentStatus = contract.Status,
+            StaffUserId = contract.UserId,
+            StaffFullName = !string.IsNullOrWhiteSpace(contract.EmployeeFullNameSnapshot)
+                ? contract.EmployeeFullNameSnapshot
+                : (contract.User?.FullName ?? string.Empty),
+            BranchId = contract.BranchId,
+            BranchName = !string.IsNullOrWhiteSpace(contract.BranchNameSnapshot)
+                ? contract.BranchNameSnapshot
+                : (contract.Branch?.BranchName ?? string.Empty),
+            ReplacesContractId = contract.ReplacesContractId,
+            ReplacesContractNumber = predecessor?.ContractNumber,
+            ReplacedByContractId = successor?.ContractId,
+            ReplacedByContractNumber = successor?.ContractNumber,
+            Items = items,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalItems = totalCount
+        };
     }
 
     private static AdminEmploymentContractListItemResponse MapToListItemResponse(EmploymentContract c)
