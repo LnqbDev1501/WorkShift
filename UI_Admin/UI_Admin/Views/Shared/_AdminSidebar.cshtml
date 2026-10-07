@@ -25,11 +25,10 @@
                         <canvas id="sidebar-mascot" class="w-full h-full object-contain pointer-events-none"></canvas>
                     </div>
                     <div class="flex flex-col min-w-0">
-                        <span
-                        class="font-title-md text-white text-[14px] font-semibold leading-tight tracking-tight truncate">WorkShift</span>
-                        <span
-                            class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">@(User.IsInRole("MANAGER") ? "MANAGER WORKSPACE" : "ADMIN ENGINE")</span>
-                        </div>
+
+                        <span class="font-title-md text-white text-[14px] font-semibold leading-tight tracking-tight truncate">WorkShift</span>
+                        <span class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">@(User.IsInRole("ADMIN") ? "ADMIN ENGINE" : User.IsInRole("MANAGER") ? "MANAGER HUB" : User.IsInRole("ACCOUNTANT") ? "ACCOUNTANT HUB" : "WORKSPACE")</span>
+                    </div>
                     </div>
                     <!-- Stylish Collapse Toggle Button -->
                     <button type="button" onclick="toggleAdminSidebar()"
@@ -122,6 +121,12 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">how_to_reg</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Attendance Rules</span>
                         </a>
+                        <a asp-controller="AttendancePenaltyRules" asp-action="List"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AttendancePenaltyRules" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Attendance Penalty Rules">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">gavel</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Attendance Penalty Rules</span>
+                        </a>
                         <a asp-controller="Holidays" asp-action="List" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg
                             @(currentController == "Holidays" && currentAction == "List"
                  ? "bg-primary-container text-white font-title-md shadow-sm"
@@ -196,6 +201,137 @@
                            title="Products">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
+                        </a>
+                    </nav>
+                }
+                else if (User.IsInRole("MANAGER"))
+                {
+                    <!-- Manager: Workspace -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
+                        </div>
+                        <a asp-controller="ManagerDashboard" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerDashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Overview">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
+                        </a>
+                    </nav>
+
+                    <!-- Manager: Schedules & Shifts -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SCHEDULES &amp; SHIFTS</span>
+                        </div>
+                        <a asp-controller="ManagerSchedule" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerSchedule" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Weekly Schedules">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">calendar_month</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Weekly Schedules</span>
+                        </a>
+                        <a asp-controller="ManagerShiftRegistration" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerShiftRegistration" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Shift Registrations">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">how_to_reg</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Shift Registrations</span>
+                        </a>
+                        <a asp-controller="ManagerShiftSwap" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerShiftSwap" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Shift Swap Requests">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">swap_horiz</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Shift Swap Requests</span>
+                        </a>
+                    </nav>
+
+                    <!-- Manager: Personnel & Attendance -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PERSONNEL &amp; ATTENDANCE</span>
+                        </div>
+                        <a asp-controller="ManagerStaff" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerStaff" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Branch Staff">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">badge</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branch Staff</span>
+                        </a>
+                        <a asp-controller="ManagerAttendance" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerAttendance" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Daily Attendance">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">fact_check</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Daily Attendance</span>
+                        </a>
+                        <a asp-controller="ManagerTimesheet" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerTimesheet" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Timesheets">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">table_chart</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Timesheets</span>
+                        </a>
+                        <a asp-controller="ManagerLeaveRequest" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerLeaveRequest" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Leave Requests">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">event_busy</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Leave Requests</span>
+                        </a>
+                        <a asp-controller="ManagerContract" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContract" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Employment Contracts">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">description</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employment Contracts</span>
+                        </a>
+                    </nav>
+
+                    <!-- Manager: Notifications -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span>
+                        </div>
+                        <a asp-controller="Notifications" asp-action="List"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Notifications">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                        </a>
+                    </nav>
+                }
+                else if (User.IsInRole("ACCOUNTANT"))
+                {
+                    <!-- Accountant: Workspace -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
+                        </div>
+                        <a asp-controller="AccountantDashboard" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantDashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Overview">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
+                        </a>
+                    </nav>
+
+                    <!-- Accountant: Payroll -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL &amp; COMPENSATION</span>
+                        </div>
+                        <a asp-controller="AccountantPayroll" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayroll" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Payroll Approvals">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Approvals</span>
+                        </a>
+                    </nav>
+
+                    <!-- Accountant: Notifications -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span>
+                        </div>
+                        <a asp-controller="Notifications" asp-action="List"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Notifications">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
                         </a>
                     </nav>
                 }

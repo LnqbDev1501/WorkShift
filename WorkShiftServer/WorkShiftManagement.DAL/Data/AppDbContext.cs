@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.DAL.Data;
@@ -34,14 +33,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<Branch> Branches { get; set; }
-
-    public virtual DbSet<ChatConversation> ChatConversations { get; set; }
-
-    public virtual DbSet<ChatMember> ChatMembers { get; set; }
-
-    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
-
-    public virtual DbSet<ChatMessageAttachment> ChatMessageAttachments { get; set; }
 
     public virtual DbSet<Checklist> Checklists { get; set; }
 
@@ -132,7 +123,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
-
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -659,154 +649,6 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("branches_region_id_fkey");
         });
 
-        modelBuilder.Entity<ChatConversation>(entity =>
-        {
-            entity.HasKey(e => e.ConversationId).HasName("chat_conversations_pkey");
-
-            entity.ToTable("chat_conversations");
-
-            entity.HasIndex(e => e.LastMessageAt, "ix_chat_conversations_last_message")
-                .IsDescending()
-                .HasNullSortOrder(new[] { NullSortOrder.NullsLast });
-
-            entity.HasIndex(e => e.BranchId, "uq_active_branch_chat")
-                .IsUnique()
-                .HasFilter("(((conversation_type)::text = 'BRANCH'::text) AND ((status)::text = 'ACTIVE'::text))");
-
-            entity.Property(e => e.ConversationId).HasColumnName("conversation_id");
-            entity.Property(e => e.BranchId).HasColumnName("branch_id");
-            entity.Property(e => e.ConversationType)
-                .HasMaxLength(20)
-                .HasColumnName("conversation_type");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.LastMessageAt).HasColumnName("last_message_at");
-            entity.Property(e => e.Status)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'ACTIVE'::character varying")
-                .HasColumnName("status");
-            entity.Property(e => e.Title)
-                .HasMaxLength(200)
-                .HasColumnName("title");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.Branch).WithOne(p => p.ChatConversation)
-                .HasForeignKey<ChatConversation>(d => d.BranchId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_conversations_branch_id_fkey");
-
-            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.ChatConversations)
-                .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_conversations_created_by_fkey");
-        });
-
-        modelBuilder.Entity<ChatMember>(entity =>
-        {
-            entity.HasKey(e => e.ConversationMemberId).HasName("chat_members_pkey");
-
-            entity.ToTable("chat_members");
-
-            entity.HasIndex(e => new { e.UserId, e.IsActive, e.ConversationId }, "ix_chat_members_user_active");
-
-            entity.HasIndex(e => new { e.ConversationId, e.UserId }, "uq_active_chat_member")
-                .IsUnique()
-                .HasFilter("is_active");
-
-            entity.Property(e => e.ConversationMemberId).HasColumnName("conversation_member_id");
-            entity.Property(e => e.ConversationId).HasColumnName("conversation_id");
-            entity.Property(e => e.IsActive)
-                .HasDefaultValue(true)
-                .HasColumnName("is_active");
-            entity.Property(e => e.JoinedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("joined_at");
-            entity.Property(e => e.LastReadAt).HasColumnName("last_read_at");
-            entity.Property(e => e.LastReadMessageId).HasColumnName("last_read_message_id");
-            entity.Property(e => e.LeftAt).HasColumnName("left_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatMembers)
-                .HasForeignKey(d => d.ConversationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_members_conversation_id_fkey");
-
-            entity.HasOne(d => d.LastReadMessage).WithMany(p => p.ChatMembers)
-                .HasForeignKey(d => d.LastReadMessageId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_members_last_read_message_id_fkey");
-
-            entity.HasOne(d => d.User).WithMany(p => p.ChatMembers)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_members_user_id_fkey");
-        });
-
-        modelBuilder.Entity<ChatMessage>(entity =>
-        {
-            entity.HasKey(e => e.MessageId).HasName("chat_messages_pkey");
-
-            entity.ToTable("chat_messages");
-
-            entity.HasIndex(e => new { e.ConversationId, e.SentAt, e.MessageId }, "ix_chat_messages_conversation_sent");
-
-            entity.Property(e => e.MessageId).HasColumnName("message_id");
-            entity.Property(e => e.Content).HasColumnName("content");
-            entity.Property(e => e.ConversationId).HasColumnName("conversation_id");
-            entity.Property(e => e.DeletedAt).HasColumnName("deleted_at");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.SenderId).HasColumnName("sender_id");
-            entity.Property(e => e.SentAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("sent_at");
-
-            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatMessages)
-                .HasForeignKey(d => d.ConversationId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_messages_conversation_id_fkey");
-
-            entity.HasOne(d => d.Sender).WithMany(p => p.ChatMessages)
-                .HasForeignKey(d => d.SenderId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_messages_sender_id_fkey");
-        });
-
-        modelBuilder.Entity<ChatMessageAttachment>(entity =>
-        {
-            entity.HasKey(e => e.AttachmentId).HasName("chat_message_attachments_pkey");
-
-            entity.ToTable("chat_message_attachments");
-
-            entity.HasIndex(e => e.MessageId, "ix_chat_attachments_message");
-
-            entity.Property(e => e.AttachmentId).HasColumnName("attachment_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.FileName)
-                .HasMaxLength(255)
-                .HasColumnName("file_name");
-            entity.Property(e => e.FileSizeBytes).HasColumnName("file_size_bytes");
-            entity.Property(e => e.FileUrl)
-                .HasMaxLength(500)
-                .HasColumnName("file_url");
-            entity.Property(e => e.MessageId).HasColumnName("message_id");
-            entity.Property(e => e.MimeType)
-                .HasMaxLength(100)
-                .HasColumnName("mime_type");
-
-            entity.HasOne(d => d.Message).WithMany(p => p.ChatMessageAttachments)
-                .HasForeignKey(d => d.MessageId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("chat_message_attachments_message_id_fkey");
-        });
-
         modelBuilder.Entity<Checklist>(entity =>
         {
             entity.HasKey(e => e.ChecklistId).HasName("checklists_pkey");
@@ -1326,9 +1168,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.RegisteredAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("registered_at");
-            entity.Property(e => e.RegistrationImageUrl)
-                .HasMaxLength(500)
-                .HasColumnName("registration_image_url");
             entity.Property(e => e.RegistrationSessionId).HasColumnName("registration_session_id");
             entity.Property(e => e.RegistrationType)
                 .HasMaxLength(20)
@@ -2875,7 +2714,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.StaffReviewedAt).HasColumnName("staff_reviewed_at");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasDefaultValueSql("''::character varying")
                 .HasColumnName("status");
             entity.Property(e => e.TotalAssignedShifts)
                 .HasDefaultValue(0)

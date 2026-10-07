@@ -1,4 +1,4 @@
-namespace UI_Admin.Models;
+namespace UI_Admin.Models.Admin.UserAdmin;
 
 public sealed class UserDetailViewModel
 {
@@ -49,5 +49,5 @@ public sealed class UserDetailViewModel
         _ => Gender
     };
 
-    public int CurrentStep => IsActive ? 4 : (IsPending ? 2 : 1);
+    public int CurrentStep => IsActive ? 4 : IsPending ? 2 : 1;
 }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
+using UI_Admin.Models.Admin.UserAdmin;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers
@@ -137,9 +138,9 @@ namespace UI_Admin.Controllers
             return role?.ToUpperInvariant() switch
             {
                 "ADMIN" => RedirectToAction("Index", "Dashboard"),
+                "MANAGER" => RedirectToAction("Index", "ManagerDashboard"),
+                "ACCOUNTANT" => RedirectToAction("Index", "AccountantDashboard"),
                 "STAFF" => RedirectToAction("Staff", "Landing"),
-                "ACCOUNTANT" => RedirectToAction("Accountant", "Landing"),
-                "MANAGER" => RedirectToAction("Manager", "Landing"),
                 _ => RedirectToAction(nameof(AccessDenied))
             };
         }

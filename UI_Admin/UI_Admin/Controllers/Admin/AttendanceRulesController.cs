@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.AttendanceRule;
-using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 [Authorize(Roles = "ADMIN")]
 public class AttendanceRulesController : Controller
@@ -93,7 +93,7 @@ public class AttendanceRulesController : Controller
             CheckInGraceMinutes = 5,
             CheckOutGraceMinutes = 5,
             CheckOutAfterMinutes = 30,
-            MaxAttendanceDistanceMeters = 100,
+            MaxAttendanceDistanceMeters = 20,
             EffectiveFrom = tomorrow
         };
         return View(model);

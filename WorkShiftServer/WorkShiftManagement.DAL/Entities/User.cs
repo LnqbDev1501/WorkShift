@@ -59,12 +59,6 @@ public partial class User
 
     public virtual Branch? Branch { get; set; }
 
-    public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
-
-    public virtual ICollection<ChatMember> ChatMembers { get; set; } = new List<ChatMember>();
-
-    public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
-
     public virtual ICollection<ChecklistResult> ChecklistResults { get; set; } = new List<ChecklistResult>();
 
     public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();

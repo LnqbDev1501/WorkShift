@@ -1,4 +1,6 @@
-@model UI_Admin.Models.UserDetailViewModel
+@using UI_Admin.Models.Admin.UserAdmin
+@model UserDetailViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Account Details - {Model.FullName}";

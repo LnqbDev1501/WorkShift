@@ -1,7 +1,7 @@
 using System.Net.Http.Json;
-using UI_Admin.Models;
+using UI_Admin.Models.Admin.UserAdmin;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public sealed class UserApiService
 {
@@ -157,15 +157,15 @@ public sealed class UserApiService
     {
         var request = new
         {
-            FullName = model.FullName,
-            Email = model.Email,
-            Phone = model.Phone,
-            IdentityNo = model.IdentityNo,
-            RoleId = model.RoleId,
-            BranchId = model.BranchId,
-            Gender = model.Gender,
-            DateOfBirth = model.DateOfBirth,
-            Address = model.Address
+            model.FullName,
+            model.Email,
+            model.Phone,
+            model.IdentityNo,
+            model.RoleId,
+            model.BranchId,
+            model.Gender,
+            model.DateOfBirth,
+            model.Address
         };
 
         using var response = await _httpClient.PostAsJsonAsync(
