@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -123,6 +123,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909;No Reset On Close=true;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1490,9 +1494,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
             entity.Property(e => e.ApprovedAt).HasColumnName("approved_at");
             entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
-            entity.Property(e => e.AttendanceDeduction)
-                .HasPrecision(18, 2)
-                .HasColumnName("attendance_deduction");
+            entity.Property(e => e.AttendanceDeduction).HasColumnName("attendance_deduction");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
@@ -1511,15 +1513,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.EmployeePositionSnapshot)
                 .HasMaxLength(100)
                 .HasColumnName("employee_position_snapshot");
-            entity.Property(e => e.GrossSalary)
-                .HasPrecision(18, 2)
-                .HasColumnName("gross_salary");
-            entity.Property(e => e.HourlyRateSnapshot)
-                .HasPrecision(18, 2)
-                .HasColumnName("hourly_rate_snapshot");
-            entity.Property(e => e.NetSalary)
-                .HasPrecision(18, 2)
-                .HasColumnName("net_salary");
+            entity.Property(e => e.GrossSalary).HasColumnName("gross_salary");
+            entity.Property(e => e.HourlyRateSnapshot).HasColumnName("hourly_rate_snapshot");
+            entity.Property(e => e.NetSalary).HasColumnName("net_salary");
             entity.Property(e => e.PaidAt).HasColumnName("paid_at");
             entity.Property(e => e.PaymentConfirmedAt).HasColumnName("payment_confirmed_at");
             entity.Property(e => e.PaymentConfirmedBy).HasColumnName("payment_confirmed_by");
@@ -1544,18 +1540,10 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.SubmittedAt).HasColumnName("submitted_at");
             entity.Property(e => e.SubmittedBy).HasColumnName("submitted_by");
             entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
-            entity.Property(e => e.TotalDeduction)
-                .HasPrecision(18, 2)
-                .HasColumnName("total_deduction");
-            entity.Property(e => e.TotalPenalty)
-                .HasPrecision(18, 2)
-                .HasColumnName("total_penalty");
-            entity.Property(e => e.TotalReward)
-                .HasPrecision(18, 2)
-                .HasColumnName("total_reward");
-            entity.Property(e => e.TotalWorkHours)
-                .HasPrecision(8, 2)
-                .HasColumnName("total_work_hours");
+            entity.Property(e => e.TotalDeduction).HasColumnName("total_deduction");
+            entity.Property(e => e.TotalPenalty).HasColumnName("total_penalty");
+            entity.Property(e => e.TotalReward).HasColumnName("total_reward");
+            entity.Property(e => e.TotalWorkHours).HasColumnName("total_work_hours");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
@@ -1566,9 +1554,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.WorkInputSnapshot)
                 .HasColumnType("jsonb")
                 .HasColumnName("work_input_snapshot");
-            entity.Property(e => e.WorkPay)
-                .HasPrecision(18, 2)
-                .HasColumnName("work_pay");
+            entity.Property(e => e.WorkPay).HasColumnName("work_pay");
 
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PayrollApprovedByNavigations)
                 .HasForeignKey(d => d.ApprovedBy)
@@ -1715,9 +1701,7 @@ public partial class AppDbContext : DbContext
                 .HasFilter("(attendance_penalty_id IS NOT NULL)");
 
             entity.Property(e => e.PayrollDetailId).HasColumnName("payroll_detail_id");
-            entity.Property(e => e.Amount)
-                .HasPrecision(18, 2)
-                .HasColumnName("amount");
+            entity.Property(e => e.Amount).HasColumnName("amount");
             entity.Property(e => e.AppliedAmount).HasColumnName("applied_amount");
             entity.Property(e => e.AttendancePenaltyId).HasColumnName("attendance_penalty_id");
             entity.Property(e => e.CarryForwardId).HasColumnName("carry_forward_id");
@@ -1735,7 +1719,6 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("item_code");
             entity.Property(e => e.Multiplier)
-                .HasPrecision(5, 2)
                 .HasDefaultValueSql("1")
                 .HasColumnName("multiplier");
             entity.Property(e => e.Note)
@@ -1743,12 +1726,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("note");
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
             entity.Property(e => e.PublicHolidayId).HasColumnName("public_holiday_id");
-            entity.Property(e => e.Quantity)
-                .HasPrecision(8, 2)
-                .HasColumnName("quantity");
-            entity.Property(e => e.Rate)
-                .HasPrecision(18, 2)
-                .HasColumnName("rate");
+            entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.Rate).HasColumnName("rate");
             entity.Property(e => e.RewardPenaltyId).HasColumnName("reward_penalty_id");
             entity.Property(e => e.SalaryHistoryId).HasColumnName("salary_history_id");
             entity.Property(e => e.Type)
@@ -2765,10 +2744,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.BranchId, e.Status }, "ix_users_branch_status");
 
             entity.HasIndex(e => new { e.RoleId, e.Status }, "ix_users_role_status");
-
-            entity.HasIndex(e => new { e.BranchId, e.RoleId }, "uq_users_branch_role_active")
-                .IsUnique()
-                .HasFilter("((status)::text = ANY ((ARRAY['PENDING'::character varying, 'ACTIVE'::character varying])::text[]))");
 
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
 
