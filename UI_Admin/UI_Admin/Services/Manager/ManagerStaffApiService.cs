@@ -60,6 +60,18 @@ public sealed class ManagerStaffApiService
         return await response.Content.ReadFromJsonAsync<StaffAccountDetailViewModel>(cancellationToken);
     }
 
+    public async Task<List<EmployeeTypeOptionViewModel>> GetActiveEmployeeTypeOptionsAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await _httpClient.GetFromJsonAsync<List<ActiveEmployeeTypeDto>>(
+            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/employee-types/active",
+            cancellationToken);
+
+        return (result ?? [])
+            .Select(item => new EmployeeTypeOptionViewModel { Id = item.EmployeeTypeId, Name = item.TypeName })
+            .OrderBy(option => option.Name)
+            .ToList();
+    }
+
     public async Task<(bool Success, string? ErrorMessage)> CreateStaffAsync(
         CreateStaffAccountViewModel model,
         CancellationToken cancellationToken = default)
@@ -74,6 +86,9 @@ public sealed class ManagerStaffApiService
             { new StringContent(model.DateOfBirth?.ToString("yyyy-MM-dd") ?? ""), "dateOfBirth" },
             { new StringContent(model.Address ?? ""), "address" }
         };
+
+        if (model.EmployeeTypeId.HasValue)
+            content.Add(new StringContent(model.EmployeeTypeId.Value.ToString()), "employeeTypeId");
 
         if (model.ImageFile != null && model.ImageFile.Length > 0)
         {
@@ -148,4 +163,10 @@ public async Task<(bool Success, string? ErrorMessage)> RestoreStaffAsync(Guid s
 
         return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
     }
+}
+
+public sealed class ActiveEmployeeTypeDto
+{
+    public int EmployeeTypeId { get; set; }
+    public string TypeName { get; set; } = string.Empty;
 }

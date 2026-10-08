@@ -157,6 +157,118 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
         return (bytes, contentType, fileName);
     }
 
+    public async Task<ManagerContractHistoryViewModel?> GetHistoryAsync(
+        int id,
+        int pageNumber = 1,
+        int pageSize = 10,
+        string? sort = "desc",
+        CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/contracts/{id}/history?pageNumber={pageNumber}&pageSize={pageSize}&sort={sort}";
+        using var response = await client.GetAsync(url, ct);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<ManagerContractHistoryViewModel>(cancellationToken: ct);
+    }
+
+    public async Task<UI_Admin.Models.Manager.Contract.ManagerContractChangeRequestListViewModel> GetChangeRequestsPagedAsync(
+        string? status,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var queryParams = new List<string>
+        {
+            $"pageNumber={pageNumber}",
+            $"pageSize={pageSize}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+            queryParams.Add($"status={Uri.EscapeDataString(status.Trim())}");
+
+        var url = $"{baseUrl}/api/manager/contracts/change-requests?{string.Join("&", queryParams)}";
+        using var response = await client.GetAsync(url, ct);
+        await EnsureSuccessAsync(response, ct);
+
+        var paged = await response.Content.ReadFromJsonAsync<PagedApiResponse<UI_Admin.Models.Manager.Contract.ManagerContractChangeRequestListItemViewModel>>(cancellationToken: ct);
+        return new UI_Admin.Models.Manager.Contract.ManagerContractChangeRequestListViewModel
+        {
+            Items = paged?.Items ?? [],
+            PageNumber = paged?.PageNumber ?? pageNumber,
+            PageSize = paged?.PageSize ?? pageSize,
+            TotalItems = paged?.TotalItems ?? 0,
+            StatusFilter = status
+        };
+    }
+
+    public async Task<UI_Admin.Models.Manager.Contract.ManagerContractChangeRequestDetailViewModel> GetChangeRequestByIdAsync(
+        int changeRequestId,
+        CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/contracts/change-requests/{changeRequestId}";
+        using var response = await client.GetAsync(url, ct);
+        await EnsureSuccessAsync(response, ct);
+
+        var result = await response.Content.ReadFromJsonAsync<UI_Admin.Models.Manager.Contract.ManagerContractChangeRequestDetailViewModel>(cancellationToken: ct);
+        if (result != null)
+        {
+            // Initialize FinalValue from ProposedValue so Manager can review and edit
+            foreach (var item in result.Items)
+            {
+                if (string.IsNullOrEmpty(item.FinalValue))
+                {
+                    item.FinalValue = item.ProposedValue;
+                }
+            }
+        }
+        return result ?? throw new InvalidOperationException("Không thể đọc chi tiết yêu cầu thay đổi hợp đồng.");
+    }
+
+    public async Task ApproveChangeRequestAsync(
+        int changeRequestId,
+        UI_Admin.Models.Manager.Contract.ApproveContractChangeRequestViewModel model,
+        CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/contracts/change-requests/{changeRequestId}/approve";
+        var payload = new
+        {
+            reviewComment = string.IsNullOrWhiteSpace(model.ReviewComment) ? null : model.ReviewComment.Trim(),
+            items = model.Items.Select(i => new
+            {
+                fieldName = i.FieldName.Trim(),
+                finalValue = i.FinalValue.Trim()
+            }).ToList()
+        };
+
+        using var response = await client.PostAsJsonAsync(url, payload, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
+    public async Task RejectChangeRequestAsync(
+        int changeRequestId,
+        string reason,
+        CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/contracts/change-requests/{changeRequestId}/reject";
+        var payload = new
+        {
+            reason = reason.Trim()
+        };
+
+        using var response = await client.PostAsJsonAsync(url, payload, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
+    private class PagedApiResponse<T>
+    {
+        public List<T> Items { get; set; } = [];
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)

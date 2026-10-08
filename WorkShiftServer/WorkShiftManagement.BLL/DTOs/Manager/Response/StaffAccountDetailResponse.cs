@@ -15,6 +15,8 @@ public class StaffAccountDetailResponse
     public string AvatarUrl { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
+    public int? EmployeeTypeId { get; set; }
+    public string? EmployeeTypeName { get; set; }
     public int BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
     public string BranchCode { get; set; } = string.Empty;

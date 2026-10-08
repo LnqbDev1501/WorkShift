@@ -42,8 +42,8 @@
                             </span>
                             break;
                         case "CANCELLED":
-                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Cancelled
                             </span>
                             break;
                         case "REJECTED":
@@ -68,6 +68,16 @@
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
+            <a href="#contract-history-section"
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl shadow-sm transition-all">
+                <span class="material-symbols-outlined text-[18px] text-indigo-600">manage_history</span>
+                <span>Lịch sử hợp đồng</span>
+                @if (Model.History?.TotalItems > 0)
+                {
+                    <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 font-bold">@Model.History.TotalItems</span>
+                }
+            </a>
+
             @if (isDraft)
             {
                 <a asp-action="PreviewPdf" asp-route-id="@Model.ContractId" target="_blank"
@@ -110,13 +120,56 @@
     </div>
 
     <!-- Cancellation / Rejection Banner -->
-    @if (statusUpper == "CANCELLED" && !string.IsNullOrWhiteSpace(Model.TerminationReason))
+    @if (statusUpper == "CANCELLED")
     {
-        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-            <span class="material-symbols-outlined text-amber-600 text-[22px] mt-0.5 shrink-0">cancel</span>
-            <div>
-                <p class="font-bold text-amber-800 text-sm">Contract has been cancelled</p>
-                <p class="text-amber-700 text-xs mt-1">Reason: @Model.TerminationReason</p>
+        var isAutoCancel = string.Equals(Model.CancellationReason, "NOT_ACCEPTED_BY_START_DATE", StringComparison.OrdinalIgnoreCase);
+        <div class="p-5 rounded-2xl bg-rose-50/80 border border-rose-200 shadow-sm flex items-start gap-4">
+            <div class="p-2.5 bg-rose-100 text-rose-700 rounded-xl shrink-0 mt-0.5">
+                <span class="material-symbols-outlined text-[24px]">event_busy</span>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center gap-2 flex-wrap mb-2">
+                    <h3 class="font-bold text-rose-900 text-sm">Hợp đồng đã bị hủy</h3>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-300">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>CANCELLED
+                    </span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+                    <div>
+                        <span class="text-rose-600/80 font-medium block">Lý do hủy:</span>
+                        <span class="font-semibold text-rose-900">
+                            @if (isAutoCancel)
+                            {
+                                <span>NOT_ACCEPTED_BY_START_DATE (Hệ thống tự hủy do Staff không chấp nhận đúng hạn)</span>
+                            }
+                            else
+                            {
+                                @(string.IsNullOrWhiteSpace(Model.CancellationReason) ? "Quản lý chủ động hủy bản nháp" : Model.CancellationReason)
+                            }
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-rose-600/80 font-medium block">Thời điểm hủy:</span>
+                        <span class="font-semibold text-rose-900 tabular-nums">
+                            @(Model.CancelledAt.HasValue ? Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm:ss") : "—")
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-rose-600/80 font-medium block">Người thực hiện:</span>
+                        <span class="font-semibold text-rose-900">
+                            @if (isAutoCancel || !Model.CancelledBy.HasValue)
+                            {
+                                <span class="inline-flex items-center gap-1 font-semibold text-slate-800">
+                                    <span class="material-symbols-outlined text-[14px]">smart_toy</span> Hệ thống
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="font-mono">@Model.CancelledBy.Value</span>
+                            }
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
     }
@@ -128,6 +181,44 @@
                 <p class="font-bold text-rose-800 text-sm">Contract has been rejected</p>
                 <p class="text-rose-700 text-xs mt-1">Reason: @Model.ManagerRejectionComment</p>
             </div>
+        </div>
+    }
+
+    @if (statusUpper == "PENDING_MANAGER_APPROVAL" || Model.OpenChangeRequestId.HasValue)
+    {
+        <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="p-2.5 bg-amber-100 text-amber-700 rounded-xl shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[24px]">pending_actions</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-amber-900 text-sm">Yêu cầu thay đổi hợp đồng đang chờ duyệt</h3>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-800">
+                            PENDING_MANAGER_APPROVAL
+                        </span>
+                    </div>
+                    <p class="text-xs text-amber-700 mt-1">
+                        Nhân viên đã gửi đề xuất điều chỉnh điều khoản hợp đồng này. Vui lòng xem xét, so sánh giá trị và chốt phương án trước khi duyệt.
+                    </p>
+                </div>
+            </div>
+            @if (Model.OpenChangeRequestId.HasValue)
+            {
+                <a asp-action="ChangeRequestDetails" asp-route-id="@Model.OpenChangeRequestId.Value"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">rule</span>
+                    <span>Xem & Xử lý yêu cầu</span>
+                </a>
+            }
+            else
+            {
+                <a asp-action="ChangeRequests" asp-route-status="SUBMITTED"
+                   class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0">
+                    <span class="material-symbols-outlined text-[18px]">rule</span>
+                    <span>Mở danh sách yêu cầu</span>
+                </a>
+            }
         </div>
     }
 
@@ -236,32 +327,401 @@
                 </div>
             </div>
 
-            <!-- Card: Audit Timestamps -->
+            <!-- Card: Audit Lifecycle -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
                     <span class="material-symbols-outlined text-indigo-600 text-[20px]">history</span>
-                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Audit History</h2>
+                    <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Contract Lifecycle</h2>
                 </div>
-                <div class="p-6 flex flex-col gap-3 text-xs text-slate-600">
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500">Created At:</span>
-                        <span class="font-medium text-slate-800">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-500">Last Updated:</span>
-                        <span class="font-medium text-slate-800">@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</span>
-                    </div>
-                    <div class="flex items-center justify-between border-t border-slate-100 pt-2.5">
-                        <span class="text-slate-500">Create Manager:</span>
-                        <span class="font-semibold text-slate-800">
-                            @(string.IsNullOrWhiteSpace(Model.CreatedByManagerName) ? Model.CreatedBy.ToString()[..8] + "…" : Model.CreatedByManagerName)
-                        </span>
-                    </div>
+                <div class="p-6">
+                    <ol class="relative border-l border-slate-200 ml-2.5 space-y-3.5">
+                        <!-- Created -->
+                        <li class="ml-4">
+                            <div class="absolute w-2.5 h-2.5 rounded-full bg-indigo-500 -left-[5px] mt-1"></div>
+                            <p class="text-xs font-semibold text-slate-900">Created</p>
+                            <p class="text-[11px] text-slate-500 tabular-nums">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="text-[11px] text-slate-400 font-mono">
+                                by @(string.IsNullOrWhiteSpace(Model.CreatedByManagerName) ? Model.CreatedBy.ToString()[..8] + "…" : Model.CreatedByManagerName)
+                            </p>
+                        </li>
+
+                        <!-- Sent to Staff -->
+                        @if (Model.SentToStaffAt.HasValue)
+                        {
+                            <li class="ml-4">
+                                <div class="absolute w-2.5 h-2.5 rounded-full bg-blue-500 -left-[5px] mt-1"></div>
+                                <p class="text-xs font-semibold text-slate-900">Sent to Staff</p>
+                                <p class="text-[11px] text-slate-500 tabular-nums">@Model.SentToStaffAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                            </li>
+                        }
+
+                        <!-- Staff Accepted -->
+                        @if (Model.StaffAcceptedAt.HasValue)
+                        {
+                            <li class="ml-4">
+                                <div class="absolute w-2.5 h-2.5 rounded-full bg-emerald-500 -left-[5px] mt-1"></div>
+                                <p class="text-xs font-semibold text-emerald-700">Staff Accepted</p>
+                                <p class="text-[11px] text-slate-500 tabular-nums">@Model.StaffAcceptedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                            </li>
+                        }
+
+                        <!-- Rejected -->
+                        @if (statusUpper == "REJECTED" && !string.IsNullOrWhiteSpace(Model.ManagerRejectionComment))
+                        {
+                            <li class="ml-4">
+                                <div class="absolute w-2.5 h-2.5 rounded-full bg-rose-500 -left-[5px] mt-1"></div>
+                                <p class="text-xs font-semibold text-rose-700">Rejected</p>
+                                <p class="text-[11px] text-rose-600 mt-0.5 italic">"@Model.ManagerRejectionComment"</p>
+                            </li>
+                        }
+
+                        <!-- Cancelled -->
+                        @if (Model.CancelledAt.HasValue || statusUpper == "CANCELLED")
+                        {
+                            <li class="ml-4">
+                                <div class="absolute w-2.5 h-2.5 rounded-full bg-rose-500 -left-[5px] mt-1"></div>
+                                <p class="text-xs font-semibold text-rose-700">Cancelled</p>
+                                @if (Model.CancelledAt.HasValue)
+                                {
+                                    <p class="text-[11px] text-slate-500 tabular-nums">@Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                }
+                                <p class="text-[11px] text-slate-400 font-mono">
+                                    by @(Model.CancelledBy.HasValue ? Model.CancelledBy.Value.ToString()[..8] + "…" : "Hệ thống")
+                                </p>
+                                @if (!string.IsNullOrWhiteSpace(Model.CancellationReason))
+                                {
+                                    <p class="text-[11px] text-rose-600 mt-0.5 italic">"@Model.CancellationReason"</p>
+                                }
+                            </li>
+                        }
+
+                        <!-- Terminated -->
+                        @if (Model.TerminatedAt.HasValue || statusUpper == "TERMINATED")
+                        {
+                            <li class="ml-4">
+                                <div class="absolute w-2.5 h-2.5 rounded-full bg-slate-500 -left-[5px] mt-1"></div>
+                                <p class="text-xs font-semibold text-slate-700">Terminated</p>
+                                @if (Model.TerminatedAt.HasValue)
+                                {
+                                    <p class="text-[11px] text-slate-500 tabular-nums">@Model.TerminatedAt.Value.ToString("dd/MM/yyyy HH:mm")</p>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(Model.TerminationReason))
+                                {
+                                    <p class="text-[11px] text-slate-500 italic mt-0.5">"@Model.TerminationReason"</p>
+                                }
+                            </li>
+                        }
+
+                        <!-- Last Updated -->
+                        <li class="ml-4">
+                            <div class="absolute w-2.5 h-2.5 rounded-full bg-slate-400 -left-[5px] mt-1"></div>
+                            <p class="text-xs font-semibold text-slate-700">Last Updated</p>
+                            <p class="text-[11px] text-slate-500 tabular-nums">@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+                        </li>
+                    </ol>
                 </div>
             </div>
 
         </div>
 
+    </div>
+
+    <!-- Complete Contract Audit History Section -->
+    <div id="contract-history-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <span class="material-symbols-outlined text-[24px]">manage_history</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Lịch sử hợp đồng (Audit Timeline)</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Theo dõi chi tiết các sự kiện, phê duyệt và thay đổi theo thứ tự thời gian trong chi nhánh.</p>
+                </div>
+            </div>
+            @if (Model.History?.TotalItems > 0)
+            {
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 self-start sm:self-auto">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-600"></span>
+                    @Model.History.TotalItems sự kiện
+                </span>
+            }
+        </div>
+
+        <div class="p-6">
+            @if (Model.HistoryLoadFailed)
+            {
+                <div class="py-10 text-center flex flex-col items-center justify-center text-rose-600 bg-rose-50/50 rounded-xl border border-rose-200/60 p-6">
+                    <span class="material-symbols-outlined text-[48px] text-rose-500 mb-2">error_outline</span>
+                    <p class="text-sm font-semibold text-rose-900">Không thể tải lịch sử hợp đồng</p>
+                    <p class="text-xs text-rose-700 mt-1">@(Model.HistoryErrorMessage ?? "Đã xảy ra lỗi khi kết nối tới dịch vụ lịch sử hợp đồng.")</p>
+                    <a asp-action="Details"
+                       asp-route-id="@Model.ContractId"
+                       asp-fragment="contract-history-section"
+                       class="mt-4 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold transition-all inline-flex items-center gap-1.5 shadow-sm">
+                        <span class="material-symbols-outlined text-[16px]">refresh</span>
+                        <span>Thử lại</span>
+                    </a>
+                </div>
+            }
+            else if (Model.History?.Items != null && Model.History.Items.Count > 0)
+            {
+                <div class="relative border-l-2 border-slate-200 ml-4 space-y-6">
+                    @foreach (var entry in Model.History.Items)
+                    {
+                        var isSystem = entry.ActorRole == "SYSTEM" || entry.ActorId == null || string.Equals(entry.ActorName, "Hệ thống", StringComparison.OrdinalIgnoreCase);
+                        var isManager = string.Equals(entry.ActorRole, "MANAGER", StringComparison.OrdinalIgnoreCase);
+                        var isStaff = string.Equals(entry.ActorRole, "STAFF", StringComparison.OrdinalIgnoreCase);
+                        var isAutoCancel = string.Equals(entry.Action, "AUTO_CANCEL_CONTRACT", StringComparison.OrdinalIgnoreCase);
+
+                        <div class="relative pl-6">
+                            <!-- Bullet Icon -->
+                            <div class="absolute -left-[17px] top-1 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center shadow-sm @(isAutoCancel ? "bg-rose-500 text-white" : isSystem ? "bg-slate-700 text-white" : isManager ? "bg-indigo-600 text-white" : "bg-teal-600 text-white")">
+                                <span class="material-symbols-outlined text-[16px]">
+                                    @(isAutoCancel ? "event_busy" : isSystem ? "smart_toy" : isManager ? "badge" : "person")
+                                </span>
+                            </div>
+
+                            <!-- Event Card -->
+                            <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition-colors shadow-sm">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-100">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <h3 class="text-sm font-bold text-slate-900">@entry.ActionTitle</h3>
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-slate-100 text-slate-700">@entry.Action</span>
+
+                                        <!-- Actor Badge -->
+                                        @if (isSystem)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+                                                <span class="material-symbols-outlined text-[14px]">smart_toy</span> Hệ thống
+                                            </span>
+                                        }
+                                        else if (isManager)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                <span class="material-symbols-outlined text-[14px]">badge</span> Quản lý: @entry.ActorName
+                                            </span>
+                                        }
+                                        else if (isStaff)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200">
+                                                <span class="material-symbols-outlined text-[14px]">person</span> Nhân viên: @entry.ActorName
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-50 text-slate-600 border border-slate-200">
+                                                @entry.ActorRole: @entry.ActorName
+                                            </span>
+                                        }
+                                    </div>
+                                    <span class="text-xs text-slate-500 tabular-nums font-medium shrink-0">
+                                        @entry.Timestamp.ToString("dd/MM/yyyy HH:mm:ss")
+                                    </span>
+                                </div>
+
+                                <!-- AUTO_CANCEL_CONTRACT Callout -->
+                                @if (isAutoCancel)
+                                {
+                                    <div class="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-start gap-2.5">
+                                        <span class="material-symbols-outlined text-rose-600 text-[18px] shrink-0 mt-0.5">warning</span>
+                                        <div>
+                                            <p class="font-bold text-rose-900">Hệ thống tự động hủy hợp đồng do Staff không chấp nhận đúng hạn:</p>
+                                            <p class="text-rose-700 mt-0.5">
+                                                Hợp đồng đã quá hạn chấp nhận (vượt quá ngày bắt đầu làm việc) mà nhân viên chưa xác nhận.
+                                                Trạng thái chuyển sang <strong class="font-mono text-rose-900">CANCELLED</strong> với lý do <strong class="font-mono text-rose-900">NOT_ACCEPTED_BY_START_DATE</strong> (không nhầm với TERMINATED).
+                                            </p>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Status Transition -->
+                                @if (!string.IsNullOrWhiteSpace(entry.FromStatus) || !string.IsNullOrWhiteSpace(entry.ToStatus))
+                                {
+                                    <div class="mt-3 flex items-center gap-2 text-xs">
+                                        <span class="text-slate-500 font-medium">Trạng thái:</span>
+                                        @if (!string.IsNullOrWhiteSpace(entry.FromStatus))
+                                        {
+                                            <span class="px-2 py-0.5 rounded font-mono bg-slate-100 text-slate-700">@entry.FromStatus</span>
+                                            <span class="material-symbols-outlined text-[16px] text-slate-400">arrow_forward</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(entry.ToStatus))
+                                        {
+                                            var toUpper = entry.ToStatus.ToUpperInvariant();
+                                            var toClass = toUpper switch
+                                            {
+                                                "ACTIVE" => "bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold",
+                                                "CANCELLED" => "bg-rose-50 text-rose-700 border border-rose-200 font-semibold",
+                                                "TERMINATED" => "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
+                                                "PENDING_STAFF" => "bg-purple-50 text-purple-700 border border-purple-200",
+                                                "REJECTED" => "bg-rose-50 text-rose-700 border border-rose-200",
+                                                _ => "bg-slate-100 text-slate-700 font-mono"
+                                            };
+                                            <span class="px-2 py-0.5 rounded font-mono @toClass">@entry.ToStatus</span>
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Reason & Notes -->
+                                @if (!string.IsNullOrWhiteSpace(entry.Reason))
+                                {
+                                    <div class="mt-2.5 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-2">
+                                        <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">info</span>
+                                        <div>
+                                            <span class="font-semibold">Lý do:</span> @entry.Reason
+                                            @if (entry.Reason == "NOT_ACCEPTED_BY_START_DATE")
+                                            {
+                                                <span class="text-amber-800 font-medium"> (Staff không chấp nhận hợp đồng đúng hạn trước/trong ngày bắt đầu làm việc)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(entry.Note))
+                                {
+                                    <div class="mt-2 text-xs text-slate-500 italic">
+                                        Ghi chú: @entry.Note
+                                    </div>
+                                }
+
+                                <!-- Changed Fields Table (for UPDATE_DRAFT) -->
+                                @if (entry.ChangedFields != null && entry.ChangedFields.Count > 0)
+                                {
+                                    <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                                        <table class="w-full text-left text-xs">
+                                            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                                <tr>
+                                                    <th class="py-1.5 px-3">Trường thay đổi</th>
+                                                    <th class="py-1.5 px-3">Giá trị cũ</th>
+                                                    <th class="py-1.5 px-3">Giá trị mới</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                @foreach (var field in entry.ChangedFields)
+                                                {
+                                                    <tr>
+                                                        <td class="py-1.5 px-3 font-medium text-slate-800">@field.FieldName</td>
+                                                        <td class="py-1.5 px-3 text-slate-500">@(field.OldValue ?? "—")</td>
+                                                        <td class="py-1.5 px-3 font-semibold text-indigo-600">@(field.NewValue ?? "—")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+
+                                <!-- Change Request Items -->
+                                @if (entry.ChangeRequestItems != null && entry.ChangeRequestItems.Count > 0)
+                                {
+                                    <div class="mt-3 overflow-x-auto rounded-lg border border-slate-200">
+                                        <table class="w-full text-left text-xs">
+                                            <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                                <tr>
+                                                    <th class="py-1.5 px-3">Nội dung yêu cầu</th>
+                                                    <th class="py-1.5 px-3">Giá trị ban đầu</th>
+                                                    <th class="py-1.5 px-3">Giá trị đề xuất</th>
+                                                    <th class="py-1.5 px-3">Lý do</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-100">
+                                                @foreach (var crItem in entry.ChangeRequestItems)
+                                                {
+                                                    <tr>
+                                                        <td class="py-1.5 px-3 font-medium text-slate-800">@crItem.FieldName</td>
+                                                        <td class="py-1.5 px-3 text-slate-500">@(crItem.OriginalValue ?? "—")</td>
+                                                        <td class="py-1.5 px-3 font-semibold text-indigo-600">@crItem.ProposedValue</td>
+                                                        <td class="py-1.5 px-3 text-slate-500 italic">@(crItem.Reason ?? "—")</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- History Pagination -->
+                @if (Model.History != null && Model.History.TotalPages > 1)
+                {
+                    var currentHistoryPage = Model.History.PageNumber;
+                    var totalHistoryPages = Model.History.TotalPages;
+                    var historyPageSize = Model.History.PageSize;
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                        <div class="text-slate-500">
+                            Trang <span class="font-semibold text-slate-800">@currentHistoryPage</span> trên <span class="font-semibold text-slate-800">@totalHistoryPages</span> (Tổng cộng @Model.History.TotalItems sự kiện)
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            @if (currentHistoryPage > 1)
+                            {
+                                <a asp-action="Details"
+                                   asp-route-id="@Model.ContractId"
+                                   asp-route-historyPage="@(currentHistoryPage - 1)"
+                                   asp-route-historyPageSize="@historyPageSize"
+                                   asp-fragment="contract-history-section"
+                                   class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                                    <span>Trước</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <button type="button" disabled class="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 font-medium cursor-not-allowed flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                                    <span>Trước</span>
+                                </button>
+                            }
+
+                            @for (var p = Math.Max(1, currentHistoryPage - 2); p <= Math.Min(totalHistoryPages, currentHistoryPage + 2); p++)
+                            {
+                                var isCur = p == currentHistoryPage;
+                                if (isCur)
+                                {
+                                    <span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold">@p</span>
+                                }
+                                else
+                                {
+                                    <a asp-action="Details"
+                                       asp-route-id="@Model.ContractId"
+                                       asp-route-historyPage="@p"
+                                       asp-route-historyPageSize="@historyPageSize"
+                                       asp-fragment="contract-history-section"
+                                       class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors">@p</a>
+                                }
+                            }
+
+                            @if (currentHistoryPage < totalHistoryPages)
+                            {
+                                <a asp-action="Details"
+                                   asp-route-id="@Model.ContractId"
+                                   asp-route-historyPage="@(currentHistoryPage + 1)"
+                                   asp-route-historyPageSize="@historyPageSize"
+                                   asp-fragment="contract-history-section"
+                                   class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium transition-colors flex items-center gap-1">
+                                    <span>Sau</span>
+                                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                                </a>
+                            }
+                            else
+                            {
+                                <button type="button" disabled class="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-400 font-medium cursor-not-allowed flex items-center gap-1">
+                                    <span>Sau</span>
+                                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="py-10 text-center flex flex-col items-center justify-center text-slate-400">
+                    <span class="material-symbols-outlined text-[48px] text-slate-300 mb-2">history_toggle_off</span>
+                    <p class="text-sm font-semibold text-slate-700">Chưa có lịch sử sự kiện nào được ghi nhận cho hợp đồng này.</p>
+                    <p class="text-xs text-slate-500 mt-1">Các thao tác gửi, duyệt, thay đổi hoặc xử lý tự động sẽ được ghi nhận tại đây.</p>
+                </div>
+            }
+        </div>
     </div>
 
 </div>

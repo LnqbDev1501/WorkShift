@@ -1,0 +1,45 @@
+@model UI_Admin.Models.Manager.ManagerShiftDetailViewModel
+@using System.Globalization
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{
+    ViewData["Title"] = "Shift Details";
+    var shift = Model.Shift;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    @if (shift is not null) { <a class="ms-back" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@shift.ScheduleWeekId">← Back to weekly schedule</a> }
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFT #@Model.Id</span><h1>@(shift?.ShiftName ?? "Shift Details")</h1><p>Review shift requirements and manage employee assignments.</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id">Refresh</a></header>
+    @if (TempData["ShiftSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    @if (TempData["ShiftError"] is string error) { <div class="ad-error" role="alert">@error</div> }
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (shift is not null)
+    {
+        @if (Model.CanEdit) { <div class="ms-action-row"><a class="ms-secondary" asp-action="Edit" asp-route-id="@shift.ShiftId">Edit shift</a><a class="ms-delete-link" asp-action="Delete" asp-route-id="@shift.ShiftId">Delete shift</a></div> }
+        <section class="ad-card ms-week-overview"><div><span class="ad-eyebrow">SCHEDULE #@shift.ScheduleWeekId</span><h2>@S.Vietnam(shift.ScheduledStartAt).ToString("HH:mm") <span class="sh-time-divider">–</span> @S.Vietnam(shift.ScheduledEndAt).ToString("HH:mm")</h2><p>@S.Vietnam(shift.ScheduledStartAt).ToString("dddd, dd MMM yyyy", CultureInfo.InvariantCulture) @if (S.Vietnam(shift.ScheduledStartAt).Date != S.Vietnam(shift.ScheduledEndAt).Date) { <span>→ @S.Vietnam(shift.ScheduledEndAt).ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</span> } · @shift.BreakMinutes min break · UTC+7</p></div><span class="ad-badge @S.Tone(shift.Status)">@S.Label(shift.Status)</span></section>
+        <div class="sh-detail-grid"><section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Staffing Requirements</h2><span>@shift.AssignedEmployees / @shift.RequiredEmployees slots</span></div><div class="ms-requirements"><ul>@foreach (var requirement in shift.EmployeeRequirements) { <li><span>@requirement.EmployeeTypeName</span><span class="@(requirement.IsFulfilled ? "ms-filled" : "ms-open")">@requirement.AssignedCount / @requirement.RequiredCount <small>@(requirement.IsFulfilled ? "Filled" : $"{requirement.RemainingCount} open")</small></span></li> }</ul>@if (shift.EmployeeRequirements.Count == 0) { <p>No employee requirements.</p> }</div>@if (!string.IsNullOrWhiteSpace(shift.Note)) { <div class="ms-note"><strong>Shift note</strong><p>@shift.Note</p></div> }</section>
+        <section class="ad-card ad-panel"><div class="sh-assign-heading"><span class="material-symbols-outlined" aria-hidden="true">person_add</span><div><span class="ms-section-kicker">TEAM MANAGEMENT</span><h2 class="sh-panel-title">Assign Employee</h2></div></div>
+            @if (Model.CanAssign && shift.RemainingSlots > 0)
+            {
+                var candidates = Model.Options.Staff.Where(staff => shift.EmployeeRequirements.Any(r => r.EmployeeTypeId == staff.EmployeeTypeId && r.RemainingCount > 0) && !shift.Staff.Any(a => a.UserId == staff.UserId && a.Status != "CANCELLED")).ToList();
+                @if (candidates.Count > 0)
+                {
+                    <form asp-action="Assign" asp-route-id="@shift.ShiftId" method="post" class="sh-assign-form"><label for="userId">Branch employee</label><select id="userId" name="userId" required><option value="">Select an employee</option>@foreach (var staff in candidates) { <option value="@staff.UserId">@staff.FullName · @staff.EmployeeTypeName · @staff.UserId.ToString()[..8]</option> }</select><p>Availability, leave, and working time limits are checked when assigning.</p><button class="ms-primary" type="submit">Assign employee</button></form>
+                }
+                else { <p>No matching active employees available for the remaining employee types.</p> }
+            }
+            else { <p>@(shift.RemainingSlots == 0 ? "No remaining slots in this shift." : "Assignments can be changed before the shift starts, when the shift is scheduled and registration is open or closed.")</p> }
+        </section></div>
+        <section class="ad-card ad-recent"><div class="ad-panel-heading"><div><h2>Employee Assignments</h2><p>Active assignments and cancelled assignment history.</p></div></div><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Shift employee assignments"><table><thead><tr><th>Employee</th><th>Source</th><th>Assigned At · UTC+7</th><th>Status</th><th>Action</th></tr></thead><tbody>
+            @if (shift.Staff.Count == 0) { <tr><td colspan="5" class="ad-empty">No employees assigned yet.</td></tr> }
+            @foreach (var staff in shift.Staff)
+            {
+                <tr><td><div class="sh-employee-cell"><span class="sh-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(staff.FullName) ? "?" : staff.FullName.Trim()[..1].ToUpperInvariant())</span><div><strong>@staff.FullName</strong><small>Assignment #@staff.AssignmentId</small></div></div></td><td>@S.Label(staff.AssignmentSource)</td><td>@S.Time(staff.AssignedAt)</td><td><span class="ad-badge @S.Tone(staff.Status)">@S.Label(staff.Status)</span></td><td>@if (Model.CanAssign && staff.Status == "ASSIGNED") { <a class="ms-delete-link" asp-action="CancelAssignment" asp-route-id="@shift.ShiftId" asp-route-assignmentId="@staff.AssignmentId">Cancel assignment</a> } else { <span>—</span> }</td></tr>
+            }
+        </tbody></table></div></section>
+        <div class="sh-audit">Created: @S.Time(shift.CreatedAt) · Updated: @S.Time(shift.UpdatedAt) · UTC+7</div>
+    }
+</div>

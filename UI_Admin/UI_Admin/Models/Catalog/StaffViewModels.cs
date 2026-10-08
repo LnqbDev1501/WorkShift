@@ -39,6 +39,7 @@ public class StaffAccountDetailViewModel
     public string AvatarUrl { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
+    public string? EmployeeTypeName { get; set; }
     public int BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
     public string BranchCode { get; set; } = string.Empty;
@@ -81,6 +82,17 @@ public class CreateStaffAccountViewModel
     public IFormFile? ImageFile { get; set; }
 
     public List<CategoryOptionViewModel> Categories { get; set; } = [];
+
+    [Required(ErrorMessage = "Employee type is required.")]
+    public int? EmployeeTypeId { get; set; }
+
+    public List<EmployeeTypeOptionViewModel> EmployeeTypes { get; set; } = [];
+}
+
+public class EmployeeTypeOptionViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 public class EditStaffAccountViewModel

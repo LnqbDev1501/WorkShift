@@ -60,6 +60,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         return await _context.Users
             .Include(u => u.Role)
             .Include(u => u.Branch)
+            .Include(u => u.EmployeeType)
             .FirstOrDefaultAsync(u =>
                 u.UserId == staffId &&
                 u.BranchId == managerBranchId &&

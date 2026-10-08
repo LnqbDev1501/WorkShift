@@ -1,0 +1,25 @@
+@model UI_Admin.Models.Manager.ManagerScheduleEditViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{
+    var editing = Model.Id.HasValue;
+    ViewData["Title"] = editing ? "Update Weekly Schedule" : "Create Weekly Schedule";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page">
+    <a class="ms-back" asp-action="Index">← Back to weekly schedules</a>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>@ViewData["Title"]</h1><p>@(editing ? $"Update dates for draft schedule #{Model.Id}." : "Plan a new schedule week for your assigned branch.")</p></div><span class="ad-badge muted">Draft</span></header>
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.CanSave)
+    {
+        <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" class="ad-card ms-edit-form">
+            <div class="ms-form-section-title"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span><div><h2>Schedule settings</h2><p>Set the week and registration window.</p></div></div><div asp-validation-summary="All" class="ms-validation" role="alert"></div>
+            <div class="ms-form-field"><label asp-for="WeekStartDate"></label><input asp-for="WeekStartDate" type="date" readonly="@Model.LockStartDate" aria-describedby="week-help" required /><span asp-validation-for="WeekStartDate" class="ms-field-error"></span><p id="week-help">@(Model.LockStartDate ? "The start date is locked because this schedule already contains shifts." : "Choose a Monday in the future. The week ends on the following Sunday.")</p></div>
+            <div class="ms-form-field"><label asp-for="RegistrationDeadline">Registration deadline · UTC+7</label><input asp-for="RegistrationDeadline" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" aria-describedby="deadline-help" required /><span asp-validation-for="RegistrationDeadline" class="ms-field-error"></span><p id="deadline-help">Choose a future date and time before the schedule week's start date. Times use Vietnam time (UTC+7).</p></div>
+            <div class="ms-form-info"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>@(editing ? "Existing shifts are kept. Only the week start and registration deadline can be updated here." : "The schedule will be created as a draft. You can review it before registration opens.")</p></div>
+            <div class="ms-form-actions"><a class="ms-reset" asp-action="@(editing ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a><button type="submit" class="ms-primary">@(editing ? "Save changes" : "Create schedule")</button></div>
+        </form>
+    }
+</div>
