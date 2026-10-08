@@ -263,7 +263,11 @@ public class ManagerEmploymentContractService(
                     Content = $"Hợp đồng lao động {contract.ContractNumber} đã bị quản lý hủy trước ngày bắt đầu. Lý do: {reason}.",
                     CreatedBy = managerId,
                     TargetBranchId = contract.BranchId,
+                    TargetType = "Branch",
+                    Channels = new() { "InApp" },
+                    TargetRoles = new(),
                     CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     IsDeleted = false
                 };
                 await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
@@ -322,7 +326,11 @@ public class ManagerEmploymentContractService(
                 Content = $"Hợp đồng lao động {contract.ContractNumber} đã được quản lý chấm dứt có hiệu lực từ ngày {effectiveDate:yyyy-MM-dd}. Lý do: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
                 CreatedAt = nowUtc,
+                UpdatedAt = nowUtc,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
@@ -417,7 +425,11 @@ public class ManagerEmploymentContractService(
                 Content = $"Bạn đã nhận được Hợp đồng lao động mới (Mã HĐ: {contract.ContractNumber}). Vui lòng xem chi tiết và phản hồi.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
                 CreatedAt = now,
+                UpdatedAt = now,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
@@ -506,11 +518,127 @@ public class ManagerEmploymentContractService(
         if (cr.Status != "SUBMITTED")
             throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
 
-        await repository.ApproveChangeRequestAsync(changeRequestId, managerId, request.ReviewComment?.Trim(), cancellationToken);
+        var contract = cr.Contract;
+        var now = DateTime.UtcNow;
+
+        var managerItemOverrides = request.Items?
+            .Where(i => !string.IsNullOrWhiteSpace(i.FieldName) && !string.IsNullOrWhiteSpace(i.FinalValue))
+            .ToDictionary(i => i.FieldName.Trim().ToLowerInvariant(), i => i.FinalValue.Trim(), StringComparer.OrdinalIgnoreCase)
+            ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var appliedValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in cr.ContractChangeRequestItems)
+        {
+            var cleanField = item.FieldName.Trim().ToLowerInvariant();
+            var staffProposed = DeserializeJsonString(item.ProposedValue) ?? item.ProposedValue;
+            var finalValStr = managerItemOverrides.TryGetValue(cleanField, out var mgrVal) ? mgrVal : staffProposed;
+
+            switch (cleanField)
+            {
+                case "startdate":
+                    if (DateOnly.TryParse(finalValStr, out var newStartDate))
+                    {
+                        if (contract.EndDate.HasValue && contract.EndDate.Value <= newStartDate)
+                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                        contract.StartDate = newStartDate;
+                        appliedValues["StartDate"] = newStartDate.ToString("yyyy-MM-dd");
+                    }
+                    break;
+
+                case "enddate":
+                    if (string.IsNullOrWhiteSpace(finalValStr) || string.Equals(finalValStr, "null", StringComparison.OrdinalIgnoreCase))
+                    {
+                        contract.EndDate = null;
+                        appliedValues["EndDate"] = null;
+                    }
+                    else if (DateOnly.TryParse(finalValStr, out var newEndDate))
+                    {
+                        if (newEndDate <= contract.StartDate)
+                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                        contract.EndDate = newEndDate;
+                        appliedValues["EndDate"] = newEndDate.ToString("yyyy-MM-dd");
+                    }
+                    break;
+
+                case "hourlyrate":
+                    if (decimal.TryParse(finalValStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var newRate) ||
+                        decimal.TryParse(finalValStr, out newRate))
+                    {
+                        if (contract.Region?.RegionalMinimumWage != null && contract.Region.RegionalMinimumWage.Status == "ACTIVE")
+                        {
+                            var minWage = contract.Region.RegionalMinimumWage.MinimumHourlyRate;
+                            if (minWage > 0 && newRate < minWage)
+                                throw new ArgumentException($"Mức lương ({newRate:#,##0} đ/giờ) không được thấp hơn lương tối thiểu vùng ({minWage:#,##0} đ/giờ).");
+                        }
+                        contract.HourlyRate = newRate;
+                        appliedValues["HourlyRate"] = newRate;
+                    }
+                    break;
+
+                case "employeeposition" or "position":
+                    if (!string.IsNullOrWhiteSpace(finalValStr))
+                    {
+                        if (finalValStr.Length > 100)
+                            throw new ArgumentException("Chức danh / vị trí không được vượt quá 100 ký tự.");
+                        contract.EmployeePositionSnapshot = finalValStr.Trim();
+                        appliedValues["EmployeePosition"] = finalValStr.Trim();
+                    }
+                    break;
+
+                case "contractterms" or "terms":
+                    contract.ContractTerms = finalValStr.Trim();
+                    appliedValues["ContractTerms"] = finalValStr.Trim();
+                    break;
+            }
+        }
+
+        var templateVersion = string.IsNullOrWhiteSpace(contract.ContractTemplateVersion) ? "1.0" : IncrementVersion(contract.ContractTemplateVersion);
+
+        var oldPdfPath = contract.ContractFilePath;
+        var officialPdfBytes = _pdfGenerator.GeneratePdf(contract, isPreview: false);
+        string newPdfPublicId = oldPdfPath;
+
+        if (_cloudinaryService != null)
+        {
+            try
+            {
+                newPdfPublicId = await _cloudinaryService.UploadContractPdfAsync(contract.ContractNumber, officialPdfBytes);
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Tải lên file PDF hợp đồng mới thất bại: {ex.Message}", ex);
+            }
+        }
+
+        contract.ContractFilePath = newPdfPublicId;
+        contract.ContractTemplateVersion = templateVersion;
+        contract.PdfGeneratedAt = now;
+        contract.SentToStaffAt = now;
+        contract.StaffAcceptedAt = null;
+        contract.Status = "PENDING_STAFF";
+        contract.UpdatedAt = now;
+
+        var auditDetails = new
+        {
+            contractId = contract.ContractId,
+            changeRequestId = changeRequestId,
+            fromStatus = "PENDING_MANAGER_APPROVAL",
+            toStatus = "PENDING_STAFF",
+            reviewComment = request.ReviewComment?.Trim(),
+            contractTemplateVersion = templateVersion,
+            oldPdfPath = oldPdfPath,
+            newPdfPath = newPdfPublicId,
+            appliedFinalValues = appliedValues,
+            note = $"Quản lý đã duyệt yêu cầu thay đổi hợp đồng. Cập nhật phiên bản {templateVersion} và gửi cho nhân viên chấp thuận."
+        };
+
+        await repository.ApproveChangeRequestWithContractUpdateAsync(
+            changeRequestId, managerId, request.ReviewComment?.Trim(), contract, auditDetails, cancellationToken);
 
         cr.Status = "APPROVED";
         cr.ReviewedBy = managerId;
-        cr.ReviewedAt = DateTime.UtcNow;
+        cr.ReviewedAt = now;
         cr.ReviewComment = request.ReviewComment?.Trim();
 
         try
@@ -519,10 +647,14 @@ public class ManagerEmploymentContractService(
             {
                 NotificationType = "SYSTEM",
                 Title = "Yêu cầu thay đổi hợp đồng đã được phê duyệt",
-                Content = $"Yêu cầu thay đổi hợp đồng {cr.Contract.ContractNumber} đã được quản lý phê duyệt. Hợp đồng đang được điều chỉnh và sẽ gửi lại cho bạn.",
+                Content = $"Yêu cầu thay đổi hợp đồng {contract.ContractNumber} đã được quản lý phê duyệt. Hợp đồng phiên bản mới ({templateVersion}) đã được gửi cho bạn. Vui lòng xem xét và chấp thuận.",
                 CreatedBy = managerId,
-                TargetBranchId = cr.Contract.BranchId,
-                CreatedAt = DateTime.UtcNow,
+                TargetBranchId = contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
+                CreatedAt = now,
+                UpdatedAt = now,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
@@ -569,7 +701,11 @@ public class ManagerEmploymentContractService(
                 Content = $"Yêu cầu thay đổi hợp đồng {cr.Contract.ContractNumber} đã bị quản lý từ chối. Lý do: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = cr.Contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
                 CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
@@ -772,6 +908,14 @@ public class ManagerEmploymentContractService(
             ReviewedAt = cr.ReviewedAt,
             ReviewComment = cr.ReviewComment,
             CreatedAt = cr.CreatedAt,
+            ContractStatus = cr.Contract?.Status,
+            CurrentStartDate = cr.Contract?.StartDate,
+            CurrentEndDate = cr.Contract?.EndDate,
+            CurrentHourlyRate = cr.Contract?.HourlyRate,
+            CurrentEmployeePosition = cr.Contract?.EmployeePositionSnapshot,
+            CurrentContractTerms = cr.Contract?.ContractTerms,
+            BranchName = cr.Contract?.Branch?.BranchName ?? cr.Contract?.BranchNameSnapshot,
+            ContractTemplateVersion = cr.Contract?.ContractTemplateVersion,
             Items = cr.ContractChangeRequestItems.Select(i => new ContractChangeRequestItemDetailDto
             {
                 ChangeRequestItemId = i.ChangeRequestItemId,
