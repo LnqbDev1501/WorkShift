@@ -42,8 +42,15 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         CancellationToken cancellationToken = default)
     {
         var query = _context.EmployeeRequests.AsNoTracking()
+            .AsSplitQuery()
             .Include(r => r.Branch)
             .Include(r => r.ReviewedByNavigation)
+            .Include(r => r.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Assignment)
+                    .ThenInclude(a => a.Shift)
+            .Include(r => r.TimeAdjustmentRequestDetail)
+                .ThenInclude(tard => tard!.Assignment)
+                    .ThenInclude(a => a.Shift)
             .Where(r => r.UserId == staffId &&
                         (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"));
 

@@ -1,0 +1,350 @@
+@model UI_Admin.Models.Staff.Requests.StaffEmployeeRequestListViewModel
+@using UI_Admin.Helpers
+
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "My Requests";
+    var items = Model.Items;
+    var currentPage = Model.PageNumber;
+    var totalPages = Model.TotalPages;
+    var hasFilters = Model.HasActiveFilters;
+    var currentUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="p-6 max-w-[1440px] mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    STAFF REQUESTS
+                </span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">My Requests</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Track the history and review status of your leave requests, late arrivals, and early departures.</p>
+        </div>
+        <div class="flex items-center gap-2.5">
+            <a asp-controller="StaffEmployeeRequests" asp-action="Create" class="inline-flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Create New Request</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Error/Success Alerts -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage) || ViewBag.ErrorMessage is string err)
+    {
+        var msg = !string.IsNullOrEmpty(Model.ErrorMessage) ? Model.ErrorMessage : (string)ViewBag.ErrorMessage;
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-rose-600 text-[20px]">error</span>
+            <span>@msg</span>
+        </div>
+    }
+
+    <!-- Search & Filter Card -->
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <form method="get" asp-controller="StaffEmployeeRequests" asp-action="Index" class="flex flex-col gap-4">
+            <input type="hidden" name="pageNumber" value="1" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
+                <!-- Search Reason -->
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-gray-400">search</span>
+                    <input type="text"
+                           name="reason"
+                           value="@Model.Reason"
+                           placeholder="Search by reason..."
+                           class="w-full h-10 pl-10 pr-4 bg-gray-50 rounded-xl text-gray-800 placeholder:text-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 transition-all" />
+                </div>
+
+                <!-- Request Type -->
+                <div>
+                    <select name="requestType"
+                            class="w-full h-10 px-3 bg-gray-50 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 cursor-pointer transition-all">
+                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.RequestType) || Model.RequestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Request Types</option>
+                        <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave (LEAVE)</option>
+                        <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival (LATE_ARRIVAL)</option>
+                        <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave (EARLY_LEAVE)</option>
+                    </select>
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <select name="status"
+                            class="w-full h-10 px-3 bg-gray-50 rounded-xl text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200 cursor-pointer transition-all">
+                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.Status) || Model.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
+                        <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending (PENDING)</option>
+                        <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved (APPROVED)</option>
+                        <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected (REJECTED)</option>
+                        <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled (CANCELLED)</option>
+                    </select>
+                </div>
+
+                <!-- Action Filter -->
+                <div class="flex items-center gap-2">
+                    <button type="submit"
+                            class="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full shadow-sm">
+                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                        <span>Filter</span>
+                    </button>
+                    @if (hasFilters)
+                    {
+                        <a asp-controller="StaffEmployeeRequests" asp-action="Index"
+                           class="h-10 px-3 rounded-xl text-gray-500 hover:text-gray-800 hover:bg-gray-100 font-medium text-xs flex items-center justify-center gap-1 transition-colors shrink-0"
+                           title="Clear filters">
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                            <span>Clear</span>
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Date Range Filter Row -->
+            <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 text-xs">
+                <span class="text-gray-500 font-medium flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                    <span>Submission Date (VN Time):</span>
+                </span>
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-500">From:</label>
+                    <input type="date" name="fromDate" value="@Model.FromDate"
+                           class="h-8 px-2.5 bg-gray-50 rounded-lg text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200" />
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-gray-500">To:</label>
+                    <input type="date" name="toDate" value="@Model.ToDate"
+                           class="h-8 px-2.5 bg-gray-50 rounded-lg text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-200" />
+                </div>
+                <div class="ml-auto text-gray-400">
+                    Display Timezone: <strong class="text-gray-600">Vietnam (UTC+7)</strong>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-11 bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold">
+                        <th class="px-5 py-3">Request ID</th>
+                        <th class="px-5 py-3">Request Type</th>
+                        <th class="px-5 py-3">Shift / Applicable Date</th>
+                        <th class="px-5 py-3">Reason</th>
+                        <th class="px-5 py-3">Status</th>
+                        <th class="px-5 py-3">Submission Date</th>
+                        <th class="px-5 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-sm">
+                    @if (!items.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="px-6 py-16 text-center text-gray-400">
+                                <div class="flex flex-col items-center gap-2">
+                                    <span class="material-symbols-outlined text-[44px] text-gray-300">drafts</span>
+                                    <p class="text-sm">You have not submitted any requests.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var request in items)
+                        {
+                            var reqType = request.RequestType?.ToUpperInvariant() ?? "";
+                            var statusUpper = request.Status?.ToUpperInvariant() ?? "";
+                            var isPending = statusUpper == "PENDING";
+
+                            <tr class="hover:bg-gray-50/60 transition-colors">
+                                <!-- ID -->
+                                <td class="px-5 py-4 font-mono text-xs font-bold text-gray-900">#@request.RequestId</td>
+
+                                <!-- Request Type -->
+                                <td class="px-5 py-4">
+                                    @switch (reqType)
+                                    {
+                                        case "LEAVE":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Leave
+                                            </span>
+                                            break;
+                                        case "LATE_ARRIVAL":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Late Arrival
+                                            </span>
+                                            break;
+                                        case "EARLY_LEAVE":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>Early Leave
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                                @request.RequestType
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+
+                                <!-- Shift Summary -->
+                                <td class="px-5 py-4 min-w-[220px]">
+                                    @if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
+                                    {
+                                        var summary = request.ShiftSummary;
+                                        var shiftName = string.IsNullOrWhiteSpace(summary.PrimaryShiftName) ? "Shift" : summary.PrimaryShiftName;
+                                        var timeRange = DateTimeHelper.FormatShiftTimeRange(summary.PrimaryScheduledStartAt, summary.PrimaryScheduledEndAt);
+
+                                        if (reqType == "LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-semibold text-xs text-gray-900">@shiftName</span>
+                                                    @if (summary.TotalShifts > 1)
+                                                    {
+                                                        <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                                                            +@(summary.TotalShifts - 1) other shifts (Total @summary.TotalShifts shifts)
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <span class="text-xs text-gray-500 tabular-nums">@timeRange</span>
+                                            </div>
+                                        }
+                                        else if (reqType == "LATE_ARRIVAL")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-gray-900">@shiftName</div>
+                                                <div class="text-[11px] text-gray-500 tabular-nums">Original Shift: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-0.5 inline-block tabular-nums">
+                                                        Requested Arrival Time: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else if (reqType == "EARLY_LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-gray-900">@shiftName</div>
+                                                <div class="text-[11px] text-gray-500 tabular-nums">Original Shift: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 mt-0.5 inline-block tabular-nums">
+                                                        Requested Departure Time: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-gray-400 italic">No shift data</span>
+                                    }
+                                </td>
+
+                                <!-- Reason -->
+                                <td class="px-5 py-4 max-w-[200px]">
+                                    <span class="text-xs text-gray-600 line-clamp-2" title="@request.Reason">
+                                        @(string.IsNullOrWhiteSpace(request.Reason) ? "—" : request.Reason)
+                                    </span>
+                                </td>
+
+                                <!-- Status -->
+                                <td class="px-5 py-4">
+                                    @switch (statusUpper)
+                                    {
+                                        case "PENDING":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
+                                            </span>
+                                            break;
+                                        case "APPROVED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Approved
+                                            </span>
+                                            break;
+                                        case "REJECTED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
+                                            </span>
+                                            break;
+                                        case "CANCELLED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
+                                                @request.Status
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+
+                                <!-- Created At -->
+                                <td class="px-5 py-4 text-xs text-gray-700 tabular-nums">
+                                    @request.CreatedAt.ToVnDateTimeString()
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-5 py-4 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <a asp-controller="StaffEmployeeRequests" asp-action="Details"
+                                           asp-route-id="@request.RequestId"
+                                           asp-route-returnUrl="@currentUrl"
+                                           class="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-blue-600 hover:text-white text-gray-700 text-xs font-medium transition-colors"
+                                           title="View details">
+                                            Details
+                                        </a>
+
+                                        @if (isPending)
+                                        {
+                                            <form method="post" asp-controller="StaffEmployeeRequests" asp-action="Cancel" asp-route-id="@request.RequestId"
+                                                  onsubmit="return confirm('Are you sure you want to cancel this request?');"
+                                                  class="inline-block">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="returnUrl" value="@currentUrl" />
+                                                <button type="submit"
+                                                        class="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 text-xs font-medium transition-colors cursor-pointer"
+                                                        title="Cancel request">
+                                                    Cancel
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="flex items-center justify-center gap-2 pt-2">
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                <a asp-controller="StaffEmployeeRequests" asp-action="Index"
+                   asp-route-pageNumber="@p"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-reason="@Model.Reason"
+                   asp-route-requestType="@Model.RequestType"
+                   asp-route-status="@Model.Status"
+                   asp-route-fromDate="@Model.FromDate"
+                   asp-route-toDate="@Model.ToDate"
+                   class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold transition-colors @(p == currentPage ? "bg-blue-600 text-white shadow-sm" : "bg-gray-100 hover:bg-gray-200 text-gray-700")">
+                    @p
+                </a>
+            }
+        </div>
+    }
+
+</div>

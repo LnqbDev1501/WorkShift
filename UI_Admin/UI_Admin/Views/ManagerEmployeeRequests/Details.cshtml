@@ -1,0 +1,649 @@
+@model UI_Admin.Models.Manager.Requests.ManagerEmployeeRequestDetailViewModel
+@using UI_Admin.Helpers
+
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"Request Details #{Model.RequestId}";
+    var reqType = Model.RequestType?.ToUpperInvariant() ?? "";
+    var statusUpper = Model.Status?.ToUpperInvariant() ?? "";
+    var isPending = statusUpper == "PENDING";
+
+    var backUrl = !string.IsNullOrWhiteSpace(Model.ReturnUrl) && Url.IsLocalUrl(Model.ReturnUrl)
+        ? Model.ReturnUrl
+        : Url.Action("Index", "ManagerEmployeeRequests");
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+
+    <!-- Top Navigation Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div class="flex items-center gap-3">
+            <a href="@backUrl"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0 shadow-sm"
+               title="Back to request list">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <h1 class="text-display-md font-bold tracking-tight text-on-surface">Employee Request #@Model.RequestId</h1>
+
+                    <!-- Request Type Badge -->
+                    @switch (reqType)
+                    {
+                        case "LEAVE":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Leave
+                            </span>
+                            break;
+                        case "LATE_ARRIVAL":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Late Arrival
+                            </span>
+                            break;
+                        case "EARLY_LEAVE":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>Early Leave
+                            </span>
+                            break;
+                        default:
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                @(string.IsNullOrWhiteSpace(Model.RequestType) ? "No data" : Model.RequestType)
+                            </span>
+                            break;
+                    }
+
+                    <!-- Status Badge -->
+                    @switch (statusUpper)
+                    {
+                        case "PENDING":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
+                            </span>
+                            break;
+                        case "APPROVED":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Approved
+                            </span>
+                            break;
+                        case "REJECTED":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
+                            </span>
+                            break;
+                        case "CANCELLED":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
+                            </span>
+                            break;
+                        default:
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                @(string.IsNullOrWhiteSpace(Model.Status) ? "No data" : Model.Status)
+                            </span>
+                            break;
+                    }
+                </div>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary mt-1">
+                    <span>Submission Date: <strong class="text-on-surface">@Model.CreatedAt.ToVnDateTimeString()</strong> (VN Time UTC+7)</span>
+                    <span>&bull;</span>
+                    <span>Last updated: @Model.UpdatedAt.ToVnDateTimeString()</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons for PENDING request -->
+        @if (isPending)
+        {
+            <div class="flex items-center gap-3">
+                <button type="button"
+                        onclick="openApproveModal()"
+                        class="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    <span>Approve Request</span>
+                </button>
+                <button type="button"
+                        onclick="openRejectModal()"
+                        class="h-9 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">cancel</span>
+                    <span>Reject Request</span>
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Review Status Alert Banner -->
+    @if (statusUpper == "REJECTED")
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-rose-600 text-[24px] mt-0.5 shrink-0">cancel</span>
+            <div class="w-full">
+                <p class="font-semibold text-rose-800 text-sm">Request has been rejected</p>
+                <p class="text-rose-700 text-xs mt-1">
+                    Reviewed by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Manager" : Model.ReviewerFullName)</strong>
+                    @if (Model.ReviewedAt.HasValue)
+                    {
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString() (VN Time)</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                {
+                    <div class="mt-2 text-xs text-rose-900 bg-white/70 p-2.5 rounded-lg border border-rose-200">
+                        <strong>Rejection Reason:</strong> @Model.ReviewNote
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (statusUpper == "APPROVED")
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-emerald-600 text-[24px] mt-0.5 shrink-0">check_circle</span>
+            <div class="w-full">
+                <p class="font-semibold text-emerald-800 text-sm">Request has been approved</p>
+                <p class="text-emerald-700 text-xs mt-1">
+                    Approved by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Manager" : Model.ReviewerFullName)</strong>
+                    @if (Model.ReviewedAt.HasValue)
+                    {
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString() (VN Time)</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                {
+                    <div class="mt-2 text-xs text-emerald-900 bg-white/70 p-2.5 rounded-lg border border-emerald-200">
+                        <strong>Approval Note:</strong> @Model.ReviewNote
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (statusUpper == "CANCELLED")
+    {
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-slate-600 text-[24px] mt-0.5 shrink-0">cancel</span>
+            <div>
+                <p class="font-semibold text-slate-800 text-sm">Request was cancelled by employee</p>
+                <p class="text-slate-600 text-xs mt-0.5">The employee cancelled this request and it is no longer pending approval.</p>
+            </div>
+        </div>
+    }
+    else if (statusUpper == "PENDING")
+    {
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-amber-600 text-[24px] mt-0.5 shrink-0">hourglass_top</span>
+            <div>
+                <p class="font-semibold text-amber-800 text-sm">Pending your review</p>
+                <p class="text-amber-700 text-xs mt-0.5">Please review the work schedule and shift details, then use the Approve or Reject buttons above.</p>
+            </div>
+        </div>
+    }
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        <!-- LEFT COLUMN (2/3): Shift Assignments & Reason & Review Note -->
+        <div class="lg:col-span-2 flex flex-col gap-5">
+
+            <!-- Card 1: Shift Assignments Details -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center justify-between pb-4 mb-4 border-b border-surface-container-high/40">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px] text-primary">schedule</span>
+                        <h2 class="font-title-md text-base font-bold text-on-surface">Shift / Applicable Date</h2>
+                    </div>
+                    <span class="text-xs text-secondary font-medium bg-surface-container-low px-2.5 py-1 rounded-lg">Timezone: Vietnam (UTC+7)</span>
+                </div>
+
+                @if (reqType == "LEAVE")
+                {
+                    @if (Model.LeaveAssignments != null && Model.LeaveAssignments.Any())
+                    {
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead>
+                                    <tr class="h-10 bg-surface-container-low text-secondary text-xs uppercase tracking-wider font-semibold">
+                                        <th class="px-4 py-2">Shift ID</th>
+                                        <th class="px-4 py-2">Shift Name</th>
+                                        <th class="px-4 py-2">Shift Time (VN Time)</th>
+                                        <th class="px-4 py-2">Branch</th>
+                                        <th class="px-4 py-2">Assignment Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-surface-container-high/40">
+                                    @foreach (var shift in Model.LeaveAssignments)
+                                    {
+                                        <tr class="hover:bg-surface-container-low/40 transition-colors">
+                                            <td class="px-4 py-3 font-mono text-xs font-semibold text-on-surface">#@shift.ShiftId</td>
+                                            <td class="px-4 py-3">
+                                                <div class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(shift.ShiftName) ? "No data" : shift.ShiftName)</div>
+                                                @if (!string.IsNullOrWhiteSpace(shift.ShiftTemplateName))
+                                                {
+                                                    <div class="text-xs text-secondary">(@shift.ShiftTemplateName)</div>
+                                                }
+                                            </td>
+                                            <td class="px-4 py-3 font-medium text-on-surface">
+                                                @DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)
+                                            </td>
+                                            <td class="px-4 py-3 text-secondary">
+                                                @(string.IsNullOrWhiteSpace(shift.BranchName) ? Model.BranchName : shift.BranchName)
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                                                    @(string.IsNullOrWhiteSpace(shift.AssignmentStatus) ? "No data" : shift.AssignmentStatus)
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-secondary italic">No leave shift assignments available.</p>
+                    }
+                }
+                else if (reqType is "LATE_ARRIVAL" or "EARLY_LEAVE")
+                {
+                    @if (Model.TimeAdjustmentDetail != null)
+                    {
+                        var tard = Model.TimeAdjustmentDetail;
+                        var isLate = reqType == "LATE_ARRIVAL";
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Original Shift -->
+                            <div class="p-4 rounded-xl bg-surface-container-low/60 border border-surface-container-high/50 flex flex-col gap-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-secondary">Original Shift</span>
+                                <div class="text-base font-bold text-on-surface">@(string.IsNullOrWhiteSpace(tard.ShiftName) ? "No data" : tard.ShiftName)</div>
+                                @if (!string.IsNullOrWhiteSpace(tard.ShiftTemplateName))
+                                {
+                                    <div class="text-xs text-secondary -mt-1">Template: @tard.ShiftTemplateName</div>
+                                }
+                                <div class="flex items-center gap-2 text-sm text-secondary mt-1">
+                                    <span class="material-symbols-outlined text-[18px]">schedule</span>
+                                    <span>Time: <strong class="text-on-surface">@DateTimeHelper.FormatShiftTimeRange(tard.ScheduledStartAt, tard.ScheduledEndAt)</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-secondary mt-1">
+                                    <span>Assignment Status:</span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">@(string.IsNullOrWhiteSpace(tard.AssignmentStatus) ? "No data" : tard.AssignmentStatus)</span>
+                                </div>
+                                <div class="text-xs text-secondary mt-1 font-mono">
+                                    Assignment ID: #@tard.AssignmentId
+                                </div>
+                            </div>
+
+                            <!-- Proposed Time -->
+                            <div class="p-4 rounded-xl @(isLate ? "bg-amber-50/70 border-amber-200" : "bg-purple-50/70 border-purple-200") border flex flex-col gap-2">
+                                <span class="text-xs font-semibold uppercase tracking-wider @(isLate ? "text-amber-800" : "text-purple-800")">
+                                    @(isLate ? "Requested Arrival Time" : "Requested Departure Time")
+                                </span>
+                                <div class="text-2xl font-bold @(isLate ? "text-amber-900" : "text-purple-900") tabular-nums mt-1">
+                                    @tard.RequestedTime.ToVnTimeString()
+                                </div>
+                                <div class="text-xs @(isLate ? "text-amber-800" : "text-purple-800") mt-0.5">
+                                    Applicable Date: @tard.RequestedTime.ToVnDateString() (VN Time UTC+7)
+                                </div>
+                                <div class="mt-3 p-2.5 rounded-lg bg-white/80 border @(isLate ? "border-amber-200 text-amber-900" : "border-purple-200 text-purple-900") text-xs flex items-start gap-2">
+                                    <span class="material-symbols-outlined text-[16px] shrink-0 mt-0.5">info</span>
+                                    <span><strong>Note:</strong> This is the employee's requested time, not actual check-in/check-out time.</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-sm text-secondary italic">No time adjustment details available.</p>
+                    }
+                }
+            </div>
+
+            <!-- Card 2: Request Reason -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
+                    <span class="material-symbols-outlined text-[20px] text-primary">notes</span>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Request Reason</h2>
+                </div>
+                <div class="bg-surface-container-low rounded-xl p-4 text-on-surface text-sm leading-relaxed whitespace-pre-wrap">
+                    @(string.IsNullOrWhiteSpace(Model.Reason) ? "No reason provided." : Model.Reason)
+                </div>
+            </div>
+
+            <!-- Card 3: Manager Review Info -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
+                    <span class="material-symbols-outlined text-[20px] text-primary">verified_user</span>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Review Details</h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs text-secondary font-medium">Reviewed by:</span>
+                        <span class="font-semibold text-on-surface">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "No data" : Model.ReviewerFullName)</span>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs text-secondary font-medium">Review Time:</span>
+                        <span class="font-semibold text-on-surface tabular-nums">
+                            @(Model.ReviewedAt.HasValue ? Model.ReviewedAt.ToVnDateTimeString() + " (VN Time)" : "No data")
+                        </span>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                {
+                    <div class="mt-4 pt-3 border-t border-surface-container-high/40">
+                        <span class="text-xs text-secondary font-medium block mb-1">Reviewer Note:</span>
+                        <div class="bg-surface-container-low rounded-lg p-3 text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
+                            @Model.ReviewNote
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Card 4: Request Processing History -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-surface-container-high/40">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px] text-primary">history</span>
+                        <h2 class="font-title-md text-base font-bold text-on-surface">Request Processing History</h2>
+                    </div>
+                    <span class="text-xs text-secondary font-medium">Audit history for request #@Model.RequestId</span>
+                </div>
+
+                @if (Model.History != null && Model.History.Any())
+                {
+                    <div class="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container-high">
+                        @foreach (var log in Model.History)
+                        {
+                            var actionUpper = log.Action?.ToUpperInvariant() ?? "";
+                            string actionBadgeColor;
+                            string actionText;
+                            string actionIcon;
+
+                            switch (actionUpper)
+                            {
+                                case "CREATE":
+                                case "SUBMIT":
+                                    actionBadgeColor = "bg-blue-100 text-blue-800 border-blue-200";
+                                    actionText = "Created";
+                                    actionIcon = "add_circle";
+                                    break;
+                                case "APPROVE":
+                                    actionBadgeColor = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                                    actionText = "Approved";
+                                    actionIcon = "check_circle";
+                                    break;
+                                case "REJECT":
+                                    actionBadgeColor = "bg-rose-100 text-rose-800 border-rose-200";
+                                    actionText = "Rejected";
+                                    actionIcon = "cancel";
+                                    break;
+                                case "CANCEL":
+                                    actionBadgeColor = "bg-slate-100 text-slate-800 border-slate-200";
+                                    actionText = "Cancelled";
+                                    actionIcon = "block";
+                                    break;
+                                default:
+                                    actionBadgeColor = "bg-gray-100 text-gray-800 border-gray-200";
+                                    actionText = log.Action ?? "Unknown";
+                                    actionIcon = "info";
+                                    break;
+                            }
+
+                            <div class="relative">
+                                <!-- Dot on timeline line -->
+                                <div class="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-surface-container-lowest border-2 border-primary"></div>
+
+                                <div class="bg-surface-container-low rounded-xl p-4 flex flex-col gap-2">
+                                    <div class="flex flex-wrap items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border @actionBadgeColor">
+                                                <span class="material-symbols-outlined text-[14px]">@actionIcon</span>
+                                                <span>@actionText</span>
+                                            </span>
+                                            <span class="font-medium text-xs text-on-surface">
+                                                @(string.IsNullOrWhiteSpace(log.FullName) ? "System" : log.FullName)
+                                            </span>
+                                            @if (!string.IsNullOrWhiteSpace(log.RoleName))
+                                            {
+                                                <span class="text-[10px] text-secondary font-mono px-1.5 py-0.2 rounded bg-surface-container">@log.RoleName</span>
+                                            }
+                                        </div>
+                                        <span class="text-xs text-secondary tabular-nums">
+                                            @log.Timestamp.ToVnDateTimeString() (VN Time)
+                                        </span>
+                                    </div>
+
+                                    @if (!string.IsNullOrWhiteSpace(log.Note))
+                                    {
+                                        <div class="text-xs text-on-surface bg-surface-container-lowest p-2.5 rounded-lg border border-surface-container-high/60 mt-1 whitespace-pre-wrap">
+                                            <strong>Note:</strong> @log.Note
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-xs text-secondary italic">No processing history available for this request.</p>
+                }
+            </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN (1/3): Staff Profile & Applied Rule -->
+        <div class="flex flex-col gap-5">
+
+            <!-- Card: Staff Information -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center gap-2 pb-3 mb-4 border-b border-surface-container-high/40">
+                    <span class="material-symbols-outlined text-[20px] text-primary">person</span>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Employee Information</h2>
+                </div>
+
+                <div class="flex items-center gap-3.5 mb-4">
+                    @if (!string.IsNullOrWhiteSpace(Model.EmployeeAvatarUrl))
+                    {
+                        <img src="@Model.EmployeeAvatarUrl" alt="@Model.EmployeeFullName" class="w-12 h-12 rounded-full object-cover shrink-0 border border-surface-container-high" />
+                    }
+                    else
+                    {
+                        <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shrink-0 border border-primary/20">
+                            @(string.IsNullOrWhiteSpace(Model.EmployeeFullName) ? "U" : Model.EmployeeFullName.Trim()[0].ToString().ToUpper())
+                        </div>
+                    }
+                    <div class="flex flex-col min-w-0">
+                        <span class="font-bold text-on-surface text-base truncate">@(string.IsNullOrWhiteSpace(Model.EmployeeFullName) ? "No data" : Model.EmployeeFullName)</span>
+                        <span class="text-xs text-secondary truncate">Branch Staff</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3 text-sm pt-2 border-t border-surface-container-high/40">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-secondary">Email:</span>
+                        <span class="font-medium text-on-surface truncate max-w-[180px]" title="@Model.EmployeeEmail">@(string.IsNullOrWhiteSpace(Model.EmployeeEmail) ? "No data" : Model.EmployeeEmail)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-secondary">Phone:</span>
+                        <span class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(Model.EmployeePhone) ? "No data" : Model.EmployeePhone)</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-secondary">Branch:</span>
+                        <span class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(Model.BranchName) ? "No data" : $"{Model.BranchName} ({Model.BranchCode})")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Applied Request Limit Rule -->
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
+                <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
+                    <span class="material-symbols-outlined text-[20px] text-primary">rule</span>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Applied Request Rule</h2>
+                </div>
+
+                @if (Model.AppliedRule != null)
+                {
+                    var rule = Model.AppliedRule;
+                    <div class="flex flex-col gap-3 text-sm">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-secondary">Rule ID:</span>
+                            <span class="font-mono text-xs font-semibold text-on-surface">#@rule.RuleId</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-secondary">Applicable Request Type:</span>
+                            <span class="font-semibold text-on-surface">@rule.RequestType</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-secondary">Monthly Limit:</span>
+                            <span class="font-semibold text-on-surface">@rule.MaxRequestsPerMonth requests/month</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-xs text-secondary italic">No request limit rule applied for this request.</p>
+                }
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full shadow-2xl border border-surface-container-high p-6 flex flex-col gap-4 animate-scale-up">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[24px]">check_circle</span>
+            </div>
+            <div>
+                <h3 class="font-title-md text-lg font-bold text-on-surface">Confirm Approval</h3>
+                <p class="text-xs text-secondary">Approve employee request #@Model.RequestId</p>
+            </div>
+        </div>
+
+        <form id="approveForm" method="post" asp-controller="ManagerEmployeeRequests" asp-action="Approve" asp-route-id="@Model.RequestId" class="flex flex-col gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+
+            <div>
+                <label for="approveReviewNote" class="text-xs font-medium text-on-surface mb-1 block">
+                    Approval Note <span class="text-secondary font-normal">(optional)</span>:
+                </label>
+                <textarea id="approveReviewNote"
+                          name="reviewNote"
+                          rows="3"
+                          maxlength="500"
+                          placeholder="Enter approval note or comment if any..."
+                          class="w-full p-3 bg-surface-container-low rounded-xl text-on-surface text-sm border border-surface-container-high focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all resize-none"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button"
+                        onclick="closeApproveModal()"
+                        class="px-4 py-2 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        id="btnSubmitApprove"
+                        class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">check</span>
+                    <span>Confirm Approval</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full shadow-2xl border border-surface-container-high p-6 flex flex-col gap-4 animate-scale-up">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[24px]">cancel</span>
+            </div>
+            <div>
+                <h3 class="font-title-md text-lg font-bold text-on-surface">Confirm Rejection</h3>
+                <p class="text-xs text-secondary">Reject employee request #@Model.RequestId</p>
+            </div>
+        </div>
+
+        <form id="rejectForm" method="post" asp-controller="ManagerEmployeeRequests" asp-action="Reject" asp-route-id="@Model.RequestId" class="flex flex-col gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+
+            <div>
+                <label for="rejectReviewNote" class="text-xs font-medium text-on-surface mb-1 block">
+                    Rejection Reason <span class="text-rose-600 font-bold">*</span>:
+                </label>
+                <textarea id="rejectReviewNote"
+                          name="reviewNote"
+                          rows="3"
+                          maxlength="500"
+                          required
+                          placeholder="Please specify the reason for rejecting this request..."
+                          class="w-full p-3 bg-surface-container-low rounded-xl text-on-surface text-sm border border-surface-container-high focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"></textarea>
+                <span id="rejectNoteError" class="text-xs text-rose-600 hidden mt-1">Rejection reason cannot be empty.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button"
+                        onclick="closeRejectModal()"
+                        class="px-4 py-2 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        id="btnSubmitReject"
+                        class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                    <span>Confirm Rejection</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openApproveModal() {
+            document.getElementById('approveModal').classList.remove('hidden');
+        }
+
+        function closeApproveModal() {
+            document.getElementById('approveModal').classList.add('hidden');
+        }
+
+        function openRejectModal() {
+            document.getElementById('rejectModal').classList.remove('hidden');
+            document.getElementById('rejectNoteError').classList.add('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+        }
+
+        // Form submit handling with button disabling to prevent double submission
+        document.getElementById('approveForm')?.addEventListener('submit', function (e) {
+            var btn = document.getElementById('btnSubmitApprove');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+            }
+        });
+
+        document.getElementById('rejectForm')?.addEventListener('submit', function (e) {
+            var note = document.getElementById('rejectReviewNote').value.trim();
+            if (!note) {
+                e.preventDefault();
+                document.getElementById('rejectNoteError').classList.remove('hidden');
+                return false;
+            }
+
+            var btn = document.getElementById('btnSubmitReject');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+            }
+        });
+    </script>
+}

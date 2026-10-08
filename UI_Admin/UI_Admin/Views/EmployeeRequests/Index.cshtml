@@ -17,7 +17,7 @@
     <!-- Header Section -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
         <div class="flex flex-col">
-            <div class="list-eyebrow text-xs uppercase tracking-wider text-secondary font-semibold">Operations & HR</div>
+            <div class="list-eyebrow text-xs uppercase tracking-wider text-secondary font-semibold">Operations &amp; HR</div>
             <div class="flex items-center gap-unit-3 mt-0.5">
                 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight font-bold">Employee Requests</h1>
             </div>
@@ -149,9 +149,10 @@
                         <th class="px-unit-4 py-2.5" scope="col">Employee</th>
                         <th class="px-unit-4 py-2.5" scope="col">Branch</th>
                         <th class="px-unit-4 py-2.5" scope="col">Type</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Shift / Applicable Date</th>
                         <th class="px-unit-4 py-2.5" scope="col">Reason</th>
                         <th class="px-unit-4 py-2.5" scope="col">Status</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Submitted (VN)</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Submitted Date</th>
                         <th class="px-unit-4 py-2.5 text-right" scope="col">Action</th>
                     </tr>
                 </thead>
@@ -159,7 +160,7 @@
                     @if (!items.Any())
                     {
                         <tr>
-                            <td colspan="8" class="px-6 py-16 text-center">
+                            <td colspan="9" class="px-6 py-16 text-center">
                                 <div class="flex flex-col items-center gap-3 text-secondary">
                                     <span class="material-symbols-outlined text-[48px] text-secondary/40">assignment_late</span>
                                     <p class="font-body-md text-sm">No employee requests match your filters.</p>
@@ -240,6 +241,80 @@
                                     }
                                 </td>
 
+                                <!-- Shift / Applicable Date -->
+                                <td class="px-unit-4 py-3.5 min-w-[230px]">
+                                    @if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
+                                    {
+                                        var summary = request.ShiftSummary;
+                                        var shiftName = string.IsNullOrWhiteSpace(summary.PrimaryShiftName) ? "Shift" : summary.PrimaryShiftName;
+                                        var timeRange = DateTimeHelper.FormatShiftTimeRange(summary.PrimaryScheduledStartAt, summary.PrimaryScheduledEndAt);
+
+                                        if (reqType == "LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-1">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-semibold text-xs text-on-surface">@shiftName</span>
+                                                    @if (summary.TotalShifts > 1)
+                                                    {
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800" title="Request covers @summary.TotalShifts shifts">
+                                                            +@(summary.TotalShifts - 1) other shift(s) (Total @summary.TotalShifts)
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <span class="text-xs text-secondary tabular-nums">@timeRange</span>
+                                                @if (summary.TotalShifts > 1)
+                                                {
+                                                    <a asp-controller="EmployeeRequests" asp-action="Details"
+                                                       asp-route-id="@request.RequestId"
+                                                       asp-route-returnUrl="@currentUrl"
+                                                       class="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-0.5 mt-0.5">
+                                                        <span>View all shifts</span>
+                                                        <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+                                                    </a>
+                                                }
+                                            </div>
+                                        }
+                                        else if (reqType == "LATE_ARRIVAL")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-on-surface">@shiftName</div>
+                                                <div class="text-[11px] text-secondary tabular-nums">Original: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1 inline-block tabular-nums">
+                                                        Proposed Arrival: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-[11px] text-secondary italic">Proposed Arrival: No data</div>
+                                                }
+                                            </div>
+                                        }
+                                        else if (reqType == "EARLY_LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-on-surface">@shiftName</div>
+                                                <div class="text-[11px] text-secondary tabular-nums">Original: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 mt-1 inline-block tabular-nums">
+                                                        Proposed Departure: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-[11px] text-secondary italic">Proposed Departure: No data</div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-secondary italic">No shift data</span>
+                                    }
+                                </td>
+
                                 <!-- Reason (Razor encoded) -->
                                 <td class="px-unit-4 py-3.5 max-w-[200px]">
                                     <span class="text-sm text-on-surface-variant line-clamp-2" title="@request.Reason">
@@ -281,10 +356,7 @@
 
                                 <!-- CreatedAt in VN Time -->
                                 <td class="px-unit-4 py-3.5">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm text-on-surface tabular-nums font-medium">@request.CreatedAt.ToVnDateTimeString()</span>
-                                        <span class="text-[11px] text-secondary tabular-nums">@request.CreatedAt.ToString("HH:mm:ss 'UTC'")</span>
-                                    </div>
+                                    <span class="text-sm text-on-surface tabular-nums font-medium">@request.CreatedAt.ToVnDateTimeString()</span>
                                 </td>
 
                                 <!-- Action -->
@@ -303,6 +375,9 @@
                     }
                 </tbody>
             </table>
+        </div>
+        <div class="px-4 py-2.5 bg-surface-container-low/50 border-t border-surface-container-high/40 text-[11px] text-secondary">
+            * Note: All shift and submission times are converted and displayed in Vietnam Time (UTC+7). Overnight shifts clearly state start and end dates.
         </div>
     </div>
 
