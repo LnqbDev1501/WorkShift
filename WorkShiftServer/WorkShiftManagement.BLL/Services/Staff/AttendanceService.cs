@@ -130,7 +130,6 @@ public class AttendanceService : IAttendanceService
                 ShiftName = shift.ShiftNameSnapshot,
                 ScheduledStartAt = shift.ScheduledStartAt,
                 ScheduledEndAt = shift.ScheduledEndAt,
-                BreakMinutes = shift.BreakMinutesSnapshot,
                 BranchId = shift.ScheduleWeek.BranchId,
                 BranchName = shift.ScheduleWeek.Branch.BranchName,
                 BranchAddress = shift.ScheduleWeek.Branch.Address,
@@ -457,7 +456,6 @@ public class AttendanceService : IAttendanceService
                 EmployeeFullNameSnapshot = user.FullName,
                 ShiftStartAtSnapshot = shift.ScheduledStartAt,
                 ShiftEndAtSnapshot = shift.ScheduledEndAt,
-                BreakMinutesSnapshot = shift.BreakMinutesSnapshot,
                 CheckInTime = nowUtc,
                 CheckInLatitude = request.Latitude,
                 CheckInLongitude = request.Longitude,
@@ -506,7 +504,6 @@ public class AttendanceService : IAttendanceService
 
             await _attendanceRepo.CreateAttendanceAsync(attendance, cancellationToken);
 
-            assignment.Status = "IN_PROGRESS";
             assignment.UpdatedAt = nowUtc;
 
             await _attendanceRepo.SaveChangesAsync(cancellationToken);
@@ -549,8 +546,31 @@ public class AttendanceService : IAttendanceService
         var user = await _attendanceRepo.GetUserByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("Your user account is not active or was not found.");
 
-        var contract = await _attendanceRepo.GetActiveContractByUserIdAsync(userId, cancellationToken)
-            ?? throw new InvalidOperationException("You do not have an active employment contract.");
+        var contract = await _attendanceRepo.GetLatestContractByUserIdAsync(userId, cancellationToken)
+            ?? throw new InvalidOperationException("You do not have an employment contract registered in the system.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+
+        if (string.Equals(contract.Status, "TERMINATED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Your employment contract has been terminated. Please contact HR / Management.");
+        }
+
+        if (string.Equals(contract.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase) ||
+            (contract.EndDate.HasValue && contract.EndDate.Value < today))
+        {
+            throw new InvalidOperationException("Your employment contract has expired. Please contact HR / Management.");
+        }
+
+        if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Your employment contract is not active (Status: {contract.Status}). Please contact HR / Management.");
+        }
+
+        if (contract.StartDate > today)
+        {
+            throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
+        }
 
         var faceProfile = await _attendanceRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");

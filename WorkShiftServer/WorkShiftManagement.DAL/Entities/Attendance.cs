@@ -23,8 +23,6 @@ public partial class Attendance
 
     public DateTime ShiftEndAtSnapshot { get; set; }
 
-    public int BreakMinutesSnapshot { get; set; }
-
     public DateTime? CheckInTime { get; set; }
 
     public decimal? CheckInLatitude { get; set; }

@@ -17,8 +17,6 @@ public partial class WorkShift
 
     public DateTime ScheduledEndAt { get; set; }
 
-    public int BreakMinutesSnapshot { get; set; }
-
     public int RequiredEmployees { get; set; }
 
     public string? Note { get; set; }

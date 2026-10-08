@@ -41,6 +41,16 @@ public class AttendanceRepo : IAttendanceRepo
                 cancellationToken);
     }
 
+    public Task<EmploymentContract?> GetLatestContractByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return _context.EmploymentContracts
+            .AsNoTracking()
+            .Include(c => c.Branch)
+            .Where(c => c.UserId == userId)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public Task<FaceProfile?> GetActiveFaceProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return _context.FaceProfiles

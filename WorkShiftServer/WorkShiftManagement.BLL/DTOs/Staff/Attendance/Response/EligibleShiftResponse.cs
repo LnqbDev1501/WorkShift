@@ -9,7 +9,6 @@ public sealed class EligibleShiftResponse
     public string ShiftName { get; set; } = null!;
     public DateTime ScheduledStartAt { get; set; }
     public DateTime ScheduledEndAt { get; set; }
-    public int BreakMinutes { get; set; }
 
     public int BranchId { get; set; }
     public string BranchName { get; set; } = null!;
