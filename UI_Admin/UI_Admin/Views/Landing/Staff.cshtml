@@ -1,4 +1,109 @@
 @{
-    ViewData["Title"] = "Staff";
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Không gian Nhân viên";
 }
-<div class="container py-5"><h1>Staff workspace</h1><p>You are signed in as staff.</p></div>
+
+<div class="p-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    STAFF WORKSPACE
+                </span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Xin chào, @User.Identity?.Name</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Không gian làm việc và quản lý thông tin hợp đồng của bạn.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a asp-controller="StaffContracts" asp-action="Index" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors">
+                <span class="material-symbols-outlined text-[16px]">description</span>
+                Xem hợp đồng của tôi
+            </a>
+        </div>
+    </div>
+
+    <!-- Shift Eligibility Guidance -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 flex items-start gap-3.5 text-blue-900 shadow-sm">
+        <span class="material-symbols-outlined text-blue-600 text-[26px] flex-shrink-0 mt-0.5">info</span>
+        <div class="space-y-1">
+            <h2 class="text-sm font-bold text-blue-950">Quy định về Ca làm việc &amp; Hợp đồng</h2>
+            <p class="text-xs text-blue-800 leading-relaxed">
+                Để đăng ký và nhận ca làm việc tại chi nhánh, hợp đồng lao động của bạn phải ở trạng thái <strong>ACTIVE</strong> (hoặc <strong>SCHEDULED</strong> đã được bạn chấp thuận). Nếu hợp đồng đang chờ chấp thuận, vui lòng kiểm tra và xác nhận ngay để không ảnh hưởng đến lịch làm việc.
+            </p>
+        </div>
+    </div>
+
+    <!-- Quick Operations Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <!-- Contracts Card -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-200 transition-all flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[22px]">description</span>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Hợp đồng lao động</h3>
+                        <span class="text-xs text-gray-400">My Employment Contracts</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed mb-4">
+                    Xem danh sách hợp đồng cá nhân, thông tin mức lương theo giờ, ngày hiệu lực, xem/tải PDF và xác nhận chấp thuận hợp đồng.
+                </p>
+            </div>
+            <div class="pt-3 border-t border-gray-50">
+                <a asp-controller="StaffContracts" asp-action="Index" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                    <span>Mở danh sách hợp đồng</span> &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Notifications Card -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-purple-200 transition-all flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[22px]">notifications</span>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Thông báo cá nhân</h3>
+                        <span class="text-xs text-gray-400">Notifications</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed mb-4">
+                    Nhận các thông báo từ Quản lý chi nhánh về hợp đồng mới, phê duyệt yêu cầu thay đổi và lịch làm việc.
+                </p>
+            </div>
+            <div class="pt-3 border-t border-gray-50">
+                <a asp-controller="Notifications" asp-action="Personal" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors">
+                    <span>Xem thông báo</span> &rarr;
+                </a>
+            </div>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:border-emerald-200 transition-all flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[22px]">person</span>
+                    </span>
+                    <div>
+                        <h3 class="text-base font-bold text-gray-900">Tài khoản &amp; Hồ sơ</h3>
+                        <span class="text-xs text-gray-400">Account Profile</span>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed mb-4">
+                    Xem thông tin tài khoản đang đăng nhập, đổi mật khẩu và quản lý bảo mật cá nhân.
+                </p>
+            </div>
+            <div class="pt-3 border-t border-gray-50">
+                <a asp-controller="Auth" asp-action="Profile" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors">
+                    <span>Hồ sơ cá nhân</span> &rarr;
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

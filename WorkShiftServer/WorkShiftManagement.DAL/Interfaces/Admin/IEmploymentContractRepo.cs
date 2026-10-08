@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Models.Admin;
 
 namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -54,7 +55,7 @@ public interface IEmploymentContractRepo
     Task StaffAcceptContractAsync(int contractId, Guid staffUserId, string newStatus, DateTime acceptedAtUtc, CancellationToken cancellationToken = default);
     Task<int> ActivateDueScheduledContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<int> ExpireDueContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
-    Task<int> CancelOverduePendingContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
+    Task<CancelOverdueContractsResult> CancelOverduePendingContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<bool> HasActiveContractForShiftRegistrationAsync(Guid staffUserId, int branchId, DateTime scheduledStartAtUtc, DateTime scheduledEndAtUtc, CancellationToken cancellationToken = default);
 
     // Contract Change Requests
@@ -64,6 +65,7 @@ public interface IEmploymentContractRepo
     Task<(IReadOnlyList<ContractChangeRequest> Items, int TotalCount)> GetManagerChangeRequestsPagedAsync(int branchId, string? status, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task CreateChangeRequestAsync(ContractChangeRequest changeRequest, string? previousContractStatus, CancellationToken cancellationToken = default);
     Task ApproveChangeRequestAsync(int changeRequestId, Guid managerId, string? comment, CancellationToken cancellationToken = default);
+    Task ApproveChangeRequestWithContractUpdateAsync(int changeRequestId, Guid managerId, string? comment, EmploymentContract contract, object? auditDetails, CancellationToken cancellationToken = default);
     Task RejectChangeRequestAsync(int changeRequestId, Guid managerId, string reason, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<EmploymentContract>> GetStaffContractsInBranchAsync(Guid staffUserId, int branchId, CancellationToken cancellationToken = default);

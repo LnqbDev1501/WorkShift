@@ -1,0 +1,560 @@
+@model UI_Admin.Models.Staff.Contract.StaffContractDetailViewModel
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = $"Chi tiết hợp đồng {Model.ContractNumber}";
+}
+
+<div class="p-6 max-w-[1200px] mx-auto space-y-6">
+    <!-- Breadcrumb & Back button -->
+    <div class="flex items-center justify-between">
+        <a asp-action="Index" class="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 bg-white hover:bg-gray-50 border border-gray-200 px-3.5 py-2 rounded-xl shadow-sm transition-colors">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            Danh sách hợp đồng của tôi
+        </a>
+        <div class="flex items-center gap-2">
+            @if (Model.HasPdf)
+            {
+                <a asp-action="Pdf" asp-route-id="@Model.ContractId" target="_blank"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-sm transition-colors">
+                    <span class="material-symbols-outlined text-[16px] text-red-600">picture_as_pdf</span>
+                    Xem PDF
+                </a>
+                <a asp-action="DownloadPdf" asp-route-id="@Model.ContractId"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl shadow-sm transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">download</span>
+                    Tải PDF
+                </a>
+            }
+            @if (Model.CanAccept)
+            {
+                <button type="button" onclick="openAcceptModal()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">task_alt</span>
+                    Chấp thuận hợp đồng
+                </button>
+            }
+            else if (Model.Status == "PENDING_STAFF")
+            {
+                <button type="button" disabled
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-400 bg-gray-100 border border-gray-200 rounded-xl cursor-not-allowed"
+                        title="@Model.CannotAcceptReason">
+                    <span class="material-symbols-outlined text-[16px]">block</span>
+                    Không thể chấp thuận
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Status Banners -->
+    @if (Model.Status == "PENDING_STAFF")
+    {
+        if (Model.CanAccept)
+        {
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-amber-600 text-[26px] flex-shrink-0 mt-0.5">pending_actions</span>
+                    <div>
+                        <h2 class="text-sm font-bold text-amber-950">Hợp đồng đang chờ bạn chấp thuận</h2>
+                        <p class="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                            Quản lý chi nhánh đã gửi bản hợp đồng này tới bạn. Vui lòng xem kỹ thông tin mức lương, ngày bắt đầu và điều khoản trước khi xác nhận chấp thuận.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" onclick="openAcceptModal()"
+                        class="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors whitespace-nowrap">
+                    Xác nhận chấp thuận ngay
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-start gap-3 text-rose-900 shadow-sm">
+                <span class="material-symbols-outlined text-rose-600 text-[24px] flex-shrink-0 mt-0.5">warning</span>
+                <div>
+                    <h2 class="text-sm font-bold text-rose-950">Hợp đồng không thể chấp thuận</h2>
+                    <p class="text-xs text-rose-800 mt-0.5">
+                        @(string.IsNullOrEmpty(Model.CannotAcceptReason) ? "Đã quá thời hạn chấp thuận hợp đồng theo quy định (ngày bắt đầu đã qua)." : Model.CannotAcceptReason)
+                    </p>
+                </div>
+            </div>
+        }
+    }
+    else if (Model.Status == "CANCELLED")
+    {
+        var isAutoCancelled = !string.IsNullOrEmpty(Model.CancellationReason) &&
+                              (Model.CancellationReason.Contains("NOT_ACCEPTED_BY_START_DATE", StringComparison.OrdinalIgnoreCase) ||
+                               Model.CancellationReason.Contains("Tự động hủy", StringComparison.OrdinalIgnoreCase));
+        <div class="bg-rose-50 border border-rose-200 rounded-2xl p-5 space-y-2 shadow-sm">
+            <div class="flex items-center gap-2 text-rose-900 font-bold text-sm">
+                <span class="material-symbols-outlined text-rose-600 text-[22px]">cancel</span>
+                <span>Hợp đồng đã bị hủy bỏ (CANCELLED)</span>
+                @if (isAutoCancelled)
+                {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-200 text-rose-800">Tự động hủy bởi Hệ thống</span>
+                }
+                else
+                {
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-200 text-rose-800">Quản lý hủy</span>
+                }
+            </div>
+            <p class="text-xs text-rose-800 leading-relaxed">
+                <strong>Lý do hủy:</strong> @(string.IsNullOrEmpty(Model.CancellationReason) ? "Không có lý do chi tiết." : Model.CancellationReason)
+            </p>
+            @if (Model.CancelledAt.HasValue)
+            {
+                <p class="text-[11px] text-rose-600">
+                    Thời điểm hủy: @Model.CancelledAt.Value.ToString("dd/MM/yyyy HH:mm") (Asia/Ho_Chi_Minh)
+                </p>
+            }
+            @if (isAutoCancelled)
+            {
+                <p class="text-[11px] text-rose-700 italic border-t border-rose-200/60 pt-2 mt-2">
+                    * Lưu ý: Hợp đồng này tự hủy do nhân viên không xác nhận chấp thuận trước ngày bắt đầu có hiệu lực.
+                </p>
+            }
+        </div>
+    }
+    else if (Model.Status == "TERMINATED")
+    {
+        <div class="bg-slate-100 border border-slate-300 rounded-2xl p-5 space-y-2 shadow-sm">
+            <div class="flex items-center gap-2 text-slate-900 font-bold text-sm">
+                <span class="material-symbols-outlined text-slate-600 text-[22px]">gavel</span>
+                <span>Hợp đồng đã chấm dứt (TERMINATED)</span>
+            </div>
+            <p class="text-xs text-slate-700 leading-relaxed">
+                <strong>Lý do chấm dứt:</strong> @(string.IsNullOrEmpty(Model.TerminationReason) ? "Không có lý do chi tiết." : Model.TerminationReason)
+            </p>
+            @if (Model.TerminationEffectiveAt.HasValue)
+            {
+                <p class="text-[11px] text-slate-500">
+                    Thời điểm chấm dứt hiệu lực: @Model.TerminationEffectiveAt.Value.ToString("dd/MM/yyyy HH:mm")
+                </p>
+            }
+        </div>
+    }
+    else if (Model.Status == "SCHEDULED")
+    {
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3 text-blue-900 shadow-sm">
+            <span class="material-symbols-outlined text-blue-600 text-[24px] flex-shrink-0 mt-0.5">event_available</span>
+            <div>
+                <h2 class="text-sm font-bold text-blue-950">Hợp đồng đã được bạn chấp thuận (SCHEDULED)</h2>
+                <p class="text-xs text-blue-800 mt-0.5 leading-relaxed">
+                    Bạn đã chấp thuận hợp đồng vào ngày <strong>@(Model.StaffAcceptedAt?.ToString("dd/MM/yyyy HH:mm"))</strong>. Hợp đồng sẽ tự động chuyển sang trạng thái <strong>ACTIVE</strong> vào ngày bắt đầu: <strong>@Model.StartDate.ToString("dd/MM/yyyy")</strong>.
+                </p>
+            </div>
+        </div>
+    }
+    else if (Model.Status == "ACTIVE")
+    {
+        <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3 text-emerald-900 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-[24px] flex-shrink-0 mt-0.5">verified</span>
+            <div>
+                <h2 class="text-sm font-bold text-emerald-950">Hợp đồng đang có hiệu lực (ACTIVE)</h2>
+                <p class="text-xs text-emerald-800 mt-0.5">
+                    Hồ sơ lao động của bạn đã đầy đủ tính pháp lý. Bạn đủ điều kiện để tham gia nhận ca và làm việc tại chi nhánh.
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Shift Eligibility Banner -->
+    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center justify-between text-xs text-gray-700">
+        <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-gray-500 text-[18px]">calendar_month</span>
+            <span>
+                @(Model.Status == "ACTIVE" || Model.Status == "SCHEDULED"
+                    ? "Tình trạng ca làm việc: Bạn đủ điều kiện đăng ký ca làm việc thuộc thời hạn hợp đồng này."
+                    : "Tình trạng ca làm việc: Hợp đồng chưa có hiệu lực. Bạn chưa thể đăng ký ca làm việc tại chi nhánh.")
+            </span>
+        </div>
+        <span class="font-bold @(Model.Status == "ACTIVE" ? "text-emerald-700" : Model.Status == "SCHEDULED" ? "text-blue-700" : "text-amber-700")">
+            @(Model.Status == "ACTIVE" ? "Đủ điều kiện ca" : Model.Status == "SCHEDULED" ? "Sắp đủ điều kiện" : "Chưa đủ điều kiện ca")
+        </span>
+    </div>
+
+    <!-- Main Contract Details Card -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+        <!-- Title & Badges -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-5">
+            <div>
+                <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">HỢP ĐỒNG LAO ĐỘNG</span>
+                <h1 class="text-2xl font-bold text-gray-900 mt-0.5">@Model.ContractNumber</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                @switch (Model.Status)
+                {
+                    case "PENDING_STAFF":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>Chờ bạn chấp thuận
+                        </span>
+                        break;
+                    case "SCHEDULED":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>Đã chấp thuận (Scheduled)
+                        </span>
+                        break;
+                    case "ACTIVE":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>Đang hiệu lực (Active)
+                        </span>
+                        break;
+                    case "CANCELLED":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                            <span class="w-2 h-2 rounded-full bg-rose-500"></span>Đã hủy (Cancelled)
+                        </span>
+                        break;
+                    case "TERMINATED":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-300">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>Đã chấm dứt (Terminated)
+                        </span>
+                        break;
+                    case "EXPIRED":
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                            <span class="w-2 h-2 rounded-full bg-gray-400"></span>Hết hạn (Expired)
+                        </span>
+                        break;
+                    default:
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                            @Model.Status
+                        </span>
+                        break;
+                }
+            </div>
+        </div>
+
+        <!-- Information Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Salary & Position -->
+            <div class="bg-gray-50/75 p-5 rounded-xl border border-gray-100 space-y-3">
+                <div class="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <span class="material-symbols-outlined text-[18px] text-emerald-600">payments</span>
+                    Chức danh &amp; Mức lương
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Vị trí / Chức danh:</div>
+                    <div class="text-sm font-bold text-gray-900 mt-0.5">@Model.EmployeePosition</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Mức lương theo giờ:</div>
+                    <div class="text-xl font-black text-emerald-700 mt-0.5">
+                        @Model.HourlyRate.ToString("#,##0") <span class="text-xs font-semibold text-gray-500">VNĐ/giờ</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Branch & Location -->
+            <div class="bg-gray-50/75 p-5 rounded-xl border border-gray-100 space-y-3">
+                <div class="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <span class="material-symbols-outlined text-[18px] text-blue-600">store</span>
+                    Địa điểm làm việc
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Chi nhánh:</div>
+                    <div class="text-sm font-bold text-gray-900 mt-0.5">@Model.BranchName</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Địa chỉ:</div>
+                    <div class="text-xs text-gray-700 mt-0.5 leading-relaxed">@Model.BranchAddress</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Khu vực:</div>
+                    <div class="text-xs font-medium text-gray-800 mt-0.5">@Model.RegionName</div>
+                </div>
+            </div>
+
+            <!-- Dates & Lifecycle -->
+            <div class="bg-gray-50/75 p-5 rounded-xl border border-gray-100 space-y-3">
+                <div class="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    <span class="material-symbols-outlined text-[18px] text-indigo-600">date_range</span>
+                    Thời hạn &amp; Nhật ký
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Ngày bắt đầu:</div>
+                    <div class="text-sm font-bold text-gray-900 mt-0.5">@Model.StartDate.ToString("dd/MM/yyyy")</div>
+                </div>
+                <div>
+                    <div class="text-xs text-gray-500">Ngày kết thúc:</div>
+                    <div class="text-sm font-bold text-gray-900 mt-0.5">
+                        @(Model.EndDate.HasValue ? Model.EndDate.Value.ToString("dd/MM/yyyy") : "Hợp đồng vô thời hạn")
+                    </div>
+                </div>
+                <div class="text-[11px] text-gray-500 border-t border-gray-200/60 pt-2 space-y-1">
+                    @if (Model.SentToStaffAt.HasValue)
+                    {
+                        <div>Gửi cho bạn: <span class="font-medium text-gray-700">@Model.SentToStaffAt.Value.ToString("dd/MM/yyyy HH:mm")</span></div>
+                    }
+                    @if (Model.StaffAcceptedAt.HasValue)
+                    {
+                        <div>Bạn đã chấp thuận: <span class="font-medium text-emerald-700">@Model.StaffAcceptedAt.Value.ToString("dd/MM/yyyy HH:mm")</span></div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.CreatedByManagerName))
+                    {
+                        <div>Quản lý lập: <span class="font-medium text-gray-700">@Model.CreatedByManagerName</span></div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Contract Terms -->
+        <div class="space-y-2">
+            <h2 class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[18px] text-gray-600">gavel</span>
+                Điều khoản hợp đồng lao động
+            </h2>
+            <div class="p-5 bg-gray-50 rounded-xl border border-gray-100 text-xs text-gray-700 leading-relaxed whitespace-pre-line font-mono">
+                @(string.IsNullOrWhiteSpace(Model.ContractTerms)
+                    ? "Các quyền lợi, nghĩa vụ và trách nhiệm được thực hiện tuân theo Nội quy lao động hiện hành và Bộ luật Lao động Việt Nam."
+                    : Model.ContractTerms)
+            </div>
+        </div>
+    </div>
+
+    <!-- Contract Change Requests Section -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+            <div>
+                <h2 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-600 text-[20px]">edit_note</span>
+                    Yêu cầu điều chỉnh hợp đồng (Change Requests)
+                </h2>
+                <p class="text-xs text-gray-500 mt-0.5">
+                    Nếu có thông tin chưa chính xác hoặc muốn đề xuất thay đổi, bạn có thể gửi yêu cầu trực tiếp cho Quản lý chi nhánh.
+                </p>
+            </div>
+            @if (Model.CanSubmitChangeRequest)
+            {
+                <button type="button" onclick="openChangeRequestModal()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">add</span>
+                    Gửi yêu cầu thay đổi
+                </button>
+            }
+            else if (!string.IsNullOrEmpty(Model.CannotSubmitChangeRequestReason))
+            {
+                <span class="text-xs text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200" title="@Model.CannotSubmitChangeRequestReason">
+                    @Model.CannotSubmitChangeRequestReason
+                </span>
+            }
+        </div>
+
+        <!-- Change Requests List -->
+        @if (Model.ChangeRequests.Count == 0)
+        {
+            <div class="py-6 text-center text-gray-400 text-xs">
+                Chưa có yêu cầu thay đổi nào được tạo cho hợp đồng này.
+            </div>
+        }
+        else
+        {
+            <div class="space-y-3">
+                @foreach (var cr in Model.ChangeRequests)
+                {
+                    <div class="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-2 text-xs">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-gray-900">Yêu cầu #@cr.ChangeRequestId</span>
+                                <span class="text-[11px] text-gray-400">· @cr.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <div>
+                                @switch (cr.Status)
+                                {
+                                    case "PENDING_APPROVAL":
+                                    case "PENDING":
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            Đang chờ duyệt
+                                        </span>
+                                        break;
+                                    case "APPROVED":
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Đã chấp thuận
+                                        </span>
+                                        break;
+                                    case "REJECTED":
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            Từ chối
+                                        </span>
+                                        break;
+                                    default:
+                                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
+                                            @cr.Status
+                                        </span>
+                                        break;
+                                }
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(cr.StaffComment))
+                        {
+                            <p class="text-gray-700"><span class="font-semibold text-gray-600">Ghi chú nhân viên:</span> @cr.StaffComment</p>
+                        }
+
+                        @if (cr.Items.Count > 0)
+                        {
+                            <div class="bg-white p-3 rounded-lg border border-gray-200 space-y-1.5 mt-2">
+                                @foreach (var item in cr.Items)
+                                {
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
+                                        <div>
+                                            <span class="font-bold text-gray-800">Trường: @item.FieldName</span>
+                                            @if (!string.IsNullOrEmpty(item.OriginalValue))
+                                            {
+                                                <span class="text-gray-400 text-[11px] line-through ml-1">@item.OriginalValue</span>
+                                            }
+                                            <span class="text-emerald-700 font-semibold ml-1">➔ @item.ProposedValue</span>
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(item.Reason))
+                                        {
+                                            <span class="text-[11px] text-gray-500 italic">Lý do: @item.Reason</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(cr.ReviewComment))
+                        {
+                            <div class="bg-blue-50/60 p-2.5 rounded-lg border border-blue-100 text-[11px] text-blue-900 mt-2">
+                                <strong>Phản hồi của Quản lý:</strong> @cr.ReviewComment
+                                @if (cr.ReviewedAt.HasValue)
+                                {
+                                    <span class="text-blue-500 ml-1">(@cr.ReviewedAt.Value.ToString("dd/MM/yyyy HH:mm"))</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal Xác nhận Chấp thuận Hợp đồng -->
+<div id="acceptModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl border border-gray-100 animate-scale-in">
+        <div class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">task_alt</span>
+            </span>
+            <div>
+                <h3 class="text-base font-bold text-gray-900">Xác nhận chấp thuận hợp đồng</h3>
+                <p class="text-xs text-gray-500">Hành động này có giá trị xác nhận thỏa ước lao động.</p>
+            </div>
+        </div>
+
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-100 text-xs space-y-2 text-gray-700">
+            <div class="flex justify-between">
+                <span class="text-gray-500">Mã hợp đồng:</span>
+                <span class="font-bold text-gray-900">@Model.ContractNumber</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Mức lương:</span>
+                <span class="font-bold text-emerald-700">@Model.HourlyRate.ToString("#,##0") đ/giờ</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Ngày bắt đầu:</span>
+                <span class="font-bold text-gray-900">@Model.StartDate.ToString("dd/MM/yyyy")</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-gray-500">Chi nhánh:</span>
+                <span class="font-bold text-gray-900">@Model.BranchName</span>
+            </div>
+        </div>
+
+        <p class="text-xs text-gray-600 leading-relaxed">
+            Bằng việc nhấn <strong>"Đồng ý chấp thuận"</strong>, bạn xác nhận đã đọc, hiểu và đồng ý với toàn bộ các điều khoản được ghi trong hợp đồng lao động này.
+        </p>
+
+        <form method="post" asp-action="Accept" asp-route-id="@Model.ContractId" class="flex items-center justify-end gap-2.5 pt-2">
+            @Html.AntiForgeryToken()
+            <button type="button" onclick="closeAcceptModal()"
+                    class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                Hủy bỏ
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm transition-colors">
+                Đồng ý chấp thuận
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Gửi yêu cầu thay đổi hợp đồng -->
+<div id="changeRequestModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-xl border border-gray-100 animate-scale-in">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+            <div class="flex items-center gap-2.5">
+                <span class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">edit_note</span>
+                </span>
+                <h3 class="text-base font-bold text-gray-900">Đề xuất thay đổi hợp đồng</h3>
+            </div>
+            <button type="button" onclick="closeChangeRequestModal()" class="text-gray-400 hover:text-gray-600 text-lg font-bold">×</button>
+        </div>
+
+        <form method="post" asp-action="SubmitChangeRequest" asp-route-id="@Model.ContractId" class="space-y-3.5 text-xs">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ContractId" value="@Model.ContractId" />
+            <input type="hidden" name="RequestType" value="CHANGE_REQUEST" />
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Thông tin cần thay đổi <span class="text-rose-500">*</span></label>
+                <select name="FieldName" required
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
+                    <option value="">-- Chọn trường thông tin --</option>
+                    <option value="EmployeePosition">Chức danh / Vị trí làm việc</option>
+                    <option value="HourlyRate">Mức lương theo giờ</option>
+                    <option value="StartDate">Ngày bắt đầu hợp đồng</option>
+                    <option value="EndDate">Ngày kết thúc hợp đồng</option>
+                    <option value="ContractTerms">Điều khoản hợp đồng</option>
+                    <option value="Other">Nội dung khác</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Giá trị đề xuất mới <span class="text-rose-500">*</span></label>
+                <input type="text" name="ProposedValue" required placeholder="Nhập giá trị bạn muốn đề xuất thay đổi..."
+                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+            </div>
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Lý do đề xuất</label>
+                <input type="text" name="Reason" placeholder="Giải thích lý do cần thay đổi mục này..."
+                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+            </div>
+
+            <div>
+                <label class="block font-semibold text-gray-700 mb-1">Ghi chú thêm cho Quản lý</label>
+                <textarea name="StaffComment" rows="3" placeholder="Ý kiến đóng góp hoặc ghi chú chi tiết..."
+                          class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeChangeRequestModal()"
+                        class="px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                    Hủy
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-colors">
+                    Gửi yêu cầu
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openAcceptModal() {
+            document.getElementById('acceptModal').classList.remove('hidden');
+        }
+        function closeAcceptModal() {
+            document.getElementById('acceptModal').classList.add('hidden');
+        }
+        function openChangeRequestModal() {
+            document.getElementById('changeRequestModal').classList.remove('hidden');
+        }
+        function closeChangeRequestModal() {
+            document.getElementById('changeRequestModal').classList.add('hidden');
+        }
+    </script>
+}

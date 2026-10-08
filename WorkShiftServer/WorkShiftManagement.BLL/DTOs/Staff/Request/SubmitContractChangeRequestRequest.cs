@@ -5,7 +5,7 @@ namespace WorkShiftManagement.BLL.DTOs.Staff.Request;
 
 public class SubmitContractChangeRequestRequest
 {
-    public string? RequestType { get; set; } = "MODIFICATION";
+    public string? RequestType { get; set; } = "CHANGE_REQUEST";
 
     public string? StaffComment { get; set; }
 

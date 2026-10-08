@@ -7,7 +7,7 @@ namespace WorkShiftServer.API.Controllers.Notification;
 
 [Route("api/notifications/broadcast")]
 [ApiController]
-[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT")]
+[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT,STAFF")]
 public sealed class BroadcastNotificationController : ControllerBase
 {
     private readonly IBroadcastNotificationService _service;

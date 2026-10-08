@@ -302,6 +302,10 @@ public class AdminEmploymentContractService : IAdminEmploymentContractService
             TerminationEffectiveAt = c.TerminationEffectiveAt,
             TerminationReason = c.TerminationReason,
 
+            CancelledBy = c.CancelledBy,
+            CancelledAt = c.CancelledAt,
+            CancellationReason = c.CancellationReason,
+
             HasPdf = !string.IsNullOrWhiteSpace(c.ContractFilePath),
             ContractTemplateVersion = c.ContractTemplateVersion,
             PdfGeneratedAt = c.PdfGeneratedAt

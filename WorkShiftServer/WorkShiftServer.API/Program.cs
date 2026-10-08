@@ -278,6 +278,11 @@ try
             "expired-contracts-worker",
             service => service.ExpireDueContractsAsync(CancellationToken.None),
             Cron.Minutely());
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
+            "overdue-contracts-cancellation",
+            service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
+            Cron.Minutely());
 }
 
 catch (Exception ex)

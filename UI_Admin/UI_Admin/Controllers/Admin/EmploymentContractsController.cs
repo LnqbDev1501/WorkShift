@@ -72,7 +72,11 @@ public class EmploymentContractsController : Controller
     /// GET /EmploymentContracts/Details/{contractId}
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> Details(int contractId, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Details(
+        int contractId,
+        int historyPage = 1,
+        int historyPageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         if (contractId <= 0) return NotFound();
 
@@ -88,6 +92,31 @@ public class EmploymentContractsController : Controller
 
         if (TempData["ErrorMessage"] is string error)
             ViewBag.ErrorMessage = error;
+
+        historyPage = Math.Max(1, historyPage);
+        historyPageSize = Math.Clamp(historyPageSize, 1, 50);
+
+        try
+        {
+            detail.History = await _apiService.GetHistoryAsync(
+                contractId,
+                pageNumber: historyPage,
+                pageSize: historyPageSize,
+                sort: "desc",
+                cancellationToken: cancellationToken);
+
+            if (detail.History == null)
+            {
+                detail.HistoryLoadFailed = true;
+                detail.HistoryErrorMessage = "Không thể tải dữ liệu lịch sử từ máy chủ.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load history for contract {ContractId}", contractId);
+            detail.HistoryLoadFailed = true;
+            detail.HistoryErrorMessage = "Đã xảy ra lỗi khi kết nối tới dịch vụ lịch sử.";
+        }
 
         return View(detail);
     }

@@ -153,6 +153,11 @@ public class StaffEmploymentContractController(
         catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
         catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
         catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            logger.LogError(ex, "Database update error submitting change request for contract {ContractId} by staff {StaffUserId}", id, staffUserId.Value);
+            return StatusCode(500, new { message = "Lỗi khi lưu yêu cầu thay đổi hợp đồng vào cơ sở dữ liệu." });
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to submit change request for contract {ContractId} by staff {StaffUserId}", id, staffUserId.Value);
