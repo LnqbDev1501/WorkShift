@@ -24,4 +24,5 @@ public class StaffAccountDetailResponse
     public DateTime UpdatedAt { get; set; }
     public DateTime? DeletedAt { get; set; }
     public string? PreviousStatus { get; set; }
+    public bool HasPassword { get; set; }
 }

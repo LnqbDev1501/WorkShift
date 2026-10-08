@@ -3447,6 +3447,12 @@ namespace WorkShiftManagement.DAL.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("gender");
 
+                    b.Property<bool>("HasPassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_password")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("IdentityNo")
                         .IsRequired()
                         .HasMaxLength(30)

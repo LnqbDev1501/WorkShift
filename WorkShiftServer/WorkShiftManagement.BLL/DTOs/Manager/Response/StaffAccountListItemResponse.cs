@@ -10,4 +10,5 @@ public class StaffAccountListItemResponse
     public string RoleName { get; set; } = string.Empty;
     public string BranchName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
+    public bool HasPassword { get; set; }
 }

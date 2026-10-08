@@ -174,4 +174,15 @@ public class ManagerStaffController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendSetupLink(Guid id, CancellationToken cancellationToken = default)
+    {
+        var (success, errorMessage) = await _managerStaffApiService.ResendSetupLinkAsync(id, cancellationToken);
+        TempData[success ? "SuccessMessage" : "ErrorMessage"] =
+            success ? "Setup link has been resent to the staff email." : (errorMessage ?? "Failed to resend setup link.");
+
+        return RedirectToAction(nameof(Index));
+    }
 }

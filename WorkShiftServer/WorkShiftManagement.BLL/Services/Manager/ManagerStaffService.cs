@@ -86,7 +86,7 @@ public class ManagerStaffService : IManagerStaffService
             return null;
         }
 
-        return MapToDetailResponse(staff);
+        return await MapToDetailResponse(staff);
     }
 
     public async Task<StaffAccountDetailResponse> CreateStaffAsync(CreateStaffAccountRequest request, Guid managerId)
@@ -119,9 +119,9 @@ public class ManagerStaffService : IManagerStaffService
         Guid authUserId;
         try
         {
-            authUserId = await _authService.CreateUserWithPasswordAsync(request.Email, "WorkShift@fa26");
+            authUserId = await _authService.CreateStaffUserAsync(request.Email);
         }
-        catch (HttpRequestException exception) when (exception.Message.Contains("already been registered", StringComparison.OrdinalIgnoreCase))
+        catch (HttpRequestException exception) when (exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("This email is already registered. Please use another email address or delete the existing authentication account.");
         }
@@ -143,6 +143,7 @@ public class ManagerStaffService : IManagerStaffService
             Address = request.Address?.Trim() ?? string.Empty,
             EmployeeTypeId = request.EmployeeTypeId,
             Status = "ACTIVE",
+            HasPassword = false,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -161,7 +162,7 @@ public class ManagerStaffService : IManagerStaffService
         var createdStaff = await _staffRepo.GetStaffByIdAsync(staff.UserId, branchId)
             ?? throw new InvalidOperationException("Failed to retrieve created staff.");
 
-        return MapToDetailResponse(createdStaff);
+        return await MapToDetailResponse(createdStaff);
     }
 
     public async Task<StaffAccountDetailResponse?> UpdateStaffAsync(Guid staffId, UpdateStaffAccountRequest request, Guid managerId)
@@ -203,7 +204,7 @@ public class ManagerStaffService : IManagerStaffService
             return null;
         }
 
-        return MapToDetailResponse(updated);
+        return await MapToDetailResponse(updated);
     }
 
     public async Task<bool> DeactivateStaffAsync(Guid staffId, Guid managerId)
@@ -259,6 +260,27 @@ public class ManagerStaffService : IManagerStaffService
         }
 
         return await _staffRepo.RestoreStaffAsync(staffId, managerBranchId, null);
+    }
+
+    public async Task<bool> ResendStaffSetupLinkAsync(Guid staffId, Guid managerId)
+    {
+        var (_, branchId) = await GetManagerAsync(managerId);
+
+        var staff = await _staffRepo.GetStaffByIdAsync(staffId, branchId);
+        if (staff == null || staff.BranchId != branchId)
+        {
+            return false;
+        }
+
+        // Check if user already has a password set (local DB)
+        if (staff.HasPassword)
+        {
+            return false;
+        }
+
+        // User exists, belongs to manager's branch, and hasn't set password yet
+        // Token generation and email sending will be handled by the API controller
+        return true;
     }
 
     private async Task<(string Role, int BranchId)> GetManagerAsync(Guid managerId)
@@ -482,7 +504,7 @@ public class ManagerStaffService : IManagerStaffService
         return hasShiftAssignments || hasPendingRequests || hasSwapRequests;
     }
 
-    private static StaffAccountDetailResponse MapToDetailResponse(User staff)
+    private async Task<StaffAccountDetailResponse> MapToDetailResponse(User staff)
     {
         return new StaffAccountDetailResponse
         {
@@ -505,7 +527,8 @@ public class ManagerStaffService : IManagerStaffService
             CreatedAt = staff.CreatedAt,
             UpdatedAt = staff.UpdatedAt,
             DeletedAt = staff.DeletedAt,
-            PreviousStatus = staff.PreviousStatus
+            PreviousStatus = staff.PreviousStatus,
+            HasPassword = staff.HasPassword
         };
     }
 
@@ -520,7 +543,8 @@ public class ManagerStaffService : IManagerStaffService
             Status = staff.Status,
             RoleName = staff.Role?.RoleName ?? "STAFF",
             BranchName = staff.Branch?.BranchName ?? string.Empty,
-            CreatedAt = staff.CreatedAt
+            CreatedAt = staff.CreatedAt,
+            HasPassword = staff.HasPassword
         };
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using UI_Admin.Models;
 using UI_Admin.Models.Admin.UserAdmin;
+using UI_Admin.Models.Auth;
 
 namespace UI_Admin.Services
 {
@@ -35,6 +36,38 @@ namespace UI_Admin.Services
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
                 new { accessToken, password = password.Trim() });
+
+            if (response.IsSuccessStatusCode)
+                return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(GetErrorMessage(body));
+        }
+
+        public async Task ValidateStaffSetupTokenAsync(string token)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/validate",
+                new { token });
+
+            if (response.IsSuccessStatusCode)
+                return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(GetErrorMessage(body));
+        }
+
+        public async Task SetStaffPasswordAsync(string token, string password)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/set-password",
+                new { token, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
                 return;

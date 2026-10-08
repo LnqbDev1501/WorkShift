@@ -198,6 +198,7 @@ public class UserService : IUserService
                 Email = request.Email,
                 Phone = request.Phone,
                 Status = PendingStatus,
+                HasPassword = false,
                 PreviousStatus = null,
                 PreviousBranchId = null,
                 DeletedAt = null,

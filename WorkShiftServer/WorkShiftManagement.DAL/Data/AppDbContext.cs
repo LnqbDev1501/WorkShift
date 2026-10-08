@@ -2804,6 +2804,9 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("phone");
             entity.Property(e => e.PreviousBranchId).HasColumnName("previous_branch_id");
+            entity.Property(e => e.HasPassword)
+                .HasColumnName("has_password")
+                .HasDefaultValue(true);
             entity.Property(e => e.PreviousStatus)
                 .HasMaxLength(30)
                 .HasColumnName("previous_status");
