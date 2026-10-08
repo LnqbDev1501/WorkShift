@@ -267,11 +267,11 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">table_chart</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Timesheets</span>
                         </a>
-                        <a asp-controller="ManagerLeaveRequest" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerLeaveRequest" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Leave Requests">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">event_busy</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Leave Requests</span>
+                        <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerEmployeeRequests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Employee Requests">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Requests</span>
                         </a>
                         <a asp-controller="ManagerContracts" asp-action="Index"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
@@ -352,16 +352,25 @@
                     </nav>
                     @if (User.IsInRole("STAFF"))
                     {
-                        <nav class="space-y-unit-1" aria-label="Hợp đồng lao động">
-                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">HỢP ĐỒNG</span></div>
-                            <a asp-controller="StaffContracts" asp-action="Index" title="Hợp đồng của tôi"
+                        <nav class="space-y-unit-1" aria-label="Contracts">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CONTRACTS</span></div>
+                            <a asp-controller="StaffContracts" asp-action="Index" title="My Contracts"
                                aria-current="@(currentController == "StaffContracts" ? "page" : null)"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "StaffContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">description</span>
-                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Hợp đồng của tôi</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">My Contracts</span>
                             </a>
                         </nav>
-                        <nav class="space-y-unit-1" aria-label="Hệ thống">
+                        <nav class="space-y-unit-1" aria-label="Requests">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">REQUESTS</span></div>
+                            <a asp-controller="StaffEmployeeRequests" asp-action="Index" title="My Requests"
+                               aria-current="@(currentController == "StaffEmployeeRequests" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "StaffEmployeeRequests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">My Requests</span>
+                            </a>
+                        </nav>
+                        <nav class="space-y-unit-1" aria-label="System">
                             <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span></div>
                             <a asp-controller="Notifications" asp-action="Personal"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
@@ -392,6 +401,12 @@
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerStaff" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">groups</span>
                                 <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý nhân viên</span>
+                            </a>
+                            <a asp-controller="ManagerEmployeeRequests" asp-action="Index" title="Đơn từ nhân viên"
+                               aria-current="@(currentController == "ManagerEmployeeRequests" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerEmployeeRequests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Đơn từ nhân viên</span>
                             </a>
                         </nav>
                     }

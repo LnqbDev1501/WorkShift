@@ -33,4 +33,19 @@ public class AdminEmployeeRequestListItemViewModel
     public DateTime? ReviewedAt { get; set; }
 
     public string? ReviewerFullName { get; set; }
+
+    public AdminRequestShiftSummaryViewModel? ShiftSummary { get; set; }
+}
+
+public class AdminRequestShiftSummaryViewModel
+{
+    public int TotalShifts { get; set; }
+
+    public string? PrimaryShiftName { get; set; }
+
+    public DateTime? PrimaryScheduledStartAt { get; set; }
+
+    public DateTime? PrimaryScheduledEndAt { get; set; }
+
+    public DateTime? RequestedTime { get; set; }
 }

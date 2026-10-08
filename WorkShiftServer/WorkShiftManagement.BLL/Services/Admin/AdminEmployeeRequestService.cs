@@ -106,23 +106,60 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
             query.PageSize,
             cancellationToken);
 
-        var mappedItems = items.Select(r => new AdminEmployeeRequestListItemResponse
+        var mappedItems = items.Select(r =>
         {
-            RequestId = r.RequestId,
-            UserId = r.UserId,
-            EmployeeFullName = r.User.FullName,
-            EmployeeEmail = r.User.Email,
-            EmployeePhone = r.User.Phone,
-            EmployeeAvatarUrl = r.User.AvatarUrl,
-            BranchId = r.BranchId,
-            BranchName = r.Branch.BranchName,
-            BranchCode = r.Branch.BranchCode,
-            RequestType = r.RequestType,
-            Reason = r.Reason,
-            Status = r.Status,
-            CreatedAt = ToUtc(r.CreatedAt),
-            ReviewedAt = ToUtc(r.ReviewedAt),
-            ReviewerFullName = r.ReviewedByNavigation?.FullName
+            AdminRequestShiftSummaryResponse? shiftSummary = null;
+            if (string.Equals(r.RequestType, "LEAVE", StringComparison.OrdinalIgnoreCase))
+            {
+                var assignments = r.LeaveRequestAssignments
+                    .Where(l => l.Assignment?.Shift != null)
+                    .OrderBy(l => l.Assignment!.Shift!.ScheduledStartAt)
+                    .ToList();
+                if (assignments.Count > 0)
+                {
+                    var firstShift = assignments[0].Assignment!.Shift!;
+                    shiftSummary = new AdminRequestShiftSummaryResponse
+                    {
+                        TotalShifts = assignments.Count,
+                        PrimaryShiftName = firstShift.ShiftNameSnapshot ?? firstShift.ShiftTemplate?.ShiftName,
+                        PrimaryScheduledStartAt = ToUtc(firstShift.ScheduledStartAt),
+                        PrimaryScheduledEndAt = ToUtc(firstShift.ScheduledEndAt)
+                    };
+                }
+            }
+            else if (r.TimeAdjustmentRequestDetail?.Assignment?.Shift != null)
+            {
+                var tard = r.TimeAdjustmentRequestDetail;
+                var shift = tard.Assignment!.Shift!;
+                shiftSummary = new AdminRequestShiftSummaryResponse
+                {
+                    TotalShifts = 1,
+                    PrimaryShiftName = shift.ShiftNameSnapshot ?? shift.ShiftTemplate?.ShiftName,
+                    PrimaryScheduledStartAt = ToUtc(shift.ScheduledStartAt),
+                    PrimaryScheduledEndAt = ToUtc(shift.ScheduledEndAt),
+                    RequestedTime = ToUtc(tard.RequestedTime)
+                };
+            }
+
+            return new AdminEmployeeRequestListItemResponse
+            {
+                RequestId = r.RequestId,
+                UserId = r.UserId,
+                EmployeeFullName = r.User.FullName,
+                EmployeeEmail = r.User.Email,
+                EmployeePhone = r.User.Phone,
+                EmployeeAvatarUrl = r.User.AvatarUrl,
+                BranchId = r.BranchId,
+                BranchName = r.Branch.BranchName,
+                BranchCode = r.Branch.BranchCode,
+                RequestType = r.RequestType,
+                Reason = r.Reason,
+                Status = r.Status,
+                CreatedAt = ToUtc(r.CreatedAt),
+                ReviewedAt = ToUtc(r.ReviewedAt),
+                ReviewerFullName = r.ReviewedByNavigation?.FullName,
+                ShiftSummary = shiftSummary
+            };
         }).ToList();
 
         return new PagedResponse<AdminEmployeeRequestListItemResponse>

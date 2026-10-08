@@ -38,6 +38,14 @@ public static class DateTimeHelper
     }
 
     /// <summary>
+    /// Formats a nullable UTC DateTime to Vietnam date string (dd/MM/yyyy).
+    /// </summary>
+    public static string ToVnDateString(this DateTime? utcDateTime, string format = "dd/MM/yyyy", string fallback = "—")
+    {
+        return utcDateTime.HasValue ? utcDateTime.Value.ToVnDateString(format) : fallback;
+    }
+
+    /// <summary>
     /// Formats a UTC DateTime to Vietnam time string (HH:mm).
     /// </summary>
     public static string ToVnTimeString(this DateTime utcDateTime, string format = "HH:mm")
@@ -46,11 +54,37 @@ public static class DateTimeHelper
     }
 
     /// <summary>
+    /// Formats a nullable UTC DateTime to Vietnam time string (HH:mm).
+    /// </summary>
+    public static string ToVnTimeString(this DateTime? utcDateTime, string format = "HH:mm", string fallback = "—")
+    {
+        return utcDateTime.HasValue ? utcDateTime.Value.ToVnTimeString(format) : fallback;
+    }
+
+    /// <summary>
+    /// Formats a shift's start and end times in Vietnam time, clearly indicating overnight shifts with dates.
+    /// </summary>
+    public static string FormatShiftTimeRange(DateTime? startUtc, DateTime? endUtc)
+    {
+        if (!startUtc.HasValue || !endUtc.HasValue) return "No data";
+
+        var startVn = startUtc.Value.ToVietnamTime();
+        var endVn = endUtc.Value.ToVietnamTime();
+
+        if (startVn.Date == endVn.Date)
+        {
+            return $"{startVn:HH:mm} - {endVn:HH:mm} ({startVn:dd/MM/yyyy})";
+        }
+
+        return $"{startVn:HH:mm (dd/MM)} - {endVn:HH:mm (dd/MM/yyyy)} (Overnight)";
+    }
+
+    /// <summary>
     /// Formats day of week for submission deadline rule.
     /// </summary>
     public static string FormatDayOfWeek(short? dayOfWeek)
     {
-        if (!dayOfWeek.HasValue) return "Not applicable";
+        if (!dayOfWeek.HasValue) return "No data";
         return dayOfWeek.Value switch
         {
             0 => "Sunday",

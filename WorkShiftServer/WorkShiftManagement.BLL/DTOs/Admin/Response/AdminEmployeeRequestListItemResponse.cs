@@ -33,4 +33,22 @@ public class AdminEmployeeRequestListItemResponse
     public DateTime? ReviewedAt { get; set; }
 
     public string? ReviewerFullName { get; set; }
+
+    /// <summary>
+    /// Summary of the linked shift(s) / application schedule for list display.
+    /// </summary>
+    public AdminRequestShiftSummaryResponse? ShiftSummary { get; set; }
+}
+
+public class AdminRequestShiftSummaryResponse
+{
+    public int TotalShifts { get; set; }
+
+    public string? PrimaryShiftName { get; set; }
+
+    public DateTime? PrimaryScheduledStartAt { get; set; }
+
+    public DateTime? PrimaryScheduledEndAt { get; set; }
+
+    public DateTime? RequestedTime { get; set; }
 }

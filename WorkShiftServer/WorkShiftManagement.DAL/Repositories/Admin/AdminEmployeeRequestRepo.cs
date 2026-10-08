@@ -35,6 +35,14 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
             .Include(r => r.User)
             .Include(r => r.Branch)
             .Include(r => r.ReviewedByNavigation)
+            .Include(r => r.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Assignment)
+                    .ThenInclude(a => a.Shift)
+                        .ThenInclude(s => s.ShiftTemplate)
+            .Include(r => r.TimeAdjustmentRequestDetail)
+                .ThenInclude(tard => tard!.Assignment)
+                    .ThenInclude(a => a.Shift)
+                        .ThenInclude(s => s.ShiftTemplate)
             .Where(r => r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE");
 
         if (!string.IsNullOrWhiteSpace(requestType))
@@ -81,6 +89,7 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
             .ThenByDescending(r => r.RequestId)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
+            .AsSplitQuery()
             .ToListAsync(cancellationToken);
 
         return (items, totalCount);
@@ -103,11 +112,11 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
                         .ThenInclude(s => s.ScheduleWeek)
                             .ThenInclude(sw => sw.Branch)
             .Include(r => r.TimeAdjustmentRequestDetail)
-                .ThenInclude(tard => tard.Assignment)
+                .ThenInclude(tard => tard!.Assignment)
                     .ThenInclude(a => a.Shift)
                         .ThenInclude(s => s.ShiftTemplate)
             .Include(r => r.TimeAdjustmentRequestDetail)
-                .ThenInclude(tard => tard.Assignment)
+                .ThenInclude(tard => tard!.Assignment)
                     .ThenInclude(a => a.Shift)
                         .ThenInclude(s => s.ScheduleWeek)
                             .ThenInclude(sw => sw.Branch)

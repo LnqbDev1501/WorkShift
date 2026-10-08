@@ -55,6 +55,8 @@ builder.Services.AddHttpClient<HolidayApiService>(client => client.Timeout = Tim
 builder.Services.AddHttpClient<EmploymentContractApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<AttendanceRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<EmployeeRequestApiService>(client => client.Timeout = TimeSpan.FromSeconds(20)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<ManagerEmployeeRequestApiService>(client => client.Timeout = TimeSpan.FromSeconds(20)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<StaffEmployeeRequestApiService>(client => client.Timeout = TimeSpan.FromSeconds(20)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<AttendancePenaltyRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<IVietMapService, VietMapService>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
