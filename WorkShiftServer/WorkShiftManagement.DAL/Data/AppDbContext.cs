@@ -1021,6 +1021,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.Status, e.StartDate, e.EndDate }, "ix_contracts_user_status_dates");
 
+            entity.HasIndex(e => e.CancelledBy, "ix_employment_contracts_cancelled_by");
+
             entity.HasIndex(e => e.UserId, "uq_one_active_contract_per_staff")
                 .IsUnique()
                 .HasFilter("((status)::text = 'ACTIVE'::text)");
@@ -1039,6 +1041,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
+            entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
+            entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
+            entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
             entity.Property(e => e.ContractFilePath)
                 .HasMaxLength(500)
                 .HasColumnName("contract_file_path");
@@ -1107,6 +1112,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_branch_id_fkey");
+
+            entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.EmploymentContractCancelledByNavigations)
+                .HasForeignKey(d => d.CancelledBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("employment_contracts_cancelled_by_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.EmploymentContractCreatedByNavigations)
                 .HasForeignKey(d => d.CreatedBy)
