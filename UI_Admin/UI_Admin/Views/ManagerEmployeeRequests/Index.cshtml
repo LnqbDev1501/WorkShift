@@ -1,0 +1,441 @@
+@model UI_Admin.Models.Manager.Requests.ManagerEmployeeRequestListViewModel
+@using UI_Admin.Helpers
+
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = "Employee Request Management";
+    var items = Model.Items;
+    var currentPage = Model.PageNumber;
+    var totalPages = Model.TotalPages;
+    var hasFilters = Model.HasActiveFilters;
+    var currentUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow text-xs uppercase tracking-wider text-secondary font-semibold">Human Resources &amp; Branch Operations</div>
+            <div class="flex items-center gap-unit-3 mt-0.5">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight font-bold">Employee Requests</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">
+                Monitor, review, and process leave requests, late arrivals, and early departures from employees in your branch.
+            </p>
+        </div>
+    </div>
+
+    <!-- Error/Success Banner if present -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage) || ViewBag.ErrorMessage is string err)
+    {
+        var msg = !string.IsNullOrEmpty(Model.ErrorMessage) ? Model.ErrorMessage : (string)ViewBag.ErrorMessage;
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-rose-600 text-[20px]">error</span>
+            <span>@msg</span>
+        </div>
+    }
+
+    <!-- Search & Filters Container -->
+    <div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container-high/60 my-2">
+        <form method="get" asp-controller="ManagerEmployeeRequests" asp-action="Index" class="flex flex-col gap-3">
+            <input type="hidden" name="pageNumber" value="1" />
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-center">
+
+                <!-- Search Input -->
+                <div class="relative col-span-1 sm:col-span-2">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-secondary">search</span>
+                    <input type="text"
+                           id="filter-search"
+                           name="search"
+                           value="@Model.Search"
+                           placeholder="Search by employee name, reason..."
+                           class="w-full h-10 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                </div>
+
+                <!-- Request Type Filter -->
+                <div>
+                    <select id="filter-request-type" name="requestType"
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.RequestType) || Model.RequestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Request Types</option>
+                        <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave (LEAVE)</option>
+                        <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival (LATE_ARRIVAL)</option>
+                        <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave (EARLY_LEAVE)</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <select id="filter-status" name="status"
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.Status) || Model.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
+                        <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending (PENDING)</option>
+                        <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved (APPROVED)</option>
+                        <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected (REJECTED)</option>
+                        <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled (CANCELLED)</option>
+                    </select>
+                </div>
+
+                <!-- Employee Filter (in manager's branch) -->
+                <div>
+                    <select id="filter-user" name="userId"
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                        <option value="">All Employees</option>
+                        @foreach (var staff in Model.StaffOptions)
+                        {
+                            <option value="@staff.UserId" selected="@(Model.UserId == staff.UserId)">@staff.FullName (@staff.Email)</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <button type="submit" id="btn-filter"
+                            class="h-10 px-4 rounded-lg bg-primary hover:bg-primary-container text-white font-body-md-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full shadow-sm">
+                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
+                        <span>Filter</span>
+                    </button>
+                    @if (hasFilters)
+                    {
+                        <a asp-controller="ManagerEmployeeRequests" asp-action="Index" id="btn-clear-filters"
+                           class="h-10 px-3 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container font-body-md-medium text-xs flex items-center justify-center gap-1 transition-colors shrink-0"
+                           title="Clear filters">
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                            <span>Clear</span>
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Date Range Filter Row -->
+            <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-surface-container-high/40">
+                <span class="text-xs text-secondary font-medium flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[16px]">calendar_today</span>
+                    <span>Submission Date (VN Time):</span>
+                </span>
+                <div class="flex items-center gap-2">
+                    <label for="filter-from-date" class="text-xs text-secondary">From date:</label>
+                    <input type="date" id="filter-from-date" name="fromDate" value="@Model.FromDate"
+                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="filter-to-date" class="text-xs text-secondary">To date:</label>
+                    <input type="date" id="filter-to-date" name="toDate" value="@Model.ToDate"
+                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                </div>
+                <div class="ml-auto text-xs text-secondary/80">
+                    Display Timezone: <strong class="text-secondary font-semibold">Vietnam (UTC+7)</strong>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Summary Count -->
+    <div class="flex items-center justify-between px-1">
+        <p class="text-xs text-secondary">
+            @if (Model.TotalItems == 0)
+            {
+                <span>No matching requests found.</span>
+            }
+            else
+            {
+                var first = (currentPage - 1) * Model.PageSize + 1;
+                var last = Math.Min(currentPage * Model.PageSize, Model.TotalItems);
+                <span>Showing <strong class="text-on-surface font-semibold">@first–@last</strong> of <strong class="text-on-surface font-semibold">@Model.TotalItems</strong> employee requests</span>
+            }
+        </p>
+    </div>
+
+    <!-- Main Data Table -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-surface-container-high/60">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-[44px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-4 py-2.5" scope="col">Request ID</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Employee</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Request Type</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Shift / Applicable Date</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Reason</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Status</th>
+                        <th class="px-unit-4 py-2.5" scope="col">Submission Date</th>
+                        <th class="px-unit-4 py-2.5 text-right" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-surface-container-high/40">
+                    @if (!items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="px-6 py-16 text-center">
+                                <div class="flex flex-col items-center gap-3 text-secondary">
+                                    <span class="material-symbols-outlined text-[48px] text-secondary/40">assignment_late</span>
+                                    <p class="font-body-md text-sm">No employee requests match the selected filters.</p>
+                                    @if (hasFilters)
+                                    {
+                                        <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
+                                           class="text-primary hover:underline text-xs font-semibold">Clear filters to view all</a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var request in items)
+                        {
+                            var reqType = request.RequestType?.ToUpperInvariant() ?? "";
+                            var statusUpper = request.Status?.ToUpperInvariant() ?? "";
+                            <tr class="hover:bg-surface-container-low/50 transition-colors duration-100 group">
+
+                                <!-- Request ID -->
+                                <td class="px-unit-4 py-3.5">
+                                    <span class="font-mono text-xs font-bold text-on-surface">#@request.RequestId</span>
+                                </td>
+
+                                <!-- Employee Info -->
+                                <td class="px-unit-4 py-3.5">
+                                    <div class="flex items-center gap-3">
+                                        @if (!string.IsNullOrWhiteSpace(request.EmployeeAvatarUrl))
+                                        {
+                                            <img src="@request.EmployeeAvatarUrl" alt="@request.EmployeeFullName" class="w-8 h-8 rounded-full object-cover shrink-0 border border-surface-container-high" />
+                                        }
+                                        else
+                                        {
+                                            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-primary/20">
+                                                @(string.IsNullOrWhiteSpace(request.EmployeeFullName) ? "U" : request.EmployeeFullName.Trim()[0].ToString().ToUpper())
+                                            </div>
+                                        }
+                                        <div class="flex flex-col min-w-0">
+                                            <span class="font-body-md text-sm text-on-surface font-semibold truncate">@request.EmployeeFullName</span>
+                                            <span class="text-[11px] text-secondary truncate">@request.EmployeeEmail</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Request Type Badge -->
+                                <td class="px-unit-4 py-3.5">
+                                    @switch (reqType)
+                                    {
+                                        case "LEAVE":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Leave
+                                            </span>
+                                            break;
+                                        case "LATE_ARRIVAL":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Late Arrival
+                                            </span>
+                                            break;
+                                        case "EARLY_LEAVE":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>Early Leave
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                                @request.RequestType
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+
+                                <!-- Applied Shift / Date -->
+                                <td class="px-unit-4 py-3.5 min-w-[230px]">
+                                    @if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
+                                    {
+                                        var summary = request.ShiftSummary;
+                                        var shiftName = string.IsNullOrWhiteSpace(summary.PrimaryShiftName) ? "Shift" : summary.PrimaryShiftName;
+                                        var timeRange = DateTimeHelper.FormatShiftTimeRange(summary.PrimaryScheduledStartAt, summary.PrimaryScheduledEndAt);
+
+                                        if (reqType == "LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-1">
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="font-semibold text-xs text-on-surface">@shiftName</span>
+                                                    @if (summary.TotalShifts > 1)
+                                                    {
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800" title="Request covers @summary.TotalShifts shifts in total">
+                                                            +@(summary.TotalShifts - 1) other shifts (Total @summary.TotalShifts shifts)
+                                                        </span>
+                                                    }
+                                                </div>
+                                                <span class="text-xs text-secondary tabular-nums">@timeRange</span>
+                                                @if (summary.TotalShifts > 1)
+                                                {
+                                                    <a asp-controller="ManagerEmployeeRequests" asp-action="Details"
+                                                       asp-route-id="@request.RequestId"
+                                                       asp-route-returnUrl="@currentUrl"
+                                                       class="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-0.5 mt-0.5">
+                                                        <span>View all shift details</span>
+                                                        <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+                                                    </a>
+                                                }
+                                            </div>
+                                        }
+                                        else if (reqType == "LATE_ARRIVAL")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-on-surface">@shiftName</div>
+                                                <div class="text-[11px] text-secondary tabular-nums">Original Shift: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1 inline-block tabular-nums">
+                                                        Requested Arrival Time: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-[11px] text-secondary italic">Requested Arrival Time: No data</div>
+                                                }
+                                            </div>
+                                        }
+                                        else if (reqType == "EARLY_LEAVE")
+                                        {
+                                            <div class="flex flex-col gap-0.5">
+                                                <div class="font-semibold text-xs text-on-surface">@shiftName</div>
+                                                <div class="text-[11px] text-secondary tabular-nums">Original Shift: @timeRange</div>
+                                                @if (summary.RequestedTime.HasValue)
+                                                {
+                                                    <div class="text-xs font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 mt-1 inline-block tabular-nums">
+                                                        Requested Departure Time: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="text-[11px] text-secondary italic">Requested Departure Time: No data</div>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-secondary italic">No shift data</span>
+                                    }
+                                </td>
+
+                                <!-- Reason (Razor encoded) -->
+                                <td class="px-unit-4 py-3.5 max-w-[200px]">
+                                    <span class="text-sm text-on-surface-variant line-clamp-2" title="@request.Reason">
+                                        @(string.IsNullOrWhiteSpace(request.Reason) ? "—" : request.Reason)
+                                    </span>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-unit-4 py-3.5">
+                                    @switch (statusUpper)
+                                    {
+                                        case "PENDING":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
+                                            </span>
+                                            break;
+                                        case "APPROVED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Approved
+                                            </span>
+                                            break;
+                                        case "REJECTED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
+                                            </span>
+                                            break;
+                                        case "CANCELLED":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
+                                            </span>
+                                            break;
+                                        default:
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                                @request.Status
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+
+                                <!-- CreatedAt in VN Time -->
+                                <td class="px-unit-4 py-3.5">
+                                    <span class="text-sm text-on-surface tabular-nums font-medium">@request.CreatedAt.ToVnDateTimeString()</span>
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-unit-4 py-3.5 text-right">
+                                    <a asp-controller="ManagerEmployeeRequests" asp-action="Details"
+                                       asp-route-id="@request.RequestId"
+                                       asp-route-returnUrl="@currentUrl"
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-xs font-medium transition-all shadow-sm group-hover:bg-primary group-hover:text-white"
+                                       title="View request details">
+                                        <span class="material-symbols-outlined text-[16px]">visibility</span>
+                                        <span>Details</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="px-4 py-2.5 bg-surface-container-low/50 border-t border-surface-container-high/40 text-[11px] text-secondary">
+            * Note: All shift times and submission dates are converted and displayed in Vietnam time (UTC+7). Overnight shifts are indicated with clear start and end dates.
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="flex items-center justify-center gap-2 pt-2">
+            @if (currentPage > 1)
+            {
+                <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
+                   asp-route-pageNumber="@(currentPage - 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-search="@Model.Search"
+                   asp-route-requestType="@Model.RequestType"
+                   asp-route-status="@Model.Status"
+                   asp-route-userId="@Model.UserId"
+                   asp-route-fromDate="@Model.FromDate"
+                   asp-route-toDate="@Model.ToDate"
+                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors"
+                   title="Previous page">
+                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                </a>
+            }
+
+            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
+            {
+                <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
+                   asp-route-pageNumber="@p"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-search="@Model.Search"
+                   asp-route-requestType="@Model.RequestType"
+                   asp-route-status="@Model.Status"
+                   asp-route-userId="@Model.UserId"
+                   asp-route-fromDate="@Model.FromDate"
+                   asp-route-toDate="@Model.ToDate"
+                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-semibold transition-colors @(p == currentPage ? "bg-primary text-white shadow-sm" : "bg-surface-container hover:bg-surface-container-high text-on-surface")">
+                    @p
+                </a>
+            }
+
+            @if (currentPage < totalPages)
+            {
+                <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
+                   asp-route-pageNumber="@(currentPage + 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-search="@Model.Search"
+                   asp-route-requestType="@Model.RequestType"
+                   asp-route-status="@Model.Status"
+                   asp-route-userId="@Model.UserId"
+                   asp-route-fromDate="@Model.FromDate"
+                   asp-route-toDate="@Model.ToDate"
+                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors"
+                   title="Next page">
+                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                </a>
+            }
+        </div>
+        <p class="text-center text-xs text-secondary pb-1">Page @currentPage of @totalPages (Total @Model.TotalItems requests)</p>
+    }
+
+</div>

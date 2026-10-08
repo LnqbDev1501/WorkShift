@@ -102,21 +102,58 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             query.PageSize,
             cancellationToken);
 
-        var responseItems = items.Select(r => new StaffEmployeeRequestListItemResponse
+        var responseItems = items.Select(r =>
         {
-            RequestId = r.RequestId,
-            UserId = r.UserId,
-            BranchId = r.BranchId,
-            BranchName = r.Branch.BranchName,
-            BranchCode = r.Branch.BranchCode,
-            RequestType = r.RequestType,
-            Reason = r.Reason,
-            Status = r.Status,
-            CreatedAt = ToUtc(r.CreatedAt),
-            ReviewedBy = r.ReviewedBy,
-            ReviewerFullName = r.ReviewedByNavigation?.FullName,
-            ReviewedAt = ToUtc(r.ReviewedAt),
-            ReviewNote = r.ReviewNote
+            StaffRequestShiftSummaryResponse? shiftSummary = null;
+            if (r.RequestType == "LEAVE" && r.LeaveRequestAssignments != null && r.LeaveRequestAssignments.Count > 0)
+            {
+                var firstLeave = r.LeaveRequestAssignments
+                    .Where(l => l.Assignment?.Shift != null)
+                    .OrderBy(l => l.Assignment.Shift.ScheduledStartAt)
+                    .FirstOrDefault();
+
+                if (firstLeave != null)
+                {
+                    shiftSummary = new StaffRequestShiftSummaryResponse
+                    {
+                        TotalShifts = r.LeaveRequestAssignments.Count,
+                        PrimaryShiftName = firstLeave.Assignment.Shift.ShiftNameSnapshot,
+                        PrimaryScheduledStartAt = ToUtc(firstLeave.Assignment.Shift.ScheduledStartAt),
+                        PrimaryScheduledEndAt = ToUtc(firstLeave.Assignment.Shift.ScheduledEndAt)
+                    };
+                }
+            }
+            else if ((r.RequestType is "LATE_ARRIVAL" or "EARLY_LEAVE") && r.TimeAdjustmentRequestDetail != null)
+            {
+                var tard = r.TimeAdjustmentRequestDetail;
+                var shift = tard.Assignment?.Shift;
+                shiftSummary = new StaffRequestShiftSummaryResponse
+                {
+                    TotalShifts = 1,
+                    PrimaryShiftName = shift?.ShiftNameSnapshot,
+                    PrimaryScheduledStartAt = shift != null ? ToUtc(shift.ScheduledStartAt) : null,
+                    PrimaryScheduledEndAt = shift != null ? ToUtc(shift.ScheduledEndAt) : null,
+                    RequestedTime = ToUtc(tard.RequestedTime)
+                };
+            }
+
+            return new StaffEmployeeRequestListItemResponse
+            {
+                RequestId = r.RequestId,
+                UserId = r.UserId,
+                BranchId = r.BranchId,
+                BranchName = r.Branch.BranchName,
+                BranchCode = r.Branch.BranchCode,
+                RequestType = r.RequestType,
+                Reason = r.Reason,
+                Status = r.Status,
+                CreatedAt = ToUtc(r.CreatedAt),
+                ReviewedBy = r.ReviewedBy,
+                ReviewerFullName = r.ReviewedByNavigation?.FullName,
+                ReviewedAt = ToUtc(r.ReviewedAt),
+                ReviewNote = r.ReviewNote,
+                ShiftSummary = shiftSummary
+            };
         }).ToList();
 
         return new PagedResponse<StaffEmployeeRequestListItemResponse>
