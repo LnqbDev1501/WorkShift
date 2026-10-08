@@ -1031,6 +1031,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.Status, e.StartDate, e.EndDate }, "ix_contracts_user_status_dates");
 
+            entity.HasIndex(e => e.CancelledBy, "ix_employment_contracts_cancelled_by");
+
             entity.HasIndex(e => e.UserId, "uq_one_active_contract_per_staff")
                 .IsUnique()
                 .HasFilter("((status)::text = 'ACTIVE'::text)");
@@ -1120,6 +1122,11 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.BranchId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_branch_id_fkey");
+
+            entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.EmploymentContractCancelledByNavigations)
+                .HasForeignKey(d => d.CancelledBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("employment_contracts_cancelled_by_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.EmploymentContractCreatedByNavigations)
                 .HasForeignKey(d => d.CreatedBy)

@@ -5,7 +5,7 @@ using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
 
-[Authorize(Roles = "ADMIN, MANAGER, ACCOUNTANT")]
+[Authorize(Roles = "ADMIN, MANAGER, ACCOUNTANT, STAFF")]
 public sealed class NotificationsController : Controller
 {
     private readonly NotificationApiService _notificationApiService;
@@ -40,12 +40,22 @@ public sealed class NotificationsController : Controller
             result.Filter = query.Filter;
             result.SortBy = query.SortBy;
             result.SortOrder = query.SortOrder;
+
+            try
+            {
+                ViewBag.UnreadCount = await _notificationApiService.GetUnreadCountAsync(cancellationToken);
+            }
+            catch
+            {
+                ViewBag.UnreadCount = 0;
+            }
+
             return View(result);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to retrieve personal notifications");
-            query.ErrorMessage = "Personal notifications are temporarily unavailable.";
+            query.ErrorMessage = "Thông báo cá nhân tạm thời không khả dụng.";
             return View(query);
         }
     }
@@ -89,13 +99,24 @@ public sealed class NotificationsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkAsRead(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> MarkAsRead(int id, string? returnUrl, CancellationToken cancellationToken)
     {
         try
         {
             var result = await _notificationApiService.MarkAsReadAsync(id, cancellationToken);
             if (!result)
                 return NotFound();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+                Request.Headers.Accept.ToString().Contains("application/json"))
+            {
+                return Json(new { success = true });
+            }
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
 
             return RedirectToAction(nameof(Personal));
         }

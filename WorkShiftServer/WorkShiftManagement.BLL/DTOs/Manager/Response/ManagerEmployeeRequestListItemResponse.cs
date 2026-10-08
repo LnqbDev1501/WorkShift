@@ -37,4 +37,14 @@ public class ManagerEmployeeRequestListItemResponse
     public DateTime? ReviewedAt { get; set; }
 
     public string? ReviewNote { get; set; }
+    public ManagerRequestShiftSummaryResponse? ShiftSummary { get; set; }
+}
+
+public class ManagerRequestShiftSummaryResponse
+{
+    public int TotalShifts { get; set; }
+    public string? PrimaryShiftName { get; set; }
+    public DateTime? PrimaryScheduledStartAt { get; set; }
+    public DateTime? PrimaryScheduledEndAt { get; set; }
+    public DateTime? RequestedTime { get; set; }
 }

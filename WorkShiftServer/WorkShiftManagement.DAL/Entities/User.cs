@@ -84,7 +84,6 @@ public partial class User
     public virtual EmployeeType? EmployeeType { get; set; }
 
     public virtual ICollection<EmploymentContract> EmploymentContractApprovedByNavigations { get; set; } = new List<EmploymentContract>();
-
     public virtual ICollection<EmploymentContract> EmploymentContractCreatedByNavigations { get; set; } = new List<EmploymentContract>();
 
     public virtual ICollection<EmploymentContract> EmploymentContractRejectedByNavigations { get; set; } = new List<EmploymentContract>();

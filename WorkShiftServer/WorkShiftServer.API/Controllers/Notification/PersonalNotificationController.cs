@@ -7,7 +7,7 @@ namespace WorkShiftServer.API.Controllers.Notification;
 
 [Route("api/notifications/personal")]
 [ApiController]
-[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT")]
+[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT,STAFF")]
 public sealed class PersonalNotificationController : ControllerBase
 {
     private readonly IPersonalNotificationService _service;

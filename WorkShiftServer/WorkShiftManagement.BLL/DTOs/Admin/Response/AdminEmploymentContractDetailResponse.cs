@@ -74,6 +74,13 @@ public class AdminEmploymentContractDetailResponse
 
     public string? TerminationReason { get; set; }
 
+    // Thông tin hủy hợp đồng
+    public Guid? CancelledBy { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public string? CancellationReason { get; set; }
+
     // Thông tin PDF
     public bool HasPdf { get; set; }
 

@@ -29,4 +29,14 @@ public class StaffEmployeeRequestListItemResponse
     public DateTime? ReviewedAt { get; set; }
 
     public string? ReviewNote { get; set; }
+    public StaffRequestShiftSummaryResponse? ShiftSummary { get; set; }
+}
+
+public class StaffRequestShiftSummaryResponse
+{
+    public int TotalShifts { get; set; }
+    public string? PrimaryShiftName { get; set; }
+    public DateTime? PrimaryScheduledStartAt { get; set; }
+    public DateTime? PrimaryScheduledEndAt { get; set; }
+    public DateTime? RequestedTime { get; set; }
 }

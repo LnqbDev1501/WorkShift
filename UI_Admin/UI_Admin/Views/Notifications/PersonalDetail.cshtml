@@ -1,59 +1,185 @@
 @model UI_Admin.Models.PersonalNotificationDetailViewModel
 @{
-    ViewData["Title"] = "Personal Notification Detail";
+    if (User.IsInRole("STAFF"))
+    {
+        Layout = "_StaffLayout";
+    }
+    ViewData["Title"] = "Notification Details";
+    var isContractRelated = (Model.Title?.Contains("hợp đồng", StringComparison.OrdinalIgnoreCase) ?? false)
+                         || (Model.Title?.Contains("contract", StringComparison.OrdinalIgnoreCase) ?? false)
+                         || (Model.Title?.Contains("EC-", StringComparison.OrdinalIgnoreCase) ?? false)
+                         || (Model.Message?.Contains("hợp đồng", StringComparison.OrdinalIgnoreCase) ?? false)
+                         || (Model.Message?.Contains("contract", StringComparison.OrdinalIgnoreCase) ?? false)
+                         || (Model.NotificationType?.Contains("Contract", StringComparison.OrdinalIgnoreCase) ?? false);
+    var isShiftRelated = (Model.Title?.Contains("ca", StringComparison.OrdinalIgnoreCase) ?? false)
+                      || (Model.Title?.Contains("shift", StringComparison.OrdinalIgnoreCase) ?? false)
+                      || (Model.Message?.Contains("ca làm", StringComparison.OrdinalIgnoreCase) ?? false)
+                      || (Model.Message?.Contains("shift", StringComparison.OrdinalIgnoreCase) ?? false)
+                      || (Model.NotificationType?.Contains("Shift", StringComparison.OrdinalIgnoreCase) ?? false);
 }
-@section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
 
-<section class="notifications-page detail-page">
-    <a asp-action="Personal" class="back-link">&larr; Back to Personal Notifications</a>
+<div class="p-6 max-w-[1000px] mx-auto space-y-6">
+    <!-- Top Nav / Back Action -->
+    <div class="flex items-center justify-between gap-4">
+        <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+            Back to Notifications
+        </a>
 
-    <header class="detail-header">
-        <div>
-            <div class="detail-badges">
-                <span class="type-pill">@Model.NotificationType</span>
-                <span class="status-pill @(Model.IsRead ? "read" : "unread")">
-                    @(Model.IsRead ? "Read" : "Unread")
-                    @if (Model.ReadAt.HasValue)
-                    {
-                        <span class="read-time">@Model.ReadAt.Value.ToLocalTime().ToString("dd MMM HH:mm")</span>
-                    }
-                </span>
-            </div>
-            <span class="eyebrow">NOTIFICATION #@Model.NotificationId</span>
-            <h1>@Model.Title</h1>
-            <p>&#9655; Received @Model.CreatedAt.ToLocalTime().ToString("dd MMM yyyy, HH:mm")
-               @if (Model.IsRead && Model.ReadAt.HasValue)
-               {
-                   <text><span class="dot">&bull;</span> <span class="check-mark">&#10003;</span> Read @Model.ReadAt.Value.ToLocalTime().ToString("dd MMM yyyy, HH:mm")</text>
-               }
-               <text><span class="dot">&bull;</span> &bull; Dispatched by <strong>@Model.CreatedByName</strong></text></p>
-        </div>
-    </header>
-
-    <div class="metric-grid">
-        <div><span>In-App recipients</span><strong>@Model.InAppRecipientCount</strong></div>
-        <div><span>Channels</span><strong>@string.Join(" + ", Model.Channels ?? Enumerable.Empty<string>())</strong></div>
-        <div><span>Target scope</span><strong>@(Model.TargetBranchId.HasValue ? $"Branch #{Model.TargetBranchId}" : Model.TargetRegionId.HasValue ? $"Region #{Model.TargetRegionId}" : "Organization / role")</strong></div>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            Notification ID: #@Model.NotificationId
+        </span>
     </div>
 
-    <article class="detail-card">
-        <div class="detail-card-heading">
-            <span class="payload-icon">&#9993;</span>
-            <div>
-                <span class="eyebrow">MESSAGE BODY</span>
-                <h2>Notification payload</h2>
+    <!-- Main Detail Card -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <!-- Card Header with Badges -->
+        <div class="p-6 border-b border-gray-100 bg-gradient-to-b from-gray-50/50 to-white">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    @(Model.NotificationType switch
+                    {
+                        "SYSTEM" => "System",
+                        "ShiftAssignment" => "Shift Assignment",
+                        "Broadcast" => "Broadcast",
+                        _ => Model.NotificationType
+                    })
+                </span>
+
+                @if (Model.IsRead)
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <span class="material-symbols-outlined text-[14px]">done_all</span>
+                        Read
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse"></span>
+                        Unread
+                    </span>
+                }
+
+                @if (Model.Channels != null && Model.Channels.Count > 0)
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
+                        <span class="material-symbols-outlined text-[14px]">cell_tower</span>
+                        @string.Join(" • ", Model.Channels.Select(c => c == "InApp" ? "In-App" : c == "Email" ? "Email" : c))
+                    </span>
+                }
+            </div>
+
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+                @Model.Title
+            </h1>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100 text-xs text-gray-600">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gray-400 text-[18px]">calendar_today</span>
+                    <div>
+                        <p class="text-gray-400 text-[10px]">Received At</p>
+                        <p class="font-semibold text-gray-800">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gray-400 text-[18px]">person</span>
+                    <div>
+                        <p class="text-gray-400 text-[10px]">Sender</p>
+                        <p class="font-semibold text-gray-800">@(string.IsNullOrWhiteSpace(Model.CreatedByName) ? "WorkShift System" : Model.CreatedByName)</p>
+                    </div>
+                </div>
+
+                @if (Model.IsRead && Model.ReadAt.HasValue)
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-500 text-[18px]">visibility</span>
+                        <div>
+                            <p class="text-gray-400 text-[10px]">Viewed At</p>
+                            <p class="font-semibold text-emerald-700">@Model.ReadAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
-        <p class="message-body">@Model.Message</p>
-    </article>
 
-    @if (!Model.IsRead)
-    {
-        <div class="detail-actions">
-            <form asp-action="MarkAsRead" asp-route-id="@Model.UserNotificationId" method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-primary">&#10003; Mark as Read</button>
-            </form>
+        <!-- Message Body -->
+        <div class="p-6 sm:p-8 space-y-6">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">mail</span>
+                </div>
+                <div class="flex-1 space-y-2">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Notification Message</h2>
+                    <div class="text-sm sm:text-base text-gray-800 font-normal leading-relaxed whitespace-pre-line bg-gray-50/70 p-5 rounded-2xl border border-gray-100">
+                        @Model.Message
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contextual Contract Action Banner if related -->
+            @if (isContractRelated)
+            {
+                <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5">
+                        <span class="material-symbols-outlined text-emerald-600 text-[26px] flex-shrink-0 mt-0.5">description</span>
+                        <div class="space-y-0.5">
+                            <h3 class="text-sm font-bold text-emerald-950">Related Employment Contract</h3>
+                            <p class="text-xs text-emerald-800">
+                                You can review contract terms, view salary calculation snapshots, and confirm your contract in the Employment Contracts portal.
+                            </p>
+                        </div>
+                    </div>
+                    <a asp-controller="StaffContracts" asp-action="Index"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm hover:shadow transition-all flex-shrink-0">
+                        <span>Go to Contracts</span>
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </a>
+                </div>
+            }
+
+            @if (isShiftRelated)
+            {
+                <div class="bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5">
+                        <span class="material-symbols-outlined text-indigo-600 text-[26px] flex-shrink-0 mt-0.5">schedule</span>
+                        <div class="space-y-0.5">
+                            <h3 class="text-sm font-bold text-indigo-950">Work Schedule &amp; Shift Assignment</h3>
+                            <p class="text-xs text-indigo-800">
+                                View your upcoming shift roster and scheduled working hours.
+                            </p>
+                        </div>
+                    </div>
+                    <a asp-controller="Landing" asp-action="Staff"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm hover:shadow transition-all flex-shrink-0">
+                        <span>View Shift Overview</span>
+                        <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </a>
+                </div>
+            }
         </div>
-    }
-</section>
+
+        <!-- Footer Actions -->
+        <div class="p-6 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
+            <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                Back to Notifications
+            </a>
+
+            <div class="flex items-center gap-2">
+                @if (!Model.IsRead)
+                {
+                    <form asp-action="MarkAsRead" asp-route-id="@Model.UserNotificationId" method="post" class="inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="@Url.Action("PersonalDetail", new { id = Model.UserNotificationId })" />
+                        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all">
+                            <span class="material-symbols-outlined text-[16px]">done</span>
+                            Mark as Read
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

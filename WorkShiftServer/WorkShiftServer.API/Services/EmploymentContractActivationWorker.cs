@@ -50,12 +50,6 @@ public class EmploymentContractActivationWorker : BackgroundService
                 {
                     _logger.LogInformation("Employment Contract Activation Worker expired {Count} contract(s) past end date.", expiredCount);
                 }
-
-                var cancelledCount = await contractService.CancelOverduePendingContractsAsync(stoppingToken);
-                if (cancelledCount > 0)
-                {
-                    _logger.LogInformation("Employment Contract Activation Worker auto-cancelled {Count} overdue pending contract(s).", cancelledCount);
-                }
             }
             catch (Exception exception)
             {

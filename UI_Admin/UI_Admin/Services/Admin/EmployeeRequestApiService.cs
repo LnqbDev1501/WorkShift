@@ -174,33 +174,52 @@ public class EmployeeRequestApiService
     }
 
     /// <summary>
-    /// GET /api/admin/branches?pageSize=100&status=ACTIVE — retrieves active branches for dropdown.
+    /// GET /api/admin/branches — retrieves all branches (including historical/inactive) for filter dropdown.
+    /// Supports multi-page loading so it does not silently cap at 100 branches.
     /// </summary>
     public async Task<List<BranchFilterOptionViewModel>> GetBranchesAsync(
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl}/api/admin/branches?pageSize=100&status=ACTIVE";
+        var allBranches = new List<BranchFilterOptionViewModel>();
+        var pageNumber = 1;
+        const int pageSize = 100;
+        var totalPages = 1;
 
         try
         {
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            do
             {
-                return [];
-            }
+                var url = $"{_apiBaseUrl}/api/admin/branches?pageSize={pageSize}&pageNumber={pageNumber}";
+                using var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    break;
+                }
 
-            var result = await response.Content.ReadFromJsonAsync<PagedApiResponse<BranchApiItem>>(JsonOptions, cancellationToken);
-            return result?.Items?.ConvertAll(b => new BranchFilterOptionViewModel
-            {
-                BranchId = b.BranchId,
-                BranchName = b.BranchName,
-                BranchCode = b.BranchCode
-            }) ?? [];
+                var result = await response.Content.ReadFromJsonAsync<PagedApiResponse<BranchApiItem>>(JsonOptions, cancellationToken);
+                if (result?.Items != null && result.Items.Count > 0)
+                {
+                    allBranches.AddRange(result.Items.Select(b => new BranchFilterOptionViewModel
+                    {
+                        BranchId = b.BranchId,
+                        BranchName = b.BranchName,
+                        BranchCode = b.BranchCode
+                    }));
+                    totalPages = result.TotalPages > 0 ? result.TotalPages : 1;
+                    pageNumber++;
+                }
+                else
+                {
+                    break;
+                }
+            } while (pageNumber <= totalPages && pageNumber <= 10);
         }
         catch
         {
-            return [];
+            // Return whatever loaded or empty
         }
+
+        return allBranches;
     }
 
     private class PagedApiResponse<T>

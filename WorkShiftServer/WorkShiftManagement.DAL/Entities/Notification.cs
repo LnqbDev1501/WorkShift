@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -21,15 +21,15 @@ public partial class Notification
 
     public bool IsDeleted { get; set; }
 
-    public string TargetType { get; set; } = null!;
+    public string TargetType { get; set; } = "All";
 
     public int? TargetRegionId { get; set; }
 
     public int? TargetBranchId { get; set; }
 
-    public List<string> Channels { get; set; } = null!;
+    public List<string> Channels { get; set; } = new() { "InApp" };
 
-    public List<string> TargetRoles { get; set; } = null!;
+    public List<string> TargetRoles { get; set; } = new();
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 

@@ -75,4 +75,23 @@ public class EmploymentContractApiService
 
         return await response.Content.ReadFromJsonAsync<EmploymentContractDetailViewModel>(cancellationToken: cancellationToken);
     }
+
+    /// <summary>
+    /// GET /api/admin/contracts/{contractId}/history — returns contract audit history or null on error.
+    /// </summary>
+    public async Task<EmploymentContractHistoryViewModel?> GetHistoryAsync(
+        int contractId,
+        int pageNumber = 1,
+        int pageSize = 50,
+        string? sort = "desc",
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/contracts/{contractId}/history?pageNumber={pageNumber}&pageSize={pageSize}&sort={sort}";
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<EmploymentContractHistoryViewModel>(cancellationToken: cancellationToken);
+    }
 }

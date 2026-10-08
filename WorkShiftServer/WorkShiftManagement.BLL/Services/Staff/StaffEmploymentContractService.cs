@@ -5,18 +5,27 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Staff;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Models.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public class StaffEmploymentContractService(
     IEmploymentContractRepo repository,
-    ICloudinaryService? cloudinaryService = null) : IStaffEmploymentContractService
+    ICloudinaryService? cloudinaryService = null,
+    INotificationRealtimePublisher? realtimePublisher = null,
+    INotificationEmailSender? emailSender = null,
+    ILogger<StaffEmploymentContractService>? logger = null,
+    IConfiguration? configuration = null) : IStaffEmploymentContractService
 {
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
 
@@ -175,7 +184,11 @@ public class StaffEmploymentContractService(
                 Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã chấp nhận hợp đồng lao động {contract.ContractNumber}. Trạng thái hợp đồng: {newStatus}.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
                 CreatedAt = nowUtc,
+                UpdatedAt = nowUtc,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
@@ -212,11 +225,16 @@ public class StaffEmploymentContractService(
             throw new InvalidOperationException("Hợp đồng này đang có một yêu cầu thay đổi chưa hoàn tất.");
 
         var now = DateTime.UtcNow;
+        var cleanRequestType = (!string.IsNullOrWhiteSpace(request.RequestType) &&
+            string.Equals(request.RequestType.Trim(), "ACCEPTANCE", StringComparison.OrdinalIgnoreCase))
+            ? "ACCEPTANCE"
+            : "CHANGE_REQUEST";
+
         var changeRequest = new ContractChangeRequest
         {
             ContractId = contractId,
             RequestedBy = staffUserId,
-            RequestType = !string.IsNullOrWhiteSpace(request.RequestType) ? request.RequestType.Trim() : "MODIFICATION",
+            RequestType = cleanRequestType,
             StaffComment = request.StaffComment?.Trim(),
             Status = "SUBMITTED",
             SubmittedAt = now,
@@ -260,7 +278,11 @@ public class StaffEmploymentContractService(
                 Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã gửi yêu cầu thay đổi hợp đồng {contract.ContractNumber}. Vui lòng xem xét và phản hồi.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
+                TargetType = "Branch",
+                Channels = new() { "InApp" },
+                TargetRoles = new(),
                 CreatedAt = now,
+                UpdatedAt = now,
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
@@ -345,7 +367,61 @@ public class StaffEmploymentContractService(
     public async Task<int> CancelOverduePendingContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
-        return await repository.CancelOverduePendingContractsAsync(todayVn, cancellationToken);
+        var result = await repository.CancelOverduePendingContractsAsync(todayVn, cancellationToken);
+
+        if (result.Dispatches != null && result.Dispatches.Count > 0)
+        {
+            var isEmailEnabled = configuration == null ||
+                (!string.IsNullOrWhiteSpace(configuration["Resend:ApiKey"]) &&
+                 !string.IsNullOrWhiteSpace(configuration["Resend:NotificationTemplateId"]));
+
+            foreach (var dispatch in result.Dispatches)
+            {
+                // 1. Push Realtime SignalR notification
+                if (realtimePublisher != null)
+                {
+                    var realtimeNotif = new RealtimeNotificationResponse
+                    {
+                        NotificationId = dispatch.NotificationId,
+                        Title = dispatch.Title,
+                        Message = dispatch.Content,
+                        CreatedAt = dispatch.CreatedAt
+                    };
+
+                    foreach (var targetUserId in dispatch.RecipientUserIds)
+                    {
+                        try
+                        {
+                            await realtimePublisher.PublishAsync(targetUserId, realtimeNotif);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.LogWarning(ex, "Failed to publish SignalR notification to user {UserId} for contract {ContractNumber}",
+                                targetUserId, dispatch.ContractNumber);
+                        }
+                    }
+                }
+
+                // 2. Send email via Resend if email channel enabled and configured
+                if (emailSender != null && dispatch.HasEmailChannel && isEmailEnabled)
+                {
+                    foreach (var email in dispatch.RecipientEmails)
+                    {
+                        try
+                        {
+                            await emailSender.SendAsync(email, dispatch.Title, dispatch.Content);
+                        }
+                        catch (Exception ex)
+                        {
+                            logger?.LogWarning(ex, "Failed to send Resend email to {Email} for contract {ContractNumber}",
+                                email, dispatch.ContractNumber);
+                        }
+                    }
+                }
+            }
+        }
+
+        return result.CancelledCount;
     }
 
     private static DateOnly GetCurrentVietnamDate()

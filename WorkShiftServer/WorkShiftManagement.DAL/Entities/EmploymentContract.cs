@@ -88,7 +88,6 @@ public partial class EmploymentContract
     public virtual User? ApprovedByNavigation { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
-
     public virtual ContractChangeRequest? ContractChangeRequest { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using UI_Admin.Models.Manager;
+using UI_Admin.Models.Manager.Contract;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers;
@@ -66,7 +67,11 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     }
 
     [HttpGet]
-    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Details(
+        int id,
+        int historyPage = 1,
+        int historyPageSize = 10,
+        CancellationToken cancellationToken = default)
     {
         if (id <= 0)
             return RedirectToAction(nameof(Index));
@@ -74,6 +79,30 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             var contract = await api.GetByIdAsync(id, cancellationToken);
+            historyPage = Math.Max(1, historyPage);
+            historyPageSize = Math.Clamp(historyPageSize, 1, 50);
+
+            try
+            {
+                contract.History = await api.GetHistoryAsync(
+                    id,
+                    pageNumber: historyPage,
+                    pageSize: historyPageSize,
+                    sort: "desc",
+                    ct: cancellationToken);
+
+                if (contract.History == null)
+                {
+                    contract.HistoryLoadFailed = true;
+                    contract.HistoryErrorMessage = "Không thể tải dữ liệu lịch sử hợp đồng từ máy chủ.";
+                }
+            }
+            catch (Exception ex)
+            {
+                contract.HistoryLoadFailed = true;
+                contract.HistoryErrorMessage = "Lỗi kết nối khi tải lịch sử hợp đồng: " + ex.Message;
+            }
+
             return View(contract);
         }
         catch (HttpRequestException ex)
@@ -348,6 +377,120 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             TempData["ErrorMessage"] = ex.Message;
             return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    // ==========================================
+    // Contract Change Requests
+    // ==========================================
+
+    [HttpGet]
+    public async Task<IActionResult> ChangeRequests(
+        string? status = "SUBMITTED",
+        int page = 1,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var model = await api.GetChangeRequestsPagedAsync(status, page, 10, cancellationToken);
+            return View(model);
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
+            TempData["ErrorMessage"] = $"Không tải được danh sách yêu cầu thay đổi: {ex.Message}";
+            return View(new ManagerContractChangeRequestListViewModel { StatusFilter = status });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Đã xảy ra lỗi: {ex.Message}";
+            return View(new ManagerContractChangeRequestListViewModel { StatusFilter = status });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ChangeRequestDetails(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(ChangeRequests));
+        try
+        {
+            var detail = await api.GetChangeRequestByIdAsync(id, cancellationToken);
+            return View(detail);
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(ChangeRequests));
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Không tìm thấy chi tiết yêu cầu thay đổi: {ex.Message}";
+            return RedirectToAction(nameof(ChangeRequests));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ApproveChangeRequest(
+        int id,
+        ApproveContractChangeRequestViewModel model,
+        CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(ChangeRequests));
+
+        try
+        {
+            await api.ApproveChangeRequestAsync(id, model, cancellationToken);
+            TempData["SuccessMessage"] = "Đã phê duyệt và cập nhật hợp đồng thành công. Hợp đồng phiên bản mới đã được gửi cho nhân viên để xác nhận.";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            TempData["ErrorMessage"] = $"Không thể phê duyệt yêu cầu: {ex.Message}";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Đã xảy ra lỗi khi phê duyệt yêu cầu: {ex.Message}";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RejectChangeRequest(
+        int id,
+        RejectContractChangeRequestViewModel model,
+        CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(ChangeRequests));
+
+        if (string.IsNullOrWhiteSpace(model.Reason))
+        {
+            TempData["ErrorMessage"] = "Lý do từ chối yêu cầu là bắt buộc.";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+
+        try
+        {
+            await api.RejectChangeRequestAsync(id, model.Reason, cancellationToken);
+            TempData["SuccessMessage"] = "Đã từ chối yêu cầu thay đổi hợp đồng. Trạng thái hợp đồng đã được khôi phục.";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            TempData["ErrorMessage"] = $"Không thể từ chối yêu cầu: {ex.Message}";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = $"Đã xảy ra lỗi khi từ chối yêu cầu: {ex.Message}";
+            return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
     }
 

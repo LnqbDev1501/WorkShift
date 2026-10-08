@@ -2,7 +2,7 @@
 @using UI_Admin.Helpers
 
 @{
-    ViewData["Title"] = $"Request #{Model.RequestId} - Details";
+    ViewData["Title"] = $"Request Details #{Model.RequestId}";
     var reqType = Model.RequestType?.ToUpperInvariant() ?? "";
     var statusUpper = Model.Status?.ToUpperInvariant() ?? "";
 
@@ -20,12 +20,12 @@
         <div class="flex items-center gap-3">
             <a href="@backUrl"
                class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0 shadow-sm"
-               title="Back to employee requests">
+               title="Back to request list">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
             <div>
                 <div class="flex flex-wrap items-center gap-2.5">
-                    <h1 class="text-display-md font-bold tracking-tight text-on-surface">Request #@Model.RequestId</h1>
+                    <h1 class="text-display-md font-bold tracking-tight text-on-surface">Employee Request #@Model.RequestId</h1>
 
                     <!-- Request Type Badge -->
                     @switch (reqType)
@@ -47,7 +47,7 @@
                             break;
                         default:
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                                @Model.RequestType
+                                @(string.IsNullOrWhiteSpace(Model.RequestType) ? "No data" : Model.RequestType)
                             </span>
                             break;
                     }
@@ -77,12 +77,16 @@
                             break;
                         default:
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
-                                @Model.Status
+                                @(string.IsNullOrWhiteSpace(Model.Status) ? "No data" : Model.Status)
                             </span>
                             break;
                     }
                 </div>
-                <p class="text-xs text-secondary mt-0.5">Submitted: @Model.CreatedAt.ToVnDateTimeString() (VN Time) &bull; Updated: @Model.UpdatedAt.ToVnDateTimeString()</p>
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-secondary mt-1">
+                    <span>Submission Date: <strong class="text-on-surface">@Model.CreatedAt.ToVnDateTimeString()</strong> (VN Time UTC+7)</span>
+                    <span>&bull;</span>
+                    <span>Last updated: @Model.UpdatedAt.ToVnDateTimeString()</span>
+                </div>
             </div>
         </div>
     </div>
@@ -92,19 +96,19 @@
     {
         <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-3">
             <span class="material-symbols-outlined text-rose-600 text-[24px] mt-0.5 shrink-0">cancel</span>
-            <div>
-                <p class="font-semibold text-rose-800 text-sm">Request Rejected</p>
+            <div class="w-full">
+                <p class="font-semibold text-rose-800 text-sm">Request has been rejected</p>
                 <p class="text-rose-700 text-xs mt-1">
-                    Reviewed by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Manager" : Model.ReviewerFullName)</strong>
+                    Reviewed by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "No data" : Model.ReviewerFullName)</strong>
                     @if (Model.ReviewedAt.HasValue)
                     {
-                        <span> on @Model.ReviewedAt.ToVnDateTimeString()</span>
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString() (VN Time)</span>
                     }
                 </p>
                 @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
                 {
                     <div class="mt-2 text-xs text-rose-900 bg-white/70 p-2.5 rounded-lg border border-rose-200">
-                        <strong>Rejection Note:</strong> @Model.ReviewNote
+                        <strong>Rejection Reason:</strong> @Model.ReviewNote
                     </div>
                 }
             </div>
@@ -114,13 +118,13 @@
     {
         <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
             <span class="material-symbols-outlined text-emerald-600 text-[24px] mt-0.5 shrink-0">check_circle</span>
-            <div>
-                <p class="font-semibold text-emerald-800 text-sm">Request Approved</p>
+            <div class="w-full">
+                <p class="font-semibold text-emerald-800 text-sm">Request has been approved</p>
                 <p class="text-emerald-700 text-xs mt-1">
-                    Approved by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Manager" : Model.ReviewerFullName)</strong>
+                    Approved by: <strong class="font-medium">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "No data" : Model.ReviewerFullName)</strong>
                     @if (Model.ReviewedAt.HasValue)
                     {
-                        <span> on @Model.ReviewedAt.ToVnDateTimeString()</span>
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString() (VN Time)</span>
                     }
                 </p>
                 @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
@@ -137,8 +141,18 @@
         <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
             <span class="material-symbols-outlined text-slate-600 text-[24px] mt-0.5 shrink-0">cancel</span>
             <div>
-                <p class="font-semibold text-slate-800 text-sm">Request Cancelled by Employee</p>
-                <p class="text-slate-600 text-xs mt-0.5">This request was cancelled by the employee and is no longer active.</p>
+                <p class="font-semibold text-slate-800 text-sm">Request was cancelled by employee</p>
+                <p class="text-slate-600 text-xs mt-0.5">The employee cancelled this request and it is no longer pending approval.</p>
+            </div>
+        </div>
+    }
+    else if (statusUpper == "PENDING")
+    {
+        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-amber-600 text-[24px] mt-0.5 shrink-0">hourglass_top</span>
+            <div>
+                <p class="font-semibold text-amber-800 text-sm">Pending Review</p>
+                <p class="text-amber-700 text-xs mt-0.5">This request is waiting for branch manager review.</p>
             </div>
         </div>
     }
@@ -154,8 +168,9 @@
                 <div class="flex items-center justify-between pb-4 mb-4 border-b border-surface-container-high/40">
                     <div class="flex items-center gap-2">
                         <span class="material-symbols-outlined text-[20px] text-primary">schedule</span>
-                        <h2 class="font-title-md text-base font-bold text-on-surface">Related Shift Details</h2>
+                        <h2 class="font-title-md text-base font-bold text-on-surface">Shift / Applicable Date</h2>
                     </div>
+                    <span class="text-xs text-secondary font-medium bg-surface-container-low px-2.5 py-1 rounded-lg">Timezone: Vietnam (UTC+7)</span>
                 </div>
 
                 @if (reqType == "LEAVE")
@@ -168,36 +183,32 @@
                                     <tr class="h-10 bg-surface-container-low text-secondary text-xs uppercase tracking-wider font-semibold">
                                         <th class="px-4 py-2">Shift ID</th>
                                         <th class="px-4 py-2">Shift Name</th>
-                                        <th class="px-4 py-2">Shift Date (VN)</th>
-                                        <th class="px-4 py-2">Shift Hours (VN)</th>
+                                        <th class="px-4 py-2">Shift Time (VN Time)</th>
                                         <th class="px-4 py-2">Branch</th>
-                                        <th class="px-4 py-2">Status</th>
+                                        <th class="px-4 py-2">Assignment Status</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-surface-container-high/40">
                                     @foreach (var shift in Model.LeaveAssignments)
                                     {
                                         <tr class="hover:bg-surface-container-low/40 transition-colors">
-                                            <td class="px-4 py-3 font-mono text-xs font-semibold text-on-surface">#@shift.ShiftId</td>
+                                             <td class="px-4 py-3 font-mono text-xs font-semibold text-on-surface">#@shift.ShiftId</td>
                                             <td class="px-4 py-3">
-                                                <div class="font-medium text-on-surface">@shift.ShiftName</div>
+                                                <div class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(shift.ShiftName) ? "No data" : shift.ShiftName)</div>
                                                 @if (!string.IsNullOrWhiteSpace(shift.ShiftTemplateName))
                                                 {
                                                     <div class="text-xs text-secondary">(@shift.ShiftTemplateName)</div>
                                                 }
                                             </td>
-                                            <td class="px-4 py-3 font-medium text-on-surface tabular-nums">
-                                                @shift.ScheduledStartAt.ToVnDateString()
-                                            </td>
-                                            <td class="px-4 py-3 tabular-nums text-secondary font-medium">
-                                                @shift.ScheduledStartAt.ToVnTimeString() &ndash; @shift.ScheduledEndAt.ToVnTimeString()
+                                            <td class="px-4 py-3 font-medium text-on-surface">
+                                                @DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)
                                             </td>
                                             <td class="px-4 py-3 text-secondary">
-                                                @(string.IsNullOrWhiteSpace(shift.BranchName) ? Model.BranchName : shift.BranchName)
+                                                @(string.IsNullOrWhiteSpace(shift.BranchName) ? (string.IsNullOrWhiteSpace(Model.BranchName) ? "No data" : Model.BranchName) : shift.BranchName)
                                             </td>
                                             <td class="px-4 py-3">
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                                                    @shift.AssignmentStatus
+                                                    @(string.IsNullOrWhiteSpace(shift.AssignmentStatus) ? "No data" : shift.AssignmentStatus)
                                                 </span>
                                             </td>
                                         </tr>
@@ -208,7 +219,7 @@
                     }
                     else
                     {
-                        <p class="text-sm text-secondary italic">No shift information available.</p>
+                        <p class="text-sm text-secondary italic">No leave shift assignments available.</p>
                     }
                 }
                 else if (reqType is "LATE_ARRIVAL" or "EARLY_LEAVE")
@@ -220,39 +231,39 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <!-- Original Shift -->
                             <div class="p-4 rounded-xl bg-surface-container-low/60 border border-surface-container-high/50 flex flex-col gap-2">
-                                <span class="text-xs font-semibold uppercase tracking-wider text-secondary">Original Shift Information</span>
-                                <div class="text-base font-bold text-on-surface">@tard.ShiftName</div>
+                                <span class="text-xs font-semibold uppercase tracking-wider text-secondary">Original Shift</span>
+                                <div class="text-base font-bold text-on-surface">@(string.IsNullOrWhiteSpace(tard.ShiftName) ? "No data" : tard.ShiftName)</div>
                                 @if (!string.IsNullOrWhiteSpace(tard.ShiftTemplateName))
                                 {
                                     <div class="text-xs text-secondary -mt-1">Template: @tard.ShiftTemplateName</div>
                                 }
                                 <div class="flex items-center gap-2 text-sm text-secondary mt-1">
-                                    <span class="material-symbols-outlined text-[18px]">calendar_month</span>
-                                    <span>Date: <strong class="text-on-surface">@tard.ScheduledStartAt.ToVnDateString()</strong></span>
-                                </div>
-                                <div class="flex items-center gap-2 text-sm text-secondary">
                                     <span class="material-symbols-outlined text-[18px]">schedule</span>
-                                    <span>Shift Hours: <strong class="text-on-surface">@tard.ScheduledStartAt.ToVnTimeString() &ndash; @tard.ScheduledEndAt.ToVnTimeString()</strong></span>
+                                    <span>Time: <strong class="text-on-surface">@DateTimeHelper.FormatShiftTimeRange(tard.ScheduledStartAt, tard.ScheduledEndAt)</strong></span>
                                 </div>
                                 <div class="flex items-center gap-2 text-xs text-secondary mt-1">
                                     <span>Assignment Status:</span>
-                                    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">@tard.AssignmentStatus</span>
+                                    <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">@(string.IsNullOrWhiteSpace(tard.AssignmentStatus) ? "No data" : tard.AssignmentStatus)</span>
+                                </div>
+                                <div class="text-xs text-secondary mt-1 font-mono">
+                                    Assignment ID: #@tard.AssignmentId
                                 </div>
                             </div>
 
                             <!-- Proposed Time -->
                             <div class="p-4 rounded-xl @(isLate ? "bg-amber-50/70 border-amber-200" : "bg-purple-50/70 border-purple-200") border flex flex-col gap-2">
                                 <span class="text-xs font-semibold uppercase tracking-wider @(isLate ? "text-amber-800" : "text-purple-800")">
-                                    @(isLate ? "Proposed Arrival Time" : "Proposed Departure Time")
+                                    @(isLate ? "Requested Arrival Time" : "Requested Departure Time")
                                 </span>
                                 <div class="text-2xl font-bold @(isLate ? "text-amber-900" : "text-purple-900") tabular-nums mt-1">
                                     @tard.RequestedTime.ToVnTimeString()
                                 </div>
                                 <div class="text-xs @(isLate ? "text-amber-800" : "text-purple-800") mt-0.5">
-                                    Date: @tard.RequestedTime.ToVnDateString() (Vietnam Time UTC+7)
+                                    Applicable Date: @tard.RequestedTime.ToVnDateString() (VN Time UTC+7)
                                 </div>
-                                <div class="mt-2 text-xs text-secondary pt-2 border-t @(isLate ? "border-amber-200/60" : "border-purple-200/60")">
-                                    Shift Assignment ID: <span class="font-mono font-semibold">#@tard.AssignmentId</span>
+                                <div class="mt-3 p-2.5 rounded-lg bg-white/80 border @(isLate ? "border-amber-200 text-amber-900" : "border-purple-200 text-purple-900") text-xs flex items-start gap-2">
+                                    <span class="material-symbols-outlined text-[16px] shrink-0 mt-0.5">info</span>
+                                    <span><strong>Note:</strong> This is the employee's requested time, not actual check-in/check-out time.</span>
                                 </div>
                             </div>
                         </div>
@@ -264,14 +275,14 @@
                 }
             </div>
 
-            <!-- Card 2: Request Reason & Note -->
+            <!-- Card 2: Request Reason -->
             <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
                 <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
                     <span class="material-symbols-outlined text-[20px] text-primary">notes</span>
                     <h2 class="font-title-md text-base font-bold text-on-surface">Request Reason</h2>
                 </div>
                 <div class="bg-surface-container-low rounded-xl p-4 text-on-surface text-sm leading-relaxed whitespace-pre-wrap">
-                    @(string.IsNullOrWhiteSpace(Model.Reason) ? "No reason provided." : Model.Reason)
+                    @(string.IsNullOrWhiteSpace(Model.Reason) ? "No reason provided" : Model.Reason)
                 </div>
             </div>
 
@@ -279,24 +290,26 @@
             <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
                 <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
                     <span class="material-symbols-outlined text-[20px] text-primary">verified_user</span>
-                    <h2 class="font-title-md text-base font-bold text-on-surface">Branch Manager Review</h2>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Manager Review Details</h2>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div class="flex flex-col gap-1">
-                        <span class="text-xs text-secondary font-medium">Reviewed By:</span>
-                        <span class="font-semibold text-on-surface">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "—" : Model.ReviewerFullName)</span>
+                        <span class="text-xs text-secondary font-medium">Reviewed by:</span>
+                        <span class="font-semibold text-on-surface">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "No data" : Model.ReviewerFullName)</span>
                     </div>
                     <div class="flex flex-col gap-1">
-                        <span class="text-xs text-secondary font-medium">Review Time (VN):</span>
-                        <span class="font-semibold text-on-surface tabular-nums">@Model.ReviewedAt.ToVnDateTimeString()</span>
+                        <span class="text-xs text-secondary font-medium">Review Time:</span>
+                        <span class="font-semibold text-on-surface tabular-nums">
+                            @(Model.ReviewedAt.HasValue ? Model.ReviewedAt.ToVnDateTimeString() + " (VN Time)" : "No data")
+                        </span>
                     </div>
                 </div>
 
                 @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
                 {
                     <div class="mt-4 pt-3 border-t border-surface-container-high/40">
-                        <span class="text-xs text-secondary font-medium block mb-1">Manager Note:</span>
+                        <span class="text-xs text-secondary font-medium block mb-1">Reviewer Note:</span>
                         <div class="bg-surface-container-low rounded-lg p-3 text-sm text-on-surface leading-relaxed whitespace-pre-wrap">
                             @Model.ReviewNote
                         </div>
@@ -328,7 +341,7 @@
                         </div>
                     }
                     <div class="flex flex-col min-w-0">
-                        <span class="font-bold text-on-surface text-base truncate">@Model.EmployeeFullName</span>
+                        <span class="font-bold text-on-surface text-base truncate">@(string.IsNullOrWhiteSpace(Model.EmployeeFullName) ? "No data" : Model.EmployeeFullName)</span>
                         <span class="text-xs text-secondary truncate">Branch Staff</span>
                     </div>
                 </div>
@@ -336,15 +349,15 @@
                 <div class="flex flex-col gap-3 text-sm pt-2 border-t border-surface-container-high/40">
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-secondary">Email:</span>
-                        <span class="font-medium text-on-surface truncate max-w-[180px]" title="@Model.EmployeeEmail">@Model.EmployeeEmail</span>
+                        <span class="font-medium text-on-surface truncate max-w-[180px]" title="@Model.EmployeeEmail">@(string.IsNullOrWhiteSpace(Model.EmployeeEmail) ? "No data" : Model.EmployeeEmail)</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-secondary">Phone:</span>
-                        <span class="font-medium text-on-surface">@Model.EmployeePhone</span>
+                        <span class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(Model.EmployeePhone) ? "No data" : Model.EmployeePhone)</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-xs text-secondary">Branch:</span>
-                        <span class="font-medium text-on-surface">@Model.BranchName (@Model.BranchCode)</span>
+                        <span class="font-medium text-on-surface">@(string.IsNullOrWhiteSpace(Model.BranchName) ? "No data" : $"{Model.BranchName} ({Model.BranchCode})")</span>
                     </div>
                 </div>
             </div>
@@ -353,7 +366,7 @@
             <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60">
                 <div class="flex items-center gap-2 pb-3 mb-3 border-b border-surface-container-high/40">
                     <span class="material-symbols-outlined text-[20px] text-primary">rule</span>
-                    <h2 class="font-title-md text-base font-bold text-on-surface">Applied Limit Rule</h2>
+                    <h2 class="font-title-md text-base font-bold text-on-surface">Applied Request Rule</h2>
                 </div>
 
                 @if (Model.AppliedRule != null)
@@ -366,14 +379,14 @@
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-xs text-secondary">Monthly Limit:</span>
-                            <span class="font-semibold text-on-surface">@rule.MaxRequestsPerMonth request(s)</span>
+                            <span class="font-semibold text-on-surface">@rule.MaxRequestsPerMonth requests/month</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-secondary">Minimum Advance:</span>
-                            <span class="font-semibold text-on-surface">At least @rule.MinimumAdvanceDays day(s)</span>
+                            <span class="text-xs text-secondary">Minimum Advance Notice:</span>
+                            <span class="font-semibold text-on-surface">At least @rule.MinimumAdvanceDays days</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-secondary">Submission Deadline Day:</span>
+                            <span class="text-xs text-secondary">Submission Deadline:</span>
                             <span class="font-medium text-on-surface">@DateTimeHelper.FormatDayOfWeek(rule.SubmissionDeadlineDayOfWeek)</span>
                         </div>
                         <div class="flex items-center justify-between">
@@ -389,14 +402,14 @@
                         <div class="flex items-center justify-between pt-1">
                             <span class="text-xs text-secondary">Rule Status:</span>
                             <span class="px-2 py-0.5 rounded text-xs font-semibold @(rule.Status == "ACTIVE" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-gray-100 text-gray-700")">
-                                @rule.Status
+                                @(rule.Status == "ACTIVE" ? "Active" : (string.IsNullOrWhiteSpace(rule.Status) ? "No data" : rule.Status))
                             </span>
                         </div>
                     </div>
                 }
                 else
                 {
-                    <p class="text-xs text-secondary italic">No limit rule information recorded for this request.</p>
+                    <p class="text-xs text-secondary italic">No request limit rule applied for this request.</p>
                 }
             </div>
 
