@@ -85,18 +85,9 @@ public partial class EmploymentContract
 
     public DateTime? TerminationEffectiveAt { get; set; }
 
-    public string? CancellationReason { get; set; }
-
-    public DateTime? CancelledAt { get; set; }
-
-    public Guid? CancelledBy { get; set; }
-
     public virtual User? ApprovedByNavigation { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
-
-    public virtual User? CancelledByNavigation { get; set; }
-
     public virtual ContractChangeRequest? ContractChangeRequest { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
