@@ -1,0 +1,125 @@
+@model UI_Admin.Models.Manager.CreateContractViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = "Create Employment Contract";
+    var isRenewal = string.Equals(Model.ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase);
+    var missingSelection = Model.StaffUserId.HasValue && !Model.StaffOptions.Any(s => s.StaffUserId == Model.StaffUserId);
+}
+<div class="flex items-center gap-3 mb-2">
+    <i data-lucide="file-plus" class="text-indigo-600"></i>
+    <h1 class="text-2xl font-bold">Create Employment Contract</h1>
+</div>
+<p class="text-slate-600 mb-6">Create a new contract for fresh staff or initiate a renewal/replacement contract for staff in your branch.</p>
+
+<form asp-action="Create" method="post" id="contract-form" class="bg-white rounded-xl shadow-sm border p-5 sm:p-8 space-y-6">
+    <div asp-validation-summary="All" role="alert" class="rounded-lg bg-red-50 p-4 text-red-700"></div>
+
+    <!-- Mode Selector: New vs Renewal -->
+    <div>
+        <label class="font-medium text-slate-800 block mb-2">Contract Creation Mode <span class="text-red-600">*</span></label>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors hover:bg-slate-50 @(!isRenewal ? "border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/20" : "border-slate-200")" id="label-mode-new">
+                <input type="radio" asp-for="ContractType" value="NEW" class="mt-1 text-indigo-600 focus:ring-indigo-500" id="radio-mode-new" checked="@(!isRenewal)" />
+                <div>
+                    <span class="font-semibold text-slate-900 block">New Contract</span>
+                    <span class="text-sm text-slate-500 block mt-1">For new staff members who have never had any contract in the system. Branch assignment is not required beforehand.</span>
+                </div>
+            </label>
+            <label class="flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors hover:bg-slate-50 @(isRenewal ? "border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-600/20" : "border-slate-200")" id="label-mode-renewal">
+                <input type="radio" asp-for="ContractType" value="RENEWAL" class="mt-1 text-indigo-600 focus:ring-indigo-500" id="radio-mode-renewal" checked="@isRenewal" />
+                <div>
+                    <span class="font-semibold text-slate-900 block">Renewal / Replacement</span>
+                    <span class="text-sm text-slate-500 block mt-1">For staff currently in your branch who had a prior contract that needs to be renewed or replaced.</span>
+                </div>
+            </label>
+        </div>
+        <input type="hidden" asp-for="ReplacesContractId" id="ReplacesContractId" />
+    </div>
+
+    <!-- Staff Selection -->
+    <div>
+        <label asp-for="StaffUserId" class="font-medium text-slate-800 block mb-1">
+            <span id="staff-select-label">@(isRenewal ? "Staff for Renewal" : "New Staff")</span> <span class="text-red-600">*</span>
+        </label>
+        <select asp-for="StaffUserId" id="StaffUserId" required class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">-- Select Staff Member --</option>
+            @foreach (var opt in Model.StaffOptions)
+            {
+                var isSelected = Model.StaffUserId == opt.StaffUserId;
+                var display = isRenewal && !string.IsNullOrEmpty(opt.CurrentContractNumber)
+                    ? $"{opt.FullName} (Contract: {opt.CurrentContractNumber}{(string.IsNullOrEmpty(opt.CurrentPosition) ? "" : $" - {opt.CurrentPosition}")})"
+                    : opt.FullName;
+                <option value="@opt.StaffUserId"
+                        data-contract-id="@(opt.CurrentContractId?.ToString() ?? "")"
+                        data-contract-number="@(opt.CurrentContractNumber ?? "")"
+                        data-position="@(opt.CurrentPosition ?? "")"
+                        selected="@isSelected">
+                    @display
+                </option>
+            }
+            @if (missingSelection)
+            {
+                <option value="@Model.StaffUserId" selected>Selected staff is no longer available (@Model.StaffUserId)</option>
+            }
+        </select>
+        <span asp-validation-for="StaffUserId" class="text-sm text-red-600"></span>
+        <p id="staff-help-text" class="text-sm text-slate-500 mt-2">
+            @(isRenewal
+                ? "Only displaying staff belonging to your branch who previously had an employment contract."
+                : "Only displaying staff who have never had an employment contract. Branch and minimum wage will follow your managed branch.")
+        </p>
+        <div id="no-staff-warning" class="text-amber-700 text-sm mt-2 @(Model.StaffOptions.Count > 0 ? "hidden" : "")">
+            No eligible staff members available for this mode.
+        </div>
+    </div>
+
+    <!-- Contract Period -->
+    <div class="grid sm:grid-cols-2 gap-5">
+        <div>
+            <label asp-for="StartDate" class="font-medium text-slate-800 block mb-1">Start Date <span class="text-red-600">*</span></label>
+            <input asp-for="StartDate" type="date" asp-format="{0:yyyy-MM-dd}" required class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+            <span asp-validation-for="StartDate" class="text-sm text-red-600"></span>
+        </div>
+        <div>
+            <label asp-for="EndDate" class="font-medium text-slate-800 block mb-1">End Date</label>
+            <input asp-for="EndDate" type="date" asp-format="{0:yyyy-MM-dd}" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+            <span asp-validation-for="EndDate" class="text-sm text-red-600"></span>
+            <p class="text-sm text-slate-500 mt-1">Leave blank for an indefinite-term contract.</p>
+        </div>
+    </div>
+
+    <!-- Position -->
+    <div>
+        <label asp-for="EmployeePosition" class="font-medium text-slate-800 block mb-1">Position / Title <span class="text-red-600">*</span></label>
+        <input asp-for="EmployeePosition" id="EmployeePosition" maxlength="100" required placeholder="e.g. Cashier, Waiter, Barista..." class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+        <span asp-validation-for="EmployeePosition" class="text-sm text-red-600"></span>
+    </div>
+
+    <!-- Terms -->
+    <div>
+        <label asp-for="ContractTerms" class="font-medium text-slate-800 block mb-1">Contract Terms</label>
+        <textarea asp-for="ContractTerms" rows="5" placeholder="Enter additional agreed contract terms (optional)..." class="w-full rounded-lg border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+    </div>
+
+    <!-- Info Note -->
+    <div class="rounded-lg bg-indigo-50 text-indigo-900 p-4 text-sm flex gap-3">
+        <i data-lucide="info" class="w-5 h-5 shrink-0 text-indigo-600" aria-hidden="true"></i>
+        <div class="space-y-1">
+            <p class="font-medium">Branch & Minimum Wage Policy:</p>
+            <p>The contract automatically adopts the branch, region, and regional minimum wage of your managed branch upon start date. The contract will be saved in DRAFT status. The staff's branch assignment will be finalized when the contract becomes active.</p>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 border-t pt-5">
+        <a asp-action="Index" class="rounded-lg border px-5 py-2.5 text-center text-slate-700 hover:bg-slate-50 font-medium">Cancel</a>
+        <button type="submit" id="save-contract" class="rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 font-medium shadow-sm disabled:opacity-50" disabled="@(Model.StaffOptions.Count == 0)">
+            Save Draft
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+<script src="~/js/manager-contract-create.js" asp-append-version="true"></script>
+}

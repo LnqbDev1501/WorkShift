@@ -11,8 +11,6 @@ public partial class PublicHolidayConfig
 
     public DateOnly HolidayDate { get; set; }
 
-    public decimal PayMultiplier { get; set; }
-
     public bool IsActive { get; set; }
 
     public Guid? CreatedBy { get; set; }

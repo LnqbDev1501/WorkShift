@@ -1,0 +1,34 @@
+@model UI_Admin.Models.EmployeeTypes.EmployeeTypeDetailViewModel
+@{ ViewData["Title"] = "Employee Type Details"; }
+<div class="flex flex-col w-full px-7 py-4 gap-unit-6">
+    <partial name="_NotificationModal" />
+    <div class="flex flex-wrap items-center justify-between gap-unit-4">
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface" aria-label="Back to Employee Types"><span class="material-symbols-outlined text-[20px]">arrow_back</span></a>
+            <div><div class="list-eyebrow">Employee Type Details</div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words">@Model.TypeName</h1></div>
+        </div>
+        <div class="flex gap-unit-3">
+            <button type="button" data-employee-type-action="@(Model.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@Model.EmployeeTypeId" data-name="@Model.TypeName" class="h-10 px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high @(Model.Status == "ACTIVE" ? "text-error" : "text-primary") font-body-md-medium">@(Model.Status == "ACTIVE" ? "Deactivate" : "Restore")</button>
+            <a asp-action="Edit" asp-route-id="@Model.EmployeeTypeId" class="inline-flex items-center gap-unit-2 h-10 px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium shadow-sm"><span class="material-symbols-outlined text-[18px]">edit</span>Edit Employee Type</a>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8">
+            <h2 class="text-title-lg font-title-lg text-on-surface mb-6">Employee Type Information</h2>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div><dt class="text-label-sm font-label-sm text-secondary uppercase tracking-wider mb-2">Employee Type Name</dt><dd class="text-body-md font-body-md-medium text-on-surface break-words">@Model.TypeName</dd></div>
+                <div><dt class="text-label-sm font-label-sm text-secondary uppercase tracking-wider mb-2">Status</dt><dd><partial name="_StatusBadge" model="Model.Status" /></dd></div>
+                <div class="sm:col-span-2"><dt class="text-label-sm font-label-sm text-secondary uppercase tracking-wider mb-2">Description</dt><dd class="text-body-md text-on-surface whitespace-pre-wrap break-words">@(Model.Description ?? "No description provided.")</dd></div>
+            </dl>
+        </section>
+        <aside class="lg:col-span-4 bg-surface-container-low rounded-xl p-6">
+            <h2 class="text-title-md font-title-md text-on-surface mb-5">Record Activity</h2>
+            <dl class="flex flex-col gap-5">
+                <div><dt class="text-body-sm text-secondary mb-1">Created (UTC)</dt><dd class="font-code-num text-code-num text-on-surface">@Model.CreatedAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
+                <div><dt class="text-body-sm text-secondary mb-1">Last Updated (UTC)</dt><dd class="font-code-num text-code-num text-on-surface">@Model.UpdatedAt.ToString("dd MMM yyyy, HH:mm")</dd></div>
+            </dl>
+        </aside>
+    </div>
+    <partial name="_StatusDialogs" />
+</div>
+@section Scripts { <script src="~/js/employee-types.js" asp-append-version="true"></script> }

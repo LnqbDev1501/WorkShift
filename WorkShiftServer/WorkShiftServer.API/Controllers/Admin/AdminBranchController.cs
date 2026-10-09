@@ -304,6 +304,7 @@ public class AdminBranchController : ControllerBase
     /// </summary>
     /// <returns>A list of assignable branch options.</returns>
     [HttpGet("assignable")]
+    [Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT")]
     [ProducesResponseType(typeof(IReadOnlyList<BranchAssignableOptionResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<IReadOnlyList<BranchAssignableOptionResponse>>> GetAssignableOptions()

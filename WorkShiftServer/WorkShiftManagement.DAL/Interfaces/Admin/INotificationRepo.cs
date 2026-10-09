@@ -4,7 +4,7 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface INotificationRepo
 {
-    Task<(List<Notification> Items, int TotalCount)> GetPagedAsync(
+    Task<(List<WorkShiftManagement.DAL.Entities.Notification> Items, int TotalCount)> GetPagedAsync(
         string? search,
         string? type,
         DateTime? dateFrom,
@@ -14,7 +14,7 @@ public interface INotificationRepo
         string sortBy,
         string sortOrder);
 
-    Task<Notification?> GetByIdAsync(int notificationId);
+    Task<WorkShiftManagement.DAL.Entities.Notification?> GetByIdAsync(int notificationId);
 
     Task<User?> GetActiveAdminByEmailAsync(string email);
 
@@ -22,7 +22,28 @@ public interface INotificationRepo
 
     Task<bool> IsActiveBranchAsync(int branchId);
 
-    Task<List<User>> GetRecipientsAsync(string targetType, int? regionId, int? branchId);
+    Task<List<User>> GetRecipientsAsync(IReadOnlyCollection<string> targetRoles, int? regionId, int? branchId);
 
-    Task CreateAsync(Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);
+    Task<NotificationAudienceOptionsData> GetAudienceOptionsAsync();
+
+    Task CreateAsync(WorkShiftManagement.DAL.Entities.Notification notification, IReadOnlyCollection<Guid> recipientIds, bool createInAppNotifications);
+}
+
+public class NotificationAudienceOptionsData
+{
+    public List<NotificationAudienceRegionOptionData> Regions { get; set; } = [];
+    public List<NotificationAudienceBranchOptionData> Branches { get; set; } = [];
+}
+
+public class NotificationAudienceRegionOptionData
+{
+    public int RegionId { get; set; }
+    public string RegionName { get; set; } = null!;
+}
+
+public class NotificationAudienceBranchOptionData
+{
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = null!;
+    public int RegionId { get; set; }
 }

@@ -59,10 +59,8 @@
                 <form method="post" asp-controller="Regions" asp-action="Create" class="flex flex-col gap-6" id="createRegionForm">
                     @Html.AntiForgeryToken()
 
-                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
-                    {
-                        <div asp-validation-summary="ModelOnly" class="p-unit-4 bg-error-container text-on-error-container rounded-xl text-body-md font-body-md-medium"></div>
-                    }
+                    <partial name="_NotificationModal" />
+
 
                     <!-- Field 1: Region Code -->
                     <div class="flex flex-col gap-1.5">
@@ -120,7 +118,46 @@
                         </p>
                     </div>
 
-                    <!-- Field 3: Description (Optional) -->
+                    <!-- Field 3: Minimum Wage Region -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="regionalMinimumWageId">
+                                Minimum Wage Region <span class="text-error font-bold">*</span>
+                            </label>
+                        </div>
+                        @if (Model?.MinimumWages == null || !Model.MinimumWages.Any())
+                        {
+                            <div class="p-3.5 rounded-lg bg-amber-50 text-amber-800 text-body-sm flex items-center gap-2 border border-amber-200">
+                                <span class="material-symbols-outlined text-[18px]">warning</span>
+                                <span>No regional minimum wages are currently available.</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="relative flex items-center">
+                                <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">payments</span>
+                                <select class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg text-on-surface font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all appearance-none cursor-pointer"
+                                        id="regionalMinimumWageId"
+                                        name="RegionalMinimumWageId"
+                                        required>
+                                    <option value="">Select minimum wage region...</option>
+                                    @foreach (var wage in Model.MinimumWages)
+                                    {
+                                        <option value="@wage.RegionalMinimumWageId" selected="@(Model?.RegionalMinimumWageId == wage.RegionalMinimumWageId)">
+                                            @wage.WageName — @wage.MinimumHourlyRate.ToString("N0") VND/hour
+                                        </option>
+                                    }
+                                </select>
+                                <span class="material-symbols-outlined absolute right-3 text-[18px] text-secondary pointer-events-none">expand_more</span>
+                            </div>
+                        }
+                        <span asp-validation-for="RegionalMinimumWageId" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Applicable regional minimum hourly wage rate enforced for baseline payroll calculations.
+                        </p>
+                    </div>
+
+                    <!-- Field 4: Description (Optional) -->
                     <div class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between">
                             <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="description">
@@ -257,7 +294,7 @@
                 Cancel
             </a>
             <!-- Create Region Primary Solid Button -->
-            <button class="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-md text-[13px] flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer" type="submit" form="createRegionForm">
+            <button class="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-md text-[13px] flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" type="submit" form="createRegionForm" @(Model.MinimumWages == null || !Model.MinimumWages.Any() ? "disabled" : "")>
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 <span>Create Region</span>
             </button>

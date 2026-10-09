@@ -6,6 +6,7 @@ namespace WorkShiftManagement.BLL.Interfaces.Auth;
 public interface IAuthService
 {
     Task<Guid> CreateUserAndSendInviteAsync(string email);
+    Task<Guid> CreateUserWithPasswordAsync(string email, string password);
     Task<string?> ResendSetupLinkAsync(Guid userId, string email);
     Task DeleteUserAsync(Guid userId);
     Task BanUserAsync(Guid userId);
@@ -15,4 +16,9 @@ public interface IAuthService
     Task<LoginResponse> LoginAsync(LoginRequest request);
     Task<LoginResponse> RefreshAsync(string refreshToken);
     Task SendPasswordRecoveryAsync(string email);
+
+    // Staff setup flow (custom 3-min token)
+    Task<Guid> CreateStaffUserAsync(string email);
+    Task<bool> HasPasswordAsync(Guid userId);
+    Task<Guid> SetStaffPasswordAsync(string token, string password);
 }

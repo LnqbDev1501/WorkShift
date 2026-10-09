@@ -12,7 +12,9 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin
                 int? branchId,
                 string? search,
                 int pageNumber,
-                int pageSize);
+                int pageSize,
+                DateOnly? startDateFrom = null,
+                DateOnly? startDateTo = null);
 
         Task<PayrollPeriodDetailResponse>
             GetPayrollPeriodDetailAsync(
@@ -26,12 +28,17 @@ namespace WorkShiftManagement.BLL.Interfaces.Admin
                 int payrollPeriodId,
                 int payrollId,
                 RejectPayrollRequest request,
-                Guid adminId);
+                Guid? adminId);
 
         Task<PayrollApprovalResponse>
             ApprovePayrollPeriodAsync(
                 int payrollPeriodId,
-                Guid adminId);
+                Guid? adminId);
+
+        Task<PayrollPeriodSubmitResponse>
+            SubmitPayrollPeriodAsync(
+                int payrollPeriodId,
+                Guid accountantId);
 
         Task<PayrollSubmitResponse>
             SubmitRejectedPayrollAsync(

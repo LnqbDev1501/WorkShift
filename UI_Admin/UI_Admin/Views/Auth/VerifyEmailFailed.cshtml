@@ -1,0 +1,20 @@
+@model string
+@{
+    ViewData["Title"] = "Email verification failed";
+}
+
+<div class="min-h-screen flex items-center justify-center bg-[#F6F7FB] px-4">
+    <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-[#fee2e2] border-2 border-[#fecaca] text-[#dc2626] flex items-center justify-center shadow-sm text-[32px] font-bold">
+            ✕
+        </div>
+        <div class="space-y-1">
+            <h1 class="text-xl font-bold text-gray-900">Verification failed</h1>
+            <p class="text-sm text-gray-500">@Model</p>
+            <p class="text-sm text-gray-500">Please request a new verification link from your profile page.</p>
+        </div>
+        <a asp-controller="Auth" asp-action="Profile" class="w-full py-2.5 px-4 rounded-xl bg-[#4f46e5] hover:bg-[#4338ca] text-white text-sm font-medium transition-colors shadow-sm text-center">
+            Back to My Profile
+        </a>
+    </div>
+</div>

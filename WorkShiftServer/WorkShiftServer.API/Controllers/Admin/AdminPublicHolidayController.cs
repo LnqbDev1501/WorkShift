@@ -16,18 +16,17 @@ public sealed class AdminPublicHolidayController : ControllerBase
     public AdminPublicHolidayController(IPublicHolidayService service)
         => _service = service;
 
-    // Optional identity for CreatedBy and audit. Never trust a client-supplied UUID.
-    // No authenticated principal -> Guid.Empty; the Service handles it as null.
+    // Identity is supplied by the authenticated admin, never by the request body.
     private Guid OptionalCurrentUserId()
     {
         if (User.Identity?.IsAuthenticated != true)
-            return Guid.Empty;
+            throw new ArgumentException("Unable to identify the authenticated administrator.");
 
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? User.FindFirstValue("sub")
             ?? User.FindFirstValue("user_id");
 
-        return Guid.TryParse(value, out var id) ? id : Guid.Empty;
+        return Guid.TryParse(value, out var id) && id != Guid.Empty ? id : throw new ArgumentException("Unable to identify the authenticated administrator.");
     }
 
     private static bool IsExpectedError(Exception ex) =>
@@ -118,6 +117,19 @@ public sealed class AdminPublicHolidayController : ControllerBase
         }
     }
 
+    [HttpPatch("{id:int}/restore")]
+    public async Task<IActionResult> Restore(int id, CancellationToken ct)
+    {
+        try
+        {
+            return Ok(await _service.RestoreAsync(id, OptionalCurrentUserId(), ct));
+        }
+        catch (Exception ex) when (IsExpectedError(ex))
+        {
+            return ErrorResponse(ex);
+        }
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
@@ -132,3 +144,4 @@ public sealed class AdminPublicHolidayController : ControllerBase
         }
     }
 }
+

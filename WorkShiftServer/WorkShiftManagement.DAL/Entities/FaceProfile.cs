@@ -15,8 +15,6 @@ public partial class FaceProfile
 
     public string RegistrationType { get; set; } = null!;
 
-    public string? RegistrationImageUrl { get; set; }
-
     public decimal? FaceQualityScore { get; set; }
 
     public decimal LivenessScore { get; set; }
@@ -26,8 +24,6 @@ public partial class FaceProfile
     public DateTime RegisteredAt { get; set; }
 
     public DateTime? RevokedAt { get; set; }
-
-    public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<FaceVerificationSession> FaceVerificationSessions { get; set; } = new List<FaceVerificationSession>();
 

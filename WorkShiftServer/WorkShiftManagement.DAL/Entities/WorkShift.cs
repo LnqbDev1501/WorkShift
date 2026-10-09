@@ -17,8 +17,6 @@ public partial class WorkShift
 
     public DateTime ScheduledEndAt { get; set; }
 
-    public int BreakMinutesSnapshot { get; set; }
-
     public int RequiredEmployees { get; set; }
 
     public string? Note { get; set; }
@@ -47,7 +45,7 @@ public partial class WorkShift
 
     public virtual ICollection<ShiftAssignment> ShiftAssignments { get; set; } = new List<ShiftAssignment>();
 
-    public virtual ShiftTemplate ShiftTemplate { get; set; } = null!;
+    public virtual ICollection<ShiftEmployeeRequirement> ShiftEmployeeRequirements { get; set; } = new List<ShiftEmployeeRequirement>();
 
-    public virtual ICollection<TimeAdjustmentRequestDetail> TimeAdjustmentRequestDetails { get; set; } = new List<TimeAdjustmentRequestDetail>();
+    public virtual ShiftTemplate ShiftTemplate { get; set; } = null!;
 }

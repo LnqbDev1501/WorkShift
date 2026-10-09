@@ -33,7 +33,7 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             return await _context.Roles
                 .AsNoTracking()
                 .Where(role => role.Status == "ACTIVE" &&
-                    (role.RoleName.ToUpper() == "MANAGER" || role.RoleName.ToUpper() == "ACCOUNTANT"))
+                    (role.RoleName.ToUpper() == "MANAGER" || role.RoleName.ToUpper() == "ACCOUNTANT" || role.RoleName.ToUpper() == "ADMIN"))
                 .OrderBy(role => role.RoleId)
                 .ToListAsync();
         }
@@ -115,6 +115,9 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .Include(user => user.Role)
                 .Include(user => user.Branch)
                 .Include(user => user.PreviousBranch)
+                .Where(user => user.Role.RoleName.ToUpper() == "MANAGER" ||
+                               user.Role.RoleName.ToUpper() == "ACCOUNTANT" ||
+                               user.Role.RoleName.ToUpper() == "ADMIN")
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))

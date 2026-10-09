@@ -1,0 +1,1466 @@
+/* =========================================================
+   PAYROLL DETAIL PAGE
+   ========================================================= */
+
+#main-content-wrapper:has(.period-detail) {
+    min-width: 0;
+    overflow-x: hidden;
+}
+
+#main-content-wrapper:has(.period-detail)>main {
+    min-width: 0;
+}
+
+.period-detail {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 32px 30px 40px;
+    box-sizing: border-box;
+
+    color: #303238;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.period-detail button,
+.period-detail input,
+.period-detail select,
+.period-detail textarea {
+    font-family: inherit;
+}
+
+/* =========================================================
+   PERIOD HEADER
+   ========================================================= */
+
+.period-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+
+    /*
+       Header không dùng card trắng để đồng bộ với Payroll List
+    */
+    padding: 0;
+    margin: 0 0 28px 0;
+
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.period-header>div:first-child {
+    min-width: 0;
+    flex: 1;
+}
+
+.period-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.period-title h1 {
+    margin: 0;
+
+    color: #22242a;
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -.5px;
+}
+
+.period-header p {
+    margin: 6px 0;
+
+    color: #7a8193;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.period-header p>span {
+    margin: 0 8px;
+    color: #c6cad8;
+}
+
+.period-header p strong {
+    color: #34363b;
+}
+
+/* =========================================================
+   PERIOD HEADER ACTIONS
+   Back nằm trên - Approve nằm dưới
+   ========================================================= */
+
+.period-header-actions {
+    flex: 0 0 190px;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+
+    align-self: flex-start;
+}
+
+.period-header-actions .payroll-button {
+    width: 190px;
+    min-width: 190px;
+    height: 42px;
+
+    box-sizing: border-box;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+
+    margin: 0;
+
+    white-space: nowrap;
+}
+
+.payroll-back-button {
+    color: #4f46e5;
+    background: #f2f3f7;
+    border: 1px solid #e4e6ee;
+
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.payroll-back-button:hover {
+    color: #3730a3;
+    background: #eceeff;
+    border-color: #cfcdfb;
+    text-decoration: none;
+}
+
+/* =========================================================
+   REVISION NOTICE
+   ========================================================= */
+
+.revision-notice {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    margin: 0 0 28px 0;
+    padding: 14px 16px;
+
+    color: #91600d;
+    background: #fff8e7;
+    border: 1px solid #ffe5a9;
+    border-radius: 8px;
+
+    font-size: 13px;
+}
+
+/* =========================================================
+   VALIDATION
+   ========================================================= */
+
+.review-errors.validation-summary-valid {
+    display: none;
+}
+
+.review-errors {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 18px;
+}
+
+.review-errors ul {
+    margin: 0;
+}
+
+/* =========================================================
+   STATISTICS
+   ========================================================= */
+
+.detail-stats {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+
+    margin: 0;
+}
+
+.detail-stats article {
+    position: relative;
+
+    min-width: 0;
+    min-height: 165px;
+    padding: 20px;
+
+    box-sizing: border-box;
+    overflow: hidden;
+
+    background: #fff;
+    border-radius: 9px;
+    box-shadow: 0 1px 2px rgba(32, 42, 64, .06);
+}
+
+.detail-stats article:first-child::before {
+    content: '';
+
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height: 3px;
+
+    background: #5546e8;
+}
+
+.detail-stats article>div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    color: #697185;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.detail-stats article>div span {
+    font-size: 20px;
+}
+
+.detail-stats article>p {
+    margin: 26px 0 0;
+}
+
+.detail-stats strong {
+    font-size: 23px;
+    overflow-wrap: anywhere;
+}
+
+.detail-stats small {
+    display: block;
+
+    margin-top: 7px;
+
+    color: #7a8193;
+    font-size: 11px;
+}
+
+.detail-stats em {
+    font-size: 16px;
+    font-style: normal;
+}
+
+.reward {
+    color: #159678 !important;
+}
+
+.red {
+    color: #dc2626 !important;
+}
+
+.purple {
+    color: #5140df !important;
+}
+
+/* =========================================================
+   TABLE CARD
+   ========================================================= */
+
+.period-detail .payroll-table-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    margin: 28px 0 0 0;
+
+    overflow: hidden;
+
+    background: #fff;
+    border-radius: 9px;
+    box-shadow: 0 1px 2px rgba(32, 42, 64, .06);
+}
+
+/* =========================================================
+   FILTER
+   ========================================================= */
+
+.detail-filter {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+
+    padding: 18px;
+
+    border-bottom: 1px solid #eef0f5;
+}
+
+.detail-filter input,
+.detail-filter select {
+    height: 42px;
+
+    box-sizing: border-box;
+    padding: 11px 13px;
+
+    color: #3f4654;
+    background: #f2f3f7;
+    border: 0;
+    border-radius: 6px;
+
+    font-size: 12px;
+    outline: none;
+}
+
+.detail-filter input:focus,
+.detail-filter select:focus {
+    box-shadow: 0 0 0 2px rgba(85, 70, 232, .12);
+}
+
+.employee-search {
+    width: min(450px, 50%);
+    flex: 0 1 450px;
+}
+
+.employee-search input {
+    width: 100%;
+}
+
+.detail-page-size {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    margin-left: auto;
+
+    color: #7a8193;
+    white-space: nowrap;
+}
+
+.period-detail .visually-hidden {
+    position: absolute !important;
+
+    width: 1px !important;
+    height: 1px !important;
+
+    padding: 0 !important;
+    margin: -1px !important;
+
+    overflow: hidden !important;
+
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+
+    border: 0 !important;
+}
+
+/* =========================================================
+   TABLE SCROLL
+   ========================================================= */
+
+.period-detail .payroll-table-scroll {
+    display: block;
+
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* =========================================================
+   EMPLOYEE PAYROLL TABLE
+   ========================================================= */
+
+.period-detail .employee-payroll-table {
+    width: max(100%, 1240px) !important;
+    min-width: 100%;
+
+    margin: 0;
+
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.employee-payroll-table th,
+.employee-payroll-table td {
+    box-sizing: border-box;
+
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.45;
+}
+
+.employee-payroll-table th {
+    padding: 13px 14px;
+
+    color: #697185;
+    background: #f2f3f7;
+
+    text-align: left;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .45px;
+    text-transform: uppercase;
+
+    white-space: nowrap;
+}
+
+.employee-payroll-table td {
+    padding: 16px 14px;
+
+    color: #34363b;
+    background: #fff;
+
+    font-size: 12px;
+    vertical-align: middle;
+
+    border-bottom: 1px solid #f0f1f5;
+}
+
+/* =========================================================
+   TABLE COLUMN WIDTH
+   ========================================================= */
+
+.employee-payroll-table th:nth-child(1) {
+    width: 25%;
+}
+
+.employee-payroll-table th:nth-child(2) {
+    width: 12%;
+}
+
+.employee-payroll-table th:nth-child(3) {
+    width: 11%;
+}
+
+.employee-payroll-table th:nth-child(4) {
+    width: 11%;
+}
+
+.employee-payroll-table th:nth-child(5) {
+    width: 9%;
+}
+
+.employee-payroll-table th:nth-child(6) {
+    width: 10%;
+}
+
+.employee-payroll-table th:nth-child(7) {
+    width: 11%;
+}
+
+.employee-payroll-table th:nth-child(8) {
+    width: 11%;
+}
+
+.employee-payroll-table th:nth-child(n+4):nth-child(-n+7),
+.employee-payroll-table td:nth-child(n+4):nth-child(-n+7) {
+    text-align: right;
+}
+
+.employee-payroll-table th:last-child,
+.employee-payroll-table td:last-child {
+    text-align: center;
+    padding-right: 18px;
+}
+
+.employee-payroll-table td:last-child .payroll-button {
+    min-width: 86px;
+}
+
+/* =========================================================
+   STAFF INFORMATION
+   ========================================================= */
+
+.staff-identity {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    min-width: 0;
+}
+
+.staff-identity>div {
+    min-width: 0;
+}
+
+.staff-identity strong {
+    display: block;
+
+    color: #303238;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    overflow-wrap: anywhere;
+}
+
+.staff-identity small,
+.employee-payroll-table td>small {
+    display: block;
+
+    margin-top: 4px;
+
+    color: #7a8193;
+
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.staff-initial {
+    display: grid;
+    place-items: center;
+
+    flex-shrink: 0;
+
+    width: 35px;
+    height: 38px;
+
+    border-radius: 9px;
+
+    color: #5546e8;
+    background: #ece9ff;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.staff-guid {
+    max-width: 210px;
+
+    overflow-wrap: anywhere;
+
+    color: #8a91a2 !important;
+}
+
+/* =========================================================
+   INSPECT BUTTON
+   ========================================================= */
+
+.inspect-button[aria-expanded="true"] {
+    color: #5140df;
+    background: #e5dfff;
+}
+
+.inspect-button span {
+    display: inline-block;
+    transition: transform .18s ease;
+}
+
+.inspect-button[aria-expanded="true"] span {
+    transform: rotate(180deg);
+}
+
+/* =========================================================
+   INSPECTION ROW
+   ========================================================= */
+
+.staff-inspection>td {
+    padding: 16px 18px 20px !important;
+
+    background: #f7f8fc !important;
+
+    box-sizing: border-box;
+}
+
+.staff-inspection[hidden] {
+    display: none;
+}
+
+/* =========================================================
+   INSPECTION PANEL
+   ========================================================= */
+
+.inspection-panel {
+    width: 100%;
+    max-width: none;
+
+    box-sizing: border-box;
+
+    margin: 0;
+    padding: 18px;
+
+    color: #303238;
+    background: #fff;
+
+    border: 1px solid #eceef5;
+    border-radius: 10px;
+
+    box-shadow: 0 1px 3px rgba(32, 42, 64, .05);
+
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.inspection-panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+
+    border-bottom: 1px solid #eef0f5;
+}
+
+.inspection-panel header>div:first-child>strong {
+    display: block;
+
+    color: #303238;
+
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+}
+
+.inspection-panel header>div:first-child>small {
+    display: block;
+
+    margin-top: 5px;
+
+    color: #7a8193;
+    font-size: 11px;
+}
+
+/* =========================================================
+   INSPECTION ACTIONS
+   ========================================================= */
+
+.inspection-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    flex-shrink: 0;
+}
+
+.reject-button {
+    color: #d52634;
+    background: #fff1f2;
+    border: 1px solid #ffe0e4;
+}
+
+.reject-button:hover {
+    color: #b91c1c;
+    background: #ffe7ea;
+}
+
+.already-rejected {
+    color: #ba1a1a !important;
+    background: #fff1f2 !important;
+    opacity: 1 !important;
+}
+
+/* =========================================================
+   REJECTION FORM / AUDIT
+   ========================================================= */
+
+.rejection-form,
+.rejection-audit {
+    padding: 18px;
+    margin-bottom: 18px;
+
+    background: #fff8f8;
+
+    border: 1px solid #ffe0e4;
+    border-radius: 8px;
+}
+
+.rejection-form>p {
+    max-width: 1000px;
+
+    margin: 10px 0;
+
+    color: #737b8d;
+
+    font-size: 12px;
+}
+
+.rejection-form label {
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #34363b;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.rejection-form textarea {
+    width: 100%;
+
+    box-sizing: border-box;
+
+    padding: 12px;
+
+    color: #34363b;
+    background: #fff;
+
+    border: 1px solid #eceef3;
+    border-radius: 7px;
+
+    resize: vertical;
+
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+
+    outline: none;
+}
+
+.rejection-form textarea:focus {
+    border-color: #c8c4ff;
+    box-shadow: 0 0 0 2px rgba(85, 70, 232, .1);
+}
+
+.rejection-form footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-top: 12px;
+}
+
+.rejection-form footer small {
+    margin-right: auto;
+
+    color: #7a8193;
+    font-size: 11px;
+}
+
+.rejection-audit p {
+    margin: 8px 0;
+
+    white-space: pre-wrap;
+}
+
+/* =========================================================
+   DANGER BUTTON
+   ========================================================= */
+
+.danger {
+    color: #fff;
+    background: #c81e2a;
+}
+
+.danger:hover {
+    color: #fff;
+    background: #a6131e;
+}
+
+/* =========================================================
+   ITEMIZATION SUMMARY
+   ========================================================= */
+
+.itemization-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.itemization-summary article {
+    min-height: 84px;
+
+    box-sizing: border-box;
+
+    padding: 15px;
+
+    background: #f4f5f9;
+
+    border: 1px solid #eef0f5;
+    border-radius: 7px;
+}
+
+.itemization-summary article>small:first-child {
+    color: #70788b;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .35px;
+}
+
+.itemization-summary strong {
+    display: block;
+
+    margin: 8px 0 3px;
+
+    font-size: 13px;
+}
+
+/* =========================================================
+   PAYROLL LINE ITEMS
+   ========================================================= */
+
+.inspection-panel h2 {
+    margin: 20px 0 12px;
+
+    color: #70788b;
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .4px;
+}
+
+.line-items article {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr auto;
+    gap: 14px;
+
+    padding: 12px;
+    margin-bottom: 5px;
+
+    background: #f6f7fa;
+
+    border-radius: 4px;
+}
+
+.line-items article>p {
+    grid-column: 1 / -1;
+
+    margin: 0;
+
+    color: #6f7687;
+}
+
+.line-empty {
+    color: #7a8193;
+}
+
+/* =========================================================
+   BUTTON DISABLED
+   ========================================================= */
+
+.period-detail button:disabled {
+    cursor: not-allowed;
+}
+
+.review-submitting {
+    opacity: .6;
+    pointer-events: none;
+}
+
+/* =========================================================
+   RESPONSIVE - LAPTOP
+   ========================================================= */
+
+@media (max-width: 1400px) {
+
+    .period-detail {
+        padding: 28px 24px 36px;
+    }
+
+    .period-header {
+        flex-direction: column;
+    }
+
+    .period-header-actions {
+        width: 100%;
+
+        grid-template-columns: 190px;
+
+        justify-content: end;
+    }
+
+    .detail-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE - TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .period-detail {
+        padding: 24px 20px 32px;
+    }
+
+    .period-title h1 {
+        font-size: 20px;
+    }
+
+    .detail-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .detail-filter {
+        flex-wrap: wrap;
+    }
+
+    .employee-search {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .inspection-panel header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .inspection-actions {
+        width: 100%;
+
+        justify-content: space-between;
+    }
+
+    .itemization-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+    .period-detail {
+        padding: 20px 16px 28px;
+    }
+
+    .period-header {
+        gap: 18px;
+    }
+
+    .period-title {
+        gap: 8px;
+    }
+
+    .detail-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .period-header-actions {
+        width: 100%;
+
+        grid-template-columns: 1fr;
+    }
+
+    .period-header-actions .payroll-button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .detail-page-size {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .detail-page-size select {
+        flex: 1;
+    }
+
+    .itemization-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .inspection-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .rejection-form footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .rejection-form footer small {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .line-items article {
+        grid-template-columns: 1fr;
+    }
+
+    .line-items article>p {
+        grid-column: auto;
+    }
+}
+
+/* =========================================================
+   PAYROLL INSPECTION - DESKTOP / TABLET / MOBILE
+   NOTE: This section MUST stay outside @media(max-width:480px)
+   ========================================================= */
+
+/* The inspection row has one td with colspan="8". Because it is also
+   the last child, the generic last-column rule can center everything.
+   Force the expanded inspection content back to the left. */
+.period-detail .employee-payroll-table tr.staff-inspection>td {
+    padding: 18px !important;
+    background: #f7f8fc !important;
+    text-align: left !important;
+    vertical-align: top !important;
+}
+
+.period-detail .staff-inspection[hidden] {
+    display: none;
+}
+
+/* =========================================================
+   INSPECTION PANEL
+   ========================================================= */
+.period-detail .inspection-panel {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 14px;
+    color: #303238;
+    background: #fff;
+    border: 1px solid #e8ebf2;
+    border-radius: 8px;
+    box-shadow: none;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: left !important;
+}
+
+.period-detail .inspection-panel>header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 0 0 14px;
+    padding: 0 0 12px;
+    border-bottom: 1px solid #edf0f5;
+    text-align: left !important;
+}
+
+.period-detail .inspection-panel>header>div:first-child {
+    min-width: 0;
+    flex: 1;
+    text-align: left !important;
+}
+
+.period-detail .inspection-panel>header>div:first-child>strong {
+    display: block;
+    margin: 0;
+    color: #25272d;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+.period-detail .inspection-panel>header>div:first-child>small {
+    display: block;
+    margin-top: 3px;
+    color: #7f8797;
+    font-size: 9px;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+/* =========================================================
+   INSPECTION ACTIONS
+   ========================================================= */
+.period-detail .inspection-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.period-detail .inspection-actions .payroll-status {
+    padding: 5px 9px;
+    font-size: 9px;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.period-detail .reject-button {
+    min-height: 34px;
+    padding: 8px 12px;
+    color: #dc2634;
+    background: #fff3f4;
+    border: 1px solid #ffdfe2;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.period-detail .reject-button:hover {
+    color: #b91c1c;
+    background: #ffe8ea;
+}
+
+.period-detail .already-rejected {
+    color: #ba1a1a !important;
+    background: #fff1f2 !important;
+    opacity: 1 !important;
+}
+
+/* =========================================================
+   REJECTION FORM
+   ========================================================= */
+.period-detail .rejection-form {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 14px;
+    padding: 14px;
+    color: #303238;
+    background: #fffafa;
+    border: 1px solid #ffdfe2;
+    border-radius: 7px;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form>strong {
+    display: block;
+    width: 100%;
+    margin: 0 0 8px;
+    color: #26282d;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form>p {
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin: 0 0 11px;
+    color: #778093;
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form>label {
+    display: block;
+    width: 100%;
+    margin: 0 0 6px;
+    color: #303238;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form>label .red {
+    color: #dc2626 !important;
+}
+
+.period-detail .rejection-form textarea {
+    display: block;
+    width: 100%;
+    height: 78px;
+    min-height: 78px;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 10px 12px;
+    color: #34363b;
+    background: #fff;
+    border: 1px solid #d8dce6;
+    border-radius: 6px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 1.45;
+    text-align: left !important;
+    outline: none;
+}
+
+.period-detail .rejection-form textarea::placeholder {
+    color: #a7adba;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form textarea:focus {
+    border-color: #5546e8;
+    box-shadow: 0 0 0 1px #5546e8, 0 0 0 3px rgba(85, 70, 232, .08);
+}
+
+/* =========================================================
+   REJECTION FOOTER
+   ========================================================= */
+.period-detail .rejection-form footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form footer small {
+    margin-right: auto;
+    color: #8991a1;
+    font-size: 8.5px;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+.period-detail .rejection-form footer .payroll-button {
+    min-height: 34px;
+    padding: 8px 14px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.period-detail .rejection-form footer .payroll-button:not(.danger) {
+    color: #626b7c;
+    background: #f2f3f7;
+    border: 1px solid #f2f3f7;
+}
+
+.period-detail .rejection-form footer .danger {
+    min-width: 120px;
+    color: #fff;
+    background: #cf1f2c;
+    border: 1px solid #cf1f2c;
+    border-radius: 5px;
+}
+
+.period-detail .rejection-form footer .danger:hover {
+    color: #fff;
+    background: #ad1822;
+    border-color: #ad1822;
+}
+
+/* =========================================================
+   REJECTION AUDIT
+   ========================================================= */
+.period-detail .rejection-audit {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 14px;
+    padding: 14px;
+    background: #fffafa;
+    border: 1px solid #ffdfe2;
+    border-radius: 7px;
+    text-align: left !important;
+}
+
+.period-detail .rejection-audit strong,
+.period-detail .rejection-audit p,
+.period-detail .rejection-audit small {
+    text-align: left !important;
+}
+
+.period-detail .rejection-audit strong {
+    color: #303238;
+    font-size: 11px;
+}
+
+.period-detail .rejection-audit p {
+    margin: 7px 0;
+    color: #626b7c;
+    font-size: 9px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.period-detail .rejection-audit small {
+    color: #8991a1;
+    font-size: 8px;
+}
+
+/* =========================================================
+   ITEMIZATION SUMMARY
+   ========================================================= */
+.period-detail .itemization-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    margin: 0;
+    text-align: left !important;
+}
+
+.period-detail .itemization-summary article {
+    min-width: 0;
+    min-height: 82px;
+    box-sizing: border-box;
+    padding: 13px;
+    background: #f2f3f7;
+    border: 0;
+    border-radius: 5px;
+    text-align: left !important;
+}
+
+.period-detail .itemization-summary article>small:first-child {
+    display: block;
+    margin: 0;
+    color: #70788b;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: .25px;
+    text-transform: uppercase;
+    text-align: left !important;
+}
+
+.period-detail .itemization-summary article>strong {
+    display: block;
+    margin: 8px 0 4px;
+    color: #303238;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: left !important;
+}
+
+.period-detail .itemization-summary article>small:not(:first-child) {
+    display: block;
+    margin: 0;
+    color: #7a8193;
+    font-size: 8px;
+    line-height: 1.4;
+    text-align: left !important;
+}
+
+.period-detail .itemization-summary .reward {
+    color: #159678 !important;
+}
+
+.period-detail .itemization-summary .red {
+    color: #dc2626 !important;
+}
+
+/* =========================================================
+   PAYROLL LINE ITEMS
+   ========================================================= */
+.period-detail .inspection-panel>h2 {
+    margin: 16px 0 10px;
+    color: #70788b;
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: .35px;
+    text-align: left !important;
+}
+
+.period-detail .line-empty {
+    margin: 0;
+    color: #7a8193;
+    font-size: 9px;
+    line-height: 1.5;
+    text-align: left !important;
+}
+
+.period-detail .line-items {
+    width: 100%;
+    text-align: left !important;
+}
+
+.period-detail .line-items article {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr auto;
+    gap: 12px;
+    box-sizing: border-box;
+    padding: 10px 12px;
+    margin-bottom: 5px;
+    background: #f6f7fa;
+    border-radius: 4px;
+    text-align: left !important;
+}
+
+.period-detail .line-items article>div,
+.period-detail .line-items article>strong,
+.period-detail .line-items article>small {
+    text-align: left !important;
+}
+
+.period-detail .line-items article strong {
+    font-size: 10px;
+}
+
+.period-detail .line-items article small {
+    color: #7a8193;
+    font-size: 8px;
+}
+
+.period-detail .line-items article>p {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: #6f7687;
+    font-size: 9px;
+    text-align: left !important;
+}
+
+/* =========================================================
+   INSPECTION RESPONSIVE
+   ========================================================= */
+@media (max-width: 900px) {
+    .period-detail .inspection-panel>header {
+        flex-direction: column;
+    }
+
+    .period-detail .inspection-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .period-detail .itemization-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 600px) {
+    .period-detail .employee-payroll-table tr.staff-inspection>td {
+        padding: 10px !important;
+    }
+
+    .period-detail .inspection-panel {
+        padding: 12px;
+    }
+
+    .period-detail .inspection-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .period-detail .rejection-form footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .period-detail .rejection-form footer small {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+
+    .period-detail .rejection-form footer .payroll-button {
+        width: 100%;
+    }
+
+    .period-detail .itemization-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .period-detail .line-items article {
+        grid-template-columns: 1fr;
+    }
+
+    .period-detail .line-items article>p {
+        grid-column: auto;
+    }
+}

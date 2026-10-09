@@ -10,7 +10,15 @@
 <div class="dashboard-page">
     <div class="dashboard-heading">
         <div><div class="eyebrow">▦ &nbsp; SYSTEM COMMAND</div><h1>Overview</h1><p>Monitor your organization, attendance records, and payroll review workload.</p></div>
-        <a class="sync-badge" asp-action="Index" aria-label="Refresh dashboard">↻ &nbsp; @(data is null ? "Retry connection" : "Refresh data")</a>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <a class="sync-badge" asp-controller="EmployeeRequests" asp-action="Index" title="Employee Requests">
+                <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-2px;">pending_actions</span> &nbsp; Employee Requests
+            </a>
+            <a class="sync-badge" asp-controller="EmployeeTypes" asp-action="Index" title="Employee Types">
+                <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-2px;">badge</span> &nbsp; Employee Types
+            </a>
+            <a class="sync-badge" asp-action="Index" aria-label="Refresh dashboard">↻ &nbsp; @(data is null ? "Retry connection" : "Refresh data")</a>
+        </div>
     </div>
     @if (Model.ErrorMessage is not null)
     {
@@ -33,19 +41,110 @@
                 </article>
             }
         </section>
+
+        <!-- Quick Access & Operations Section -->
+        <section class="dashboard-card" style="padding: 20px 24px; margin-bottom: 24px;" aria-label="Quick operations">
+            <div class="card-heading" style="margin-bottom: 16px;">
+                <div>
+                    <div class="eyebrow">QUICK ACCESS &amp; MANAGEMENT</div>
+                    <h2 style="font-size: 18px; font-weight: 600; margin-top: 2px;">Quản trị Tổ chức &amp; Nghiệp vụ</h2>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+                <!-- Employee Requests Card -->
+                <a asp-controller="EmployeeRequests" asp-action="Index" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fafafa; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#4f46e5';this.style.background='#f5f3ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fafafa'">
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 600; font-size: 14px; color: #191c1f;">Employee Requests</span>
+                            <span class="material-symbols-outlined" style="color: #4f46e5; font-size: 22px;">pending_actions</span>
+                        </div>
+                        <p style="font-size: 12px; color: #575e70; line-height: 1.5; margin: 0 0 12px 0;">Tra cứu, kiểm tra và phê duyệt các yêu cầu từ nhân viên (nghỉ phép, đổi ca, bổ sung công).</p>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #4f46e5; display: flex; align-items: center; gap: 4px;">
+                        <span>Quản lý yêu cầu</span> &rarr;
+                    </div>
+                </a>
+
+                <!-- Employee Types Card -->
+                <a asp-controller="EmployeeTypes" asp-action="Index" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fafafa; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#0891b2';this.style.background='#ecfeff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fafafa'">
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 600; font-size: 14px; color: #191c1f;">Employee Types</span>
+                            <span class="material-symbols-outlined" style="color: #0891b2; font-size: 22px;">badge</span>
+                        </div>
+                        <p style="font-size: 12px; color: #575e70; line-height: 1.5; margin: 0 0 12px 0;">Thiết lập và quản lý các loại hình nhân sự, định nghĩa phân loại và hợp đồng lao động.</p>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #0891b2; display: flex; align-items: center; gap: 4px;">
+                        <span>Quản lý loại nhân viên</span> &rarr;
+                    </div>
+                </a>
+
+                <!-- Employment Contracts Card -->
+                <a asp-controller="EmploymentContracts" asp-action="Index" style="text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; border-radius: 10px; border: 1px solid #e5e7eb; background: #fafafa; transition: all 0.2s ease;" onmouseover="this.style.borderColor='#10b981';this.style.background='#ecfdf5'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fafafa'">
+                    <div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-weight: 600; font-size: 14px; color: #191c1f;">Employment Contracts</span>
+                            <span class="material-symbols-outlined" style="color: #10b981; font-size: 22px;">contract</span>
+                        </div>
+                        <p style="font-size: 12px; color: #575e70; line-height: 1.5; margin: 0 0 12px 0;">Giám sát hợp đồng lao động toàn hệ thống, tra cứu lịch sử audit và thông tin hợp đồng bị hủy.</p>
+                    </div>
+                    <div style="font-size: 12px; font-weight: 600; color: #10b981; display: flex; align-items: center; gap: 4px;">
+                        <span>Quản lý hợp đồng</span> &rarr;
+                    </div>
+                </a>
+            </div>
+        </section>
+
         <div class="summary-grid">
             <section class="dashboard-card summary-card">
                 <div class="card-heading"><h2>Users by Role</h2><span class="eyebrow">Account Distribution</span></div>
-                <p>Active authorization tiers across corporate and site divisions.</p>
-                <div class="role-list">
-                    @foreach (var role in new[] { (Name: "Managers", Count: data.ManagerCount, Color: "primary"), (Name: "Accountants", Count: data.AccountantCount, Color: "neutral"), (Name: "Staff", Count: data.StaffCount, Color: "staff") })
+                <p>Distribution of Manager, Accountant and Staff accounts.</p>
+                @{
+                    var roles = new[] {
+                        (Name: "Managers", Count: data.ManagerCount, Color: "#5146e5"),
+                        (Name: "Accountants", Count: data.AccountantCount, Color: "#0891b2"),
+                        (Name: "Staff", Count: data.StaffCount, Color: "#f59e0b")
+                    };
+                    var roleTotal = roles.Sum(role => role.Count);
+                    // Allocate tenths by largest remainder so displayed percentages total 100.0%.
+                    var exactShares = roles.Select(role => roleTotal == 0 ? 0m : role.Count * 1000m / roleTotal).ToArray();
+                    var shares = exactShares.Select(share => (int)Math.Floor(share)).ToArray();
+                    if (roleTotal > 0)
                     {
-                        var percent = DashboardViewModel.Percent(role.Count, data.TotalUsers);
-                        <div><div class="role-label"><span><i class="dot @role.Color"></i>@role.Name</span><span>@DashboardViewModel.Number(role.Count)<small>@(percent)%</small></span></div>
-                        <div class="chart-track" role="img" aria-label="@role.Name: @role.Count, @percent percent"><div class="chart-fill @role.Color" style="width: @(percent)%"></div></div></div>
+                        var remaining = 1000 - shares.Sum();
+                        foreach (var index in Enumerable.Range(0, roles.Length).OrderByDescending(i => exactShares[i] - shares[i]).Take(remaining))
+                        {
+                            shares[index]++;
+                        }
                     }
+                    var firstStop = (shares[0] / 10m).ToString("0.0", CultureInfo.InvariantCulture);
+                    var secondStop = ((shares[0] + shares[1]) / 10m).ToString("0.0", CultureInfo.InvariantCulture);
+                    var chartBackground = roleTotal == 0 ? "#e8e9ef" : $"conic-gradient({roles[0].Color} 0% {firstStop}%, {roles[1].Color} {firstStop}% {secondStop}%, {roles[2].Color} {secondStop}% 100%)";
+                }
+                <div class="role-distribution">
+                    <div class="role-donut" style="background: @chartBackground" aria-hidden="true">
+                        <div class="role-donut-center"><strong>@DashboardViewModel.Number(roleTotal)</strong><span>Accounts</span></div>
+                        @for (var i = 0; i < roles.Length; i++)
+                        {
+                            if (shares[i] == 0) { continue; }
+                            var midpoint = (shares.Take(i).Sum() + shares[i] / 2d) / 1000d * 2 * Math.PI;
+                            var labelX = (50 + 40 * Math.Sin(midpoint)).ToString("0.###", CultureInfo.InvariantCulture);
+                            var labelY = (50 - 40 * Math.Cos(midpoint)).ToString("0.###", CultureInfo.InvariantCulture);
+                            <span class="role-segment-percent" style="left:@(labelX)%;top:@(labelY)%" title="@roles[i].Name">@((shares[i] / 10m).ToString("0.0", CultureInfo.InvariantCulture))%</span>
+                        }
+                    </div>
+                    <ul class="role-legend" aria-label="Account distribution by role">
+                        @for (var i = 0; i < roles.Length; i++)
+                        {
+                            <li aria-label="@roles[i].Name: @roles[i].Count accounts, @((shares[i] / 10m).ToString("0.0", CultureInfo.InvariantCulture)) percent">
+                                <span class="role-legend-name"><i style="background: @roles[i].Color" aria-hidden="true"></i>@roles[i].Name</span>
+                                <strong>@DashboardViewModel.Number(roles[i].Count)<small>accounts</small></strong>
+                            </li>
+                        }
+                    </ul>
                 </div>
-                <div class="panel-footer"><span>Selected account roles</span><span>Total Segmented: @DashboardViewModel.Number(data.ManagerCount + data.AccountantCount + data.StaffCount)</span></div>
+                @if (roleTotal == 0) { <p class="empty-state">No accounts in these roles yet.</p> }
+                <div class="panel-footer"><span>Managers, Accountants &amp; Staff</span><span>Total: @DashboardViewModel.Number(roleTotal) · @(roleTotal == 0 ? "0" : "100")%</span></div>
             </section>
             <section class="dashboard-card summary-card">
                 <div class="card-heading"><h2>Today's Attendance</h2><div class="attendance-date">@data.TodayAttendance.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)<small>Asia/Ho_Chi_Minh</small></div></div>

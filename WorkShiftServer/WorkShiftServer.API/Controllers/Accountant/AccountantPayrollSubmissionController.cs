@@ -6,7 +6,7 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 namespace WorkShiftServer.API.Controllers.Accountant
 {
     [ApiController]
-    [Authorize(Policy = "Accountant")]
+    [Authorize(Roles = "ACCOUNTANT")]
     [Route("api/accountant/payroll-periods")]
     public class AccountantPayrollSubmissionController
         : ControllerBase
@@ -22,11 +22,40 @@ namespace WorkShiftServer.API.Controllers.Accountant
 
         // =====================================================
         // POST
-        // /api/accountant/payroll-periods/{periodId}
-        // /payrolls/{payrollId}/submit
+        // /api/accountant/payroll-periods/{periodId}/submit
         // =====================================================
-        [HttpPost(
-            "{periodId:int}/payrolls/{payrollId:int}/submit")]
+        [HttpPost("{periodId:int}/submit")]
+        public async Task<IActionResult>
+            SubmitPayrollPeriod(
+                int periodId)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var accountantGuid))
+            {
+                return Unauthorized(new { message = "The authenticated Accountant ID is invalid." });
+            }
+
+            try
+            {
+                return Ok(await _service.SubmitPayrollPeriodAsync(periodId, accountantGuid));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            { return StatusCode(403, new { message = ex.Message }); }
+            catch (ArgumentException ex)
+            { return BadRequest(new { message = ex.Message }); }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+        }
+
+        // Gửi lại một Payroll đã bị Admin reject.
+        [HttpPost("{periodId:int}/payrolls/{payrollId:int}/submit")]
         public async Task<IActionResult>
             SubmitRejectedPayroll(
                 int periodId,
@@ -60,6 +89,8 @@ namespace WorkShiftServer.API.Controllers.Accountant
                     message = ex.Message
                 });
             }
+            catch (UnauthorizedAccessException ex)
+            { return StatusCode(403, new { message = ex.Message }); }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new

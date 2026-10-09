@@ -65,13 +65,14 @@ public interface IRegionRepo
     Task<RegionData> CreateAsync(Region region);
 
     /// <summary>
-    /// Updates the region name and description for a specific region ID.
+    /// Updates the region name, description, and regional minimum wage ID for a specific region ID.
     /// </summary>
     /// <param name="id">The region identifier.</param>
     /// <param name="regionName">The updated region name.</param>
     /// <param name="description">The updated description.</param>
+    /// <param name="regionalMinimumWageId">The updated regional minimum wage ID.</param>
     /// <returns>The updated region data model or null if not found.</returns>
-    Task<RegionData?> UpdateAsync(int id, string regionName, string? description);
+    Task<RegionData?> UpdateAsync(int id, string regionName, string? description, int regionalMinimumWageId);
 
     /// <summary>
     /// Soft deletes a region by setting its IsActive status to false.

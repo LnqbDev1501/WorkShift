@@ -1,0 +1,77 @@
+@model UI_Admin.Models.Manager.ManagerDashboardViewModel
+@using M = UI_Admin.Models.Manager.ManagerDashboardViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    var data = Model.Data;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-dashboard.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard manager-dashboard">
+    <header class="ad-heading"><div><span class="ad-eyebrow">WORKSPACE / MANAGER</span><h1>Branch Overview</h1><p>Your team, daily operations, and requests at a glance.</p></div><a class="ad-refresh" asp-action="Index"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    @if (Model.ErrorMessage is not null)
+    {
+        <section class="ad-error" role="alert"><span class="material-symbols-outlined" aria-hidden="true">cloud_off</span><div><h2>Dashboard temporarily unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Index">Try again</a></div></section>
+    }
+    @if (data is not null)
+    {
+        <div class="ad-scope"><span class="material-symbols-outlined" aria-hidden="true">store</span>@data.BranchName<span>@data.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture) · UTC+7</span></div>
+        <section class="ad-stats" aria-label="Branch statistics">
+            @foreach (var card in new[] {
+                (Label: "Total Staff", Value: data.TotalStaff, Icon: "group", Tone: "accent", Note: $"{DashboardViewModel.Number(data.ActiveStaff)} active · {DashboardViewModel.Number(data.InactiveStaff)} inactive"),
+                (Label: "Today's Shifts", Value: data.TodayShifts, Icon: "work_history", Tone: "success", Note: "Noncancelled shifts starting today"),
+                (Label: "Today's Assignments", Value: data.TodayAssignments, Icon: "assignment_ind", Tone: "accent", Note: "Assigned slots, including repeat staff"),
+                (Label: "Pending Requests", Value: data.PendingRequests, Icon: "pending_actions", Tone: "warning", Note: "Branch requests awaiting review") })
+            {
+                <article class="ad-card ad-stat"><div class="ad-card-top"><span>@card.Label</span><span class="ad-icon @card.Tone material-symbols-outlined" aria-hidden="true">@card.Icon</span></div><strong>@DashboardViewModel.Number(card.Value)</strong><p>@card.Note</p></article>
+            }
+        </section>
+        <section class="md-week" aria-labelledby="current-week-title"><div><span class="ad-eyebrow">WEEKLY OPERATIONS</span><h2 id="current-week-title">Current Schedule Week</h2>
+            @if (data.CurrentScheduleWeek is { } week)
+            {
+                <p>@week.WeekStartDate.ToString("dd MMM", CultureInfo.InvariantCulture) – @week.WeekEndDate.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</p><small>Registration deadline: @M.VietnamTime(week.RegistrationDeadline) · UTC+7</small><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@week.ScheduleWeekId">View schedule details →</a>
+            }
+            else { <p>No active schedule week covers today.</p><a class="ms-dashboard-link" asp-controller="ManagerSchedule" asp-action="Index">View weekly schedules →</a> }
+            </div><div class="md-week-status"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>@if (data.CurrentScheduleWeek is { } current) { <span>@M.Label(current.Status)</span> }</div>
+        </section>
+        <div class="ad-panels">
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Today's Attendance</h2><span>@DashboardViewModel.Number(data.TodayAttendance.Total) records</span></div><p>Attendance for shifts starting today, by recorded status.</p>
+                @if (data.TodayAttendance.Total == 0) { <div class="md-empty"><span class="material-symbols-outlined" aria-hidden="true">fact_check</span><strong>No attendance recorded yet</strong><p>Today's attendance will appear here when records are available.</p></div> }
+                else
+                {
+                    var position = 0m;
+                    var stops = new List<string>();
+                    foreach (var group in data.TodayAttendance.ByStatus)
+                    {
+                        var start = position;
+                        position += group.Count * 100m / data.TodayAttendance.Total;
+                        stops.Add($"{M.Color(group.Status)} {start.ToString(CultureInfo.InvariantCulture)}% {position.ToString(CultureInfo.InvariantCulture)}%");
+                    }
+                    <div class="ad-pie-layout"><div class="md-donut" style="background:conic-gradient(@string.Join(", ", stops))" aria-hidden="true"><div><strong>@DashboardViewModel.Number(data.TodayAttendance.Total)</strong><span>records</span></div></div><ul class="ad-pie-legend" aria-label="Attendance percentages">
+                        @foreach (var group in data.TodayAttendance.ByStatus)
+                        {
+                            <li><span><i style="background:@M.Color(group.Status)" aria-hidden="true"></i>@M.Label(group.Status)</span><strong>@DashboardViewModel.Percent(group.Count, data.TodayAttendance.Total)%<small>@DashboardViewModel.Number(group.Count) records</small></strong></li>
+                        }
+                    </ul></div>
+                }
+                <div class="md-footnote">Recorded attendance is separate from assigned shift slots.</div>
+            </section>
+            <section class="ad-card ad-panel"><div class="ad-panel-heading"><h2>Requests Awaiting Review</h2><span>@DashboardViewModel.Number(data.PendingRequests) pending</span></div><p>Pending employee requests grouped by type.</p>
+                @if (data.PendingRequestsByType.Count == 0) { <div class="md-empty"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span><strong>You're all caught up</strong><p>No pending requests for your branch.</p></div> }
+                @foreach (var group in data.PendingRequestsByType)
+                {
+                    <div class="md-request-row"><div><span>@M.Label(group.RequestType)</span><strong>@DashboardViewModel.Number(group.Count)<small> @DashboardViewModel.Percent(group.Count, data.PendingRequests)%</small></strong></div><div class="ad-track"><div style="width:@(DashboardViewModel.Percent(group.Count, data.PendingRequests))%;background:#6256db"></div></div></div>
+                }
+            </section>
+        </div>
+        <section class="ad-card ad-recent"><div class="ad-panel-heading"><div><h2>Recent Employee Requests</h2><p>The 5 latest requests across all statuses in your branch.</p></div><span class="material-symbols-outlined" aria-hidden="true">inbox</span></div><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Recent employee requests"><table><thead><tr><th scope="col">Employee</th><th scope="col">Request Type</th><th scope="col">Status</th><th scope="col">Submitted At · UTC+7</th><th scope="col" class="ad-number">Request ID</th></tr></thead><tbody>
+            @if (data.RecentRequests.Count == 0) { <tr><td colspan="5" class="ad-empty">No employee requests to display.</td></tr> }
+            @foreach (var request in data.RecentRequests)
+            {
+                <tr><td><strong>@request.FullName</strong></td><td>@M.Label(request.RequestType)</td><td><span class="ad-badge" style="color:@M.Color(request.Status);background:@(M.Color(request.Status))14">@M.Label(request.Status)</span></td><td>@M.VietnamTime(request.CreatedAt)</td><td class="ad-number">#@request.RequestId</td></tr>
+            }
+        </tbody></table></div><footer>Only data for your assigned branch is shown.</footer></section>
+    }
+</div>

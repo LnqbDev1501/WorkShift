@@ -3,6 +3,11 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response
     public class PayrollResponse
     {
         public int PayrollId { get; set; }
+        public int VersionNo { get; set; }
+        public int? PreviousPayrollId { get; set; }
+        public string? CorrectionReason { get; set; }
+        public decimal CarryForwardDeduction { get; set; }
+        public decimal DeferredDeductionAmount { get; set; }
 
         public Guid UserId { get; set; }
 
@@ -37,6 +42,7 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response
 
     public class PayrollRejectionResponse
     {
+        public string? Category { get; set; }
         public Guid? RejectedById { get; set; }
 
         public string? RejectedByName { get; set; }

@@ -1,0 +1,32 @@
+@model UI_Admin.Models.Holidays.EditHolidayViewModel
+@{ ViewData["Title"] = "Edit Public Holiday"; }
+@section Styles { <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" /> }
+
+<div class="holiday-shell">
+<main class="holiday-page holiday-form-page">
+    <div class="form-heading"><div><h1>Edit Public Holiday</h1><p>Update the name, date and status. The pay multiplier is selected automatically by date.</p></div><a asp-action="List" class="secondary-button"><span class="material-symbols-outlined">arrow_back</span>Back to holidays</a></div>
+    <form asp-action="Edit" asp-route-id="@Model.PublicHolidayId" method="post" class="holiday-form-full">
+        @Html.AntiForgeryToken()<input asp-for="PublicHolidayId" type="hidden" />
+        <div asp-validation-summary="All" class="holiday-validation"></div>
+        <div class="edit-workspace">
+        <section class="holiday-form-card edit-card">
+            <header><div><span class="material-symbols-outlined">edit_calendar</span><div><h2>Holiday information</h2><p>Record #@Model.PublicHolidayId</p></div></div></header>
+            <div class="edit-fields">
+                <label><span>Holiday name *</span><input asp-for="HolidayName" maxlength="150" /><span asp-validation-for="HolidayName"></span></label>
+                <label><span>Holiday date *</span><input asp-for="HolidayDate" type="date" /><span asp-validation-for="HolidayDate"></span></label>
+                <div><span>Status</span><span class="status active">Active</span></div>
+            </div>
+        </section>
+        <aside class="holiday-form-sidebar">
+            <section class="guideline-card"><header><span class="material-symbols-outlined">policy</span><h2>Edit safeguards</h2></header><ul><li><span class="material-symbols-outlined">check_circle</span><div><strong>Name correction</strong><p>Only active holidays not used in any payroll can be edited.</p></div></li><li><span class="material-symbols-outlined">event</span><div><strong>Date integrity</strong><p>Keep the original date or choose a new date after today. Existing holiday dates remain reserved.</p></div></li><li class="danger"><span class="material-symbols-outlined">warning</span><div><strong>Payroll protection</strong><p>Any payroll usage, including draft payroll, makes this holiday read-only.</p></div></li></ul></section>
+        </aside>
+        </div>
+        <section class="holiday-form-note warning full-note"><span class="material-symbols-outlined">warning</span><div><strong>Payroll protection</strong><p>Affected unfinalized payroll periods return to draft and must be recalculated before approval.</p></div></section>
+        <div class="form-actions"><a asp-action="Details" asp-route-id="@Model.PublicHolidayId" class="secondary-button">Cancel</a><button type="submit" class="primary-button"><span class="material-symbols-outlined">save</span>Save changes</button></div>
+    </form>
+</main>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+
+
+

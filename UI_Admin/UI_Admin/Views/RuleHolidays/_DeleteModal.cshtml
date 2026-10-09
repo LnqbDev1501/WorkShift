@@ -1,0 +1,60 @@
+<!-- Delete Confirmation Modal (Synchronized with Branches, RegionalMinimumWages, and User) -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[26px]">delete</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface font-bold text-lg" id="deleteModalTitle">Delete Pay Rule Draft?</h3>
+                <p class="font-label-sm text-on-surface-variant text-xs text-gray-500">Holiday Pay Rules</p>
+            </div>
+        </div>
+
+        <p class="font-body-md text-on-surface-variant text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to delete draft <strong id="deleteModalRuleName" class="text-on-surface font-semibold text-gray-900"></strong>? This draft will be permanently removed and cannot be recovered.
+        </p>
+
+        <form id="deleteForm" method="post" asp-controller="RuleHolidays" asp-action="Delete" class="mt-2 flex items-center justify-end gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="deleteModalRuleId" value="0" />
+            <button type="button" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer" onclick="closeDeleteModal()">
+                Cancel
+            </button>
+            <button type="submit" class="h-10 px-5 rounded-xl bg-error hover:bg-red-700 text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">delete</span>
+                <span>Confirm Delete</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openDeleteModal(id, ruleName) {
+        var idInput = document.getElementById('deleteModalRuleId');
+        var nameSpan = document.getElementById('deleteModalRuleName');
+        var modal = document.getElementById('deleteModal');
+        if (idInput) idInput.value = id;
+        if (nameSpan) nameSpan.textContent = '"' + ruleName + '"';
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeDeleteModal() {
+        var modal = document.getElementById('deleteModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    document.getElementById('deleteModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeDeleteModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeDeleteModal();
+    });
+</script>

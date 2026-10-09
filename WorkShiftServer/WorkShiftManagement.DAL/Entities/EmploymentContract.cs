@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -63,9 +63,27 @@ public partial class EmploymentContract
 
     public string? TerminationReason { get; set; }
 
+    public Guid? CancelledBy { get; set; }
+
+    public DateTime? CancelledAt { get; set; }
+
+    public string? CancellationReason { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
+
+    public DateTime? StaffAcceptedAt { get; set; }
+
+    public string? ContractTerms { get; set; }
+
+    public string? ContractFilePath { get; set; }
+
+    public string? ContractTemplateVersion { get; set; }
+
+    public DateTime? PdfGeneratedAt { get; set; }
+
+    public DateTime? TerminationEffectiveAt { get; set; }
 
     public virtual User? ApprovedByNavigation { get; set; }
 
@@ -88,6 +106,8 @@ public partial class EmploymentContract
     public virtual ICollection<StaffSalaryHistory> StaffSalaryHistories { get; set; } = new List<StaffSalaryHistory>();
 
     public virtual User? TerminatedByNavigation { get; set; }
+
+    public virtual User? CancelledByNavigation { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

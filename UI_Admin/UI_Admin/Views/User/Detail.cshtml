@@ -1,4 +1,6 @@
-@model UI_Admin.Models.UserDetailViewModel
+@using UI_Admin.Models.Admin.UserAdmin
+@model UserDetailViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = $"Account Details - {Model.FullName}";
@@ -12,12 +14,16 @@
     string FormatDateShort(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm");
 }
 
-<div class="flex flex-col w-full px-7 py-6">
+<div id="userDetailContainer" class="flex flex-col w-full px-7 py-6">
     <!-- Top Action Header -->
     <div class="flex items-center justify-between gap-4 mb-6">
         <a asp-action="List" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors border border-[#e2e8f0] shadow-sm">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             <span>Back to User Accounts</span>
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.UserId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-sm transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">edit</span>
+            <span>Edit Account</span>
         </a>
     </div>
 
@@ -42,11 +48,62 @@
         </div>
     }
 
-    @if (TempData["ErrorMessage"] is string errorMessage)
+    <!-- Success Modal Popup on Update -->
+    @if (TempData["UserUpdatedSuccess"] is true or "true")
     {
-        <div class="mb-6 p-4 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium flex items-center gap-2 shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">error</span>
-            <span>@errorMessage</span>
+        <div id="updateSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+                <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-outlined text-[32px]">check_circle</span>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="font-title-lg text-title-lg text-on-surface">Account Updated Successfully</h3>
+                    <p class="font-body-md text-secondary text-[14px]">
+                        User account updated successfully.
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-md transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('updateSuccessModal').remove()">
+                    OK
+                </button>
+            </div>
+        </div>
+    }
+
+    <!-- Success Modal Popup on Restore -->
+    @if (TempData["UserRestoredSuccess"] is true or "true")
+    {
+        <div id="restoreSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+            <div class="bg-surface-container-lowest rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+                <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                    <span class="material-symbols-outlined text-[32px]">check_circle</span>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="font-title-lg text-title-lg text-on-surface">Account Restored Successfully</h3>
+                    <p class="font-body-md text-secondary text-[14px]">
+                        User account has been reactivated and assigned to the selected branch successfully.
+                    </p>
+                </div>
+                <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium text-body-md transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('restoreSuccessModal').remove()">
+                    OK
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div id="detailErrorMessageBanner" class="mb-6 p-4 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium flex items-center justify-between gap-3 shadow-sm transition-opacity duration-200">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <span class="material-symbols-outlined text-[20px] text-[#dc2626] shrink-0">error</span>
+                <span class="text-[14px] leading-relaxed break-words">@errorMessage</span>
+            </div>
+            <button type="button" 
+                    class="p-1 rounded-lg hover:bg-[#fca5a5]/40 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                    title="Dismiss" 
+                    aria-label="Close" 
+                    onclick="document.getElementById('detailErrorMessageBanner').remove()">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
         </div>
     }
 
@@ -550,6 +607,7 @@
 </div>
 
 @section Scripts {
+
 <script>
     function copyUUID() {
         const text = document.getElementById('account-uuid').innerText.trim();
@@ -565,5 +623,6 @@
             }
         });
     }
+
 </script>
 }

@@ -39,17 +39,31 @@ public partial class PayrollPeriod
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? ScheduleWeekId { get; set; }
+
+    public DateTime? ApprovalDeadlineAt { get; set; }
+
+    public DateTime? PaidAt { get; set; }
+
+    public Guid? ClosedBy { get; set; }
+
+    public DateTime? ClosedAt { get; set; }
+
     public virtual User? ApprovedByNavigation { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
 
     public virtual User? CalculatedByNavigation { get; set; }
 
+    public virtual User? ClosedByNavigation { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<EmployeeRewardsPenalty> EmployeeRewardsPenalties { get; set; } = new List<EmployeeRewardsPenalty>();
 
     public virtual ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
+
+    public virtual WorkScheduleWeek? ScheduleWeek { get; set; }
 
     public virtual User? SubmittedByNavigation { get; set; }
 

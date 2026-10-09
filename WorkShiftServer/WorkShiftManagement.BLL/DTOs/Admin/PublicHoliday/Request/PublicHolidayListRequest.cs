@@ -9,5 +9,7 @@ public sealed class PublicHolidayListRequest
 
     // Admin can request both active and soft-deleted records.
     // Omitted/false: active records only.
+    public bool? IsActive { get; set; }
     public bool IncludeInactive { get; set; } = false;
 }
+

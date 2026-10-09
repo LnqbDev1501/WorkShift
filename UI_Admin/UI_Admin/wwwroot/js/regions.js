@@ -43,6 +43,41 @@
         });
     }
 
+    // Restore Modal Controls
+    const restoreModal = document.getElementById('restore-region-modal');
+    const closeRestoreBtn = document.getElementById('close-restore-modal');
+    const cancelRestoreBtn = document.getElementById('cancel-restore-modal');
+    const restoreTargetName = document.getElementById('restore-target-name');
+    const restoreRegionId = document.getElementById('restore-region-id');
+
+    const toggleRestoreModal = (show, id = 0, name = '') => {
+        if (!restoreModal) return;
+        if (show) {
+            if (restoreTargetName) restoreTargetName.textContent = name || 'this region';
+            if (restoreRegionId) restoreRegionId.value = id;
+            restoreModal.classList.remove('hidden');
+        } else {
+            restoreModal.classList.add('hidden');
+        }
+    };
+
+    document.querySelectorAll('.open-restore-btn').forEach((btn) => {
+        btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+            toggleRestoreModal(true, id, name);
+        });
+    });
+
+    if (closeRestoreBtn) closeRestoreBtn.addEventListener('click', () => toggleRestoreModal(false));
+    if (cancelRestoreBtn) cancelRestoreBtn.addEventListener('click', () => toggleRestoreModal(false));
+
+    if (restoreModal) {
+        restoreModal.addEventListener('click', (e) => {
+            if (e.target === restoreModal) toggleRestoreModal(false);
+        });
+    }
+
     // Client-side quick filter fallback if required
     const searchInput = document.getElementById('region-search');
     const statusFilter = document.getElementById('status-filter');

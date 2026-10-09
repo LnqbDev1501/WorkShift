@@ -4,12 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
-public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
+public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShiftTemplateService
 {
     public async Task<bool> RestoreAsync(int id, CancellationToken cancellationToken = default)
     {
@@ -92,7 +93,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
         template.ShiftName = shiftName;
         template.StartTime = TimeOnly.ParseExact(request.StartTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
         template.EndTime = TimeOnly.ParseExact(request.EndTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
-        template.BreakMinutes = request.BreakMinutes!.Value;
         template.Description = request.Description?.Trim();
         template.UpdatedAt = DateTime.UtcNow;
 
@@ -158,7 +158,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
                 ShiftName = template.ShiftName,
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
-                BreakMinutes = template.BreakMinutes,
                 Status = template.Status,
                 CreatedAt = template.CreatedAt
             })
@@ -187,7 +186,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
                 ShiftName = template.ShiftName,
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
-                BreakMinutes = template.BreakMinutes,
                 Description = template.Description,
                 Status = template.Status,
                 CreatedAt = template.CreatedAt,
@@ -214,7 +212,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
             ShiftName = shiftName,
             StartTime = startTime,
             EndTime = endTime,
-            BreakMinutes = breakMinutes,
             Description = request.Description?.Trim(),
             Status = "ACTIVE"
         };
@@ -245,7 +242,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository)
             ShiftName = template.ShiftName,
             StartTime = template.StartTime,
             EndTime = template.EndTime,
-            BreakMinutes = template.BreakMinutes,
             Description = template.Description,
             Status = template.Status,
             CreatedAt = template.CreatedAt,

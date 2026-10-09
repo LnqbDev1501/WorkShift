@@ -3,3 +3,19 @@
 @media(max-width:1200px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-grid{grid-template-columns:1fr}.dashboard-heading{align-items:flex-start}.card-heading .eyebrow{font-size:9px}}
 @media(max-width:768px){.dashboard-page{padding:16px}.dashboard-topbar{padding:0 20px}.dashboard-heading{flex-direction:column}.dashboard-profile>span:first-child{display:none}.dashboard-page h1{font-size:24px}}
 @media(max-width:420px){.stat-grid,.attendance-grid{grid-template-columns:1fr}.summary-card{padding:18px}.card-heading,.payroll-heading{flex-wrap:wrap}.panel-footer{flex-wrap:wrap}.dashboard-topbar{font-size:12px}.attendance-date{text-align:left}}
+
+/* Role distribution: three distinct segments with an accessible text legend. */
+.role-distribution { display:flex; align-items:center; gap:28px; padding:24px 0; flex:1; flex-wrap:wrap; }
+.role-donut { position:relative; width:210px; aspect-ratio:1; border-radius:50%; display:grid; place-items:center; flex:0 0 210px; margin-inline:auto; }
+.role-donut-center { width:126px; aspect-ratio:1; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.role-donut-center strong { font-size:30px; font-weight:600; color:#191c2a; line-height:1.2; }
+.role-donut-center span { margin-top:5px; font-size:13px; color:#5b6074; }
+.role-legend { list-style:none; padding:0; margin:0; flex:1 1 230px; min-width:0; }
+.role-legend li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px; padding:15px 0; border-bottom:1px solid #eeeef4; }
+.role-legend li:last-child { border-bottom:0; }
+.role-legend-name { display:flex; align-items:center; gap:9px; font-size:14px; }
+.role-legend-name i { width:10px; height:10px; flex:0 0 10px; border-radius:50%; }
+.role-legend strong { text-align:right; font-size:17px; font-weight:600; }
+.role-legend small { display:block; font-size:11px; font-weight:400; color:#5b6074; }
+ .role-segment-percent { position:absolute; z-index:1; transform:translate(-50%,-50%); padding:0; background:transparent; color:#fff; font-size:11px; font-weight:600; line-height:16px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+@media(max-width:600px) { .role-distribution { gap:16px; } .role-legend { flex-basis:100%; } }

@@ -32,7 +32,7 @@ public class BranchListPagedViewModel
     public List<BranchListItemViewModel> Items { get; set; } = [];
     public List<RegionOptionViewModel> AvailableRegions { get; set; } = [];
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = ListPaginationViewModel.DefaultPageSize;
     public int TotalItems { get; set; }
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalItems / PageSize) : 1;
     public string? Search { get; set; }
@@ -41,10 +41,6 @@ public class BranchListPagedViewModel
     public string? SuccessMessage { get; set; }
     public string? ErrorMessage { get; set; }
 
-    public int StartItemIndex => TotalItems == 0 ? 0 : (PageNumber - 1) * PageSize + 1;
-    public int EndItemIndex => Math.Min(PageNumber * PageSize, TotalItems);
-    public bool HasPreviousPage => PageNumber > 1;
-    public bool HasNextPage => PageNumber < TotalPages;
 }
 
 public class BranchDetailViewModel

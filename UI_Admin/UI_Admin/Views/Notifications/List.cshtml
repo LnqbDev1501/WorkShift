@@ -1,14 +1,13 @@
 @model UI_Admin.Models.NotificationListPageViewModel
 @{
     ViewData["Title"] = "Notifications";
-    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize));
 }
 @section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
 
 <section class="notifications-page">
     <header class="notification-header">
         <div>
-            <span class="eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
+            <span class="list-eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
             <h1>Notifications</h1>
             <p>Review notification history and send operational announcements.</p>
         </div>
@@ -34,7 +33,7 @@
             <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
         </select>
         <input type="hidden" name="SortBy" value="CreatedAt" />
-        <button type="submit" class="btn-secondary">Apply filters</button>
+        <partial name="_ListFilterActions" model='"History"' />
     </form>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
@@ -48,10 +47,17 @@
             <div class="table-scroll"><table class="notification-table"><thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Channels</th><th>Created</th><th></th></tr></thead><tbody>
             @foreach (var item in Model.Items)
             {
-                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" class="detail-link">View details →</a></td></tr>
+                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels ?? Enumerable.Empty<string>()) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" class="detail-link">View details →</a></td></tr>
             }
             </tbody></table></div>
-            <footer class="notification-pagination"><span>Showing @Model.Items.Count of @Model.TotalCount notifications</span><div>@if (Model.Page > 1) { <a asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-type="@Model.Type" asp-route-sortOrder="@Model.SortOrder">Previous</a> } <span>Page @Model.Page / @totalPages</span> @if (Model.Page < totalPages) { <a asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-type="@Model.Type" asp-route-sortOrder="@Model.SortOrder">Next</a> }</div></footer>
+
         }
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.Page,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalCount,
+            ItemLabel = "notifications",
+        })" />
     </div>
 </section>

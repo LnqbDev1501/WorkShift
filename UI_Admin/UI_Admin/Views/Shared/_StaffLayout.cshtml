@@ -1,0 +1,29 @@
+@{
+    Layout = "_AdminLayout";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+}
+<div class="staff-page">
+    @RenderBody()
+</div>
+@if (TempData["SuccessMessage"] is string message)
+{
+    <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-lg border border-emerald-700 font-medium text-sm animate-fade-in" role="status">
+        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+        <span>@message</span>
+        <button type="button" aria-label="Dismiss notification" onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-emerald-200 text-lg leading-none font-bold">×</button>
+    </div>
+}
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg border border-red-700 font-medium text-sm animate-fade-in" role="alert">
+        <span class="material-symbols-outlined text-[18px]">error</span>
+        <span>@errorMessage</span>
+        <button type="button" aria-label="Dismiss notification" onclick="this.parentElement.remove()" class="ml-2 text-white hover:text-red-200 text-lg leading-none font-bold">×</button>
+    </div>
+}
+@section Scripts {
+    @await RenderSectionAsync("Scripts", required: false)
+}

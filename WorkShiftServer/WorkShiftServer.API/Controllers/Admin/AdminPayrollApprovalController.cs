@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
@@ -5,11 +6,11 @@ using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Controllers.Admin
 {
-[ApiController]
-[Authorize(Policy = "Admin")]
+    [ApiController]
+    [Authorize(Policy = "Admin")]
     [Route("api/admin/payroll-periods")]
     public class AdminPayrollApprovalController
-        : ControllerBase
+            : ControllerBase
     {
         private readonly IPayrollApprovalService
             _service;
@@ -31,7 +32,9 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromQuery] int? branchId = null,
                 [FromQuery] string? search = null,
                 [FromQuery] int pageNumber = 1,
-                [FromQuery] int pageSize = 20)
+                [FromQuery] int pageSize = 20,
+                [FromQuery] DateOnly? startDateFrom = null,
+                [FromQuery] DateOnly? startDateTo = null)
         {
             try
             {
@@ -43,7 +46,9 @@ namespace WorkShiftServer.API.Controllers.Admin
                             branchId,
                             search,
                             pageNumber,
-                            pageSize);
+                            pageSize,
+                            startDateFrom,
+                            startDateTo);
 
                 return Ok(result);
             }
@@ -106,19 +111,15 @@ namespace WorkShiftServer.API.Controllers.Admin
             RejectPayroll(
                 int periodId,
                 int payrollId,
-                [FromBody] RejectPayrollRequest request,
-                [FromHeader(Name = "X-Admin-Id")]
-                string? adminId)
+                [FromBody] RejectPayrollRequest request)
         {
-            if (string.IsNullOrWhiteSpace(adminId) ||
-                !Guid.TryParse(
-                    adminId,
-                    out var adminGuid))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var adminGuid))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message =
-                        "X-Admin-Id không hợp lệ."
+                    message = "The authenticated Admin ID is invalid."
                 });
             }
 
@@ -162,19 +163,15 @@ namespace WorkShiftServer.API.Controllers.Admin
         [HttpPost("{id:int}/approve")]
         public async Task<IActionResult>
             ApprovePayrollPeriod(
-                int id,
-                [FromHeader(Name = "X-Admin-Id")]
-                string? adminId)
+                int id)
         {
-            if (string.IsNullOrWhiteSpace(adminId) ||
-                !Guid.TryParse(
-                    adminId,
-                    out var adminGuid))
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub");
+            if (!Guid.TryParse(userId, out var adminGuid))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message =
-                        "X-Admin-Id không hợp lệ."
+                    message = "The authenticated Admin ID is invalid."
                 });
             }
 

@@ -7,8 +7,6 @@ public partial class AttendanceRule
 {
     public int AttendanceRuleId { get; set; }
 
-    public int BranchId { get; set; }
-
     public string RuleName { get; set; } = null!;
 
     public string? Description { get; set; }
@@ -21,11 +19,7 @@ public partial class AttendanceRule
 
     public int CheckOutAfterMinutes { get; set; }
 
-    public bool RequireGps { get; set; }
-
-    public int? MaxAttendanceDistanceMeters { get; set; }
-
-    public bool RequireFaceVerification { get; set; }
+    public int MaxAttendanceDistanceMeters { get; set; }
 
     public DateOnly? EffectiveFrom { get; set; }
 
@@ -50,8 +44,6 @@ public partial class AttendanceRule
     public DateTime UpdatedAt { get; set; }
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
-
-    public virtual Branch Branch { get; set; } = null!;
 
     public virtual User? CancelledByNavigation { get; set; }
 

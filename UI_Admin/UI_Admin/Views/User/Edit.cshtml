@@ -1,0 +1,479 @@
+@using UI_Admin.Models.Admin.UserAdmin
+@model UserEditViewModel
+
+@{
+    ViewData["Title"] = $"Edit Account - {Model.FullName}";
+    var isPending = Model.IsPending;
+    var isActive = Model.IsActive;
+}
+
+@section Styles {
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-container": "#dad7ff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface": "#f8f9fd",
+                        "surface-container-low": "#f2f3f7",
+                        "surface-dim": "#d9dade",
+                        "inverse-surface": "#2e3134",
+                        "background": "#f8f9fd",
+                        "surface-bright": "#f8f9fd",
+                        "on-background": "#191c1f",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "outline": "#777587",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "primary-container": "#4f46e5",
+                        "on-secondary-container": "#5c6274",
+                        "secondary-container": "#d9dff5",
+                        "inverse-primary": "#c3c0ff",
+                        "surface-container-high": "#e7e8ec",
+                        "secondary-fixed": "#dce2f7",
+                        "on-secondary-fixed": "#141b2b",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#d3e4fe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#ccdcf7",
+                        "surface-tint": "#4d44e3",
+                        "on-surface": "#191c1f",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "primary-fixed": "#e2dfff",
+                        "inverse-on-surface": "#eff1f5",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e1e2e6",
+                        "surface-container": "#edeef2",
+                        "on-surface-variant": "#464555",
+                        "tertiary": "#3a495f",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c7c4d8",
+                        "tertiary-container": "#516177",
+                        "surface-variant": "#e1e2e6",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "error-container": "#ffdad6",
+                        "secondary": "#575e70",
+                        "primary": "#3525cd",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-tertiary-fixed-variant": "#38485d"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    spacing: {
+                        "unit-4": "1rem",
+                        "sidebar-width": "16.25rem",
+                        "input-height": "2.5rem",
+                        "unit-8": "2rem",
+                        "unit-6": "1.5rem",
+                        "unit-12": "3rem",
+                        "unit-10": "2.5rem",
+                        "unit-2": "0.5rem",
+                        "unit-1": "0.25rem",
+                        "topbar-height": "4rem",
+                        "unit-3": "0.75rem",
+                        "table-row-height": "3.5rem",
+                        "unit-5": "1.25rem"
+                    },
+                    fontFamily: {
+                        "title-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-sm": ["Arial", "Helvetica", "sans-serif"],
+                        "display-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "code-num": ["Arial", "Helvetica", "sans-serif"],
+                        "display-md": ["Arial", "Helvetica", "sans-serif"],
+                        "title-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md-medium": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md": ["Arial", "Helvetica", "sans-serif"],
+                        "body-sm": ["Arial", "Helvetica", "sans-serif"]
+                    },
+                    fontSize: {
+                        "title-md": ["16px", { lineHeight: "24px", letterSpacing: "-0.005em", fontWeight: "600" }],
+                        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.02em", fontWeight: "600" }],
+                        "label-sm": ["11px", { lineHeight: "14px", letterSpacing: "0.03em", fontWeight: "500" }],
+                        "display-lg": ["32px", { lineHeight: "40px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "code-num": ["13px", { lineHeight: "18px", letterSpacing: "-0.01em", fontWeight: "500" }],
+                        "display-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.015em", fontWeight: "600" }],
+                        "title-lg": ["20px", { lineHeight: "28px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-md-medium": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "500" }],
+                        "body-md": ["14px", { lineHeight: "20px", letterSpacing: "0em", fontWeight: "400" }],
+                        "body-sm": ["13px", { lineHeight: "18px", letterSpacing: "0em", fontWeight: "400" }]
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .field-validation-error {
+            color: #ba1a1a;
+            font-size: 11px;
+            font-weight: 500;
+            display: block;
+            margin-top: 4px;
+        }
+        .input-validation-error {
+            border-color: #ba1a1a !important;
+            background-color: #fff8f8 !important;
+        }
+    </style>
+}
+
+<div class="w-full px-7 pt-6 pb-10">
+    <div class="w-full max-w-[1200px] mx-auto">
+        <form asp-controller="User" asp-action="Edit" asp-route-id="@Model.UserId" method="post" enctype="multipart/form-data" class="flex flex-col w-full gap-unit-6" id="editUserForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" />
+            <input type="hidden" asp-for="AvatarUrl" />
+            <input type="hidden" asp-for="Status" />
+
+            <!-- Page Header Ribbon -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-unit-3 flex-wrap">
+                    <h1 class="font-display-md text-display-md text-on-surface">Edit User Account</h1>
+                    @if (isPending)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#fef3c7] text-[#b45309] font-label-sm text-label-sm border border-[#fde68a]">
+                            <span class="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                            PENDING ACTIVATION
+                        </span>
+                    }
+                    else if (isActive)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-[#ecfdf5] text-[#059669] font-label-sm text-label-sm border border-[#a7f3d0]">
+                            <span class="w-2 h-2 rounded-full bg-[#059669]"></span>
+                            ACTIVE
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-sm text-label-sm border border-surface-container-high">
+                            <span class="w-2 h-2 rounded-full bg-[#9ca3af]"></span>
+                            INACTIVE
+                        </span>
+                    }
+                </div>
+            </div>
+
+            @if (TempData["ErrorMessage"] is string tempErrorMessage && !string.IsNullOrWhiteSpace(tempErrorMessage))
+            {
+                <div id="editTempErrorBanner" class="p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-3 text-error shadow-sm transition-opacity duration-200">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined text-[20px] text-[#dc2626] shrink-0">error</span>
+                        <span class="text-[14px] leading-relaxed break-words font-medium">@tempErrorMessage</span>
+                    </div>
+                    <button type="button" 
+                            class="p-1 rounded-lg hover:bg-rose-200/50 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                            title="Dismiss" 
+                            aria-label="Close" 
+                            onclick="document.getElementById('editTempErrorBanner').remove()">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            }
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.TryGetValue(string.Empty, out var modelStateErrors) && modelStateErrors.Errors.Count > 0)
+            {
+                <div id="editModelStateErrorBanner" class="p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-error shadow-sm transition-opacity duration-200">
+                    <div class="flex items-start gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5 text-[#dc2626]">error</span>
+                        <div class="text-[13px] font-body-md space-y-1 leading-relaxed">
+                            @foreach (var error in modelStateErrors.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
+                    </div>
+                    <button type="button" 
+                            class="p-1 rounded-lg hover:bg-rose-200/50 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                            title="Dismiss" 
+                            aria-label="Close" 
+                            onclick="document.getElementById('editModelStateErrorBanner').remove()">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            }
+
+            <!-- SECTION 1: Identity & Personal Information -->
+            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[22px]">badge</span>
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface">Personal Information & Profile</h2>
+                            <p class="font-label-sm text-secondary">Update personal bio, legal identification, and official avatar</p>
+                        </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Core Bio</span>
+                </div>
+
+                <!-- Avatar Uploader Component -->
+                <div class="p-unit-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center gap-unit-5 border border-[#e2e8f0]">
+                    <div class="relative group">
+                        @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                        {
+                            <img id="avatarPreview" alt="@Model.FullName Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="@Model.AvatarUrl" />
+                        }
+                        else
+                        {
+                            <div id="avatarPlaceholder" class="w-24 h-24 rounded-full bg-[#5146e5] text-white text-2xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm ring-2 ring-primary/20">
+                                @Model.Initials
+                            </div>
+                            <img id="avatarPreview" alt="Preview" class="hidden w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" />
+                        }
+                        <label for="avatarFileInput" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                            <span class="material-symbols-outlined text-[24px]">photo_camera</span>
+                        </label>
+                    </div>
+                    
+                    <div class="flex flex-col gap-unit-2 flex-1">
+                        <div>
+                            <h4 class="font-title-md text-title-md text-on-surface">Profile Avatar Photo</h4>
+                            <p class="font-body-sm text-body-sm text-secondary">Upload a square image (JPG, PNG, or WEBP, max 5MB). Stored securely via Cloudinary.</p>
+                        </div>
+                        
+                        <div class="flex items-center gap-unit-3 flex-wrap">
+                            <input type="file" asp-for="AvatarFile" id="avatarFileInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
+                            <button type="button" onclick="document.getElementById('avatarFileInput').click()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-surface-container-lowest border border-[#cbd5e1] hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[16px] text-primary">upload</span>
+                                <span>Change Photo</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personal Information Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                    <!-- Full Name -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="FullName">
+                            Full Legal Name <span class="text-error">*</span>
+                        </label>
+                        <input asp-for="FullName" class="h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="150" placeholder="e.g. Nguyen Van An" type="text" />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Work Email -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Email">
+                            Work / Contact Email <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">mail</span>
+                            <input asp-for="Email" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="254" placeholder="user@workshift.vn" type="email" />
+                        </div>
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Phone">
+                            Contact Phone (VN Mobile) <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">call</span>
+                            <input asp-for="Phone" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="10" placeholder="0912345678" type="tel" />
+                        </div>
+                        <span asp-validation-for="Phone" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Citizen ID / CCCD -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="IdentityNo">
+                            Citizen ID / CCCD (9 or 12 digits) <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">credit_card</span>
+                            <input asp-for="IdentityNo" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="12" placeholder="079099012345" type="text" />
+                        </div>
+                        <span asp-validation-for="IdentityNo" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Gender Selection -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Gender">
+                            Gender <span class="text-error">*</span>
+                        </label>
+                        <div class="relative">
+                            <select asp-for="Gender" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                                <option value="MALE">Male</option>
+                                <option value="FEMALE">Female</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                        </div>
+                        <span asp-validation-for="Gender" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Date of Birth -->
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="DateOfBirth">
+                            Date of Birth <span class="text-error">*</span>
+                        </label>
+                        <div class="relative flex items-center">
+                            <input asp-for="DateOfBirth" asp-format="{0:yyyy-MM-dd}" min="1900-01-01" max="@DateTime.Today.AddYears(-18).ToString("yyyy-MM-dd")" class="w-full h-input-height px-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" type="date" />
+                        </div>
+                        <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
+                    </div>
+
+                    <!-- Residential Address -->
+                    <div class="flex flex-col gap-unit-1 md:col-span-2">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="Address">
+                            Residential Address <span class="text-error">*</span>
+                        </label>
+                        <textarea asp-for="Address" rows="2" class="p-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none" placeholder="Enter complete residential address..."></textarea>
+                        <span asp-validation-for="Address" class="field-validation-error"></span>
+                    </div>
+                </div>
+            </section>
+
+            <input type="hidden" asp-for="RoleName" />
+            @if (Model.IsAdmin)
+            {
+                <input type="hidden" asp-for="RoleId" />
+            }
+            else
+            {
+                <!-- SECTION 2: Role & Operational Permissions -->
+                <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-unit-2">
+                            <span class="material-symbols-outlined text-primary text-[22px]">admin_panel_settings</span>
+                            <div>
+                                <h2 class="font-title-lg text-title-lg text-on-surface">Role & System Permissions</h2>
+                                <p class="font-label-sm text-secondary">Assign user system role and operational access level</p>
+                            </div>
+                        </div>
+                        <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">RBAC Authority</span>
+                    </div>
+
+                    <div class="flex flex-col gap-unit-1">
+                        <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="RoleId">
+                            Assigned System Role <span class="text-error">*</span>
+                        </label>
+                        <div class="relative">
+                            <select asp-for="RoleId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md-medium text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                                @foreach (var role in Model.AvailableRoles.Where(r => !r.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    <option value="@role.Id">@role.Name</option>
+                                }
+                            </select>
+                            <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                        </div>
+                        <span asp-validation-for="RoleId" class="field-validation-error"></span>
+                    </div>
+                </section>
+            }
+
+            <!-- SECTION 3: Organizational Assignment -->
+            <section class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col gap-unit-5">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[22px]">apartment</span>
+                        <div>
+                            <h2 class="font-title-lg text-title-lg text-on-surface">Organizational Assignment</h2>
+                            <p class="font-label-sm text-secondary">@(Model.IsAdmin ? "Assign administrative branch base (optional)" : "Assign user workplace branch")</p>
+                        </div>
+                    </div>
+                    <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Territory</span>
+                </div>
+
+                <!-- Primary Branch -->
+                <div class="flex flex-col gap-unit-1">
+                    <label class="font-label-md text-label-md text-on-surface flex items-center gap-1" asp-for="BranchId">
+                        Primary Branch Hub @if (!Model.IsAdmin) { <span class="text-error">*</span> } else { <span class="text-secondary text-xs">(Optional)</span> }
+                    </label>
+                    <div class="relative">
+                        <select asp-for="BranchId" class="w-full h-input-height pl-unit-3 pr-unit-8 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all">
+                            @if (Model.IsAdmin)
+                            {
+                                <option value="">No Branch Assigned (Head Office / System-wide)</option>
+                            }
+                            @foreach (var branch in Model.AvailableBranches)
+                            {
+                                <option value="@branch.Id">@branch.DisplayText</option>
+                            }
+                        </select>
+                        <span class="material-symbols-outlined absolute right-3 top-2.5 text-secondary pointer-events-none text-[20px]">expand_more</span>
+                    </div>
+                    <span asp-validation-for="BranchId" class="field-validation-error"></span>
+                </div>
+            </section>
+
+            <!-- Static Bottom Action Bar -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-4 shadow-sm border border-[#e2e8f0] flex flex-col sm:flex-row items-center justify-between gap-unit-4">
+                <div class="flex items-center gap-unit-2 text-secondary text-[13px]">
+                    <span class="material-symbols-outlined text-[18px] text-outline">info</span>
+                    <span>Make sure to save changes before navigating away from this page.</span>
+                </div>
+                <div class="flex items-center gap-unit-3 w-full sm:w-auto justify-end">
+                    <a asp-action="Detail" asp-route-id="@Model.UserId" class="h-input-height px-unit-5 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface font-body-md-medium transition-colors inline-flex items-center justify-center text-body-sm shadow-sm">
+                        Cancel
+                    </a>
+                    <button class="h-input-height px-unit-6 rounded-xl bg-primary-container hover:bg-[#4338ca] text-white font-body-md-medium shadow-sm transition-all inline-flex items-center justify-center gap-unit-2 text-body-sm active:scale-[0.99] cursor-pointer" id="saveChangesBtn" type="submit">
+                        <span class="material-symbols-outlined text-[18px]">save</span>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    function previewAvatar(event) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewImg = document.getElementById('avatarPreview');
+                const placeholder = document.getElementById('avatarPlaceholder');
+                if (previewImg) {
+                    previewImg.src = e.target.result;
+                    previewImg.classList.remove('hidden');
+                }
+                if (placeholder) {
+                    placeholder.classList.add('hidden');
+                }
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('editUserForm');
+        if (form) {
+            form.addEventListener('submit', function (e) {
+                if (window.jQuery && $(form).length && typeof $(form).valid === 'function') {
+                    if (!$(form).valid()) {
+                        return;
+                    }
+                } else if (!form.checkValidity()) {
+                    return;
+                }
+
+                const btn = document.getElementById('saveChangesBtn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `
+                        <span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        <span>Saving Changes...</span>
+                    `;
+                }
+            });
+        }
+    });
+</script>
+}

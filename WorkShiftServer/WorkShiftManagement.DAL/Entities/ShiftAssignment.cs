@@ -29,17 +29,27 @@ public partial class ShiftAssignment
 
     public DateTime UpdatedAt { get; set; }
 
+    public int? ShiftRequirementId { get; set; }
+
     public virtual User AssignedByNavigation { get; set; } = null!;
 
     public virtual Attendance? Attendance { get; set; }
 
     public virtual User? CancelledByNavigation { get; set; }
 
+    public virtual ICollection<LeaveRequestAssignment> LeaveRequestAssignments { get; set; } = new List<LeaveRequestAssignment>();
+
+    public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
+
     public virtual WorkShift Shift { get; set; } = null!;
+
+    public virtual ShiftEmployeeRequirement? ShiftEmployeeRequirement { get; set; }
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestSourceAssignments { get; set; } = new List<ShiftSwapRequest>();
 
     public virtual ICollection<ShiftSwapRequest> ShiftSwapRequestTargetAssignments { get; set; } = new List<ShiftSwapRequest>();
+
+    public virtual ICollection<TimeAdjustmentRequestDetail> TimeAdjustmentRequestDetails { get; set; } = new List<TimeAdjustmentRequestDetail>();
 
     public virtual User User { get; set; } = null!;
 }

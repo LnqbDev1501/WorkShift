@@ -23,8 +23,6 @@ public partial class Attendance
 
     public DateTime ShiftEndAtSnapshot { get; set; }
 
-    public int BreakMinutesSnapshot { get; set; }
-
     public DateTime? CheckInTime { get; set; }
 
     public decimal? CheckInLatitude { get; set; }
@@ -71,14 +69,6 @@ public partial class Attendance
 
     public string Status { get; set; } = null!;
 
-    public string? ResolutionType { get; set; }
-
-    public Guid? ResolvedBy { get; set; }
-
-    public DateTime? ResolvedAt { get; set; }
-
-    public string? ResolutionReason { get; set; }
-
     public int TotalLateMinutes { get; set; }
 
     public int ExcusedLateMinutes { get; set; }
@@ -95,7 +85,11 @@ public partial class Attendance
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? CompletedAt { get; set; }
+
     public virtual ShiftAssignment Assignment { get; set; } = null!;
+
+    public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
 
     public virtual ICollection<AttendancePenaltyRecord> AttendancePenaltyRecords { get; set; } = new List<AttendancePenaltyRecord>();
 
@@ -109,5 +103,5 @@ public partial class Attendance
 
     public virtual TimeAdjustmentRequestDetail? LateArrivalRequest { get; set; }
 
-    public virtual User? ResolvedByNavigation { get; set; }
+    public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
 }

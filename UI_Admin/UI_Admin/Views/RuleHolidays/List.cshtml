@@ -1,0 +1,142 @@
+@model List<UI_Admin.Models.Holidays.HolidayRuleViewModel>
+
+@{
+    var pagination = ListPaginationViewModel.ForCollection(Model.Count, Context.Request.Query["page"], "pay rules");
+    ViewData["Title"] = "Holiday Pay Rules";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" />
+}
+
+<partial name="_NotificationModal" />
+
+<div class="holiday-shell">
+    <main class="holiday-page">
+
+        <div class="holiday-heading">
+            <div>
+                <div class="list-eyebrow">
+                    System-wide Configuration
+                </div>
+
+                <h1>Holiday Pay Rules</h1>
+
+                <p>
+                    Rules apply by work date and remain in effect across years.
+                </p>
+            </div>
+
+            <a asp-action="Create" class="primary-button">
+                <span class="material-symbols-outlined text-[20px]">add</span>
+                <span>Add Pay Rule</span>
+            </a>
+        </div>
+
+        @if (ViewData["LoadError"] is string loadError)
+        {
+            <div class="holiday-alert error">
+                <span class="material-symbols-outlined">error</span>
+                <span>@loadError</span>
+            </div>
+        }
+
+        <section class="holiday-table-card">
+            <div class="table-scroll">
+                <table class="holiday-table">
+                    <thead>
+                        <tr>
+                            <th>Rule name</th>
+                            <th>Pay multiplier</th>
+                            <th>Effective from</th>
+                            <th>Effective to (exclusive)</th>
+                            <th>Status</th>
+                            <th class="actions">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var rule in Model.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@rule.RuleName</strong>
+                                </td>
+
+                                <td>
+                                    <span class="multiplier">
+                                        ×@rule.PayMultiplier?.ToString("0.00")
+                                    </span>
+                                </td>
+
+                                <td>
+                                    @(rule.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—")
+                                </td>
+
+                                <td>
+                                    @(rule.EffectiveTo?.ToString("dd/MM/yyyy") ?? "—")
+                                </td>
+
+                                <td>
+                                    <span class="status @(rule.Status == "ACTIVE" ? "active" : (rule.Status == "PUBLISH" ? "active" : "inactive"))">
+                                        @rule.StatusLabel
+                                    </span>
+                                </td>
+
+                                <!-- ACTIONS -->
+                                <td class="actions">
+                                    <div class="row-actions flex items-center justify-center gap-1.5">
+                                        <!-- View Detail -->
+                                        <a asp-action="Detail" asp-route-id="@rule.HolidayPayRuleId" class="action-view"
+                                           title="View details" aria-label="View details">
+                                            <span class="material-symbols-outlined">visibility</span>
+                                        </a>
+
+                                        @if (rule.CanEdit)
+                                        {
+                                            <!-- Edit Draft (Separate Page) -->
+                                            <a asp-action="Edit" asp-route-id="@rule.HolidayPayRuleId" class="action-edit"
+                                               title="Edit pay rule" aria-label="Edit pay rule">
+                                                <span class="material-symbols-outlined">edit</span>
+                                            </a>
+
+                                            <!-- Delete Draft (Synchronized Popup Modal) -->
+                                            <button type="button" class="action-icon text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer border-0 bg-transparent"
+                                                    title="Delete draft" aria-label="Delete draft"
+                                                    onclick="openDeleteModal(@rule.HolidayPayRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
+                                                <span class="material-symbols-outlined text-[20px]">delete</span>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <partial name="_ListPagination" model="pagination" />
+
+            @if (Model.Count == 0 && ViewData["LoadError"] == null)
+            {
+                <div class="holiday-empty">
+                    <span class="material-symbols-outlined text-4xl text-gray-400 mb-2">rule</span>
+                    <h2>No holiday pay rules yet</h2>
+                    <p>Add your first rule to cover the dates needed for payroll calculations.</p>
+                </div>
+            }
+        </section>
+
+        <section class="holiday-form-note">
+            <p>
+                Drafts can be edited or deleted.
+                Published rules can only be cancelled before their effective date.
+                Active and inactive versions are retained for historical payroll audit and recalculation.
+            </p>
+        </section>
+
+    </main>
+</div>
+
+<!-- Synchronized Delete Confirmation Modal -->
+<partial name="_DeleteModal" />

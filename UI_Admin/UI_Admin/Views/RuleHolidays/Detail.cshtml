@@ -1,0 +1,195 @@
+@model UI_Admin.Models.Holidays.HolidayRuleViewModel
+@{
+    ViewData["Title"] = $"{Model.RuleName} - Pay Rule Details";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" />
+}
+
+<partial name="_NotificationModal" />
+
+<div class="holiday-shell">
+    <main class="holiday-page holiday-form-page">
+        <!-- Heading & Actions -->
+        <div class="form-heading">
+            <div>
+                <h1>@Model.RuleName</h1>
+                <p>System-wide holiday pay rule specifications and audit information.</p>
+            </div>
+            <div class="heading-actions flex items-center gap-2">
+                <a asp-action="List" class="secondary-button">
+                    <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                    <span>Back to rules</span>
+                </a>
+
+                @if (Model.CanEdit)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.HolidayPayRuleId" class="primary-button">
+                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                        <span>Edit draft</span>
+                    </a>
+                    <button type="button" class="secondary-button" onclick="openPublishModal(@Model.HolidayPayRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')">
+                        <span class="material-symbols-outlined text-[18px]">publish</span>
+                        <span>Publish</span>
+                    </button>
+                    <button type="button" class="danger-button" onclick="openDeleteModal(@Model.HolidayPayRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')">
+                        <span class="material-symbols-outlined text-[18px]">delete</span>
+                        <span>Delete draft</span>
+                    </button>
+                }
+                else if (Model.CanCancel)
+                {
+                    <button type="button" class="danger-button" onclick="openCancelModal(@Model.HolidayPayRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')">
+                        <span class="material-symbols-outlined text-[18px]">block</span>
+                        <span>Cancel rule</span>
+                    </button>
+                }
+
+                @if (Model.Status == "ACTIVE")
+                {
+                    <a asp-action="Create" class="primary-button">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                        <span>Create new version</span>
+                    </a>
+                }
+            </div>
+        </div>
+
+        @if (TempData["HolidayError"] is string error)
+        {
+            <div class="holiday-alert error">
+                <span class="material-symbols-outlined">error</span>
+                <span>@error</span>
+            </div>
+        }
+
+        <!-- Detail Workspace (Cards Grid) -->
+        <div class="detail-workspace">
+            <!-- Main Details Card -->
+            <section class="holiday-detail-card">
+                <header>
+                    <span class="detail-icon material-symbols-outlined">rule</span>
+                    <div>
+                        <span class="stat-label">Holiday pay rule #@Model.HolidayPayRuleId</span>
+                        <h2>@Model.RuleName</h2>
+                    </div>
+                    <span class="status @(Model.Status == "ACTIVE" ? "active" : (Model.Status == "PUBLISH" ? "active" : "inactive"))">
+                        <i></i>@Model.StatusLabel
+                    </span>
+                </header>
+
+                <div class="detail-grid">
+                    <div>
+                        <span>Pay multiplier</span>
+                        <strong class="text-2xl text-primary font-bold">
+                            ×@Model.PayMultiplier?.ToString("0.00")
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Status</span>
+                        <strong>@Model.StatusLabel</strong>
+                    </div>
+
+                    <div>
+                        <span>Effective from</span>
+                        <strong>@(Model.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—")</strong>
+                    </div>
+
+                    <div>
+                        <span>Effective to (exclusive)</span>
+                        <strong>@(Model.EffectiveTo?.ToString("dd/MM/yyyy") ?? "Active until replaced")</strong>
+                    </div>
+
+                    <div>
+                        <span>Created at</span>
+                        <strong>@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy, HH:mm")</strong>
+                    </div>
+
+                    <div>
+                        <span>Lifecycle state</span>
+                        <strong>
+                            @if (Model.CanEdit)
+                            {
+                                <span class="text-amber-600 font-semibold">Draft (Editable)</span>
+                            }
+                            else if (Model.CanCancel)
+                            {
+                                <span class="text-blue-600 font-semibold">Published (Scheduled)</span>
+                            }
+                            else if (Model.Status == "ACTIVE")
+                            {
+                                <span class="text-emerald-600 font-semibold">Active in payroll</span>
+                            }
+                            else
+                            {
+                                <span class="text-gray-500 font-semibold">Historical / Locked</span>
+                            }
+                        </strong>
+                    </div>
+                </div>
+
+                <footer>
+                    <span>Version ID: <code>#@Model.HolidayPayRuleId</code></span>
+                    @if (Model.CreatedBy != Guid.Empty)
+                    {
+                        <span class="ml-4">Created by: <code>@Model.CreatedBy</code></span>
+                    }
+                </footer>
+            </section>
+
+            <!-- Side Information Card -->
+            <aside class="detail-side-card">
+                <span class="material-symbols-outlined">published_with_changes</span>
+                <span class="stat-label">Rule Lifecycle</span>
+                <h2>@Model.StatusLabel version</h2>
+                <p>
+                    @if (Model.CanEdit)
+                    {
+                        @:Drafts do not affect payroll. You can modify values or delete this draft before publishing. Once published, the rule is locked.
+                    }
+                    else if (Model.CanCancel)
+                    {
+                        @:This rule is scheduled and waiting for its effective date. You can cancel it before activation if requirements change.
+                    }
+                    else if (Model.Status == "ACTIVE")
+                    {
+                        @:This rule is currently active and applies to holiday shifts. When a new version becomes effective, this version will automatically expire.
+                    }
+                    else
+                    {
+                        @:This rule is read-only and preserved for historical payroll audits. Create a new version when pay multiplier changes.
+                    }
+                </p>
+                <div>
+                    <span>Pay Multiplier</span>
+                    <strong>×@Model.PayMultiplier?.ToString("0.00")</strong>
+                </div>
+                <div>
+                    <span>Effective Period</span>
+                    <strong>@(Model.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—") → @(Model.EffectiveTo?.ToString("dd/MM/yyyy") ?? "Open")</strong>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Danger Zone for Drafts -->
+        @if (Model.CanEdit)
+        {
+            <section class="danger-zone">
+                <div>
+                    <strong>Delete draft rule</strong>
+                    <p>Permanently remove this draft rule. This action cannot be undone.</p>
+                </div>
+                <button type="button" class="danger-button flex items-center gap-1.5"
+                        onclick="openDeleteModal(@Model.HolidayPayRuleId, '@Html.Raw(Model.RuleName.Replace("'", "\\'"))')">
+                    <span class="material-symbols-outlined text-[18px]">delete</span>
+                    <span>Delete draft</span>
+                </button>
+            </section>
+        }
+    </main>
+</div>
+
+<!-- Synchronized Action Modals (Delete, Publish, Cancel) -->
+<partial name="_DeleteModal" />
+<partial name="_ActionModals" />

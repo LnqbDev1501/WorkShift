@@ -1,5 +1,11 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using UI_Admin.Models;
+using UI_Admin.Models.Admin.UserAdmin;
+using UI_Admin.Models.Auth;
 
 namespace UI_Admin.Services
 {
@@ -7,13 +13,16 @@ namespace UI_Admin.Services
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthApiService(
             HttpClient httpClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IHttpContextAccessor httpContextAccessor)
         {
             _httpClient = httpClient;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task SetPasswordAsync(
@@ -26,7 +35,39 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
-                new { accessToken, password });
+                new { accessToken, password = password.Trim() });
+
+            if (response.IsSuccessStatusCode)
+                return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(GetErrorMessage(body));
+        }
+
+        public async Task ValidateStaffSetupTokenAsync(string token)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/validate",
+                new { token });
+
+            if (response.IsSuccessStatusCode)
+                return;
+
+            var body = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException(GetErrorMessage(body));
+        }
+
+        public async Task SetStaffPasswordAsync(string token, string password)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var response = await _httpClient.PostAsJsonAsync(
+                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/set-password",
+                new { token, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
                 return;
@@ -42,7 +83,7 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/login",
-                new { email, password });
+                new { email = email.Trim(), password = password.Trim() });
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(GetErrorMessage(body));
@@ -76,9 +117,170 @@ namespace UI_Admin.Services
 
             using var response = await _httpClient.PostAsJsonAsync(
                 $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
-                new { email });
+                new { email = email.Trim() });
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+        }
+
+        public async Task ChangePasswordAsync(string newPassword, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/profile/password",
+            new { password = newPassword.Trim() },
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    private async Task AttachBearerTokenAsync(HttpRequestMessage request)
+    {
+        var context = _httpContextAccessor.HttpContext;
+        if (context == null)
+            return;
+
+        var accessToken = await context.GetTokenAsync("access_token");
+        if (!string.IsNullOrWhiteSpace(accessToken))
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+    }
+
+    public async Task<UserDetailViewModel> UpdateProfileAsync(
+        string fullName,
+        string phone,
+        string gender,
+        DateOnly? dateOfBirth,
+        string address,
+        CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me")
+        {
+            Content = JsonContent.Create(new
+            {
+                fullName = fullName.Trim(),
+                phone = phone.Trim(),
+                gender = gender.Trim(),
+                dateOfBirth,
+                address = address.Trim()
+            })
+        };
+        await AttachBearerTokenAsync(request);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<UserDetailViewModel>(cancellationToken)
+                ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task<string> UpdateAvatarAsync(IFormFile avatarFile, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var content = new MultipartFormDataContent();
+        await using var stream = avatarFile.OpenReadStream();
+        var fileContent = new StreamContent(stream);
+        fileContent.Headers.ContentType =
+            new System.Net.Http.Headers.MediaTypeHeaderValue(avatarFile.ContentType ?? "application/octet-stream");
+        content.Add(fileContent, "avatarFile", avatarFile.FileName);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me/avatar")
+        {
+            Content = content
+        };
+        await AttachBearerTokenAsync(request);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var result = await response.Content.ReadFromJsonAsync<Dictionary<string, string>>(cancellationToken);
+            if (result != null && result.TryGetValue("avatarUrl", out var avatarUrl))
+                return avatarUrl;
+            throw new InvalidOperationException("The authentication service returned an invalid response.");
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task RequestEmailChangeAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl.TrimEnd('/')}/api/profile/email/change-request")
+        {
+            Content = JsonContent.Create(new { email = email.Trim() })
+        };
+        await AttachBearerTokenAsync(request);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task<UserDetailViewModel> ConfirmEmailChangeAsync(string token, CancellationToken cancellationToken = default)
+    {
+        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"{apiBaseUrl.TrimEnd('/')}/api/profile/email/confirm",
+            new { token },
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<UserDetailViewModel>(cancellationToken)
+                ?? throw new InvalidOperationException("The authentication service returned an invalid response.");
+        }
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        throw new InvalidOperationException(GetErrorMessage(body));
+    }
+
+    public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me");
+
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null)
+            {
+                var accessToken = await context.GetTokenAsync("access_token");
+                if (!string.IsNullOrWhiteSpace(accessToken))
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                }
+            }
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
+
+            return await response.Content.ReadFromJsonAsync<UserDetailViewModel>(cancellationToken);
         }
 
         private static string GetErrorMessage(string body)

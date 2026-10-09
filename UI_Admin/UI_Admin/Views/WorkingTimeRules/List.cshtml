@@ -1,0 +1,116 @@
+@model UI_Admin.Models.WorkingTimeRuleListViewModel
+@{
+    var pagination = ListPaginationViewModel.ForCollection(Model.Items.Count, Context.Request.Query["page"], "versions");
+    ViewData["Title"] = "Working Time Limits";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/shift-templates.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/working-time-rules.css" asp-append-version="true" />
+}
+
+@if (TempData["WorkingTimeRuleCreatedSuccess"] is true or "true")
+{
+    <div role="dialog" aria-modal="true" aria-labelledby="working-time-success-title" id="successPopupModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-fade-in">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-[#e2e8f0] flex flex-col items-center text-center space-y-4">
+            <div class="w-14 h-14 rounded-full bg-[#ecfdf5] border-2 border-[#a7f3d0] text-[#059669] flex items-center justify-center shadow-sm">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+            <div class="space-y-1">
+                <h3 id="working-time-success-title" class="text-[18px] font-semibold text-[#191c2a]">Version Created Successfully</h3>
+                <p class="text-[14px] text-[#5b6074]">
+                    The new version has been saved as Draft. Review it and publish when ready.
+                </p>
+            </div>
+            <button type="button" class="w-full py-2.5 px-4 rounded-xl bg-[#5146e5] hover:bg-[#4338ca] text-white font-medium text-[14px] transition-colors shadow-sm cursor-pointer" onclick="document.getElementById('successPopupModal').remove()">
+                OK
+            </button>
+        </div>
+    </div>
+}
+
+<partial name="_NotificationModal" />
+<div class="shift-page working-time-list">
+    <section class="shift-content" aria-labelledby="working-time-heading">
+        <div class="shift-heading">
+            <div>
+                <div class="list-eyebrow">Working Time Policy Directory</div>
+                <h1 id="working-time-heading">Working Time Limits</h1>
+                <p>Manage daily and weekly limits, publication and version history.</p>
+            </div>
+            <a asp-action="Create" class="shift-primary"><span aria-hidden="true">＋</span>Create Version</a>
+        </div>
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Total Versions", Model.Items.Count.ToString("N0"), "All working time versions", "history"),
+            new("Active Version", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Currently in effect", "check_circle"),
+            new("Published Version", Model.Items.Count(x => x.CanCancel).ToString("N0"), "Waiting for effective date", "event_available"),
+            new("Draft Versions", Model.Items.Count(x => x.CanEdit).ToString("N0"), "Available to edit and publish", "edit_note")
+        })' />
+        <div class="shift-card">
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="shift-empty" role="alert">
+                    <h2>Could not load versions</h2><p>@Model.ErrorMessage</p>
+                    <a asp-action="List" class="shift-reset">Try again</a>
+                </div>
+            }
+            else if (Model.Items.Count == 0)
+            {
+                <div class="shift-empty">
+                    <div class="shift-empty-icon material-symbols-outlined" aria-hidden="true">history</div>
+                    <h2>No working time versions yet</h2>
+                    <p>Create a draft with daily and weekly limits to get started.</p>
+                    <a asp-action="Create" class="shift-reset">Create version</a>
+                </div>
+            }
+            else
+            {
+                <div class="shift-table-wrap">
+                    <table class="shift-table working-time-table">
+                        <colgroup>
+                            <col class="working-time-version-column" /><col class="working-time-name-column" />
+                            <col /><col /><col /><col /><col class="working-time-actions-column" />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th scope="col">Version</th><th scope="col">Name / legal reference</th>
+                                <th scope="col">Hours / day</th><th scope="col">Hours / week</th>
+                                <th scope="col">Effective date</th><th scope="col">Status</th>
+                                <th scope="col" class="shift-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var rule in Model.Items.Skip((pagination.PageNumber - 1) * pagination.PageSize).Take(pagination.PageSize))
+                            {
+                                <tr>
+                                    <td><span class="working-time-version">@($"V{rule.WorkingTimeRuleId}")</span></td>
+                                    <td class="working-time-name"><strong>@rule.RuleName</strong></td>
+                                    <td class="shift-number">@rule.MaxDailyHours.ToString("0.##") hrs</td>
+                                    <td class="shift-number">@rule.MaxWeeklyHours.ToString("0.##") hrs</td>
+                                    <td class="shift-number">@(rule.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                    <td><span class="shift-status rule-status @rule.StatusCssClass"><span aria-hidden="true">●</span>@rule.StatusLabel</span></td>
+
+                                    <td class="shift-actions">
+                                        <div class="working-time-action-group">
+                                            <a asp-action="Detail" asp-route-id="@rule.WorkingTimeRuleId" class="working-time-icon" title="View details" aria-label="View details for @rule.RuleName"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                            <partial name="_VersionActions" model="rule" />
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            }
+            <partial name="_ListPagination" model="pagination" />
+        </div>
+        <p class="working-time-list-note"><span class="material-symbols-outlined" aria-hidden="true">info</span>Only one version can be Publish. Cancel the current publication before publishing another version. Active, Inactive and Cancelled versions are read-only.</p>
+    </section>
+</div>
+
+<partial name="_ActionDialog" />
+@section Scripts {
+    <script src="~/js/working-time-actions.js" asp-append-version="true"></script>
+}

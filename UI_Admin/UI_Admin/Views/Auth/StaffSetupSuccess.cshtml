@@ -1,0 +1,63 @@
+@{
+    ViewData["Title"] = "Account Activated";
+}
+<link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+
+<div class="ws-auth">
+    <aside class="ws-auth-brand">
+        <span class="ws-auth-orb ws-auth-orb-a"></span>
+        <span class="ws-auth-orb ws-auth-orb-b"></span>
+
+        <div class="ws-auth-logo">
+            <span class="ws-auth-logo-mark">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+            </span>
+            <span><strong>WorkShift</strong><small>Workforce OS</small></span>
+        </div>
+
+        <div class="ws-auth-hero" style="text-align: center; max-width: 100%;">
+            <div class="ws-mail-art" style="margin-bottom: 24px;">
+                <div class="ring" style="width: 80px; height: 80px; background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #15803d; box-shadow: inset 0 0 0 10px rgba(21,128,61,.15);">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                </div>
+            </div>
+            <h1>Account Activated!</h1>
+            <p>Your password has been set successfully. You can now sign in to WorkShift.</p>
+        </div>
+
+        <div class="ws-auth-feats">
+            <div class="ws-auth-feat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span><b>Secure access</b> — your credentials are encrypted and protected.</span>
+            </div>
+            <div class="ws-auth-feat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                <span><b>Face check-in</b> — enable biometric login in your profile settings.</span>
+            </div>
+            <div class="ws-auth-feat">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="3"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg>
+                <span><b>All branches</b> — access every store you're assigned to.</span>
+            </div>
+        </div>
+
+        <div class="ws-auth-foot">
+            <div class="ws-auth-stats">
+                <span><b>Multi-branch</b><small>regions & stores unified</small></span>
+                <span><b>Real-time</b><small>attendance & alerts</small></span>
+                <span><b>Role-based</b><small>admin &middot; manager &middot; staff</small></span>
+            </div>
+            <span>&copy; 2026 WorkShift</span>
+        </div>
+    </aside>
+
+    <main class="ws-auth-form-wrap">
+        <div class="ws-auth-card-form" style="text-align: center;">
+            <h2>You're all set!</h2>
+            <p class="ws-auth-sub">Your WorkShift account is now active. Click below to sign in.</p>
+            <a asp-action="Login" class="ws-btn" style="max-width: 280px; margin: 0 auto;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                Sign In Now
+            </a>
+        </div>
+    </main>
+</div>
