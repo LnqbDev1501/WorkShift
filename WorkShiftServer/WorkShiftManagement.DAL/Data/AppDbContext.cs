@@ -124,16 +124,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        optionsBuilder.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909;No Reset On Close=true;");
-        }
-    }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -229,9 +219,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.BranchNameSnapshot)
                 .HasMaxLength(150)
                 .HasColumnName("branch_name_snapshot");
-            entity.Property(e => e.BreakMinutesSnapshot)
-                .HasDefaultValue(0)
-                .HasColumnName("break_minutes_snapshot");
             entity.Property(e => e.ChargeableEarlyLeaveMinutes)
                 .HasDefaultValue(0)
                 .HasColumnName("chargeable_early_leave_minutes");
@@ -2555,9 +2542,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => e.ShiftName, "shift_templates_shift_name_key").IsUnique();
 
             entity.Property(e => e.ShiftTemplateId).HasColumnName("shift_template_id");
-            entity.Property(e => e.BreakMinutes)
-                .HasDefaultValue(0)
-                .HasColumnName("break_minutes");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -2797,6 +2781,9 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.Gender)
                 .HasMaxLength(10)
                 .HasColumnName("gender");
+            entity.Property(e => e.HasPassword)
+                .HasDefaultValue(true)
+                .HasColumnName("has_password");
             entity.Property(e => e.IdentityNo)
                 .HasMaxLength(30)
                 .HasColumnName("identity_no");
@@ -2945,9 +2932,6 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.ScheduleWeekId, e.Status, e.ScheduledStartAt }, "ix_work_shifts_week_status");
 
             entity.Property(e => e.ShiftId).HasColumnName("shift_id");
-            entity.Property(e => e.BreakMinutesSnapshot)
-                .HasDefaultValue(0)
-                .HasColumnName("break_minutes_snapshot");
             entity.Property(e => e.CancelReason)
                 .HasMaxLength(500)
                 .HasColumnName("cancel_reason");

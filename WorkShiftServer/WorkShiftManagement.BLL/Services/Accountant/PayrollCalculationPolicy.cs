@@ -118,7 +118,7 @@ public static class PayrollCalculationPolicy
                 sourceAssignmentId = assignment.AssignmentId, sourceAttendanceId = attendance.AttendanceId,
                 workDate = date, shiftNameSnapshot = assignment.Shift.ShiftNameSnapshot,
                 scheduledStartAt = attendance.ShiftStartAtSnapshot, scheduledEndAt = attendance.ShiftEndAtSnapshot,
-                breakMinutesSnapshot = attendance.BreakMinutesSnapshot,
+                breakMinutesSnapshot = 0,
                 checkInTime = attendance.CheckInTime, checkOutTime = attendance.CheckOutTime,
                 attendanceStatusSnapshot = attendance.Status, actualWorkingMinutes = attendance.ActualWorkingMinutes,
                 payableMinutes = attendance.ActualWorkingMinutes, totalLateMinutes = attendance.TotalLateMinutes,

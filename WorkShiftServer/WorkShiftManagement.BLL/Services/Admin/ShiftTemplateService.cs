@@ -93,7 +93,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
         template.ShiftName = shiftName;
         template.StartTime = TimeOnly.ParseExact(request.StartTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
         template.EndTime = TimeOnly.ParseExact(request.EndTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
-        template.BreakMinutes = request.BreakMinutes!.Value;
         template.Description = request.Description?.Trim();
         template.UpdatedAt = DateTime.UtcNow;
 
@@ -159,7 +158,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
                 ShiftName = template.ShiftName,
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
-                BreakMinutes = template.BreakMinutes,
                 Status = template.Status,
                 CreatedAt = template.CreatedAt
             })
@@ -188,7 +186,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
                 ShiftName = template.ShiftName,
                 StartTime = template.StartTime,
                 EndTime = template.EndTime,
-                BreakMinutes = template.BreakMinutes,
                 Description = template.Description,
                 Status = template.Status,
                 CreatedAt = template.CreatedAt,
@@ -215,7 +212,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
             ShiftName = shiftName,
             StartTime = startTime,
             EndTime = endTime,
-            BreakMinutes = breakMinutes,
             Description = request.Description?.Trim(),
             Status = "ACTIVE"
         };
@@ -246,7 +242,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
             ShiftName = template.ShiftName,
             StartTime = template.StartTime,
             EndTime = template.EndTime,
-            BreakMinutes = template.BreakMinutes,
             Description = template.Description,
             Status = template.Status,
             CreatedAt = template.CreatedAt,

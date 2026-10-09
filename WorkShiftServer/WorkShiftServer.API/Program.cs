@@ -251,6 +251,8 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 });
 builder.Services.AddScoped<IFaceRegistrationRepo, FaceRegistrationRepo>();
 builder.Services.AddScoped<IFaceRegistrationService, FaceRegistrationService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IAttendanceRepo, WorkShiftManagement.DAL.Repositories.Staff.AttendanceRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService, WorkShiftManagement.BLL.Services.Staff.AttendanceService>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
