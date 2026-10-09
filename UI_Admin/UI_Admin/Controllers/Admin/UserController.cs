@@ -169,6 +169,12 @@ public class UserController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendDetailSetupLink(Guid userId, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+        {
+            TempData["ErrorMessage"] = "Invalid request data.";
+            return RedirectToAction(nameof(Detail), new { id = userId });
+        }
+
         try
         {
             await _userApiService.ResendSetupLinkAsync(userId, cancellationToken);
@@ -185,6 +191,12 @@ public class UserController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ResendSetupLink(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+        {
+            TempData["ResendError"] = "Invalid request data.";
+            return RedirectToAction(nameof(List));
+        }
+
         try
         {
             await _userApiService.ResendSetupLinkAsync(userId, cancellationToken);
@@ -201,6 +213,12 @@ public class UserController : Controller
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid userId, UserListQueryViewModel query, CancellationToken cancellationToken)
     {
+        if (!ModelState.IsValid)
+        {
+            TempData["UserDeactivatedError"] = "Invalid request data.";
+            return RedirectToAction(nameof(List));
+        }
+
         try
         {
             await _userApiService.DeleteAsync(userId, cancellationToken);
