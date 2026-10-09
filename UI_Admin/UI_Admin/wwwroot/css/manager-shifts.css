@@ -80,3 +80,36 @@
 .wt-scroll::-webkit-scrollbar { display:block; height:7px; }
 .wt-scroll::-webkit-scrollbar-thumb { background:#d6d0e9; border-radius:6px; }
 .wt-scroll::-webkit-scrollbar-track { background:#f4f3f9; }
+
+/* Soft day colors and status accents keep the timetable easy to scan. */
+.wt-table tr>:nth-child(1) { --wt-color:#6850c9; --wt-tint:#f2edff; --wt-border:#ded4f6; }
+.wt-table tr>:nth-child(2) { --wt-color:#3467bc; --wt-tint:#edf4ff; --wt-border:#d2e2f8; }
+.wt-table tr>:nth-child(3) { --wt-color:#14778c; --wt-tint:#eaf7fa; --wt-border:#cce9ee; }
+.wt-table tr>:nth-child(4) { --wt-color:#167762; --wt-tint:#eaf7f1; --wt-border:#cde9dc; }
+.wt-table tr>:nth-child(5) { --wt-color:#8550a9; --wt-tint:#f7eefb; --wt-border:#e8d6f0; }
+.wt-table tr>:nth-child(6) { --wt-color:#98611f; --wt-tint:#fff6e8; --wt-border:#f0dfbf; }
+.wt-table tr>:nth-child(7) { --wt-color:#aa4f71; --wt-tint:#fff0f5; --wt-border:#f1d4df; }
+.wt-table th { background:var(--wt-tint); border-top:3px solid var(--wt-color); border-bottom-color:var(--wt-border); }
+.wt-table th>span { color:var(--wt-color); }
+.wt-table th>strong { color:#697087; }
+.wt-table td { background:#fff; }
+.wt-shift { padding:12px 10px; background:#ffffffed; border:1px solid var(--wt-border); border-left:3px solid var(--wt-color); border-radius:10px; box-shadow:0 2px 6px #28304a05; }
+.wt-shift+.wt-shift { border-top:1px solid var(--wt-border); margin-top:12px; padding-top:12px; }
+.wt-shift-name { color:var(--wt-color); }
+.wt-shift-name:hover { color:var(--wt-color); text-decoration:underline; }
+.wt-shift-name .material-symbols-outlined { background:var(--wt-tint); border-radius:4px; padding:2px; font-size:14px; margin-top:0; }
+.wt-time { color:#815b1a; background:#fff8e9; padding:5px 6px; border-radius:5px; gap:4px; }
+.wt-time>.material-symbols-outlined { color:#ad873f; }
+.wt-slot-note { margin:8px 0 0; display:inline-block; padding:4px 6px; background:#fff3dd; color:#8d621c; border-radius:5px; line-height:1.4; }
+.wt-slot-note.wt-filled { background:#e7f5ed; color:#1a7356; }
+.wt-shift:has(>.success) { border-left-color:#259270; }
+.wt-shift.wt-cancelled { border-color:#e6dce2; border-left-color:#bd8295; background:#faf5f7; box-shadow:none; }
+.wt-cancelled .wt-time,.wt-cancelled .wt-slot-note { background:#f0e8ec; color:#7e626c; }
+.wt-cancelled .wt-shift-name { color:#8b6573; }
+.wt-requirements { border-top-color:var(--wt-border); color:#667086; }
+.wt-requirements li strong { color:var(--wt-color); }
+.wt-table th.wt-today { background:linear-gradient(135deg,#e6deff,#f4efff); border-top-color:#6250cb; border-bottom:2px solid #8b78e1; }
+.wt-table th.wt-today>span { color:#5140aa; }
+.wt-table th.wt-today>small { background:#6753c7; color:#fff; }
+.wt-table td.wt-today-cell { background:#fff; box-shadow:inset 1px 0 #d8cff1,inset -1px 0 #d8cff1; }
+.wt-table td.wt-today-cell .wt-shift { box-shadow:0 3px 10px #6250cb0c; }

@@ -16,4 +16,9 @@ public interface IAuthService
     Task<LoginResponse> LoginAsync(LoginRequest request);
     Task<LoginResponse> RefreshAsync(string refreshToken);
     Task SendPasswordRecoveryAsync(string email);
+
+    // Staff setup flow (custom 3-min token)
+    Task<Guid> CreateStaffUserAsync(string email);
+    Task<bool> HasPasswordAsync(Guid userId);
+    Task<Guid> SetStaffPasswordAsync(string token, string password);
 }

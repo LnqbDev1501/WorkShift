@@ -14,4 +14,8 @@ public interface IAdminEmployeeRequestService
     Task<AdminEmployeeRequestDetailResponse> GetByIdAsync(
         int requestId,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AdminEmployeeRequestHistoryResponse>> GetHistoryAsync(
+        int requestId,
+        CancellationToken cancellationToken = default);
 }

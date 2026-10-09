@@ -41,6 +41,8 @@ public partial class User
 
     public int? PreviousBranchId { get; set; }
 
+    public bool HasPassword { get; set; } = true;
+
     public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
 
     public virtual ICollection<AttendancePenaltyRule> AttendancePenaltyRuleCancelledByNavigations { get; set; } = new List<AttendancePenaltyRule>();
@@ -84,6 +86,7 @@ public partial class User
     public virtual EmployeeType? EmployeeType { get; set; }
 
     public virtual ICollection<EmploymentContract> EmploymentContractApprovedByNavigations { get; set; } = new List<EmploymentContract>();
+
     public virtual ICollection<EmploymentContract> EmploymentContractCreatedByNavigations { get; set; } = new List<EmploymentContract>();
 
     public virtual ICollection<EmploymentContract> EmploymentContractRejectedByNavigations { get; set; } = new List<EmploymentContract>();

@@ -25,6 +25,19 @@
     </div>
 
     <div class="w-full max-w-5xl mx-auto space-y-6">
+        @if (TempData["SuccessMessage"] is string successMsg)
+        {
+            <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                @successMsg
+            </div>
+        }
+        @if (TempData["ErrorMessage"] is string errMsg)
+        {
+            <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                @errMsg
+            </div>
+        }
+
         <!-- Profile Header Card -->
         <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
             <div class="flex flex-col sm:flex-row sm:items-center gap-5">

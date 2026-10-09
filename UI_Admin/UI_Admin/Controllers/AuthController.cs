@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using UI_Admin.Models;
 using UI_Admin.Models.Admin.UserAdmin;
+using UI_Admin.Models.Auth;
 using UI_Admin.Services;
 
 namespace UI_Admin.Controllers
@@ -14,13 +16,16 @@ namespace UI_Admin.Controllers
     {
         private readonly AuthApiService _authService;
         private readonly ILogger<AuthController> _logger;
+        private readonly IConfiguration _configuration;
 
         public AuthController(
             AuthApiService authService,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            IConfiguration configuration)
         {
             _authService = authService;
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -412,6 +417,32 @@ namespace UI_Admin.Controllers
 
                 return View(model);
             }
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult StaffSetup(string token)
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleLanding();
+
+            ViewData["ApiBaseUrl"] = _configuration["WorkShiftApi:BaseUrl"] ?? "https://localhost:7193";
+
+            var model = new StaffSetupViewModel
+            {
+                Token = token ?? string.Empty
+            };
+            return View(model);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult StaffSetupSuccess()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+                return RedirectToRoleLanding();
+
+            return View();
         }
     }
 }

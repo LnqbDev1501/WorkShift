@@ -24,6 +24,15 @@
         </div>
     </div>
 
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">@Model.SuccessMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">@Model.ErrorMessage</div>
+    }
+
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
 new("Total Staff", Model.TotalItems.ToString("N0"), "Total staff in your branch", "groups"),
 new("Active Staff", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Active staff", "check_circle"),
@@ -116,6 +125,17 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                                 </td>
                                 <td class="px-unit-5 py-2 text-right whitespace-nowrap">
                                     <div class="inline-flex items-center justify-end gap-2">
+                                        @if (!item.HasPassword)
+                                        {
+                                            <form asp-controller="ManagerStaff" asp-action="ResendSetupLink" method="post" class="inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.UserId" />
+                                                <button type="submit" class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-body-md-medium text-body-sm transition-colors shadow-sm cursor-pointer">
+                                                    <span class="material-symbols-outlined text-[16px]">mail</span>
+                                                    <span>Resend</span>
+                                                </button>
+                                            </form>
+                                        }
                                         <a asp-controller="ManagerStaff" asp-action="Details" asp-route-id="@item.UserId" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">Details</a>
                                         @if (isActive)
                                         {

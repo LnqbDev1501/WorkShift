@@ -163,6 +163,19 @@ public async Task<(bool Success, string? ErrorMessage)> RestoreStaffAsync(Guid s
 
         return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
     }
+
+    public async Task<(bool Success, string? ErrorMessage)> ResendSetupLinkAsync(Guid staffId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsync(
+            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}/resend-setup",
+            JsonContent.Create(new { }),
+            cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+            return (true, null);
+
+        return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
+    }
 }
 
 public sealed class ActiveEmployeeTypeDto

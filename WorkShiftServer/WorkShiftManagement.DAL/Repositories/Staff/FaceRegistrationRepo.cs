@@ -35,6 +35,15 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
                 cancellationToken);
     }
 
+    public async Task<EmploymentContract?> GetLatestContractByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EmploymentContracts
+            .AsNoTracking()
+            .Where(c => c.UserId == userId)
+            .OrderByDescending(c => c.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<FaceProfile?> GetActiveFaceProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         return await _context.FaceProfiles

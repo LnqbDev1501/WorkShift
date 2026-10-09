@@ -122,4 +122,28 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
                             .ThenInclude(sw => sw.Branch)
             .FirstOrDefaultAsync(r => r.RequestId == requestId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<AuditLog>> GetHistoryAsync(
+        int requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var exists = await _context.EmployeeRequests.AsNoTracking()
+            .AnyAsync(r => r.RequestId == requestId &&
+                           (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"),
+                      cancellationToken);
+
+        if (!exists)
+        {
+            throw new KeyNotFoundException("Request not found.");
+        }
+
+        var recordIdStr = requestId.ToString();
+        return await _context.AuditLogs.AsNoTracking()
+            .Include(a => a.User)
+                .ThenInclude(u => u!.Role)
+            .Where(a => a.TableName == "employee_requests" && a.RecordId == recordIdStr)
+            .OrderBy(a => a.CreatedAt)
+            .ThenBy(a => a.AuditLogId)
+            .ToListAsync(cancellationToken);
+    }
 }

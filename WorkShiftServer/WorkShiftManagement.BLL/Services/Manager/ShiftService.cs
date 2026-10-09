@@ -18,7 +18,7 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
         return new ShiftOptionsResponse
         {
             Templates = templates.Select(x => new ShiftTemplateOptionResponse { Id = x.ShiftTemplateId, Name = x.ShiftName,
-                StartTime = x.StartTime, EndTime = x.EndTime, BreakMinutes = x.BreakMinutes }).ToList(),
+                StartTime = x.StartTime, EndTime = x.EndTime, BreakMinutes = 0 }).ToList(),
             EmployeeTypes = types.Select(x => new ShiftTypeOptionResponse { Id = x.EmployeeTypeId, Name = x.TypeName }).ToList(),
             Staff = staff.Select(x => new ShiftStaffOptionResponse { UserId = x.UserId, FullName = x.FullName,
                 EmployeeTypeId = x.EmployeeTypeId!.Value, EmployeeTypeName = x.EmployeeType!.TypeName }).ToList()
@@ -148,8 +148,6 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
             throw new ArgumentException("The shift must start in the future.");
         if (week.RegistrationDeadline >= start)
             throw new ArgumentException("The shift must start after the registration deadline.");
-        if (template.BreakMinutes < 0 || template.BreakMinutes >= (end - start).TotalMinutes)
-            throw new ArgumentException("The template break must be shorter than the shift duration.");
         var types = await repo.GetEmployeeTypesAsync(request.EmployeeRequirements.Select(x => x.EmployeeTypeId), ct);
         if (types.Count != request.EmployeeRequirements.Count || types.Any(x => x.Status != "ACTIVE"))
             throw new ArgumentException("All selected employee types must exist and be active.");
@@ -163,7 +161,6 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
     {
         shift.ShiftTemplateId = template.ShiftTemplateId;
         shift.ShiftNameSnapshot = template.ShiftName;
-        shift.BreakMinutesSnapshot = template.BreakMinutes;
         shift.ScheduledStartAt = start;
         shift.ScheduledEndAt = end;
         shift.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
@@ -203,7 +200,7 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
             ShiftId = shift.ShiftId, ScheduleWeekId = shift.ScheduleWeekId,
             ShiftTemplateId = shift.ShiftTemplateId, ShiftName = shift.ShiftNameSnapshot,
             ScheduledStartAt = shift.ScheduledStartAt, ScheduledEndAt = shift.ScheduledEndAt,
-            BreakMinutes = shift.BreakMinutesSnapshot, Note = shift.Note, Status = shift.Status,
+            BreakMinutes = 0, Note = shift.Note, Status = shift.Status,
             CreatedAt = shift.CreatedAt, UpdatedAt = shift.UpdatedAt,
             EmployeeRequirements = shift.ShiftEmployeeRequirements.OrderBy(x => x.EmployeeTypeId).Select(r =>
                 new ShiftEmployeeRequirementResponse

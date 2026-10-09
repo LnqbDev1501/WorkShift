@@ -172,8 +172,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
     {
         if (shift.Status != "SCHEDULED" || shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED"))
             throw new InvalidOperationException("Assignments can only be changed in a scheduled shift in an opened or closed registration week.");
-        if (shift.ScheduledStartAt <= DateTime.UtcNow || shift.ScheduledEndAt <= shift.ScheduledStartAt ||
-            shift.BreakMinutesSnapshot < 0 || shift.BreakMinutesSnapshot >= (shift.ScheduledEndAt - shift.ScheduledStartAt).TotalMinutes)
+        if (shift.ScheduledStartAt <= DateTime.UtcNow || shift.ScheduledEndAt <= shift.ScheduledStartAt)
             throw new InvalidOperationException("The shift has started or has invalid times.");
     }
 
@@ -214,11 +213,9 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var end = shift.ScheduledEndAt < to ? shift.ScheduledEndAt : to;
         if (end <= start) return 0;
         var duration = (shift.ScheduledEndAt - shift.ScheduledStartAt).TotalMinutes;
-        if (duration <= 0 || shift.BreakMinutesSnapshot < 0 || shift.BreakMinutesSnapshot >= duration)
+        if (duration <= 0)
             throw new InvalidOperationException("An existing shift has invalid working time data.");
-        // No break start/end is stored. Conservatively allocate the full overlap on
-        // partial-day/week segments; deduct the break only when the entire shift fits.
-        return (end - start).TotalMinutes - (start == shift.ScheduledStartAt && end == shift.ScheduledEndAt ? shift.BreakMinutesSnapshot : 0);
+        return (end - start).TotalMinutes;
     }
 
     private static ShiftAssignmentResponse Map(ShiftAssignment a) => new()

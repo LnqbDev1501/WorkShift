@@ -144,14 +144,21 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:SetPasswordUrl configuration.");
     var resetPasswordUrl = builder.Configuration["AdminUi:ResetPasswordUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
-    return new AuthService(client, setPasswordUrl, resetPasswordUrl);
+    var staffSetupUrl = builder.Configuration["AdminUi:StaffSetupUrl"]
+        ?? throw new InvalidOperationException("Missing AdminUi:StaffSetupUrl configuration.");
+    return new AuthService(client, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddSingleton<ProfileEmailChangeTokenService>();
+builder.Services.AddSingleton<StaffSetupTokenService>();
 builder.Services.AddHttpClient<IAccountSetupEmailSender, ResendAccountSetupEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com/");
+});
+builder.Services.AddHttpClient<IStaffSetupEmailSender, ResendStaffSetupEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
 });
@@ -247,6 +254,8 @@ builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmail
 });
 builder.Services.AddScoped<IFaceRegistrationRepo, FaceRegistrationRepo>();
 builder.Services.AddScoped<IFaceRegistrationService, FaceRegistrationService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IAttendanceRepo, WorkShiftManagement.DAL.Repositories.Staff.AttendanceRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService, WorkShiftManagement.BLL.Services.Staff.AttendanceService>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 

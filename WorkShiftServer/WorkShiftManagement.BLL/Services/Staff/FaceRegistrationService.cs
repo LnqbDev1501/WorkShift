@@ -366,10 +366,30 @@ public class FaceRegistrationService : IFaceRegistrationService
         }
 
         // 2. Validate Employment Contract Status
-        var activeContract = await _faceRegistrationRepo.GetActiveContractByUserIdAsync(userId, cancellationToken);
-        if (activeContract == null)
+        var contract = await _faceRegistrationRepo.GetLatestContractByUserIdAsync(userId, cancellationToken)
+            ?? throw new InvalidOperationException("You do not have an employment contract registered in the system.");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+
+        if (string.Equals(contract.Status, "TERMINATED", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Your employment contract is not active or has expired. Please contact HR / Management.");
+            throw new InvalidOperationException("Your employment contract has been terminated. Please contact HR / Management.");
+        }
+
+        if (string.Equals(contract.Status, "EXPIRED", StringComparison.OrdinalIgnoreCase) ||
+            (contract.EndDate.HasValue && contract.EndDate.Value < today))
+        {
+            throw new InvalidOperationException("Your employment contract has expired. Please contact HR / Management.");
+        }
+
+        if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Your employment contract is not active (Status: {contract.Status}). Please contact HR / Management.");
+        }
+
+        if (contract.StartDate > today)
+        {
+            throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
     }
 

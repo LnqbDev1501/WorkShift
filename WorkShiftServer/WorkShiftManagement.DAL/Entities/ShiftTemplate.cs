@@ -13,8 +13,6 @@ public partial class ShiftTemplate
 
     public TimeOnly EndTime { get; set; }
 
-    public int BreakMinutes { get; set; }
-
     public string? Description { get; set; }
 
     public string Status { get; set; } = null!;

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -260,6 +261,80 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
         }
 
         return response;
+    }
+
+    public async Task<IReadOnlyList<AdminEmployeeRequestHistoryResponse>> GetHistoryAsync(
+        int requestId,
+        CancellationToken cancellationToken = default)
+    {
+        if (requestId <= 0)
+        {
+            throw new ArgumentException("Request ID must be a positive integer.");
+        }
+
+        var auditLogs = await _repository.GetHistoryAsync(requestId, cancellationToken);
+
+        return auditLogs.Select(a =>
+        {
+            string? previousStatus = null;
+            string? newStatus = null;
+            string? reviewNote = null;
+
+            if (!string.IsNullOrWhiteSpace(a.OldValue))
+            {
+                try
+                {
+                    using var oldDoc = JsonDocument.Parse(a.OldValue);
+                    if (oldDoc.RootElement.TryGetProperty("Status", out var pStatus) && pStatus.ValueKind == JsonValueKind.String)
+                    {
+                        previousStatus = pStatus.GetString();
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors for backward compatibility
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(a.NewValue))
+            {
+                try
+                {
+                    using var newDoc = JsonDocument.Parse(a.NewValue);
+                    if (newDoc.RootElement.TryGetProperty("Status", out var nStatus) && nStatus.ValueKind == JsonValueKind.String)
+                    {
+                        newStatus = nStatus.GetString();
+                    }
+
+                    if (newDoc.RootElement.TryGetProperty("ReviewNote", out var noteProp) && noteProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = noteProp.GetString();
+                    }
+                    else if (newDoc.RootElement.TryGetProperty("Reason", out var reasonProp) && reasonProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = reasonProp.GetString();
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors for backward compatibility
+                }
+            }
+
+            return new AdminEmployeeRequestHistoryResponse
+            {
+                AuditLogId = a.AuditLogId,
+                RequestId = requestId,
+                Action = a.Action,
+                PerformedByUserId = a.UserId,
+                PerformedByName = a.User?.FullName,
+                RoleName = a.User?.Role?.RoleName,
+                PerformedAt = ToUtc(a.CreatedAt),
+                PreviousStatus = previousStatus,
+                NewStatus = newStatus,
+                ReviewNote = reviewNote
+            };
+        }).ToList();
     }
 
     private static DateTime ToUtc(DateTime dt) => dt.Kind == DateTimeKind.Utc ? dt : DateTime.SpecifyKind(dt, DateTimeKind.Utc);

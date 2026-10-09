@@ -13,8 +13,9 @@ public class AuthService : IAuthService
     private readonly HttpClient _httpClient;
     private readonly string _inviteRedirectUrl;
     private readonly string _passwordRecoveryRedirectUrl;
+    private readonly string _staffSetupRedirectUrl;
 
-    public AuthService(HttpClient httpClient, string inviteRedirectUrl, string passwordRecoveryRedirectUrl)
+    public AuthService(HttpClient httpClient, string inviteRedirectUrl, string passwordRecoveryRedirectUrl, string staffSetupRedirectUrl)
     {
         _httpClient = httpClient;
         _inviteRedirectUrl = string.IsNullOrWhiteSpace(inviteRedirectUrl)
@@ -23,6 +24,9 @@ public class AuthService : IAuthService
         _passwordRecoveryRedirectUrl = string.IsNullOrWhiteSpace(passwordRecoveryRedirectUrl)
             ? throw new ArgumentException("Password recovery URL is required.", nameof(passwordRecoveryRedirectUrl))
             : passwordRecoveryRedirectUrl;
+        _staffSetupRedirectUrl = string.IsNullOrWhiteSpace(staffSetupRedirectUrl)
+            ? throw new ArgumentException("Staff setup URL is required.", nameof(staffSetupRedirectUrl))
+            : staffSetupRedirectUrl;
     }
 
     public async Task<Guid> CreateUserAndSendInviteAsync(string email)
@@ -248,6 +252,66 @@ public class AuthService : IAuthService
             $"Unable to send password recovery email: {GetErrorMessage(body)}",
             null,
             response.StatusCode);
+    }
+
+    // Staff setup flow (custom 3-min token)
+    public async Task<Guid> CreateStaffUserAsync(string email)
+    {
+        using var response = await _httpClient.PostAsJsonAsync(
+            "auth/v1/admin/users",
+            new { email = email, email_confirm = true });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to create staff user: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        if (!Guid.TryParse(root.GetProperty("id").GetString(), out var userId))
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+        return userId;
+    }
+
+    public async Task<bool> HasPasswordAsync(Guid userId)
+    {
+        using var response = await _httpClient.GetAsync($"auth/v1/admin/users/{userId}");
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to read Supabase Auth user: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        using var document = JsonDocument.Parse(body);
+        var root = document.RootElement;
+        // Supabase GoTrue returns "encrypted_password" (some versions use "password_hash")
+        if (root.TryGetProperty("encrypted_password", out var enc) &&
+            enc.ValueKind != JsonValueKind.Null &&
+            !string.IsNullOrWhiteSpace(enc.GetString()))
+            return true;
+        if (root.TryGetProperty("password_hash", out var hash) &&
+            hash.ValueKind != JsonValueKind.Null &&
+            !string.IsNullOrWhiteSpace(hash.GetString()))
+            return true;
+        return false;
+    }
+
+    public async Task<Guid> SetStaffPasswordAsync(string userId, string password)
+    {
+        // Use Supabase admin API to set password
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { password = password.Trim() });
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to set staff password: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        return GetUserId(body);
     }
 
     private static Guid GetUserId(string body)

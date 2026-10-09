@@ -207,38 +207,63 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         return auditLogs.Select(a =>
         {
-            string? note = null;
-            if (!string.IsNullOrWhiteSpace(a.NewValue))
+            string? previousStatus = null;
+            string? newStatus = null;
+            string? reviewNote = null;
+
+            if (!string.IsNullOrWhiteSpace(a.OldValue))
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(a.NewValue);
-                    if (doc.RootElement.TryGetProperty("ReviewNote", out var noteProp) && noteProp.ValueKind == JsonValueKind.String)
+                    using var oldDoc = JsonDocument.Parse(a.OldValue);
+                    if (oldDoc.RootElement.TryGetProperty("Status", out var pStatus) && pStatus.ValueKind == JsonValueKind.String)
                     {
-                        note = noteProp.GetString();
-                    }
-                    else if (doc.RootElement.TryGetProperty("Reason", out var reasonProp) && reasonProp.ValueKind == JsonValueKind.String)
-                    {
-                        note = reasonProp.GetString();
+                        previousStatus = pStatus.GetString();
                     }
                 }
                 catch
                 {
-                    // Ignore JSON parse errors for note extraction
+                    // Ignore JSON parse errors for backward compatibility
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(a.NewValue))
+            {
+                try
+                {
+                    using var newDoc = JsonDocument.Parse(a.NewValue);
+                    if (newDoc.RootElement.TryGetProperty("Status", out var nStatus) && nStatus.ValueKind == JsonValueKind.String)
+                    {
+                        newStatus = nStatus.GetString();
+                    }
+
+                    if (newDoc.RootElement.TryGetProperty("ReviewNote", out var noteProp) && noteProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = noteProp.GetString();
+                    }
+                    else if (newDoc.RootElement.TryGetProperty("Reason", out var reasonProp) && reasonProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = reasonProp.GetString();
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors for backward compatibility
                 }
             }
 
             return new ManagerEmployeeRequestHistoryResponse
             {
                 AuditLogId = a.AuditLogId,
+                RequestId = requestId,
                 Action = a.Action,
-                UserId = a.UserId,
-                FullName = a.User?.FullName,
+                PerformedByUserId = a.UserId,
+                PerformedByName = a.User?.FullName,
                 RoleName = a.User?.Role?.RoleName,
-                Timestamp = ToUtc(a.CreatedAt),
-                Note = note,
-                OldValue = a.OldValue,
-                NewValue = a.NewValue
+                PerformedAt = ToUtc(a.CreatedAt),
+                PreviousStatus = previousStatus,
+                NewStatus = newStatus,
+                ReviewNote = reviewNote
             };
         }).ToList();
     }
