@@ -66,7 +66,7 @@ public static class PayrollRevisionPolicy
             Shift = new WorkShift { ScheduledStartAt = w.ScheduledStartAt, ScheduledEndAt = w.ScheduledEndAt,
                 ShiftNameSnapshot = w.ShiftNameSnapshot, UpdatedAt = locked.LockedAt.Value },
             Attendance = new Attendance { AttendanceId = w.SourceAttendanceId ?? 0, Status = w.AttendanceStatusSnapshot,
-                ShiftStartAtSnapshot = w.ScheduledStartAt, ShiftEndAtSnapshot = w.ScheduledEndAt, BreakMinutesSnapshot = w.BreakMinutesSnapshot,
+                ShiftStartAtSnapshot = w.ScheduledStartAt, ShiftEndAtSnapshot = w.ScheduledEndAt,
                 ActualWorkingMinutes = w.PayableMinutes, CheckInTime = w.CheckInTime, CheckOutTime = w.CheckOutTime,
                 UpdatedAt = locked.LockedAt.Value, TotalLateMinutes = w.TotalLateMinutes, ChargeableLateMinutes = w.ChargeableLateMinutes,
                 ExcusedLateMinutes = w.ExcusedLateMinutes, TotalEarlyLeaveMinutes = w.TotalEarlyLeaveMinutes,
