@@ -145,7 +145,9 @@ public class ManagerEmployeeRequestsController : Controller
             }
 
             // Load audit history for this specific request
-            detail.History = await _apiService.GetHistoryAsync(id, cancellationToken);
+            var (history, historyError) = await _apiService.GetHistoryAsync(id, cancellationToken);
+            detail.History = history;
+            detail.HistoryErrorMessage = historyError;
 
             // Safe return URL
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -210,7 +212,8 @@ public class ManagerEmployeeRequestsController : Controller
             TempData["ErrorMessage"] = $"Lỗi xử lý: {ex.Message}";
         }
 
-        return RedirectToAction(nameof(Details), new { id, returnUrl });
+        var safeReturnUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });
     }
 
     /// <summary>
@@ -230,10 +233,12 @@ public class ManagerEmployeeRequestsController : Controller
             return NotFound();
         }
 
+        var safeReturnUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+
         if (string.IsNullOrWhiteSpace(reviewNote))
         {
             TempData["ErrorMessage"] = "Lý do từ chối là bắt buộc. Vui lòng nhập lý do từ chối.";
-            return RedirectToAction(nameof(Details), new { id, returnUrl });
+            return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });
         }
 
         try
@@ -262,6 +267,6 @@ public class ManagerEmployeeRequestsController : Controller
             TempData["ErrorMessage"] = $"Lỗi xử lý: {ex.Message}";
         }
 
-        return RedirectToAction(nameof(Details), new { id, returnUrl });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });
     }
 }
