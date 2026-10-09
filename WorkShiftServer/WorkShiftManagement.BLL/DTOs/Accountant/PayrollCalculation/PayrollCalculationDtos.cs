@@ -74,6 +74,14 @@ public sealed class PayrollCalculationResponse
     public string? RejectReason { get; set; }
     public Guid? CalculatedBy { get; set; }
     public DateTime? CalculatedAt { get; set; }
+    public Guid? SubmittedBy { get; set; }
+    public DateTime? SubmittedAt { get; set; }
+    public Guid? RejectedBy { get; set; }
+    public DateTime? RejectedAt { get; set; }
+    public Guid? ApprovedBy { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? ReplacedAt { get; set; }
+    public DateTime? PaidAt { get; set; }
     public decimal HourlyRate { get; set; }
     public decimal TotalWorkHours { get; set; }
     public decimal WorkPay { get; set; }

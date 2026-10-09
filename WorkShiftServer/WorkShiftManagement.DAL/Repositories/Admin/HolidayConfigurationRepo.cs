@@ -6,7 +6,7 @@ using WorkShiftManagement.DAL.Entities;
 namespace WorkShiftManagement.DAL.Repositories.Admin;
 
 // Shared persistence boundary for calendar/rule changes and payroll invalidation.
-public sealed class HolidayConfigurationRepo(AppDbContext db)
+public sealed class HolidayConfigurationRepo(AppDbContext db) : WorkShiftManagement.DAL.Interfaces.Admin.IPayrollChangeTransaction
 {
     public IQueryable<HolidayPayRule> Rules => db.HolidayPayRules;
     public IQueryable<PayrollDetail> Details => db.PayrollDetails;
@@ -35,39 +35,13 @@ public sealed class HolidayConfigurationRepo(AppDbContext db)
         return result;
     }
 
-    public async Task<List<int>> InvalidateAsync(IReadOnlyCollection<DateOnly> dates, int? holidayId, Guid actor, CancellationToken ct)
+    public Task<List<int>> InvalidateAsync(IReadOnlyCollection<DateOnly> dates, int? holidayId, Guid actor, CancellationToken ct)
     {
-        if (dates.Count == 0) return [];
-        // Include dates that were previously ordinary workdays (new/moved/restored holidays).
-        var periods = await db.PayrollPeriods.Include(p => p.Payrolls)
-            .Where(p => dates.Any(d => d >= p.StartDate && d <= p.EndDate)
-                || p.Payrolls.Any(w => w.PayrollDetails.Any(d => holidayId != null && d.PublicHolidayId == holidayId)))
-            .ToListAsync(ct);
-        if (periods.Any(p => p.Status == "APPROVED" || p.Payrolls.Any(w => w.Status == "APPROVED" || w.Status == "PAID")))
-            throw Conflict("Holidays in approved or paid payroll periods cannot be changed.", "HOLIDAY_USED_IN_PAYROLL");
-
-        var affected = new List<int>();
-        foreach (var period in periods.Where(p => p.Payrolls.Count > 0 || p.CalculatedAt != null))
-        {
-            var old = new { period.Status, period.CalculatedAt };
-            period.Status = "DRAFT";
-            period.CalculatedAt = null;
-            period.SubmittedAt = null;
-            period.UpdatedAt = DateTime.UtcNow;
-            foreach (var payroll in period.Payrolls)
-            {
-                payroll.Status = "DRAFT";
-                payroll.CalculatedAt = null;
-                payroll.UpdatedAt = DateTime.UtcNow;
-            }
-            affected.Add(period.PayrollPeriodId);
-            Audit(actor, "HOLIDAY_REQUIRES_RECALCULATION", "payroll_periods", period.PayrollPeriodId, old,
-                new { period.Status, period.CalculatedAt });
-        }
-        await db.SaveChangesAsync(ct);
-        return affected;
+        // CALCULATED and later payrolls are frozen. Calendar changes apply to future
+        // calculations; existing versions must go through explicit rejection/correction.
+        ct.ThrowIfCancellationRequested();
+        return Task.FromResult(new List<int>());
     }
-
     public async Task<List<DateOnly>> ActiveDatesFromAsync(DateOnly from, CancellationToken ct) =>
         await db.PublicHolidayConfigs.Where(h => h.IsActive && h.HolidayDate >= from).Select(h => h.HolidayDate).ToListAsync(ct);
 

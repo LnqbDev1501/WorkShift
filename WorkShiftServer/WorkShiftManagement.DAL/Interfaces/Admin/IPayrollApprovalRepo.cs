@@ -31,6 +31,9 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
         Task<List<Payroll>> GetAllPayrollsForUpdateAsync(int payrollPeriodId);
 
         Task<bool> UserHasActiveRoleAsync(Guid userId, string roleName);
+        Task<Payroll?> GetLatestPayrollAsync(Guid userId, int periodId);
+        Task<bool> HasApprovedCorrectionFeedbackAsync(Payroll payroll);
+        void Audit(Guid actor, string action, PayrollPeriod period, Payroll? payroll = null);
         Task<int?> GetAccountantBranchIdAsync(Guid userId);
         Task<int> GetExpectedEmployeeCountAsync(int periodId);
         Task<bool> HasCompleteLockedTimesheetsAsync(int periodId, IReadOnlyCollection<Guid> payrollUsers);

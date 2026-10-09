@@ -119,12 +119,15 @@ builder.Services.AddHangfireServer(options =>
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
+builder.Services.AddScoped<IPayrollChangeTransaction>(sp => sp.GetRequiredService<HolidayConfigurationRepo>());
 builder.Services.AddScoped<ISalaryHistoryRepo, SalaryHistoryRepo>();
 builder.Services.AddScoped<ISalaryHistoryService, SalaryHistoryService>();
 builder.Services.AddScoped<IPayrollPeriodRepo, PayrollPeriodRepo>();
 builder.Services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
 builder.Services.AddScoped<IPayrollCalculationRepo, PayrollCalculationRepo>();
 builder.Services.AddScoped<IPayrollCalculationService, PayrollCalculationService>();
+builder.Services.AddScoped<IPayrollRevisionRepo, PayrollRevisionRepo>();
+builder.Services.AddScoped<IPayrollRevisionService, PayrollRevisionService>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
