@@ -50,10 +50,29 @@ public class AdminEmployeeRequestDetailViewModel
 
     public AdminTimeAdjustmentDetailViewModel? TimeAdjustmentDetail { get; set; }
 
+    // History
+    public IReadOnlyList<AdminEmployeeRequestHistoryViewModel> History { get; set; } = [];
+
+    public string? HistoryErrorMessage { get; set; }
+
     // UI state
     public string? ReturnUrl { get; set; }
 
     public string? ErrorMessage { get; set; }
+}
+
+public class AdminEmployeeRequestHistoryViewModel
+{
+    public long AuditLogId { get; set; }
+    public int RequestId { get; set; }
+    public string Action { get; set; } = string.Empty;
+    public Guid? PerformedByUserId { get; set; }
+    public string? PerformedByName { get; set; }
+    public string? RoleName { get; set; }
+    public DateTime PerformedAt { get; set; }
+    public string? PreviousStatus { get; set; }
+    public string? NewStatus { get; set; }
+    public string? ReviewNote { get; set; }
 }
 
 public class AdminAppliedRequestLimitRuleViewModel

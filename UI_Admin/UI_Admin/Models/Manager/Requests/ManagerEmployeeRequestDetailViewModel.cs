@@ -28,6 +28,7 @@ public class ManagerEmployeeRequestDetailViewModel
     public IReadOnlyList<ManagerLeaveRequestAssignmentViewModel> LeaveAssignments { get; set; } = new List<ManagerLeaveRequestAssignmentViewModel>();
     public ManagerTimeAdjustmentDetailViewModel? TimeAdjustmentDetail { get; set; }
     public IReadOnlyList<ManagerEmployeeRequestHistoryViewModel> History { get; set; } = new List<ManagerEmployeeRequestHistoryViewModel>();
+    public string? HistoryErrorMessage { get; set; }
 
     public string? ReturnUrl { get; set; }
 }
@@ -68,12 +69,21 @@ public class ManagerTimeAdjustmentDetailViewModel
 public class ManagerEmployeeRequestHistoryViewModel
 {
     public long AuditLogId { get; set; }
+    public int RequestId { get; set; }
     public string Action { get; set; } = string.Empty;
-    public Guid? UserId { get; set; }
-    public string? FullName { get; set; }
+    public Guid? PerformedByUserId { get; set; }
+    public string? PerformedByName { get; set; }
     public string? RoleName { get; set; }
-    public DateTime Timestamp { get; set; }
-    public string? Note { get; set; }
+    public DateTime PerformedAt { get; set; }
+    public string? PreviousStatus { get; set; }
+    public string? NewStatus { get; set; }
+    public string? ReviewNote { get; set; }
+
+    // Compatibility properties
+    public Guid? UserId => PerformedByUserId;
+    public string? FullName => PerformedByName;
+    public DateTime Timestamp => PerformedAt;
+    public string? Note => ReviewNote;
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
 }

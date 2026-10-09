@@ -174,6 +174,47 @@ public class EmployeeRequestApiService
     }
 
     /// <summary>
+    /// GET /api/admin/requests/{requestId}/history — retrieves review history / audit logs for the request.
+    /// </summary>
+    public async Task<(IReadOnlyList<AdminEmployeeRequestHistoryViewModel> Items, string? ErrorMessage)> GetHistoryAsync(
+        int requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/requests/{requestId}/history";
+
+        try
+        {
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return ([], "Request not found.");
+            }
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Session expired or token invalid.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+                return ([], errorMsg ?? "Không thể tải lịch sử xử lý.");
+            }
+
+            var list = await response.Content.ReadFromJsonAsync<List<AdminEmployeeRequestHistoryViewModel>>(
+                JsonOptions,
+                cancellationToken);
+
+            return (list ?? [], null);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ([], $"Không thể kết nối đến máy chủ: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// GET /api/admin/branches — retrieves all branches (including historical/inactive) for filter dropdown.
     /// Supports multi-page loading so it does not silently cap at 100 branches.
     /// </summary>
