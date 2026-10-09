@@ -98,6 +98,19 @@ public class AttendanceRepo : IAttendanceRepo
             .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId, cancellationToken);
     }
 
+    public Task<Attendance?> GetAttendanceWithDetailsByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default)
+    {
+        return _context.Attendances
+            .Include(a => a.Assignment)
+                .ThenInclude(s => s.Shift)
+                    .ThenInclude(w => w.ScheduleWeek)
+                        .ThenInclude(b => b.Branch)
+            .Include(a => a.Assignment)
+                .ThenInclude(s => s.User)
+            .Include(a => a.AttendancePenaltyRecords)
+            .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId, cancellationToken);
+    }
+
     public Task<LeaveRequestAssignment?> GetApprovedLeaveForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default)
     {
         return _context.LeaveRequestAssignments
@@ -118,6 +131,18 @@ public class AttendanceRepo : IAttendanceRepo
             .FirstOrDefaultAsync(t =>
                 t.AssignmentId == assignmentId &&
                 t.Request.RequestType == "LATE_ARRIVAL" &&
+                t.Request.Status == "APPROVED",
+                cancellationToken);
+    }
+
+    public Task<TimeAdjustmentRequestDetail?> GetApprovedEarlyLeaveForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default)
+    {
+        return _context.TimeAdjustmentRequestDetails
+            .AsNoTracking()
+            .Include(t => t.Request)
+            .FirstOrDefaultAsync(t =>
+                t.AssignmentId == assignmentId &&
+                t.Request.RequestType == "EARLY_LEAVE" &&
                 t.Request.Status == "APPROVED",
                 cancellationToken);
     }

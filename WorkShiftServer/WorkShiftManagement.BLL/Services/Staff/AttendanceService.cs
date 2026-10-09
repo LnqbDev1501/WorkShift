@@ -22,6 +22,7 @@ public class AttendanceService : IAttendanceService
 {
     private const int SessionTtlSeconds = 90;
     private const string ActionTypeCheckIn = "CHECK_IN";
+    private const string ActionTypeCheckOut = "CHECK_OUT";
     private const decimal MinFaceQualityThreshold = 0.8500m;
     private const decimal MinLivenessThreshold = 0.8500m;
     private const int MaxImageSizeBytes = 10 * 1024 * 1024; // 10MB
@@ -537,6 +538,381 @@ public class AttendanceService : IAttendanceService
         {
             await transaction.RollbackAsync(cancellationToken);
             _logger.LogError(ex, "Failed to complete check-in transaction for user {UserId}, assignment {AssignmentId}", userId, request.AssignmentId);
+            throw;
+        }
+    }
+
+    public async Task<CheckOutSessionResponse> CreateCheckOutSessionAsync(Guid userId, int assignmentId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated user identity is required.");
+        }
+
+        if (assignmentId <= 0)
+        {
+            throw new ArgumentException("Valid AssignmentId is required.");
+        }
+
+        await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+
+        var attendance = await _attendanceRepo.GetAttendanceWithDetailsByAssignmentIdAsync(assignmentId, cancellationToken);
+        if (attendance == null)
+        {
+            throw new InvalidOperationException("Attendance record for this shift assignment was not found.");
+        }
+
+        if (attendance.Assignment.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("This shift assignment does not belong to your account.");
+        }
+
+        if (attendance.CheckOutTime.HasValue || attendance.Status != "IN_PROGRESS")
+        {
+            throw new InvalidOperationException("You have already completed check-out for this shift.");
+        }
+
+        if (!attendance.CheckInTime.HasValue)
+        {
+            throw new InvalidOperationException("This shift does not have a check-in record and cannot be checked out.");
+        }
+
+        var shift = attendance.Assignment.Shift;
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+            ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+
+        var nowLocal = DateTime.UtcNow.AddHours(7);
+
+        // Anti-accidental click guard (at least 2 minutes after check-in)
+        if (DateTime.UtcNow < attendance.CheckInTime.Value.AddMinutes(2))
+        {
+            throw new InvalidOperationException("You just checked in. Please wait at least 2 minutes before checking out.");
+        }
+
+        // Cut-off deadline validation
+        var cutoffTime = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        if (nowLocal > cutoffTime)
+        {
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTime:HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+        }
+
+        // Invalidate any active pending check-out session for this user
+        var latestSession = await _attendanceRepo.GetLatestSessionByUserIdAsync(userId, ActionTypeCheckOut, cancellationToken);
+        if (latestSession != null && latestSession.UsedAt == null && latestSession.CancelledAt == null && latestSession.ExpiresAt > DateTime.UtcNow)
+        {
+            latestSession.CancelledAt = DateTime.UtcNow;
+            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+        }
+
+        var challenges = GenerateRandomChallenges();
+        var challengeSequence = JsonSerializer.Serialize(challenges.Select(c => c.Action).ToList());
+
+        var now = DateTime.UtcNow;
+        var sessionId = Guid.NewGuid();
+        var nonceHash = ComputeNonceHash(sessionId, userId, now);
+
+        var session = new FaceVerificationSession
+        {
+            SessionId = sessionId,
+            UserId = userId,
+            ActionType = ActionTypeCheckOut,
+            FaceMatchVerified = false,
+            FaceMatchScore = null,
+            ChallengeSequence = challengeSequence,
+            NonceHash = nonceHash,
+            LivenessVerified = false,
+            LivenessScore = null,
+            ExpiresAt = now.AddSeconds(SessionTtlSeconds),
+            UsedAt = null,
+            CancelledAt = null,
+            CreatedAt = now
+        };
+
+        await _attendanceRepo.CreateFaceVerificationSessionAsync(session, cancellationToken);
+
+        _logger.LogInformation("Created face check-out session {SessionId} for user {UserId}, assignment {AssignmentId}", sessionId, userId, assignmentId);
+
+        return new CheckOutSessionResponse
+        {
+            SessionId = session.SessionId,
+            ExpiresAt = session.ExpiresAt,
+            ExpiresInSeconds = SessionTtlSeconds,
+            ActionType = session.ActionType,
+            Challenges = challenges
+        };
+    }
+
+    public async Task<CheckOutResponse> CheckOutAsync(Guid userId, CheckOutRequest request, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated user identity is required.");
+        }
+
+        if (request == null)
+        {
+            throw new ArgumentException("Check-out request payload is required.");
+        }
+
+        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
+        var (user, contract, faceProfile) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+
+        // 2. Validate Attendance Session
+        var attendance = await _attendanceRepo.GetAttendanceWithDetailsByAssignmentIdAsync(request.AssignmentId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Attendance record for assignment '{request.AssignmentId}' was not found.");
+
+        var assignment = attendance.Assignment;
+        if (assignment.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("This attendance record does not belong to your account.");
+        }
+
+        if (attendance.CheckOutTime.HasValue || attendance.Status != "IN_PROGRESS")
+        {
+            throw new InvalidOperationException("You have already checked out for this shift.");
+        }
+
+        if (!attendance.CheckInTime.HasValue)
+        {
+            throw new InvalidOperationException("This shift assignment does not have an in-progress attendance session to check out.");
+        }
+
+        var shift = assignment.Shift;
+        var branch = shift.ScheduleWeek.Branch;
+
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+            ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+
+        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+
+        var nowUtc = DateTime.UtcNow;
+        var nowLocal = nowUtc.AddHours(7);
+
+        // Anti-accidental click guard
+        if (nowUtc < attendance.CheckInTime.Value.AddMinutes(2))
+        {
+            throw new InvalidOperationException("You just checked in. Please wait at least 2 minutes before checking out.");
+        }
+
+        // Cut-off deadline validation
+        var cutoffTime = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        if (nowLocal > cutoffTime)
+        {
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTime:HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+        }
+
+        // 3. Early Leave Calculation
+        var approvedEarly = await _attendanceRepo.GetApprovedEarlyLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+        var normalGraceDeadline = shift.ScheduledEndAt.AddMinutes(-rule.CheckOutGraceMinutes);
+
+        bool isEarlyLeave = false;
+        int totalEarlyLeaveMinutes = 0;
+        int excusedEarlyLeaveMinutes = 0;
+        int chargeableEarlyLeaveMinutes = 0;
+
+        if (approvedEarly != null)
+        {
+            var approvedGraceDeadline = approvedEarly.RequestedTime.AddMinutes(-rule.CheckOutGraceMinutes);
+            if (nowLocal >= approvedGraceDeadline)
+            {
+                // Left within approved early departure window -> Fully excused
+                isEarlyLeave = false;
+                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+                excusedEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+                chargeableEarlyLeaveMinutes = 0;
+            }
+            else
+            {
+                // Left even earlier than approved early departure time -> Unexcused early leave penalty
+                isEarlyLeave = true;
+                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+                excusedEarlyLeaveMinutes = 0;
+                chargeableEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+            }
+        }
+        else if (nowLocal < normalGraceDeadline)
+        {
+            // Left earlier than normal grace window without approved request
+            isEarlyLeave = true;
+            totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+            excusedEarlyLeaveMinutes = 0;
+            chargeableEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+        }
+
+        // 4. GPS Geofencing Validation
+        if (!branch.Latitude.HasValue || !branch.Longitude.HasValue)
+        {
+            throw new InvalidOperationException(
+                $"Branch '{branch.BranchName}' does not have GPS coordinates configured. Please contact the administrator.");
+        }
+
+        double dist = CalculateHaversineDistance(
+            (double)request.Latitude,
+            (double)request.Longitude,
+            (double)branch.Latitude.Value,
+            (double)branch.Longitude.Value);
+
+        decimal distanceMeters = Math.Round((decimal)dist, 2);
+
+        if (distanceMeters > rule.MaxAttendanceDistanceMeters)
+        {
+            throw new InvalidOperationException(
+                $"You are outside the branch check-out perimeter ({distanceMeters:F1}m > {rule.MaxAttendanceDistanceMeters}m allowed). Please move closer to {branch.BranchName}.");
+        }
+
+        // 5. Biometric Face Verification
+        var session = await _attendanceRepo.GetFaceVerificationSessionAsync(request.SessionId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Face verification session '{request.SessionId}' was not found.");
+
+        if (session.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("You are not authorized to use this verification session.");
+        }
+
+        if (session.ActionType != ActionTypeCheckOut)
+        {
+            throw new InvalidOperationException($"Invalid session action type '{session.ActionType}'. Expected '{ActionTypeCheckOut}'.");
+        }
+
+        if (session.CancelledAt.HasValue)
+        {
+            throw new InvalidOperationException("Face verification session has been cancelled. Please request a new session.");
+        }
+
+        if (session.UsedAt.HasValue)
+        {
+            throw new InvalidOperationException("Face verification session has already been used. Please request a new session.");
+        }
+
+        if (session.ExpiresAt <= DateTime.UtcNow)
+        {
+            throw new InvalidOperationException("Face verification session has expired. Please request a new session.");
+        }
+
+        ValidateImageFile(request.FaceImage);
+        var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
+
+        if (qualityScore < MinFaceQualityThreshold)
+        {
+            throw new InvalidOperationException($"Face match score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please ensure clear lighting facing the camera directly.");
+        }
+
+        if (livenessScore < MinLivenessThreshold)
+        {
+            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please complete the liveness challenges.");
+        }
+
+        // 6. Calculate Actual Working Time
+        int actualWorkingMinutes = Math.Max(0, (int)Math.Floor((nowUtc - attendance.CheckInTime.Value).TotalMinutes));
+        decimal workingHours = Math.Round((decimal)actualWorkingMinutes / 60m, 2);
+
+        // 7. Execute DB Transaction
+        await using var transaction = await _attendanceRepo.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            session.UsedAt = nowUtc;
+            session.FaceMatchVerified = true;
+            session.FaceMatchScore = qualityScore;
+            session.LivenessVerified = true;
+            session.LivenessScore = livenessScore;
+            session.MatchedFaceProfileId = faceProfile.FaceProfileId;
+
+            attendance.CheckOutTime = nowUtc;
+            attendance.CheckOutLatitude = request.Latitude;
+            attendance.CheckOutLongitude = request.Longitude;
+            attendance.CheckOutDistanceMeters = distanceMeters;
+            attendance.CheckOutAccuracyMeters = request.GpsAccuracy;
+            attendance.CheckOutFaceSessionId = session.SessionId;
+            attendance.CheckOutFaceVerified = true;
+            attendance.CheckOutFaceConfidence = qualityScore;
+            attendance.ActualWorkingMinutes = actualWorkingMinutes;
+            attendance.WorkingHours = workingHours;
+            attendance.EarlyLeaveRequestId = approvedEarly?.RequestId;
+
+            bool hasLate = attendance.ChargeableLateMinutes > 0;
+            bool hasEarly = chargeableEarlyLeaveMinutes > 0;
+
+            if (hasLate && hasEarly)
+            {
+                attendance.Status = "LATE_AND_EARLY_LEAVE";
+            }
+            else if (hasLate)
+            {
+                attendance.Status = "LATE";
+            }
+            else if (hasEarly)
+            {
+                attendance.Status = "EARLY_LEAVE";
+            }
+            else
+            {
+                attendance.Status = "PRESENT";
+            }
+
+            attendance.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+            attendance.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
+            attendance.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
+            attendance.CompletedAt = nowUtc;
+            attendance.UpdatedAt = nowUtc;
+
+            if (chargeableEarlyLeaveMinutes > 0 && penaltyRule != null)
+            {
+                var matchedLevel = penaltyRule.AttendancePenaltyLevels
+                    .FirstOrDefault(l => l.ViolationType == "EARLY_LEAVE" &&
+                                         chargeableEarlyLeaveMinutes >= l.FromMinutes &&
+                                         (!l.ToMinutes.HasValue || chargeableEarlyLeaveMinutes <= l.ToMinutes.Value));
+
+                if (matchedLevel != null)
+                {
+                    attendance.AttendancePenaltyRecords.Add(new AttendancePenaltyRecord
+                    {
+                        PenaltyRuleId = penaltyRule.PenaltyRuleId,
+                        PenaltyLevelId = matchedLevel.PenaltyLevelId,
+                        ViolationType = "EARLY_LEAVE",
+                        ViolationMinutes = chargeableEarlyLeaveMinutes,
+                        PenaltyAmount = matchedLevel.PenaltyAmount,
+                        CreatedAt = nowUtc
+                    });
+                }
+            }
+
+            assignment.Status = "COMPLETED";
+            assignment.UpdatedAt = nowUtc;
+
+            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Successfully checked out staff {UserId} for assignment {AssignmentId}, attendance {AttendanceId}. IsEarlyLeave={IsEarly}, ChargeableEarly={EarlyMins}m, ActualMinutes={Mins}",
+                userId, assignment.AssignmentId, attendance.AttendanceId, isEarlyLeave, chargeableEarlyLeaveMinutes, actualWorkingMinutes);
+
+            string message = isEarlyLeave
+                ? (chargeableEarlyLeaveMinutes > 0
+                    ? $"Check-out successful with {totalEarlyLeaveMinutes} mins early leave ({chargeableEarlyLeaveMinutes} chargeable mins)."
+                    : $"Check-out successful with {totalEarlyLeaveMinutes} mins early leave (fully excused by approved request).")
+                : "Check-out successful! Thank you for your work.";
+
+            return new CheckOutResponse
+            {
+                AttendanceId = attendance.AttendanceId,
+                AssignmentId = assignment.AssignmentId,
+                CheckInTime = attendance.CheckInTime.Value,
+                CheckOutTime = attendance.CheckOutTime.Value,
+                ActualWorkingMinutes = actualWorkingMinutes,
+                WorkingHours = workingHours,
+                Status = attendance.Status,
+                CheckOutDistanceMeters = distanceMeters,
+                IsEarlyLeave = isEarlyLeave,
+                TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
+                ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes,
+                ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes,
+                FaceMatchConfidence = qualityScore,
+                Message = message
+            };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Failed to complete check-out transaction for user {UserId}, assignment {AssignmentId}", userId, request.AssignmentId);
             throw;
         }
     }

@@ -177,6 +177,110 @@ public sealed class StaffAttendanceController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Creates an active liveness challenge session for check-out (TTL: 90 seconds).
+    /// </summary>
+    [HttpPost("check-out/session")]
+    [ProducesResponseType(typeof(CheckOutSessionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CheckOutSessionResponse>> CreateCheckOutSession(
+        [FromQuery] int assignmentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        try
+        {
+            var result = await _attendanceService.CreateCheckOutSessionAsync(userId, assignmentId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating check-out face session for staff {UserId}, assignment {AssignmentId}", userId, assignmentId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to create check-out verification session.",
+                error = ex.Message,
+                detail = ex.InnerException?.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Performs shift attendance check-out with GPS Geofencing, biometric face verification, early leave calculation, and shift completion.
+    /// </summary>
+    [HttpPost("check-out")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(CheckOutResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CheckOutResponse>> CheckOut(
+        [FromForm] CheckOutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        try
+        {
+            var response = await _attendanceService.CheckOutAsync(userId, request, cancellationToken);
+            return Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error checking out staff {UserId} for assignment {AssignmentId}", userId, request.AssignmentId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to process check-out. Please try again.",
+                detail = ex.InnerException?.Message ?? ex.Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub") ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
