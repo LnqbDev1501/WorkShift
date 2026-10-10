@@ -74,6 +74,51 @@ public sealed class ManagerTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retrieves weekly timesheet details for a specific week.
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ManagerWeeklyTimesheetDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerWeeklyTimesheetDetailResponse>> GetWeeklyTimesheetDetail(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.GetWeeklyTimesheetDetailAsync(managerId, id, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = $"Weekly timesheet details not found for week ID {id}." });
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving weekly timesheet detail for week {ScheduleWeekId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve weekly timesheet details.",
+                detail = ex.InnerException?.Message ?? ex.Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

@@ -127,7 +127,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         }
         else
         {
-            // Fallback from active assigned shifts in this week
+            // Timesheet has not been generated for this week yet
             totalStaff = week.WorkShifts
                 .SelectMany(s => s.ShiftAssignments)
                 .Where(a => a.Status != "CANCELLED")
@@ -136,10 +136,14 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 .Count();
 
             confirmedStaff = 0;
-            status = week.Status ?? "DRAFT";
+            status = "NOT GENERATED";
         }
 
-        decimal confirmationRate = totalStaff > 0
+        string staffReview = status == "NOT GENERATED"
+            ? "-"
+            : $"{confirmedStaff}/{totalStaff} Confirmed";
+
+        decimal confirmationRate = (status != "NOT GENERATED" && totalStaff > 0)
             ? Math.Round((decimal)confirmedStaff / totalStaff * 100m, 2)
             : 0m;
 
@@ -157,12 +161,160 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             Status = status,
             TotalStaff = totalStaff,
             ConfirmedStaff = confirmedStaff,
-            StaffReview = $"{confirmedStaff}/{totalStaff} Confirmed",
+            StaffReview = staffReview,
             ConfirmationRate = confirmationRate,
             TotalWorkHours = totalWorkHours,
             TotalLateMinutes = totalLateMinutes,
             TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
             IsLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase)
+        };
+    }
+
+    public async Task<ManagerWeeklyTimesheetDetailResponse?> GetWeeklyTimesheetDetailAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated manager identity is required.");
+        }
+
+        if (scheduleWeekId <= 0)
+        {
+            throw new ArgumentException("Valid schedule week ID is required.");
+        }
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var week = await _timesheetRepo.GetWeeklyTimesheetDetailAsync(scheduleWeekId, branchId, cancellationToken);
+        if (week == null)
+        {
+            return null;
+        }
+
+        var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
+        int totalStaff;
+        int confirmedStaff;
+        int totalWorkMinutes = 0;
+        int totalLateMinutes = 0;
+        int totalEarlyLeaveMinutes = 0;
+        string status;
+        var staffItems = new List<ManagerStaffTimesheetItemDto>();
+
+        if (timesheets.Count > 0)
+        {
+            totalStaff = timesheets.Count;
+            confirmedStaff = timesheets.Count(t => string.Equals(t.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase));
+            totalWorkMinutes = timesheets.Sum(t => t.TotalWorkMinutes);
+            totalLateMinutes = timesheets.Sum(t => t.TotalLateMinutes);
+            totalEarlyLeaveMinutes = timesheets.Sum(t => t.TotalEarlyLeaveMinutes);
+
+            if (timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase)))
+            {
+                status = "LOCKED";
+            }
+            else if (week.PayrollPeriod != null && !string.IsNullOrWhiteSpace(week.PayrollPeriod.Status))
+            {
+                status = week.PayrollPeriod.Status;
+            }
+            else
+            {
+                status = "GENERATED";
+            }
+
+            foreach (var t in timesheets.OrderBy(t => t.User.FullName))
+            {
+                staffItems.Add(new ManagerStaffTimesheetItemDto
+                {
+                    TimesheetId = t.TimesheetId,
+                    UserId = t.UserId,
+                    FullName = t.User.FullName,
+                    Email = t.User.Email,
+                    Phone = t.User.Phone,
+                    RoleName = t.User.Role?.RoleName,
+                    TotalAssignedShifts = t.TotalAssignedShifts,
+                    CompletedShifts = t.CompletedShiftCount,
+                    TotalWorkHours = Math.Round((decimal)t.TotalWorkMinutes / 60m, 2),
+                    TotalLateMinutes = t.TotalLateMinutes,
+                    TotalEarlyLeaveMinutes = t.TotalEarlyLeaveMinutes,
+                    StaffReviewStatus = t.StaffReviewStatus ?? "PENDING",
+                    Status = t.Status ?? status
+                });
+            }
+        }
+        else
+        {
+            var activeAssignments = week.WorkShifts
+                .SelectMany(s => s.ShiftAssignments)
+                .Where(a => a.Status != "CANCELLED")
+                .ToList();
+
+            var distinctUsers = activeAssignments
+                .Select(a => a.User)
+                .GroupBy(u => u.UserId)
+                .Select(g => g.First())
+                .OrderBy(u => u.FullName)
+                .ToList();
+
+            totalStaff = distinctUsers.Count;
+            confirmedStaff = 0;
+            status = "NOT GENERATED";
+
+            foreach (var u in distinctUsers)
+            {
+                int assignedCount = activeAssignments.Count(a => a.UserId == u.UserId);
+                staffItems.Add(new ManagerStaffTimesheetItemDto
+                {
+                    TimesheetId = null,
+                    UserId = u.UserId,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    RoleName = u.Role?.RoleName,
+                    TotalAssignedShifts = assignedCount,
+                    CompletedShifts = 0,
+                    TotalWorkHours = 0m,
+                    TotalLateMinutes = 0,
+                    TotalEarlyLeaveMinutes = 0,
+                    StaffReviewStatus = "-",
+                    Status = "NOT GENERATED"
+                });
+            }
+        }
+
+        string staffReview = status == "NOT GENERATED"
+            ? "-"
+            : $"{confirmedStaff}/{totalStaff} Confirmed";
+
+        decimal confirmationRate = (status != "NOT GENERATED" && totalStaff > 0)
+            ? Math.Round((decimal)confirmedStaff / totalStaff * 100m, 2)
+            : 0m;
+
+        decimal totalWorkHours = Math.Round((decimal)totalWorkMinutes / 60m, 2);
+
+        return new ManagerWeeklyTimesheetDetailResponse
+        {
+            ScheduleWeekId = week.ScheduleWeekId,
+            PayrollPeriodId = week.PayrollPeriod?.PayrollPeriodId,
+            Period = $"{week.WeekStartDate:dd/MM} - {week.WeekEndDate:dd/MM}",
+            WeekStartDate = week.WeekStartDate,
+            WeekEndDate = week.WeekEndDate,
+            BranchId = week.BranchId,
+            BranchName = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
+            Status = status,
+            TotalStaff = totalStaff,
+            ConfirmedStaff = confirmedStaff,
+            StaffReview = staffReview,
+            ConfirmationRate = confirmationRate,
+            TotalWorkHours = totalWorkHours,
+            TotalLateMinutes = totalLateMinutes,
+            TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
+            StaffTimesheets = staffItems
         };
     }
 }

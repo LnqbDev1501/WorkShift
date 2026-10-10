@@ -21,4 +21,5 @@ public interface IManagerTimesheetRepo
         CancellationToken cancellationToken = default);
 
     Task<List<WorkScheduleWeek>> GetAvailableWeeksForBranchAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<WorkScheduleWeek?> GetWeeklyTimesheetDetailAsync(int scheduleWeekId, int branchId, CancellationToken cancellationToken = default);
 }

@@ -12,4 +12,9 @@ public interface IManagerTimesheetService
         Guid managerId,
         ManagerTimesheetListQuery query,
         CancellationToken cancellationToken = default);
+
+    Task<ManagerWeeklyTimesheetDetailResponse?> GetWeeklyTimesheetDetailAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
 }

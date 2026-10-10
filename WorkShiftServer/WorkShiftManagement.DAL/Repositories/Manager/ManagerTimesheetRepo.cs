@@ -50,7 +50,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 .ThenInclude(p => p!.Timesheets)
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
-            .Where(w => w.BranchId == branchId);
+            .Where(w => w.BranchId == branchId &&
+                        w.Status != "CANCELLED" &&
+                        (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED"));
 
         if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
         {
@@ -76,13 +78,19 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             query = query.Where(w => w.WeekStartDate <= toDate.Value);
         }
 
-        if (!string.IsNullOrWhiteSpace(status))
+        if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "ALL", StringComparison.OrdinalIgnoreCase))
         {
             var upperStatus = status.Trim().ToUpperInvariant();
-            query = query.Where(w =>
-                w.Status == upperStatus ||
-                (w.PayrollPeriod != null && w.PayrollPeriod.Status == upperStatus) ||
-                (w.PayrollPeriod != null && w.PayrollPeriod.Timesheets.Any(t => t.Status == upperStatus)));
+            if (upperStatus == "NOT GENERATED")
+            {
+                query = query.Where(w => w.PayrollPeriod == null || !w.PayrollPeriod.Timesheets.Any());
+            }
+            else
+            {
+                query = query.Where(w =>
+                    (w.PayrollPeriod != null && (w.PayrollPeriod.Status == upperStatus || w.PayrollPeriod.Timesheets.Any(t => t.Status == upperStatus))) ||
+                    w.Status == upperStatus);
+            }
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
@@ -101,9 +109,27 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
     {
         return _context.WorkScheduleWeeks
             .AsNoTracking()
-            .Where(w => w.BranchId == branchId)
+            .Where(w => w.BranchId == branchId &&
+                        w.Status != "CANCELLED" &&
+                        (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED"))
             .OrderByDescending(w => w.WeekStartDate)
             .ThenByDescending(w => w.ScheduleWeekId)
             .ToListAsync(cancellationToken);
+    }
+
+    public Task<WorkScheduleWeek?> GetWeeklyTimesheetDetailAsync(int scheduleWeekId, int branchId, CancellationToken cancellationToken = default)
+    {
+        return _context.WorkScheduleWeeks
+            .AsNoTracking()
+            .Include(w => w.Branch)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.User)
+                        .ThenInclude(u => u.Role)
+            .Include(w => w.WorkShifts)
+                .ThenInclude(s => s.ShiftAssignments)
+                    .ThenInclude(a => a.User)
+                        .ThenInclude(u => u.Role)
+            .FirstOrDefaultAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId, cancellationToken);
     }
 }

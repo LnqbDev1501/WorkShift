@@ -81,4 +81,37 @@ public sealed class ManagerTimesheetController : Controller
 
         return View(viewModel);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var detail = await _timesheetApiService.GetWeeklyTimesheetDetailAsync(id, cancellationToken);
+            if (detail == null)
+            {
+                TempData["ErrorMessage"] = $"Weekly timesheet details not found for week ID {id}.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (TempData["SuccessMessage"] is string success)
+                detail.SuccessMessage = success;
+            if (TempData["ErrorMessage"] is string error)
+                detail.ErrorMessage = error;
+
+            return View(detail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load manager weekly timesheet details for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = "Unable to load timesheet details. Please try again.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
 }

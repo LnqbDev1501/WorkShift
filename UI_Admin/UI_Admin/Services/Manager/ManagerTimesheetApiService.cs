@@ -63,4 +63,21 @@ public sealed class ManagerTimesheetApiService
 
         return result ?? new ManagerTimesheetPagedResponseModel<ManagerWeeklyTimesheetItemModel>();
     }
+
+    public async Task<ManagerWeeklyTimesheetDetailViewModel?> GetWeeklyTimesheetDetailAsync(
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}";
+        try
+        {
+            return await _httpClient.GetFromJsonAsync<ManagerWeeklyTimesheetDetailViewModel>(
+                url,
+                cancellationToken);
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
 }

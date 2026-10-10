@@ -123,9 +123,9 @@
                 <select id="status" name="status"
                         class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
                     <option value="ALL" selected="@(string.Equals(Model.Status, "ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
+                    <option value="NOT GENERATED" selected="@(string.Equals(Model.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase))">NOT GENERATED</option>
                     <option value="GENERATED" selected="@(string.Equals(Model.Status, "GENERATED", StringComparison.OrdinalIgnoreCase))">GENERATED</option>
                     <option value="LOCKED" selected="@(string.Equals(Model.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))">LOCKED</option>
-                    <option value="DRAFT" selected="@(string.Equals(Model.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))">DRAFT</option>
                 </select>
             </div>
 
@@ -187,6 +187,7 @@
                         {
                             var isLocked = string.Equals(item.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
                             var isGenerated = string.Equals(item.Status, "GENERATED", StringComparison.OrdinalIgnoreCase);
+                            var isNotGenerated = string.Equals(item.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
                             var isAllConfirmed = item.TotalStaff > 0 && item.ConfirmedStaff == item.TotalStaff;
 
                             <tr class="hover:bg-slate-50/80 transition-colors group">
@@ -231,6 +232,13 @@
                                             <span>GENERATED</span>
                                         </span>
                                     }
+                                    else if (isNotGenerated)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            <span>NOT GENERATED</span>
+                                        </span>
+                                    }
                                     else
                                     {
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
@@ -239,20 +247,27 @@
                                     }
                                 </td>
 
-                                <!-- Staff Review Progress -->
+                                <!-- Staff Confirmation -->
                                 <td class="px-6 py-4">
-                                    <div class="flex flex-col gap-1.5 min-w-[170px]">
-                                        <div class="flex items-center justify-between text-xs">
-                                            <span class="font-bold @(isAllConfirmed ? "text-emerald-600" : "text-slate-800")">
-                                                @item.ConfirmedStaff/@item.TotalStaff Confirmed
-                                            </span>
-                                            <span class="text-slate-500 font-semibold">@item.ConfirmationRate%</span>
+                                    @if (isNotGenerated || item.StaffReview == "-")
+                                    {
+                                        <span class="text-slate-400 font-semibold text-sm pl-2">-</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-col gap-1.5 min-w-[170px]">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <span class="font-bold @(isAllConfirmed ? "text-emerald-600" : "text-slate-800")">
+                                                    @item.ConfirmedStaff/@item.TotalStaff Confirmed
+                                                </span>
+                                                <span class="text-slate-500 font-semibold">@item.ConfirmationRate%</span>
+                                            </div>
+                                            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                                                <div class="h-full rounded-full transition-all duration-500 @(isAllConfirmed ? "bg-emerald-500" : "bg-indigo-600")"
+                                                     style="width: @(Math.Min(100, item.ConfirmationRate))%"></div>
+                                            </div>
                                         </div>
-                                        <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
-                                            <div class="h-full rounded-full transition-all duration-500 @(isAllConfirmed ? "bg-emerald-500" : "bg-indigo-600")"
-                                                 style="width: @(Math.Min(100, item.ConfirmationRate))%"></div>
-                                        </div>
-                                    </div>
+                                    }
                                 </td>
 
                                 <!-- Action -->
