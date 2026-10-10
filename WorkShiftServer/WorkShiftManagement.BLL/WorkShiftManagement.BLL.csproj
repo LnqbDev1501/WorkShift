@@ -28,6 +28,8 @@
     <Folder Include="DTOs\Admin\AttendancePenaltyRule\Request\" />
     <Folder Include="DTOs\Admin\AttendanceRule\Response\" />
     <Folder Include="DTOs\Admin\AttendanceRule\Request\" />
+    <Folder Include="DTOs\Manager\Timesheet\Response\" />
+    <Folder Include="DTOs\Manager\Timesheet\Request\" />
   </ItemGroup>
 
 </Project>

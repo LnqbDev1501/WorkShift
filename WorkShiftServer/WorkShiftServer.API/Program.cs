@@ -223,6 +223,11 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffEmploy
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService,
     WorkShiftManagement.BLL.Services.Staff.StaffEmployeeRequestService>();
 
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerTimesheetRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerTimesheetRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerTimesheetService>();
+
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffSalaryHistoryRepo,
     WorkShiftManagement.DAL.Repositories.Staff.StaffSalaryHistoryRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffSalaryHistoryService,
