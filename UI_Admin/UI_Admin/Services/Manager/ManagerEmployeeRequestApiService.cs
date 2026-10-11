@@ -180,7 +180,7 @@ public class ManagerEmployeeRequestApiService
     /// <summary>
     /// GET /api/manager/requests/{requestId}/history — retrieves review history / audit logs for the request.
     /// </summary>
-    public async Task<IReadOnlyList<ManagerEmployeeRequestHistoryViewModel>> GetHistoryAsync(
+    public async Task<(IReadOnlyList<ManagerEmployeeRequestHistoryViewModel> Items, string? ErrorMessage)> GetHistoryAsync(
         int requestId,
         CancellationToken cancellationToken = default)
     {
@@ -188,22 +188,38 @@ public class ManagerEmployeeRequestApiService
 
         try
         {
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return ([], "Request not found in your branch.");
+            }
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Session expired or token invalid.");
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                throw new UnauthorizedAccessException("Manager access required.");
+            }
 
             if (!response.IsSuccessStatusCode)
             {
-                return new List<ManagerEmployeeRequestHistoryViewModel>();
+                var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+                return ([], errorMsg ?? "Không thể tải lịch sử xử lý.");
             }
 
             var list = await response.Content.ReadFromJsonAsync<List<ManagerEmployeeRequestHistoryViewModel>>(
                 JsonOptions,
                 cancellationToken);
 
-            return list ?? new List<ManagerEmployeeRequestHistoryViewModel>();
+            return (list ?? [], null);
         }
-        catch
+        catch (HttpRequestException ex)
         {
-            return new List<ManagerEmployeeRequestHistoryViewModel>();
+            return ([], $"Không thể kết nối đến máy chủ: {ex.Message}");
         }
     }
 
