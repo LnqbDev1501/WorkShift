@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
-using UI_Admin.Models.Payroll;
-using UI_Admin.Services;
+using UI_Admin.Models.Admin.Payroll;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+
+
+namespace UI_Admin.Controllers.Admin;
 
 public class PayrollController(PayrollApiService payroll, RegionApiService regions, ILogger<PayrollController> logger) : Controller
 {

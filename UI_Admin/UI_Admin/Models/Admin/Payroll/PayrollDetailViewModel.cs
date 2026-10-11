@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models.Payroll;
+namespace UI_Admin.Models.Admin.Payroll;
 
 public class PayrollDetailQuery
 {

@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Payroll.PayrollDetailViewModel
+@model UI_Admin.Models.Admin.Payroll.PayrollDetailViewModel
 @{
     var period = Model.Period;
     var query = Model.Query;
@@ -257,7 +257,7 @@
                         <article>
                             <div>TOTAL DEDUCTIONS <span>⊖</span></div>
                             <p><strong class="red">@Money(period.Summary.TotalPenalty +
-                                                                                    period.Summary.TotalAttendanceDeduction)</strong></p><small>Phạt:
+                                                                                                                    period.Summary.TotalAttendanceDeduction)</strong></p><small>Phạt:
                                 @Money(period.Summary.TotalPenalty)</small><small>Chấm công:
                                 @Money(period.Summary.TotalAttendanceDeduction)</small>
                             </article>
@@ -426,39 +426,39 @@
                                                                                     </table>
                                                                                 </div>
                                                                                 <partial name="_ListPagination" model="@(new ListPaginationViewModel
-                                                                                {
-                                                                                    PageNumber = query.PageNumber,
-                                                                                    PageSize = query.PageSize,
-                                                                                    TotalItems = period.Payrolls.TotalCount,
-                                                                                    ItemLabel = "staff records",
-                                                                                    PageParameter = "pageNumber",
-                                                                                })" />
-                                                                        </section>
-                                                                    </div>
-                                                                    @if (canApprove)
-                                                                    {
-                                                                        <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
-                                                                            <div class="payroll-modal-dialog">
-                                                                                <form asp-action="Approve" method="post">
-                                                                                    <div class="payroll-modal-header">
-                                                                                        <h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close"
-                                                                                                                                                 data-modal-close aria-label="Close">×</button>
-                                                                                    </div>
-                                                                                    <div class="payroll-modal-body">
-                                                                                        <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
-                                                                                        <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
-                                                                                        <p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện
-                                                                                            chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
-                                                                                            type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
-                                                                                                                                                       value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
+                                                                                         {
+                                                                                             PageNumber = query.PageNumber,
+                                                                                             PageSize = query.PageSize,
+                                                                                             TotalItems = period.Payrolls.TotalCount,
+                                                                                             ItemLabel = "staff records",
+                                                                                             PageParameter = "pageNumber",
+                                                                                         })" />
+                                                                            </section>
+                                                                        </div>
+                                                                        @if (canApprove)
+                                                                        {
+                                                                            <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
+                                                                                <div class="payroll-modal-dialog">
+                                                                                    <form asp-action="Approve" method="post">
+                                                                                        <div class="payroll-modal-header">
+                                                                                            <h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close"
+                                                                                                                                                     data-modal-close aria-label="Close">×</button>
                                                                                         </div>
-                                                                                        <div class="payroll-modal-footer"><button type="button" class="payroll-button"
-                                                                                                                                      data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm
-                                                                                            Approval</button></div>
-                                                                                        </form>
+                                                                                        <div class="payroll-modal-body">
+                                                                                            <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
+                                                                                            <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
+                                                                                            <p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện
+                                                                                                chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
+                                                                                                type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
+                                                                                                                                                           value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
+                                                                                            </div>
+                                                                                            <div class="payroll-modal-footer"><button type="button" class="payroll-button"
+                                                                                                                                          data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm
+                                                                                                Approval</button></div>
+                                                                                            </form>
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            }
-                                                                            @section Scripts {
-                                                                                <script src="~/js/payroll-detail.js" asp-append-version="true"></script>
-                                                                            }
+                                                                                }
+                                                                                @section Scripts {
+                                                                                    <script src="~/js/payroll-detail.js" asp-append-version="true"></script>
+                                                                                }

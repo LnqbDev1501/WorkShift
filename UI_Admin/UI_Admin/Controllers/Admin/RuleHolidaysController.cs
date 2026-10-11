@@ -1,10 +1,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.Holidays;
-using UI_Admin.Services;
+using UI_Admin.Models.Admin.Holidays;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 [Authorize(Roles = "ADMIN")]
 public sealed class RuleHolidaysController(HolidayApiService service, ILogger<RuleHolidaysController> logger) : Controller

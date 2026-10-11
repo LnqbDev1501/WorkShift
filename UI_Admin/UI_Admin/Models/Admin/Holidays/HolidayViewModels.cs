@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models.Holidays;
+namespace UI_Admin.Models.Admin.Holidays;
 
 public sealed class HolidayListQueryViewModel
 {

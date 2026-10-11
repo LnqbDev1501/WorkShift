@@ -156,7 +156,11 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
         CarryForwardDeduction = payroll.CarryForwardDeduction, DeferredDeductionAmount = payroll.DeferredDeductionAmount,
         GrossSalary = payroll.GrossSalary, TotalDeduction = payroll.TotalDeduction, NetSalary = payroll.NetSalary,
         WorkInputSnapshot = string.IsNullOrWhiteSpace(payroll.WorkInputSnapshot) ? null : JsonSerializer.Deserialize<JsonElement>(payroll.WorkInputSnapshot),
-        Details = payroll.PayrollDetails.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId).Select(d => new PayrollCalculationDetailResponse
+        Details = MapDetails(payroll)
+    };
+
+    public static List<PayrollCalculationDetailResponse> MapDetails(Payroll payroll)
+        => payroll.PayrollDetails.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId).Select(d => new PayrollCalculationDetailResponse
         {
             PayrollDetailId = d.PayrollDetailId, Type = d.Type, ItemCode = d.ItemCode, Description = d.Description,
             WorkFrom = d.WorkFrom, WorkTo = d.WorkTo, Quantity = d.Quantity, Rate = d.Rate, Multiplier = d.Multiplier,
@@ -164,6 +168,5 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
             PublicHolidayId = d.PublicHolidayId, HolidayPayRuleId = d.HolidayPayRuleId,
             RewardPenaltyId = d.RewardPenaltyId, AttendancePenaltyId = d.AttendancePenaltyId,
             CarryForwardId = d.CarryForwardId, DisplayOrder = d.DisplayOrder, Note = d.Note
-        }).ToList()
-    };
+        }).ToList();
 }

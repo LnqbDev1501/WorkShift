@@ -1,4 +1,4 @@
-namespace UI_Admin.Models.Payroll
+namespace UI_Admin.Models.Admin.Payroll
 {
     public class PayrollDetailResponse
     {

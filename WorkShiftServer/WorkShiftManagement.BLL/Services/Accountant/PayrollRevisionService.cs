@@ -61,7 +61,7 @@ public sealed class PayrollRevisionService(IPayrollCalculationRepo calculation, 
                 || feedback.CreatedAt < published.PublishedAt
                 || previous.Status is not ("APPROVED" or "REJECTED")
                 || feedback.ResolvedPayrollId.HasValue && feedback.ResolvedPayrollId != previous.PayrollId)
-                throw new InvalidOperationException("Cần feedback hợp lệ đã được chấp nhận trên phiếu hiện hành, gửi trước 14:00 thứ Năm; không có correction khác đang xử lý.");
+                throw new InvalidOperationException("Cần feedback hợp lệ đã được chấp nhận trên phiếu hiện hành, gửi trong ngày thứ Năm trước 00:00 thứ Sáu; không có correction khác đang xử lý.");
         }
         var live = await calculation.GetInputsAsync(period, ct);
         var revised = PayrollRevisionPolicy.Calculate(previous, live, request, actor, DateTime.UtcNow);
@@ -78,8 +78,7 @@ public sealed class PayrollRevisionService(IPayrollCalculationRepo calculation, 
         await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
         return PayrollCalculationService.Map(revised);
     }
-    public static DateTime FeedbackDeadline(PayrollPeriod period) => new DateTimeOffset(
-        period.EndDate.AddDays(4).ToDateTime(new TimeOnly(14, 0)), TimeSpan.FromHours(7)).UtcDateTime;
+    public static DateTime FeedbackDeadline(PayrollPeriod period) => PayslipPolicy.FeedbackDeadlineAt(period.EndDate);
 
     public async Task<PayrollCalculationResponse> ApproveCorrectionAsync(Guid actor, int id, CancellationToken ct)
     {
@@ -98,28 +97,9 @@ public sealed class PayrollRevisionService(IPayrollCalculationRepo calculation, 
             || feedback.CreatedAt < oldSlip.PublishedAt
             || feedback.CreatedAt >= FeedbackDeadline(revised.PayrollPeriod))
             throw new InvalidOperationException("Correction không gắn với feedback đã chấp nhận và phiếu hiện hành hợp lệ.");
-        var work = PayrollRevisionPolicy.Work(revised);
         var now = DateTime.UtcNow;
         revised.Status = "APPROVED"; revised.ApprovedBy = actor; revised.ApprovedAt = now; revised.UpdatedAt = now;
-        var slip = new Payslip
-        {
-            PayrollId = id, VersionNo = oldSlip.VersionNo + 1, PreviousPayslipId = oldSlip.PayslipId,
-            Status = "PUBLISHED", PublishedAt = now, CreatedAt = now, PeriodCodeSnapshot = oldSlip.PeriodCodeSnapshot,
-            PeriodNameSnapshot = oldSlip.PeriodNameSnapshot, PeriodStartSnapshot = oldSlip.PeriodStartSnapshot,
-            PeriodEndSnapshot = oldSlip.PeriodEndSnapshot,
-            PayslipWorkDetails = work.Select((w, index) => new PayslipWorkDetail
-            {
-                SourceAssignmentId = w.SourceAssignmentId, SourceAttendanceId = w.SourceAttendanceId,
-                WorkDate = w.WorkDate, ShiftNameSnapshot = w.ShiftNameSnapshot, ScheduledStartAt = w.ScheduledStartAt,
-                ScheduledEndAt = w.ScheduledEndAt, BreakMinutesSnapshot = w.BreakMinutesSnapshot,
-                CheckInTime = w.CheckInTime, CheckOutTime = w.CheckOutTime, AttendanceStatusSnapshot = w.AttendanceStatusSnapshot,
-                ActualWorkingMinutes = w.ActualWorkingMinutes, PayableMinutes = w.PayableMinutes,
-                TotalLateMinutes = w.TotalLateMinutes, ExcusedLateMinutes = w.ExcusedLateMinutes,
-                ChargeableLateMinutes = w.ChargeableLateMinutes, TotalEarlyLeaveMinutes = w.TotalEarlyLeaveMinutes,
-                ExcusedEarlyLeaveMinutes = w.ExcusedEarlyLeaveMinutes, ChargeableEarlyLeaveMinutes = w.ChargeableEarlyLeaveMinutes,
-                DisplayOrder = index + 1, CreatedAt = now
-            }).ToList()
-        };
+        var slip = PayslipPolicy.Create(revised, now, oldSlip);
         oldSlip.Status = "REPLACED"; oldSlip.ReplacedAt = now;
         oldSlip.Payroll.Status = "REPLACED"; oldSlip.Payroll.ReplacedAt = now; oldSlip.Payroll.UpdatedAt = now;
         revisions.Add(slip);

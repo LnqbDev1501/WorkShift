@@ -26,6 +26,7 @@ public static class PayrollRevisionPolicy
         public int TotalEarlyLeaveMinutes { get; set; }
         public int ExcusedEarlyLeaveMinutes { get; set; }
         public int ChargeableEarlyLeaveMinutes { get; set; }
+        public string? Note { get; set; }
     }
     public static List<FrozenWork> Work(Payroll previous)
     {

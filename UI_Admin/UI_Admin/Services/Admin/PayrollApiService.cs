@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.WebUtilities;
-using UI_Admin.Models.Payroll;
+using UI_Admin.Models.Admin.Payroll;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public class PayrollApiService(HttpClient client, IConfiguration configuration)
 {

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using UI_Admin.Models.Regions;
 
-namespace UI_Admin.Models.Payroll;
+namespace UI_Admin.Models.Admin.Payroll;
 
 public class PayrollFilter
 {
