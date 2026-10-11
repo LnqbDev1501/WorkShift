@@ -1,0 +1,61 @@
+@baseUrl = https://localhost:7001
+@managerToken = REPLACE_WITH_MANAGER_TOKEN
+@ruleId = 1
+@replacementId = 2
+@effectiveFrom = 2026-11-01
+@replacementEffectiveFrom = 2026-12-01
+
+### List rules in the authenticated manager's branch
+GET {{baseUrl}}/api/manager/request-limit-rules?requestType=LEAVE&status=DRAFT&pageNumber=1&pageSize=20
+Authorization: Bearer {{managerToken}}
+
+### Rule detail
+GET {{baseUrl}}/api/manager/request-limit-rules/{{ruleId}}
+Authorization: Bearer {{managerToken}}
+
+### Create DRAFT; use its returned ID for subsequent requests
+POST {{baseUrl}}/api/manager/request-limit-rules
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "requestType": "LEAVE",
+  "maxRequestsPerMonth": 3,
+  "minimumAdvanceDays": 2,
+  "submissionDeadlineDayOfWeek": null,
+  "effectiveFrom": "{{effectiveFrom}}"
+}
+
+### Update DRAFT (full payload)
+PUT {{baseUrl}}/api/manager/request-limit-rules/{{ruleId}}
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "requestType": "LEAVE",
+  "maxRequestsPerMonth": 4,
+  "minimumAdvanceDays": 2,
+  "submissionDeadlineDayOfWeek": null,
+  "effectiveFrom": "{{effectiveFrom}}"
+}
+
+### Publish: today becomes ACTIVE; future becomes SCHEDULED
+POST {{baseUrl}}/api/manager/request-limit-rules/{{ruleId}}/publish
+Authorization: Bearer {{managerToken}}
+
+### Replace an ACTIVE rule; returns a new DRAFT ID
+POST {{baseUrl}}/api/manager/request-limit-rules/{{ruleId}}/replace
+Authorization: Bearer {{managerToken}}
+Content-Type: application/json
+
+{
+  "requestType": "LEAVE",
+  "maxRequestsPerMonth": 5,
+  "minimumAdvanceDays": 1,
+  "submissionDeadlineDayOfWeek": null,
+  "effectiveFrom": "{{replacementEffectiveFrom}}"
+}
+
+### Publish the replacement draft using its returned ID
+POST {{baseUrl}}/api/manager/request-limit-rules/{{replacementId}}/publish
+Authorization: Bearer {{managerToken}}
