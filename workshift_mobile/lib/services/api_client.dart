@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Central HTTP Client for connecting to ASP.NET Core Backend
@@ -10,9 +11,15 @@ class ApiClient {
   late final Dio dio;
   static const String tokenKey = 'access_token';
 
-  // Default base URL for ASP.NET Core API
-  // Change to your machine IP (e.g. 'http://192.168.1.15:5000') when testing on real devices
-  static const String defaultBaseUrl = 'http://10.0.2.2:5000';
+  // Automatically select the correct URL:
+  // - Chrome / Web: https://localhost:7193 (Backend runs HTTPS on port 7193)
+  // - Android Emulator: http://10.0.2.2:5267
+  static String get defaultBaseUrl {
+    if (kIsWeb) {
+      return 'https://localhost:7193';
+    }
+    return 'http://10.0.2.2:5267';
+  }
 
   ApiClient._internal() {
     dio = Dio(
@@ -124,6 +131,13 @@ class ApiClient {
       if (data is Map<String, dynamic>) {
         if (data['message'] != null) return data['message'].toString();
         if (data['detail'] != null) return data['detail'].toString();
+        if (data['errors'] != null && data['errors'] is Map) {
+          final errMap = data['errors'] as Map;
+          final firstList = errMap.values.isNotEmpty ? errMap.values.first : null;
+          if (firstList is List && firstList.isNotEmpty) {
+            return firstList.first.toString();
+          }
+        }
         if (data['title'] != null) return data['title'].toString();
       }
 
