@@ -1,0 +1,41 @@
+@model UI_Admin.Models.Manager.RequestLimitRuleDetailViewModel
+@using R = UI_Admin.Models.Manager.RequestRuleDisplay
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{ ViewData["Title"] = "Request Limit Rule Details"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/request-limit-rules.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page rule-page"><a class="ms-back" asp-action="Index">← Back to request limit rules</a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / REQUEST POLICIES</span><h1>Request Limit Rule Details</h1><p>Review limits, effective dates, and version history.</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+    @if (TempData["RuleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Rule is { } rule)
+    {
+        <div class="ms-action-row">
+            @if (rule.Status == "DRAFT") { <a class="ms-secondary" asp-action="Edit" asp-route-id="@rule.RequestLimitRuleId">Edit rule</a><button class="ms-primary" type="button" id="open-publish-dialog" aria-haspopup="dialog" aria-controls="publish-rule-dialog"><span class="material-symbols-outlined" aria-hidden="true">publish</span>Publish</button> }
+            @if (rule.Status == "ACTIVE") { <a class="ms-primary" asp-action="Replace" asp-route-id="@rule.RequestLimitRuleId"><span class="material-symbols-outlined" aria-hidden="true">swap_horiz</span>Create replacement</a> }
+        </div>
+        @if (rule.Status == "DRAFT")
+        {
+            <dialog id="publish-rule-dialog" class="rl-confirm-dialog" aria-labelledby="publish-dialog-title" aria-describedby="publish-dialog-description">
+                <button type="button" class="rl-dialog-close" data-close-publish aria-label="Close confirmation"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+                <span class="rl-dialog-icon material-symbols-outlined" aria-hidden="true">publish</span>
+                <h2 id="publish-dialog-title">@(R.CanPublish(rule) ? "Publish this rule?" : "This draft needs an update")</h2>
+                <p id="publish-dialog-description">@(R.CanPublish(rule) ? rule.EffectiveFrom == R.Today ? "This rule will become active immediately. Published rules cannot be edited." : $"This rule will be scheduled to take effect on {S.Date(rule.EffectiveFrom)}. Published rules cannot be edited." : rule.EffectiveFrom < R.Today ? "The effective date is in the past. Update the draft before publishing." : "Clear the weekday cutoff for this request type before publishing.")</p>
+                <div class="rl-dialog-rule"><strong>@R.Label(rule.RequestType)</strong><span>Rule #@rule.RequestLimitRuleId · @rule.MaxRequestsPerMonth requests / month · @rule.MinimumAdvanceDays days notice</span></div>
+                <div class="rl-dialog-actions"><button type="button" class="ms-secondary" data-close-publish autofocus>Cancel</button>
+                    @if (R.CanPublish(rule)) { <form asp-action="Publish" asp-route-id="@rule.RequestLimitRuleId" method="post" id="publish-rule-form"><button type="submit" class="ms-primary">Confirm publish</button></form> }
+                    else { <a class="ms-primary" asp-action="Edit" asp-route-id="@rule.RequestLimitRuleId">Edit draft</a> }
+                </div>
+            </dialog>
+        }
+        <partial name="_RuleSummary" model="rule" />
+        <section class="ad-card rl-lifecycle"><h2>Rule Lifecycle</h2><p>@(rule.Status switch { "DRAFT" => "This draft does not affect employee requests yet. Review and publish it to activate or schedule it.", "SCHEDULED" => "This rule has been published and is scheduled for its effective date. Published rules cannot be edited.", "ACTIVE" => "This rule is currently applied. To change its limits, create a replacement draft and publish that version.", _ => "This is a historical version. Its configured limits are retained for reference." })</p>
+            @if (rule.SupersedesRuleId is { } previousId) { <div class="rl-version-link"><span class="material-symbols-outlined" aria-hidden="true">history</span><span>Replaces rule <a asp-action="Details" asp-route-id="@previousId">#@previousId →</a></span></div> }
+        </section>
+        <section class="ad-card ms-timeline" aria-label="Rule activity"><div><span>Created · UTC+7</span><strong>@S.Time(rule.CreatedAt)</strong></div><div><span>Last updated · UTC+7</span><strong>@S.Time(rule.UpdatedAt)</strong></div><div><span>Published · UTC+7</span><strong>@(rule.PublishedAt.HasValue ? S.Time(rule.PublishedAt.Value) : "Not published")</strong></div><div><span>Effective until</span><strong>@(rule.EffectiveTo.HasValue ? S.Date(rule.EffectiveTo.Value) : "No end date set")</strong></div></section>
+    }
+</div>
+
+@section Scripts { <script src="~/js/request-limit-rules.js" asp-append-version="true"></script> }

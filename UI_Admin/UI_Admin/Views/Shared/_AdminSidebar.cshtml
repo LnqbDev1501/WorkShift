@@ -273,6 +273,12 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Requests</span>
                         </a>
+                        <a asp-controller="ManagerRequestLimitRules" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerRequestLimitRules" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Request Limit Rules">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">rule</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Request Limit Rules</span>
+                        </a>
                         <a asp-controller="ManagerContracts" asp-action="Index"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Employment Contracts">

@@ -1,0 +1,9 @@
+@model UI_Admin.Models.Manager.RequestLimitRuleResponse
+@using R = UI_Admin.Models.Manager.RequestRuleDisplay
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+<section class="ad-card ms-week-overview rl-detail-hero"><div><span class="rl-detail-symbol material-symbols-outlined" aria-hidden="true">@R.Icon(Model.RequestType)</span><span class="ad-eyebrow">RULE #@Model.RequestLimitRuleId · BRANCH #@Model.BranchId</span><h2>@R.Label(Model.RequestType)</h2><p>Effective from @S.Date(Model.EffectiveFrom) @(Model.EffectiveTo.HasValue ? "to " + S.Date(Model.EffectiveTo.Value) : "· No end date set")</p></div><span class="ad-badge @R.Tone(Model.Status)">@R.Label(Model.Status)</span></section>
+<section class="rl-values" aria-label="Rule limits">
+    <article class="ad-card rl-value"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">event_repeat</span><p>Monthly request limit</p><strong>@Model.MaxRequestsPerMonth <small>requests</small></strong><span>Per employee, per month</span></article>
+    <article class="ad-card rl-value"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">hourglass_top</span><p>Minimum advance notice</p><strong>@Model.MinimumAdvanceDays <small>days</small></strong><span>Notice required before the request</span></article>
+    <article class="ad-card rl-value"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">calendar_month</span><p>Submission weekday cutoff</p><strong class="rl-weekday">@R.Weekday(Model.SubmissionDeadlineDayOfWeek)</strong><span>@(Model.SubmissionDeadlineDayOfWeek.HasValue ? "Configured weekly submission deadline" : "No weekly submission restriction configured")</span></article>
+</section>
