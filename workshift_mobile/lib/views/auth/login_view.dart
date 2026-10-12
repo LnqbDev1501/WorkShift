@@ -110,7 +110,7 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 6),
                   const Center(
                     child: Text(
-                      'Đăng nhập để vào ca làm việc',
+                      'Sign in to your work shift',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -119,7 +119,7 @@ class _LoginViewState extends State<LoginView> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Khung thông báo lỗi nếu đăng nhập thất bại
+                  // Error notification banner if login fails
                   if (_authController.errorMessage != null) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -148,46 +148,46 @@ class _LoginViewState extends State<LoginView> {
                     const SizedBox(height: 16),
                   ],
 
-                  // Ô nhập Email
+                  // Email input
                   AppTextField(
                     label: 'Email',
-                    hintText: 'nguyenvana@workshift.com',
+                    hintText: 'user@workshift.com',
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     prefixIcon: Icons.email_outlined,
                     onChanged: (_) => _authController.clearError(),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return 'Vui lòng nhập Email!';
+                        return 'Please enter your email';
                       }
                       if (!val.contains('@')) {
-                        return 'Email không hợp lệ!';
+                        return 'Invalid email address';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 16),
 
-                  // Ô nhập Mật khẩu
+                  // Password input
                   AppTextField(
-                    label: 'Mật khẩu',
-                    hintText: 'Nhập mật khẩu của bạn',
+                    label: 'Password',
+                    hintText: 'Enter your password',
                     controller: _passwordController,
                     isPassword: true,
                     prefixIcon: Icons.lock_outline,
                     onChanged: (_) => _authController.clearError(),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return 'Vui lòng nhập mật khẩu!';
+                        return 'Please enter your password';
                       }
                       return null;
                     },
                   ),
                   const SizedBox(height: 24),
 
-                  // Nút Đăng nhập
+                  // Sign In button
                   AppButton(
-                    text: 'Đăng nhập',
+                    text: 'Sign In',
                     icon: Icons.login,
                     isLoading: _authController.isLoading,
                     onPressed: _handleLogin,
@@ -196,7 +196,7 @@ class _LoginViewState extends State<LoginView> {
                   const SizedBox(height: 24),
                   Center(
                     child: Text(
-                      'Hệ thống quản lý ca làm WorkShift v1.0',
+                      'WorkShift Management System v1.0',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textMuted.withValues(alpha: 0.8),

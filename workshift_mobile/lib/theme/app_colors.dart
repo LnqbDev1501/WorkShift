@@ -45,4 +45,13 @@ class AppColors {
   
   static const Color actionLeaveBg = Color(0xFFD1FAE5);      // Gửi yêu cầu (xanh mint nhạt)
   static const Color actionLeaveIcon = Color(0xFF059669);
+
+  static const Color actionHistoryBg = Color(0xFFF3E8FF);    // Lịch sử đơn hàng (tím nhạt)
+  static const Color actionHistoryIcon = Color(0xFF9333EA);
+
+  static const Color actionSalaryBg = Color(0xFFDCFCE7);     // Phiếu lương (xanh lá nhạt)
+  static const Color actionSalaryIcon = Color(0xFF16A34A);
+
+  static const Color actionContractBg = Color(0xFFE0F2FE);   // Hợp đồng (xanh dương nhạt)
+  static const Color actionContractIcon = Color(0xFF0284C7);
 }
