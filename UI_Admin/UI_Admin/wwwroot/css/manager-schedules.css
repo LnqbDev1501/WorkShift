@@ -87,3 +87,54 @@
 @media(max-width:1050px){.schedule-page{padding:24px}.ms-header-actions{gap:8px}.ms-week-overview h2{font-size:22px}}
 @media(max-width:650px){.schedule-page{padding:18px 16px 30px}.schedule-page .ad-heading{align-items:flex-start;gap:18px}.schedule-page .ad-heading h1{font-size:25px}.ms-header-actions{width:100%}.ms-filters>.ms-filter-title{flex-wrap:wrap}.ms-filter-title>span:last-child{width:100%;margin-left:26px;font-size:11px}.ms-week-overview{padding:22px}.ms-stats{gap:12px}.ms-stats .ad-stat{padding:16px}.ms-stats .ad-stat .ad-card-top{flex-direction:row;font-size:11px}.ms-stats .ad-stat>strong{font-size:27px}.ms-timeline>div+div{border:0;padding-left:0}.ms-edit-form{padding:22px}.ms-requirements li{flex-wrap:wrap}.ms-action-row{justify-content:flex-start}.ms-day-heading h3{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.schedule-page *{transition:none!important}}
+
+/* Manager scheduling workspace: shared hierarchy and live planning previews. */
+.ms-workspace{--ms-violet:#6550d8;--ms-ink:#343045}
+.ms-workspace .ms-workspace-hero{padding:30px 34px;background:linear-gradient(115deg,#f1edff,#faf8fe 75%,#fff);border:1px solid #e7def6;border-radius:20px;margin-bottom:24px;position:relative;overflow:hidden}
+.ms-workspace-hero::after{content:"";position:absolute;right:35%;top:-90px;width:200px;height:200px;border:28px solid #967bda07;border-radius:50%;pointer-events:none}
+.ms-workspace .ms-workspace-hero h1{color:#514167;font-size:32px}
+.ms-workspace-hero .ad-eyebrow{color:#8f78a9}
+.ms-workspace .ad-card{border-radius:16px;border-color:#e8e4ee}
+.ms-list-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin:24px 0 8px}
+.ms-list-metrics>article{display:flex;align-items:center;gap:15px;padding:22px}
+.ms-list-metrics>article>.material-symbols-outlined{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#f1ebfa;color:#8267b4;flex-shrink:0;font-size:23px}
+.ms-list-metrics>article:nth-child(2)>.material-symbols-outlined{background:#eaf5ef;color:#42856e}
+.ms-list-metrics>article:nth-child(3)>.material-symbols-outlined{background:#edf3fc;color:#6285b3}
+.ms-list-metrics>article:nth-child(4)>.material-symbols-outlined{background:#fff3e5;color:#a88140}
+.ms-list-metrics small{display:block;font-size:11px;color:#7c718b;line-height:1.5}
+.ms-list-metrics strong{display:block;font-size:27px;font-weight:650;line-height:1.3;color:#514167;margin-top:5px}
+.ms-metric-note{font-size:10px!important;margin:10px 3px 22px!important;color:#81758e!important}
+.ms-library-heading{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:24px 26px;border-bottom:1px solid #eee9f4}
+.ms-library-heading h2{font-size:18px;font-weight:600;color:#514167}
+.ms-library-heading>span{font-size:11px;color:#81758e}
+.ms-workspace .ms-week-overview{border-radius:18px;background:linear-gradient(115deg,#f0eafa,#faf8fd 80%,#fff);padding:30px}
+.ms-workspace .ms-week-overview h2{color:#665079}
+.ms-workspace .ms-detail-link{padding:8px 11px;border-radius:8px;background:#f6f1fc;color:#8266a4;font-size:11px}
+.ms-workspace .ms-detail-link:hover{background:#ede4f8;text-decoration:none}
+.ms-workspace .ms-filters{border-radius:16px}
+.ms-workspace .ad-recent td:nth-child(4).ad-number{font-size:19px;font-weight:600;color:#746185}
+.ms-activity{margin-bottom:24px;border:1px solid #e8e4ee;background:#faf9fc;border-radius:12px;overflow:hidden}
+.ms-activity>summary{display:flex;align-items:center;gap:8px;padding:13px 18px;cursor:pointer;font-size:11px;color:#83738f;list-style:none}
+.ms-activity>summary::-webkit-details-marker{display:none}
+.ms-activity>summary>.material-symbols-outlined{font-size:18px}
+.ms-activity>summary::after{content:"+";margin-left:auto;font-size:16px}
+.ms-activity[open]>summary::after{content:"−"}
+.ms-activity .ms-timeline{border:0;box-shadow:none;margin:0;border-top:1px solid #e8e4ee;border-radius:0;padding:20px}
+.ms-editor-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,.8fr);gap:26px;align-items:start;max-width:1180px;margin:24px auto}
+.ms-editor-layout .ms-edit-form{max-width:none;width:100%;margin:0;border-radius:18px}
+.ms-editor-preview{position:sticky;top:24px;background:linear-gradient(145deg,#fff,#faf7fe);border:1px solid #e5dcef;border-radius:18px;padding:28px;box-shadow:0 8px 28px #54416606}
+.ms-preview-icon{display:grid;place-items:center;width:52px;height:52px;background:#eee5f8;color:#8a6cad;border-radius:15px;margin:22px 0 18px;font-size:27px}
+.ms-editor-preview h2{font-size:23px;font-weight:650;line-height:1.6;color:#675076;overflow-wrap:anywhere;letter-spacing:-.025em;margin-bottom:7px}
+.ms-editor-preview>p{font-size:12px;color:#8b7b96}
+.ms-preview-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-bottom:1px solid #ede6f4;font-size:11px}
+.ms-preview-row>span:first-child{color:#897990;flex-shrink:0}
+.ms-preview-row strong{color:#786182;font-weight:600;text-align:right}
+.ms-planning-steps{list-style:none;padding:20px 0 0;margin:18px 0 0;border-top:1px dashed #e2d7ee;display:grid;gap:18px}
+.ms-planning-steps strong{display:block;font-size:12px;color:#806b8e;font-weight:600}
+.ms-planning-steps span{display:block;font-size:11px;color:#897990;margin-top:5px;line-height:1.7}
+.ms-preview-tip{display:flex;gap:10px;background:#f3edf9;padding:14px;border-radius:10px;margin-top:22px}
+.ms-preview-tip .material-symbols-outlined{font-size:18px;color:#997ab5;flex-shrink:0}
+.ms-preview-tip p{font-size:11px!important;line-height:1.7;color:#897990!important;margin:0!important}
+@media(max-width:1100px){.ms-list-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ms-editor-layout{gap:18px;grid-template-columns:minmax(0,1fr) 280px}.ms-editor-layout .ms-edit-form{padding:24px}}
+@media(max-width:850px){.ms-editor-layout{grid-template-columns:1fr}.ms-editor-preview{position:static}.ms-workspace .ms-workspace-hero{padding:26px}.ms-library-heading>span{display:none}}
+@media(max-width:600px){.ms-list-metrics{gap:10px}.ms-list-metrics>article{padding:16px;gap:10px}.ms-list-metrics>article>.material-symbols-outlined{width:34px;height:36px;font-size:19px}.ms-list-metrics strong{font-size:24px}.ms-workspace .ms-workspace-hero h1{font-size:26px}.ms-library-heading{padding:20px}.ms-workspace .ms-week-overview{padding:22px}.ms-editor-preview{padding:24px}}

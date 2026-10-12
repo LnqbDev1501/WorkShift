@@ -29,7 +29,10 @@ public sealed class ManagerShiftDetailViewModel
     public ShiftOptionsResponse Options { get; set; } = new();
     public string? ErrorMessage { get; set; }
     public bool CanEdit => Shift?.Status == "DRAFT" && Week?.Status == "DRAFT" && Shift.Staff.Count == 0;
-    public bool CanAssign => Shift?.Status == "SCHEDULED" && Week?.Status is "OPEN_REGISTRATION" or "REGISTRATION_CLOSED" && ScheduleDisplay.Vietnam(Shift.ScheduledStartAt) > DateTime.UtcNow.AddHours(7);
+    public bool CanChangeAssignments => Shift?.Status == "SCHEDULED" && Week?.Status is "OPEN_REGISTRATION" or "REGISTRATION_CLOSED" && ScheduleDisplay.Vietnam(Shift.ScheduledStartAt) > DateTime.UtcNow.AddHours(7);
+    public DateTime? AssignmentDeadline => Shift is null ? null : ScheduleDisplay.Vietnam(Shift.ScheduledStartAt).Date.AddDays(-1);
+    public bool CanAssign => CanChangeAssignments && AssignmentAllowedAt(Shift!.ScheduledStartAt, DateTime.UtcNow);
+    public static bool AssignmentAllowedAt(DateTime scheduledStartAt, DateTime utcNow) => utcNow.AddHours(7) < ScheduleDisplay.Vietnam(scheduledStartAt).Date.AddDays(-1);
 }
 public sealed class ShiftCancelInput
 {
