@@ -3,6 +3,7 @@ import '../../../theme/app_colors.dart';
 import '../../../widgets/quick_action_item.dart';
 
 import '../../face_registration/face_registration_modal.dart';
+import '../../shifts/available_shifts_view.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -66,14 +67,14 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
-        title: 'Shift Schedule',
-        subtitle: 'Next week',
+        title: 'Available Shifts',
+        subtitle: 'Browse open shifts',
         icon: Icons.event_note_rounded,
         iconColor: AppColors.actionRegisterIcon,
         iconBgColor: AppColors.actionRegisterBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Shift Registration')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AvailableShiftsView()),
           );
         },
       ),

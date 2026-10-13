@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:5000
+@staffToken = REPLACE_WITH_STAFF_ACCESS_TOKEN
+@shiftId = 1
+
+### View available shifts (optional date filters use UTC+7 calendar dates)
+GET {{baseUrl}}/api/staff/shifts/available?PageNumber=1&PageSize=20
+Authorization: Bearer {{staffToken}}
+
+### Register for shift (no request body; user ID comes from JWT)
+POST {{baseUrl}}/api/staff/shifts/{{shiftId}}/register
+Authorization: Bearer {{staffToken}}
+
+### Cancel own self-registration before the registration deadline
+POST {{baseUrl}}/api/staff/shifts/{{shiftId}}/cancel-registration
+Authorization: Bearer {{staffToken}}
+Content-Type: application/json
+
+{
+  "reason": "Cannot attend this shift"
+}
+
+### View my work schedule
+GET {{baseUrl}}/api/staff/shifts/my-schedule?PageNumber=1&PageSize=20
+Authorization: Bearer {{staffToken}}
+
+### View shift detail for staff
+GET {{baseUrl}}/api/staff/shifts/{{shiftId}}
+Authorization: Bearer {{staffToken}}
