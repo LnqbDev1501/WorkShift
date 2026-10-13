@@ -16,6 +16,8 @@ public class PayrollApiService(HttpClient client, IConfiguration configuration)
             ["status"] = filter.Status,
             ["regionId"] = filter.RegionId?.ToString(),
             ["branchId"] = filter.BranchId?.ToString(),
+            ["startDateFrom"] = filter.StartDateFrom?.ToString("yyyy-MM-dd"),
+            ["startDateTo"] = filter.StartDateTo?.ToString("yyyy-MM-dd"),
             ["pageNumber"] = filter.PageNumber.ToString(),
             ["pageSize"] = filter.PageSize.ToString()
         };
@@ -36,7 +38,7 @@ public class PayrollApiService(HttpClient client, IConfiguration configuration)
 
     public Task RejectAsync(PayrollRejectInput input, CancellationToken ct) =>
         SendReviewAsync($"/api/admin/payroll-periods/{input.PeriodId}/payrolls/{input.PayrollId}/reject",
-            new { Reason = input.Reason.Trim() }, ct);
+            new { Reason = input.Reason.Trim(), RejectionCategory = input.RejectionCategory }, ct);
 
     private async Task SendReviewAsync(string path, object? body, CancellationToken ct)
     {

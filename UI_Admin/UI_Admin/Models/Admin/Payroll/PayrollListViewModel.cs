@@ -6,8 +6,10 @@ namespace UI_Admin.Models.Admin.Payroll;
 public class PayrollFilter
 {
     [StringLength(100)] public string? Search { get; set; }
-    [RegularExpression("^(SUBMITTED|APPROVED|REVISION_REQUIRED)$")]
+    [RegularExpression("^(DRAFT|OPEN|CALCULATED|SUBMITTED|APPROVED|REVISION_REQUIRED|PAID|CLOSED)$")]
     public string? Status { get; set; }
+    public DateOnly? StartDateFrom { get; set; }
+    public DateOnly? StartDateTo { get; set; }
     [Range(1, int.MaxValue)] public int? RegionId { get; set; }
     [Range(1, int.MaxValue)] public int? BranchId { get; set; }
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;

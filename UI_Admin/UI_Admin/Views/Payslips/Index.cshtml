@@ -1,0 +1,20 @@
+@model UI_Admin.Models.PayrollDocuments.PayslipListViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = User.IsInRole("STAFF") ? "My Payslips" : "Published Payslips"; }
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<div class="payroll-page"><header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · PAYSLIPS</div><h1>@ViewData["Title"]</h1><p>Published salary statements and their version history.</p></div></header><partial name="_PayrollWorkflowMessages" />
+    @if (Model.Error != null) { <div class="bg-red-50 text-red-700 p-4 mb-4 rounded-xl" role="alert">@Model.Error <a asp-action="Index" class="underline">Retry</a></div> }
+    <section class="payroll-filters"><form method="get" asp-action="Index"><div asp-validation-summary="All" class="w-full text-red-700"></div>
+        <label class="search-field">Search<input name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search payslips..." /></label>
+        <label>Status<select name="Status"><option value="">All</option>@foreach (var s in new[] { "PUBLISHED", "REPLACED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></label>
+        <label>Period from<input type="date" name="PeriodFrom" value="@Model.Query.PeriodFrom?.ToString("yyyy-MM-dd")" /></label><label>Period to<input type="date" name="PeriodTo" value="@Model.Query.PeriodTo?.ToString("yyyy-MM-dd")" /></label>
+        @if (!User.IsInRole("STAFF")) { <label>Staff ID<input name="UserId" value="@Model.Query.UserId" /></label> }
+        @if (User.IsInRole("ADMIN")) { <label>Branch ID<input type="number" min="1" name="BranchId" value="@Model.Query.BranchId" /></label> }
+        <label>Period ID<input type="number" min="1" name="PayrollPeriodId" value="@Model.Query.PayrollPeriodId" /></label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="IncludeHistory" value="true" checked="@Model.Query.IncludeHistory" style="width:auto" />Include replaced versions</label><partial name="_ListFilterActions" model='"Index"' />
+    </form></section>
+    <section class="payroll-table-card"><div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE / BRANCH</th><th>PERIOD</th><th>VERSION</th><th>STATUS</th><th class="money">NET SALARY</th><th>PUBLISHED AT (UTC+7)</th><th>ACTIONS</th></tr></thead><tbody>
+    @foreach (var p in Model.Data.Items) { <tr><td><strong>@p.EmployeeName</strong><small>@p.BranchName</small></td><td>@p.PeriodCode<small>@p.PeriodStart.ToString("dd/MM/yyyy") – @p.PeriodEnd.ToString("dd/MM/yyyy")</small></td><td>V@(p.VersionNo)</td><td><span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status</span></td><td class="money">@D.Money(p.NetSalary)</td><td>@D.Time(p.PublishedAt)</td><td><a asp-action="Details" asp-route-id="@p.PayslipId" class="payroll-button">View Payslip</a></td></tr> }
+    @if (Model.Data.Items.Count == 0) { <tr><td colspan="7" class="payroll-empty">@(Model.Error == null ? "No payslips match these filters." : "Payslips unavailable.")</td></tr> }
+    </tbody></table></div>@if (Model.Error == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "payslips" })' /> }</section>
+</div>

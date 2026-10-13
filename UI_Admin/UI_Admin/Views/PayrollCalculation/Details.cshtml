@@ -1,0 +1,31 @@
+@model UI_Admin.Models.PayrollCalculation.CalculatedPayroll
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = "Payroll Calculation Details"; var accountant = ViewContext.RouteData.Values["controller"]?.ToString() == "AccountantPayrollCalculation"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+    <style>
+        .calculation-money-summary .list-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
+        .calculation-money-summary .list-metric-value { font-size: 20px; }
+    </style>
+}
+<div class="payroll-page">
+    <a asp-controller="@(accountant ? "AccountantPayrollRevision" : "AdminPayrollRevision")" asp-action="Review" asp-route-id="@Model.PayrollId" class="payroll-button mb-4">Submission / Correction & Version History</a>
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · CALCULATION DETAILS</div><h1>@Model.EmployeeName</h1><p>@Model.BranchName · @Model.EmployeePosition · Payroll #@Model.PayrollId · Version @Model.VersionNo</p></div><a asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Back to employee payrolls</a></header>
+    <div class="calculation-money-summary">
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] { new("Work Pay", D.Money(Model.WorkPay), Model.TotalWorkHours.ToString("0.############################") + " hours", "schedule"), new("Rewards", D.Money(Model.TotalReward), "Included rewards", "workspace_premium"), new("Applied Deduction", D.Money(Model.TotalDeduction), "Amount applied in this period", "remove_circle"), new("Net Salary", D.Money(Model.NetSalary), Model.Status, "payments") })' />
+    </div>
+    @if (Model.RejectReason != null) { <div class="payroll-message error" role="alert"><strong>@Model.RejectionCategory</strong>: @Model.RejectReason</div> }
+    @if (Model.CorrectionReason != null) { <p class="payroll-compliance">Correction: @Model.CorrectionReason · Previous Payroll #@Model.PreviousPayrollId</p> }
+    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="font-semibold mb-4">Calculation Summary</h2><dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div><dt class="text-xs text-secondary">Hourly rate snapshot</dt><dd>@D.Money(Model.HourlyRate) / hour</dd></div><div><dt class="text-xs text-secondary">Gross salary</dt><dd>@D.Money(Model.GrossSalary)</dd></div><div><dt class="text-xs text-secondary">Old Carry Forward applied</dt><dd>@D.Money(Model.CarryForwardDeduction)</dd></div>
+        <div><dt class="text-xs text-secondary">New penalties (full amount)</dt><dd>@D.Money(Model.TotalPenalty)</dd></div><div><dt class="text-xs text-secondary">Attendance deduction (full amount)</dt><dd>@D.Money(Model.AttendanceDeduction)</dd></div><div><dt class="text-xs text-secondary">New deduction deferred to next period</dt><dd>@D.Money(Model.DeferredDeductionAmount)</dd></div>
+        <div><dt class="text-xs text-secondary">Locked timesheet source</dt><dd>#@Model.TimesheetId</dd></div><div><dt class="text-xs text-secondary">Salary history source</dt><dd>@if (accountant) { <a asp-controller="AccountantSalaryHistory" asp-action="Details" asp-route-id="@Model.SalaryHistoryId" class="text-primary">#@Model.SalaryHistoryId</a> } else { <span>#@Model.SalaryHistoryId</span> }</dd></div><div><dt class="text-xs text-secondary">Calculated at (UTC+7)</dt><dd>@D.Time(Model.CalculatedAt)</dd></div>
+        <div><dt class="text-xs text-secondary">Submitted at (UTC+7)</dt><dd>@D.Time(Model.SubmittedAt)</dd></div><div><dt class="text-xs text-secondary">Approved at (UTC+7)</dt><dd>@D.Time(Model.ApprovedAt)</dd></div><div><dt class="text-xs text-secondary">Paid at (UTC+7)</dt><dd>@D.Time(Model.PaidAt)</dd></div>
+    </dl></section>
+    <aside class="payroll-compliance"><div><strong>Saved Calculation</strong><small>Gross = work pay + rewards. Net = gross − applied deductions. Carry Forward is recorded as applied when the period is settled.</small></div></aside>
+    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Payroll Calculation Details</strong><span>@Model.Details.Count lines</span></div><div class="payroll-table-scroll"><table><thead><tr><th>TYPE / DESCRIPTION</th><th>WORK DATES</th><th>QUANTITY</th><th class="money">RATE</th><th>MULTIPLIER</th><th class="money">FULL AMOUNT</th><th class="money">APPLIED AMOUNT</th><th>SOURCES</th></tr></thead><tbody>
+        @foreach (var line in Model.Details.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId))
+        { <tr><td><strong>@line.Description</strong><small>@line.Type · @line.ItemCode</small>@if (line.Note != null) { <small>@line.Note</small> }</td><td>@(line.WorkFrom?.ToString("dd/MM/yyyy") ?? "—")<small>@line.WorkTo?.ToString("dd/MM/yyyy")</small></td><td>@(line.Quantity?.ToString("0.############################") ?? "—")</td><td class="money">@(line.Rate.HasValue ? D.Money(line.Rate.Value) : "—")</td><td>@line.Multiplier.ToString("0.############################")</td><td class="money">@D.Money(line.Amount)</td><td class="money">@(line.AppliedAmount.HasValue ? D.Money(line.AppliedAmount.Value) : "—")</td><td>@if (line.SalaryHistoryId.HasValue) { <small>Salary #@line.SalaryHistoryId</small> }@if (line.PublicHolidayId.HasValue) { <small>Holiday #@line.PublicHolidayId</small> }@if (line.HolidayPayRuleId.HasValue) { <small>Rule #@line.HolidayPayRuleId</small> }@if (line.RewardPenaltyId.HasValue) { <small>Reward/Penalty #@line.RewardPenaltyId</small> }@if (line.AttendancePenaltyId.HasValue) { <small>Attendance deduction #@line.AttendancePenaltyId</small> }@if (line.CarryForwardId.HasValue) { <small>Carry Forward #@line.CarryForwardId</small> }</td></tr> }
+        @if (Model.Details.Count == 0) { <tr><td colspan="8" class="payroll-empty">No calculation details recorded.</td></tr> }
+    </tbody></table></div></section>
+</div>

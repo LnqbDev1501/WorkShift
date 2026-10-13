@@ -16,6 +16,8 @@ public class PayrollReviewInput : PayrollDetailQuery
 
 public class PayrollRejectInput : PayrollReviewInput
 {
+    [Required, RegularExpression("^(CALCULATION|RATE|REWARD|DEDUCTION|OTHER)$")]
+    public string RejectionCategory { get; set; } = "";
     [Range(1, int.MaxValue)] public int PayrollId { get; set; }
     [Required(ErrorMessage = "Vui lòng nhập lý do yêu cầu chỉnh sửa.")]
     [StringLength(1000, ErrorMessage = "Lý do không được vượt quá 1000 ký tự.")]

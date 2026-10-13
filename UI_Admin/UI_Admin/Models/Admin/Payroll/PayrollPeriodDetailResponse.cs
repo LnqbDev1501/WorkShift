@@ -17,6 +17,9 @@ namespace UI_Admin.Models.Admin.Payroll
         public DateOnly EndDate { get; set; }
 
         public string Status { get; set; } = string.Empty;
+        public DateTime? ApprovalDeadlineAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public DateTime? ClosedAt { get; set; }
 
         public PayrollActorResponse? CalculatedBy { get; set; }
 

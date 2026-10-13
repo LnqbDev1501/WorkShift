@@ -13,7 +13,7 @@
         "REVISION_REQUIRED" => "Revision Required",
         _ => period.Status.Replace('_', ' ')
     };
-    string Money(decimal value) => value.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+    string Money(decimal value) => value.ToString("#,0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
@@ -220,8 +220,18 @@
                         <p>Approved by @(period.ApprovedBy?.FullName ?? "—") ·
                             @period.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</p>
                         }
+                        <p>Approval deadline (UTC+7): @(period.ApprovalDeadlineAt.HasValue ? DateTime.SpecifyKind(period.ApprovalDeadlineAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        @if (period.Status is "PAID" or "CLOSED")
+                        {
+                            <p>Paid at (UTC+7): @(period.PaidAt.HasValue ? DateTime.SpecifyKind(period.PaidAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—") · Closed at (UTC+7): @(period.ClosedAt.HasValue ? DateTime.SpecifyKind(period.ClosedAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        }
                     </div>
                     <div class="period-header-actions">
+                        <a class="payroll-button" asp-controller="AdminPayrollCalculation" asp-action="Index" asp-route-id="@period.PayrollPeriodId">Payroll Calculations</a>
+                        @if (period.Status is "PAID" or "CLOSED")
+                        {
+                            <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId">Export Excel</a>
+                        }
 
                         <a class="payroll-button payroll-back-button" asp-action="List">
                             <span aria-hidden="true">←</span>
@@ -319,7 +329,7 @@
                                                             <td class="money"><strong class="purple">@Money(pay.NetSalary)</strong></td>
                                                             <td><button type="button" class="payroll-button inspect-button"
                                                                             data-inspect="staff-@pay.PayrollId" aria-controls="staff-@pay.PayrollId"
-                                                                            aria-expanded="@(expanded ? "true" : "false")">Inspect <span>⌄</span></button></td>
+                                                                            aria-expanded="@(expanded ? "true" : "false")">Inspect <span>⌄</span></button><a asp-controller="AdminPayrollRevision" asp-action="Review" asp-route-id="@pay.PayrollId" class="payroll-button">Review Versions</a></td>
                                                             </tr>
                                                             <tr id="staff-@pay.PayrollId" class="staff-inspection" hidden="@(!expanded)">
                                                                 <td colspan="8">
@@ -347,6 +357,11 @@
                                                                                                                                      value="@query.PageNumber" /><input type="hidden" name="PageSize"
                                                                                                                            value="@query.PageSize" />
                                                                                         <strong>⊗ Reject Individual Staff Payroll — @pay.EmployeeFullName</strong>
+                                                                                        <label for="category-@pay.PayrollId">Rejection Category</label>
+                                                                                        <select id="category-@pay.PayrollId" name="RejectionCategory" required>
+                                                                                            <option value="">Choose category</option>
+                                                                                            @foreach (var category in new[] { "CALCULATION", "RATE", "REWARD", "DEDUCTION", "OTHER" }) { <option value="@category">@category</option> }
+                                                                                        </select>
                                                                                         <p>Phiếu lương sẽ được gửi về để chỉnh sửa. Kỳ lương chuyển sang Revision Required
                                                                                             và chỉ được duyệt sau khi các phiếu đã được gửi lại hợp lệ.</p>
                                                                                             <label for="reason-@pay.PayrollId">Audit Rejection Note <span

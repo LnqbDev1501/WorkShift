@@ -21,6 +21,7 @@ namespace UI_Admin.Models.Admin.Payroll
         public decimal? Rate { get; set; }
 
         public decimal Amount { get; set; }
+        public decimal? AppliedAmount { get; set; }
 
         public int DisplayOrder { get; set; }
 

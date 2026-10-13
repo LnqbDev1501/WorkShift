@@ -1,0 +1,43 @@
+@model UI_Admin.Models.PayrollCalculation.CalculationViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = "Payroll Calculation"; }
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<div class="payroll-page">
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · CALCULATION</div><h1>Payroll Calculation</h1><p>Period #@Model.PeriodId · @(Model.Accountant ? "Calculate from locked timesheets and review payroll results." : "Review current employee payrolls and their calculation details.")</p></div><div class="flex flex-wrap gap-2"><a asp-controller="@(Model.Accountant ? "AccountantPayrollPeriods" : "Payroll")" asp-action="Details" asp-route-id="@Model.PeriodId" class="payroll-button">Back to period</a><a asp-action="Index" asp-route-id="@Model.PeriodId" class="payroll-button">Refresh</a></div></header>
+    @if (Model.Error != null) { <div class="payroll-message error" role="alert">@Model.Error</div> }
+    @if (Model.Batch != null)
+    {
+        <section class="bg-surface-container-lowest rounded-xl p-5 mb-5" role="status"><h2 class="font-semibold">Batch Calculation Result</h2><p>@Model.Batch.Payrolls.Count saved payrolls · @Model.Batch.FailedEmployees.Count employees unresolved · Period status: @Model.Batch.PeriodStatus</p>
+            @if (Model.Batch.FailedEmployees.Count > 0) { <p class="text-amber-700 mt-2">The batch is not complete. Successfully calculated payrolls are saved; resolve the employees below before continuing.</p><ul class="list-disc pl-5 mt-2">@foreach (var e in Model.Batch.FailedEmployees) { <li><strong>@e.EmployeeName</strong>: @string.Join(" · ", e.BlockingReasons)</li> }</ul> }
+        </section>
+    }
+    @if (Model.BlockedEmployee != null) { <section class="bg-red-50 text-red-700 rounded-xl p-4 mb-4" role="alert"><strong>@Model.BlockedEmployee.EmployeeName</strong><ul class="list-disc pl-5">@foreach (var reason in Model.BlockedEmployee.BlockingReasons) { <li>@reason</li> }</ul></section> }
+    @if (Model.Accountant)
+    {
+        <section class="payroll-table-card"><div class="payroll-table-toolbar"><div><strong>Calculation Readiness</strong><small class="block">Period status: @(Model.Readiness?.PeriodStatus ?? "Unavailable")</small></div><form method="post" asp-action="CalculatePeriod" asp-route-id="@Model.PeriodId" data-calculation-form><button type="submit" class="payroll-button primary" disabled="@(!Model.CanCalculate || Model.Readiness?.Employees.Any(e => e.CanCalculate) != true)">Calculate Entire Period</button></form></div>
+            @if (Model.ReadinessError != null) { <p class="p-4 text-red-700" role="alert">@Model.ReadinessError</p> }
+            <div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE</th><th>TIMESHEET</th><th>EXISTING PAYROLL</th><th>BLOCKING REASONS / WARNINGS</th><th>ACTION</th></tr></thead><tbody>
+            @foreach (var e in Model.Readiness?.Employees ?? [])
+            {
+                <tr><td><strong>@e.EmployeeName</strong></td><td>@(e.TimesheetId.HasValue ? "#" + e.TimesheetId : "Missing")</td><td>@(e.ExistingPayrollId.HasValue ? "#" + e.ExistingPayrollId + " · " + e.ExistingPayrollStatus : "Not calculated")</td><td>@foreach (var reason in e.BlockingReasons) { <p class="text-red-700">@reason</p> }@foreach (var warning in e.Warnings) { <p class="text-amber-700">@warning</p> }@if (e.CanCalculate) { <span class="text-emerald-700">Ready to calculate</span> }</td><td>
+                    @if (e.ExistingPayrollId.HasValue) { <a asp-action="Details" asp-route-id="@e.ExistingPayrollId" class="payroll-button">View Saved Payroll</a> }
+                    else { <form method="post" asp-action="CalculateEmployee" asp-route-id="@Model.PeriodId" data-calculation-form><input type="hidden" name="userId" value="@e.UserId" /><button type="submit" class="payroll-button primary" disabled="@(!Model.CanCalculate || !e.CanCalculate)">Calculate</button></form> }
+                </td></tr>
+            }
+            @if (Model.Readiness?.Employees.Count is null or 0) { <tr><td colspan="5" class="p-5 text-secondary">@(Model.Readiness == null ? "Readiness is unavailable. Refresh to retry." : "No employees require calculation.")</td></tr> }
+            </tbody></table></div>
+        </section>
+    }
+    <section class="payroll-filters"><form method="get" asp-action="Index" asp-route-id="@Model.PeriodId"><div asp-validation-summary="All" class="w-full text-red-700" role="alert"></div>
+        <label class="search-field"><span class="text-xs text-secondary">Employee name or ID</span><input name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employee payrolls..." /></label>
+        <label><span class="text-xs text-secondary">Payroll status</span><select name="Status"><option value="">All statuses</option>@foreach (var s in new[] { "CALCULATED", "SUBMITTED", "REJECTED", "APPROVED", "PAID", "REPLACED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></label>
+        <label><span class="text-xs text-secondary">Exact Staff ID (optional)</span><input name="UserId" value="@Model.Query.UserId" /></label><partial name="_ListFilterActions" model='"Index"' />
+    </form></section>
+    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Current Employee Payrolls</strong><span>@Model.Page.TotalItems matching records</span></div><div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE</th><th>VERSION</th><th>STATUS</th><th class="money">GROSS</th><th class="money">APPLIED DEDUCTION</th><th class="money">NET SALARY</th><th>DETAILS</th></tr></thead><tbody>
+        @foreach (var p in Model.Page.Items) { <tr><td><strong>@p.EmployeeName</strong><small>@p.BranchName · @p.EmployeePosition</small></td><td>V@(p.VersionNo)<small>Payroll #@p.PayrollId</small></td><td><span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status</span></td><td class="money">@D.Money(p.GrossSalary)</td><td class="money">@D.Money(p.TotalDeduction)</td><td class="money">@D.Money(p.NetSalary)</td><td><a asp-action="Details" asp-route-id="@p.PayrollId" class="payroll-button">View Details</a></td></tr> }
+        @if (Model.Page.Items.Count == 0) { <tr><td colspan="7" class="payroll-empty">@(Model.Error != null ? "Payroll data unavailable." : "No current payrolls match the filters.")</td></tr> }
+    </tbody></table></div>
+    @if (Model.Error == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Page.PageNumber, PageSize = Model.Page.PageSize, TotalItems = Model.Page.TotalItems, ItemLabel = "payrolls" })' /> }
+    </section>
+</div>
+@section Scripts { <script src="~/js/payroll-calculation.js" asp-append-version="true"></script> }

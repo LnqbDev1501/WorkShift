@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Payroll Periods";
     string Count(string status) => Model.Counts.TryGetValue(status, out var count) ? count.ToString("N0") : "—";
-    var statuses = new[] { ("", "All Batches"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required") };
+    var statuses = new[] { ("", "All Batches"), ("DRAFT", "Draft"), ("OPEN", "Open"), ("CALCULATED", "Calculated"), ("SUBMITTED", "Submitted & Pending"), ("APPROVED", "Approved"), ("REVISION_REQUIRED", "Revision Required"), ("PAID", "Paid"), ("CLOSED", "Closed") };
 }
 @section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
 <div class="payroll-page">
@@ -23,7 +23,9 @@
             <label class="search-field"><span class="visually-hidden">Search payroll periods</span><input name="Search" value="@Model.Filter.Search" maxlength="100" placeholder="Search by Period Code (PR-...), or period name…" /></label>
             <label><span class="visually-hidden">Region</span><select name="RegionId" id="payroll-region"><option value="">All Regions (Enterprise)</option>@foreach (var region in Model.Regions) { <option value="@region.RegionId" selected="@(region.RegionId == Model.Filter.RegionId)">@region.RegionName</option> }</select></label>
             <label><span class="visually-hidden">Branch</span><select name="BranchId" id="payroll-branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.BranchId" selected="@(branch.BranchId == Model.Filter.BranchId)">@branch.BranchName</option> }</select></label>
-            <label><span class="visually-hidden">Payroll status</span><select name="Status" id="payroll-status" aria-label="Payroll status">@foreach (var status in statuses) { <option value="@status.Item1" selected="@((Model.Filter.Status ?? "") == status.Item1)">@status.Item2 (@Count(status.Item1))</option> }</select></label>
+            <label><span class="visually-hidden">Payroll status</span><select name="Status" id="payroll-status" aria-label="Payroll status">@foreach (var status in statuses) { <option value="@status.Item1" selected="@((Model.Filter.Status ?? "") == status.Item1)">@status.Item2</option> }</select></label>
+            <label><span class="text-xs text-secondary">Week starts from</span><input type="date" name="StartDateFrom" value="@Model.Filter.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
+            <label><span class="text-xs text-secondary">Week starts to</span><input type="date" name="StartDateTo" value="@Model.Filter.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
             <partial name="_ListFilterActions" model='"List"' />
         </form>
     </section>

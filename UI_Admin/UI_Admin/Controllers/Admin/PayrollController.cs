@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using UI_Admin.Services;
 using UI_Admin.Models;
 using UI_Admin.Models.Admin.Payroll;
 using UI_Admin.Services.Admin;
@@ -7,13 +9,15 @@ using UI_Admin.Services.Admin;
 
 namespace UI_Admin.Controllers.Admin;
 
-public class PayrollController(PayrollApiService payroll, RegionApiService regions, ILogger<PayrollController> logger) : Controller
+[Authorize(Roles = "ADMIN")]
+public class PayrollController(PayrollApiService payroll, RegionApiService regions, PayrollPeriodReportApiService reports, ILogger<PayrollController> logger) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> List(PayrollFilter filter, CancellationToken ct)
     {
         filter.PageSize = ListPaginationViewModel.DefaultPageSize;
         ModelState.Remove(nameof(filter.PageSize));
+        if (filter.StartDateFrom > filter.StartDateTo) ModelState.AddModelError("StartDateTo", "Khoảng ngày bắt đầu kỳ không hợp lệ.");
         var model = new PayrollListViewModel { Filter = filter };
         if (!ModelState.IsValid)
         {
@@ -31,7 +35,9 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
                     PageSize = 1,
                     Search = filter.Search,
                     RegionId = filter.RegionId,
-                    BranchId = filter.BranchId
+                    BranchId = filter.BranchId,
+                    StartDateFrom = filter.StartDateFrom,
+                    StartDateTo = filter.StartDateTo
                 }, ct);
                 model.Counts[status] = result.TotalCount;
             }
@@ -86,6 +92,19 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
 
     private async Task<PayrollDetailViewModel> LoadDetailAsync(int id, PayrollDetailQuery query, CancellationToken ct) =>
         new() { Period = await payroll.GetDetailAsync(id, query, ct), Query = query };
+
+    [HttpGet]
+    public async Task<IActionResult> Export(int id, CancellationToken ct)
+    {
+        if (id <= 0) return NotFound();
+        try { return File(await reports.DownloadAsync(id, ct), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Payroll-{id}.xlsx"); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized) { return Challenge(); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden) { return Forbid(); }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return NotFound(); }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or InvalidOperationException)
+        { logger.LogWarning(ex, "Payroll export failed {Id}", id); TempData["PayrollError"] = ex is HttpRequestException http && http.StatusCode == System.Net.HttpStatusCode.Conflict ? http.Message : "Không thể xuất báo cáo. Vui lòng thử lại."; return RedirectToAction(nameof(Details), new { id }); }
+    }
 
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> Approve(PayrollReviewInput input, CancellationToken ct) => ReviewAsync(input, null, ct);
