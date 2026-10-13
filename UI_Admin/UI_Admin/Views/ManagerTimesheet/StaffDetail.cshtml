@@ -1,0 +1,244 @@
+@model UI_Admin.Models.Manager.Timesheet.ManagerStaffTimesheetDetailViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"{Model.Staff.FullName} - Week {Model.Period} Shifts";
+    var staff = Model.Staff;
+    var isConfirmed = string.Equals(staff.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+    var isPending = string.Equals(staff.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Breadcrumb -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <a asp-action="Index" class="hover:underline flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                    <span>Weekly Timesheets</span>
+                </a>
+                <span>/</span>
+                <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId" class="hover:underline">
+                    <span>Week @Model.Period Details</span>
+                </a>
+                <span>/</span>
+                <span class="text-slate-400">@staff.FullName</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@staff.FullName</h1>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    @(staff.RoleName ?? "Staff")
+                </span>
+                
+                @if (isConfirmed)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>CONFIRMED</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span>PENDING REVIEW</span>
+                    </span>
+                }
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Week @Model.Period (@Model.WeekStartDate.ToString("dd/MM/yyyy") – @Model.WeekEndDate.ToString("dd/MM/yyyy")) • @Model.BranchName
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span>Back to Week Details</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Grid (4 Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Shift Completion -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">task_alt</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Assigned / Completed</span>
+                <span class="text-xl font-bold text-slate-900">@staff.CompletedShifts / @staff.TotalAssignedShifts</span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">Shifts attended</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Total Work Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">schedule</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Work Time</span>
+                <span class="text-xl font-bold text-slate-900">@staff.TotalWorkTimeDisplay</span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalWorkHours.ToString("N1") hrs compiled)</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Total Late Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">alarm_off</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Late Time</span>
+                <span class="text-xl font-bold @(staff.TotalLateMinutes > 0 ? "text-amber-600" : "text-slate-900")">
+                    @staff.TotalLateDisplay
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalLateMinutes minutes total)</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Total Early Leave -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">logout</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Early Leave</span>
+                <span class="text-xl font-bold @(staff.TotalEarlyLeaveMinutes > 0 ? "text-orange-600" : "text-slate-900")">
+                    @staff.TotalEarlyLeaveDisplay
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalEarlyLeaveMinutes minutes total)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shifts Breakdown Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-150 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">event_available</span>
+                <h2 class="text-sm font-bold text-slate-900">Weekly Shift Attendance Details</h2>
+                <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @staff.Shifts.Count Shifts
+                </span>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">Timezone: Vietnam (UTC+7)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5">Date & Shift</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Scheduled Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Actual Check-In</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Actual Check-Out</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Work Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Late Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Early Leave</th>
+                        <th scope="col" class="px-6 py-3.5 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium text-xs">
+                    @if (staff.Shifts == null || staff.Shifts.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-3xl">event_busy</span>
+                                    </div>
+                                    <div class="text-base font-semibold text-slate-700">No Shifts Scheduled</div>
+                                    <p class="text-xs text-slate-400 max-w-sm">No shift assignments found for this staff member in this week period.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var shift in staff.Shifts)
+                        {
+                            var status = (shift.AttendanceStatus ?? "SCHEDULED").ToUpper();
+
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Date & Shift -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
+                                        <span class="text-xs text-slate-500 mt-0.5">@shift.ShiftName</span>
+                                    </div>
+                                </td>
+
+                                <!-- Scheduled Time -->
+                                <td class="px-6 py-4 text-center text-slate-600 font-medium">
+                                    @shift.ScheduledRangeDisplay
+                                </td>
+
+                                <!-- Actual Check-In -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                    @shift.CheckInDisplay
+                                </td>
+
+                                <!-- Actual Check-Out -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                    @shift.CheckOutDisplay
+                                </td>
+
+                                <!-- Work Time -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-900">
+                                    @shift.WorkTimeDisplay
+                                </td>
+
+                                <!-- Late Time (Xh Ym) -->
+                                <td class="px-6 py-4 text-center">
+                                    <span class="@(shift.TotalLateMinutes > 0 ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" : "text-slate-400 font-medium")">
+                                        @shift.LateDisplay
+                                    </span>
+                                </td>
+
+                                <!-- Early Leave (Xh Ym) -->
+                                <td class="px-6 py-4 text-center">
+                                    <span class="@(shift.TotalEarlyLeaveMinutes > 0 ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200" : "text-slate-400 font-medium")">
+                                        @shift.EarlyLeaveDisplay
+                                    </span>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-6 py-4 text-right">
+                                    @if (status == "COMPLETED")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="material-symbols-outlined text-xs">check_circle</span>
+                                            <span>COMPLETED</span>
+                                        </span>
+                                    }
+                                    else if (status == "PRESENT")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="material-symbols-outlined text-xs">timer</span>
+                                            <span>PRESENT</span>
+                                        </span>
+                                    }
+                                    else if (status == "ABSENT")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="material-symbols-outlined text-xs">cancel</span>
+                                            <span>ABSENT</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                            @status
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

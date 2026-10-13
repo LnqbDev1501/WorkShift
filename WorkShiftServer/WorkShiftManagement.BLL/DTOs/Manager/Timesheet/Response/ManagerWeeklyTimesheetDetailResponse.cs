@@ -21,6 +21,7 @@ public sealed class ManagerWeeklyTimesheetDetailResponse
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }
+    public int TotalWorkMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
 
@@ -38,8 +39,26 @@ public sealed class ManagerStaffTimesheetItemDto
     public int TotalAssignedShifts { get; set; }
     public int CompletedShifts { get; set; }
     public decimal TotalWorkHours { get; set; }
+    public int TotalWorkMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
     public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "-"
     public string Status { get; set; } = null!; // "GENERATED", "LOCKED", "NOT GENERATED"
+    public List<ManagerStaffShiftAttendanceDto> Shifts { get; set; } = new();
+}
+
+public sealed class ManagerStaffShiftAttendanceDto
+{
+    public int AssignmentId { get; set; }
+    public int ShiftId { get; set; }
+    public string ShiftName { get; set; } = null!;
+    public DateTime ScheduledStartAt { get; set; }
+    public DateTime ScheduledEndAt { get; set; }
+    public DateTime? CheckInTime { get; set; }
+    public DateTime? CheckOutTime { get; set; }
+    public int ActualWorkingMinutes { get; set; }
+    public int TotalLateMinutes { get; set; }
+    public int TotalEarlyLeaveMinutes { get; set; }
+    public string AttendanceStatus { get; set; } = null!; // "COMPLETED", "PRESENT", "ABSENT", "SCHEDULED"
+    public string AssignmentStatus { get; set; } = null!;
 }

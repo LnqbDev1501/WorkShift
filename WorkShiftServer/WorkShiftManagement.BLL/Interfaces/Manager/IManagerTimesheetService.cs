@@ -17,4 +17,9 @@ public interface IManagerTimesheetService
         Guid managerId,
         int scheduleWeekId,
         CancellationToken cancellationToken = default);
+
+    Task<ManagerWeeklyTimesheetDetailResponse> GenerateWeeklyTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
 }

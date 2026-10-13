@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -41,7 +41,7 @@ public partial class User
 
     public int? PreviousBranchId { get; set; }
 
-    public bool HasPassword { get; set; } = true;
+    public bool HasPassword { get; set; }
 
     public virtual ICollection<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; } = new List<AttendanceAdjustmentHistory>();
 
@@ -87,13 +87,13 @@ public partial class User
 
     public virtual ICollection<EmploymentContract> EmploymentContractApprovedByNavigations { get; set; } = new List<EmploymentContract>();
 
+    public virtual ICollection<EmploymentContract> EmploymentContractCancelledByNavigations { get; set; } = new List<EmploymentContract>();
+
     public virtual ICollection<EmploymentContract> EmploymentContractCreatedByNavigations { get; set; } = new List<EmploymentContract>();
 
     public virtual ICollection<EmploymentContract> EmploymentContractRejectedByNavigations { get; set; } = new List<EmploymentContract>();
 
     public virtual ICollection<EmploymentContract> EmploymentContractTerminatedByNavigations { get; set; } = new List<EmploymentContract>();
-
-    public virtual ICollection<EmploymentContract> EmploymentContractCancelledByNavigations { get; set; } = new List<EmploymentContract>();
 
     public virtual EmploymentContract? EmploymentContractUser { get; set; }
 
@@ -162,6 +162,10 @@ public partial class User
     public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryCreatedByNavigations { get; set; } = new List<StaffSalaryHistory>();
 
     public virtual StaffSalaryHistory? StaffSalaryHistoryUser { get; set; }
+
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestReviewedByNavigations { get; set; } = new List<TimesheetAdjustmentRequest>();
+
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestUsers { get; set; } = new List<TimesheetAdjustmentRequest>();
 
     public virtual ICollection<Timesheet> TimesheetLockedByNavigations { get; set; } = new List<Timesheet>();
 

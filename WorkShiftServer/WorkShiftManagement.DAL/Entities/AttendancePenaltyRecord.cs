@@ -23,7 +23,7 @@ public partial class AttendancePenaltyRecord
 
     public virtual Attendance Attendance { get; set; } = null!;
 
-    public virtual PayrollDetail? PayrollDetail { get; set; }
+    public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
 
     public virtual AttendancePenaltyLevel PenaltyLevel { get; set; } = null!;
 

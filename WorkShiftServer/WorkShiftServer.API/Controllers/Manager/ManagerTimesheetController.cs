@@ -119,6 +119,57 @@ public sealed class ManagerTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Generates weekly timesheets for a completed schedule week with an OPEN payroll period.
+    /// </summary>
+    [HttpPost("{id:int}/generate")]
+    [ProducesResponseType(typeof(ManagerWeeklyTimesheetDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerWeeklyTimesheetDetailResponse>> GenerateWeeklyTimesheet(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.GenerateWeeklyTimesheetAsync(managerId, id, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating weekly timesheet for week {ScheduleWeekId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to generate weekly timesheet.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

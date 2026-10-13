@@ -22,4 +22,9 @@ public interface IManagerTimesheetRepo
 
     Task<List<WorkScheduleWeek>> GetAvailableWeeksForBranchAsync(int branchId, CancellationToken cancellationToken = default);
     Task<WorkScheduleWeek?> GetWeeklyTimesheetDetailAsync(int scheduleWeekId, int branchId, CancellationToken cancellationToken = default);
+    Task<(WorkScheduleWeek Week, List<Timesheet> Timesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)> GenerateWeeklyTimesheetAsync(
+        int scheduleWeekId,
+        int branchId,
+        Guid managerId,
+        CancellationToken cancellationToken = default);
 }

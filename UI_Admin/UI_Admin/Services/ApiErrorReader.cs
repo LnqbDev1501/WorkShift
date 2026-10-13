@@ -19,21 +19,25 @@ internal static class ApiErrorReader
 
                 if (root.ValueKind == JsonValueKind.Object)
                 {
-                    // 1. Check for "message" or "Message" property
+                    string? msg = null;
                     if (TryGetPropertyCaseInsensitive(root, "message", out var messageProp) && messageProp.ValueKind == JsonValueKind.String)
                     {
-                        var msg = messageProp.GetString();
-                        if (!string.IsNullOrWhiteSpace(msg))
-                            return msg;
+                        msg = messageProp.GetString();
                     }
 
-                    // 2. Check for "detail" or "Detail" property (RFC ProblemDetails)
                     if (TryGetPropertyCaseInsensitive(root, "detail", out var detailProp) && detailProp.ValueKind == JsonValueKind.String)
                     {
                         var detail = detailProp.GetString();
                         if (!string.IsNullOrWhiteSpace(detail))
-                            return detail;
+                        {
+                            return !string.IsNullOrWhiteSpace(msg) && !msg.Equals(detail, StringComparison.OrdinalIgnoreCase)
+                                ? $"{msg} ({detail})"
+                                : detail;
+                        }
                     }
+
+                    if (!string.IsNullOrWhiteSpace(msg))
+                        return msg;
 
                     // 3. Check for "error" or "Error" property
                     if (TryGetPropertyCaseInsensitive(root, "error", out var errorProp) && errorProp.ValueKind == JsonValueKind.String)
