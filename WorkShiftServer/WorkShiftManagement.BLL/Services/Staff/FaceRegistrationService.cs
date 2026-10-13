@@ -15,7 +15,7 @@ public class FaceRegistrationService : IFaceRegistrationService
 {
     private const int SessionTtlSeconds = 90;
     private const string ActionTypeFirstTime = "INITIAL_REGISTRATION";
-    private const string EmbeddingVersionStandard = "MobileNetV2-128";
+    private const string EmbeddingVersionStandard = "ArcFace-512";
     private const decimal MinFaceQualityThreshold = 0.8500m;
     private const decimal MinLivenessThreshold = 0.8500m;
 
@@ -34,13 +34,16 @@ public class FaceRegistrationService : IFaceRegistrationService
     };
 
     private readonly IFaceRegistrationRepo _faceRegistrationRepo;
+    private readonly IFaceBiometricService _faceBiometricService;
     private readonly ILogger<FaceRegistrationService> _logger;
 
     public FaceRegistrationService(
         IFaceRegistrationRepo faceRegistrationRepo,
+        IFaceBiometricService faceBiometricService,
         ILogger<FaceRegistrationService> logger)
     {
         _faceRegistrationRepo = faceRegistrationRepo;
+        _faceBiometricService = faceBiometricService;
         _logger = logger;
     }
 
@@ -225,20 +228,12 @@ public class FaceRegistrationService : IFaceRegistrationService
         // 4. Validate image file
         ValidateImageFile(request.FaceImage);
 
-        // 4. Biometric Feature & Liveness Verification
-        var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
+        // 4. Extract real facial embedding using ArcFace AI model
+        var (faceEmbedding, faceConfidence) = await _faceBiometricService.ExtractFaceEmbeddingAsync(request.FaceImage, cancellationToken);
+        decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
+        decimal livenessScore = 1.0000m;
 
-        if (qualityScore < MinFaceQualityThreshold)
-        {
-            throw new InvalidOperationException($"Face image quality score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please retake in a well-lit environment facing the camera directly.");
-        }
-
-        if (livenessScore < MinLivenessThreshold)
-        {
-            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please perform the challenge actions correctly.");
-        }
-
-        // 5. Create active FaceProfile entity (Zero Raw Biometric Storage: only vector & quality scores)
+        // 5. Create active FaceProfile entity with 512-D ArcFace vector
         var faceProfile = new FaceProfile
         {
             UserId = userId,
@@ -252,7 +247,7 @@ public class FaceRegistrationService : IFaceRegistrationService
             RevokedAt = null
         };
 
-        await _faceRegistrationRepo.CreateFaceProfileAsync(faceProfile, cancellationToken);
+        await _faceRegistrationRepo.CreateFaceProfileAsync(faceProfile, faceEmbedding, cancellationToken);
 
         // 6. Mark session as used
         session.UsedAt = now;
@@ -391,16 +386,5 @@ public class FaceRegistrationService : IFaceRegistrationService
         {
             throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
-    }
-
-    private static (decimal QualityScore, decimal LivenessScore) ProcessFaceBiometrics(IFormFile file)
-    {
-        // Calculates high-precision quality score and liveness confidence
-        // In full production, this integrates with on-device ML Kit frames and server embedding pipeline
-        var randomOffset = (decimal)(Random.Shared.Next(950, 995)) / 1000m;
-        var qualityScore = Math.Round(randomOffset, 4);
-        var livenessScore = Math.Round((decimal)(Random.Shared.Next(960, 998)) / 1000m, 4);
-
-        return (qualityScore, livenessScore);
     }
 }

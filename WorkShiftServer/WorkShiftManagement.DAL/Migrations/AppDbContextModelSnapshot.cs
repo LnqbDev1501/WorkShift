@@ -248,11 +248,6 @@ namespace WorkShiftManagement.DAL.Migrations
                         .HasColumnName("updated_at")
                         .HasDefaultValueSql("now()");
 
-                    b.Property<decimal>("WorkingHours")
-                        .HasPrecision(10, 4)
-                        .HasColumnType("numeric(10,4)")
-                        .HasColumnName("working_hours");
-
                     b.HasKey("AttendanceId")
                         .HasName("attendances_pkey");
 

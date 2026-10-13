@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -294,9 +294,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
-            entity.Property(e => e.WorkingHours)
-                .HasPrecision(10, 4)
-                .HasColumnName("working_hours");
 
             entity.HasOne(d => d.Assignment).WithOne(p => p.Attendance)
                 .HasForeignKey<Attendance>(d => d.AssignmentId)
