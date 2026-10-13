@@ -23,8 +23,6 @@ public class AttendanceService : IAttendanceService
     private const int SessionTtlSeconds = 90;
     private const string ActionTypeCheckIn = "CHECK_IN";
     private const string ActionTypeCheckOut = "CHECK_OUT";
-    private const decimal MinFaceQualityThreshold = 0.8500m;
-    private const decimal MinLivenessThreshold = 0.8500m;
     private const int MaxImageSizeBytes = 10 * 1024 * 1024; // 10MB
 
     private static readonly (string Action, string Instruction)[] PossibleChallenges =
@@ -42,17 +40,20 @@ public class AttendanceService : IAttendanceService
     };
 
     private readonly IAttendanceRepo _attendanceRepo;
+    private readonly IFaceBiometricService _faceBiometricService;
     private readonly ILogger<AttendanceService> _logger;
 
     public AttendanceService(
         IAttendanceRepo attendanceRepo,
+        IFaceBiometricService faceBiometricService,
         ILogger<AttendanceService> logger)
     {
         _attendanceRepo = attendanceRepo;
+        _faceBiometricService = faceBiometricService;
         _logger = logger;
     }
 
-    public async Task<EligibleShiftResponse?> GetEligibleShiftAsync(Guid userId, CancellationToken cancellationToken = default)
+    private async Task<List<EligibleShiftResponse>> GetTodayShiftsAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -62,13 +63,13 @@ public class AttendanceService : IAttendanceService
         // Validate user active + contract active + face profile registered
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
-        var now = DateTime.UtcNow.AddHours(7);
-        var today = DateOnly.FromDateTime(now);
+        var nowUtc = DateTime.UtcNow;
+        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
 
-        var assignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, today, cancellationToken);
+        var assignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayVn, cancellationToken);
         if (assignments.Count == 0)
         {
-            return null;
+            return new List<EligibleShiftResponse>();
         }
 
         var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
@@ -78,14 +79,19 @@ public class AttendanceService : IAttendanceService
         int checkInGraceMins = rule.CheckInGraceMinutes;
         int maxDistanceMeters = rule.MaxAttendanceDistanceMeters;
 
-        // Find the most immediate upcoming or in-window shift
+        var results = new List<EligibleShiftResponse>();
+        bool hasChanges = false;
+
         foreach (var assignment in assignments)
         {
             var shift = assignment.Shift;
-            var windowOpensAt = shift.ScheduledStartAt.AddMinutes(-checkInBeforeMins);
-            int shiftDurationMinutes = Math.Max(1, (int)(shift.ScheduledEndAt - shift.ScheduledStartAt).TotalMinutes);
+            var shiftStartUtc = shift.ScheduledStartAt;
+            var shiftEndUtc = shift.ScheduledEndAt;
+
+            var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMins);
+            int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
             int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
-            var cutoffTime = shift.ScheduledStartAt.AddMinutes(standardCutoffMinutes);
+            var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
 
             var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
             var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
@@ -93,51 +99,121 @@ public class AttendanceService : IAttendanceService
             if (approvedLate != null)
             {
                 var lateCutoff = approvedLate.RequestedTime.AddMinutes(checkInGraceMins);
-                if (lateCutoff > cutoffTime)
+                if (lateCutoff > cutoffTimeUtc)
                 {
-                    cutoffTime = lateCutoff;
+                    cutoffTimeUtc = lateCutoff;
                 }
             }
 
             bool hasApprovedLeave = approvedLeave != null;
             bool hasApprovedLate = approvedLate != null;
             int? approvedLateMins = hasApprovedLate
-                ? Math.Max(0, (int)(approvedLate!.RequestedTime - shift.ScheduledStartAt).TotalMinutes)
+                ? Math.Max(0, (int)(approvedLate!.RequestedTime - shiftStartUtc).TotalMinutes)
                 : null;
 
+            bool hasCheckedIn = assignment.Attendance != null && assignment.Attendance.CheckInTime.HasValue;
+            bool hasCheckedOut = assignment.Attendance != null && assignment.Attendance.CheckOutTime.HasValue;
             bool canCheckIn = true;
             string? cannotCheckInReason = null;
+            bool canCheckOut = false;
+            string? cannotCheckOutReason = null;
+            var checkOutCutoffUtc = shiftEndUtc.AddMinutes(rule.CheckOutAfterMinutes);
 
-            if (hasApprovedLeave)
+            string? attendanceStatus = assignment.Attendance?.Status;
+
+            if (!hasCheckedIn)
+            {
+                canCheckOut = false;
+                cannotCheckOutReason = "You have not checked in for this shift yet.";
+
+                if (nowUtc > checkOutCutoffUtc)
+                {
+                    // Ca đã qua giờ checkout luôn rồi mà không checkin: ABSENT
+                    attendanceStatus = "ABSENT";
+                }
+            }
+            else if (hasCheckedOut)
+            {
+                canCheckOut = false;
+                cannotCheckOutReason = "You have already completed check-out for this shift.";
+                attendanceStatus = assignment.Attendance?.Status ?? "COMPLETED";
+            }
+            else
+            {
+                // Has checked in but not checked out
+                // Anti-accidental click (at least 2 minutes)
+                if (nowUtc < assignment.Attendance!.CheckInTime!.Value.AddMinutes(2))
+                {
+                    canCheckOut = false;
+                    cannotCheckOutReason = "Please wait at least 2 minutes after check-in before checking out.";
+                    attendanceStatus = "IN_PROGRESS";
+                }
+                else
+                {
+                    if (nowUtc > checkOutCutoffUtc)
+                    {
+                        // Ca đã qua giờ checkout mà có checkin nhưng không checkout: INCOMPLETE
+                        canCheckOut = false;
+                        cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
+                        attendanceStatus = "INCOMPLETE";
+                        if (assignment.Attendance!.Status == "IN_PROGRESS")
+                        {
+                            assignment.Attendance.Status = "INCOMPLETE";
+                            assignment.Attendance.UpdatedAt = DateTime.UtcNow;
+                            hasChanges = true;
+                        }
+                    }
+                    else
+                    {
+                        canCheckOut = true;
+                        attendanceStatus = "IN_PROGRESS";
+                    }
+                }
+            }
+
+            if (hasCheckedIn)
+            {
+                canCheckIn = false;
+                cannotCheckInReason = "You have already checked in for this shift.";
+            }
+            else if (hasApprovedLeave)
             {
                 canCheckIn = false;
                 cannotCheckInReason = "You have an approved leave request for this shift.";
             }
-            else if (now < windowOpensAt)
+            else if (nowUtc < windowOpensAtUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {windowOpensAt:HH:mm}.";
+                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {windowOpensAtUtc.AddHours(7):HH:mm}.";
             }
-            else if (now > cutoffTime)
+            else if (nowUtc > checkOutCutoffUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {cutoffTime:HH:mm}.";
+                cannotCheckInReason = $"Check-out window has closed for this shift. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
+                attendanceStatus = "ABSENT";
+            }
+            else if (nowUtc > cutoffTimeUtc)
+            {
+                canCheckIn = false;
+                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm}.";
+                attendanceStatus = "ABSENT";
             }
 
-            return new EligibleShiftResponse
+            results.Add(new EligibleShiftResponse
             {
                 AssignmentId = assignment.AssignmentId,
                 ShiftId = shift.ShiftId,
                 ShiftName = shift.ShiftNameSnapshot,
-                ScheduledStartAt = shift.ScheduledStartAt,
-                ScheduledEndAt = shift.ScheduledEndAt,
+                ScheduledStartAt = shiftStartUtc,
+                ScheduledEndAt = shiftEndUtc,
                 BranchId = shift.ScheduleWeek.BranchId,
                 BranchName = shift.ScheduleWeek.Branch.BranchName,
                 BranchAddress = shift.ScheduleWeek.Branch.Address,
                 BranchLatitude = shift.ScheduleWeek.Branch.Latitude,
                 BranchLongitude = shift.ScheduleWeek.Branch.Longitude,
-                CheckInWindowOpensAt = windowOpensAt,
-                CheckInCutoffAt = cutoffTime,
+                CheckInWindowOpensAt = windowOpensAtUtc,
+                CheckInCutoffAt = cutoffTimeUtc,
+                CheckOutCutoffAt = checkOutCutoffUtc,
                 CheckInGraceMinutes = checkInGraceMins,
                 MaxAttendanceDistanceMeters = maxDistanceMeters,
                 CanCheckInNow = canCheckIn,
@@ -145,14 +221,28 @@ public class AttendanceService : IAttendanceService
                 HasApprovedLateArrival = hasApprovedLate,
                 ApprovedLateArrivalTime = approvedLate?.RequestedTime,
                 ApprovedLateMinutes = approvedLateMins,
-                HasApprovedLeave = hasApprovedLeave
-            };
+                HasApprovedLeave = hasApprovedLeave,
+                AssignmentStatus = assignment.Status,
+                AttendanceStatus = attendanceStatus,
+                HasCheckedIn = hasCheckedIn,
+                HasCheckedOut = hasCheckedOut,
+                CheckInTime = assignment.Attendance?.CheckInTime,
+                CheckOutTime = assignment.Attendance?.CheckOutTime,
+                CanCheckOutNow = canCheckOut,
+                CanNotCheckOutReason = cannotCheckOutReason
+            });
         }
 
-        return null;
+        if (hasChanges)
+        {
+            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+        }
+
+        return results;
     }
 
-    public async Task<CheckInSessionResponse> CreateCheckInSessionAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<List<StaffAttendanceHistoryResponse>> GetStaffAttendanceHistoryAsync(
+        Guid userId, DateOnly? fromDate = null, DateOnly? toDate = null, CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -161,16 +251,284 @@ public class AttendanceService : IAttendanceService
 
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
-        // Validate that staff has an eligible shift open for check-in right now
-        var eligibleShift = await GetEligibleShiftAsync(userId, cancellationToken);
-        if (eligibleShift == null)
+        var nowUtc = DateTime.UtcNow;
+        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+
+        var effectiveToDate = toDate ?? todayVn;
+        var effectiveFromDate = fromDate ?? todayVn.AddDays(-30);
+
+        var assignments = await _attendanceRepo.GetShiftAssignmentsByDateRangeAsync(
+            userId, effectiveFromDate, effectiveToDate, cancellationToken);
+
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+            ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+        int checkOutAfterMinutes = rule.CheckOutAfterMinutes;
+        int checkInBeforeMinutes = rule.CheckInBeforeMinutes;
+        int checkInGraceMinutes = rule.CheckInGraceMinutes;
+        int maxDistance = rule.MaxAttendanceDistanceMeters;
+
+        var results = new List<StaffAttendanceHistoryResponse>();
+        bool hasChanges = false;
+
+        foreach (var assignment in assignments)
         {
-            throw new InvalidOperationException("You do not have any scheduled shift assigned for today.");
+            var shift = assignment.Shift;
+            var shiftStartUtc = shift.ScheduledStartAt;
+            var shiftEndUtc = shift.ScheduledEndAt;
+
+            var checkoutCutoffUtc = shiftEndUtc.AddMinutes(checkOutAfterMinutes);
+
+            var attendance = assignment.Attendance;
+            bool hasCheckedIn = attendance != null && attendance.CheckInTime.HasValue;
+            bool hasCheckedOut = attendance != null && attendance.CheckOutTime.HasValue;
+
+            string status;
+            bool canCheckIn = false;
+            string? cannotCheckInReason = null;
+            bool canCheckOut = false;
+            string? cannotCheckOutReason = null;
+
+            if (hasCheckedOut)
+            {
+                status = "COMPLETED";
+                canCheckIn = false;
+                cannotCheckInReason = "Shift check-out has already been completed.";
+                canCheckOut = false;
+                cannotCheckOutReason = "Shift check-out has already been completed.";
+            }
+            else if (hasCheckedIn)
+            {
+                canCheckIn = false;
+                cannotCheckInReason = "Already checked in for this shift.";
+
+                // Has checked in but not checked out
+                if (nowUtc <= checkoutCutoffUtc)
+                {
+                    // Still within checkout window
+                    status = "IN_PROGRESS";
+                    // Anti-accidental click
+                    if (nowUtc < attendance!.CheckInTime!.Value.AddMinutes(2))
+                    {
+                        canCheckOut = false;
+                        cannotCheckOutReason = "Please wait at least 2 minutes after check-in before checking out.";
+                    }
+                    else
+                    {
+                        canCheckOut = true;
+                    }
+                }
+                else
+                {
+                    // Checkout window has closed! Mark as INCOMPLETE
+                    status = "INCOMPLETE";
+                    canCheckOut = false;
+                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+
+                    if (attendance!.Status == "IN_PROGRESS")
+                    {
+                        attendance.Status = "INCOMPLETE";
+                        attendance.UpdatedAt = DateTime.UtcNow;
+                        hasChanges = true;
+                    }
+                }
+            }
+            else
+            {
+                // Has not checked in
+                canCheckOut = false;
+                cannotCheckOutReason = "You have not checked in for this shift.";
+
+                if (nowUtc > checkoutCutoffUtc)
+                {
+                    status = "ABSENT";
+                    canCheckIn = false;
+                    cannotCheckInReason = $"Shift is closed. Cut-off time was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                }
+                else
+                {
+                    var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+                    if (approvedLeave != null)
+                    {
+                        canCheckIn = false;
+                        cannotCheckInReason = "You have an approved leave request for this shift.";
+                        status = "ON_LEAVE";
+                    }
+                    else
+                    {
+                        var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+                        var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMinutes);
+                        int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
+                        int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
+                        var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
+
+                        if (approvedLate != null)
+                        {
+                            var lateCutoff = approvedLate.RequestedTime.AddMinutes(checkInGraceMinutes);
+                            if (lateCutoff > cutoffTimeUtc)
+                            {
+                                cutoffTimeUtc = lateCutoff;
+                            }
+                        }
+
+                        if (nowUtc < windowOpensAtUtc)
+                        {
+                            canCheckIn = false;
+                            cannotCheckInReason = $"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                            status = "UPCOMING";
+                        }
+                        else if (nowUtc > cutoffTimeUtc)
+                        {
+                            canCheckIn = false;
+                            cannotCheckInReason = $"Check-in window closed at {cutoffTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Shift recorded as Absent.";
+                            status = "ABSENT";
+                        }
+                        else
+                        {
+                            canCheckIn = true;
+                            status = "READY_TO_CHECK_IN";
+                        }
+                    }
+                }
+            }
+
+            results.Add(new StaffAttendanceHistoryResponse
+            {
+                AttendanceId = attendance?.AttendanceId,
+                AssignmentId = assignment.AssignmentId,
+                ShiftId = shift.ShiftId,
+                ShiftName = shift.ShiftNameSnapshot,
+                ScheduledStartAt = shiftStartUtc,
+                ScheduledEndAt = shiftEndUtc,
+                BranchName = shift.ScheduleWeek.Branch.BranchName,
+                BranchAddress = shift.ScheduleWeek.Branch.Address,
+                CheckInTime = attendance?.CheckInTime,
+                CheckOutTime = attendance?.CheckOutTime,
+                ActualWorkingMinutes = attendance?.ActualWorkingMinutes ?? 0,
+                Status = status,
+                TotalLateMinutes = attendance?.TotalLateMinutes ?? 0,
+                TotalEarlyLeaveMinutes = attendance?.TotalEarlyLeaveMinutes ?? 0,
+                CanCheckInNow = canCheckIn,
+                CanNotCheckInReason = cannotCheckInReason,
+                CanCheckOutNow = canCheckOut,
+                CannotCheckOutReason = cannotCheckOutReason,
+                CheckOutCutoffAt = checkoutCutoffUtc,
+                MaxAttendanceDistanceMeters = maxDistance,
+                BranchLatitude = shift.ScheduleWeek.Branch.Latitude,
+                BranchLongitude = shift.ScheduleWeek.Branch.Longitude
+            });
         }
 
-        if (!eligibleShift.CanCheckInNow)
+        if (hasChanges)
         {
-            throw new InvalidOperationException(eligibleShift.CanNotCheckInReason ?? "You cannot check in for this shift at this time.");
+            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+        }
+
+        return results;
+    }
+
+    public async Task<EligibleShiftResponse?> GetEligibleShiftAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var shifts = await GetTodayShiftsAsync(userId, cancellationToken);
+        if (shifts.Count == 0)
+        {
+            return null;
+        }
+
+        var nowUtc = DateTime.UtcNow;
+
+        // Lọc các ca làm việc:
+        // 1. Đã checkout thì loại bỏ
+        // 2. Đã quá hạn checkout (CheckOutCutoffAt) thì loại bỏ
+        // 3. Vẫn giữ các ca quá hạn check-in (ABSENT) để hiển thị lý do hết hạn cho nhân viên
+        var activeOrUpcomingShifts = shifts.Where(s => 
+            !s.HasCheckedOut && 
+            nowUtc <= s.CheckOutCutoffAt
+        ).ToList();
+
+        if (activeOrUpcomingShifts.Count == 0)
+        {
+            return null;
+        }
+
+        // Tìm ca đang diễn ra chưa checkout (in-progress)
+        var inProgressShift = activeOrUpcomingShifts.FirstOrDefault(s => s.HasCheckedIn && !s.HasCheckedOut);
+
+        EligibleShiftResponse? mainShift = null;
+
+        if (inProgressShift != null)
+        {
+            if (nowUtc < inProgressShift.ScheduledEndAt)
+            {
+                // Ca 1 vẫn đang trong giờ làm việc theo lịch -> Ca 1 vẫn là ca chính
+                mainShift = inProgressShift;
+            }
+            else
+            {
+                // Ca 1 đã đến/qua giờ kết thúc theo lịch!
+                // Tìm ca tiếp theo hôm nay (Ca 2)
+                var nextShift = activeOrUpcomingShifts
+                    .Where(s => s.AssignmentId != inProgressShift.AssignmentId)
+                    .OrderBy(s => s.ScheduledStartAt)
+                    .FirstOrDefault();
+
+                if (nextShift != null)
+                {
+                    // Đẩy Ca 2 lên làm ca chính, đính kèm Ca 1 làm UnfinishedPreviousShift
+                    nextShift.UnfinishedPreviousShift = inProgressShift;
+                    mainShift = nextShift;
+                }
+                else
+                {
+                    // Không có ca nào khác tiếp theo hôm nay -> giữ Ca 1 cho đến khi hết hạn checkout
+                    mainShift = inProgressShift;
+                }
+            }
+        }
+        else
+        {
+            // Không có ca in-progress: ưu tiên ca mở check-in ngay bây giờ, hoặc ca kế tiếp
+            var openShift = activeOrUpcomingShifts.FirstOrDefault(s => s.CanCheckInNow);
+            mainShift = openShift ?? activeOrUpcomingShifts
+                .OrderBy(s => s.ScheduledStartAt)
+                .FirstOrDefault();
+        }
+
+        return mainShift;
+    }
+
+    public async Task<CheckInSessionResponse> CreateCheckInSessionAsync(Guid userId, int? assignmentId = null, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated user identity is required.");
+        }
+
+        await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+
+        EligibleShiftResponse targetShift;
+        if (assignmentId.HasValue && assignmentId.Value > 0)
+        {
+            var shifts = await GetTodayShiftsAsync(userId, cancellationToken);
+            targetShift = shifts.FirstOrDefault(s => s.AssignmentId == assignmentId.Value)
+                ?? throw new KeyNotFoundException($"Shift assignment '{assignmentId.Value}' was not found in your schedule today.");
+        }
+        else
+        {
+            targetShift = await GetEligibleShiftAsync(userId, cancellationToken)
+                ?? throw new InvalidOperationException("You do not have any scheduled shift assigned for today.");
+        }
+
+        if (!targetShift.CanCheckInNow)
+        {
+            throw new InvalidOperationException(targetShift.CanNotCheckInReason ?? "You cannot check in for this shift at this time.");
+        }
+
+        if (targetShift.UnfinishedPreviousShift != null)
+        {
+            var prev = targetShift.UnfinishedPreviousShift;
+            var startVn = prev.ScheduledStartAt.AddHours(7);
+            var endVn = prev.ScheduledEndAt.AddHours(7);
+            throw new InvalidOperationException($"You have an unfinished shift: '{prev.ShiftName}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
         // Invalidate any active pending session for this user
@@ -232,7 +590,7 @@ public class AttendanceService : IAttendanceService
         }
 
         // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         // 2. Validate Assignment
         var assignment = await _attendanceRepo.GetAssignmentWithDetailsAsync(request.AssignmentId, cancellationToken)
@@ -274,33 +632,58 @@ public class AttendanceService : IAttendanceService
 
         var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
 
-        var nowLocal = DateTime.UtcNow.AddHours(7);
-        var windowOpensAt = shift.ScheduledStartAt.AddMinutes(-rule.CheckInBeforeMinutes);
-        if (nowLocal < windowOpensAt)
+        var nowUtc = DateTime.UtcNow;
+        var shiftStartUtc = shift.ScheduledStartAt;
+        var shiftEndUtc = shift.ScheduledEndAt;
+
+        // Prevent concurrent check-ins: User cannot check in if actively working in another shift whose checkout window hasn't expired
+        var todayDate = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayAssignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayDate, cancellationToken);
+        var activeAttendance = todayAssignments.FirstOrDefault(a => 
         {
-            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {windowOpensAt:HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
+            if (a.AssignmentId == request.AssignmentId || a.Attendance == null || !a.Attendance.CheckInTime.HasValue || a.Attendance.CheckOutTime.HasValue)
+                return false;
+
+            var otherCheckoutCutoffUtc = a.Shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+
+            // Blocks only if the other shift is actively running right now (checkout window still open)
+            return nowUtc <= otherCheckoutCutoffUtc;
+        });
+
+        if (activeAttendance != null)
+        {
+            var otherShift = activeAttendance.Shift;
+            var startVn = otherShift.ScheduledStartAt.AddHours(7);
+            var endVn = otherShift.ScheduledEndAt.AddHours(7);
+            throw new InvalidOperationException($"You have an unfinished shift: '{otherShift.ShiftNameSnapshot}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
-        int shiftDurationMinutes = Math.Max(1, (int)(shift.ScheduledEndAt - shift.ScheduledStartAt).TotalMinutes);
+        var windowOpensAtUtc = shiftStartUtc.AddMinutes(-rule.CheckInBeforeMinutes);
+        if (nowUtc < windowOpensAtUtc)
+        {
+            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
+        }
+
+        int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
         int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
-        var cutoffTime = shift.ScheduledStartAt.AddMinutes(standardCutoffMinutes);
+        var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
 
         if (approvedLate != null)
         {
             var lateCutoff = approvedLate.RequestedTime.AddMinutes(rule.CheckInGraceMinutes);
-            if (lateCutoff > cutoffTime)
+            if (lateCutoff > cutoffTimeUtc)
             {
-                cutoffTime = lateCutoff;
+                cutoffTimeUtc = lateCutoff;
             }
         }
 
-        if (nowLocal > cutoffTime)
+        if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {cutoffTime:HH:mm:ss dd/MM/yyyy}.");
+            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}.");
         }
 
         // Calculate Late Minutes
-        var normalGraceDeadline = shift.ScheduledStartAt.AddMinutes(rule.CheckInGraceMinutes);
+        var normalGraceDeadlineUtc = shiftStartUtc.AddMinutes(rule.CheckInGraceMinutes);
         bool isLate = false;
         int totalLateMinutes = 0;
         int excusedLateMinutes = 0;
@@ -308,12 +691,12 @@ public class AttendanceService : IAttendanceService
 
         if (approvedLate != null)
         {
-            var approvedGraceDeadline = approvedLate.RequestedTime.AddMinutes(rule.CheckInGraceMinutes);
-            if (nowLocal <= approvedGraceDeadline)
+            var approvedGraceDeadlineUtc = approvedLate.RequestedTime.AddMinutes(rule.CheckInGraceMinutes);
+            if (nowUtc <= approvedGraceDeadlineUtc)
             {
                 // Arrived within approved late arrival window -> Exempted from penalty
                 isLate = false;
-                totalLateMinutes = Math.Max(0, (int)Math.Floor((nowLocal - shift.ScheduledStartAt).TotalMinutes));
+                totalLateMinutes = Math.Max(0, (int)Math.Floor((nowUtc - shiftStartUtc).TotalMinutes));
                 excusedLateMinutes = totalLateMinutes;
                 chargeableLateMinutes = 0;
             }
@@ -321,16 +704,16 @@ public class AttendanceService : IAttendanceService
             {
                 // Arrived later than approved time -> Loses exemption and penalized normally as unexcused late
                 isLate = true;
-                totalLateMinutes = Math.Max(0, (int)Math.Floor((nowLocal - shift.ScheduledStartAt).TotalMinutes));
+                totalLateMinutes = Math.Max(0, (int)Math.Floor((nowUtc - shiftStartUtc).TotalMinutes));
                 excusedLateMinutes = 0;
                 chargeableLateMinutes = totalLateMinutes;
             }
         }
-        else if (nowLocal > normalGraceDeadline)
+        else if (nowUtc > normalGraceDeadlineUtc)
         {
             // No approved request and arrived past normal grace period
             isLate = true;
-            totalLateMinutes = Math.Max(0, (int)Math.Floor((nowLocal - shift.ScheduledStartAt).TotalMinutes));
+            totalLateMinutes = Math.Max(0, (int)Math.Floor((nowUtc - shiftStartUtc).TotalMinutes));
             excusedLateMinutes = 0;
             chargeableLateMinutes = totalLateMinutes;
         }
@@ -387,17 +770,19 @@ public class AttendanceService : IAttendanceService
         }
 
         ValidateImageFile(request.FaceImage);
-        var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
 
-        if (qualityScore < MinFaceQualityThreshold)
+        // Biometric ArcFace AI Verification
+        var (currentEmbedding, faceConfidence) = await _faceBiometricService.ExtractFaceEmbeddingAsync(request.FaceImage, cancellationToken);
+        var (isMatch, similarity) = _faceBiometricService.VerifyFaceMatch(faceEmbedding, currentEmbedding, threshold: 0.45f);
+
+        if (!isMatch)
         {
-            throw new InvalidOperationException($"Face match score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please ensure clear lighting facing the camera directly.");
+            _logger.LogWarning("Face mismatch for user {UserId} at check-in. Similarity: {Similarity:P1} < 45.0%", userId, similarity);
+            throw new InvalidOperationException($"Face verification failed: Your face does not match the registered profile (similarity: {similarity:P0} < 45%). Please face the camera clearly and try again.");
         }
 
-        if (livenessScore < MinLivenessThreshold)
-        {
-            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please complete the liveness challenges.");
-        }
+        decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
+        decimal livenessScore = 1.0000m;
 
         // 7. Serialize Rule Snapshot JSON
         var ruleSnapshotObj = new
@@ -439,11 +824,11 @@ public class AttendanceService : IAttendanceService
         await using var transaction = await _attendanceRepo.BeginTransactionAsync(cancellationToken);
         try
         {
-            var nowUtc = DateTime.UtcNow;
+            nowUtc = DateTime.UtcNow;
 
             session.UsedAt = nowUtc;
             session.FaceMatchVerified = true;
-            session.FaceMatchScore = qualityScore;
+            session.FaceMatchScore = (decimal)similarity;
             session.LivenessVerified = true;
             session.LivenessScore = livenessScore;
             session.MatchedFaceProfileId = faceProfile.FaceProfileId;
@@ -474,7 +859,6 @@ public class AttendanceService : IAttendanceService
                 ExcusedLateMinutes = excusedLateMinutes,
                 ChargeableLateMinutes = chargeableLateMinutes,
                 ActualWorkingMinutes = 0,
-                WorkingHours = 0,
                 TotalEarlyLeaveMinutes = 0,
                 ExcusedEarlyLeaveMinutes = 0,
                 ChargeableEarlyLeaveMinutes = 0,
@@ -581,19 +965,19 @@ public class AttendanceService : IAttendanceService
         var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
-        var nowLocal = DateTime.UtcNow.AddHours(7);
+        var nowUtc = DateTime.UtcNow;
 
         // Anti-accidental click guard (at least 2 minutes after check-in)
-        if (DateTime.UtcNow < attendance.CheckInTime.Value.AddMinutes(2))
+        if (nowUtc < attendance.CheckInTime.Value.AddMinutes(2))
         {
             throw new InvalidOperationException("You just checked in. Please wait at least 2 minutes before checking out.");
         }
 
         // Cut-off deadline validation
-        var cutoffTime = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
-        if (nowLocal > cutoffTime)
+        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTime:HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // Invalidate any active pending check-out session for this user
@@ -655,7 +1039,7 @@ public class AttendanceService : IAttendanceService
         }
 
         // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         // 2. Validate Attendance Session
         var attendance = await _attendanceRepo.GetAttendanceWithDetailsByAssignmentIdAsync(request.AssignmentId, cancellationToken)
@@ -686,7 +1070,6 @@ public class AttendanceService : IAttendanceService
         var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
-        var nowLocal = nowUtc.AddHours(7);
 
         // Anti-accidental click guard
         if (nowUtc < attendance.CheckInTime.Value.AddMinutes(2))
@@ -695,15 +1078,15 @@ public class AttendanceService : IAttendanceService
         }
 
         // Cut-off deadline validation
-        var cutoffTime = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
-        if (nowLocal > cutoffTime)
+        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTime:HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // 3. Early Leave Calculation
         var approvedEarly = await _attendanceRepo.GetApprovedEarlyLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-        var normalGraceDeadline = shift.ScheduledEndAt.AddMinutes(-rule.CheckOutGraceMinutes);
+        var normalGraceDeadlineUtc = shift.ScheduledEndAt.AddMinutes(-rule.CheckOutGraceMinutes);
 
         bool isEarlyLeave = false;
         int totalEarlyLeaveMinutes = 0;
@@ -712,12 +1095,12 @@ public class AttendanceService : IAttendanceService
 
         if (approvedEarly != null)
         {
-            var approvedGraceDeadline = approvedEarly.RequestedTime.AddMinutes(-rule.CheckOutGraceMinutes);
-            if (nowLocal >= approvedGraceDeadline)
+            var approvedGraceDeadlineUtc = approvedEarly.RequestedTime.AddMinutes(-rule.CheckOutGraceMinutes);
+            if (nowUtc >= approvedGraceDeadlineUtc)
             {
                 // Left within approved early departure window -> Fully excused
                 isEarlyLeave = false;
-                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowUtc).TotalMinutes));
                 excusedEarlyLeaveMinutes = totalEarlyLeaveMinutes;
                 chargeableEarlyLeaveMinutes = 0;
             }
@@ -725,16 +1108,16 @@ public class AttendanceService : IAttendanceService
             {
                 // Left even earlier than approved early departure time -> Unexcused early leave penalty
                 isEarlyLeave = true;
-                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+                totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowUtc).TotalMinutes));
                 excusedEarlyLeaveMinutes = 0;
                 chargeableEarlyLeaveMinutes = totalEarlyLeaveMinutes;
             }
         }
-        else if (nowLocal < normalGraceDeadline)
+        else if (nowUtc < normalGraceDeadlineUtc)
         {
             // Left earlier than normal grace window without approved request
             isEarlyLeave = true;
-            totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowLocal).TotalMinutes));
+            totalEarlyLeaveMinutes = Math.Max(0, (int)Math.Ceiling((shift.ScheduledEndAt - nowUtc).TotalMinutes));
             excusedEarlyLeaveMinutes = 0;
             chargeableEarlyLeaveMinutes = totalEarlyLeaveMinutes;
         }
@@ -790,17 +1173,19 @@ public class AttendanceService : IAttendanceService
         }
 
         ValidateImageFile(request.FaceImage);
-        var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
 
-        if (qualityScore < MinFaceQualityThreshold)
+        // Biometric ArcFace AI Verification
+        var (currentEmbedding, faceConfidence) = await _faceBiometricService.ExtractFaceEmbeddingAsync(request.FaceImage, cancellationToken);
+        var (isMatch, similarity) = _faceBiometricService.VerifyFaceMatch(faceEmbedding, currentEmbedding, threshold: 0.45f);
+
+        if (!isMatch)
         {
-            throw new InvalidOperationException($"Face match score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please ensure clear lighting facing the camera directly.");
+            _logger.LogWarning("Face mismatch for user {UserId} at check-out. Similarity: {Similarity:P1} < 45.0%", userId, similarity);
+            throw new InvalidOperationException($"Face verification failed: Your face does not match the registered profile (similarity: {similarity:P0} < 45%). Please face the camera clearly and try again.");
         }
 
-        if (livenessScore < MinLivenessThreshold)
-        {
-            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please complete the liveness challenges.");
-        }
+        decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
+        decimal livenessScore = 1.0000m;
 
         // 6. Calculate Actual Working Time
         int actualWorkingMinutes = Math.Max(0, (int)Math.Floor((nowUtc - attendance.CheckInTime.Value).TotalMinutes));
@@ -812,7 +1197,7 @@ public class AttendanceService : IAttendanceService
         {
             session.UsedAt = nowUtc;
             session.FaceMatchVerified = true;
-            session.FaceMatchScore = qualityScore;
+            session.FaceMatchScore = (decimal)similarity;
             session.LivenessVerified = true;
             session.LivenessScore = livenessScore;
             session.MatchedFaceProfileId = faceProfile.FaceProfileId;
@@ -826,7 +1211,6 @@ public class AttendanceService : IAttendanceService
             attendance.CheckOutFaceVerified = true;
             attendance.CheckOutFaceConfidence = qualityScore;
             attendance.ActualWorkingMinutes = actualWorkingMinutes;
-            attendance.WorkingHours = workingHours;
             attendance.EarlyLeaveRequestId = approvedEarly?.RequestId;
 
             bool hasLate = attendance.ChargeableLateMinutes > 0;
@@ -917,7 +1301,7 @@ public class AttendanceService : IAttendanceService
         }
     }
 
-    private async Task<(User user, EmploymentContract contract, FaceProfile profile)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<(User user, EmploymentContract contract, FaceProfile profile, float[] embedding)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await _attendanceRepo.GetUserByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("Your user account is not active or was not found.");
@@ -948,10 +1332,10 @@ public class AttendanceService : IAttendanceService
             throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
 
-        var faceProfile = await _attendanceRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken)
+        var faceProfileData = await _attendanceRepo.GetActiveFaceProfileWithEmbeddingByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");
 
-        return (user, contract, faceProfile);
+        return (user, contract, faceProfileData.Profile, faceProfileData.Embedding);
     }
 
     private static void ValidateImageFile(IFormFile? file)
@@ -971,21 +1355,6 @@ public class AttendanceService : IAttendanceService
         {
             throw new ArgumentException($"Unsupported image format '{ext}'. Allowed formats: JPG, JPEG, PNG, WEBP.");
         }
-    }
-
-    private static (decimal QualityScore, decimal LivenessScore) ProcessFaceBiometrics(IFormFile file)
-    {
-        // Zero Raw Biometric Image Storage: compute quality / liveness score and discard frame
-        using var sha256 = SHA256.Create();
-        using var stream = file.OpenReadStream();
-        var hash = sha256.ComputeHash(stream);
-
-        // Derive high-confidence score >= 0.90
-        int byteSum = hash.Take(4).Aggregate(0, (acc, b) => acc + b);
-        decimal quality = 0.9200m + (byteSum % 70) / 1000m; // 0.9200 ~ 0.9890
-        decimal liveness = 0.9300m + (byteSum % 60) / 1000m; // 0.9300 ~ 0.9890
-
-        return (quality, liveness);
     }
 
     private static double CalculateHaversineDistance(double lat1, double lon1, double lat2, double lon2)

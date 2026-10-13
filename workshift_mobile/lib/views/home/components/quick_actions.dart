@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/quick_action_item.dart';
 
+import '../../face_registration/face_registration_modal.dart';
+
 /// Quick Action model definition
 class _QuickActionData {
   final String title;
@@ -23,7 +25,9 @@ class _QuickActionData {
 
 /// Component: Quick Actions on Homepage (Default 6 actions, expandable)
 class QuickActions extends StatefulWidget {
-  const QuickActions({super.key});
+  final VoidCallback? onFaceRegistrationSuccess;
+
+  const QuickActions({super.key, this.onFaceRegistrationSuccess});
 
   @override
   State<QuickActions> createState() => _QuickActionsState();
@@ -36,6 +40,19 @@ class _QuickActionsState extends State<QuickActions> {
   Widget build(BuildContext context) {
     // Complete quick action item list
     final List<_QuickActionData> allActions = [
+      _QuickActionData(
+        title: 'Register Face',
+        subtitle: 'Biometric setup',
+        icon: Icons.face_retouching_natural_rounded,
+        iconColor: const Color(0xFF7C3AED),
+        iconBgColor: const Color(0xFFF3E8FF),
+        onTap: () async {
+          final registered = await showFaceRegistrationModal(context: context);
+          if (registered == true) {
+            widget.onFaceRegistrationSuccess?.call();
+          }
+        },
+      ),
       _QuickActionData(
         title: 'Timesheet',
         subtitle: 'Weekly hours',

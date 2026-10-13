@@ -8,7 +8,11 @@ import 'components/home_header.dart';
 import 'components/pending_tasks.dart';
 import 'components/quick_actions.dart';
 import 'components/today_shift_card.dart';
-import 'components/upcoming_shifts.dart';
+import 'components/unfinished_shift_banner.dart';
+import 'handlers/attendance_flow_handler.dart';
+import '../attendance/attendance_history_view.dart';
+
+import '../face_registration/face_registration_modal.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
 class HomeView extends StatefulWidget {
@@ -24,6 +28,7 @@ class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
   int _currentTabIndex = 0;
+  bool _hasPromptedFaceRegistration = false;
 
   @override
   void initState() {
@@ -40,7 +45,79 @@ class _HomeViewState extends State<HomeView> {
   }
 
   void _onControllerUpdated() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(() {});
+      if (!_controller.isLoading && _controller.isFaceNotRegistered && !_hasPromptedFaceRegistration) {
+        _hasPromptedFaceRegistration = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _showFaceRegistrationDialog();
+          }
+        });
+      }
+    }
+  }
+
+  Future<void> _showFaceRegistrationDialog() async {
+    final registerNow = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF3E8FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.face_retouching_natural_rounded,
+                color: Color(0xFF7C3AED),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Face Profile Required',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          _controller.shiftErrorMessage ??
+              'Your account has not registered a biometric face profile yet. You must complete face registration before performing shift attendance.',
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Later', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.face_unlock_rounded, size: 18),
+            label: const Text('Register Face Now'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (registerNow == true && mounted) {
+      final success = await showFaceRegistrationModal(context: context);
+      if (success == true && mounted) {
+        await _controller.loadHomeData();
+      }
+    }
   }
 
   Future<void> _handleLogout() async {
@@ -131,39 +208,50 @@ class _HomeViewState extends State<HomeView> {
                       // 2. Thẻ Ca làm hôm nay (08:00 – 16:00, Chấm công vào)
                       TodayShiftCard(
                         shift: _controller.todayShift,
-                        onCheckInTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                _controller.todayShift?.canCheckInNow == true
-                                    ? 'Opening Face / GPS check-in verification...'
-                                    : (_controller.todayShift?.canNotCheckInReason ??
-                                        'Outside of check-in time window!'),
-                              ),
+                        isFaceNotRegistered: _controller.isFaceNotRegistered,
+                        onRegisterFaceTap: () async {
+                          final success = await showFaceRegistrationModal(context: context);
+                          if (success == true && mounted) {
+                            await _controller.loadHomeData();
+                          }
+                        },
+                        onCheckInTap: () => AttendanceFlowHandler.handleCheckIn(
+                          context: context,
+                          homeController: _controller,
+                        ),
+                        onCheckOutTap: () => AttendanceFlowHandler.handleCheckOut(
+                          context: context,
+                          homeController: _controller,
+                        ),
+                        onViewAttendanceHistoryTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AttendanceHistoryView(homeController: _controller),
                             ),
                           );
                         },
-                        onViewDetailTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Viewing shift details')),
-                          );
-                        },
                       ),
+
+                      // 2b. Cảnh báo ca làm việc trước chưa Checkout (nếu có)
+                      if (_controller.unCheckedOutPreviousShift != null) ...[
+                        UnfinishedShiftWarningBanner(
+                          shift: _controller.unCheckedOutPreviousShift!,
+                        ),
+                      ],
                       const SizedBox(height: 24),
 
                       // 3. Quick Actions
-                      const QuickActions(),
+                      QuickActions(
+                        onFaceRegistrationSuccess: () => _controller.loadHomeData(),
+                      ),
                       const SizedBox(height: 24),
 
                       // 4. Pending Tasks
                       const PendingTasks(),
                       const SizedBox(height: 24),
 
-                      // 5. Upcoming Schedule
-                      const UpcomingShifts(),
-                      const SizedBox(height: 24),
-
-                      // 6. Documents & Records
+                      // 5. Documents & Records
                       const DocumentsSection(),
                       const SizedBox(height: 32),
                     ],

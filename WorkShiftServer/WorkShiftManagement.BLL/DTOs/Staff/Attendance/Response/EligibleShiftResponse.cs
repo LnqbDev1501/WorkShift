@@ -18,6 +18,7 @@ public sealed class EligibleShiftResponse
 
     public DateTime CheckInWindowOpensAt { get; set; }
     public DateTime CheckInCutoffAt { get; set; }
+    public DateTime CheckOutCutoffAt { get; set; }
     public int CheckInGraceMinutes { get; set; }
     public int MaxAttendanceDistanceMeters { get; set; }
 
@@ -29,4 +30,13 @@ public sealed class EligibleShiftResponse
     public int? ApprovedLateMinutes { get; set; }
 
     public bool HasApprovedLeave { get; set; }
+    public string AssignmentStatus { get; set; } = "ASSIGNED";
+    public string? AttendanceStatus { get; set; }
+    public bool HasCheckedIn { get; set; }
+    public bool HasCheckedOut { get; set; }
+    public DateTime? CheckInTime { get; set; }
+    public DateTime? CheckOutTime { get; set; }
+    public bool CanCheckOutNow { get; set; }
+    public string? CanNotCheckOutReason { get; set; }
+    public EligibleShiftResponse? UnfinishedPreviousShift { get; set; }
 }

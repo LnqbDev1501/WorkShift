@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -60,8 +60,6 @@ public partial class Attendance
     public decimal? CheckOutFaceConfidence { get; set; }
 
     public int ActualWorkingMinutes { get; set; }
-
-    public decimal WorkingHours { get; set; }
 
     public int? LateArrivalRequestId { get; set; }
 

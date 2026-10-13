@@ -3,20 +3,13 @@ class LoginRequest {
   final String email;
   final String password;
 
-  LoginRequest({
-    required this.email,
-    required this.password,
-  });
+  LoginRequest({required this.email, required this.password});
 
   Map<String, dynamic> toJson() {
-    return {
-      'email': email.trim(),
-      'password': password.trim(),
-    };
+    return {'email': email.trim(), 'password': password.trim()};
   }
 }
 
-/// Model dữ liệu nhận về sau khi đăng nhập thành công (khớp với LoginResponse của Backend .NET)
 class LoginResponse {
   final String accessToken;
   final String refreshToken;

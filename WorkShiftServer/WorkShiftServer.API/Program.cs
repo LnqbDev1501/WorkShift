@@ -258,6 +258,7 @@ builder.Services.AddScoped<IFaceRegistrationRepo, FaceRegistrationRepo>();
 builder.Services.AddScoped<IFaceRegistrationService, FaceRegistrationService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IAttendanceRepo, WorkShiftManagement.DAL.Repositories.Staff.AttendanceRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService, WorkShiftManagement.BLL.Services.Staff.AttendanceService>();
+builder.Services.AddSingleton<IFaceBiometricService, FaceBiometricService>();
 builder.Services.AddSingleton<INotificationRealtimePublisher, SignalRNotificationRealtimePublisher>();
 builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePublisher>();
 
@@ -312,7 +313,7 @@ if (app.Environment.IsDevelopment())
     app.UseHangfireDashboard();
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Commented out to prevent HTTP 307 redirect when behind ngrok/proxy
 app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();

@@ -30,6 +30,28 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
+  /// Factory cho trạng thái "In Progress / Đang làm việc"
+  factory StatusBadge.warning({required String text}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.warning,
+      backgroundColor: AppColors.warningBg,
+      textColor: AppColors.warning,
+    );
+  }
+
+  /// Factory cho trạng thái "Completed / Hoàn thành"
+  factory StatusBadge.success({required String text}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.success,
+      backgroundColor: const Color(0xFFDCFCE7),
+      textColor: const Color(0xFF15803D),
+    );
+  }
+
   /// Factory cho trạng thái "Chưa chấm công" (chấm xám + chữ xám)
   factory StatusBadge.neutral({required String text}) {
     return StatusBadge(

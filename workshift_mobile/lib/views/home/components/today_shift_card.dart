@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/shift_model.dart';
+import '../../../models/attendance_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/status_badge.dart';
@@ -8,13 +8,19 @@ import '../../../widgets/status_badge.dart';
 class TodayShiftCard extends StatelessWidget {
   final EligibleShiftModel? shift;
   final VoidCallback? onCheckInTap;
-  final VoidCallback? onViewDetailTap;
+  final VoidCallback? onCheckOutTap;
+  final VoidCallback? onViewAttendanceHistoryTap;
+  final VoidCallback? onRegisterFaceTap;
+  final bool isFaceNotRegistered;
 
   const TodayShiftCard({
     super.key,
     this.shift,
     this.onCheckInTap,
-    this.onViewDetailTap,
+    this.onCheckOutTap,
+    this.onViewAttendanceHistoryTap,
+    this.onRegisterFaceTap,
+    this.isFaceNotRegistered = false,
   });
 
   // Format backend check-in reason to user-friendly English
@@ -43,7 +49,7 @@ class TodayShiftCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (shift == null) {
-      // Trường hợp hôm nay không có ca làm việc
+      // Trường hợp hôm nay không có ca làm việc hoặc các ca đã kết thúc / hết thời gian checkout
       return Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -63,47 +69,77 @@ class TodayShiftCard extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryLight,
+              decoration: BoxDecoration(
+                color: isFaceNotRegistered
+                    ? Colors.deepOrange.withValues(alpha: 0.1)
+                    : AppColors.primaryLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.event_available_rounded,
-                color: AppColors.primary,
+              child: Icon(
+                isFaceNotRegistered
+                    ? Icons.face_retouching_off_rounded
+                    : Icons.event_available_rounded,
+                color: isFaceNotRegistered ? Colors.deepOrange : AppColors.primary,
                 size: 30,
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
-              'No shift scheduled for today',
-              style: TextStyle(
+            Text(
+              isFaceNotRegistered
+                  ? 'Face Profile Required'
+                  : 'No Upcoming Shift',
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Take a rest or view your upcoming schedule for this week!',
+            Text(
+              isFaceNotRegistered
+                  ? 'You have not registered your face profile yet. Please complete face registration to enable attendance check-in.'
+                  : 'You do not have any upcoming shifts scheduled for today.',
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textSecondary,
+                height: 1.4,
               ),
             ),
             const SizedBox(height: 18),
-            AppButton(
-              text: 'View weekly schedule',
-              type: AppButtonType.secondary,
-              height: 44,
-              onPressed: onViewDetailTap,
-            ),
+            if (isFaceNotRegistered && onRegisterFaceTap != null) ...[
+              AppButton(
+                text: 'Register Face Profile',
+                type: AppButtonType.primary,
+                height: 44,
+                icon: Icons.face_unlock_rounded,
+                onPressed: onRegisterFaceTap,
+              ),
+              const SizedBox(height: 10),
+              AppButton(
+                text: 'View Attendance History',
+                type: AppButtonType.secondary,
+                height: 44,
+                icon: Icons.history_rounded,
+                onPressed: onViewAttendanceHistoryTap,
+              ),
+            ] else ...[
+              AppButton(
+                text: 'View Attendance History',
+                type: AppButtonType.primary,
+                height: 44,
+                icon: Icons.history_rounded,
+                onPressed: onViewAttendanceHistoryTap,
+              ),
+            ],
           ],
         ),
       );
     }
 
-    final hasReason = !shift!.canCheckInNow &&
+    final isCompleted = shift!.hasCheckedOut;
+    final isInProgress = shift!.hasCheckedIn && !shift!.hasCheckedOut;
+    final hasReason = !isCompleted && !isInProgress && !shift!.canCheckInNow &&
         shift!.canNotCheckInReason != null &&
         shift!.canNotCheckInReason!.trim().isNotEmpty;
 
@@ -113,16 +149,22 @@ class TodayShiftCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: shift!.canCheckInNow
-              ? AppColors.primary.withValues(alpha: 0.25)
-              : AppColors.borderLight,
-          width: shift!.canCheckInNow ? 1.5 : 1,
+          color: isInProgress
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.3)
+              : (isCompleted
+                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                  : (shift!.canCheckInNow
+                      ? AppColors.primary.withValues(alpha: 0.25)
+                      : AppColors.borderLight)),
+          width: (shift!.canCheckInNow || isInProgress) ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: shift!.canCheckInNow
-                ? AppColors.primary.withValues(alpha: 0.06)
-                : Colors.black.withValues(alpha: 0.03),
+            color: isInProgress
+                ? const Color(0xFFF59E0B).withValues(alpha: 0.05)
+                : (shift!.canCheckInNow
+                    ? AppColors.primary.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.03)),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -143,7 +185,11 @@ class TodayShiftCard extends StatelessWidget {
                     width: 9,
                     height: 9,
                     decoration: BoxDecoration(
-                      color: shift!.canCheckInNow ? AppColors.success : AppColors.warning,
+                      color: isCompleted
+                          ? const Color(0xFF10B981)
+                          : (isInProgress
+                              ? const Color(0xFFF59E0B)
+                              : (shift!.canCheckInNow ? AppColors.success : AppColors.warning)),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -159,18 +205,30 @@ class TodayShiftCard extends StatelessWidget {
                 ],
               ),
               StatusBadge(
-                text: shift!.canCheckInNow
-                    ? 'Ready to check-in'
-                    : (shift!.hasApprovedLeave ? 'On Leave' : 'Off Hours'),
-                backgroundColor: shift!.canCheckInNow
-                    ? AppColors.successBg
-                    : (shift!.hasApprovedLeave ? AppColors.infoBg : AppColors.warningBg),
-                textColor: shift!.canCheckInNow
-                    ? AppColors.success
-                    : (shift!.hasApprovedLeave ? AppColors.info : AppColors.warning),
-                icon: shift!.canCheckInNow
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.schedule_rounded,
+                text: isCompleted
+                    ? 'Shift Finished'
+                    : (isInProgress
+                        ? 'Working Now'
+                        : (shift!.canCheckInNow
+                            ? 'Ready to check-in'
+                            : (shift!.hasApprovedLeave ? 'On Leave' : 'Off Hours'))),
+                backgroundColor: isCompleted
+                    ? const Color(0xFFDCFCE7)
+                    : (isInProgress
+                        ? const Color(0xFFFEF3C7)
+                        : (shift!.canCheckInNow ? AppColors.successBg : AppColors.warningBg)),
+                textColor: isCompleted
+                    ? const Color(0xFF15803D)
+                    : (isInProgress
+                        ? const Color(0xFFB45309)
+                        : (shift!.canCheckInNow ? AppColors.success : AppColors.warning)),
+                icon: isCompleted
+                    ? Icons.check_circle_rounded
+                    : (isInProgress
+                        ? Icons.timer_outlined
+                        : (shift!.canCheckInNow
+                            ? Icons.check_circle_outline_rounded
+                            : Icons.schedule_rounded)),
               ),
             ],
           ),
@@ -210,6 +268,58 @@ class TodayShiftCard extends StatelessWidget {
                 ],
               ),
             ),
+          ] else if (isCompleted) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFBBF7D0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You have completed this shift (${shift!.checkInTime != null ? shift!.checkInTime!.toLocal().toString().substring(11, 16) : ''} - ${shift!.checkOutTime != null ? shift!.checkOutTime!.toLocal().toString().substring(11, 16) : ''}).',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF15803D),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (isInProgress) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.timer_rounded, color: Color(0xFFD97706), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Checked in at ${shift!.checkInTime?.toLocal().toString().substring(11, 16) ?? ''}. Remember to check out when done.',
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
 
           const SizedBox(height: 14),
@@ -231,9 +341,14 @@ class TodayShiftCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              StatusBadge.neutral(
-                text: shift!.canCheckInNow ? 'Awaiting check-in' : 'Not checked in',
-              ),
+              if (shift!.hasCheckedOut)
+                StatusBadge.success(text: 'Completed')
+              else if (shift!.hasCheckedIn)
+                StatusBadge.warning(text: 'In Progress')
+              else if (shift!.canCheckInNow)
+                StatusBadge.neutral(text: 'Awaiting check-in')
+              else
+                StatusBadge.neutral(text: 'Not checked in'),
             ],
           ),
 
@@ -313,24 +428,48 @@ class TodayShiftCard extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // 6. Check-in Button
-          AppButton(
-            text: 'Check In',
-            icon: Icons.how_to_reg_rounded,
-            onPressed: onCheckInTap,
+          // 6. Check-in and Check-out Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: AppButton(
+                  text: shift!.hasCheckedIn ? 'Checked In' : 'Check In',
+                  icon: shift!.hasCheckedIn ? Icons.check_circle_rounded : Icons.how_to_reg_rounded,
+                  type: shift!.hasCheckedIn ? AppButtonType.secondary : AppButtonType.primary,
+                  onPressed: onCheckInTap,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: AppButton(
+                  text: shift!.hasCheckedOut ? 'Checked Out' : 'Check Out',
+                  icon: shift!.hasCheckedOut ? Icons.check_circle_rounded : Icons.logout_rounded,
+                  type: isInProgress ? AppButtonType.primary : AppButtonType.secondary,
+                  onPressed: onCheckOutTap,
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 6),
 
-          // 7. View Shift Details
-          Center(
-            child: AppButton(
-              text: 'View shift details',
-              type: AppButtonType.text,
-              icon: Icons.arrow_forward_rounded,
-              onPressed: onViewDetailTap,
+          // 7. View Attendance History
+          if (onViewAttendanceHistoryTap != null) ...[
+            Center(
+              child: TextButton.icon(
+                onPressed: onViewAttendanceHistoryTap,
+                icon: const Icon(Icons.history_rounded, size: 16, color: AppColors.textSecondary),
+                label: const Text(
+                  'Attendance History',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

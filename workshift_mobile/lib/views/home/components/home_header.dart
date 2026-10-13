@@ -46,24 +46,28 @@ class HomeHeader extends StatelessWidget {
       children: [
         // App header bar: Logo WorkShift + Branch + Bell + Avatar
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                const Text(
-                  'WorkShift',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 22,
-                    letterSpacing: -0.5,
+            Expanded(
+              child: Row(
+                children: [
+                  const Text(
+                    'WorkShift',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                StatusBadge.branch(text: branchName),
-              ],
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: StatusBadge.branch(text: branchName),
+                  ),
+                ],
+              ),
             ),
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
                   onPressed: () {},
@@ -80,6 +84,11 @@ class HomeHeader extends StatelessWidget {
                   backgroundColor: AppColors.primaryLight,
                   backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
                       ? NetworkImage(avatarUrl!)
+                      : null,
+                  onBackgroundImageError: (avatarUrl != null && avatarUrl!.isNotEmpty)
+                      ? (exception, stackTrace) {
+                          // Silently catch 404 or image loading exceptions without throwing
+                        }
                       : null,
                   child: (avatarUrl == null || avatarUrl!.isEmpty)
                       ? const Icon(Icons.person, color: AppColors.primary, size: 18)
@@ -102,7 +111,7 @@ class HomeHeader extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Good morning, $userName!',
+          'Hi, $userName! 👋',
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

@@ -1,6 +1,7 @@
 import 'dart:developer';
+
+import 'package:flutter/foundation.dart'; // nếu muốn chạy ngork thì comment dòng này
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Central HTTP Client for connecting to ASP.NET Core Backend
@@ -11,9 +12,7 @@ class ApiClient {
   late final Dio dio;
   static const String tokenKey = 'access_token';
 
-  // Automatically select the correct URL:
-  // - Chrome / Web: https://localhost:7193 (Backend runs HTTPS on port 7193)
-  // - Android Emulator: http://10.0.2.2:5267
+  // comment đoạn này nếu muốn chạy web
   static String get defaultBaseUrl {
     if (kIsWeb) {
       return 'https://localhost:7193';
@@ -21,15 +20,22 @@ class ApiClient {
     return 'http://10.0.2.2:5267';
   }
 
+  // mở comment đoạn này nếu muốn chạy ngork
+  // static String get defaultBaseUrl {
+  //   // Dán link ngrok của bạn vào đây:
+  //   return 'https://linguini-unselect-science.ngrok-free.dev'.trim();
+  // }
+
   ApiClient._internal() {
     dio = Dio(
       BaseOptions(
-        baseUrl: defaultBaseUrl,
+        baseUrl: defaultBaseUrl.trim(),
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         },
       ),
     );
@@ -49,11 +55,13 @@ class ApiClient {
           return handler.next(options);
         },
         onResponse: (response, handler) {
-          log('✅ [HTTP ${response.statusCode}] ${response.requestOptions.path}');
+          log('[HTTP ${response.statusCode}] ${response.requestOptions.path}');
           return handler.next(response);
         },
         onError: (DioException error, handler) {
-          log('❌ [HTTP ${error.response?.statusCode}] ${error.requestOptions.path}');
+          log(
+            '[HTTP ${error.response?.statusCode}] ${error.requestOptions.path}',
+          );
           return handler.next(error);
         },
       ),
@@ -80,7 +88,10 @@ class ApiClient {
   }
 
   // HTTP Helper Methods
-  Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Response> get(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       return await dio.get(path, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -88,7 +99,11 @@ class ApiClient {
     }
   }
 
-  Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> post(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       return await dio.post(path, data: data, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -96,7 +111,11 @@ class ApiClient {
     }
   }
 
-  Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> put(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
       return await dio.put(path, data: data, queryParameters: queryParameters);
     } on DioException catch (e) {
@@ -104,9 +123,17 @@ class ApiClient {
     }
   }
 
-  Future<Response> delete(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+  Future<Response> delete(
+    String path, {
+    dynamic data,
+    Map<String, dynamic>? queryParameters,
+  }) async {
     try {
-      return await dio.delete(path, data: data, queryParameters: queryParameters);
+      return await dio.delete(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -127,21 +154,45 @@ class ApiClient {
     if (response != null) {
       final data = response.data;
 
-      // Extract message from ASP.NET Core error formats
-      if (data is Map<String, dynamic>) {
-        if (data['message'] != null) return data['message'].toString();
-        if (data['detail'] != null) return data['detail'].toString();
+      // 1. Extract message from Map response (handles both Map<String, dynamic> and Map<dynamic, dynamic>)
+      if (data is Map) {
+        if (data['message'] != null &&
+            data['message'].toString().trim().isNotEmpty) {
+          return data['message'].toString().trim();
+        }
+        if (data['detail'] != null &&
+            data['detail'].toString().trim().isNotEmpty) {
+          return data['detail'].toString().trim();
+        }
+        if (data['error'] != null &&
+            data['error'].toString().trim().isNotEmpty) {
+          return data['error'].toString().trim();
+        }
         if (data['errors'] != null && data['errors'] is Map) {
           final errMap = data['errors'] as Map;
-          final firstList = errMap.values.isNotEmpty ? errMap.values.first : null;
+          final firstList = errMap.values.isNotEmpty
+              ? errMap.values.first
+              : null;
           if (firstList is List && firstList.isNotEmpty) {
-            return firstList.first.toString();
+            return firstList.first.toString().trim();
           }
         }
-        if (data['title'] != null) return data['title'].toString();
+        if (data['title'] != null &&
+            data['title'].toString().trim().isNotEmpty) {
+          return data['title'].toString().trim();
+        }
+      }
+
+      // 2. Extract message if data is plain text
+      if (data is String &&
+          data.trim().isNotEmpty &&
+          !data.trim().startsWith('<!DOCTYPE html')) {
+        return data.trim();
       }
 
       switch (response.statusCode) {
+        case 400:
+          return 'Bad request. Please verify your data and try again.';
         case 401:
           return 'Session expired. Please log in again.';
         case 403:
@@ -151,6 +202,14 @@ class ApiClient {
         case 500:
           return 'Internal server error. Please try again later.';
       }
+    }
+
+    if (error.error != null) {
+      final errStr = error.error.toString();
+      if (errStr.contains('FormatException')) {
+        return 'Invalid server response or URL format.';
+      }
+      return errStr;
     }
 
     return error.message ?? 'An unexpected error occurred.';
