@@ -301,55 +301,6 @@
                         </a>
                     </nav>
                 }
-                else if (User.IsInRole("ACCOUNTANT"))
-                {
-                    <!-- Accountant: Workspace -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
-                        </div>
-                        <a asp-controller="AccountantDashboard" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantDashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Overview">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
-                        </a>
-                    </nav>
-
-                    <!-- Accountant: Payroll -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL &amp; COMPENSATION</span>
-                        </div>
-                        <a asp-controller="AccountantPayrollPeriods" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AccountantPayrollPeriods" or "AccountantPayrollCalculation" or "AccountantPayrollRevision" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Payroll Periods">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Periods</span>
-                        </a>
-                        <a asp-controller="AccountantSalaryHistory" asp-action="Index"
-                           aria-current="@(currentController == "AccountantSalaryHistory" ? "page" : null)"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantSalaryHistory" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Salary History">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">history</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Salary History</span>
-                        </a>
-                        <partial name="_PayrollDocumentNavigation" model='"Accountant"' />
-                    </nav>
-
-                    <!-- Accountant: Notifications -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span>
-                        </div>
-                        <a asp-controller="Notifications" asp-action="Personal"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Notifications">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
-                        </a>
-                    </nav>
-                }
                 else
                 {
                     <nav class="space-y-unit-1">

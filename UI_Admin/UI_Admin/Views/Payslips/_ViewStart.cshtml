@@ -1,1 +1,1 @@
-@{ Layout = User.IsInRole("STAFF") ? "_StaffLayout" : "_AdminLayout"; }
+@{ Layout = User.IsInRole("STAFF") ? "_StaffLayout" : User.IsInRole("ACCOUNTANT") ? "_AccountantLayout" : "_AdminLayout"; }
