@@ -71,7 +71,7 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task CreateFaceProfileAsync(FaceProfile faceProfile, CancellationToken cancellationToken = default)
+    public async Task CreateFaceProfileAsync(FaceProfile faceProfile, float[] embedding, CancellationToken cancellationToken = default)
     {
         var qualityScore = faceProfile.FaceQualityScore ?? 0.9850m;
         var livenessScore = faceProfile.LivenessScore;
@@ -81,6 +81,8 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         {
             await connection.OpenAsync(cancellationToken);
         }
+
+        string embeddingString = "[" + string.Join(",", embedding.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
         await using var command = connection.CreateCommand();
         command.CommandText = @"
@@ -97,7 +99,7 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
             ) VALUES (
                 @userId,
                 @sessionId,
-                array_fill(0.01::float4, ARRAY[128])::vector,
+                @embeddingStr::vector,
                 @embeddingVersion,
                 @regType,
                 @qualityScore,
@@ -116,7 +118,8 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
 
         AddParam("@userId", faceProfile.UserId);
         AddParam("@sessionId", faceProfile.RegistrationSessionId);
-        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "MobileNetV2-128");
+        AddParam("@embeddingStr", embeddingString);
+        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "ArcFace-512");
         AddParam("@regType", faceProfile.RegistrationType ?? "INITIAL");
         AddParam("@qualityScore", qualityScore);
         AddParam("@livenessScore", livenessScore);
