@@ -133,6 +133,15 @@ public sealed class ManagerWeeklyTimesheetDetailViewModel
     public string Status { get; set; } = null!;
     public bool CanGenerateTimesheet => string.Equals(Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
     public bool IsLocked => string.Equals(Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+    public bool CanLockTimesheet { get; set; }
+    public DateTime? ReviewDeadline { get; set; }
+    public bool IsPastDeadline { get; set; }
+    public int PendingAdjustmentCount { get; set; }
+    public string? LockEligibilityMessage { get; set; }
+
+    public string ReviewDeadlineDisplay => ReviewDeadline.HasValue
+        ? ScheduleDisplay.Vietnam(ReviewDeadline.Value).ToString("HH:mm dd/MM/yyyy")
+        : "-";
 
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }

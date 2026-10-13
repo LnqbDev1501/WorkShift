@@ -170,6 +170,57 @@ public sealed class ManagerTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Locks weekly timesheet batch for a schedule week, finalizing work hours for payroll calculation.
+    /// </summary>
+    [HttpPost("{id:int}/lock")]
+    [ProducesResponseType(typeof(ManagerWeeklyTimesheetDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerWeeklyTimesheetDetailResponse>> LockWeeklyTimesheet(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.LockWeeklyTimesheetAsync(managerId, id, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error locking weekly timesheet for week {ScheduleWeekId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to lock weekly timesheet.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

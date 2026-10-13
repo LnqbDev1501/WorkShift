@@ -75,9 +75,15 @@ public sealed class ManagerTimesheetController : Controller
         }
 
         if (TempData["SuccessMessage"] is string success)
+        {
             viewModel.SuccessMessage = success;
+            TempData.Remove("SuccessMessage");
+        }
         if (TempData["ErrorMessage"] is string error)
+        {
             viewModel.ErrorMessage = error;
+            TempData.Remove("ErrorMessage");
+        }
 
         return View(viewModel);
     }
@@ -101,7 +107,16 @@ public sealed class ManagerTimesheetController : Controller
             }
 
             if (TempData["ErrorMessage"] is string error)
+            {
                 detail.ErrorMessage = error;
+                TempData.Remove("ErrorMessage");
+            }
+
+            if (TempData["SuccessMessage"] is string success)
+            {
+                detail.SuccessMessage = success;
+                TempData.Remove("SuccessMessage");
+            }
 
             return View(detail);
         }
@@ -126,6 +141,7 @@ public sealed class ManagerTimesheetController : Controller
         try
         {
             await _timesheetApiService.GenerateWeeklyTimesheetAsync(id, cancellationToken);
+            TempData["SuccessMessage"] = "Weekly timesheet generated successfully. Staff members have been notified.";
         }
         catch (InvalidOperationException ex)
         {
@@ -135,6 +151,34 @@ public sealed class ManagerTimesheetController : Controller
         {
             _logger.LogError(ex, "Failed to generate timesheet for week {ScheduleWeekId}", id);
             TempData["ErrorMessage"] = $"Failed to generate timesheet: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Lock(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _timesheetApiService.LockWeeklyTimesheetAsync(id, cancellationToken);
+            TempData["SuccessMessage"] = "Weekly timesheet locked successfully. Attendance hours finalized for payroll calculation.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to lock timesheet for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to lock timesheet: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Details), new { id });

@@ -15,6 +15,11 @@ public sealed class ManagerWeeklyTimesheetDetailResponse
     public string Status { get; set; } = null!; // "NOT GENERATED", "GENERATED", "LOCKED"
     public bool CanGenerateTimesheet => string.Equals(Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
     public bool IsLocked => string.Equals(Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+    public bool CanLockTimesheet { get; set; }
+    public DateTime? ReviewDeadline { get; set; }
+    public bool IsPastDeadline { get; set; }
+    public int PendingAdjustmentCount { get; set; }
+    public string? LockEligibilityMessage { get; set; }
 
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }

@@ -297,6 +297,62 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         decimal totalWorkHours = Math.Round((decimal)totalWorkMinutes / 60m, 2);
 
+        int pendingAdjustmentCount = timesheets
+            .SelectMany(t => t.TimesheetAdjustmentRequests ?? Enumerable.Empty<TimesheetAdjustmentRequest>())
+            .Count(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+
+        DateTime? reviewDeadline = null;
+        bool isPastDeadline = false;
+        bool canLockTimesheet = false;
+        string? lockEligibilityMessage = null;
+
+        if (status != "NOT GENERATED" && status != "LOCKED" && timesheets.Any())
+        {
+            var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt) 
+                ?? week.PayrollPeriod?.CreatedAt 
+                ?? DateTime.UtcNow;
+
+            var vnOffset = TimeSpan.FromHours(7);
+            var generatedAtVn = firstGeneratedAt + vnOffset;
+            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+            reviewDeadline = week.PayrollPeriod?.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+
+            isPastDeadline = DateTime.UtcNow >= reviewDeadline.Value;
+            bool isAllConfirmed = (totalStaff > 0 && confirmedStaff == totalStaff);
+
+            if (pendingAdjustmentCount > 0)
+            {
+                canLockTimesheet = false;
+                lockEligibilityMessage = $"Cannot lock: {pendingAdjustmentCount} pending adjustment request(s) must be resolved first.";
+            }
+            else if (isAllConfirmed)
+            {
+                canLockTimesheet = true;
+                lockEligibilityMessage = "Ready to lock: 100% staff members have confirmed.";
+            }
+            else if (isPastDeadline)
+            {
+                canLockTimesheet = true;
+                lockEligibilityMessage = "Ready to lock: Review deadline has expired at end of day.";
+            }
+            else
+            {
+                canLockTimesheet = false;
+                var deadlineVn = reviewDeadline.Value + vnOffset;
+                lockEligibilityMessage = $"Waiting for 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until end of day ({deadlineVn:HH:mm dd/MM/yyyy}).";
+            }
+        }
+        else if (status == "LOCKED")
+        {
+            canLockTimesheet = false;
+            lockEligibilityMessage = "Timesheet is locked.";
+        }
+        else
+        {
+            canLockTimesheet = false;
+            lockEligibilityMessage = "Timesheet has not been generated yet.";
+        }
+
         return new ManagerWeeklyTimesheetDetailResponse
         {
             ScheduleWeekId = week.ScheduleWeekId,
@@ -307,6 +363,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             BranchId = week.BranchId,
             BranchName = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
             Status = status,
+            CanLockTimesheet = canLockTimesheet,
+            ReviewDeadline = reviewDeadline,
+            IsPastDeadline = isPastDeadline,
+            PendingAdjustmentCount = pendingAdjustmentCount,
+            LockEligibilityMessage = lockEligibilityMessage,
             TotalStaff = totalStaff,
             ConfirmedStaff = confirmedStaff,
             StaffReview = staffReview,
@@ -367,4 +428,54 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken);
         return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after generation.");
     }
+
+    public async Task<ManagerWeeklyTimesheetDetailResponse> LockWeeklyTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated manager identity is required.");
+        }
+
+        if (scheduleWeekId <= 0)
+        {
+            throw new ArgumentException("Schedule week ID must be greater than zero.");
+        }
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var (_, _, staffUserIds, notificationId, notificationContent) =
+            await _timesheetRepo.LockWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, cancellationToken);
+
+        if (notificationId > 0 && staffUserIds.Any())
+        {
+            foreach (var staffId in staffUserIds)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(staffId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notificationId,
+                        Title = "Weekly Timesheet Locked",
+                        Message = notificationContent,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to staff member {StaffId}", staffId);
+                }
+            }
+        }
+
+        var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken);
+        return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after locking.");
+    }
 }
+

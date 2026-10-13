@@ -45,11 +45,6 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
     {
         var query = _context.WorkScheduleWeeks
             .AsNoTracking()
-            .Include(w => w.Branch)
-            .Include(w => w.PayrollPeriod)
-                .ThenInclude(p => p!.Timesheets)
-            .Include(w => w.WorkShifts)
-                .ThenInclude(s => s.ShiftAssignments)
             .Where(w => w.BranchId == branchId &&
                         w.Status != "CANCELLED" &&
                         (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED"));
@@ -96,6 +91,11 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .Include(w => w.Branch)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+            .Include(w => w.WorkShifts)
+                .ThenInclude(s => s.ShiftAssignments)
             .OrderByDescending(w => w.WeekStartDate)
             .ThenByDescending(w => w.ScheduleWeekId)
             .Skip((pageIndex - 1) * pageSize)
@@ -126,6 +126,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 .ThenInclude(p => p!.Timesheets)
                     .ThenInclude(t => t.User)
                         .ThenInclude(u => u.Role)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.TimesheetAdjustmentRequests)
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.User)
@@ -309,4 +312,117 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         return (week, generatedTimesheets, staffUserIds, notificationId, notificationContent);
     }
+
+    public async Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)> LockWeeklyTimesheetAsync(
+        int scheduleWeekId,
+        int branchId,
+        Guid managerId,
+        CancellationToken cancellationToken = default)
+    {
+        var week = await _context.WorkScheduleWeeks
+            .Include(w => w.Branch)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.TimesheetAdjustmentRequests)
+            .FirstOrDefaultAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId, cancellationToken);
+
+        if (week == null)
+        {
+            throw new KeyNotFoundException($"Schedule week with ID {scheduleWeekId} was not found for your branch.");
+        }
+
+        if (week.PayrollPeriod == null || !week.PayrollPeriod.Timesheets.Any())
+        {
+            throw new InvalidOperationException("Cannot lock timesheet: Timesheet for this week has not been generated yet.");
+        }
+
+        var timesheets = week.PayrollPeriod.Timesheets.ToList();
+
+        if (timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Timesheet for this week has already been locked.");
+        }
+
+        int pendingAdjustmentsCount = timesheets
+            .SelectMany(t => t.TimesheetAdjustmentRequests ?? Enumerable.Empty<TimesheetAdjustmentRequest>())
+            .Count(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+
+        if (pendingAdjustmentsCount > 0)
+        {
+            throw new InvalidOperationException($"Cannot lock timesheet: There are {pendingAdjustmentsCount} pending adjustment request(s) awaiting review. Please approve or reject all requests before locking.");
+        }
+
+        var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt)
+            ?? week.PayrollPeriod.CreatedAt;
+
+        // Vietnam Time (UTC+7)
+        var vnOffset = TimeSpan.FromHours(7);
+        var generatedAtVn = firstGeneratedAt + vnOffset;
+        var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+        var reviewDeadlineUtc = week.PayrollPeriod.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+
+        var now = DateTime.UtcNow;
+        bool isPastDeadline = now >= reviewDeadlineUtc;
+        int totalStaff = timesheets.Count;
+        int confirmedStaff = timesheets.Count(t => string.Equals(t.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase));
+        bool isAllConfirmed = (totalStaff > 0 && confirmedStaff == totalStaff);
+
+        if (!isAllConfirmed && !isPastDeadline)
+        {
+            var deadlineVnDisplay = (reviewDeadlineUtc + vnOffset).ToString("HH:mm dd/MM/yyyy");
+            throw new InvalidOperationException($"Cannot lock timesheet: Requires 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until the review deadline expires at end of day ({deadlineVnDisplay}).");
+        }
+
+        foreach (var timesheet in timesheets)
+        {
+            timesheet.Status = "LOCKED";
+            timesheet.LockedAt = now;
+            timesheet.LockedBy = managerId;
+            timesheet.UpdatedAt = now;
+        }
+
+        var staffUserIds = timesheets.Select(t => t.UserId).Distinct().ToList();
+        int notificationId = 0;
+        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been locked by the branch manager. Attendance hours have been finalized for payroll calculation.";
+
+        if (staffUserIds.Count > 0)
+        {
+            var notification = new WorkShiftManagement.DAL.Entities.Notification
+            {
+                Title = "Weekly Timesheet Locked",
+                Content = notificationContent,
+                NotificationType = "TIMESHEET",
+                CreatedBy = managerId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = null,
+                TargetRegionId = null,
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { "STAFF" }
+            };
+
+            foreach (var staffId in staffUserIds)
+            {
+                notification.UserNotifications.Add(new UserNotification
+                {
+                    UserId = staffId,
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync(cancellationToken);
+            notificationId = notification.NotificationId;
+        }
+        else
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return (week, timesheets, staffUserIds, notificationId, notificationContent);
+    }
 }
+

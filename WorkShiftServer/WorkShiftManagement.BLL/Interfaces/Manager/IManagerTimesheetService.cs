@@ -22,4 +22,9 @@ public interface IManagerTimesheetService
         Guid managerId,
         int scheduleWeekId,
         CancellationToken cancellationToken = default);
+
+    Task<ManagerWeeklyTimesheetDetailResponse> LockWeeklyTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
 }

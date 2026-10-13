@@ -96,4 +96,21 @@ public sealed class ManagerTimesheetApiService
         var result = await response.Content.ReadFromJsonAsync<ManagerWeeklyTimesheetDetailViewModel>(cancellationToken: cancellationToken);
         return result ?? throw new InvalidOperationException("Failed to read timesheet details after generation.");
     }
+
+    public async Task<ManagerWeeklyTimesheetDetailViewModel> LockWeeklyTimesheetAsync(
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/lock";
+        var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<ManagerWeeklyTimesheetDetailViewModel>(cancellationToken: cancellationToken);
+        return result ?? throw new InvalidOperationException("Failed to read timesheet details after locking.");
+    }
 }
+
