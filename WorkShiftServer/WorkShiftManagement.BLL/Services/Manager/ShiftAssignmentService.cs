@@ -24,6 +24,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var result = await repo.ExecuteAsync(shiftId, request.UserId, branchId, async (shift, staff) =>
         {
             ValidateShift(shift);
+            ValidateAssignmentDeadline(shift.ScheduledStartAt, DateTime.UtcNow);
             if (staff.BranchId != branchId) throw new KeyNotFoundException("Staff not found in this branch.");
             if (staff.Status != "ACTIVE" || staff.DeletedAt.HasValue ||
                 staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE")
@@ -166,6 +167,14 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         if (manager.BranchId is not int branchId || manager.Branch?.Status != "ACTIVE" || manager.Role.Status != "ACTIVE")
             throw new UnauthorizedAccessException("An active manager role and branch are required.");
         return branchId;
+    }
+
+    internal static void ValidateAssignmentDeadline(DateTime scheduledStartAt, DateTime utcNow)
+    {
+        // A Thursday shift closes assignment at Wednesday 00:00 in Vietnam.
+        var deadlineUtc = DateTime.SpecifyKind(scheduledStartAt.AddHours(7).Date.AddDays(-1).AddHours(-7), DateTimeKind.Utc);
+        if (utcNow >= deadlineUtc)
+            throw new InvalidOperationException("Employees must be assigned before 00:00 on the day before the shift (UTC+7).");
     }
 
     private static void ValidateShift(WorkShift shift)

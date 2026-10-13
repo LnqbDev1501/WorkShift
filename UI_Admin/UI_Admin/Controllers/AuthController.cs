@@ -343,9 +343,8 @@ namespace UI_Admin.Controllers
         [AllowAnonymous]
         public IActionResult ResetPassword()
         {
-            if (User.Identity?.IsAuthenticated == true)
-                return RedirectToRoleLanding();
-
+            // Allow page to load so client-side JS can extract token from URL hash (#access_token=xxx&type=recovery)
+            // Do NOT redirect authenticated users here - Supabase recovery tokens are single-use
             return View(new SetPasswordViewModel());
         }
 

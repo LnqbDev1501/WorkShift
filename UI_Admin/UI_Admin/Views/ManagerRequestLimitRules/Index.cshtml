@@ -1,0 +1,35 @@
+@model UI_Admin.Models.Manager.RequestLimitRuleListViewModel
+@using R = UI_Admin.Models.Manager.RequestRuleDisplay
+@{
+    ViewData["Title"] = "Request Limit Rules";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/request-limit-rules.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page rule-page">
+    <header class="ad-heading rl-hero"><div><span class="ad-eyebrow">REQUEST LIMIT RULES / MANAGER</span><h1>Better requests.<br /><span>Clearer boundaries.</span></h1><p>Manage monthly request limits and notice periods for your branch.</p></div><div class="ms-header-actions"><a class="ms-primary" asp-action="Create"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create rule</a><a class="ad-refresh" asp-action="Index" asp-route-requestType="@Model.Filter.RequestType" asp-route-status="@Model.Filter.Status" asp-route-pageNumber="@Model.Filter.PageNumber"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></div></header>
+    @if (TempData["RuleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
+    <nav class="rl-categories" aria-label="Filter rules by request type">
+        @foreach (var type in R.Types)
+        {
+            <a class="rl-category @(Model.Filter.RequestType == type ? "is-selected" : "")" asp-action="Index" asp-route-requestType="@type" asp-route-status="@Model.Filter.Status" aria-current="@(Model.Filter.RequestType == type ? "true" : null)"><span class="rl-category-icon material-symbols-outlined" aria-hidden="true">@R.Icon(type)</span><span><strong>@R.Label(type)</strong><small>@(type switch { "LEAVE" => "Time away, thoughtfully planned", "LATE_ARRIVAL" => "A little flexibility, clear limits", "EARLY_LEAVE" => "Leaving early, staying aligned", _ => "A fair path to salary reviews" })</small></span><span class="rl-category-arrow" aria-hidden="true">↗</span></a>
+        }
+    </nav>
+    <form method="get" class="ad-card ms-filters"><div class="ms-filter-title"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span><strong>Find a rule</strong><span>Filter by request type and status</span></div><div><label for="RequestType">Request type</label><select id="RequestType" name="RequestType"><option value="">All request types</option>@foreach (var type in R.Types) { <option value="@type" selected="@(Model.Filter.RequestType == type)">@R.Label(type)</option> }</select></div><div><label for="Status">Status</label><select id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in R.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@R.Label(status)</option> }</select></div><button class="ms-primary" type="submit">Apply filters</button><a class="ms-reset" asp-action="Index">Reset</a><div asp-validation-summary="All" class="ms-validation" role="alert"></div></form>
+    @if (Model.ErrorMessage is not null) { <section class="ad-error" role="alert"><div><h2>Rules unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Index" asp-route-requestType="@Model.Filter.RequestType" asp-route-status="@Model.Filter.Status">Try again</a></div></section> }
+    @if (Model.Page is { } result)
+    {
+        var pagination = new ListPaginationViewModel { PageNumber = result.PageNumber, PageSize = result.PageSize, TotalItems = result.TotalItems, PageParameter = "pageNumber", ItemLabel = "rules" };
+        <div class="ms-summary"><span><strong>@result.TotalItems.ToString("N0")</strong> rules matching your filters</span><span>Assigned branch only · Dates in UTC+7</span></div>
+        <section class="ad-card ad-recent"><div class="rl-table-heading"><div><span class="ms-section-kicker">POLICY LIBRARY</span><h2>Your branch rules</h2></div><span>Review · Publish · Evolve</span></div><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Request limit rule list"><table><thead><tr><th scope="col">Rule / Request Type</th><th scope="col">Monthly Limit</th><th scope="col">Advance Notice</th><th scope="col">Effective Period</th><th scope="col">Status</th><th scope="col">Action</th></tr></thead><tbody>
+            @if (result.Items.Count == 0) { <tr><td colspan="6" class="ad-empty"><span class="material-symbols-outlined ms-empty-icon" aria-hidden="true">rule</span><strong>No rules found</strong><small>Create a rule or adjust your filters to get started.</small></td></tr> }
+            @foreach (var rule in result.Items)
+            {
+                <tr><td><div class="rl-rule-cell"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">@R.Icon(rule.RequestType)</span><div><a class="ms-week-link" asp-action="Details" asp-route-id="@rule.RequestLimitRuleId">@R.Label(rule.RequestType)</a><small>Rule #@rule.RequestLimitRuleId @(rule.SupersedesRuleId.HasValue ? $"· Replaces #{rule.SupersedesRuleId}" : "")</small></div></div></td><td><strong>@rule.MaxRequestsPerMonth</strong><small>requests / month</small></td><td><strong>@rule.MinimumAdvanceDays</strong><small>days before request</small></td><td>@UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveFrom)<small>@(rule.EffectiveTo.HasValue ? "Until " + UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveTo.Value) : "No end date set")</small></td><td><span class="ad-badge @R.Tone(rule.Status)">@R.Label(rule.Status)</span></td><td><a class="ms-detail-link" asp-action="Details" asp-route-id="@rule.RequestLimitRuleId">View details →</a></td></tr>
+            }
+        </tbody></table></div><partial name="_ListPagination" model="pagination" /></section>
+    }
+    <div class="rl-status-guide"><span><i class="rl-dot draft"></i>Draft · editable</span><span><i class="rl-dot scheduled"></i>Scheduled · published for later</span><span><i class="rl-dot active"></i>Active · currently applied</span><span><i class="rl-dot inactive"></i>Inactive · historical version</span></div>
+</div>
