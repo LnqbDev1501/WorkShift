@@ -3,18 +3,25 @@ import 'package:flutter/material.dart';
 import '../../../models/available_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/status_badge.dart';
+import '../../../widgets/app_button.dart';
 import 'shift_display_format.dart';
 
 class AvailableShiftCard extends StatelessWidget {
   final AvailableShiftModel shift;
   final bool isOpen;
   final bool isClosingSoon;
+  final bool isRegistering;
+  final VoidCallback? onRegister;
+  final VoidCallback? onViewDetails;
 
   const AvailableShiftCard({
     super.key,
     required this.shift,
     required this.isOpen,
     this.isClosingSoon = false,
+    this.isRegistering = false,
+    this.onRegister,
+    this.onViewDetails,
   });
 
   @override
@@ -153,8 +160,9 @@ class AvailableShiftCard extends StatelessWidget {
             ),
             if (shift.note?.trim().isNotEmpty == true)
               Theme(
-                data: Theme.of(context)
-                    .copyWith(dividerColor: Colors.transparent),
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
                   key: PageStorageKey('shift-note-${shift.shiftId}'),
                   tilePadding: EdgeInsets.zero,
@@ -220,6 +228,21 @@ class AvailableShiftCard extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 12),
+            if (onViewDetails != null)
+              AppButton(
+                text: 'View details',
+                type: AppButtonType.text,
+                icon: Icons.arrow_forward_rounded,
+                onPressed: onViewDetails,
+              ),
+            AppButton(
+              text: isOpen ? 'Register for shift' : 'Registration closed',
+              icon: Icons.add_task_rounded,
+              width: double.infinity,
+              isLoading: isRegistering,
+              onPressed: onRegister,
             ),
           ],
         ),

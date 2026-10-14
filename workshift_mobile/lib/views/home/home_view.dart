@@ -11,6 +11,7 @@ import 'components/today_shift_card.dart';
 import 'components/unfinished_shift_banner.dart';
 import 'handlers/attendance_flow_handler.dart';
 import '../attendance/attendance_history_view.dart';
+import '../shifts/my_shifts_view.dart';
 
 import '../face_registration/face_registration_modal.dart';
 import '../requests/staff_request_list_view.dart';
@@ -283,6 +284,7 @@ class _HomeViewState extends State<HomeView> {
                           // 3. Quick Actions
                           QuickActions(
                             onFaceRegistrationSuccess: () => _controller.loadHomeData(),
+                            onShiftsChanged: () => _controller.loadHomeData(silent: true),
                           ),
                           const SizedBox(height: 24),
 
@@ -301,7 +303,7 @@ class _HomeViewState extends State<HomeView> {
           // Tab 1: Timesheet
           _buildPlaceholderTab('Timesheet', Icons.assignment_outlined),
           // Tab 2: Schedule
-          _buildPlaceholderTab('Schedule', Icons.calendar_today_outlined),
+          _currentTabIndex == 2 ? const MyShiftsView(showBackButton: false) : const SizedBox.shrink(),
           // Tab 3: Requests
           const StaffRequestListView(showBackButton: false),
           // Tab 4: Profile
@@ -311,9 +313,11 @@ class _HomeViewState extends State<HomeView> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentTabIndex,
         onTap: (index) {
+          final returningFromSchedule = index == 0 && _currentTabIndex == 2;
           setState(() {
             _currentTabIndex = index;
           });
+          if (returningFromSchedule) _controller.loadHomeData(silent: true);
         },
         items: const [
           BottomNavigationBarItem(

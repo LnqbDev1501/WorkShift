@@ -6,6 +6,7 @@ enum AppButtonType {
   primary, // Nút xanh chính (như nút "Chấm công vào")
   secondary, // Nút nền xám nhạt (như nút "Xem" ở danh sách)
   outline, // Nút viền ngoài
+  dangerOutline,
   text, // Nút chữ (như "Xem chi tiết ca ->")
 }
 
@@ -78,6 +79,11 @@ class AppButton extends StatelessWidget {
         bgColor = Colors.transparent;
         textColor = AppColors.primary;
         borderSide = const BorderSide(color: AppColors.primary, width: 1.5);
+        break;
+      case AppButtonType.dangerOutline:
+        bgColor = Colors.transparent;
+        textColor = AppColors.error;
+        borderSide = const BorderSide(color: AppColors.error, width: 1.5);
         break;
       default:
         bgColor = AppColors.primary;

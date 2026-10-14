@@ -1,4 +1,6 @@
-/// Data returned by GET /api/staff/shifts/available. Times are stored in UTC.
+import 'shift_registration_model.dart';
+
+/// Shift data returned by available shifts, my schedule and shift detail APIs.
 class AvailableShiftModel {
   final int shiftId;
   final int scheduleWeekId;
@@ -11,6 +13,9 @@ class AvailableShiftModel {
   final String status;
   final String scheduleWeekStatus;
   final String? note;
+  final ShiftRegistrationModel? myRegistration;
+  final bool canCancelRegistration;
+  final String? cancellationBlockedReason;
   final List<ShiftRequirementModel> employeeRequirements;
 
   const AvailableShiftModel({
@@ -25,6 +30,9 @@ class AvailableShiftModel {
     required this.status,
     required this.scheduleWeekStatus,
     this.note,
+    this.myRegistration,
+    this.canCancelRegistration = false,
+    this.cancellationBlockedReason,
     required this.employeeRequirements,
   });
 
@@ -35,8 +43,9 @@ class AvailableShiftModel {
       branchId: (json['branchId'] as num).toInt(),
       branchName: json['branchName'] as String,
       shiftName: json['shiftName'] as String,
-      scheduledStartAt: DateTime.parse(json['scheduledStartAt'] as String)
-          .toUtc(),
+      scheduledStartAt: DateTime.parse(
+        json['scheduledStartAt'] as String,
+      ).toUtc(),
       scheduledEndAt: DateTime.parse(json['scheduledEndAt'] as String).toUtc(),
       registrationDeadline: DateTime.parse(
         json['registrationDeadline'] as String,
@@ -44,6 +53,13 @@ class AvailableShiftModel {
       status: json['status'] as String,
       scheduleWeekStatus: json['scheduleWeekStatus'] as String,
       note: json['note'] as String?,
+      myRegistration: json['myRegistration'] == null
+          ? null
+          : ShiftRegistrationModel.fromJson(
+              json['myRegistration'] as Map<String, dynamic>,
+            ),
+      canCancelRegistration: json['canCancelRegistration'] == true,
+      cancellationBlockedReason: json['cancellationBlockedReason'] as String?,
       employeeRequirements: List.unmodifiable(
         (json['employeeRequirements'] as List).map(
           (item) =>

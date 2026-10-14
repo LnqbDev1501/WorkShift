@@ -4,6 +4,7 @@ import '../../../widgets/quick_action_item.dart';
 
 import '../../face_registration/face_registration_modal.dart';
 import '../../shifts/available_shifts_view.dart';
+import '../../shifts/my_shifts_view.dart';
 import '../../requests/staff_request_list_view.dart';
 import '../../contracts/staff_contract_list_view.dart';
 
@@ -29,8 +30,13 @@ class _QuickActionData {
 /// Component: Quick Actions on Homepage (Default 6 actions, expandable)
 class QuickActions extends StatefulWidget {
   final VoidCallback? onFaceRegistrationSuccess;
+  final VoidCallback? onShiftsChanged;
 
-  const QuickActions({super.key, this.onFaceRegistrationSuccess});
+  const QuickActions({
+    super.key,
+    this.onFaceRegistrationSuccess,
+    this.onShiftsChanged,
+  });
 
   @override
   State<QuickActions> createState() => _QuickActionsState();
@@ -74,10 +80,24 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.event_note_rounded,
         iconColor: AppColors.actionRegisterIcon,
         iconBgColor: AppColors.actionRegisterBg,
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AvailableShiftsView()),
           );
+          if (mounted) widget.onShiftsChanged?.call();
+        },
+      ),
+      _QuickActionData(
+        title: 'Work Schedule',
+        subtitle: 'Your shifts and details',
+        icon: Icons.event_note_outlined,
+        iconColor: AppColors.actionRegisterIcon,
+        iconBgColor: AppColors.actionRegisterBg,
+        onTap: () async {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+          if (mounted) widget.onShiftsChanged?.call();
         },
       ),
       _QuickActionData(
@@ -156,7 +176,9 @@ class _QuickActionsState extends State<QuickActions> {
     ];
 
     // Limit to 6 items when collapsed
-    final displayedActions = _isExpanded ? allActions : allActions.take(6).toList();
+    final displayedActions = _isExpanded
+        ? allActions
+        : allActions.take(6).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,11 +203,16 @@ class _QuickActionsState extends State<QuickActions> {
                   });
                 },
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   visualDensity: VisualDensity.compact,
                 ),
                 icon: Icon(
-                  _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                  _isExpanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
                   size: 18,
                   color: AppColors.primary,
                 ),
@@ -247,7 +274,10 @@ class _QuickActionsState extends State<QuickActions> {
               },
               borderRadius: BorderRadius.circular(20),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -263,7 +293,9 @@ class _QuickActionsState extends State<QuickActions> {
                     ),
                     const SizedBox(width: 4),
                     Icon(
-                      _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                      _isExpanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
                       size: 16,
                       color: AppColors.textSecondary,
                     ),

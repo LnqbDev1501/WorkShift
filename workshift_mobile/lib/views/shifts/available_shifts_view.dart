@@ -8,6 +8,9 @@ import '../../widgets/app_state_panel.dart';
 import 'components/available_shift_card.dart';
 import 'components/available_shift_filters.dart';
 import 'components/shift_display_format.dart';
+import 'components/shift_registration_dialog.dart';
+import 'my_shifts_view.dart';
+import 'shift_detail_view.dart';
 
 class AvailableShiftsView extends StatefulWidget {
   final AvailableShiftsController? controller;
@@ -20,6 +23,54 @@ class AvailableShiftsView extends StatefulWidget {
 class _AvailableShiftsViewState extends State<AvailableShiftsView>
     with WidgetsBindingObserver {
   late final AvailableShiftsController _controller;
+  bool _isConfirmingRegistration = false;
+
+  Future<void> _registerShift(AvailableShiftModel shift) async {
+    if (_isConfirmingRegistration || !_controller.canRegister(shift)) return;
+    _isConfirmingRegistration = true;
+    try {
+      final confirmed = await showShiftRegistrationDialog(context, shift);
+      if (!mounted || confirmed != true) return;
+      final success = await _controller.registerShift(shift);
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Registered for ${shift.shiftName} · ${ShiftDisplayFormat.dayHeading(shift.scheduledStartAt)}. Your shift is confirmed.',
+            ),
+          ),
+        );
+      } else {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            scrollable: true,
+            title: const Text('Couldn’t register for shift'),
+            content: Text(
+              _controller.registrationError ??
+                  'Please refresh the list and try again.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Close'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  _controller.refresh();
+                },
+                child: const Text('Refresh shifts'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      _isConfirmingRegistration = false;
+    }
+  }
 
   @override
   void initState() {
@@ -72,6 +123,18 @@ class _AvailableShiftsViewState extends State<AvailableShiftsView>
         leading: const BackButton(),
         title: const Text('Available Shifts'),
         actions: [
+          IconButton(
+            tooltip: 'My shifts',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: () async {
+              await Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+              if (mounted) {
+                await _controller.refresh(resetRegisteredShifts: true);
+              }
+            },
+          ),
           ListenableBuilder(
             listenable: _controller,
             builder: (context, _) => IconButton(
@@ -258,8 +321,20 @@ class _AvailableShiftsViewState extends State<AvailableShiftsView>
           ),
         AvailableShiftCard(
           shift: shift,
+          onViewDetails: () async {
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ShiftDetailView(shiftId: shift.shiftId),
+              ),
+            );
+            if (mounted) await _controller.refresh(resetRegisteredShifts: true);
+          },
           isOpen: _controller.isOpen(shift),
           isClosingSoon: _controller.isClosingSoon(shift),
+          isRegistering: _controller.registeringShiftId == shift.shiftId,
+          onRegister: _controller.canRegister(shift)
+              ? () => _registerShift(shift)
+              : null,
         ),
         const SizedBox(height: 12),
       ],

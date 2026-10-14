@@ -14,6 +14,8 @@ public sealed class StaffShiftResponse
     public DateTime RegistrationDeadline { get; set; }
     public string? Note { get; set; }
     public StaffShiftRegistrationResponse? MyRegistration { get; set; }
+    public bool CanCancelRegistration { get; set; }
+    public string? CancellationBlockedReason { get; set; }
     public List<StaffShiftRequirementResponse> EmployeeRequirements { get; set; } = [];
 }
 

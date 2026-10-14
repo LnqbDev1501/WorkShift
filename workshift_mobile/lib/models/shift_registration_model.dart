@@ -1,0 +1,35 @@
+class ShiftRegistrationModel {
+  final int assignmentId;
+  final int shiftId;
+  final int? shiftRequirementId;
+  final String assignmentSource;
+  final String status;
+  final DateTime assignedAt;
+  final DateTime? cancelledAt;
+  final String? cancelReason;
+
+  const ShiftRegistrationModel({
+    required this.assignmentId,
+    required this.shiftId,
+    this.shiftRequirementId,
+    required this.assignmentSource,
+    required this.status,
+    required this.assignedAt,
+    this.cancelledAt,
+    this.cancelReason,
+  });
+
+  factory ShiftRegistrationModel.fromJson(Map<String, dynamic> json) =>
+      ShiftRegistrationModel(
+        assignmentId: (json['assignmentId'] as num).toInt(),
+        shiftId: (json['shiftId'] as num).toInt(),
+        shiftRequirementId: (json['shiftRequirementId'] as num?)?.toInt(),
+        assignmentSource: json['assignmentSource'] as String,
+        status: json['status'] as String,
+        assignedAt: DateTime.parse(json['assignedAt'] as String).toUtc(),
+        cancelledAt: json['cancelledAt'] == null
+            ? null
+            : DateTime.parse(json['cancelledAt'] as String).toUtc(),
+        cancelReason: json['cancelReason'] as String?,
+      );
+}

@@ -15,7 +15,12 @@ public sealed class StaffShiftRepo(AppDbContext context) : IStaffShiftRepo
         query.AsNoTracking().Include(x => x.ScheduleWeek).ThenInclude(x => x.Branch)
             .Include(x => x.ShiftEmployeeRequirements).ThenInclude(x => x.EmployeeType)
             .Include(x => x.ShiftAssignments.Where(a => a.UserId == staffId ||
-                a.Status == "ASSIGNED" || a.Status == "COMPLETED")).AsSplitQuery();
+                a.Status == "ASSIGNED" || a.Status == "COMPLETED"))
+            .Include(x => x.ShiftAssignments).ThenInclude(a => a.Attendance)
+            .Include(x => x.ShiftAssignments).ThenInclude(a => a.PayslipWorkDetails)
+            .Include(x => x.ShiftAssignments).ThenInclude(a => a.LeaveRequestAssignments).ThenInclude(l => l.Request)
+            .Include(x => x.ShiftAssignments).ThenInclude(a => a.TimeAdjustmentRequestDetails).ThenInclude(d => d.Request)
+            .AsSplitQuery();
 
     public async Task<(List<WorkShift> Items, int Total)> GetPagedAsync(Guid staffId, int branchId,
         int? employeeTypeId, bool availableOnly, DateTime? from, DateTime? to,

@@ -2,11 +2,16 @@ import 'package:flutter/foundation.dart';
 
 import '../models/available_shift_model.dart';
 import '../services/available_shifts_service.dart';
+import '../services/shift_registration_service.dart';
 
 enum AvailableShiftFilter { allUpcoming, thisWeek, nextWeek, custom }
 
 class AvailableShiftsController extends ChangeNotifier {
   final AvailableShiftsService _service;
+  final ShiftRegistrationService _registrationService;
+  final Set<int> _registeredShiftIds = {};
+  int? _registeringShiftId;
+  String? _registrationError;
   final DateTime Function() _now;
   final List<AvailableShiftModel> _shifts = [];
   AvailableShiftFilter _filter = AvailableShiftFilter.allUpcoming;
@@ -24,8 +29,10 @@ class AvailableShiftsController extends ChangeNotifier {
 
   AvailableShiftsController({
     AvailableShiftsService? service,
+    ShiftRegistrationService? registrationService,
     DateTime Function()? now,
   }) : _service = service ?? AvailableShiftsService(),
+       _registrationService = registrationService ?? ShiftRegistrationService(),
        _now = now ?? DateTime.now;
 
   List<AvailableShiftModel> get shifts => List.unmodifiable(_shifts);
@@ -38,6 +45,61 @@ class AvailableShiftsController extends ChangeNotifier {
   bool get hasMore => _pageNumber < _totalPages;
   String? get errorMessage => _errorMessage;
   String? get loadMoreError => _loadMoreError;
+  int? get registeringShiftId => _registeringShiftId;
+  bool get isRegistering => _registeringShiftId != null;
+  String? get registrationError => _registrationError;
+
+  bool canRegister(AvailableShiftModel shift) =>
+      !_disposed &&
+      !isRegistering &&
+      !_isLoading &&
+      !_registeredShiftIds.contains(shift.shiftId) &&
+      isOpen(shift) &&
+      shift.employeeRequirements.any(
+        (requirement) => requirement.remainingCount > 0,
+      );
+
+  Future<bool> registerShift(AvailableShiftModel shift) async {
+    if (_disposed || isRegistering) return false;
+    if (!canRegister(shift)) {
+      _registrationError =
+          'This shift is no longer available. Refresh the list to see current shifts.';
+      notifyListeners();
+      return false;
+    }
+    _registeringShiftId = shift.shiftId;
+    _registrationError = null;
+    notifyListeners();
+    try {
+      final registration = await _registrationService.register(shift.shiftId);
+      if (_disposed) return false;
+      if (registration.shiftId != shift.shiftId ||
+          registration.status != 'ASSIGNED') {
+        throw const FormatException('Unexpected registration response.');
+      }
+      _registeredShiftIds.add(shift.shiftId);
+      // Invalidate earlier list requests before removing the confirmed assignment.
+      _generation++;
+      final wasVisible = _shifts.any((item) => item.shiftId == shift.shiftId);
+      _shifts.removeWhere((item) => item.shiftId == shift.shiftId);
+      if (wasVisible && _totalItems > 0) _totalItems--;
+      notifyListeners();
+      await refresh();
+      return true;
+    } catch (error) {
+      if (!_disposed) {
+        _registrationError = error is String && error.trim().isNotEmpty
+            ? error
+            : 'Unable to confirm registration. Refresh the list before trying again.';
+      }
+      return false;
+    } finally {
+      if (!_disposed) {
+        _registeringShiftId = null;
+        notifyListeners();
+      }
+    }
+  }
 
   DateTime get today {
     final vietnamTime = _now().toUtc().add(const Duration(hours: 7));
@@ -81,7 +143,10 @@ class AvailableShiftsController extends ChangeNotifier {
     await _loadFirstPage(clearItems: true);
   }
 
-  Future<void> refresh() => _loadFirstPage(clearItems: false);
+  Future<void> refresh({bool resetRegisteredShifts = false}) {
+    if (resetRegisteredShifts) _registeredShiftIds.clear();
+    return _loadFirstPage(clearItems: false);
+  }
 
   bool isOpen(AvailableShiftModel shift) {
     final now = _now().toUtc();
@@ -118,10 +183,12 @@ class AvailableShiftsController extends ChangeNotifier {
       if (!_isCurrent(generation)) return;
       _shifts
         ..clear()
-        ..addAll(page.items);
-      _pageNumber = page.pageNumber;
-      _totalPages = page.totalPages;
-      _totalItems = page.totalItems;
+        ..addAll(
+          page.items.where(
+            (shift) => !_registeredShiftIds.contains(shift.shiftId),
+          ),
+        );
+      _updatePagination(page);
     } catch (error) {
       if (_isCurrent(generation)) _errorMessage = _message(error);
     } finally {
@@ -147,11 +214,13 @@ class AvailableShiftsController extends ChangeNotifier {
       if (!_isCurrent(generation)) return;
       final existingIds = _shifts.map((shift) => shift.shiftId).toSet();
       _shifts.addAll(
-        page.items.where((shift) => existingIds.add(shift.shiftId)),
+        page.items.where(
+          (shift) =>
+              !_registeredShiftIds.contains(shift.shiftId) &&
+              existingIds.add(shift.shiftId),
+        ),
       );
-      _pageNumber = page.pageNumber;
-      _totalPages = page.totalPages;
-      _totalItems = page.totalItems;
+      _updatePagination(page);
     } catch (error) {
       if (_isCurrent(generation)) _loadMoreError = _message(error);
     } finally {
@@ -163,6 +232,16 @@ class AvailableShiftsController extends ChangeNotifier {
   }
 
   bool _isCurrent(int generation) => !_disposed && generation == _generation;
+
+  void _updatePagination(AvailableShiftPage page) {
+    _pageNumber = page.pageNumber;
+    _totalPages = page.totalPages;
+    final hidden = page.items
+        .where((shift) => _registeredShiftIds.contains(shift.shiftId))
+        .length;
+    _totalItems = page.totalItems - hidden;
+    if (_totalItems < 0) _totalItems = 0;
+  }
 
   String _message(Object error) => error is String && error.trim().isNotEmpty
       ? error
