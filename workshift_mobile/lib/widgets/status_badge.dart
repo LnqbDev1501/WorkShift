@@ -74,6 +74,154 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
+  /// Factory cho trạng thái "Chờ duyệt / Pending" (màu cam vàng)
+  factory StatusBadge.pending({String text = 'Pending'}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.warning,
+      backgroundColor: AppColors.warningBg,
+      textColor: AppColors.warning,
+    );
+  }
+
+  /// Factory cho trạng thái "Đã duyệt / Approved" (màu xanh lá)
+  factory StatusBadge.approved({String text = 'Approved'}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.success,
+      backgroundColor: AppColors.successBg,
+      textColor: const Color(0xFF059669),
+    );
+  }
+
+  /// Factory cho trạng thái "Bị từ chối / Rejected" (màu đỏ)
+  factory StatusBadge.rejected({String text = 'Rejected'}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.error,
+      backgroundColor: AppColors.errorBg,
+      textColor: AppColors.error,
+    );
+  }
+
+  /// Factory cho trạng thái "Đã hủy / Cancelled" (màu xám)
+  factory StatusBadge.cancelled({String text = 'Cancelled'}) {
+    return StatusBadge(
+      text: text,
+      hasDot: true,
+      dotColor: AppColors.textMuted,
+      backgroundColor: AppColors.borderLight,
+      textColor: AppColors.textSecondary,
+    );
+  }
+
+  /// Factory động theo mã trạng thái của Request từ Backend
+  factory StatusBadge.forRequestStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return StatusBadge.pending(text: 'Pending');
+      case 'APPROVED':
+        return StatusBadge.approved(text: 'Approved');
+      case 'REJECTED':
+        return StatusBadge.rejected(text: 'Rejected');
+      case 'CANCELLED':
+        return StatusBadge.cancelled(text: 'Cancelled');
+      default:
+        return StatusBadge.neutral(text: status);
+    }
+  }
+
+  /// Factory động theo trạng thái của Hợp đồng lao động
+  factory StatusBadge.forContractStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING_STAFF':
+        return StatusBadge(
+          text: 'Chờ ký',
+          hasDot: true,
+          dotColor: AppColors.warning,
+          backgroundColor: AppColors.warningBg,
+          textColor: AppColors.warning,
+        );
+      case 'ACTIVE':
+        return StatusBadge(
+          text: 'Có hiệu lực',
+          hasDot: true,
+          dotColor: AppColors.success,
+          backgroundColor: AppColors.successBg,
+          textColor: const Color(0xFF059669),
+        );
+      case 'SCHEDULED':
+        return StatusBadge(
+          text: 'Sắp bắt đầu',
+          hasDot: true,
+          dotColor: AppColors.info,
+          backgroundColor: AppColors.infoBg,
+          textColor: AppColors.info,
+        );
+      case 'EXPIRED':
+        return StatusBadge(
+          text: 'Đã hết hạn',
+          hasDot: true,
+          dotColor: AppColors.textMuted,
+          backgroundColor: AppColors.borderLight,
+          textColor: AppColors.textSecondary,
+        );
+      case 'CANCELLED':
+        return StatusBadge(
+          text: 'Đã hủy',
+          hasDot: true,
+          dotColor: AppColors.error,
+          backgroundColor: AppColors.errorBg,
+          textColor: AppColors.error,
+        );
+      case 'TERMINATED':
+        return StatusBadge(
+          text: 'Đã chấm dứt',
+          hasDot: true,
+          dotColor: AppColors.error,
+          backgroundColor: AppColors.errorBg,
+          textColor: AppColors.error,
+        );
+      default:
+        return StatusBadge.neutral(text: status);
+    }
+  }
+
+  /// Factory cho trạng thái của Yêu cầu thay đổi hợp đồng (Contract Change Request)
+  factory StatusBadge.forChangeRequestStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'SUBMITTED':
+        return StatusBadge(
+          text: 'Đang xem xét',
+          hasDot: true,
+          dotColor: AppColors.warning,
+          backgroundColor: AppColors.warningBg,
+          textColor: AppColors.warning,
+        );
+      case 'APPROVED':
+        return StatusBadge(
+          text: 'Đã cập nhật',
+          hasDot: true,
+          dotColor: AppColors.success,
+          backgroundColor: AppColors.successBg,
+          textColor: const Color(0xFF059669),
+        );
+      case 'REJECTED':
+        return StatusBadge(
+          text: 'Từ chối sửa',
+          hasDot: true,
+          dotColor: AppColors.error,
+          backgroundColor: AppColors.errorBg,
+          textColor: AppColors.error,
+        );
+      default:
+        return StatusBadge.neutral(text: status);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
