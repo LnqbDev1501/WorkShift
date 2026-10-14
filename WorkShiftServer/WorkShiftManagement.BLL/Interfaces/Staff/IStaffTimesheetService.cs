@@ -17,4 +17,9 @@ public interface IStaffTimesheetService
         int scheduleWeekId,
         string? note,
         CancellationToken cancellationToken = default);
+
+    Task<StaffWeeklyTimesheetResponse> SubmitAdjustmentRequestsAsync(
+        Guid staffId,
+        SubmitTimesheetAdjustmentRequest request,
+        CancellationToken cancellationToken = default);
 }

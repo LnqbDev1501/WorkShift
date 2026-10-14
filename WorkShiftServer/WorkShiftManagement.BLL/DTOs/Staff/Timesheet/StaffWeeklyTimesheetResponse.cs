@@ -17,6 +17,11 @@ public sealed class StaffWeeklyTimesheetResponse
     public string StaffReviewStatus { get; set; } = null!; // "PENDING", "CONFIRMED", "-"
     public bool CanConfirm { get; set; }
     public bool IsLocked { get; set; }
+    public DateTime? ReviewDeadline { get; set; }
+    public bool IsPastDeadline { get; set; }
+    public int PendingAdjustmentCount { get; set; }
+    public int CheckInBeforeMinutes { get; set; } = 30;
+    public int CheckOutAfterMinutes { get; set; } = 60;
 
     public int TotalAssignedShifts { get; set; }
     public int CompletedShifts { get; set; }
@@ -38,6 +43,7 @@ public sealed class StaffWeeklyTimesheetResponse
 public sealed class StaffShiftAttendanceDto
 {
     public int AssignmentId { get; set; }
+    public int? AttendanceId { get; set; }
     public int ShiftId { get; set; }
     public string ShiftName { get; set; } = null!;
     public DateTime ScheduledStartAt { get; set; }
@@ -49,6 +55,16 @@ public sealed class StaffShiftAttendanceDto
     public int TotalEarlyLeaveMinutes { get; set; }
     public string AttendanceStatus { get; set; } = null!;
     public string AssignmentStatus { get; set; } = null!;
+
+    // Adjustment information
+    public bool HasAdjustmentRequest { get; set; }
+    public int? AdjustmentRequestId { get; set; }
+    public string? AdjustmentStatus { get; set; } // "PENDING", "APPROVED", "REJECTED", null
+    public DateTime? RequestedCheckInTime { get; set; }
+    public DateTime? RequestedCheckOutTime { get; set; }
+    public string? AdjustmentReason { get; set; }
+    public string? ManagerNote { get; set; }
+    public bool CanRequestAdjustment { get; set; }
 
     public string DateDisplay => ScheduledStartAt.AddHours(7).ToString("ddd, dd/MM/yyyy");
     public string ScheduledRangeDisplay => $"{ScheduledStartAt.AddHours(7):HH:mm} – {ScheduledEndAt.AddHours(7):HH:mm}";

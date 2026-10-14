@@ -7,19 +7,21 @@ class StaffTimesheetController extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _isConfirming = false;
+  bool _isSubmittingAdjustment = false;
   String? _errorMessage;
   StaffWeeklyTimesheetModel? _timesheet;
   int? _selectedWeekId;
 
   bool get isLoading => _isLoading;
   bool get isConfirming => _isConfirming;
+  bool get isSubmittingAdjustment => _isSubmittingAdjustment;
   String? get errorMessage => _errorMessage;
   StaffWeeklyTimesheetModel? get timesheet => _timesheet;
   int? get selectedWeekId => _selectedWeekId;
 
   List<StaffTimesheetWeekOptionModel> get availableWeeks => _timesheet?.availableWeeks ?? [];
 
-  /// Tải thông tin bảng công tuần
+  /// Loads weekly timesheet data for the staff member
   Future<void> loadTimesheet({int? scheduleWeekId}) async {
     _isLoading = true;
     _errorMessage = null;
@@ -39,14 +41,14 @@ class StaffTimesheetController extends ChangeNotifier {
     }
   }
 
-  /// Chuyển sang tuần khác
+  /// Switches to another schedule week
   Future<void> selectWeek(int weekId) async {
     if (_selectedWeekId == weekId && _timesheet != null) return;
     _selectedWeekId = weekId;
     await loadTimesheet(scheduleWeekId: weekId);
   }
 
-  /// Chuyển sang tuần liền trước hoặc liền sau
+  /// Navigates to previous or next schedule week
   Future<void> navigateWeek({required bool next}) async {
     if (_timesheet == null || availableWeeks.isEmpty) return;
 
@@ -55,8 +57,8 @@ class StaffTimesheetController extends ChangeNotifier {
 
     // availableWeeks is sorted by WeekStartDate DESC:
     // index 0 is newest week, higher index is older week.
-    // "next" (tương lai hơn) means decreasing index
-    // "prev" (quá khứ hơn) means increasing index
+    // "next" (more recent) means decreasing index
+    // "prev" (older) means increasing index
     final targetIndex = next ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex >= 0 && targetIndex < availableWeeks.length) {
       final targetWeek = availableWeeks[targetIndex];
@@ -76,7 +78,7 @@ class StaffTimesheetController extends ChangeNotifier {
     return currentIndex != -1 && currentIndex > 0;
   }
 
-  /// Xác nhận bảng công tuần
+  /// Confirms weekly timesheet
   Future<bool> confirmTimesheet({String? note}) async {
     if (_timesheet == null) return false;
 
@@ -97,6 +99,33 @@ class StaffTimesheetController extends ChangeNotifier {
       return false;
     } finally {
       _isConfirming = false;
+      notifyListeners();
+    }
+  }
+
+  /// Submits one or multiple timesheet adjustment requests
+  Future<bool> submitAdjustments({
+    required List<ShiftAdjustmentItemInput> adjustments,
+  }) async {
+    if (_timesheet == null) return false;
+
+    _isSubmittingAdjustment = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _service.submitAdjustments(
+        scheduleWeekId: _timesheet!.scheduleWeekId,
+        adjustments: adjustments,
+      );
+      _timesheet = updated;
+      _selectedWeekId = updated.scheduleWeekId;
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return false;
+    } finally {
+      _isSubmittingAdjustment = false;
       notifyListeners();
     }
   }

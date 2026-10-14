@@ -13,6 +13,12 @@ class StaffWeeklyTimesheetModel {
   final String staffReviewStatus;
   final bool canConfirm;
   final bool isLocked;
+  final DateTime? reviewDeadline;
+  final bool isPastDeadline;
+  final int pendingAdjustmentCount;
+  final int checkInBeforeMinutes;
+  final int checkOutAfterMinutes;
+
   final int totalAssignedShifts;
   final int completedShifts;
   final int absentShifts;
@@ -40,6 +46,11 @@ class StaffWeeklyTimesheetModel {
     required this.staffReviewStatus,
     required this.canConfirm,
     required this.isLocked,
+    this.reviewDeadline,
+    required this.isPastDeadline,
+    required this.pendingAdjustmentCount,
+    this.checkInBeforeMinutes = 30,
+    this.checkOutAfterMinutes = 60,
     required this.totalAssignedShifts,
     required this.completedShifts,
     required this.absentShifts,
@@ -60,6 +71,11 @@ class StaffWeeklyTimesheetModel {
       final rawShifts = json['shifts'] as List<dynamic>? ?? [];
       final rawWeeks = json['availableWeeks'] as List<dynamic>? ?? [];
 
+      DateTime? parseNullableDateTime(dynamic v) {
+        if (v == null) return null;
+        return DateTime.tryParse(v.toString());
+      }
+
       return StaffWeeklyTimesheetModel(
         scheduleWeekId: json['scheduleWeekId'] as int? ?? 0,
         payrollPeriodId: json['payrollPeriodId'] as int?,
@@ -73,6 +89,11 @@ class StaffWeeklyTimesheetModel {
         staffReviewStatus: json['staffReviewStatus']?.toString() ?? '-',
         canConfirm: json['canConfirm'] == true,
         isLocked: json['isLocked'] == true,
+        reviewDeadline: parseNullableDateTime(json['reviewDeadline']),
+        isPastDeadline: json['isPastDeadline'] == true,
+        pendingAdjustmentCount: json['pendingAdjustmentCount'] as int? ?? 0,
+        checkInBeforeMinutes: json['checkInBeforeMinutes'] as int? ?? 30,
+        checkOutAfterMinutes: json['checkOutAfterMinutes'] as int? ?? 60,
         totalAssignedShifts: json['totalAssignedShifts'] as int? ?? 0,
         completedShifts: json['completedShifts'] as int? ?? 0,
         absentShifts: json['absentShifts'] as int? ?? 0,
@@ -100,6 +121,7 @@ class StaffWeeklyTimesheetModel {
 
 class StaffShiftAttendanceModel {
   final int assignmentId;
+  final int? attendanceId;
   final int shiftId;
   final String shiftName;
   final DateTime scheduledStartAt;
@@ -119,8 +141,19 @@ class StaffShiftAttendanceModel {
   final String lateDisplay;
   final String earlyLeaveDisplay;
 
+  // Adjustment fields
+  final bool hasAdjustmentRequest;
+  final int? adjustmentRequestId;
+  final String? adjustmentStatus; // PENDING, APPROVED, REJECTED, null
+  final DateTime? requestedCheckInTime;
+  final DateTime? requestedCheckOutTime;
+  final String? adjustmentReason;
+  final String? managerNote;
+  final bool canRequestAdjustment;
+
   StaffShiftAttendanceModel({
     required this.assignmentId,
+    this.attendanceId,
     required this.shiftId,
     required this.shiftName,
     required this.scheduledStartAt,
@@ -139,6 +172,14 @@ class StaffShiftAttendanceModel {
     required this.workTimeDisplay,
     required this.lateDisplay,
     required this.earlyLeaveDisplay,
+    required this.hasAdjustmentRequest,
+    this.adjustmentRequestId,
+    this.adjustmentStatus,
+    this.requestedCheckInTime,
+    this.requestedCheckOutTime,
+    this.adjustmentReason,
+    this.managerNote,
+    required this.canRequestAdjustment,
   });
 
   factory StaffShiftAttendanceModel.fromJson(Map<String, dynamic> json) {
@@ -154,6 +195,7 @@ class StaffShiftAttendanceModel {
 
     return StaffShiftAttendanceModel(
       assignmentId: json['assignmentId'] as int? ?? 0,
+      attendanceId: json['attendanceId'] as int?,
       shiftId: json['shiftId'] as int? ?? 0,
       shiftName: json['shiftName']?.toString() ?? 'Shift',
       scheduledStartAt: parseDateTime(json['scheduledStartAt']),
@@ -172,6 +214,14 @@ class StaffShiftAttendanceModel {
       workTimeDisplay: json['workTimeDisplay']?.toString() ?? '0h 0m',
       lateDisplay: json['lateDisplay']?.toString() ?? '0h 0m',
       earlyLeaveDisplay: json['earlyLeaveDisplay']?.toString() ?? '0h 0m',
+      hasAdjustmentRequest: json['hasAdjustmentRequest'] == true,
+      adjustmentRequestId: json['adjustmentRequestId'] as int?,
+      adjustmentStatus: json['adjustmentStatus']?.toString(),
+      requestedCheckInTime: parseNullableDateTime(json['requestedCheckInTime']),
+      requestedCheckOutTime: parseNullableDateTime(json['requestedCheckOutTime']),
+      adjustmentReason: json['adjustmentReason']?.toString(),
+      managerNote: json['managerNote']?.toString(),
+      canRequestAdjustment: json['canRequestAdjustment'] == true,
     );
   }
 }
@@ -203,4 +253,34 @@ class StaffTimesheetWeekOptionModel {
       status: json['status']?.toString() ?? 'NOT GENERATED',
     );
   }
+}
+
+class ShiftAdjustmentItemInput {
+  final int assignmentId;
+  final int? attendanceId;
+  final bool adjustCheckIn;
+  final DateTime? requestedCheckInTime;
+  final bool adjustCheckOut;
+  final DateTime? requestedCheckOutTime;
+  final String reason;
+
+  ShiftAdjustmentItemInput({
+    required this.assignmentId,
+    this.attendanceId,
+    required this.adjustCheckIn,
+    this.requestedCheckInTime,
+    required this.adjustCheckOut,
+    this.requestedCheckOutTime,
+    required this.reason,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'assignmentId': assignmentId,
+    if (attendanceId != null) 'attendanceId': attendanceId,
+    'adjustCheckIn': adjustCheckIn,
+    if (requestedCheckInTime != null) 'requestedCheckInTime': requestedCheckInTime!.toIso8601String(),
+    'adjustCheckOut': adjustCheckOut,
+    if (requestedCheckOutTime != null) 'requestedCheckOutTime': requestedCheckOutTime!.toIso8601String(),
+    'reason': reason,
+  };
 }

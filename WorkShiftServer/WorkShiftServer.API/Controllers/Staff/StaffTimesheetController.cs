@@ -133,6 +133,69 @@ public sealed class StaffTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Submits one or multiple timesheet adjustment requests for the authenticated staff member.
+    /// </summary>
+    /// <param name="request">Request containing scheduleWeekId and list of shift adjustments.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    [HttpPost("adjustments")]
+    [ProducesResponseType(typeof(StaffWeeklyTimesheetResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StaffWeeklyTimesheetResponse>> SubmitAdjustments(
+        [FromBody] SubmitTimesheetAdjustmentRequest request,
+        CancellationToken cancellationToken)
+    {
+        var staffId = GetCurrentUserId();
+        if (staffId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        if (request == null || request.ScheduleWeekId <= 0)
+        {
+            return BadRequest(new { message = "Valid scheduleWeekId is required." });
+        }
+
+        if (request.Adjustments == null || !request.Adjustments.Any())
+        {
+            return BadRequest(new { message = "Adjustments list cannot be empty." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.SubmitAdjustmentRequestsAsync(staffId, request, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error submitting timesheet adjustments for staff {StaffId}, week {ScheduleWeekId}", staffId, request.ScheduleWeekId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to submit timesheet adjustment requests.",
+                detail = ex.InnerException?.Message ?? ex.Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

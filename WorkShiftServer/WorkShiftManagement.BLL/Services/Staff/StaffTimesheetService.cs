@@ -77,29 +77,6 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             .OrderBy(x => x.Shift.ScheduledStartAt)
             .ToList();
 
-        var shiftDtos = staffAssignments.Select(x =>
-        {
-            var att = x.Assignment.Attendance;
-            string attStatus = att?.Status
-                ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
-
-            return new StaffShiftAttendanceDto
-            {
-                AssignmentId = x.Assignment.AssignmentId,
-                ShiftId = x.Shift.ShiftId,
-                ShiftName = x.Shift.ShiftNameSnapshot,
-                ScheduledStartAt = x.Shift.ScheduledStartAt,
-                ScheduledEndAt = x.Shift.ScheduledEndAt,
-                CheckInTime = att?.CheckInTime,
-                CheckOutTime = att?.CheckOutTime,
-                ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-                TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-                TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                AttendanceStatus = attStatus,
-                AssignmentStatus = x.Assignment.Status
-            };
-        }).ToList();
-
         string status;
         string staffReviewStatus;
         int? timesheetId;
@@ -112,6 +89,9 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         int totalEarlyLeaveMinutes;
         bool canConfirm;
         bool isLocked;
+        DateTime? reviewDeadline = null;
+        bool isPastDeadline = false;
+        int pendingAdjustmentCount = 0;
 
         if (staffTimesheet != null)
         {
@@ -125,9 +105,22 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             totalWorkMinutes = staffTimesheet.TotalWorkMinutes;
             totalLateMinutes = staffTimesheet.TotalLateMinutes;
             totalEarlyLeaveMinutes = staffTimesheet.TotalEarlyLeaveMinutes;
-            canConfirm = string.Equals(status, "GENERATED", StringComparison.OrdinalIgnoreCase) &&
-                         string.Equals(staffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
             isLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+
+            var firstGeneratedAt = staffTimesheet.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? DateTime.UtcNow;
+            var vnOffset = TimeSpan.FromHours(7);
+            var generatedAtVn = firstGeneratedAt + vnOffset;
+            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+            reviewDeadline = week.PayrollPeriod?.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+            isPastDeadline = DateTime.UtcNow >= reviewDeadline.Value;
+
+            pendingAdjustmentCount = staffTimesheet.TimesheetAdjustmentRequests?
+                .Count(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+            canConfirm = string.Equals(status, "GENERATED", StringComparison.OrdinalIgnoreCase) &&
+                         string.Equals(staffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
+                         pendingAdjustmentCount == 0 &&
+                         !isPastDeadline;
         }
         else
         {
@@ -135,14 +128,72 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             staffReviewStatus = "-";
             timesheetId = null;
             totalAssigned = staffAssignments.Count;
+            completedShifts = 0;
+            absentShifts = 0;
+            incompleteShifts = 0;
+            totalWorkMinutes = 0;
+            totalLateMinutes = 0;
+            totalEarlyLeaveMinutes = 0;
+            canConfirm = false;
+            isLocked = false;
+        }
+
+        var latestAdjByAttendance = staffTimesheet?.TimesheetAdjustmentRequests?
+            .GroupBy(r => r.AttendanceId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).First())
+            ?? new Dictionary<int, TimesheetAdjustmentRequest>();
+
+        var shiftDtos = staffAssignments.Select(x =>
+        {
+            var att = x.Assignment.Attendance;
+            string attStatus = att?.Status
+                ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
+
+            var adj = att != null && latestAdjByAttendance.TryGetValue(att.AttendanceId, out var found) ? found : null;
+
+            bool hasAdj = adj != null;
+            string? adjStatus = adj?.Status;
+            bool canRequestAdj = !isLocked &&
+                                 string.Equals(status, "GENERATED", StringComparison.OrdinalIgnoreCase) &&
+                                 !isPastDeadline &&
+                                 !string.Equals(adjStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
+                                 !string.Equals(adjStatus, "REJECTED", StringComparison.OrdinalIgnoreCase);
+
+            return new StaffShiftAttendanceDto
+            {
+                AssignmentId = x.Assignment.AssignmentId,
+                AttendanceId = att?.AttendanceId,
+                ShiftId = x.Shift.ShiftId,
+                ShiftName = x.Shift.ShiftNameSnapshot,
+                ScheduledStartAt = x.Shift.ScheduledStartAt,
+                ScheduledEndAt = x.Shift.ScheduledEndAt,
+                CheckInTime = att?.CheckInTime,
+                CheckOutTime = att?.CheckOutTime,
+                ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
+                TotalLateMinutes = att?.TotalLateMinutes ?? 0,
+                TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
+                AttendanceStatus = attStatus,
+                AssignmentStatus = x.Assignment.Status,
+
+                HasAdjustmentRequest = hasAdj,
+                AdjustmentRequestId = adj?.AdjustmentRequestId,
+                AdjustmentStatus = adjStatus,
+                RequestedCheckInTime = adj?.RequestedCheckInTime,
+                RequestedCheckOutTime = adj?.RequestedCheckOutTime,
+                AdjustmentReason = adj?.Reason,
+                ManagerNote = adj?.ManagerNote,
+                CanRequestAdjustment = canRequestAdj
+            };
+        }).ToList();
+
+        if (staffTimesheet == null)
+        {
             completedShifts = shiftDtos.Count(s => s.AttendanceStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE");
             absentShifts = shiftDtos.Count(s => s.AttendanceStatus == "ABSENT");
             incompleteShifts = shiftDtos.Count(s => s.AttendanceStatus == "INCOMPLETE");
             totalWorkMinutes = shiftDtos.Sum(s => s.ActualWorkingMinutes);
             totalLateMinutes = shiftDtos.Sum(s => s.TotalLateMinutes);
             totalEarlyLeaveMinutes = shiftDtos.Sum(s => s.TotalEarlyLeaveMinutes);
-            canConfirm = false;
-            isLocked = false;
         }
 
         decimal totalWorkHours = Math.Round((decimal)totalWorkMinutes / 60m, 2);
@@ -161,6 +212,8 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             };
         }).ToList();
 
+        var activeRule = await _repo.GetActiveAttendanceRuleAsync(cancellationToken);
+
         return new StaffWeeklyTimesheetResponse
         {
             ScheduleWeekId = week.ScheduleWeekId,
@@ -175,6 +228,11 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             StaffReviewStatus = staffReviewStatus,
             CanConfirm = canConfirm,
             IsLocked = isLocked,
+            ReviewDeadline = reviewDeadline,
+            IsPastDeadline = isPastDeadline,
+            PendingAdjustmentCount = pendingAdjustmentCount,
+            CheckInBeforeMinutes = activeRule?.CheckInBeforeMinutes ?? 30,
+            CheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60,
             TotalAssignedShifts = totalAssigned,
             CompletedShifts = completedShifts,
             AbsentShifts = absentShifts,
@@ -217,5 +275,45 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var updated = await GetMyWeeklyTimesheetAsync(staffId, scheduleWeekId, cancellationToken);
         return updated ?? throw new InvalidOperationException("Failed to retrieve timesheet after confirmation.");
+    }
+
+    public async Task<StaffWeeklyTimesheetResponse> SubmitAdjustmentRequestsAsync(
+        Guid staffId,
+        SubmitTimesheetAdjustmentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated staff identity is required.");
+        }
+
+        if (request == null || request.ScheduleWeekId <= 0)
+        {
+            throw new ArgumentException("Valid schedule week ID is required.");
+        }
+
+        if (request.Adjustments == null || !request.Adjustments.Any())
+        {
+            throw new ArgumentException("Adjustments list cannot be empty.");
+        }
+
+        var staff = await _repo.GetActiveStaffAsync(staffId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Staff account is inactive or was not found.");
+
+        var submissionItems = request.Adjustments.Select(a => new StaffAdjustmentSubmissionItem
+        {
+            AssignmentId = a.AssignmentId,
+            AttendanceId = a.AttendanceId,
+            AdjustCheckIn = a.AdjustCheckIn,
+            RequestedCheckInTime = a.RequestedCheckInTime,
+            AdjustCheckOut = a.AdjustCheckOut,
+            RequestedCheckOutTime = a.RequestedCheckOutTime,
+            Reason = a.Reason
+        }).ToList();
+
+        await _repo.SubmitAdjustmentRequestsAsync(request.ScheduleWeekId, staffId, submissionItems, cancellationToken);
+
+        var updated = await GetMyWeeklyTimesheetAsync(staffId, request.ScheduleWeekId, cancellationToken);
+        return updated ?? throw new InvalidOperationException("Failed to retrieve updated timesheet after submitting adjustments.");
     }
 }

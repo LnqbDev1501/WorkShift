@@ -6,7 +6,7 @@ import 'api_client.dart';
 class StaffTimesheetService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Lấy bảng công tuần của nhân viên đang đăng nhập: GET /api/staff/timesheets/my-timesheet
+  /// Retrieves the authenticated staff member's weekly timesheet: GET /api/staff/timesheets/my-timesheet
   Future<StaffWeeklyTimesheetModel?> getMyWeeklyTimesheet({int? scheduleWeekId}) async {
     try {
       final queryParams = <String, dynamic>{};
@@ -36,7 +36,7 @@ class StaffTimesheetService {
     }
   }
 
-  /// Xác nhận bảng công tuần: POST /api/staff/timesheets/confirm
+  /// Confirms weekly timesheet: POST /api/staff/timesheets/confirm
   Future<StaffWeeklyTimesheetModel> confirmTimesheet({
     required int scheduleWeekId,
     String? note,
@@ -60,6 +60,34 @@ class StaffTimesheetService {
       throw msg;
     } catch (e) {
       log('StaffTimesheetService confirm error: $e');
+      rethrow;
+    }
+  }
+
+  /// Submits one or multiple timesheet adjustment requests: POST /api/staff/timesheets/adjustments
+  Future<StaffWeeklyTimesheetModel> submitAdjustments({
+    required int scheduleWeekId,
+    required List<ShiftAdjustmentItemInput> adjustments,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/staff/timesheets/adjustments',
+        data: {
+          'scheduleWeekId': scheduleWeekId,
+          'adjustments': adjustments.map((a) => a.toJson()).toList(),
+        },
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw 'Failed to submit timesheet adjustments';
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Submission failed';
+      log('StaffTimesheetService adjustments error: $msg');
+      throw msg;
+    } catch (e) {
+      log('StaffTimesheetService adjustments error: $e');
       rethrow;
     }
   }

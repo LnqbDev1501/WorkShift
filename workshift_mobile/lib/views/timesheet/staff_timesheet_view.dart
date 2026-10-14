@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/staff_timesheet_controller.dart';
 import '../../models/staff_timesheet_model.dart';
 import '../../theme/app_colors.dart';
+import 'components/timesheet_adjustment_sheet.dart';
 
 class StaffTimesheetView extends StatefulWidget {
   const StaffTimesheetView({super.key});
@@ -12,6 +13,7 @@ class StaffTimesheetView extends StatefulWidget {
 
 class _StaffTimesheetViewState extends State<StaffTimesheetView> {
   final StaffTimesheetController _controller = StaffTimesheetController();
+  final Set<int> _selectedAssignmentIds = {};
 
   @override
   void initState() {
@@ -30,6 +32,65 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
   void _onControllerUpdated() {
     if (mounted) {
       setState(() {});
+    }
+  }
+
+  void _toggleShiftSelection(int assignmentId) {
+    setState(() {
+      if (_selectedAssignmentIds.contains(assignmentId)) {
+        _selectedAssignmentIds.remove(assignmentId);
+      } else {
+        _selectedAssignmentIds.add(assignmentId);
+      }
+    });
+  }
+
+  void _selectAllEligibleShifts() {
+    final shifts = _controller.timesheet?.shifts ?? [];
+    setState(() {
+      final eligible = shifts.where((s) => s.canRequestAdjustment).map((s) => s.assignmentId);
+      if (_selectedAssignmentIds.length == eligible.length) {
+        _selectedAssignmentIds.clear();
+      } else {
+        _selectedAssignmentIds.addAll(eligible);
+      }
+    });
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedAssignmentIds.clear();
+    });
+  }
+
+  Future<void> _handleOpenAdjustmentSheet({StaffShiftAttendanceModel? singleShift}) async {
+    final timesheet = _controller.timesheet;
+    if (timesheet == null) return;
+
+    final targetShifts = singleShift != null
+        ? [singleShift]
+        : timesheet.shifts.where((s) => _selectedAssignmentIds.contains(s.assignmentId)).toList();
+
+    if (targetShifts.isEmpty) return;
+
+    final submitted = await TimesheetAdjustmentSheet.show(
+      context,
+      selectedShifts: targetShifts,
+      checkInBeforeMinutes: timesheet.checkInBeforeMinutes,
+      checkOutAfterMinutes: timesheet.checkOutAfterMinutes,
+      onSubmit: (items) => _controller.submitAdjustments(
+        adjustments: items,
+      ),
+    );
+
+    if (submitted == true && mounted) {
+      _clearSelection();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Timesheet adjustment request submitted successfully! Waiting for manager review.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
     }
   }
 
@@ -104,6 +165,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                       ),
                       onTap: () {
                         Navigator.pop(ctx);
+                        _clearSelection();
                         _controller.selectWeek(item.scheduleWeekId);
                       },
                     );
@@ -181,6 +243,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       final success = await _controller.confirmTimesheet(note: noteController.text);
       if (mounted) {
         if (success) {
+          _clearSelection();
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Weekly timesheet confirmed successfully!'),
@@ -216,7 +279,10 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Refresh Timesheet',
-            onPressed: () => _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId),
+            onPressed: () {
+              _clearSelection();
+              _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId);
+            },
           ),
         ],
       ),
@@ -287,8 +353,13 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       );
     }
 
+    final eligibleShiftsCount = timesheet.shifts.where((s) => s.canRequestAdjustment).length;
+
     return RefreshIndicator(
-      onRefresh: () => _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId),
+      onRefresh: () async {
+        _clearSelection();
+        await _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId);
+      },
       color: AppColors.primary,
       child: Column(
         children: [
@@ -307,7 +378,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   _buildKpiGrid(timesheet),
                   const SizedBox(height: 20),
 
-                  // 3. Shift Breakdown Header
+                  // 3. Shifts Breakdown Header with Selection Actions
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -325,21 +396,44 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFBFDBFE)),
-                        ),
-                        child: Text(
-                          '${timesheet.shifts.length} Shifts',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                      Row(
+                        children: [
+                          if (eligibleShiftsCount > 0)
+                            InkWell(
+                              onTap: _selectAllEligibleShifts,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Text(
+                                  _selectedAssignmentIds.length == eligibleShiftsCount
+                                      ? 'Deselect All'
+                                      : 'Select All ($eligibleShiftsCount)',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                            ),
+                            child: Text(
+                              '${timesheet.shifts.length} Shifts',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -385,7 +479,10 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               IconButton(
                 icon: const Icon(Icons.chevron_left_rounded),
                 onPressed: _controller.hasPreviousWeek
-                    ? () => _controller.navigateWeek(next: false)
+                    ? () {
+                        _clearSelection();
+                        _controller.navigateWeek(next: false);
+                      }
                     : null,
                 color: AppColors.textPrimary,
                 disabledColor: AppColors.border,
@@ -424,7 +521,10 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               IconButton(
                 icon: const Icon(Icons.chevron_right_rounded),
                 onPressed: _controller.hasNextWeek
-                    ? () => _controller.navigateWeek(next: true)
+                    ? () {
+                        _clearSelection();
+                        _controller.navigateWeek(next: true);
+                      }
                     : null,
                 color: AppColors.textPrimary,
                 disabledColor: AppColors.border,
@@ -561,138 +661,297 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
   Widget _buildShiftCard(StaffShiftAttendanceModel shift) {
     final status = shift.attendanceStatus.toUpperCase();
+    final isSelected = _selectedAssignmentIds.contains(shift.assignmentId);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Date & Status Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                shift.dateDisplay,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-              ),
-              _buildAttendanceStatusPill(status),
-            ],
+    return InkWell(
+      onTap: shift.canRequestAdjustment
+          ? () => _toggleShiftSelection(shift.assignmentId)
+          : null,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1.0,
           ),
-          const SizedBox(height: 4),
-
-          // Row 2: Shift Name & Scheduled Time
-          Row(
-            children: [
-              const Icon(Icons.schedule_rounded, size: 14, color: AppColors.textMuted),
-              const SizedBox(width: 4),
-              Text(
-                '${shift.shiftName} (${shift.scheduledRangeDisplay})',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          const Divider(height: 18, color: AppColors.borderLight),
-
-          // Row 3: Actual Check-In / Check-Out
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Check-In', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          shift.checkInDisplay,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                        ),
-                        if (shift.totalLateMinutes > 0) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'Late ${shift.lateDisplay}',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Check-Out', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          shift.checkOutDisplay,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                        ),
-                        if (shift.totalEarlyLeaveMinutes > 0) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFEDD5),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'Early ${shift.earlyLeaveDisplay}',
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFC2410C)),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Row 4: Computed Work Time
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.borderLight),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x142563EB),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Row 1: Checkbox (if eligible), Date & Status Badge
+            Row(
               children: [
-                const Text(
-                  'Compiled Work Time',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                if (shift.canRequestAdjustment) ...[
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: isSelected,
+                      activeColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      onChanged: (_) => _toggleShiftSelection(shift.assignmentId),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    shift.dateDisplay,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
                 ),
+                _buildAttendanceStatusPill(status),
+              ],
+            ),
+            const SizedBox(height: 4),
+
+            // Row 2: Shift Name & Scheduled Time
+            Row(
+              children: [
+                const Icon(Icons.schedule_rounded, size: 14, color: AppColors.textMuted),
+                const SizedBox(width: 4),
                 Text(
-                  shift.workTimeDisplay,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  '${shift.shiftName} (${shift.scheduledRangeDisplay})',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
-          ),
-        ],
+            const Divider(height: 18, color: AppColors.borderLight),
+
+            // Row 3: Actual Check-In / Check-Out
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Check-In', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            shift.checkInDisplay,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          ),
+                          if (shift.totalLateMinutes > 0) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Late ${shift.lateDisplay}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Check-Out', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            shift.checkOutDisplay,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          ),
+                          if (shift.totalEarlyLeaveMinutes > 0) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEDD5),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Early ${shift.earlyLeaveDisplay}',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFC2410C)),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Row 4: Compiled Work Time
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Compiled Work Time',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                  Text(
+                    shift.workTimeDisplay,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+
+            // Row 5: Adjustment Request Banner (if any)
+            if (shift.hasAdjustmentRequest) ...[
+              const SizedBox(height: 10),
+              _buildAdjustmentStatusBanner(shift),
+            ],
+
+            // Row 6: Individual "Request Adjustment" shortcut button if eligible
+            if (shift.canRequestAdjustment && !isSelected) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _handleOpenAdjustmentSheet(singleShift: shift),
+                  icon: const Icon(Icons.edit_note_rounded, size: 16),
+                  label: const Text('Request Adjustment'),
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: const Color(0xFFD97706),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildAdjustmentStatusBanner(StaffShiftAttendanceModel shift) {
+    final status = shift.adjustmentStatus?.toUpperCase();
+
+    if (status == 'PENDING') {
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFFD97706)),
+                SizedBox(width: 6),
+                Text(
+                  'Adjustment Pending Review',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                ),
+              ],
+            ),
+            if (shift.adjustmentReason != null && shift.adjustmentReason!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Reason: "${shift.adjustmentReason}"',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF92400E)),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    if (status == 'REJECTED') {
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFFECACA)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.cancel_outlined, size: 16, color: AppColors.error),
+                SizedBox(width: 6),
+                Text(
+                  'Adjustment Rejected by Manager',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.error),
+                ),
+              ],
+            ),
+            if (shift.managerNote != null && shift.managerNote!.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Manager Note: "${shift.managerNote}"',
+                style: const TextStyle(fontSize: 11, color: Color(0xFF991B1B)),
+              ),
+            ],
+            const SizedBox(height: 4),
+            const Text(
+              'This shift cannot be adjusted again.',
+              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Color(0xFFDC2626)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (status == 'APPROVED') {
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFBBF7D0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                shift.managerNote != null && shift.managerNote!.isNotEmpty
+                    ? 'Adjustment Approved: "${shift.managerNote}"'
+                    : 'Adjustment Approved by Manager',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildEmptyShiftsCard() {
@@ -730,6 +989,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     if (timesheet.staffReviewStatus.toUpperCase() == 'CONFIRMED') {
       return _buildBadge(label: 'CONFIRMED', bgColor: const Color(0xFFD1FAE5), textColor: const Color(0xFF059669));
     }
+    if (timesheet.pendingAdjustmentCount > 0) {
+      return _buildBadge(label: 'ADJUSTMENT PENDING', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
+    }
     if (timesheet.status.toUpperCase() == 'GENERATED') {
       return _buildBadge(label: 'PENDING REVIEW', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
     }
@@ -760,6 +1022,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     } else if (status == 'ABSENT') {
       bg = const Color(0xFFFEE2E2);
       text = const Color(0xFFDC2626);
+    } else if (status == 'LATE') {
+      bg = const Color(0xFFFEF3C7);
+      text = const Color(0xFFD97706);
     }
 
     return Container(
@@ -784,6 +1049,66 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
   }
 
   Widget _buildBottomActionBar(StaffWeeklyTimesheetModel timesheet) {
+    // Mode 1: Shifts are selected for Adjustment
+    if (_selectedAssignmentIds.isNotEmpty) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: AppColors.border)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 10,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${_selectedAssignmentIds.length} shift(s) selected',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                TextButton(
+                  onPressed: _clearSelection,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                  child: const Text('Deselect All'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () => _handleOpenAdjustmentSheet(),
+                icon: const Icon(Icons.edit_calendar_rounded, size: 20),
+                label: Text(
+                  'Request Adjustment (${_selectedAssignmentIds.length})',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFD97706),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Mode 2: No shift selected -> Standard Status & Confirm Action
     if (timesheet.canConfirm) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -825,6 +1150,29 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       );
     }
 
+    if (timesheet.pendingAdjustmentCount > 0) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFFBEB),
+          border: Border(top: BorderSide(color: Color(0xFFFDE68A))),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Waiting for manager to review ${timesheet.pendingAdjustmentCount} pending adjustment request(s).',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (timesheet.staffReviewStatus.toUpperCase() == 'CONFIRMED') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -861,6 +1209,27 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             Text(
               'Timesheet locked for payroll calculation.',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (timesheet.isPastDeadline) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFFEF2F2),
+          border: Border(top: BorderSide(color: Color(0xFFFECACA))),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timer_off_rounded, color: Color(0xFFDC2626), size: 18),
+            SizedBox(width: 8),
+            Text(
+              'The review deadline for this week has passed.',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
             ),
           ],
         ),
