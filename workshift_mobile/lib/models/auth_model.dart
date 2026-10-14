@@ -41,3 +41,29 @@ class LoginResponse {
     );
   }
 }
+
+/// Model cho Quên mật khẩu (Forgot Password)
+class ForgotPasswordRequest {
+  final String email;
+
+  ForgotPasswordRequest({required this.email});
+
+  Map<String, dynamic> toJson() {
+    return {'email': email.trim()};
+  }
+}
+
+/// Response cho Quên mật khẩu (Backend trả về 204 NoContent, nên response rỗng)
+class ForgotPasswordResponse {
+  final bool success;
+  final String message;
+
+  ForgotPasswordResponse({required this.success, required this.message});
+
+  factory ForgotPasswordResponse.success() {
+    return ForgotPasswordResponse(
+      success: true,
+      message: 'If the email exists, a password reset link has been sent.',
+    );
+  }
+}
