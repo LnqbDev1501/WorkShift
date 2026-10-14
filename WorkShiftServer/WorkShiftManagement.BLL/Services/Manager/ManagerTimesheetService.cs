@@ -338,7 +338,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             else
             {
                 canLockTimesheet = false;
-                var deadlineVn = reviewDeadline.Value + vnOffset;
+                var deadlineVn = reviewDeadline.Value + TimeSpan.FromHours(7);
                 lockEligibilityMessage = $"Waiting for 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until end of day ({deadlineVn:HH:mm dd/MM/yyyy}).";
             }
         }
@@ -476,6 +476,219 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken);
         return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after locking.");
+    }
+
+    public async Task<ManagerTimesheetAdjustmentPagedResponse> GetTimesheetAdjustmentsAsync(
+        Guid managerId,
+        ManagerTimesheetAdjustmentListQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+            throw new ArgumentException("Authenticated manager identity is required.");
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        int pageIndex = Math.Max(1, query.PageIndex);
+        int pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+        var (items, totalCount, pendingCount, approvedCount, rejectedCount) =
+            await _timesheetRepo.GetTimesheetAdjustmentsAsync(
+                branchId,
+                query.Search,
+                query.Status,
+                query.ScheduleWeekId,
+                query.StaffId,
+                pageIndex,
+                pageSize,
+                cancellationToken);
+
+        return new ManagerTimesheetAdjustmentPagedResponse
+        {
+            Items = items.Select(MapToAdjustmentDto).ToList(),
+            TotalCount = totalCount,
+            PendingCount = pendingCount,
+            ApprovedCount = approvedCount,
+            RejectedCount = rejectedCount,
+            PageIndex = pageIndex,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<ManagerTimesheetAdjustmentDto?> GetAdjustmentDetailAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+            throw new ArgumentException("Authenticated manager identity is required.");
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var request = await _timesheetRepo.GetAdjustmentDetailAsync(adjustmentRequestId, branchId, cancellationToken);
+        return request != null ? MapToAdjustmentDto(request) : null;
+    }
+
+    public async Task<ManagerTimesheetAdjustmentDto> ApproveAdjustmentRequestAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+            throw new ArgumentException("Authenticated manager identity is required.");
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var approved = await _timesheetRepo.ApproveAdjustmentRequestAsync(
+            adjustmentRequestId, branchId, managerId, cancellationToken);
+
+        try
+        {
+            var shiftName = approved.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
+            await _realtimePublisher.PublishAsync(approved.UserId, new RealtimeNotificationResponse
+            {
+                Title = "Timesheet Adjustment Approved",
+                Message = $"Your adjustment request for shift '{shiftName}' has been approved.",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to publish realtime notification to staff member {StaffId}", approved.UserId);
+        }
+
+        return MapToAdjustmentDto(approved);
+    }
+
+    public async Task<ManagerTimesheetAdjustmentDto> RejectAdjustmentRequestAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        RejectAdjustmentRequestDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+            throw new ArgumentException("Authenticated manager identity is required.");
+
+        if (string.IsNullOrWhiteSpace(dto?.ManagerNote))
+            throw new ArgumentException("Rejection note is required.");
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var rejected = await _timesheetRepo.RejectAdjustmentRequestAsync(
+            adjustmentRequestId, branchId, managerId, dto.ManagerNote.Trim(), cancellationToken);
+
+        try
+        {
+            var shiftName = rejected.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
+            await _realtimePublisher.PublishAsync(rejected.UserId, new RealtimeNotificationResponse
+            {
+                Title = "Timesheet Adjustment Rejected",
+                Message = $"Your adjustment request for shift '{shiftName}' has been rejected: {dto.ManagerNote.Trim()}",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to publish realtime notification to staff member {StaffId}", rejected.UserId);
+        }
+
+        return MapToAdjustmentDto(rejected);
+    }
+
+    private static ManagerTimesheetAdjustmentDto MapToAdjustmentDto(TimesheetAdjustmentRequest r)
+    {
+        var shift = r.Attendance?.Assignment?.Shift;
+        var week = r.Timesheet?.PayrollPeriod?.ScheduleWeek;
+        var period = week != null ? $"{week.WeekStartDate:dd/MM} - {week.WeekEndDate:dd/MM}" : "";
+
+        return new ManagerTimesheetAdjustmentDto
+        {
+            AdjustmentRequestId = r.AdjustmentRequestId,
+            TimesheetId = r.TimesheetId,
+            ScheduleWeekId = week?.ScheduleWeekId ?? r.Timesheet?.PayrollPeriod?.ScheduleWeekId ?? 0,
+            Period = period,
+            StaffId = r.UserId,
+            StaffName = r.User?.FullName ?? "Unknown",
+            StaffEmail = r.User?.Email,
+            StaffPhone = r.User?.Phone,
+            RoleName = r.User?.Role?.RoleName ?? "Staff",
+            ShiftId = shift?.ShiftId ?? 0,
+            ShiftName = shift?.ShiftNameSnapshot ?? "Shift",
+            ScheduledStartAt = shift?.ScheduledStartAt ?? r.CreatedAt,
+            ScheduledEndAt = shift?.ScheduledEndAt ?? r.CreatedAt,
+            OriginalCheckInTime = r.CurrentCheckInSnapshot ?? r.Attendance?.CheckInTime,
+            OriginalCheckOutTime = r.CurrentCheckOutSnapshot ?? r.Attendance?.CheckOutTime,
+            AdjustCheckIn = r.AdjustCheckIn,
+            RequestedCheckInTime = r.RequestedCheckInTime,
+            AdjustCheckOut = r.AdjustCheckOut,
+            RequestedCheckOutTime = r.RequestedCheckOutTime,
+            Reason = r.Reason,
+            Status = r.Status,
+            ManagerNote = r.ManagerNote,
+            ReviewedBy = r.ReviewedBy,
+            ReviewedByName = r.ReviewedByNavigation?.FullName,
+            ReviewedAt = r.ReviewedAt,
+            CreatedAt = r.CreatedAt
+        };
+    }
+
+    public async Task AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Starting Hangfire job: AutoLockExpiredTimesheetsAsync");
+
+        try
+        {
+            var lockedResults = await _timesheetRepo.AutoLockExpiredTimesheetsAsync(cancellationToken);
+
+            foreach (var item in lockedResults)
+            {
+                _logger.LogInformation(
+                    "Auto-locked timesheets for week {ScheduleWeekId} ({Count} timesheets locked)",
+                    item.Week.ScheduleWeekId,
+                    item.LockedTimesheets.Count);
+
+                if (item.NotificationId > 0 && item.StaffUserIds.Any())
+                {
+                    foreach (var staffId in item.StaffUserIds)
+                    {
+                        try
+                        {
+                            await _realtimePublisher.PublishAsync(staffId, new RealtimeNotificationResponse
+                            {
+                                NotificationId = item.NotificationId,
+                                Title = "Timesheet Finalized and Locked",
+                                Message = item.NotificationContent,
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to publish realtime lock notification to staff {StaffId}", staffId);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error occurred during Hangfire job AutoLockExpiredTimesheetsAsync");
+            throw;
+        }
     }
 }
 

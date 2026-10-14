@@ -104,10 +104,10 @@ class StaffTimesheetController extends ChangeNotifier {
   }
 
   /// Submits one or multiple timesheet adjustment requests
-  Future<bool> submitAdjustments({
+  Future<String?> submitAdjustments({
     required List<ShiftAdjustmentItemInput> adjustments,
   }) async {
-    if (_timesheet == null) return false;
+    if (_timesheet == null) return 'Timesheet data not loaded.';
 
     _isSubmittingAdjustment = true;
     _errorMessage = null;
@@ -120,10 +120,10 @@ class StaffTimesheetController extends ChangeNotifier {
       );
       _timesheet = updated;
       _selectedWeekId = updated.scheduleWeekId;
-      return true;
+      return null;
     } catch (e) {
       _errorMessage = e.toString();
-      return false;
+      return _errorMessage;
     } finally {
       _isSubmittingAdjustment = false;
       notifyListeners();

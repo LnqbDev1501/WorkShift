@@ -221,6 +221,203 @@ public sealed class ManagerTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Retrieves paged list of timesheet adjustment requests for manager's branch with KPI counts.
+    /// </summary>
+    [HttpGet("adjustments")]
+    [ProducesResponseType(typeof(ManagerTimesheetAdjustmentPagedResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<ManagerTimesheetAdjustmentPagedResponse>> GetTimesheetAdjustments(
+        [FromQuery] ManagerTimesheetAdjustmentListQuery query,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.GetTimesheetAdjustmentsAsync(managerId, query, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving timesheet adjustments for manager {ManagerId}", managerId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve timesheet adjustment requests.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves detailed information for a single timesheet adjustment request.
+    /// </summary>
+    [HttpGet("adjustments/{id:int}")]
+    [ProducesResponseType(typeof(ManagerTimesheetAdjustmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerTimesheetAdjustmentDto>> GetAdjustmentDetail(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.GetAdjustmentDetailAsync(managerId, id, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = $"Adjustment request #{id} not found." });
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving timesheet adjustment detail #{AdjustmentRequestId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve adjustment request details.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Approves a pending timesheet adjustment request and recalculates attendance hours.
+    /// </summary>
+    [HttpPost("adjustments/{id:int}/approve")]
+    [ProducesResponseType(typeof(ManagerTimesheetAdjustmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerTimesheetAdjustmentDto>> ApproveAdjustment(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.ApproveAdjustmentRequestAsync(managerId, id, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error approving timesheet adjustment #{AdjustmentRequestId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to approve adjustment request.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Rejects a pending timesheet adjustment request with a manager note.
+    /// </summary>
+    [HttpPost("adjustments/{id:int}/reject")]
+    [ProducesResponseType(typeof(ManagerTimesheetAdjustmentDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ManagerTimesheetAdjustmentDto>> RejectAdjustment(
+        int id,
+        [FromBody] RejectAdjustmentRequestDto dto,
+        CancellationToken cancellationToken)
+    {
+        var managerId = GetCurrentUserId();
+        if (managerId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated manager identity from token." });
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var result = await _timesheetService.RejectAdjustmentRequestAsync(managerId, id, dto, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error rejecting timesheet adjustment #{AdjustmentRequestId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to reject adjustment request.",
+                detail = ex.GetBaseException().Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

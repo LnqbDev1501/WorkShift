@@ -424,5 +424,463 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         return (week, timesheets, staffUserIds, notificationId, notificationContent);
     }
+
+    public async Task<(List<TimesheetAdjustmentRequest> Items, int TotalCount, int PendingCount, int ApprovedCount, int RejectedCount)> GetTimesheetAdjustmentsAsync(
+        int branchId,
+        string? search,
+        string? status,
+        int? scheduleWeekId,
+        Guid? staffId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default)
+    {
+        var baseQuery = _context.TimesheetAdjustmentRequests
+            .AsNoTracking()
+            .Where(r => r.Timesheet.PayrollPeriod.BranchId == branchId);
+
+        if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
+        {
+            baseQuery = baseQuery.Where(r => r.Timesheet.PayrollPeriod.ScheduleWeekId == scheduleWeekId.Value);
+        }
+
+        if (staffId.HasValue && staffId.Value != Guid.Empty)
+        {
+            baseQuery = baseQuery.Where(r => r.UserId == staffId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.Trim().ToLower();
+            baseQuery = baseQuery.Where(r =>
+                r.User.FullName.ToLower().Contains(searchLower) ||
+                (r.User.Email != null && r.User.Email.ToLower().Contains(searchLower)) ||
+                (r.User.Phone != null && r.User.Phone.Contains(searchLower)) ||
+                r.Attendance.Assignment.Shift.ShiftNameSnapshot.ToLower().Contains(searchLower));
+        }
+
+        // Calculate counts before status filtering
+        int totalCount = await baseQuery.CountAsync(cancellationToken);
+        int pendingCount = await baseQuery.CountAsync(r => r.Status == "PENDING", cancellationToken);
+        int approvedCount = await baseQuery.CountAsync(r => r.Status == "APPROVED", cancellationToken);
+        int rejectedCount = await baseQuery.CountAsync(r => r.Status == "REJECTED", cancellationToken);
+
+        int filteredCount = totalCount;
+        if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var normalizedStatus = status.Trim().ToUpperInvariant();
+            baseQuery = baseQuery.Where(r => r.Status == normalizedStatus);
+            filteredCount = normalizedStatus switch
+            {
+                "PENDING" => pendingCount,
+                "APPROVED" => approvedCount,
+                "REJECTED" => rejectedCount,
+                _ => await baseQuery.CountAsync(cancellationToken)
+            };
+        }
+
+        var items = await baseQuery
+            .Include(r => r.User)
+                .ThenInclude(u => u.Role)
+            .Include(r => r.ReviewedByNavigation)
+            .Include(r => r.Timesheet)
+                .ThenInclude(t => t.PayrollPeriod)
+                    .ThenInclude(p => p.ScheduleWeek)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.Assignment)
+                    .ThenInclude(ass => ass.Shift)
+            .OrderByDescending(r => r.Status == "PENDING")
+            .ThenByDescending(r => r.CreatedAt)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, filteredCount, pendingCount, approvedCount, rejectedCount);
+    }
+
+    public async Task<TimesheetAdjustmentRequest?> GetAdjustmentDetailAsync(
+        int adjustmentRequestId,
+        int branchId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.TimesheetAdjustmentRequests
+            .AsNoTracking()
+            .Include(r => r.User)
+                .ThenInclude(u => u.Role)
+            .Include(r => r.ReviewedByNavigation)
+            .Include(r => r.Timesheet)
+                .ThenInclude(t => t.PayrollPeriod)
+                    .ThenInclude(p => p.ScheduleWeek)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.Assignment)
+                    .ThenInclude(ass => ass.Shift)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.AttendanceRule)
+            .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.Timesheet.PayrollPeriod.BranchId == branchId, cancellationToken);
+    }
+
+    public async Task<TimesheetAdjustmentRequest> ApproveAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        int branchId,
+        Guid managerId,
+        CancellationToken cancellationToken = default)
+    {
+        var request = await _context.TimesheetAdjustmentRequests
+            .Include(r => r.User)
+            .Include(r => r.Timesheet)
+                .ThenInclude(t => t.PayrollPeriod)
+                    .ThenInclude(p => p.ScheduleWeek)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.Assignment)
+                    .ThenInclude(ass => ass.Shift)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.AttendanceRule)
+            .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.Timesheet.PayrollPeriod.BranchId == branchId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Timesheet adjustment request #{adjustmentRequestId} not found for your branch.");
+
+        if (!string.Equals(request.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Adjustment request #{adjustmentRequestId} has already been resolved with status '{request.Status}'.");
+        }
+
+        var now = DateTime.UtcNow;
+        request.Status = "APPROVED";
+        request.ReviewedBy = managerId;
+        request.ReviewedAt = now;
+        request.UpdatedAt = now;
+
+        var attendance = request.Attendance;
+        if (attendance != null)
+        {
+            if (request.AdjustCheckIn && request.RequestedCheckInTime.HasValue)
+            {
+                attendance.CheckInTime = request.RequestedCheckInTime.Value;
+            }
+
+            if (request.AdjustCheckOut && request.RequestedCheckOutTime.HasValue)
+            {
+                attendance.CheckOutTime = request.RequestedCheckOutTime.Value;
+            }
+
+            if (attendance.CheckInTime.HasValue && attendance.CheckOutTime.HasValue)
+            {
+                attendance.ActualWorkingMinutes = Math.Max(0, (int)Math.Floor((attendance.CheckOutTime.Value - attendance.CheckInTime.Value).TotalMinutes));
+
+                var rule = attendance.AttendanceRule;
+                int graceIn = rule?.CheckInGraceMinutes ?? 5;
+                int graceOut = rule?.CheckOutGraceMinutes ?? 5;
+
+                if (attendance.CheckInTime.Value > attendance.ShiftStartAtSnapshot.AddMinutes(graceIn))
+                {
+                    attendance.TotalLateMinutes = (int)Math.Max(0, Math.Floor((attendance.CheckInTime.Value - attendance.ShiftStartAtSnapshot).TotalMinutes));
+                    attendance.ExcusedLateMinutes = Math.Min(attendance.ExcusedLateMinutes, attendance.TotalLateMinutes);
+                    attendance.ChargeableLateMinutes = attendance.TotalLateMinutes - attendance.ExcusedLateMinutes;
+                }
+                else
+                {
+                    attendance.TotalLateMinutes = 0;
+                    attendance.ExcusedLateMinutes = 0;
+                    attendance.ChargeableLateMinutes = 0;
+                }
+
+                if (attendance.CheckOutTime.Value < attendance.ShiftEndAtSnapshot.AddMinutes(-graceOut))
+                {
+                    attendance.TotalEarlyLeaveMinutes = (int)Math.Max(0, Math.Floor((attendance.ShiftEndAtSnapshot - attendance.CheckOutTime.Value).TotalMinutes));
+                    attendance.ExcusedEarlyLeaveMinutes = Math.Min(attendance.ExcusedEarlyLeaveMinutes, attendance.TotalEarlyLeaveMinutes);
+                    attendance.ChargeableEarlyLeaveMinutes = attendance.TotalEarlyLeaveMinutes - attendance.ExcusedEarlyLeaveMinutes;
+                }
+                else
+                {
+                    attendance.TotalEarlyLeaveMinutes = 0;
+                    attendance.ExcusedEarlyLeaveMinutes = 0;
+                    attendance.ChargeableEarlyLeaveMinutes = 0;
+                }
+
+                bool hasLate = attendance.TotalLateMinutes > 0;
+                bool hasEarly = attendance.TotalEarlyLeaveMinutes > 0;
+
+                if (hasLate && hasEarly)
+                    attendance.Status = "LATE_AND_EARLY_LEAVE";
+                else if (hasLate)
+                    attendance.Status = "LATE";
+                else if (hasEarly)
+                    attendance.Status = "EARLY_LEAVE";
+                else
+                    attendance.Status = "PRESENT";
+
+                if (attendance.Assignment != null)
+                {
+                    attendance.Assignment.Status = "COMPLETED";
+                    attendance.Assignment.UpdatedAt = now;
+                }
+
+                attendance.UpdatedAt = now;
+            }
+        }
+
+        // Recalculate Timesheet aggregates
+        var timesheet = request.Timesheet;
+        if (timesheet != null)
+        {
+            var scheduleWeekId = timesheet.PayrollPeriod?.ScheduleWeekId 
+                ?? attendance?.Assignment?.Shift?.ScheduleWeekId;
+
+            if (scheduleWeekId.HasValue)
+            {
+                var assignments = await _context.ShiftAssignments
+                    .Include(sa => sa.Attendance)
+                    .Where(sa => sa.Shift.ScheduleWeekId == scheduleWeekId.Value
+                              && sa.UserId == timesheet.UserId
+                              && sa.Shift.Status != "CANCELLED"
+                              && sa.Status != "CANCELLED")
+                    .ToListAsync(cancellationToken);
+
+                int completedCount = 0;
+                int absentCount = 0;
+                int incompleteCount = 0;
+                int totalWorkMinutes = 0;
+                int totalLateMinutes = 0;
+                int excusedLateMinutes = 0;
+                int chargeableLateMinutes = 0;
+                int totalEarlyLeaveMinutes = 0;
+                int excusedEarlyLeaveMinutes = 0;
+                int chargeableEarlyLeaveMinutes = 0;
+
+                foreach (var assign in assignments)
+                {
+                    var att = (attendance != null && assign.AssignmentId == attendance.AssignmentId)
+                        ? attendance
+                        : assign.Attendance;
+
+                    if (att == null)
+                    {
+                        absentCount++;
+                        continue;
+                    }
+
+                    var status = att.Status?.ToUpperInvariant();
+                    if (status is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE")
+                    {
+                        completedCount++;
+                    }
+                    else if (status == "INCOMPLETE")
+                    {
+                        incompleteCount++;
+                    }
+                    else
+                    {
+                        absentCount++;
+                        continue;
+                    }
+
+                    totalWorkMinutes += att.ActualWorkingMinutes;
+                    totalLateMinutes += att.TotalLateMinutes;
+                    excusedLateMinutes += att.ExcusedLateMinutes;
+                    chargeableLateMinutes += att.ChargeableLateMinutes;
+                    totalEarlyLeaveMinutes += att.TotalEarlyLeaveMinutes;
+                    excusedEarlyLeaveMinutes += att.ExcusedEarlyLeaveMinutes;
+                    chargeableEarlyLeaveMinutes += att.ChargeableEarlyLeaveMinutes;
+                }
+
+                timesheet.TotalAssignedShifts = assignments.Count;
+                timesheet.CompletedShiftCount = completedCount;
+                timesheet.AbsentShiftCount = absentCount;
+                timesheet.IncompleteShiftCount = incompleteCount;
+                timesheet.TotalWorkMinutes = totalWorkMinutes;
+                timesheet.TotalLateMinutes = totalLateMinutes;
+                timesheet.ExcusedLateMinutes = excusedLateMinutes;
+                timesheet.ChargeableLateMinutes = chargeableLateMinutes;
+                timesheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+                timesheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
+                timesheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
+                timesheet.UpdatedAt = now;
+            }
+        }
+
+        // Create In-App Notification in DB for Staff
+        var shiftName = attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
+        var shiftDate = attendance?.ShiftStartAtSnapshot.ToString("dd/MM/yyyy") ?? "";
+        var notif = new WorkShiftManagement.DAL.Entities.Notification
+        {
+            Title = "Timesheet Adjustment Approved",
+            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} has been approved by the manager. Actual attendance hours have been updated.",
+            NotificationType = "TIMESHEET",
+            CreatedBy = managerId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsDeleted = false,
+            TargetType = "Custom",
+            Channels = new List<string> { "InApp" },
+            TargetRoles = new List<string> { "STAFF" }
+        };
+
+        notif.UserNotifications.Add(new UserNotification
+        {
+            UserId = request.UserId,
+            IsRead = false,
+            CreatedAt = now
+        });
+
+        _context.Notifications.Add(notif);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return request;
+    }
+
+    public async Task<TimesheetAdjustmentRequest> RejectAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        int branchId,
+        Guid managerId,
+        string managerNote,
+        CancellationToken cancellationToken = default)
+    {
+        var request = await _context.TimesheetAdjustmentRequests
+            .Include(r => r.User)
+            .Include(r => r.Timesheet)
+                .ThenInclude(t => t.PayrollPeriod)
+                    .ThenInclude(p => p.ScheduleWeek)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.Assignment)
+                    .ThenInclude(ass => ass.Shift)
+            .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.Timesheet.PayrollPeriod.BranchId == branchId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Timesheet adjustment request #{adjustmentRequestId} not found for your branch.");
+
+        if (!string.Equals(request.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Adjustment request #{adjustmentRequestId} has already been resolved with status '{request.Status}'.");
+        }
+
+        var now = DateTime.UtcNow;
+        request.Status = "REJECTED";
+        request.ReviewedBy = managerId;
+        request.ReviewedAt = now;
+        request.ManagerNote = managerNote.Trim();
+        request.UpdatedAt = now;
+
+        // Create In-App Notification in DB for Staff
+        var shiftName = request.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
+        var shiftDate = request.Attendance?.ShiftStartAtSnapshot.ToString("dd/MM/yyyy") ?? "";
+        var notif = new WorkShiftManagement.DAL.Entities.Notification
+        {
+            Title = "Timesheet Adjustment Rejected",
+            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} has been rejected by the manager. Reason: \"{managerNote.Trim()}\".",
+            NotificationType = "TIMESHEET",
+            CreatedBy = managerId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsDeleted = false,
+            TargetType = "Custom",
+            Channels = new List<string> { "InApp" },
+            TargetRoles = new List<string> { "STAFF" }
+        };
+
+        notif.UserNotifications.Add(new UserNotification
+        {
+            UserId = request.UserId,
+            IsRead = false,
+            CreatedAt = now
+        });
+
+        _context.Notifications.Add(notif);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return request;
+    }
+
+    public async Task<List<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)>> AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var vnOffset = TimeSpan.FromHours(7);
+
+        // Find candidate schedule weeks with GENERATED timesheets
+        var candidateWeeks = await _context.WorkScheduleWeeks
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.TimesheetAdjustmentRequests)
+            .Where(w => w.Status != "CANCELLED"
+                     && w.PayrollPeriod != null
+                     && w.PayrollPeriod.Timesheets.Any(t => t.Status == "GENERATED"))
+            .ToListAsync(cancellationToken);
+
+        var results = new List<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)>();
+
+        foreach (var week in candidateWeeks)
+        {
+            var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
+            if (!timesheets.Any()) continue;
+
+            int pendingAdjustmentsCount = timesheets
+                .SelectMany(t => t.TimesheetAdjustmentRequests ?? Enumerable.Empty<TimesheetAdjustmentRequest>())
+                .Count(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+
+            // If there are still pending adjustment requests awaiting manager review, do not lock yet
+            if (pendingAdjustmentsCount > 0)
+                continue;
+
+            var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt)
+                ?? week.PayrollPeriod!.CreatedAt;
+            var generatedAtVn = firstGeneratedAt + vnOffset;
+            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+            var reviewDeadlineUtc = week.PayrollPeriod!.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+
+            if (now >= reviewDeadlineUtc)
+            {
+                var targetTimesheets = timesheets.Where(t => t.Status == "GENERATED").ToList();
+                if (!targetTimesheets.Any()) continue;
+
+                var creatorId = week.PayrollPeriod!.CreatedBy;
+                foreach (var t in targetTimesheets)
+                {
+                    t.Status = "LOCKED";
+                    t.LockedAt = now;
+                    t.LockedBy = creatorId;
+                    t.UpdatedAt = now;
+                }
+
+                var staffUserIds = targetTimesheets.Select(t => t.UserId).Distinct().ToList();
+                int notificationId = 0;
+                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. All timesheets have been automatically finalized and locked for payroll processing.";
+
+                if (staffUserIds.Count > 0)
+                {
+                    var notification = new WorkShiftManagement.DAL.Entities.Notification
+                    {
+                        Title = "Timesheet Finalized and Locked",
+                        Content = notificationContent,
+                        NotificationType = "TIMESHEET",
+                        CreatedBy = creatorId,
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        IsDeleted = false,
+                        TargetType = "Custom",
+                        Channels = new List<string> { "InApp" },
+                        TargetRoles = new List<string> { "STAFF" }
+                    };
+
+                    foreach (var sId in staffUserIds)
+                    {
+                        notification.UserNotifications.Add(new UserNotification
+                        {
+                            UserId = sId,
+                            IsRead = false,
+                            CreatedAt = now
+                        });
+                    }
+
+                    _context.Notifications.Add(notification);
+                    await _context.SaveChangesAsync(cancellationToken);
+                    notificationId = notification.NotificationId;
+                }
+                else
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+
+                results.Add((week, targetTimesheets, staffUserIds, notificationId, notificationContent));
+            }
+        }
+
+        return results;
+    }
 }
 

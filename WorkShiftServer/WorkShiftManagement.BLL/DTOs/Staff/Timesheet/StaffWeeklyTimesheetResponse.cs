@@ -19,6 +19,9 @@ public sealed class StaffWeeklyTimesheetResponse
     public bool IsLocked { get; set; }
     public DateTime? ReviewDeadline { get; set; }
     public bool IsPastDeadline { get; set; }
+    public string? ReviewDeadlineDisplay => ReviewDeadline.HasValue 
+        ? (ReviewDeadline.Value + TimeSpan.FromHours(7)).ToString("HH:mm, dd/MM/yyyy") 
+        : null;
     public int PendingAdjustmentCount { get; set; }
     public int CheckInBeforeMinutes { get; set; } = 30;
     public int CheckOutAfterMinutes { get; set; } = 60;

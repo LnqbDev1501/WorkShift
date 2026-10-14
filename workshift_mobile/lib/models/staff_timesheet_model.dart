@@ -15,9 +15,24 @@ class StaffWeeklyTimesheetModel {
   final bool isLocked;
   final DateTime? reviewDeadline;
   final bool isPastDeadline;
+  final String? reviewDeadlineDisplay;
   final int pendingAdjustmentCount;
   final int checkInBeforeMinutes;
   final int checkOutAfterMinutes;
+
+  String get formattedDeadline {
+    if (reviewDeadlineDisplay != null && reviewDeadlineDisplay!.isNotEmpty) {
+      return reviewDeadlineDisplay!;
+    }
+    if (reviewDeadline == null) return '';
+    final local = reviewDeadline!.toLocal();
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    final year = local.year;
+    return '$hour:$minute, $day/$month/$year';
+  }
 
   final int totalAssignedShifts;
   final int completedShifts;
@@ -48,6 +63,7 @@ class StaffWeeklyTimesheetModel {
     required this.isLocked,
     this.reviewDeadline,
     required this.isPastDeadline,
+    this.reviewDeadlineDisplay,
     required this.pendingAdjustmentCount,
     this.checkInBeforeMinutes = 30,
     this.checkOutAfterMinutes = 60,
@@ -91,6 +107,7 @@ class StaffWeeklyTimesheetModel {
         isLocked: json['isLocked'] == true,
         reviewDeadline: parseNullableDateTime(json['reviewDeadline']),
         isPastDeadline: json['isPastDeadline'] == true,
+        reviewDeadlineDisplay: json['reviewDeadlineDisplay']?.toString(),
         pendingAdjustmentCount: json['pendingAdjustmentCount'] as int? ?? 0,
         checkInBeforeMinutes: json['checkInBeforeMinutes'] as int? ?? 30,
         checkOutAfterMinutes: json['checkOutAfterMinutes'] as int? ?? 60,

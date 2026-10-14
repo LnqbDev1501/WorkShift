@@ -33,4 +33,34 @@ public interface IManagerTimesheetRepo
         int branchId,
         Guid managerId,
         CancellationToken cancellationToken = default);
+
+    Task<(List<TimesheetAdjustmentRequest> Items, int TotalCount, int PendingCount, int ApprovedCount, int RejectedCount)> GetTimesheetAdjustmentsAsync(
+        int branchId,
+        string? search,
+        string? status,
+        int? scheduleWeekId,
+        Guid? staffId,
+        int pageIndex,
+        int pageSize,
+        CancellationToken cancellationToken = default);
+
+    Task<TimesheetAdjustmentRequest?> GetAdjustmentDetailAsync(
+        int adjustmentRequestId,
+        int branchId,
+        CancellationToken cancellationToken = default);
+
+    Task<TimesheetAdjustmentRequest> ApproveAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        int branchId,
+        Guid managerId,
+        CancellationToken cancellationToken = default);
+
+    Task<TimesheetAdjustmentRequest> RejectAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        int branchId,
+        Guid managerId,
+        string managerNote,
+        CancellationToken cancellationToken = default);
+
+    Task<List<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)>> AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default);
 }

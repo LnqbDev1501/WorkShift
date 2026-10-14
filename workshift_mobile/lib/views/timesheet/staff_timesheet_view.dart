@@ -372,7 +372,13 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 children: [
                   // 1. Week Selector Banner
                   _buildWeekSelector(timesheet),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  // 1.1 Review Deadline Banner
+                  if (timesheet.reviewDeadline != null) ...[
+                    _buildDeadlineBanner(timesheet),
+                    const SizedBox(height: 14),
+                  ],
 
                   // 2. Weekly KPI Summary Cards (2x2 Grid)
                   _buildKpiGrid(timesheet),
@@ -548,6 +554,103 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               ),
               _buildReviewStatusBadge(timesheet),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeadlineBanner(StaffWeeklyTimesheetModel timesheet) {
+    final isLocked = timesheet.isLocked;
+    final isPast = timesheet.isPastDeadline;
+    final deadlineText = timesheet.formattedDeadline;
+
+    final (bg, border, iconColor, icon, badgeLabel, badgeBg, badgeText, title, message) = isLocked
+        ? (
+            const Color(0xFFF0F9FF),
+            const Color(0xFFBAE6FD),
+            const Color(0xFF0284C7),
+            Icons.lock_outline_rounded,
+            'FINALIZED',
+            const Color(0xFFE0F2FE),
+            const Color(0xFF0369A1),
+            'Timesheet Locked',
+            'All shift records for this period are finalized for payroll processing. No more adjustments allowed.',
+          )
+        : isPast
+            ? (
+                const Color(0xFFFEF2F2),
+                const Color(0xFFFECACA),
+                const Color(0xFFDC2626),
+                Icons.timer_off_outlined,
+                'EXPIRED',
+                const Color(0xFFFEE2E2),
+                const Color(0xFFB91C1C),
+                'Review Deadline Expired',
+                'The review deadline ($deadlineText) has passed. Pending automatic finalization by the system.',
+              )
+            : (
+                const Color(0xFFEFF6FF),
+                const Color(0xFFBFDBFE),
+                const Color(0xFF2563EB),
+                Icons.schedule_rounded,
+                'OPEN FOR REVIEW',
+                const Color(0xFFDBEAFE),
+                const Color(0xFF1D4ED8),
+                'Review & Adjustment Deadline',
+                'Please verify your shift hours before $deadlineText (end of day). Shifts will be locked automatically once expired.',
+              );
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: iconColor),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: iconColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: badgeBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  badgeLabel,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: badgeText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.35,
+            ),
           ),
         ],
       ),
@@ -1188,48 +1291,6 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             Text(
               'You have confirmed this weekly timesheet.',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (timesheet.isLocked) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Color(0xFFF0F9FF),
-          border: Border(top: BorderSide(color: Color(0xFFBAE6FD))),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.lock_rounded, color: Color(0xFF0284C7), size: 18),
-            SizedBox(width: 8),
-            Text(
-              'Timesheet locked for payroll calculation.',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (timesheet.isPastDeadline) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFEF2F2),
-          border: Border(top: BorderSide(color: Color(0xFFFECACA))),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.timer_off_rounded, color: Color(0xFFDC2626), size: 18),
-            SizedBox(width: 8),
-            Text(
-              'The review deadline for this week has passed.',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
             ),
           ],
         ),

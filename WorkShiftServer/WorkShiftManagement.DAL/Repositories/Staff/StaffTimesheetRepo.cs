@@ -82,6 +82,8 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         CancellationToken cancellationToken = default)
     {
         var timesheet = await _context.Timesheets
+            .Include(t => t.PayrollPeriod)
+                .ThenInclude(p => p.ScheduleWeek)
             .FirstOrDefaultAsync(t => t.TimesheetId == timesheetId && t.UserId == staffId, cancellationToken);
 
         if (timesheet == null)
@@ -98,6 +100,47 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         timesheet.StaffReviewedAt = now;
         timesheet.StaffReviewNote = note;
         timesheet.UpdatedAt = now;
+
+        var week = timesheet.PayrollPeriod?.ScheduleWeek;
+        if (week != null)
+        {
+            var branchId = week.BranchId;
+            var managerIds = await _context.Users
+                .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE")
+                .Select(u => u.UserId)
+                .ToListAsync(cancellationToken);
+
+            if (managerIds.Any())
+            {
+                var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == staffId, cancellationToken);
+                var staffName = staffUser?.FullName ?? "Staff member";
+                var notif = new WorkShiftManagement.DAL.Entities.Notification
+                {
+                    Title = "Timesheet Confirmed by Staff",
+                    Content = $"{staffName} has confirmed their timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy}.",
+                    NotificationType = "TIMESHEET",
+                    CreatedBy = staffId,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false,
+                    TargetType = "Custom",
+                    Channels = new List<string> { "InApp" },
+                    TargetRoles = new List<string> { "MANAGER" }
+                };
+
+                foreach (var mId in managerIds)
+                {
+                    notif.UserNotifications.Add(new UserNotification
+                    {
+                        UserId = mId,
+                        IsRead = false,
+                        CreatedAt = now
+                    });
+                }
+
+                _context.Notifications.Add(notif);
+            }
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
@@ -142,6 +185,7 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         var generatedAtVn = firstGeneratedAt + vnOffset;
         var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
         var reviewDeadline = week.PayrollPeriod.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+
         if (DateTime.UtcNow >= reviewDeadline)
         {
             throw new InvalidOperationException("The deadline for submitting timesheet adjustment requests has passed.");
@@ -158,19 +202,19 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             .ToListAsync(cancellationToken);
 
         var now = DateTime.UtcNow;
+        var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == staffId, cancellationToken);
 
         var activeRule = await GetActiveAttendanceRuleAsync(cancellationToken);
         int checkInBeforeMinutes = activeRule?.CheckInBeforeMinutes ?? 30;
         int checkOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
 
-        // Batch pre-create any missing Attendance records in a single round-trip
+        // Batch pre-create any missing Attendance records in memory
         var assignmentsNeedingAttendance = assignments
             .Where(a => items.Any(i => i.AssignmentId == a.AssignmentId) && a.Attendance == null)
             .ToList();
 
         if (assignmentsNeedingAttendance.Any())
         {
-            var user = await _context.Users.FindAsync(new object[] { staffId }, cancellationToken);
             var branch = await _context.Branches.FindAsync(new object[] { week.BranchId }, cancellationToken);
 
             foreach (var a in assignmentsNeedingAttendance)
@@ -180,7 +224,7 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                     AssignmentId = a.AssignmentId,
                     AttendanceRuleId = activeRule?.AttendanceRuleId ?? 1,
                     RuleSnapshotJson = "{}",
-                    EmployeeFullNameSnapshot = user?.FullName ?? "Staff",
+                    EmployeeFullNameSnapshot = staffUser?.FullName ?? "Staff",
                     ShiftStartAtSnapshot = a.Shift.ScheduledStartAt,
                     ShiftEndAtSnapshot = a.Shift.ScheduledEndAt,
                     BranchNameSnapshot = branch?.BranchName ?? $"Branch {week.BranchId}",
@@ -191,8 +235,6 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                 _context.Attendances.Add(newAttendance);
                 a.Attendance = newAttendance;
             }
-
-            await _context.SaveChangesAsync(cancellationToken);
         }
 
         foreach (var item in items)
@@ -206,16 +248,19 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             var shift = assignment.Shift;
             int attendanceId = assignment.Attendance!.AttendanceId;
 
-            // Check if there is already a PENDING request for this attendance
-            if (existingRequests.Any(r => r.AttendanceId == attendanceId && string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase)))
-            {
-                throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' already has a pending adjustment request awaiting manager review.");
-            }
+            // Check existing request status for this attendance (most recent request)
+            var existingRequest = existingRequests
+                .Where(r => r.AttendanceId == attendanceId)
+                .OrderByDescending(r => r.CreatedAt)
+                .FirstOrDefault();
 
-            // Check if there is already a REJECTED request for this attendance
-            if (existingRequests.Any(r => r.AttendanceId == attendanceId && string.Equals(r.Status, "REJECTED", StringComparison.OrdinalIgnoreCase)))
+            if (existingRequest != null)
             {
-                throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' adjustment request was previously rejected by manager and cannot be resubmitted.");
+                var reqStatus = existingRequest.Status.ToUpperInvariant();
+                if (reqStatus == "PENDING")
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' already has a pending adjustment request awaiting manager review.");
+                if (reqStatus == "REJECTED")
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' adjustment request was rejected by manager and cannot be resubmitted.");
             }
 
             if (!item.AdjustCheckIn && !item.AdjustCheckOut)
@@ -299,28 +344,77 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                 throw new ArgumentException($"Shift '{shift.ShiftNameSnapshot}': Please provide an adjustment reason.");
             }
 
-            var adjRequest = new TimesheetAdjustmentRequest
-            {
-                TimesheetId = timesheet.TimesheetId,
-                AttendanceId = attendanceId,
-                UserId = staffId,
-                CurrentCheckInSnapshot = assignment.Attendance.CheckInTime,
-                CurrentCheckOutSnapshot = assignment.Attendance.CheckOutTime,
-                AdjustCheckIn = item.AdjustCheckIn,
-                RequestedCheckInTime = item.RequestedCheckInTime,
-                AdjustCheckOut = item.AdjustCheckOut,
-                RequestedCheckOutTime = item.RequestedCheckOutTime,
-                Reason = item.Reason.Trim(),
-                Status = "PENDING",
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+            var targetRequest = (existingRequest != null && string.Equals(existingRequest.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                ? existingRequest
+                : null;
 
-            _context.TimesheetAdjustmentRequests.Add(adjRequest);
+            if (targetRequest != null)
+            {
+                targetRequest.ReviewedBy = null;
+                targetRequest.ReviewedAt = null;
+                targetRequest.ManagerNote = null;
+            }
+            else
+            {
+                targetRequest = new TimesheetAdjustmentRequest
+                {
+                    TimesheetId = timesheet.TimesheetId,
+                    AttendanceId = attendanceId,
+                    UserId = staffId,
+                    CreatedAt = now
+                };
+                _context.TimesheetAdjustmentRequests.Add(targetRequest);
+            }
+
+            targetRequest.CurrentCheckInSnapshot = assignment.Attendance.CheckInTime;
+            targetRequest.CurrentCheckOutSnapshot = assignment.Attendance.CheckOutTime;
+            targetRequest.AdjustCheckIn = item.AdjustCheckIn;
+            targetRequest.RequestedCheckInTime = item.RequestedCheckInTime;
+            targetRequest.AdjustCheckOut = item.AdjustCheckOut;
+            targetRequest.RequestedCheckOutTime = item.RequestedCheckOutTime;
+            targetRequest.Reason = item.Reason.Trim();
+            targetRequest.Status = "PENDING";
+            targetRequest.UpdatedAt = now;
         }
 
         timesheet.StaffReviewStatus = "PENDING";
         timesheet.UpdatedAt = now;
+
+        var branchId = week.BranchId;
+        var managerIds = await _context.Users
+            .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE")
+            .Select(u => u.UserId)
+            .ToListAsync(cancellationToken);
+
+        if (managerIds.Any())
+        {
+            var staffName = staffUser?.FullName ?? "Staff member";
+            var notif = new WorkShiftManagement.DAL.Entities.Notification
+            {
+                Title = "New Timesheet Adjustment Request",
+                Content = $"{staffName} submitted {items.Count} timesheet adjustment request(s) for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy}.",
+                NotificationType = "TIMESHEET",
+                CreatedBy = staffId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { "MANAGER" }
+            };
+
+            foreach (var mId in managerIds)
+            {
+                notif.UserNotifications.Add(new UserNotification
+                {
+                    UserId = mId,
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
+
+            _context.Notifications.Add(notif);
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;

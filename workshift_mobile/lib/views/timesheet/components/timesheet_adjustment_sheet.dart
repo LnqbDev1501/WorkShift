@@ -22,7 +22,7 @@ class ShiftAdjustmentConfig {
 
 class TimesheetAdjustmentSheet extends StatefulWidget {
   final List<StaffShiftAttendanceModel> selectedShifts;
-  final Future<bool> Function(List<ShiftAdjustmentItemInput> items) onSubmit;
+  final Future<String?> Function(List<ShiftAdjustmentItemInput> items) onSubmit;
   final int checkInBeforeMinutes;
   final int checkOutAfterMinutes;
 
@@ -37,7 +37,7 @@ class TimesheetAdjustmentSheet extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required List<StaffShiftAttendanceModel> selectedShifts,
-    required Future<bool> Function(List<ShiftAdjustmentItemInput> items) onSubmit,
+    required Future<String?> Function(List<ShiftAdjustmentItemInput> items) onSubmit,
     int checkInBeforeMinutes = 30,
     int checkOutAfterMinutes = 60,
   }) {
@@ -257,14 +257,14 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await widget.onSubmit(items);
+      final error = await widget.onSubmit(items);
       if (mounted) {
-        if (success) {
+        if (error == null) {
           Navigator.pop(context, true);
         } else {
           setState(() {
             _isSubmitting = false;
-            _errorMessage = 'Failed to submit adjustment requests. Please check inputs and try again.';
+            _errorMessage = error;
           });
         }
       }

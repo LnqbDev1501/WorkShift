@@ -302,6 +302,12 @@ try
             "overdue-contracts-cancellation",
             service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
             Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService>(
+            "timesheet-deadline-autolock",
+            service => service.AutoLockExpiredTimesheetsAsync(CancellationToken.None),
+            Cron.Minutely());
 }
 
 catch (Exception ex)
