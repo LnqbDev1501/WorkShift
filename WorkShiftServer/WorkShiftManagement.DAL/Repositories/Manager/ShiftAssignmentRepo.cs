@@ -103,6 +103,7 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
                 $"SELECT * FROM public.users WHERE user_id = {staffId} FOR UPDATE").SingleOrDefaultAsync(ct)
                 ?? throw new KeyNotFoundException("Staff not found.");
             await context.Entry(staff).Reference(x => x.Role).LoadAsync(ct);
+            await context.Entry(staff).Reference(x => x.Branch).LoadAsync(ct);
             await context.Entry(staff).Reference(x => x.EmployeeType).LoadAsync(ct);
             await context.WorkShifts.FromSqlInterpolated(
                 $"SELECT * FROM public.work_shifts WHERE shift_id = {shiftId} FOR UPDATE").SingleAsync(ct);
@@ -114,6 +115,7 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
                 .Include(x => x.ShiftAssignments).ThenInclude(x => x.Attendance)
                 .Include(x => x.ShiftAssignments).ThenInclude(x => x.PayslipWorkDetails)
                 .Include(x => x.ShiftAssignments).ThenInclude(x => x.LeaveRequestAssignments).ThenInclude(x => x.Request)
+                .Include(x => x.ShiftAssignments).ThenInclude(x => x.TimeAdjustmentRequestDetails).ThenInclude(x => x.Request)
                 .Include(x => x.ShiftAssignments).ThenInclude(x => x.ShiftSwapRequestSourceAssignments)
                 .Include(x => x.ShiftAssignments).ThenInclude(x => x.ShiftSwapRequestTargetAssignments)
                 .AsSplitQuery().SingleAsync(x => x.ShiftId == shiftId, ct);

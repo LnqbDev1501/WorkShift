@@ -276,6 +276,10 @@ builder.Services.AddScoped<IShiftRepo, ShiftRepo>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IShiftAssignmentRepo, ShiftAssignmentRepo>();
 builder.Services.AddScoped<IShiftAssignmentService, ShiftAssignmentService>();
+builder.Services.AddScoped<IStaffShiftRepo, StaffShiftRepo>();
+builder.Services.AddScoped<IStaffShiftService, StaffShiftService>();
+builder.Services.AddScoped<IStaffShiftSwapRepo, StaffShiftSwapRepo>();
+builder.Services.AddScoped<IStaffShiftSwapService, StaffShiftSwapService>();
 builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
