@@ -215,6 +215,13 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 string attStatus = att?.Status
                     ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
 
+                var approvedLeave = x.Assignment.LeaveRequestAssignments
+                    ?.Select(l => l.Request)
+                    ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
+
+                bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
+                string? leaveReason = approvedLeave?.Reason;
+
                 return new ManagerStaffShiftAttendanceDto
                 {
                     AssignmentId = x.Assignment.AssignmentId,
@@ -227,8 +234,10 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
                     TotalLateMinutes = att?.TotalLateMinutes ?? 0,
                     TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                    AttendanceStatus = attStatus,
-                    AssignmentStatus = x.Assignment.Status
+                    AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
+                    AssignmentStatus = x.Assignment.Status,
+                    IsExcusedLeave = isExcusedLeave,
+                    LeaveReason = leaveReason
                 };
             }).ToList();
         }
@@ -237,6 +246,12 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         {
             foreach (var t in timesheets.OrderBy(t => t.User.FullName))
             {
+                var userShifts = MapUserShifts(t.UserId);
+                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
                     TimesheetId = t.TimesheetId,
@@ -251,9 +266,13 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     TotalWorkMinutes = t.TotalWorkMinutes,
                     TotalLateMinutes = t.TotalLateMinutes,
                     TotalEarlyLeaveMinutes = t.TotalEarlyLeaveMinutes,
+                    LateCount = lateCount,
+                    EarlyLeaveCount = earlyLeaveCount,
+                    ExcusedLeaveCount = excusedLeaveCount,
+                    UnexcusedAbsentCount = unexcusedAbsentCount,
                     StaffReviewStatus = t.StaffReviewStatus ?? "PENDING",
                     Status = t.Status ?? status,
-                    Shifts = MapUserShifts(t.UserId)
+                    Shifts = userShifts
                 });
             }
         }
@@ -266,6 +285,12 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
             foreach (var u in ungeneratedUsers)
             {
+                var userShifts = MapUserShifts(u.UserId);
+                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
                     TimesheetId = null,
@@ -280,9 +305,13 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     TotalWorkMinutes = 0,
                     TotalLateMinutes = 0,
                     TotalEarlyLeaveMinutes = 0,
+                    LateCount = lateCount,
+                    EarlyLeaveCount = earlyLeaveCount,
+                    ExcusedLeaveCount = excusedLeaveCount,
+                    UnexcusedAbsentCount = unexcusedAbsentCount,
                     StaffReviewStatus = "-",
                     Status = "NOT GENERATED",
-                    Shifts = MapUserShifts(u.UserId)
+                    Shifts = userShifts
                 });
             }
         }
@@ -689,6 +718,31 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             _logger.LogError(ex, "Error occurred during Hangfire job AutoLockExpiredTimesheetsAsync");
             throw;
         }
+    }
+
+    public async Task<(byte[] FileBytes, string FileName)> ExportWeeklyTimesheetExcelAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated manager identity is required.");
+        }
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Weekly timesheet details not found for week ID {scheduleWeekId}.");
+
+        if (string.Equals(detail.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Cannot export timesheet: Timesheet has not been generated for this week yet. Please generate the timesheet first.");
+        }
+
+        string exportedByName = string.IsNullOrWhiteSpace(manager.FullName) ? "Branch Manager" : manager.FullName;
+        return TimesheetExcelExporter.GenerateWeeklyTimesheetExcel(detail, exportedByName);
     }
 }
 

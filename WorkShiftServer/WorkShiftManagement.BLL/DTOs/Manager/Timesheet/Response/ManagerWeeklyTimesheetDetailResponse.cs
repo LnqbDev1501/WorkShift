@@ -47,6 +47,10 @@ public sealed class ManagerStaffTimesheetItemDto
     public int TotalWorkMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
+    public int LateCount { get; set; }
+    public int EarlyLeaveCount { get; set; }
+    public int ExcusedLeaveCount { get; set; }
+    public int UnexcusedAbsentCount { get; set; }
     public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "-"
     public string Status { get; set; } = null!; // "GENERATED", "LOCKED", "NOT GENERATED"
     public List<ManagerStaffShiftAttendanceDto> Shifts { get; set; } = new();
@@ -66,4 +70,6 @@ public sealed class ManagerStaffShiftAttendanceDto
     public int TotalEarlyLeaveMinutes { get; set; }
     public string AttendanceStatus { get; set; } = null!; // "COMPLETED", "PRESENT", "ABSENT", "SCHEDULED"
     public string AssignmentStatus { get; set; } = null!;
+    public bool IsExcusedLeave { get; set; }
+    public string? LeaveReason { get; set; }
 }

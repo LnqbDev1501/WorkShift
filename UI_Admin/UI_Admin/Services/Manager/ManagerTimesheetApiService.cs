@@ -112,5 +112,27 @@ public sealed class ManagerTimesheetApiService
         var result = await response.Content.ReadFromJsonAsync<ManagerWeeklyTimesheetDetailViewModel>(cancellationToken: cancellationToken);
         return result ?? throw new InvalidOperationException("Failed to read timesheet details after locking.");
     }
+
+    public async Task<(byte[] FileBytes, string FileName, string ContentType)> DownloadWeeklyTimesheetExcelAsync(
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/export-excel";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMessage = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+            throw new InvalidOperationException(errorMessage);
+        }
+
+        var fileBytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        string fileName = response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName?.Trim('"')
+            ?? $"Weekly_Timesheet_{scheduleWeekId}.xlsx";
+        string contentType = response.Content.Headers.ContentType?.MediaType
+            ?? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+        return (fileBytes, fileName, contentType);
+    }
 }
 

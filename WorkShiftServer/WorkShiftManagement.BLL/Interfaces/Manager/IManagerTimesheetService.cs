@@ -50,4 +50,9 @@ public interface IManagerTimesheetService
         CancellationToken cancellationToken = default);
 
     Task AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default);
+
+    Task<(byte[] FileBytes, string FileName)> ExportWeeklyTimesheetExcelAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
 }

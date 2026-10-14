@@ -59,6 +59,13 @@
                 <span>Back to List</span>
             </a>
 
+            <a asp-action="ExportExcel" asp-route-id="@Model.ScheduleWeekId"
+               title="Export weekly timesheet summary to Excel spreadsheet"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-lg">download</span>
+                <span>Export Excel</span>
+            </a>
+
             @if (Model.CanGenerateTimesheet)
             {
                 <form id="formGenerateTimesheet" asp-action="Generate" asp-route-id="@Model.ScheduleWeekId" method="post" class="inline">

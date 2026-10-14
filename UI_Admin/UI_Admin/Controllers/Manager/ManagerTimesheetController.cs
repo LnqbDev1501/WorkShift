@@ -233,4 +233,31 @@ public sealed class ManagerTimesheetController : Controller
             return RedirectToAction(nameof(Details), new { id = scheduleWeekId });
         }
     }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportExcel(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var (fileBytes, fileName, contentType) = await _timesheetApiService.DownloadWeeklyTimesheetExcelAsync(id, cancellationToken);
+            return File(fileBytes, contentType, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export timesheet Excel for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to export timesheet: {ex.Message}";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
 }

@@ -136,6 +136,10 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.Attendance)
+            .Include(w => w.WorkShifts)
+                .ThenInclude(s => s.ShiftAssignments)
+                    .ThenInclude(a => a.LeaveRequestAssignments)
+                        .ThenInclude(l => l.Request)
             .FirstOrDefaultAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId, cancellationToken);
     }
 
