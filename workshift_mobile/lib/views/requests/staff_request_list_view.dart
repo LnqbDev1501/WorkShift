@@ -32,7 +32,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
     super.initState();
     _controller.addListener(_onControllerUpdate);
     _scrollController.addListener(_onScroll);
-    _controller.loadRequests();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _controller.loadRequests();
+      }
+    });
   }
 
   @override
@@ -511,9 +515,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   ? const Center(
                       child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
                     )
-                  : requests.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
+                  : _controller.errorMessage != null
+                      ? _buildErrorState(_controller.errorMessage!)
+                      : requests.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
                           controller: _scrollController,
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -577,6 +583,55 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             color: isSelected ? Colors.white : AppColors.textSecondary,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    var displayMsg = message;
+    if (displayMsg.startsWith('Exception: ')) {
+      displayMsg = displayMsg.substring('Exception: '.length).trim();
+    }
+    return Center(
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEE2E2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Đã xảy ra lỗi khi tải dữ liệu',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              displayMsg,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _controller.loadRequests(refresh: true),
+              icon: const Icon(Icons.refresh_rounded, size: 18),
+              label: const Text('Thử lại'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+            ),
+          ],
         ),
       ),
     );

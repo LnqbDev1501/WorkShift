@@ -29,6 +29,9 @@ public class CreateContractViewModel : IValidatableObject
     public string? ContractTerms { get; set; }
 
     [BindNever, ValidateNever]
+    public IReadOnlyList<string> PositionOptions { get; set; } = [];
+
+    [BindNever, ValidateNever]
     public IReadOnlyList<ContractStaffOption> StaffOptions { get; set; } = [];
 
     [BindNever, ValidateNever]

@@ -1,11 +1,10 @@
-@model UI_Admin.Models.Payroll.PayrollDetailViewModel
+@model UI_Admin.Models.Admin.Payroll.PayrollDetailViewModel
 @{
     var period = Model.Period;
     var query = Model.Query;
     ViewData["Title"] = period.PeriodCode;
     var canApprove = period.Status == "SUBMITTED" && period.Summary.TotalPayrolls > 0 && period.Summary.RejectedPayrollCount
 == 0;
-    var canReject = period.Status == "SUBMITTED" || period.Status == "REVISION_REQUIRED";
     var statusText = period.Status switch
     {
         "SUBMITTED" => "Pending Admin Review",
@@ -13,7 +12,7 @@
         "REVISION_REQUIRED" => "Revision Required",
         _ => period.Status.Replace('_', ' ')
     };
-    string Money(decimal value) => value.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+    string Money(decimal value) => value.ToString("#,0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
@@ -220,8 +219,17 @@
                         <p>Approved by @(period.ApprovedBy?.FullName ?? "—") ·
                             @period.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</p>
                         }
+                        <p>Approval deadline (UTC+7): @(period.ApprovalDeadlineAt.HasValue ? DateTime.SpecifyKind(period.ApprovalDeadlineAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        @if (period.Status is "PAID" or "CLOSED")
+                        {
+                            <p>Paid at (UTC+7): @(period.PaidAt.HasValue ? DateTime.SpecifyKind(period.PaidAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—") · Closed at (UTC+7): @(period.ClosedAt.HasValue ? DateTime.SpecifyKind(period.ClosedAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        }
                     </div>
                     <div class="period-header-actions">
+                        @if (period.Status is "PAID" or "CLOSED")
+                        {
+                            <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId">Export Excel</a>
+                        }
 
                         <a class="payroll-button payroll-back-button" asp-action="List">
                             <span aria-hidden="true">←</span>
@@ -257,7 +265,7 @@
                         <article>
                             <div>TOTAL DEDUCTIONS <span>⊖</span></div>
                             <p><strong class="red">@Money(period.Summary.TotalPenalty +
-                                                                                    period.Summary.TotalAttendanceDeduction)</strong></p><small>Phạt:
+                                                                                                                    period.Summary.TotalAttendanceDeduction)</strong></p><small>Phạt:
                                 @Money(period.Summary.TotalPenalty)</small><small>Chấm công:
                                 @Money(period.Summary.TotalAttendanceDeduction)</small>
                             </article>
@@ -299,9 +307,7 @@
                                             <tbody>
                                                 @foreach (var pay in period.Payrolls.Items)
                                                 {
-                                                    var expanded = Model.RejectedPayrollId == pay.PayrollId;
                                                     var payrollStatus = pay.Status?.Trim() ?? string.Empty;
-                                                    var isSubmitted = payrollStatus.Equals("SUBMITTED", StringComparison.OrdinalIgnoreCase);
                                                     <tr class="staff-row">
                                                         <td>
                                                             <div class="staff-identity"><span
@@ -312,107 +318,14 @@
                                                                 </div>
                                                             </td>
                                                             <td>@(pay.EmployeePosition ?? "—")<small>@Money(pay.HourlyRate) / hr</small></td>
-                                                            <td><strong>@pay.TotalWorkHours.ToString("N2") hrs</strong></td>
+                                                            <td><strong>@pay.TotalWorkHours.ToString("0.############################") hrs</strong></td>
                                                             <td class="money">@Money(pay.WorkPay)</td>
                                                             <td class="money reward">@Money(pay.TotalReward)</td>
                                                             <td class="money red">@Money(pay.TotalDeduction)</td>
                                                             <td class="money"><strong class="purple">@Money(pay.NetSalary)</strong></td>
-                                                            <td><button type="button" class="payroll-button inspect-button"
-                                                                            data-inspect="staff-@pay.PayrollId" aria-controls="staff-@pay.PayrollId"
-                                                                            aria-expanded="@(expanded ? "true" : "false")">Inspect <span>⌄</span></button></td>
+                                                            <td><a asp-controller="AdminPayrollRevision" asp-action="Review" asp-route-id="@pay.PayrollId" class="payroll-button">Inspect Payroll</a></td>
                                                             </tr>
-                                                            <tr id="staff-@pay.PayrollId" class="staff-inspection" hidden="@(!expanded)">
-                                                                <td colspan="8">
-                                                                    <section class="inspection-panel">
-                                                                        <header>
-                                                                            <div><strong>▤ Payroll Itemization — @pay.EmployeeFullName</strong><small>Payroll
-                                                                                #@pay.PayrollId · @period.BranchName</small></div>
-                                                                                <div class="inspection-actions"><span
-                                                                                    class="payroll-status @payrollStatus.ToLowerInvariant()">@payrollStatus</span>@if
-                                                                                    (canReject && isSubmitted) {
-                                                                                        <button type="button" class="payroll-button reject-button"
-                                                                                                data-reject="reject-@pay.PayrollId" aria-controls="reject-@pay.PayrollId"
-                                                                                                aria-expanded="@(expanded ? "true" : "false")">⊗ Reject Staff
-                                                                                            Payroll</button>
-                                                                                        }
-                                                                                    </div>
-                                                                                </header>
-                                                                                @if (canReject && isSubmitted)
-                                                                                {
-                                                                                    <form asp-action="Reject" method="post" id="reject-@pay.PayrollId"
-                                                                                          class="rejection-form" hidden="@(!expanded)">
-                                                                                        <input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
-                                                                                        type="hidden" name="PayrollId" value="@pay.PayrollId" /><input type="hidden"
-                                                                                                                                                       name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
-                                                                                                                                     value="@query.PageNumber" /><input type="hidden" name="PageSize"
-                                                                                                                           value="@query.PageSize" />
-                                                                                        <strong>⊗ Reject Individual Staff Payroll — @pay.EmployeeFullName</strong>
-                                                                                        <p>Phiếu lương sẽ được gửi về để chỉnh sửa. Kỳ lương chuyển sang Revision Required
-                                                                                            và chỉ được duyệt sau khi các phiếu đã được gửi lại hợp lệ.</p>
-                                                                                            <label for="reason-@pay.PayrollId">Audit Rejection Note <span
-                                                                                                class="red">*</span></label><textarea id="reason-@pay.PayrollId"
-                                                                                                                                      name="Reason" rows="3" maxlength="1000" required
-                                                                                                                                      placeholder="Nhập lý do cần chỉnh sửa phiếu lương…">@(expanded ? Model.RejectionReason : "")</textarea>
-                                                                                                <footer><small>Bắt buộc nhập lý do · Tối đa 1.000 ký tự</small><button type="button"
-                                                                                                                                                                           class="payroll-button"
-                                                                                                                                                                           data-cancel="reject-@pay.PayrollId">Cancel</button><button
-                                                                                                    class="payroll-button danger" type="submit">Confirm Reject —
-                                                                                                    #@pay.PayrollId</button></footer>
-                                                                                                </form>
-                                                                                            }
-                                                                                            @if (pay.Rejection != null)
-                                                                                            {
-                                                                                                <div class="rejection-audit"><strong>Revision
-                                                                                                    requested</strong>
-                                                                                                    <p>@pay.Rejection.Reason</p><small>@(pay.Rejection.RejectedByName ?? "—") ·
-                                                                                                    @pay.Rejection.RejectedAt?.ToString("dd MMM yyyy, HH:mm")</small>
-                                                                                                </div>
-                                                                                            }
-                                                                                            <div class="itemization-summary">
-                                                                                                <article><small>WORK
-                                                                                                    PAY</small><strong>@Money(pay.WorkPay)</strong><small>@pay.TotalWorkHours.ToString("N2")
-                                                                                                    hrs · @Money(pay.HourlyRate) / hr</small></article>
-                                                                                                    <article><small>REWARDS</small><strong
-                                                                                                        class="reward">@Money(pay.TotalReward)</strong><small>Gross salary:
-                                                                                                        @Money(pay.GrossSalary)</small></article>
-                                                                                                        <article><small>PENALTIES</small><strong
-                                                                                                            class="red">@Money(pay.TotalPenalty)</strong></article>
-                                                                                                            <article><small>ATTENDANCE DEDUCTIONS</small><strong
-                                                                                                                class="red">@Money(pay.AttendanceDeduction)</strong></article>
-                                                                                                            </div>
-                                                                                                            <h2>PAYROLL LINE ITEMS</h2>
-                                                                                                            @if (pay.Details.Count == 0)
-                                                                                                            {
-                                                                                                                <p class="line-empty">No line items returned for this
-                                                                                                                    payroll.</p>
-                                                                                                                }
-                else
-                                                                                                                {
 
-                                                                                                                    <div class="line-items">@foreach (var item in pay.Details.OrderBy(x =>
-                                                                                                                        x.DisplayOrder).ThenBy(x => x.PayrollDetailId)) {
-                                                                                                                            <article>
-                                                                                                                                <div><strong>@item.Description</strong><small>@item.Type @if
-                                                                                                                                    (!string.IsNullOrEmpty(item.ItemCode)) {
-                                                                                                                                        <span>· @item.ItemCode</span>
-                                                                                                                                    }
-                                                                                                                                </small></div>
-                                                                                                                                <div><small>@item.WorkFrom?.ToString("dd MMM yyyy") @if (item.WorkTo.HasValue) {
-                                                                                                                                    <span>– @item.WorkTo.Value.ToString("dd MMM yyyy")</span>
-                                                                                                                                }
-                                                                                                                            </small><small>Quantity: @(item.Quantity?.ToString("N2") ?? "—") ·
-                                                                                                                            Rate: @(item.Rate.HasValue ? Money(item.Rate.Value) : "—") · Multiplier:
-                                                                                                                            @item.Multiplier</small></div><strong>@Money(item.Amount)</strong>@if
-                                                                                                                            (!string.IsNullOrWhiteSpace(item.Note)) {
-                                                                                                                                <p>@item.Note</p>
-                                                                                                                            }
-                                                                                                                        </article>
-                                                                                                                    }
-                                                                                                                </div>
-                                                                                                            }
-                                                                                                        </section>
-                                                                                                    </td>
-                                                                                                </tr>
                                                                                             }
                                                                                             @if (period.Payrolls.Items.Count == 0)
                                                                                             {
@@ -426,39 +339,39 @@
                                                                                     </table>
                                                                                 </div>
                                                                                 <partial name="_ListPagination" model="@(new ListPaginationViewModel
-                                                                                {
-                                                                                    PageNumber = query.PageNumber,
-                                                                                    PageSize = query.PageSize,
-                                                                                    TotalItems = period.Payrolls.TotalCount,
-                                                                                    ItemLabel = "staff records",
-                                                                                    PageParameter = "pageNumber",
-                                                                                })" />
-                                                                        </section>
-                                                                    </div>
-                                                                    @if (canApprove)
-                                                                    {
-                                                                        <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
-                                                                            <div class="payroll-modal-dialog">
-                                                                                <form asp-action="Approve" method="post">
-                                                                                    <div class="payroll-modal-header">
-                                                                                        <h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close"
-                                                                                                                                                 data-modal-close aria-label="Close">×</button>
-                                                                                    </div>
-                                                                                    <div class="payroll-modal-body">
-                                                                                        <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
-                                                                                        <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
-                                                                                        <p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện
-                                                                                            chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
-                                                                                            type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
-                                                                                                                                                       value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
+                                                                                         {
+                                                                                             PageNumber = query.PageNumber,
+                                                                                             PageSize = query.PageSize,
+                                                                                             TotalItems = period.Payrolls.TotalCount,
+                                                                                             ItemLabel = "staff records",
+                                                                                             PageParameter = "pageNumber",
+                                                                                         })" />
+                                                                            </section>
+                                                                        </div>
+                                                                        @if (canApprove)
+                                                                        {
+                                                                            <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
+                                                                                <div class="payroll-modal-dialog">
+                                                                                    <form asp-action="Approve" method="post">
+                                                                                        <div class="payroll-modal-header">
+                                                                                            <h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close"
+                                                                                                                                                     data-modal-close aria-label="Close">×</button>
                                                                                         </div>
-                                                                                        <div class="payroll-modal-footer"><button type="button" class="payroll-button"
-                                                                                                                                      data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm
-                                                                                            Approval</button></div>
-                                                                                        </form>
+                                                                                        <div class="payroll-modal-body">
+                                                                                            <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
+                                                                                            <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
+                                                                                            <p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện
+                                                                                                chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
+                                                                                                type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
+                                                                                                                                                           value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
+                                                                                            </div>
+                                                                                            <div class="payroll-modal-footer"><button type="button" class="payroll-button"
+                                                                                                                                          data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm
+                                                                                                Approval</button></div>
+                                                                                            </form>
+                                                                                        </div>
                                                                                     </div>
-                                                                                </div>
-                                                                            }
-                                                                            @section Scripts {
-                                                                                <script src="~/js/payroll-detail.js" asp-append-version="true"></script>
-                                                                            }
+                                                                                }
+                                                                                @section Scripts {
+                                                                                    <script src="~/js/payroll-detail.js" asp-append-version="true"></script>
+                                                                                }

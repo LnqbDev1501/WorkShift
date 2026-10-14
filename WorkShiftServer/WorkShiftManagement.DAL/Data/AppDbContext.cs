@@ -66,6 +66,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
+    public virtual DbSet<Payment> Payments { get; set; }
+
     public virtual DbSet<Payroll> Payrolls { get; set; }
 
     public virtual DbSet<PayrollCarryForwardApplication> PayrollCarryForwardApplications { get; set; }
@@ -1137,11 +1139,6 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.CancelledByNavigation).WithMany(p => p.EmploymentContractCancelledByNavigations)
-                .HasForeignKey(d => d.CancelledBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("employment_contracts_cancelled_by_fkey");
-
             entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
                 .HasForeignKey<EmploymentContract>(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -1697,11 +1694,11 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.PayrollId, e.DisplayOrder }, "ix_payroll_details_payroll_display");
 
-            entity.HasIndex(e => e.RewardPenaltyId, "uq_payroll_detail_adjustment")
+            entity.HasIndex(e => new { e.PayrollId, e.RewardPenaltyId }, "uq_payroll_detail_adjustment")
                 .IsUnique()
                 .HasFilter("(reward_penalty_id IS NOT NULL)");
 
-            entity.HasIndex(e => e.AttendancePenaltyId, "uq_payroll_detail_attendance_penalty")
+            entity.HasIndex(e => new { e.PayrollId, e.AttendancePenaltyId }, "uq_payroll_detail_attendance_penalty")
                 .IsUnique()
                 .HasFilter("(attendance_penalty_id IS NOT NULL)");
 
@@ -1741,8 +1738,8 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.WorkFrom).HasColumnName("work_from");
             entity.Property(e => e.WorkTo).HasColumnName("work_to");
 
-            entity.HasOne(d => d.AttendancePenalty).WithOne(p => p.PayrollDetail)
-                .HasForeignKey<PayrollDetail>(d => d.AttendancePenaltyId)
+            entity.HasOne(d => d.AttendancePenalty).WithMany(p => p.PayrollDetails)
+                .HasForeignKey(d => d.AttendancePenaltyId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_details_attendance_penalty_id_fkey");
 
@@ -1765,8 +1762,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_details_public_holiday_id_fkey");
 
-            entity.HasOne(d => d.RewardPenalty).WithOne(p => p.PayrollDetail)
-                .HasForeignKey<PayrollDetail>(d => d.RewardPenaltyId)
+            entity.HasOne(d => d.RewardPenalty).WithMany(p => p.PayrollDetails)
+                .HasForeignKey(d => d.RewardPenaltyId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("payroll_details_reward_penalty_id_fkey");
 
@@ -2788,9 +2785,6 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("phone");
             entity.Property(e => e.PreviousBranchId).HasColumnName("previous_branch_id");
-            entity.Property(e => e.HasPassword)
-                .HasColumnName("has_password")
-                .HasDefaultValue(true);
             entity.Property(e => e.PreviousStatus)
                 .HasMaxLength(30)
                 .HasColumnName("previous_status");

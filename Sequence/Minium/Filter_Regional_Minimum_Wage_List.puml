@@ -1,0 +1,206 @@
+@startuml
+title Sequence Diagram - Filter Regional Minimum Wage Rate List
+
+autonumber
+
+actor Admin
+boundary "Wage List View" as UI
+control "RegionalMinimumWagesController" as MVC
+control "RegionalMinimumWageApiService" as Client
+control "AdminRegionalMinimumWageController" as API
+control "RegionalMinimumWageService" as BLL
+entity "RegionalMinimumWageRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' FILTER WAGE LIST REQUEST
+' =====================================================
+
+Admin -> MVC : Select status filter (status = "ACTIVE" / "DRAFT" / "PUBLISH" / "CANCEL")
+activate MVC
+
+MVC -> Client : GetAllAsync(search = null, status)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Append status query parameter\n(?status={status})
+deactivate Client
+
+Client -> API : GET /api/admin/regional-minimum-wages?status={status}
+activate API
+
+API -> BLL : GetListAsync(status, search = null)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL
+' =====================================================
+
+BLL -> DAL : GetListAsync(status, search = null)
+activate DAL
+
+
+' =====================================================
+' DATABASE QUERIES
+' =====================================================
+
+DAL -> DB : SELECT * FROM regional_minimum_wages\nWHERE Status = status\nORDER BY regional_minimum_wage_id
+activate DB
+
+DB --> DAL : Filtered RegionalMinimumWage records
+deactivate DB
+
+
+' =====================================================
+' CHECK RETRIEVED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check filtered wage records
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 09 - RegionalMinimumWageRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : List<RegionalMinimumWage>
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 10 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map entities to List<RegionalMinimumWageResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 11 - RegionalMinimumWageService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : List<RegionalMinimumWageResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 12 - API trả về dữ liệu thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON List<RegionalMinimumWageResponse>
+
+
+    ' -------------------------------------------------
+    ' 13 - Client deserialize và map model
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Deserialize to List<RegionalMinimumWageListItemViewModel>
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 14 - Client trả về danh sách cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : List<RegionalMinimumWageListItemViewModel>
+
+
+    ' -------------------------------------------------
+    ' 15 - MVC xử lý và duy trì trạng thái bộ lọc
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Populate RegionalMinimumWageListViewModel\nwith StatusFilter and assign messages
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 16 - Wage List View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : View(viewModel)
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 17 - Hiển thị danh sách đã lọc lên màn hình Admin
+    ' -------------------------------------------------
+
+    UI --> Admin : Display filtered wage list\nmatching status criteria
+
+
+else Backend processing fails
+
+    ' -------------------------------------------------
+    ' 18 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 19 - AdminRegionalMinimumWageController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 20 - RegionalMinimumWageApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : Empty list [] (or ErrorMessage)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 21 - MVC xử lý lỗi
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Log error and assign\nViewBag.ErrorMessage
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 22 - RegionalMinimumWagesController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : View(viewModel)
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 23 - Wage List View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display wage filter\nerror notification
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

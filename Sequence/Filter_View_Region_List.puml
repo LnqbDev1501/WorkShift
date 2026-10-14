@@ -1,0 +1,224 @@
+@startuml
+title Sequence Diagram - Filter View Region List
+
+autonumber
+
+actor Admin
+boundary "Region List View" as UI
+control "RegionsController" as MVC
+control "RegionApiService" as Client
+control "AdminRegionController" as API
+control "RegionService" as BLL
+entity "RegionRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' FILTER REGION REQUEST
+' =====================================================
+
+Admin -> MVC : Select status filter (status = "ACTIVE" / "INACTIVE")
+activate MVC
+
+MVC -> Client : GetPagedAsync(search = null, status, page = 1, pageSize = 10)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Validate status value and\nappend status query parameter
+deactivate Client
+
+Client -> API : GET /api/admin/regions?status={status}&pageNumber=1&pageSize=10
+activate API
+
+API -> BLL : GetPagedAsync(query)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL
+' =====================================================
+
+BLL -> BLL ++ : Parse & validate status string\n(map "ACTIVE"/"INACTIVE" to bool? isActive)
+deactivate BLL
+
+BLL -> DAL : GetPagedAsync(search = null, isActive, pageNumber, pageSize)
+activate DAL
+
+
+' =====================================================
+' INTERNAL PROCESSING - DAL (STATUS FILTER)
+' =====================================================
+
+DAL -> DAL ++ : Apply LINQ filter\nWhere(r => r.IsActive == isActive)
+deactivate DAL
+
+
+' =====================================================
+' DATABASE QUERIES
+' =====================================================
+
+DAL -> DB : Count filtered regions\nWHERE IsActive = isActive
+activate DB
+
+DB --> DAL : Filtered regions count
+deactivate DB
+
+
+DAL -> DB : Query paged filtered regions\nwith minimum wage and branch count\n(Skip, Take)
+activate DB
+
+DB --> DAL : List of filtered RegionData
+deactivate DB
+
+
+' =====================================================
+' CHECK RETRIEVED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check retrieved filtered region data
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 14 - RegionRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : (items, totalCount)
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 15 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map RegionData list to\nPagedResponse<RegionResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 16 - RegionService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : PagedResponse<RegionResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 17 - API trả về dữ liệu thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON PagedResponse
+
+
+    ' -------------------------------------------------
+    ' 18 - Client deserialize và map model
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Deserialize and map to\nRegionListPagedViewModel
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 19 - Client trả về ViewModel cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : RegionListPagedViewModel
+
+
+    ' -------------------------------------------------
+    ' 20 - MVC xử lý và duy trì trạng thái filter
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Retain selected status filter\nand assign TempData messages
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 21 - Region List View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : View("Index", viewModel)
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 22 - Hiển thị danh sách vùng sau khi lọc lên màn hình Admin
+    ' -------------------------------------------------
+
+    UI --> Admin : Display filtered region list\nand pagination
+
+
+else Backend processing fails
+
+    ' -------------------------------------------------
+    ' 23 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 24 - AdminRegionController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 400 / 500\nError message
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 25 - RegionApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : Return ViewModel with ErrorMessage\n(or HttpRequestException)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 26 - MVC xử lý lỗi
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Log error and assign\nviewModel.ErrorMessage
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 27 - RegionsController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : View("Index", viewModel)
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 28 - Region List View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display region filter\nerror notification
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

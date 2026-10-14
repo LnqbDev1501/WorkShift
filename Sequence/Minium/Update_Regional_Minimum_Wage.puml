@@ -1,0 +1,263 @@
+@startuml
+title Sequence Diagram - Update Regional Minimum Wage Rate
+
+autonumber
+
+actor Admin
+boundary "Edit Wage View" as UI
+control "RegionalMinimumWagesController" as MVC
+control "RegionalMinimumWageApiService" as Client
+control "AdminRegionalMinimumWageController" as API
+control "RegionalMinimumWageService" as BLL
+entity "RegionalMinimumWageRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' UPDATE WAGE REQUEST
+' =====================================================
+
+Admin -> MVC : Submit Edit Wage form (id, model)
+activate MVC
+
+MVC -> MVC ++ : Validate id == model.RegionalMinimumWageId\nand ModelState
+deactivate MVC
+
+MVC -> Client : UpdateAsync(id, model)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Build and serialize\nUpdateRegionalMinimumWage JSON payload
+deactivate Client
+
+Client -> API : PUT /api/admin/regional-minimum-wages/{id} (JSON payload)
+activate API
+
+API -> API ++ : Extract callerId from JWT Claims
+deactivate API
+
+API -> BLL : UpdateDraftAsync(id, request, callerId)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL (EXISTENCE & STATUS CHECK)
+' =====================================================
+
+BLL -> DAL : GetByIdAsync(id)
+activate DAL
+
+DAL -> DB : SELECT * FROM regional_minimum_wages WHERE id = id
+activate DB
+
+DB --> DAL : Existing wage record (Status = "DRAFT")
+deactivate DB
+
+DAL --> BLL : RegionalMinimumWage entity
+deactivate DAL
+
+BLL -> BLL ++ : Verify Status == "DRAFT"\nand validate fields
+deactivate BLL
+
+
+' =====================================================
+' DATABASE VALIDATION QUERIES (IF REPLACED WAGE SPECIFIED)
+' =====================================================
+
+opt ReplacedWageId is specified
+
+    BLL -> DAL : IsActiveAsync(replacedWageId)
+    activate DAL
+
+    DAL -> DB : SELECT * FROM regional_minimum_wages\nWHERE id = replacedWageId AND Status = 'ACTIVE'
+    activate DB
+
+    DB --> DAL : true (wage is active)
+    deactivate DB
+
+    DAL --> BLL : true
+    deactivate DAL
+
+    BLL -> DAL : GetByIdAsync(replacedWageId)
+    activate DAL
+
+    DAL -> DB : SELECT * FROM regional_minimum_wages WHERE id = replacedWageId
+    activate DB
+
+    DB --> DAL : Replaced wage record
+    deactivate DB
+
+    DAL --> BLL : Replaced wage record
+    deactivate DAL
+
+    BLL -> BLL ++ : Validate EffectiveFrom > ReplacedWage.EffectiveFrom
+    deactivate BLL
+
+end
+
+
+' =====================================================
+' DATABASE PERSISTENCE
+' =====================================================
+
+BLL -> DAL : UpdateAsync(existing)
+activate DAL
+
+DAL -> DB : UPDATE regional_minimum_wages\nand SaveChangesAsync
+activate DB
+
+DB --> DAL : Updated wage entity
+deactivate DB
+
+
+' =====================================================
+' CHECK UPDATED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check updated wage record
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 24 - RegionalMinimumWageRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : RegionalMinimumWage entity
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 25 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map entity to RegionalMinimumWageDetailResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 26 - RegionalMinimumWageService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : RegionalMinimumWageDetailResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 27 - API trả về dữ liệu cập nhật thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON RegionalMinimumWageDetailResponse
+
+
+    ' -------------------------------------------------
+    ' 28 - Client kiểm tra status code
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Check IsSuccessStatusCode
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 29 - Client trả về kết quả cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = true, Data = detail, ErrorMessage = null)
+
+
+    ' -------------------------------------------------
+    ' 30 - MVC xử lý và gán thông báo thành công
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["SuccessMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 31 - Wage Details View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Details", new { id = data.Id })
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 32 - Chuyển hướng và hiển thị thông báo thành công
+    ' -------------------------------------------------
+
+    UI --> Admin : Display success notification\nand updated wage details
+
+
+else Status not DRAFT / Validation fails / Conflict / Error
+
+    ' -------------------------------------------------
+    ' 33 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error / Handle 400 BadRequest,\n404 NotFound, or 409 Conflict (Status != "DRAFT")
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 34 - AdminRegionalMinimumWageController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 400 / 404 / 409 / 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 35 - RegionalMinimumWageApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = false, Data = null, ErrorMessage, IsConflict, IsNotFound)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 36 - MVC xử lý lỗi và tải lại danh sách lương active
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Add ModelState error\nand reload ActiveWages
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 37 - RegionalMinimumWagesController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : View(model)
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 38 - Edit Wage View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display error messages\non Edit Wage form
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

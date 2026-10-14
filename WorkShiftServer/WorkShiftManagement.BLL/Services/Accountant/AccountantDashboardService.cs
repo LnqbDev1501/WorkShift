@@ -7,9 +7,13 @@ namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : IAccountantDashboardService
 {
-    public async Task<AccountantDashboardResponse> GetAsync(Guid accountantId, CancellationToken ct = default)
+    public async Task<AccountantDashboardResponse> GetAsync(
+        Guid accountantId, 
+        CancellationToken ct = default
+        )
     {
-        if (accountantId == Guid.Empty || !await repo.IsActiveAccountantAsync(accountantId, ct))
+        if (accountantId == Guid.Empty 
+        || !await repo.IsActiveAccountantAsync(accountantId, ct))
             throw new UnauthorizedAccessException("An active Accountant account and role are required.");
 
         // Queries share one scoped DbContext and must execute sequentially.

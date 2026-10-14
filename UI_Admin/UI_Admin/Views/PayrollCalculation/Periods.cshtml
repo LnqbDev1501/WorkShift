@@ -1,0 +1,22 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodListViewModel
+@using UI_Admin.Models.Accountant.PayrollPeriods
+@{ ViewData["Title"] = "Payroll Calculation"; }
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<div class="payroll-page">
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · CALCULATION</div><h1>Payroll Calculation</h1><p>Select a period, review the employee calculation preview, then save Payroll.</p></div></header>
+    @if (Model.Error != null) { <div class="payroll-message error" role="alert">@Model.Error</div> }
+    <section class="payroll-filters"><form method="get" asp-action="Periods">
+        <div asp-validation-summary="All" class="w-full text-red-700"></div>
+        <label class="search-field"><span>Period name / code</span><input name="Search" value="@Model.Query.Search" maxlength="200" /></label>
+        <label><span>Status</span><select name="Status"><option value="">All statuses</option>@foreach (var status in PeriodDisplay.Statuses) { <option value="@status" selected="@(Model.Query.Status == status)">@status</option> }</select></label>
+        <label><span>Start date from</span><input type="date" name="StartDateFrom" value="@Model.Query.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
+        <label><span>Start date to</span><input type="date" name="StartDateTo" value="@Model.Query.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
+        <partial name="_ListFilterActions" model='"Periods"' />
+    </form></section>
+    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Calculation Periods</strong><span>@Model.Page.TotalItems records</span></div><div class="payroll-table-scroll"><table><thead><tr><th>PERIOD</th><th>BRANCH / DATES</th><th>STATUS</th><th>STAFF / PAYROLLS</th><th>ACTION</th></tr></thead><tbody>
+        @foreach (var period in Model.Page.Items) { <tr><td><strong>@period.PeriodName</strong><small>@period.PeriodCode</small></td><td>@period.BranchName<small>@period.StartDate.ToString("dd/MM/yyyy") – @period.EndDate.ToString("dd/MM/yyyy")</small></td><td><span class="payroll-status @period.Status.ToLowerInvariant()">@period.Status</span></td><td>@period.ExpectedEmployeeCount staff · @period.TotalPayrolls payrolls</td><td><a asp-action="Index" asp-route-id="@period.PayrollPeriodId" class="payroll-button">@(period.Status is "OPEN" or "CALCULATED" ? "Review & Calculate" : "View Saved Payrolls")</a></td></tr> }
+        @if (Model.Page.Items.Count == 0) { <tr><td colspan="5" class="payroll-empty">No calculation periods found.</td></tr> }
+    </tbody></table></div>
+    @if (Model.Error == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Page.PageNumber, PageSize = Model.Page.PageSize, TotalItems = Model.Page.TotalItems, PageParameter = "pageNumber", ItemLabel = "periods" })' /> }
+    </section>
+</div>

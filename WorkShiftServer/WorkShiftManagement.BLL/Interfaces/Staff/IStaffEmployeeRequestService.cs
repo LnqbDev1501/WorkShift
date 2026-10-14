@@ -40,6 +40,9 @@ public interface IStaffEmployeeRequestService
         SubmitEarlyLeaveRequestRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<StaffEmployeeRequestDetailResponse> SubmitSalaryIncreaseRequestAsync(
+        Guid staffId, SubmitSalaryIncreaseRequestRequest request, CancellationToken cancellationToken = default);
+
     Task<StaffEmployeeRequestDetailResponse> CancelRequestAsync(
         Guid staffId,
         int requestId,

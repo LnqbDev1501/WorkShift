@@ -240,6 +240,20 @@
 
         if (snapshotContractNumber) snapshotContractNumber.textContent = contractNum;
         if (snapshotPosition) snapshotPosition.textContent = pos;
+        if (pos && position && position.tagName === 'SELECT') {
+            let matched = false;
+            for (let i = 0; i < position.options.length; i++) {
+                if (position.options[i].value.toLowerCase() === pos.toLowerCase()) {
+                    position.selectedIndex = i;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched && pos) {
+                const opt = new Option(`${pos} (Current)`, pos, true, true);
+                position.add(opt);
+            }
+        }
         if (snapshotHourlyRate) snapshotHourlyRate.textContent = wage;
 
         let termText = '';

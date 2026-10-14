@@ -1,0 +1,224 @@
+@startuml
+title Sequence Diagram - Restore Region
+
+autonumber
+
+actor Admin
+boundary "Region List View" as UI
+control "RegionsController" as MVC
+control "RegionApiService" as Client
+control "AdminRegionController" as API
+control "RegionService" as BLL
+entity "RegionRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' RESTORE REGION REQUEST
+' =====================================================
+
+Admin -> MVC : Click Restore Region (id)
+activate MVC
+
+MVC -> MVC ++ : Validate id > 0
+deactivate MVC
+
+MVC -> Client : RestoreAsync(id)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Build POST request URL\n(/api/admin/regions/{id}/restore)
+deactivate Client
+
+Client -> API : POST /api/admin/regions/{id}/restore
+activate API
+
+API -> BLL : RestoreAsync(id)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL (STATUS VALIDATION)
+' =====================================================
+
+BLL -> BLL ++ : Validate id > 0
+deactivate BLL
+
+BLL -> DAL : GetByIdAsync(id)
+activate DAL
+
+
+' =====================================================
+' DATABASE VERIFICATION QUERY
+' =====================================================
+
+DAL -> DB : SELECT Region WHERE RegionId = id
+activate DB
+
+DB --> DAL : Region record (IsActive = false)
+deactivate DB
+
+DAL --> BLL : RegionDetailData
+deactivate DAL
+
+BLL -> BLL ++ : Validate region is currently "INACTIVE"\n(IsActive == false)
+deactivate BLL
+
+
+' =====================================================
+' DATABASE PERSISTENCE (RESTORE STATUS)
+' =====================================================
+
+BLL -> DAL : RestoreAsync(id)
+activate DAL
+
+DAL -> DB : UPDATE Regions\nSET IsActive = true, UpdatedAt = now\nWHERE RegionId = id
+activate DB
+
+DB --> DAL : Updated row count (1)
+deactivate DB
+
+
+' =====================================================
+' CHECK OPERATION RESULT
+' =====================================================
+
+DAL -> DAL ++ : Check restore operation result (success = true)
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 17 - RegionRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : true
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 18 - RegionService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : true
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 19 - API trả về thông báo thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON { message: "Region restored successfully." }
+
+
+    ' -------------------------------------------------
+    ' 20 - Client kiểm tra status code
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Check IsSuccessStatusCode
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 21 - Client trả về kết quả cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = true, ErrorMessage = null)
+
+
+    ' -------------------------------------------------
+    ' 22 - MVC gán thông báo thành công vào TempData
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["SuccessMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 23 - Region List View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Index")
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 24 - Cập nhật và hiển thị lại danh sách vùng
+    ' -------------------------------------------------
+
+    UI --> Admin : Display success notification\nand refreshed Region List
+
+
+else Region not found / Already active / Server error
+
+    ' -------------------------------------------------
+    ' 25 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error / Handle 404 NotFound,\nor 409 Conflict (Already active)
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 26 - AdminRegionController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 400 / 404 / 409 / 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 27 - RegionApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = false, ErrorMessage)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 28 - MVC gán thông báo lỗi vào TempData
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["ErrorMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 29 - RegionsController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Index")
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 30 - Region List View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display error notification\non Region List
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml
