@@ -25,6 +25,37 @@ public class ManagerEmploymentContractService(
     private readonly IContractPdfGenerator _pdfGenerator = pdfGenerator ?? new ContractPdfGenerator();
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
 
+    private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        try 
+        { 
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh"); 
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        { 
+            // Fallback for Windows platform
+        }
+
+        try 
+        { 
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); 
+        }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        { 
+            // Fallback to custom offset
+        }
+
+        return TimeZoneInfo.CreateCustomTimeZone("ICT", TimeSpan.FromHours(7), "Indochina Time", "Indochina Time");
+    }
+
+    private static DateOnly GetTodayVn()
+    {
+        var vnNow = TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, VietnamTimeZone);
+        return DateOnly.FromDateTime(vnNow.DateTime);
+    }
+
     public async Task<CreateEmploymentContractResponse> CreateAsync(Guid managerId,
         CreateEmploymentContractRequest request, CancellationToken cancellationToken = default)
     {
@@ -35,6 +66,10 @@ public class ManagerEmploymentContractService(
             throw new ArgumentException("StartDate is required and EndDate must be later than StartDate.");
         if (string.IsNullOrWhiteSpace(request.EmployeePosition) || request.EmployeePosition.Length > 100)
             throw new ArgumentException("EmployeePosition is required and must not exceed 100 characters.");
+
+        var todayVn = GetTodayVn();
+        if (request.StartDate < todayVn)
+            throw new ArgumentException("The contract start date cannot be in the past. It must be today or a future date.");
 
         var staff = await repository.GetCreationUserAsync(request.StaffUserId, cancellationToken);
         if (staff == null || staff.DeletedAt != null)
@@ -53,19 +88,25 @@ public class ManagerEmploymentContractService(
             if (staff.BranchId != manager.BranchId)
                 throw new UnauthorizedAccessException("Staff does not belong to the Manager's branch.");
 
+            EmploymentContract? oldContract;
             if (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0)
             {
-                var oldContract = await repository.GetByIdAsync(request.ReplacesContractId.Value, cancellationToken);
+                oldContract = await repository.GetByIdAsync(request.ReplacesContractId.Value, cancellationToken);
                 if (oldContract == null || oldContract.UserId != staff.UserId || oldContract.BranchId != manager.BranchId!.Value)
                     throw new ArgumentException("Invalid old contract for renewal.");
-                replacesContractId = oldContract.ContractId;
             }
             else
             {
-                var oldContract = await repository.GetLatestContractForStaffInBranchAsync(staff.UserId, manager.BranchId!.Value, cancellationToken);
+                oldContract = await repository.GetLatestContractForStaffInBranchAsync(staff.UserId, manager.BranchId!.Value, cancellationToken);
                 if (oldContract == null)
                     throw new ArgumentException("Staff has no prior contract in this branch to renew.");
-                replacesContractId = oldContract.ContractId;
+            }
+
+            replacesContractId = oldContract.ContractId;
+
+            if (request.StartDate < oldContract.StartDate)
+            {
+                throw new ArgumentException($"The new contract start date ({request.StartDate:yyyy-MM-dd}) cannot be earlier than the current contract start date ({oldContract.StartDate:yyyy-MM-dd}).");
             }
         }
         else
@@ -121,13 +162,65 @@ public class ManagerEmploymentContractService(
         if (string.Equals(mode, "RENEWAL", StringComparison.OrdinalIgnoreCase))
         {
             var renewalStaff = await repository.GetStaffForRenewalAsync(manager.BranchId!.Value, cancellationToken);
-            return renewalStaff.Select(x => new ContractStaffOptionResponse(
-                x.User.UserId,
-                x.User.FullName,
-                x.Contract.ContractId,
-                x.Contract.ContractNumber,
-                x.Contract.EmployeePositionSnapshot
-            )).ToList();
+            var todayVn = GetTodayVn();
+
+            return renewalStaff
+                .Select(x =>
+                {
+                    var contract = x.Contract;
+                    int? daysLeft = null;
+                    string category;
+
+                    if (!contract.EndDate.HasValue)
+                    {
+                        category = "INDEFINITE";
+                    }
+                    else
+                    {
+                        daysLeft = contract.EndDate.Value.DayNumber - todayVn.DayNumber;
+                        if (daysLeft < 0)
+                        {
+                            category = "EXPIRED";
+                        }
+                        else if (daysLeft <= 7)
+                        {
+                            category = "URGENT"; // Sắp hết hạn gấp (<= 7 ngày) - Ưu tiên tạo
+                        }
+                        else if (daysLeft <= 30)
+                        {
+                            category = "UPCOMING"; // Chuẩn bị gia hạn (8 - 30 ngày)
+                        }
+                        else
+                        {
+                            category = "LONG_TERM"; // Còn hạn dài (> 30 ngày) - Thay thế / Thăng chức
+                        }
+                    }
+
+                    return new ContractStaffOptionResponse(
+                        x.User.UserId,
+                        x.User.FullName,
+                        contract.ContractId,
+                        contract.ContractNumber,
+                        contract.EmployeePositionSnapshot,
+                        contract.StartDate,
+                        contract.EndDate,
+                        contract.HourlyRate,
+                        contract.Status,
+                        daysLeft,
+                        category
+                    );
+                })
+                .OrderBy(x => x.ExpirationCategory switch
+                {
+                    "EXPIRED" => 1,
+                    "URGENT" => 2,
+                    "UPCOMING" => 3,
+                    "LONG_TERM" => 4,
+                    _ => 5 // INDEFINITE
+                })
+                .ThenBy(x => x.DaysUntilExpiration ?? int.MaxValue)
+                .ThenBy(x => x.FullName)
+                .ToList();
         }
 
         var staff = await repository.GetStaffWithoutContractAsync(cancellationToken);

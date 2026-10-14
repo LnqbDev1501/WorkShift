@@ -318,6 +318,15 @@
                     </nav>
                     @if (User.IsInRole("STAFF"))
                     {
+                        <nav class="space-y-unit-1" aria-label="Shifts">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CA LÀM</span></div>
+                            <a asp-controller="StaffShifts" asp-action="Index" title="Đăng ký ca làm"
+                               aria-current="@(currentController == "StaffShifts" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "StaffShifts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">event_available</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Đăng ký ca làm</span>
+                            </a>
+                        </nav>
                         <nav class="space-y-unit-1" aria-label="My Payroll">
                             <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL</span></div>
                             <partial name="_PayrollDocumentNavigation" model='"Staff"' />

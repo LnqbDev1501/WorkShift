@@ -1,0 +1,255 @@
+@startuml
+title Sequence Diagram - Create Region
+
+autonumber
+
+actor Admin
+boundary "Create Region View" as UI
+control "RegionsController" as MVC
+control "RegionApiService" as Client
+control "AdminRegionController" as API
+control "RegionService" as BLL
+entity "RegionRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' CREATE REGION REQUEST
+' =====================================================
+
+Admin -> MVC : Submit Create Region form (model)
+activate MVC
+
+MVC -> MVC ++ : Validate ModelState
+deactivate MVC
+
+MVC -> Client : CreateAsync(model)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Build and serialize\nCreateRegionRequest JSON payload
+deactivate Client
+
+Client -> API : POST /api/admin/regions (JSON payload)
+activate API
+
+API -> BLL : CreateAsync(request)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL (FIELD VALIDATION)
+' =====================================================
+
+BLL -> BLL ++ : Validate field formats & lengths\n(code <= 20 chars, name <= 150 chars)
+deactivate BLL
+
+
+' =====================================================
+' DATABASE VALIDATION QUERIES
+' =====================================================
+
+BLL -> DAL : Verify RegionalMinimumWage exists & ACTIVE
+activate DAL
+
+DAL -> DB : SELECT Wage WHERE WageId = id
+activate DB
+
+DB --> DAL : Wage record (Status = "ACTIVE")
+deactivate DB
+
+DAL --> BLL : Wage active status
+deactivate DAL
+
+
+BLL -> DAL : ExistsByCodeAsync(regionCode)
+activate DAL
+
+DAL -> DB : Check if RegionCode exists (ILIKE)
+activate DB
+
+DB --> DAL : false (code not duplicated)
+deactivate DB
+
+DAL --> BLL : false
+deactivate DAL
+
+
+BLL -> DAL : ExistsByNameAsync(regionName)
+activate DAL
+
+DAL -> DB : Check if RegionName exists (ILIKE)
+activate DB
+
+DB --> DAL : false (name not duplicated)
+deactivate DB
+
+DAL --> BLL : false
+deactivate DAL
+
+
+' =====================================================
+' DATABASE PERSISTENCE
+' =====================================================
+
+BLL -> DAL : CreateAsync(newRegion)
+activate DAL
+
+DAL -> DB : INSERT INTO Regions (IsActive = true)\nand SaveChangesAsync
+activate DB
+
+DB --> DAL : Inserted region with generated RegionId
+deactivate DB
+
+
+' =====================================================
+' CHECK CREATED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check created region data
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 24 - RegionRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : RegionData
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 25 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map RegionData to RegionResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 26 - RegionService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : RegionResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 27 - API trả về 201 Created cùng Location Header
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 201 Created\nJSON RegionResponse (CreatedAtAction)
+
+
+    ' -------------------------------------------------
+    ' 28 - Client kiểm tra status code
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Check IsSuccessStatusCode
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 29 - Client trả về kết quả cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = true, ErrorMessage = null)
+
+
+    ' -------------------------------------------------
+    ' 30 - MVC xử lý và gán thông báo thành công
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["SuccessMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 31 - Region List View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Index")
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 32 - Chuyển hướng và hiển thị thông báo thành công
+    ' -------------------------------------------------
+
+    UI --> Admin : Display success notification\nand redirect to Region List
+
+
+else Validation fails / Conflict / Backend error
+
+    ' -------------------------------------------------
+    ' 33 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error / Handle 400 BadRequest\nor 409 Conflict (Duplicate Code/Name)
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 34 - AdminRegionController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 400 / 409 / 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 35 - RegionApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = false, ErrorMessage)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 36 - MVC xử lý lỗi và tải lại danh sách lương vùng
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Add ModelState error\nand reload MinimumWages
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 37 - RegionsController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : View(model)
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 38 - Create Region View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display error messages\non Create Region form
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

@@ -260,6 +260,20 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
         await EnsureSuccessAsync(response, ct);
     }
 
+    public async Task<List<string>> GetActivePositionOptionsAsync(CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/employee-types/active";
+        using var response = await client.GetAsync(url, ct);
+        if (!response.IsSuccessStatusCode) return [];
+        var types = await response.Content.ReadFromJsonAsync<List<ActiveEmployeeTypeDto>>(cancellationToken: ct) ?? [];
+        return types
+            .Select(t => t.TypeName.Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
+    }
+
     private class PagedApiResponse<T>
     {
         public List<T> Items { get; set; } = [];

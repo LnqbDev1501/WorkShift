@@ -1,0 +1,227 @@
+@startuml
+title Sequence Diagram - Cancel Regional Minimum Wage Rate
+
+autonumber
+
+actor Admin
+boundary "Wage Details View" as UI
+control "RegionalMinimumWagesController" as MVC
+control "RegionalMinimumWageApiService" as Client
+control "AdminRegionalMinimumWageController" as API
+control "RegionalMinimumWageService" as BLL
+entity "RegionalMinimumWageRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' CANCEL WAGE REQUEST
+' =====================================================
+
+Admin -> MVC : Click Cancel Wage (id)
+activate MVC
+
+MVC -> MVC ++ : Validate id > 0
+deactivate MVC
+
+MVC -> Client : CancelAsync(id)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Build POST request URL\n(/api/admin/regional-minimum-wages/{id}/cancel)
+deactivate Client
+
+Client -> API : POST /api/admin/regional-minimum-wages/{id}/cancel
+activate API
+
+API -> API ++ : Extract callerId from JWT Claims
+deactivate API
+
+API -> BLL : CancelAsync(id, callerId)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL (STATUS VALIDATION)
+' =====================================================
+
+BLL -> DAL : GetByIdAsync(id)
+activate DAL
+
+DAL -> DB : SELECT * FROM regional_minimum_wages WHERE id = id
+activate DB
+
+DB --> DAL : Wage record (Status = "DRAFT" or "PUBLISH")
+deactivate DB
+
+DAL --> BLL : RegionalMinimumWage entity
+deactivate DAL
+
+BLL -> BLL ++ : Verify Status is "DRAFT" or "PUBLISH"
+deactivate BLL
+
+
+' =====================================================
+' DATABASE PERSISTENCE (TRANSITION TO CANCEL)
+' =====================================================
+
+BLL -> DAL : UpdateAsync(wage with Status = 'CANCEL')
+activate DAL
+
+DAL -> DB : UPDATE regional_minimum_wages\nSET Status = 'CANCEL' WHERE id = id
+activate DB
+
+DB --> DAL : Updated wage entity
+deactivate DB
+
+
+' =====================================================
+' CHECK OPERATION RESULT
+' =====================================================
+
+DAL -> DAL ++ : Check cancelled wage record
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 16 - RegionalMinimumWageRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : RegionalMinimumWage entity
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 17 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map entity to RegionalMinimumWageDetailResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 18 - RegionalMinimumWageService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : RegionalMinimumWageDetailResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 19 - API trả về dữ liệu thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON RegionalMinimumWageDetailResponse
+
+
+    ' -------------------------------------------------
+    ' 20 - Client kiểm tra status code
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Check IsSuccessStatusCode
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 21 - Client trả về kết quả cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = true, Data = detail, ErrorMessage = null)
+
+
+    ' -------------------------------------------------
+    ' 22 - MVC xử lý và gán thông báo thành công
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["SuccessMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 23 - Wage Details View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Details", new { id })
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 24 - Hiển thị trạng thái CANCEL lên màn hình Admin
+    ' -------------------------------------------------
+
+    UI --> Admin : Display success notification\nand cancelled wage details
+
+
+else Wage not found / Invalid status / Server error
+
+    ' -------------------------------------------------
+    ' 25 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error / Handle 404 NotFound\nor 409 Conflict (Status not DRAFT/PUBLISH)
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 26 - AdminRegionalMinimumWageController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 400 / 404 / 409 / 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 27 - RegionalMinimumWageApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : (Success = false, Data = null, ErrorMessage)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 28 - MVC gán thông báo lỗi vào TempData
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Assign TempData["ErrorMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 29 - RegionalMinimumWagesController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Details", new { id })
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 30 - Wage Details View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display error notification\non Wage Details View
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

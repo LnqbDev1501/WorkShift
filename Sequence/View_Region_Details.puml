@@ -1,0 +1,209 @@
+@startuml
+title Sequence Diagram - View Region Details
+
+autonumber
+
+actor Admin
+boundary "Region Details View" as UI
+control "RegionsController" as MVC
+control "RegionApiService" as Client
+control "AdminRegionController" as API
+control "RegionService" as BLL
+entity "RegionRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' REGION DETAILS REQUEST
+' =====================================================
+
+Admin -> MVC : View Region Details (id)
+activate MVC
+
+MVC -> Client : GetByIdAsync(id)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Validate id and build URL\n(/api/admin/regions/{id})
+deactivate Client
+
+Client -> API : GET /api/admin/regions/{id}
+activate API
+
+API -> BLL : GetByIdAsync(id)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL
+' =====================================================
+
+BLL -> BLL ++ : Validate Region ID (id > 0)
+deactivate BLL
+
+BLL -> DAL : GetByIdAsync(id)
+activate DAL
+
+
+' =====================================================
+' DATABASE QUERY
+' =====================================================
+
+DAL -> DB : Query Region by ID with\nRegionalMinimumWage and Branches\n(OrderBy BranchCode)
+activate DB
+
+DB --> DAL : Region record with related data
+deactivate DB
+
+
+' =====================================================
+' CHECK RETRIEVED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check retrieved region detail data
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds (Region found)
+
+    ' -------------------------------------------------
+    ' 11 - RegionRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : RegionDetailData
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 12 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map data to RegionDetailResponse\n(MinimumWage, Branches)
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 13 - RegionService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : RegionDetailResponse
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 14 - API trả về dữ liệu thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON RegionDetailResponse
+
+
+    ' -------------------------------------------------
+    ' 15 - Client deserialize và map model
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Deserialize and map to\nRegionDetailViewModel
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 16 - Client trả về ViewModel cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : RegionDetailViewModel
+
+
+    ' -------------------------------------------------
+    ' 17 - MVC xử lý và bổ sung thông tin chi nhánh
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Verify model and enrich\nbranch coordinates if needed
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 18 - Region Details View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : View(detail)
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 19 - Hiển thị chi tiết vùng lên màn hình Admin
+    ' -------------------------------------------------
+
+    UI --> Admin : Display region details,\nminimum wage and associated branches
+
+
+else Region not found or processing fails
+
+    ' -------------------------------------------------
+    ' 20 - Xử lý lỗi hoặc không tìm thấy vùng
+    ' -------------------------------------------------
+
+    API -> API ++ : Handle 404 NotFound or error
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 21 - AdminRegionController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 404 / 500\nProblemDetails
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 22 - RegionApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : null
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 23 - MVC xử lý lỗi và thiết lập TempData
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Set TempData["ErrorMessage"]
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 24 - RegionsController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : RedirectToAction("Index")
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 25 - Region Details View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display error notification\nand redirect to Region List
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml
