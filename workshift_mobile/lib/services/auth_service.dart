@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/auth_model.dart';
 import 'api_client.dart';
 
-/// Dịch vụ xử lý đăng nhập, đăng xuất
+/// Dịch vụ xử lý đăng nhập, đăng xuất, quên mật khẩu
 class AuthService {
   final ApiClient _apiClient = ApiClient();
   static const String userProfileKey = 'user_profile';
@@ -35,6 +35,21 @@ class AuthService {
     );
 
     return loginResponse;
+  }
+
+  /// Gọi API Quên mật khẩu: POST /api/auth/forgot-password
+  /// Backend luôn trả về 204 NoContent để bảo vệ thông tin tài khoản
+  Future<ForgotPasswordResponse> forgotPassword(ForgotPasswordRequest request) async {
+    try {
+      await _apiClient.post(
+        '/api/auth/forgot-password',
+        data: request.toJson(),
+      );
+      return ForgotPasswordResponse.success();
+    } catch (e) {
+      // Backend luôn trả 204, nhưng nếu có lỗi network thì ném ra
+      rethrow;
+    }
   }
 
   /// Đăng xuất: Xóa Token và thông tin User trong máy
