@@ -6,6 +6,7 @@ import '../../widgets/app_button.dart';
 import '../../widgets/app_state_panel.dart';
 import '../../widgets/app_week_calendar.dart';
 import 'shift_detail_view.dart';
+import 'shift_swap_list_view.dart';
 import 'components/cancel_shift_dialog.dart';
 import 'components/schedule_timeline_day.dart';
 import 'components/shift_display_format.dart';
@@ -176,6 +177,16 @@ class _MyShiftsViewState extends State<MyShiftsView>
           automaticallyImplyLeading: widget.showBackButton,
           leading: widget.showBackButton ? const BackButton() : null,
           actions: [
+            IconButton(
+              tooltip: 'Shift swap requests',
+              icon: const Icon(Icons.swap_horiz_rounded),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ShiftSwapListView()),
+                );
+                if (mounted) await _controller.refresh();
+              },
+            ),
             TextButton(onPressed: _showCurrentWeek, child: const Text('Today')),
             IconButton(
               tooltip: 'Choose dates',

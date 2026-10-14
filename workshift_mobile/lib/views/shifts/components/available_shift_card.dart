@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../models/available_shift_model.dart';
 import '../../../theme/app_colors.dart';
-import '../../../widgets/status_badge.dart';
 import '../../../widgets/app_button.dart';
+import '../../../widgets/status_badge.dart';
 import 'shift_display_format.dart';
 
 class AvailableShiftCard extends StatelessWidget {
@@ -25,228 +25,226 @@ class AvailableShiftCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final crossesMidnight = !ShiftDisplayFormat.sameDay(
-      shift.scheduledStartAt,
-      shift.scheduledEndAt,
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    shift.shiftName,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                isOpen
-                    ? StatusBadge.success(text: 'Open')
-                    : StatusBadge.neutral(text: 'Closed'),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 6,
-              children: [
-                Text(
-                  '${ShiftDisplayFormat.time(shift.scheduledStartAt)} – ${ShiftDisplayFormat.time(shift.scheduledEndAt)}',
+  Widget build(BuildContext context) => Card(
+    margin: EdgeInsets.zero,
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: const BorderSide(color: AppColors.border),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  shift.shiftName,
                   style: const TextStyle(
-                    fontSize: 25,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: -0.5,
                     color: AppColors.textPrimary,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.borderLight,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    ShiftDisplayFormat.duration(
-                      shift.scheduledStartAt,
-                      shift.scheduledEndAt,
-                    ),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (crossesMidnight) ...[
-              const SizedBox(height: 4),
+              ),
+              const SizedBox(width: 8),
+              isOpen
+                  ? StatusBadge.success(text: 'Open')
+                  : StatusBadge.neutral(text: 'Closed'),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
               Text(
-                'Ends ${ShiftDisplayFormat.dayHeading(shift.scheduledEndAt)}',
+                '${ShiftDisplayFormat.time(shift.scheduledStartAt)} – ${ShiftDisplayFormat.time(shift.scheduledEndAt)}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                ShiftDisplayFormat.duration(
+                  shift.scheduledStartAt,
+                  shift.scheduledEndAt,
+                ),
                 style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
                 ),
               ),
             ],
-            const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.location_on_outlined,
-                  size: 17,
-                  color: AppColors.textSecondary,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    shift.branchName,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
+          ),
+          if (!ShiftDisplayFormat.sameDay(
+            shift.scheduledStartAt,
+            shift.scheduledEndAt,
+          )) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Ends ${ShiftDisplayFormat.dayHeading(shift.scheduledEndAt)}',
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  shift.branchName,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Open spots',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: shift.employeeRequirements.map((requirement) {
-                final remaining = requirement.remainingCount;
-                return Container(
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Open positions',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final requirement in shift.employeeRequirements)
+                Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
+                    horizontal: 9,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: remaining > 0
+                    color: requirement.remainingCount > 0
                         ? AppColors.primaryLight
                         : AppColors.borderLight,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${requirement.employeeTypeName} · ${remaining > 0 ? '$remaining left' : 'Full'}',
+                    '${requirement.employeeTypeName} · ${requirement.remainingCount > 0 ? '${requirement.remainingCount} left' : 'Full'}',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: remaining > 0
+                      color: requirement.remainingCount > 0
                           ? AppColors.primaryDark
                           : AppColors.textSecondary,
                     ),
                   ),
-                );
-              }).toList(),
-            ),
-            if (shift.note?.trim().isNotEmpty == true)
-              Theme(
-                data: Theme.of(
-                  context,
-                ).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  key: PageStorageKey('shift-note-${shift.shiftId}'),
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(bottom: 12),
-                  dense: true,
-                  title: const Text(
-                    'Shift note',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        shift.note!,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
-              )
-            else
-              const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-              decoration: BoxDecoration(
-                color: isClosingSoon
-                    ? AppColors.warningBg
-                    : AppColors.borderLight,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 16,
-                    color: isClosingSoon
-                        ? AppColors.warning
-                        : AppColors.textSecondary,
+            ],
+          ),
+          if (shift.note?.trim().isNotEmpty == true)
+            Theme(
+              data: Theme.of(
+                context,
+              ).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                key: PageStorageKey('shift-note-${shift.shiftId}'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                dense: true,
+                title: const Text(
+                  'Shift note',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 7),
-                  Expanded(
+                ),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
                     child: Text(
-                      '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isClosingSoon
-                            ? AppColors.warning
-                            : AppColors.textSecondary,
-                        fontWeight: isClosingSoon
-                            ? FontWeight.w600
-                            : FontWeight.normal,
-                      ),
+                      shift.note!,
+                      style: const TextStyle(fontSize: 13, height: 1.5),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            if (onViewDetails != null)
-              AppButton(
-                text: 'View details',
-                type: AppButtonType.text,
-                icon: Icons.arrow_forward_rounded,
-                onPressed: onViewDetails,
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                size: 15,
+                color: isClosingSoon
+                    ? AppColors.warning
+                    : AppColors.textSecondary,
               ),
-            AppButton(
-              text: isOpen ? 'Register for shift' : 'Registration closed',
-              icon: Icons.add_task_rounded,
-              width: double.infinity,
-              isLoading: isRegistering,
-              onPressed: onRegister,
-            ),
-          ],
-        ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isClosingSoon
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    color: isClosingSoon
+                        ? AppColors.warning
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final register = AppButton(
+                text: isOpen ? 'Register for shift' : 'Registration closed',
+                height: 46,
+                borderRadius: 10,
+                width: double.infinity,
+                isLoading: isRegistering,
+                onPressed: onRegister,
+              );
+              final details = AppButton(
+                text: 'View details',
+                type: AppButtonType.outline,
+                height: 46,
+                borderRadius: 10,
+                onPressed: onViewDetails,
+              );
+              if (onViewDetails == null) return register;
+              if (constraints.maxWidth < 300 ||
+                  MediaQuery.textScalerOf(context).scale(15) > 18) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [register, const SizedBox(height: 8), details],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(flex: 4, child: details),
+                  const SizedBox(width: 10),
+                  Expanded(flex: 6, child: register),
+                ],
+              );
+            },
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }

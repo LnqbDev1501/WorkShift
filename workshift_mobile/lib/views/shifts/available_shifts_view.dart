@@ -212,17 +212,17 @@ class _AvailableShiftsViewState extends State<AvailableShiftsView>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Find an open shift in your branch.',
+            'Choose a shift, then register to confirm your place.',
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           AvailableShiftFilters(
             selected: _controller.filter,
             dateLabel: dateLabel,
             onSelected: _controller.selectFilter,
             onChooseDates: _chooseDates,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 12,
             runSpacing: 6,

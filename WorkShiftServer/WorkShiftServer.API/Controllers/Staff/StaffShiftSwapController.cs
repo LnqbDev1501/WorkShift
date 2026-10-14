@@ -19,6 +19,11 @@ namespace WorkShiftServer.API.Controllers.Staff;
 [ProducesResponseType(typeof(ProblemDetails), 500)]
 public sealed class StaffShiftSwapController(IStaffShiftSwapService service, ILogger<StaffShiftSwapController> logger) : ControllerBase
 {
+    [HttpGet("candidates")]
+    [ProducesResponseType(typeof(List<StaffShiftSwapCandidateResponse>), 200)]
+    public Task<IActionResult> Candidates([FromQuery] int sourceAssignmentId, CancellationToken ct) =>
+        ExecuteAsync(async actor => Ok(await service.GetCandidatesAsync(actor, sourceAssignmentId, ct)));
+
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<StaffShiftSwapResponse>), 200)]
     public Task<IActionResult> List([FromQuery] ShiftSwapListQuery query, CancellationToken ct) =>

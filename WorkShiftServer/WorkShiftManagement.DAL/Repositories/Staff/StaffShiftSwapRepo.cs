@@ -10,6 +10,22 @@ namespace WorkShiftManagement.DAL.Repositories.Staff;
 
 public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRepo
 {
+    public Task<ShiftAssignment?> FindAssignmentAsync(int assignmentId, CancellationToken ct) =>
+        AssignmentDetails().AsNoTracking().SingleOrDefaultAsync(a => a.AssignmentId == assignmentId, ct);
+
+    public Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        return AssignmentDetails().AsNoTracking()
+            .Where(a => a.UserId != actor && a.User.BranchId == branchId && a.User.EmployeeTypeId == employeeTypeId &&
+                a.Status == "ASSIGNED" && a.Shift.Status == "SCHEDULED" && a.Shift.ScheduledStartAt > now &&
+                a.Shift.ScheduleWeek.BranchId == branchId &&
+                (a.Shift.ScheduleWeek.Status == "OPEN_REGISTRATION" || a.Shift.ScheduleWeek.Status == "REGISTRATION_CLOSED") &&
+                !context.ShiftSwapRequests.Any(r => r.Status == "PENDING" &&
+                    (r.SourceAssignmentId == a.AssignmentId || r.TargetAssignmentId == a.AssignmentId)))
+            .OrderBy(a => a.Shift.ScheduledStartAt).ThenBy(a => a.AssignmentId).ToListAsync(ct);
+    }
+
     private IQueryable<ShiftSwapRequest> Details(IQueryable<ShiftSwapRequest> query) =>
         query.Include(r => r.Requester).Include(r => r.TargetUser)
             .Include(r => r.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(s => s.ScheduleWeek)

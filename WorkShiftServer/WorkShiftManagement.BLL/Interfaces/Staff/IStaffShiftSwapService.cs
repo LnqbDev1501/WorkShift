@@ -6,6 +6,7 @@ namespace WorkShiftManagement.BLL.Interfaces.Staff;
 
 public interface IStaffShiftSwapService
 {
+    Task<List<StaffShiftSwapCandidateResponse>> GetCandidatesAsync(Guid actor, int sourceAssignmentId, CancellationToken ct = default);
     Task<PagedResponse<StaffShiftSwapResponse>> GetPagedAsync(Guid actor, ShiftSwapListQuery query, CancellationToken ct = default);
     Task<StaffShiftSwapResponse> GetDetailAsync(Guid actor, int requestId, CancellationToken ct = default);
     Task<StaffShiftSwapResponse> SubmitAsync(Guid actor, SubmitShiftSwapRequest request, CancellationToken ct = default);

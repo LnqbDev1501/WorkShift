@@ -14,6 +14,36 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftRepo staffRepo,
     IShiftAssignmentRepo assignments) : IStaffShiftSwapService
 {
+    public async Task<List<StaffShiftSwapCandidateResponse>> GetCandidatesAsync(Guid actor, int sourceAssignmentId, CancellationToken ct = default)
+    {
+        ValidateId(sourceAssignmentId);
+        var staff = await GetActorAsync(actor, ct);
+        var source = await repo.FindAssignmentAsync(sourceAssignmentId, ct)
+            ?? throw new KeyNotFoundException("Your shift assignment was not found.");
+        if (source.UserId != actor) throw new UnauthorizedAccessException("You can only offer your own assignment.");
+        if (!staff.EmployeeTypeId.HasValue || source.Status != "ASSIGNED" || source.Shift.ScheduledStartAt <= DateTime.UtcNow)
+            throw new InvalidOperationException("Choose a future assigned shift.");
+        ValidateStaff(source.User, staff.BranchId);
+        ValidateSwappableAssignment(source, staff.BranchId!.Value);
+        if (await repo.HasPendingAsync(sourceAssignmentId, sourceAssignmentId, ct))
+            throw new InvalidOperationException("Your shift already has a pending swap request.");
+        var candidates = await repo.GetCandidateAssignmentsAsync(actor, staff.BranchId!.Value, staff.EmployeeTypeId.Value, ct);
+        var result = new List<StaffShiftSwapCandidateResponse>();
+        foreach (var target in candidates)
+        {
+            try
+            {
+                ValidatePair(source, target, staff.BranchId.Value);
+                await ValidateIncomingShiftAsync(source.UserId, source.Shift, target.Shift, ct);
+                await ValidateIncomingShiftAsync(target.UserId, target.Shift, source.Shift, ct);
+            }
+            catch (InvalidOperationException) { continue; }
+            catch (UnauthorizedAccessException) { continue; }
+            result.Add(new() { StaffId = target.UserId, StaffName = target.User.FullName, Assignment = MapAssignment(target) });
+        }
+        return result;
+    }
+
     public async Task<PagedResponse<StaffShiftSwapResponse>> GetPagedAsync(Guid actor, ShiftSwapListQuery query,
         CancellationToken ct = default)
     {
@@ -149,26 +179,29 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         if (!source.User.EmployeeTypeId.HasValue || source.User.EmployeeType?.Status != "ACTIVE" ||
             target.User.EmployeeType?.Status != "ACTIVE" || source.User.EmployeeTypeId != target.User.EmployeeTypeId)
             throw new InvalidOperationException("Both staff members must have the same active employee type.");
-        foreach (var assignment in new[] { source, target })
-        {
-            var shift = assignment.Shift;
-            if (assignment.Status != "ASSIGNED" || shift.Status != "SCHEDULED" ||
-                shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED") ||
-                shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt <= DateTime.UtcNow ||
-                shift.ScheduledEndAt <= shift.ScheduledStartAt)
-                throw new InvalidOperationException("Only future assigned shifts in this branch can be swapped.");
-            if (assignment.Attendance != null || assignment.PayslipWorkDetails.Any() ||
-                assignment.LeaveRequestAssignments.Any() || assignment.TimeAdjustmentRequestDetails.Any())
-                throw new InvalidOperationException("Assignments with attendance, payroll, or employee request history cannot be swapped.");
-            var requirement = shift.ShiftEmployeeRequirements.SingleOrDefault(r => r.ShiftRequirementId == assignment.ShiftRequirementId);
-            if (requirement == null || requirement.EmployeeTypeId != assignment.User.EmployeeTypeId ||
-                requirement.EmployeeType.Status != "ACTIVE" || requirement.RequiredCount <= 0)
-                throw new InvalidOperationException("The assignment has an invalid employee requirement.");
-        }
+        ValidateSwappableAssignment(source, branchId);
+        ValidateSwappableAssignment(target, branchId);
         // The database enforces uniqueness even for cancelled assignments; do not overwrite their history.
         if (source.Shift.ShiftAssignments.Any(a => a.UserId == target.UserId) ||
             target.Shift.ShiftAssignments.Any(a => a.UserId == source.UserId))
             throw new InvalidOperationException("A staff member already has assignment history in the incoming shift.");
+    }
+
+    private static void ValidateSwappableAssignment(ShiftAssignment assignment, int branchId)
+    {
+        var shift = assignment.Shift;
+        if (assignment.Status != "ASSIGNED" || shift.Status != "SCHEDULED" ||
+            shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED") ||
+            shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt <= DateTime.UtcNow ||
+            shift.ScheduledEndAt <= shift.ScheduledStartAt)
+            throw new InvalidOperationException("Only future assigned shifts in this branch can be swapped.");
+        if (assignment.Attendance != null || assignment.PayslipWorkDetails.Any() ||
+            assignment.LeaveRequestAssignments.Any() || assignment.TimeAdjustmentRequestDetails.Any())
+            throw new InvalidOperationException("Assignments with attendance, payroll, or employee request history cannot be swapped.");
+        var requirement = shift.ShiftEmployeeRequirements.SingleOrDefault(r => r.ShiftRequirementId == assignment.ShiftRequirementId);
+        if (requirement == null || requirement.EmployeeTypeId != assignment.User.EmployeeTypeId ||
+            requirement.EmployeeType.Status != "ACTIVE" || requirement.RequiredCount <= 0)
+            throw new InvalidOperationException("The assignment has an invalid employee requirement.");
     }
 
     private async Task ValidateIncomingShiftAsync(Guid staffId, WorkShift outgoing, WorkShift incoming, CancellationToken ct)

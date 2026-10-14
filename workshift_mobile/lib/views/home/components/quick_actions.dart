@@ -5,6 +5,7 @@ import '../../../widgets/quick_action_item.dart';
 import '../../face_registration/face_registration_modal.dart';
 import '../../shifts/available_shifts_view.dart';
 import '../../shifts/my_shifts_view.dart';
+import '../../shifts/shift_swap_list_view.dart';
 import '../../requests/staff_request_list_view.dart';
 import '../../contracts/staff_contract_list_view.dart';
 
@@ -130,10 +131,11 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.swap_horiz_rounded,
         iconColor: AppColors.actionSwapIcon,
         iconBgColor: AppColors.actionSwapBg,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Shift Swap')),
-          );
+        onTap: () async {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
+          if (mounted) widget.onShiftsChanged?.call();
         },
       ),
       _QuickActionData(

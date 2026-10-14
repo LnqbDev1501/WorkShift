@@ -37,9 +37,11 @@ class AppDateFilters<T> extends StatelessWidget {
               onSelected: (_) => onSelected(value),
               showCheckmark: false,
               selectedColor: AppColors.primary,
-              backgroundColor: AppColors.surface,
+              backgroundColor: AppColors.borderLight,
               side: BorderSide(
-                color: selected == value ? AppColors.primary : AppColors.border,
+                color: selected == value
+                    ? AppColors.primary
+                    : Colors.transparent,
               ),
               labelStyle: TextStyle(
                 fontSize: 13,
@@ -49,20 +51,17 @@ class AppDateFilters<T> extends StatelessWidget {
                     : AppColors.textSecondary,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
         ],
       ),
-      const SizedBox(height: 10),
+      const SizedBox(height: 4),
       Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isCustom ? AppColors.primary : AppColors.border,
-          ),
+          color: isCustom ? AppColors.primaryLight : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
           children: [
@@ -72,8 +71,8 @@ class AppDateFilters<T> extends StatelessWidget {
                 style: TextButton.styleFrom(
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
+                    horizontal: 4,
+                    vertical: 10,
                   ),
                   foregroundColor: isCustom
                       ? AppColors.primary
@@ -90,11 +89,12 @@ class AppDateFilters<T> extends StatelessWidget {
                 icon: const Icon(Icons.close_rounded, size: 18),
               )
             else
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: TextButton(
-                  onPressed: onChooseDates,
-                  child: const Text('Change'),
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
                 ),
               ),
           ],
