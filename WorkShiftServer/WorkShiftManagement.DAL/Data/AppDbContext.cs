@@ -66,6 +66,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
 
+    public virtual DbSet<Payment> Payments { get; set; }
+
     public virtual DbSet<Payroll> Payrolls { get; set; }
 
     public virtual DbSet<PayrollCarryForwardApplication> PayrollCarryForwardApplications { get; set; }
