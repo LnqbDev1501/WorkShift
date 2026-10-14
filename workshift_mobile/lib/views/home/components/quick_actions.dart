@@ -8,6 +8,8 @@ import '../../shifts/my_shifts_view.dart';
 import '../../shifts/shift_swap_list_view.dart';
 import '../../requests/staff_request_list_view.dart';
 import '../../contracts/staff_contract_list_view.dart';
+import '../../orders/staff_order_list_view.dart';
+import '../../orders/create_order_view.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -108,8 +110,8 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to POS Order Creation')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CreateOrderView()),
           );
         },
       ),
@@ -120,8 +122,8 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionHistoryIcon,
         iconBgColor: AppColors.actionHistoryBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Order History')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffOrderListView()),
           );
         },
       ),
