@@ -301,6 +301,10 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
                                 Quantity = d.Quantity,
                                 Rate = d.Rate,
                                 Amount = d.Amount,
+                                AppliedAmount = d.AppliedAmount, SalaryHistoryId = d.SalaryHistoryId,
+                                RewardPenaltyId = d.RewardPenaltyId, AttendancePenaltyId = d.AttendancePenaltyId,
+                                CarryForwardId = d.CarryForwardId, PublicHolidayId = d.PublicHolidayId,
+                                HolidayPayRuleId = d.HolidayPayRuleId,
                                 DisplayOrder = d.DisplayOrder,
                                 Note = d.Note
                             })

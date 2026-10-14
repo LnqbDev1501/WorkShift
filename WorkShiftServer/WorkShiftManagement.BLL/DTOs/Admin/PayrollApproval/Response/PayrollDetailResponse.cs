@@ -21,6 +21,13 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response
         public decimal? Rate { get; set; }
 
         public decimal Amount { get; set; }
+        public decimal? AppliedAmount { get; set; }
+        public int? SalaryHistoryId { get; set; }
+        public int? RewardPenaltyId { get; set; }
+        public int? AttendancePenaltyId { get; set; }
+        public int? CarryForwardId { get; set; }
+        public int? PublicHolidayId { get; set; }
+        public int? HolidayPayRuleId { get; set; }
 
         public int DisplayOrder { get; set; }
 

@@ -179,11 +179,12 @@
                         </a>
 
                         <a asp-controller="Payroll" asp-action="List"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Payroll" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "Payroll" or "AdminPayrollCalculation" or "AdminPayrollRevision" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Payroll Approvals">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Approvals</span>
                         </a>
+                        <partial name="_PayrollDocumentNavigation" model='"Admin"' />
                         <a asp-controller="Notifications" asp-action="History"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Notifications">
@@ -300,47 +301,6 @@
                         </a>
                     </nav>
                 }
-                else if (User.IsInRole("ACCOUNTANT"))
-                {
-                    <!-- Accountant: Workspace -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
-                        </div>
-                        <a asp-controller="AccountantDashboard" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantDashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Overview">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
-                        </a>
-                    </nav>
-
-                    <!-- Accountant: Payroll -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL &amp; COMPENSATION</span>
-                        </div>
-                        <a asp-controller="AccountantPayroll" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayroll" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Payroll Approvals">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Approvals</span>
-                        </a>
-                    </nav>
-
-                    <!-- Accountant: Notifications -->
-                    <nav class="space-y-unit-1">
-                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
-                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span>
-                        </div>
-                        <a asp-controller="Notifications" asp-action="Personal"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                           title="Notifications">
-                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
-                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
-                        </a>
-                    </nav>
-                }
                 else
                 {
                     <nav class="space-y-unit-1">
@@ -358,6 +318,19 @@
                     </nav>
                     @if (User.IsInRole("STAFF"))
                     {
+                        <nav class="space-y-unit-1" aria-label="Shifts">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CA LÀM</span></div>
+                            <a asp-controller="StaffShifts" asp-action="Index" title="Đăng ký ca làm"
+                               aria-current="@(currentController == "StaffShifts" ? "page" : null)"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "StaffShifts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                                <span class="material-symbols-outlined text-[20px] flex-shrink-0">event_available</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Đăng ký ca làm</span>
+                            </a>
+                        </nav>
+                        <nav class="space-y-unit-1" aria-label="My Payroll">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL</span></div>
+                            <partial name="_PayrollDocumentNavigation" model='"Staff"' />
+                        </nav>
                         <nav class="space-y-unit-1" aria-label="Contracts">
                             <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CONTRACTS</span></div>
                             <a asp-controller="StaffContracts" asp-action="Index" title="My Contracts"

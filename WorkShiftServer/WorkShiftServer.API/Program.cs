@@ -82,6 +82,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.Authority = $"{supabaseUrl.TrimEnd('/')}/auth/v1";
         options.Audience = "authenticated";
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // SignalR browser transports send the bearer token as a query parameter.
+                if (context.Request.Path.StartsWithSegments("/hubs/payroll-notifications")
+                    && context.Request.Query.TryGetValue("access_token", out var token))
+                    context.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -119,12 +130,25 @@ builder.Services.AddHangfireServer(options =>
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
+builder.Services.AddScoped<IPayrollChangeTransaction>(sp => sp.GetRequiredService<HolidayConfigurationRepo>());
 builder.Services.AddScoped<ISalaryHistoryRepo, SalaryHistoryRepo>();
 builder.Services.AddScoped<ISalaryHistoryService, SalaryHistoryService>();
 builder.Services.AddScoped<IPayrollPeriodRepo, PayrollPeriodRepo>();
 builder.Services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
 builder.Services.AddScoped<IPayrollCalculationRepo, PayrollCalculationRepo>();
 builder.Services.AddScoped<IPayrollCalculationService, PayrollCalculationService>();
+builder.Services.AddScoped<IPayrollRevisionRepo, PayrollRevisionRepo>();
+builder.Services.AddScoped<IPayrollRevisionService, PayrollRevisionService>();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.AddScoped<IPayslipRepo, PayslipRepo>();
+builder.Services.AddScoped<IPayslipService, PayslipService>();
+builder.Services.AddScoped<IPayrollFeedbackRepo, PayrollFeedbackRepo>();
+builder.Services.AddScoped<IPayrollFeedbackService, PayrollFeedbackService>();
+builder.Services.AddScoped<PayslipPublicationJob>();
+builder.Services.AddScoped<IPayrollSettlementRepo, PayrollSettlementRepo>();
+builder.Services.AddScoped<IPayrollSettlementService, PayrollSettlementService>();
+builder.Services.AddScoped<IPayrollClosureNotifier, HangfirePayrollClosureNotifier>();
+builder.Services.AddScoped<PayrollClosureNotificationJob>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
@@ -217,6 +241,8 @@ builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IAccoun
     WorkShiftManagement.BLL.Services.Accountant.AccountantDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
+builder.Services.AddScoped<IEmployeeAdjustmentRepo, EmployeeAdjustmentRepo>();
+builder.Services.AddScoped<IEmployeeAdjustmentService, EmployeeAdjustmentService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
     WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
@@ -274,6 +300,20 @@ var app = builder.Build();
 try
 {
     app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<PayrollClosureNotificationJob>(
+            "payroll-closure-notification-recovery",
+            job => job.SendPendingAsync(CancellationToken.None),
+            Cron.Minutely());
+    // UTC+7 Thursday 00:00 = Wednesday 17:00 UTC. Existing payslips and
+    // transaction locks make retries idempotent; there is no manual publish endpoint.
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<PayslipPublicationJob>(
+            "initial-payslip-publication",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 17 * * 3",
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
@@ -329,5 +369,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
+app.MapHub<PayrollNotificationHub>("/hubs/payroll-notifications");
 
 app.Run();

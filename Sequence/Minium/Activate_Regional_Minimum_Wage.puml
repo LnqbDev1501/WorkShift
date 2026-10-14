@@ -1,0 +1,141 @@
+@startuml
+title Sequence Diagram - Activate Regional Minimum Wage Rate
+
+autonumber
+
+control "RegionalMinimumWageActivationWorker" as Worker
+control "RegionalMinimumWageService" as BLL
+entity "RegionalMinimumWageRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' WORKER TRIGGER
+' =====================================================
+
+activate Worker
+
+Worker -> BLL : ActivateDueWagesAsync()
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL
+' =====================================================
+
+BLL -> BLL ++ : Determine Vietnam current date (today)
+deactivate BLL
+
+BLL -> DAL : GetDuePublishedWagesAsync(today)
+activate DAL
+
+
+' =====================================================
+' DATABASE QUERY FOR DUE WAGES
+' =====================================================
+
+DAL -> DB : SELECT * FROM regional_minimum_wages\nWHERE Status = 'PUBLISH' AND EffectiveFrom <= today\nORDER BY EffectiveFrom, id
+activate DB
+
+DB --> DAL : List of due published wages
+deactivate DB
+
+DAL --> BLL : List<RegionalMinimumWage>
+deactivate DAL
+
+
+' =====================================================
+' TRANSACTIONAL ACTIVATION FOR EACH DUE WAGE
+' =====================================================
+
+loop For each due wage in list
+
+    BLL -> DAL : ActivateDueWageTransactionAsync(newWageId, today)
+    activate DAL
+
+    DAL -> DB : BEGIN TRANSACTION
+    activate DB
+
+
+    ' -------------------------------------------------
+    ' Pessimistic row locking on new wage
+    ' -------------------------------------------------
+
+    DAL -> DB : SELECT * FROM regional_minimum_wages\nWHERE id = newWageId FOR UPDATE
+    DB --> DAL : Locked new wage entity (Status = "PUBLISH")
+
+
+    DAL -> DAL ++ : Set newWage.Status = 'ACTIVE'
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' Old wage retirement & region migration (if replacement)
+    ' -------------------------------------------------
+
+    opt ReplacedWageId is present
+
+        DAL -> DB : SELECT * FROM regional_minimum_wages\nWHERE id = oldWageId FOR UPDATE
+        DB --> DAL : Locked old wage entity (Status = "ACTIVE")
+
+        DAL -> DAL ++ : Set oldWage.Status = 'INACTIVE'\nand EffectiveTo = newWage.EffectiveFrom - 1 day
+        deactivate DAL
+
+        DAL -> DB : UPDATE Regions\nSET RegionalMinimumWageId = newWageId\nWHERE RegionalMinimumWageId = oldWageId
+        DB --> DAL : Migrated regions affected
+
+    end
+
+
+    ' Tạo khoảng cách trước ALT
+    ||30||
+
+
+    ' =================================================
+    ' RESULT PER WAGE
+    ' =================================================
+
+    alt Activation transaction succeeds
+
+        DAL -> DB : COMMIT TRANSACTION
+        DB --> DAL : Transaction committed
+        deactivate DB
+
+        DAL --> BLL : true (wage activated successfully)
+        deactivate DAL
+
+        BLL -> BLL ++ : Increment activatedCount
+        deactivate BLL
+
+    else Wage already modified / Concurrency conflict / Error
+
+        activate DAL
+        activate DB
+        DAL -> DB : ROLLBACK TRANSACTION
+        DB --> DAL : Transaction rolled back
+        deactivate DB
+
+        DAL --> BLL : false / exception caught
+        deactivate DAL
+
+        BLL -> BLL ++ : Log warning and continue next wage
+        deactivate BLL
+
+    end
+
+end
+
+
+' =====================================================
+' WORKER COMPLETION
+' =====================================================
+
+BLL --> Worker : activatedCount
+deactivate BLL
+
+Worker -> Worker ++ : Log activation summary\n("{Count} due wage(s) activated")
+deactivate Worker
+
+deactivate Worker
+
+@enduml

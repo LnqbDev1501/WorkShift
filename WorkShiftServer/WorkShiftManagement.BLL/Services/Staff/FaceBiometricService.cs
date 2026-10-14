@@ -15,20 +15,52 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 public class FaceBiometricService : IFaceBiometricService, IDisposable
 {
     private readonly ILogger<FaceBiometricService> _logger;
-    private readonly IFaceDetectorWithLandmarks _detector;
-    private readonly IFaceEmbeddingsGenerator _recognizer;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private IFaceDetectorWithLandmarks? _detector;
+    private IFaceEmbeddingsGenerator? _recognizer;
+    private bool _initialized;
+    private Exception? _initException;
     private bool _disposed;
 
     public FaceBiometricService(ILogger<FaceBiometricService> logger)
     {
         _logger = logger;
-        _logger.LogInformation("Initializing FaceBiometricService with ArcFace and SCRFD ONNX models...");
+        _logger.LogInformation("FaceBiometricService registered (lazy-loading ONNX models on demand).");
+    }
 
-        _detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
-        _recognizer = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
+    private void EnsureInitialized()
+    {
+        if (_initialized) return;
 
-        _logger.LogInformation("FaceBiometricService initialized successfully.");
+        _lock.Wait();
+        try
+        {
+            if (_initialized) return;
+
+            if (_initException != null)
+            {
+                throw new InvalidOperationException($"Face biometric model initialization failed: {_initException.Message}", _initException);
+            }
+
+            try
+            {
+                _logger.LogInformation("Initializing FaceBiometricService with ArcFace and SCRFD ONNX models...");
+                _detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
+                _recognizer = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
+                _initialized = true;
+                _logger.LogInformation("FaceBiometricService initialized successfully.");
+            }
+            catch (Exception ex)
+            {
+                _initException = ex;
+                _logger.LogError(ex, "Failed to initialize FaceBiometricService with ArcFace and SCRFD models.");
+                throw;
+            }
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public async Task<(float[] Embedding, float Confidence)> ExtractFaceEmbeddingAsync(IFormFile imageFile, CancellationToken cancellationToken = default)
@@ -38,13 +70,15 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
             throw new ArgumentException("A valid face image file is required.", nameof(imageFile));
         }
 
+        EnsureInitialized();
+
         await using var stream = imageFile.OpenReadStream();
         using var image = await Image.LoadAsync<Rgb24>(stream, cancellationToken);
 
         await _lock.WaitAsync(cancellationToken);
         try
         {
-            var detectedFaces = _detector.DetectFaces(image);
+            var detectedFaces = _detector!.DetectFaces(image);
             if (detectedFaces == null || detectedFaces.Count == 0)
             {
                 throw new InvalidOperationException("No human face detected in the image. Please position your face clearly in the camera frame with good lighting.");
@@ -60,10 +94,10 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
 
             if (bestFace.Landmarks != null && bestFace.Landmarks.Count >= 5)
             {
-                _recognizer.AlignFaceUsingLandmarks(image, bestFace.Landmarks);
+                _recognizer!.AlignFaceUsingLandmarks(image, bestFace.Landmarks);
             }
 
-            var embedding = _recognizer.GenerateEmbedding(image);
+            var embedding = _recognizer!.GenerateEmbedding(image);
             if (embedding == null || embedding.Length == 0)
             {
                 throw new InvalidOperationException("Failed to generate facial biometric vector from the image.");

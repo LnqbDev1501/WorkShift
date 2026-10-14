@@ -1,7 +1,7 @@
 @using UI_Admin.Models.Admin.UserAdmin
 @model UserDetailViewModel
 @{
-    Layout = "_AdminLayout";
+    Layout = User.IsInRole("ACCOUNTANT") ? "_AccountantLayout" : "_AdminLayout";
     ViewData["Title"] = "My Profile";
     var isPending = Model.IsPending;
     var isActive = Model.IsActive;

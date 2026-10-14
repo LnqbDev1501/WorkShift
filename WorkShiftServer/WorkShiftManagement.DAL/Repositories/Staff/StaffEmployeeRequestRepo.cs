@@ -12,7 +12,7 @@ using WorkShiftManagement.DAL.Interfaces.Staff;
 
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
-public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
+public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
 {
     private readonly AppDbContext _context;
 
@@ -27,7 +27,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             .AsNoTracking()
             .Include(u => u.Role)
             .Include(u => u.Branch)
-            .FirstOrDefaultAsync(u => u.UserId == staffId && u.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(u => u.UserId == staffId && u.DeletedAt == null && u.Status == "ACTIVE", cancellationToken);
     }
 
     public async Task<(IReadOnlyList<EmployeeRequest> Items, int TotalCount)> GetPagedAsync(
@@ -44,6 +44,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         var query = _context.EmployeeRequests.AsNoTracking()
             .AsSplitQuery()
             .Include(r => r.Branch)
+            .Include(r => r.SalaryIncreaseRequestDetail).ThenInclude(d => d!.CurrentContract)
             .Include(r => r.ReviewedByNavigation)
             .Include(r => r.LeaveRequestAssignments)
                 .ThenInclude(lra => lra.Assignment)
@@ -52,7 +53,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
                 .ThenInclude(tard => tard!.Assignment)
                     .ThenInclude(a => a.Shift)
             .Where(r => r.UserId == staffId &&
-                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"));
+                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE"));
 
         if (!string.IsNullOrWhiteSpace(requestType))
         {
@@ -99,6 +100,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
     {
         return await _context.EmployeeRequests.AsNoTracking()
             .Include(r => r.Branch)
+            .Include(r => r.SalaryIncreaseRequestDetail).ThenInclude(d => d!.CurrentContract)
             .Include(r => r.ReviewedByNavigation)
             .Include(r => r.AppliedRequestLimitRule)
             .Include(r => r.LeaveRequestAssignments)
@@ -121,7 +123,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
                             .ThenInclude(w => w.Branch)
             .FirstOrDefaultAsync(r => r.RequestId == requestId &&
                                       r.UserId == staffId &&
-                                      (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"),
+                                      (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE"),
                                  cancellationToken);
     }
 
@@ -667,7 +669,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             var request = await _context.EmployeeRequests
                 .SingleAsync(r => r.RequestId == requestId, cancellationToken);
 
-            if (request.RequestType != "LEAVE" && request.RequestType != "LATE_ARRIVAL" && request.RequestType != "EARLY_LEAVE")
+            if (request.RequestType != "LEAVE" && request.RequestType != "LATE_ARRIVAL" && request.RequestType != "EARLY_LEAVE" && request.RequestType != "SALARY_INCREASE")
             {
                 throw new KeyNotFoundException("Request type is not supported.");
             }

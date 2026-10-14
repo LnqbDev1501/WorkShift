@@ -19,6 +19,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<ManagerContractApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<StaffContractApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<StaffShiftApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -50,6 +51,12 @@ builder.Services.AddHttpClient<ManagerShiftApiService>(client => client.Timeout 
 builder.Services.AddHttpClient<ManagerRequestLimitRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ManagerTimesheetApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<AccountantDashboardApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<SalaryHistoryApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<PayrollPeriodApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<PayrollPeriodReportApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<PayrollCalculationApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<PayrollDocumentsApiService>(client => client.Timeout = TimeSpan.FromSeconds(60)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<PayrollCalculationActionApiService>(client => client.Timeout = TimeSpan.FromMinutes(2)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<NotificationApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<UserApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<BranchApiService>().AddHttpMessageHandler<ApiBearerTokenHandler>();

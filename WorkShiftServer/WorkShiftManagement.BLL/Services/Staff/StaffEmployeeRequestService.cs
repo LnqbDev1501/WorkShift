@@ -20,7 +20,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
     {
         "LEAVE",
         "LATE_ARRIVAL",
-        "EARLY_LEAVE"
+        "EARLY_LEAVE",
+        "SALARY_INCREASE"
     };
 
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -62,7 +63,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             var trimmed = query.RequestType.Trim().ToUpperInvariant();
             if (!AllowedRequestTypes.Contains(trimmed))
             {
-                throw new ArgumentException($"Invalid request type '{query.RequestType}'. Allowed types: LEAVE, LATE_ARRIVAL, EARLY_LEAVE.");
+                throw new ArgumentException($"Invalid request type '{query.RequestType}'. Allowed types: LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE.");
             }
             normalizedRequestType = trimmed;
         }
@@ -144,6 +145,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                 BranchId = r.BranchId,
                 BranchName = r.Branch.BranchName,
                 BranchCode = r.Branch.BranchCode,
+                SalaryIncreaseDetail = r.SalaryIncreaseRequestDetail == null ? null : new StaffSalaryIncreaseDetailResponse { CurrentContractId = r.SalaryIncreaseRequestDetail.CurrentContractId, ContractNumber = r.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber, CurrentHourlyRate = r.SalaryIncreaseRequestDetail.CurrentHourlyRate, ProposedHourlyRate = r.SalaryIncreaseRequestDetail.ProposedHourlyRate },
                 RequestType = r.RequestType,
                 Reason = r.Reason,
                 Status = r.Status,
@@ -199,9 +201,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         }
 
         var normalizedType = requestType.Trim().ToUpperInvariant();
-        if (!AllowedRequestTypes.Contains(normalizedType))
+        if (normalizedType is not ("LEAVE" or "LATE_ARRIVAL" or "EARLY_LEAVE"))
         {
-            throw new ArgumentException($"Invalid request type '{requestType}'. Allowed types: LEAVE, LATE_ARRIVAL, EARLY_LEAVE.");
+            throw new ArgumentException($"Eligible shifts only support LEAVE, LATE_ARRIVAL, EARLY_LEAVE; salary requests do not select shifts.");
         }
 
         var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
@@ -350,6 +352,21 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         return MapToDetailResponse(detail ?? created);
     }
 
+    public async Task<StaffEmployeeRequestDetailResponse> SubmitSalaryIncreaseRequestAsync(
+        Guid staffId, SubmitSalaryIncreaseRequestRequest request, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request); ValidateStaffId(staffId);
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
+            throw new ArgumentException("Cần lý do xin tăng lương, tối đa 500 ký tự.");
+        if (request.ProposedHourlyRate <= 0 || request.ProposedHourlyRate > 9999999999999999.99m
+            || request.ProposedHourlyRate != decimal.Truncate(request.ProposedHourlyRate * 100) / 100)
+            throw new ArgumentException("Mức đề xuất phải dương và phù hợp NUMERIC(18,2); không tự làm tròn.");
+        var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var created = await _repo.SubmitSalaryIncreaseRequestAsync(staffId, branchId, request.ProposedHourlyRate,
+            request.Reason.Trim(), DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)), cancellationToken);
+        return MapToDetailResponse(await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken) ?? created);
+    }
+
     public async Task<StaffEmployeeRequestDetailResponse> CancelRequestAsync(
         Guid staffId,
         int requestId,
@@ -362,6 +379,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new ArgumentException("Request ID must be a positive integer.");
         }
 
+        await GetActiveBranchIdAsync(staffId, cancellationToken);
         var cancelled = await _repo.CancelRequestAsync(requestId, staffId, cancellationToken);
 
         var detail = await _repo.GetByIdAsync(cancelled.RequestId, staffId, cancellationToken);
@@ -406,6 +424,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             BranchId = request.BranchId,
             BranchName = request.Branch?.BranchName ?? string.Empty,
             BranchCode = request.Branch?.BranchCode ?? string.Empty,
+            SalaryIncreaseDetail = request.SalaryIncreaseRequestDetail == null ? null : new StaffSalaryIncreaseDetailResponse { CurrentContractId = request.SalaryIncreaseRequestDetail.CurrentContractId, ContractNumber = request.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber, CurrentHourlyRate = request.SalaryIncreaseRequestDetail.CurrentHourlyRate, ProposedHourlyRate = request.SalaryIncreaseRequestDetail.ProposedHourlyRate },
             RequestType = request.RequestType,
             Reason = request.Reason,
             Status = request.Status,
