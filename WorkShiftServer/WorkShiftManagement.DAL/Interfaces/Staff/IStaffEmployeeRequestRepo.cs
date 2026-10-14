@@ -59,6 +59,9 @@ public interface IStaffEmployeeRequestRepo
         DateOnly todayVn,
         CancellationToken cancellationToken = default);
 
+    Task<EmployeeRequest> SubmitSalaryIncreaseRequestAsync(
+        Guid staffId, int branchId, decimal proposedHourlyRate, string reason, DateOnly todayVn, CancellationToken cancellationToken = default);
+
     Task<EmployeeRequest> CancelRequestAsync(
         int requestId,
         Guid staffId,

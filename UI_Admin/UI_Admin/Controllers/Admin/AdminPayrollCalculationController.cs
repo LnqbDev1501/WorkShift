@@ -18,5 +18,5 @@ public sealed class AdminPayrollCalculationController(PayrollCalculationApiServi
             catch (Exception ex) when (Handled(ex)) { if (Access(ex) is IActionResult denied) return denied; model.Error = Error(ex); }
         return View(ListView, model);
     }
-    [HttpGet] public Task<IActionResult> Details(int id, CancellationToken ct) => ReadDetail(id, ct);
+    [HttpGet] public IActionResult Details(int id) => id <= 0 ? NotFound() : RedirectToAction("Review", "AdminPayrollRevision", new { id });
 }

@@ -303,6 +303,51 @@ public class StaffEmployeeRequestController : ControllerBase
         }
     }
 
+    [HttpPost("salary-increase")]
+    [ProducesResponseType(typeof(StaffEmployeeRequestDetailResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<StaffEmployeeRequestDetailResponse>> SubmitSalaryIncrease(
+        [FromBody] SubmitSalaryIncreaseRequestRequest request,
+        CancellationToken cancellationToken)
+    {
+        var staffId = GetStaffUserId();
+        if (!staffId.HasValue)
+        {
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+        }
+
+        try
+        {
+            var result = await _service.SubmitSalaryIncreaseRequestAsync(staffId.Value, request, cancellationToken);
+            return StatusCode(StatusCodes.Status201Created, result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to submit salary increase request for staff {StaffId}", staffId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Salary increase request could not be submitted. Please try again later." });
+        }
+    }
+
     [HttpPost("{requestId:int}/cancel")]
     [ProducesResponseType(typeof(StaffEmployeeRequestDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

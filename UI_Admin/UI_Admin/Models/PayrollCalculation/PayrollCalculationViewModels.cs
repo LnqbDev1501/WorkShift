@@ -3,6 +3,7 @@ namespace UI_Admin.Models.PayrollCalculation;
 
 public sealed class CalculationQuery
 {
+    public string? CalculationState { get; set; }
     [StringLength(200)] public string? Keyword { get; set; }
     public Guid? UserId { get; set; }
     public string? Status { get; set; }
@@ -17,6 +18,7 @@ public sealed class CalculationPage
 }
 public sealed class CalculationViewModel
 {
+    public int ReadinessTotal { get; set; }
     public int PeriodId { get; set; }
     public bool Accountant { get; set; }
     public CalculationQuery Query { get; set; } = new();
@@ -110,4 +112,16 @@ public sealed class CalculationLine
     public int? CarryForwardId { get; set; }
     public int DisplayOrder { get; set; }
     public string? Note { get; set; }
+}
+
+public sealed class CalculationPreviewViewModel
+{
+    public CalculationInputResponse? Inputs { get; set; }
+    public int PeriodId { get; set; }
+    public Guid? UserId { get; set; }
+    public List<CalculatedPayroll> Payrolls { get; set; } = [];
+    public List<EmployeeReadiness> FailedEmployees { get; set; } = [];
+    public string? Error { get; set; }
+    public string? ReviewToken { get; set; }
+    public bool CanSave => Error == null && FailedEmployees.Count == 0 && Payrolls.Count > 0;
 }

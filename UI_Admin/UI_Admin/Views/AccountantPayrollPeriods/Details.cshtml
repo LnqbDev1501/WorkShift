@@ -6,7 +6,6 @@
     <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1>@Model.PeriodName</h1><p>@Model.PeriodCode · @Model.BranchName · @Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</p></div><div class="flex flex-wrap gap-2">
         @if (Model.Status == "CALCULATED") { <form asp-controller="AccountantPayrollRevision" asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post"><button class="payroll-button primary" type="submit">Submit Period for Approval</button></form> }
         <a asp-action="Index" class="payroll-button">Back to periods</a>
-        <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Payroll Calculation</a>
         @if (Model.CanUpdate) { <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Edit Draft</a> }
         @if (Model.CanDelete) { <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Delete Draft</a> }
         @if (Model.CanOpen) { <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Open Period</a> }

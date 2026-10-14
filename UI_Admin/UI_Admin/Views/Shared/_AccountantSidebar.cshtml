@@ -72,10 +72,16 @@
                             <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL &amp; COMPENSATION</span>
                         </div>
                         <a asp-controller="AccountantPayrollPeriods" asp-action="Index"
-                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AccountantPayrollPeriods" or "AccountantPayrollCalculation" or "AccountantPayrollRevision" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AccountantPayrollPeriods" or "AccountantPayrollRevision" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                            title="Payroll Periods">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Periods</span>
+                        </a>
+                        <a asp-controller="AccountantPayrollCalculation" asp-action="Periods" title="Payroll Calculation"
+                           aria-current="@(currentController == "AccountantPayrollCalculation" ? "page" : null)"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayrollCalculation" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">calculate</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Calculation</span>
                         </a>
                         <a asp-controller="AccountantSalaryHistory" asp-action="Index"
                            aria-current="@(currentController == "AccountantSalaryHistory" ? "page" : null)"

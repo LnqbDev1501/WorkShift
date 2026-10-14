@@ -238,6 +238,8 @@ builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IAccoun
     WorkShiftManagement.BLL.Services.Accountant.AccountantDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
+builder.Services.AddScoped<IEmployeeAdjustmentRepo, EmployeeAdjustmentRepo>();
+builder.Services.AddScoped<IEmployeeAdjustmentService, EmployeeAdjustmentService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
     WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
