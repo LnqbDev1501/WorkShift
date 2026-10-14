@@ -95,7 +95,10 @@ public class OrderService : IOrderService
 
     public async Task<OrderDetailResponse> CreateAsync(CreateOrderRequest request, Guid actorId)
     {
-        var branchId = await RequireManagerBranchAsync(actorId);
+        var actor = await GetActorAsync(actorId);
+        if (!actor.BranchId.HasValue)
+            throw new UnauthorizedAccessException("Your account is not assigned to a branch.");
+        var branchId = actor.BranchId.Value;
 
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
