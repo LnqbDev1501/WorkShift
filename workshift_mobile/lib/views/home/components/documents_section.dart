@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
 
+import '../../contracts/staff_contract_list_view.dart';
+
 /// Component: Mục "Hồ sơ & Chứng từ" (Phiếu lương, Hợp đồng lao động)
 class DocumentsSection extends StatelessWidget {
   const DocumentsSection({super.key});
@@ -41,10 +43,11 @@ class DocumentsSection extends StatelessWidget {
           iconColor: AppColors.success,
           iconBgColor: AppColors.successBg,
           title: 'Employment Contract',
-          subtitle: 'View and download active electronic contracts',
+          subtitle: 'View, accept and download electronic contracts',
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Opening Employment Contract')),
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const StaffContractListView()),
             );
           },
         ),

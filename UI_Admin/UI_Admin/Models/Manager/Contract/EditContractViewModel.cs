@@ -27,26 +27,26 @@ public class EditContractViewModel : IValidatableObject
     [BindNever, ValidateNever]
     public string Status { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Vui lòng nhập ngày bắt đầu.")]
+    [Required(ErrorMessage = "Please enter a start date.")]
     [DataType(DataType.Date)]
     public DateOnly? StartDate { get; set; }
 
     [DataType(DataType.Date)]
     public DateOnly? EndDate { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập chức danh.")]
-    [StringLength(100, ErrorMessage = "Chức danh tối đa 100 ký tự.")]
+    [Required(ErrorMessage = "Please enter a position/title.")]
+    [StringLength(100, ErrorMessage = "Position cannot exceed 100 characters.")]
     public string EmployeePosition { get; set; } = string.Empty;
 
     public string? ContractTerms { get; set; }
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (StartDate == default(DateOnly))
-            yield return new("Ngày bắt đầu không hợp lệ.", [nameof(StartDate)]);
+            yield return new("Invalid start date.", [nameof(StartDate)]);
         if (EndDate.HasValue && StartDate.HasValue && EndDate <= StartDate)
-            yield return new("Ngày kết thúc phải sau ngày bắt đầu.", [nameof(EndDate)]);
+            yield return new("End date must be after start date.", [nameof(EndDate)]);
         if (string.IsNullOrWhiteSpace(EmployeePosition))
-            yield return new("Vui lòng nhập chức danh.", [nameof(EmployeePosition)]);
+            yield return new("Please enter a position/title.", [nameof(EmployeePosition)]);
     }
 }

@@ -4,6 +4,8 @@ import '../../../widgets/quick_action_item.dart';
 
 import '../../face_registration/face_registration_modal.dart';
 import '../../shifts/available_shifts_view.dart';
+import '../../requests/staff_request_list_view.dart';
+import '../../contracts/staff_contract_list_view.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -121,8 +123,8 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionLeaveIcon,
         iconBgColor: AppColors.actionLeaveBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Leave Requests')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffRequestListView()),
           );
         },
       ),
@@ -146,8 +148,8 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionContractIcon,
         iconBgColor: AppColors.actionContractBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Contracts')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffContractListView()),
           );
         },
       ),
