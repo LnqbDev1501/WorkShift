@@ -24,7 +24,9 @@ public class ManagerStaffRepo : IManagerStaffRepo
     {
         var query = _context.Users
             .AsNoTracking()
-            .Where(u => u.BranchId == managerBranchId && u.Role.RoleName == "STAFF");
+            .Where(u => (u.BranchId == managerBranchId ||
+                         _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE"))
+                        && u.Role.RoleName == "STAFF");
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -63,7 +65,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
             .Include(u => u.EmployeeType)
             .FirstOrDefaultAsync(u =>
                 u.UserId == staffId &&
-                u.BranchId == managerBranchId &&
+                (u.BranchId == managerBranchId || _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE")) &&
                 u.Role.RoleName == "STAFF");
     }
 
@@ -107,17 +109,22 @@ public class ManagerStaffRepo : IManagerStaffRepo
         return staff;
     }
 
-public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string identityNo, string gender, DateOnly? dateOfBirth, string? address)
+    public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string identityNo, string gender, DateOnly? dateOfBirth, string? address)
     {
         var staff = await _context.Users
             .FirstOrDefaultAsync(u =>
                 u.UserId == staffId &&
-                u.BranchId == managerBranchId &&
+                (u.BranchId == managerBranchId || _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE")) &&
                 u.Role.RoleName == "STAFF" &&
                 u.DeletedAt == null);
 
         if (staff == null)
             return null;
+
+        if (staff.BranchId == null || staff.BranchId != managerBranchId)
+        {
+            staff.BranchId = managerBranchId;
+        }
 
         staff.FullName = fullName.Trim();
         staff.Phone = phone.Trim();
@@ -125,7 +132,6 @@ public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, str
         staff.Gender = gender.Trim().ToUpperInvariant();
         staff.DateOfBirth = dateOfBirth ?? default;
         staff.Address = address?.Trim();
-        staff.UpdatedAt = DateTime.UtcNow;
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -137,7 +143,7 @@ public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, str
         var staff = await _context.Users
             .FirstOrDefaultAsync(u =>
                 u.UserId == staffId &&
-                u.BranchId == managerBranchId &&
+                (u.BranchId == managerBranchId || _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE")) &&
                 u.Role.RoleName == "STAFF" &&
                 u.Status == "ACTIVE" &&
                 u.DeletedAt == null);

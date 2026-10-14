@@ -103,6 +103,61 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
     }
   }
 
+  DateTime? _calculateRequestedDateTime() {
+    if (_selectedShift == null || _selectedAdjustmentTime == null) return null;
+    final shiftStart = _selectedShift!.scheduledStartAt.toLocal();
+    final shiftEnd = _selectedShift!.scheduledEndAt.toLocal();
+
+    // Nếu ca làm việc kéo dài qua ngày hôm sau (overnight shift)
+    if (shiftEnd.day != shiftStart.day) {
+      if (_selectedAdjustmentTime!.hour < shiftStart.hour) {
+        return DateTime(
+          shiftEnd.year,
+          shiftEnd.month,
+          shiftEnd.day,
+          _selectedAdjustmentTime!.hour,
+          _selectedAdjustmentTime!.minute,
+        );
+      }
+    }
+
+    return DateTime(
+      shiftStart.year,
+      shiftStart.month,
+      shiftStart.day,
+      _selectedAdjustmentTime!.hour,
+      _selectedAdjustmentTime!.minute,
+    );
+  }
+
+  String? _getAdjustmentTimeValidationError() {
+    if (_selectedRequestType == 'LEAVE') return null;
+    if (_selectedShift == null) {
+      return 'Vui lòng chọn ca làm việc áp dụng trước.';
+    }
+    if (_selectedAdjustmentTime == null) {
+      return _selectedRequestType == 'LATE_ARRIVAL'
+          ? 'Vui lòng chọn giờ dự kiến đến làm.'
+          : 'Vui lòng chọn giờ dự kiến về sớm.';
+    }
+
+    final reqTime = _calculateRequestedDateTime();
+    if (reqTime == null) return null;
+
+    final shiftStart = _selectedShift!.scheduledStartAt.toLocal();
+    final shiftEnd = _selectedShift!.scheduledEndAt.toLocal();
+
+    // Backend rule: requestedTimeUtc > shift.ScheduledStartAt && requestedTimeUtc < shift.ScheduledEndAt
+    if (!reqTime.isAfter(shiftStart) || !reqTime.isBefore(shiftEnd)) {
+      final isLate = _selectedRequestType == 'LATE_ARRIVAL';
+      return isLate
+          ? 'Giờ đến (${_formatTime(reqTime)}) không hợp lệ! Phải sau giờ bắt đầu (${_formatTime(shiftStart)}) và trước giờ kết thúc (${_formatTime(shiftEnd)}).'
+          : 'Giờ về (${_formatTime(reqTime)}) không hợp lệ! Phải sau giờ bắt đầu (${_formatTime(shiftStart)}) và trước giờ kết thúc (${_formatTime(shiftEnd)}).';
+    }
+
+    return null;
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -136,54 +191,26 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
     } else {
       // LATE_ARRIVAL hoặc EARLY_LEAVE
       if (_selectedTimeAdjustmentAssignmentId == null || _selectedShift == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vui lòng chọn ca làm việc áp dụng.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        _showErrorDialog('Vui lòng chọn ca làm việc áp dụng trước khi gửi đơn.');
         return;
       }
 
       if (_selectedAdjustmentTime == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _selectedRequestType == 'LATE_ARRIVAL'
-                  ? 'Vui lòng chọn giờ dự kiến đến.'
-                  : 'Vui lòng chọn giờ dự kiến về sớm.',
-            ),
-            backgroundColor: AppColors.error,
-          ),
+        _showErrorDialog(
+          _selectedRequestType == 'LATE_ARRIVAL'
+              ? 'Vui lòng chọn giờ dự kiến đến làm.'
+              : 'Vui lòng chọn giờ dự kiến về sớm.',
         );
         return;
       }
 
-      // Tạo DateTime từ ngày của ca và giờ đã chọn
-      final shiftDate = _selectedShift!.scheduledStartAt.toLocal();
-      final requestedDateTime = DateTime(
-        shiftDate.year,
-        shiftDate.month,
-        shiftDate.day,
-        _selectedAdjustmentTime!.hour,
-        _selectedAdjustmentTime!.minute,
-      );
-
-      // Validate giờ trong khoảng ca
-      final shiftStart = _selectedShift!.scheduledStartAt.toLocal();
-      final shiftEnd = _selectedShift!.scheduledEndAt.toLocal();
-
-      if (requestedDateTime.isBefore(shiftStart) || requestedDateTime.isAfter(shiftEnd)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Thời gian yêu cầu (${_selectedAdjustmentTime!.format(context)}) phải nằm trong khoảng ca làm việc (${_formatTime(shiftStart)} - ${_formatTime(shiftEnd)}).',
-            ),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      final validationError = _getAdjustmentTimeValidationError();
+      if (validationError != null) {
+        _showErrorDialog(validationError);
         return;
       }
+
+      final requestedDateTime = _calculateRequestedDateTime()!;
 
       StaffEmployeeRequestDetailModel? res;
       if (_selectedRequestType == 'LATE_ARRIVAL') {
@@ -219,6 +246,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   }
 
   void _showErrorDialog(String message) {
+    var displayMsg = message;
+    if (displayMsg.startsWith('Exception: ')) {
+      displayMsg = displayMsg.substring('Exception: '.length).trim();
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -230,7 +261,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
             Text('Không thể gửi yêu cầu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        content: Text(displayMsg, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
@@ -354,48 +385,159 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                       ? '3. Giờ dự kiến đến làm'
                       : '3. Giờ dự kiến về sớm',
                 ),
-                GestureDetector(
-                  onTap: _pickTime,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                if (_selectedShift != null) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _selectedAdjustmentTime != null
-                            ? AppColors.primary
-                            : AppColors.borderLight,
-                      ),
+                      color: const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
                     ),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.access_time_rounded,
-                          color: _selectedAdjustmentTime != null
-                              ? AppColors.primary
-                              : AppColors.textMuted,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          _selectedAdjustmentTime != null
-                              ? _selectedAdjustmentTime!.format(context)
-                              : 'Nhấn để chọn thời gian',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: _selectedAdjustmentTime != null
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: _selectedAdjustmentTime != null
-                                ? AppColors.textPrimary
-                                : AppColors.textMuted,
+                        const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ca: ${_selectedShift!.shiftName} (${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} - ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}, ${_formatDate(_selectedShift!.scheduledStartAt.toLocal())})',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E40AF),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                _selectedRequestType == 'LATE_ARRIVAL'
+                                    ? 'Thời gian đến phải lớn hơn ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} và nhỏ hơn ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.'
+                                    : 'Thời gian về phải lớn hơn ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} và nhỏ hơn ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.',
+                                style: const TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
+                              ),
+                            ],
                           ),
                         ),
-                        const Spacer(),
-                        const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
                       ],
                     ),
                   ),
+                ] else ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Vui lòng tích chọn một ca làm việc ở mục 2 phía trên trước.',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                Builder(
+                  builder: (context) {
+                    final timeError = _getAdjustmentTimeValidationError();
+                    final hasError = timeError != null && _selectedAdjustmentTime != null;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickTime,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: hasError ? const Color(0xFFFEF2F2) : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: hasError
+                                    ? AppColors.error
+                                    : (_selectedAdjustmentTime != null
+                                        ? AppColors.primary
+                                        : AppColors.borderLight),
+                                width: hasError ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  color: hasError
+                                      ? AppColors.error
+                                      : (_selectedAdjustmentTime != null
+                                          ? AppColors.primary
+                                          : AppColors.textMuted),
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _selectedAdjustmentTime != null
+                                      ? _selectedAdjustmentTime!.format(context)
+                                      : 'Nhấn để chọn thời gian',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: _selectedAdjustmentTime != null
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: hasError
+                                        ? AppColors.error
+                                        : (_selectedAdjustmentTime != null
+                                            ? AppColors.textPrimary
+                                            : AppColors.textMuted),
+                                  ),
+                                ),
+                                const Spacer(),
+                                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (hasError)
+                          Container(
+                            margin: const EdgeInsets.only(top: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFFFCA5A5)),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 2),
+                                  child: Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    timeError,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF991B1B),
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
               ],

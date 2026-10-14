@@ -184,7 +184,7 @@ class StaffRequestController extends ChangeNotifier {
     try {
       _selectedDetail = await _service.getRequestDetail(requestId);
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
     } finally {
       _isLoadingDetail = false;
       notifyListeners();
@@ -231,7 +231,7 @@ class StaffRequestController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
       _isCancelling = false;
       notifyListeners();
       return false;
@@ -248,7 +248,7 @@ class StaffRequestController extends ChangeNotifier {
     try {
       _eligibleShifts = await _service.getEligibleShifts(requestType);
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
     } finally {
       _isLoadingEligibleShifts = false;
       notifyListeners();
@@ -274,7 +274,7 @@ class StaffRequestController extends ChangeNotifier {
       await loadRequests(refresh: true);
       return result;
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
       _isSubmitting = false;
       notifyListeners();
       return null;
@@ -301,7 +301,7 @@ class StaffRequestController extends ChangeNotifier {
       await loadRequests(refresh: true);
       return result;
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
       _isSubmitting = false;
       notifyListeners();
       return null;
@@ -328,10 +328,18 @@ class StaffRequestController extends ChangeNotifier {
       await loadRequests(refresh: true);
       return result;
     } catch (e) {
-      _actionErrorMessage = e.toString();
+      _actionErrorMessage = _cleanErrorMessage(e);
       _isSubmitting = false;
       notifyListeners();
       return null;
     }
+  }
+
+  String _cleanErrorMessage(dynamic e) {
+    var msg = e.toString();
+    if (msg.startsWith('Exception: ')) {
+      msg = msg.substring('Exception: '.length);
+    }
+    return msg.trim();
   }
 }

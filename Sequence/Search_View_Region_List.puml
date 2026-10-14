@@ -1,0 +1,224 @@
+@startuml
+title Sequence Diagram - Search View Region List
+
+autonumber
+
+actor Admin
+boundary "Region List View" as UI
+control "RegionsController" as MVC
+control "RegionApiService" as Client
+control "AdminRegionController" as API
+control "RegionService" as BLL
+entity "RegionRepo" as DAL
+database "Database" as DB
+
+
+' =====================================================
+' ADMIN
+' =====================================================
+
+activate Admin
+
+
+' =====================================================
+' SEARCH REGION REQUEST
+' =====================================================
+
+Admin -> MVC : Search regions (keyword)
+activate MVC
+
+MVC -> Client : GetPagedAsync(search = keyword, page = 1, pageSize = 10)
+activate Client
+
+
+' =====================================================
+' INTERNAL PROCESSING - CLIENT
+' =====================================================
+
+Client -> Client ++ : Sanitize search keyword and\nencode URL parameter
+deactivate Client
+
+Client -> API : GET /api/admin/regions?search={keyword}&pageNumber=1&pageSize=10
+activate API
+
+API -> BLL : GetPagedAsync(query)
+activate BLL
+
+
+' =====================================================
+' INTERNAL PROCESSING - BLL
+' =====================================================
+
+BLL -> BLL ++ : Normalize pagination and\ntrim search term
+deactivate BLL
+
+BLL -> DAL : GetPagedAsync(search = keyword, isActive = null, pageNumber, pageSize)
+activate DAL
+
+
+' =====================================================
+' INTERNAL PROCESSING - DAL (QUERY FILTER)
+' =====================================================
+
+DAL -> DAL ++ : Build ILIKE search pattern\n(%keyword%) for RegionCode & RegionName
+deactivate DAL
+
+
+' =====================================================
+' DATABASE QUERIES
+' =====================================================
+
+DAL -> DB : Count matching regions\nWHERE RegionCode ILIKE pattern\nOR RegionName ILIKE pattern
+activate DB
+
+DB --> DAL : Matching regions count
+deactivate DB
+
+
+DAL -> DB : Query paged matching regions\nwith minimum wage and branch count\n(Skip, Take)
+activate DB
+
+DB --> DAL : List of matching RegionData
+deactivate DB
+
+
+' =====================================================
+' CHECK RETRIEVED DATA
+' =====================================================
+
+DAL -> DAL ++ : Check retrieved search results
+deactivate DAL
+
+
+' Tạo khoảng cách giữa các bước query và ALT
+||30||
+
+
+' =====================================================
+' RESULT
+' =====================================================
+
+alt Processing succeeds
+
+    ' -------------------------------------------------
+    ' 14 - RegionRepo kết thúc tại đây
+    ' -------------------------------------------------
+
+    DAL --> BLL : (items, totalCount)
+    deactivate DAL
+
+
+    ' -------------------------------------------------
+    ' 15 - BLL xử lý response
+    ' -------------------------------------------------
+
+    BLL -> BLL ++ : Map RegionData list to\nPagedResponse<RegionResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 16 - RegionService kết thúc tại đây
+    ' -------------------------------------------------
+
+    BLL --> API : PagedResponse<RegionResponse>
+    deactivate BLL
+
+
+    ' -------------------------------------------------
+    ' 17 - API trả về dữ liệu thành công
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 200 OK\nJSON PagedResponse
+
+
+    ' -------------------------------------------------
+    ' 18 - Client deserialize và map model
+    ' -------------------------------------------------
+
+    Client -> Client ++ : Deserialize and map to\nRegionListPagedViewModel
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 19 - Client trả về ViewModel cho MVC Controller
+    ' -------------------------------------------------
+
+    Client --> MVC : RegionListPagedViewModel
+
+
+    ' -------------------------------------------------
+    ' 20 - MVC xử lý và duy trì từ khóa tìm kiếm
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Retain search keyword and\nassign TempData messages
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 21 - Region List View bắt đầu activation
+    ' -------------------------------------------------
+
+    MVC --> UI : View("Index", viewModel)
+    activate UI
+
+
+    ' -------------------------------------------------
+    ' 22 - Hiển thị kết quả tìm kiếm lên màn hình Admin
+    ' -------------------------------------------------
+
+    UI --> Admin : Display search results\nmatching keyword and pagination
+
+
+else Backend processing fails
+
+    ' -------------------------------------------------
+    ' 23 - Ghi log lỗi tại API Controller
+    ' -------------------------------------------------
+
+    API -> API ++ : Log error
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 24 - AdminRegionController kết thúc tại đây
+    ' -------------------------------------------------
+
+    API --> Client : HTTP 500\nError message
+    deactivate API
+
+
+    ' -------------------------------------------------
+    ' 25 - RegionApiService kết thúc tại đây
+    ' -------------------------------------------------
+
+    Client --> MVC : Return ViewModel with ErrorMessage\n(or HttpRequestException)
+    deactivate Client
+
+
+    ' -------------------------------------------------
+    ' 26 - MVC xử lý lỗi
+    ' -------------------------------------------------
+
+    MVC -> MVC ++ : Log error and assign\nviewModel.ErrorMessage
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 27 - RegionsController kết thúc tại đây
+    ' -------------------------------------------------
+
+    MVC --> UI : View("Index", viewModel)
+    deactivate MVC
+
+
+    ' -------------------------------------------------
+    ' 28 - Region List View + Admin kết thúc tại đây
+    ' -------------------------------------------------
+
+    UI --> Admin : Display region search\nerror notification
+
+    deactivate UI
+    deactivate Admin
+
+end
+@enduml

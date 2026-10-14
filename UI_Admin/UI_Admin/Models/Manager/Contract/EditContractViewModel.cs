@@ -40,6 +40,9 @@ public class EditContractViewModel : IValidatableObject
 
     public string? ContractTerms { get; set; }
 
+    [BindNever, ValidateNever]
+    public IReadOnlyList<string> PositionOptions { get; set; } = [];
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (StartDate == default(DateOnly))

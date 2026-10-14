@@ -214,7 +214,8 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 EmployeePosition = contract.EmployeePosition,
-                ContractTerms = contract.ContractTerms
+                ContractTerms = contract.ContractTerms,
+                PositionOptions = await api.GetActivePositionOptionsAsync(cancellationToken)
             };
 
             return View(model);
@@ -505,6 +506,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             model.RegionName = existing.RegionName;
             model.CurrentHourlyRate = existing.HourlyRate;
             model.Status = existing.Status;
+            model.PositionOptions = await api.GetActivePositionOptionsAsync(ct);
         }
         catch
         {
@@ -538,6 +540,16 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         { ModelState.AddModelError(string.Empty, "Staff list loading timed out. Please try again."); }
         catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Unable to parse staff list data. Please try again."); }
+
+        try
+        {
+            model.PositionOptions = await api.GetActivePositionOptionsAsync(ct);
+        }
+        catch
+        {
+            model.PositionOptions = [];
+        }
+
         return View("Create", model);
     }
 
