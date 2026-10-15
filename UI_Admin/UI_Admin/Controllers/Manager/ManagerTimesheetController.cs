@@ -75,9 +75,15 @@ public sealed class ManagerTimesheetController : Controller
         }
 
         if (TempData["SuccessMessage"] is string success)
+        {
             viewModel.SuccessMessage = success;
+            TempData.Remove("SuccessMessage");
+        }
         if (TempData["ErrorMessage"] is string error)
+        {
             viewModel.ErrorMessage = error;
+            TempData.Remove("ErrorMessage");
+        }
 
         return View(viewModel);
     }
@@ -100,10 +106,17 @@ public sealed class ManagerTimesheetController : Controller
                 return RedirectToAction(nameof(Index));
             }
 
-            if (TempData["SuccessMessage"] is string success)
-                detail.SuccessMessage = success;
             if (TempData["ErrorMessage"] is string error)
+            {
                 detail.ErrorMessage = error;
+                TempData.Remove("ErrorMessage");
+            }
+
+            if (TempData["SuccessMessage"] is string success)
+            {
+                detail.SuccessMessage = success;
+                TempData.Remove("SuccessMessage");
+            }
 
             return View(detail);
         }
@@ -112,6 +125,139 @@ public sealed class ManagerTimesheetController : Controller
             _logger.LogError(ex, "Failed to load manager weekly timesheet details for week {ScheduleWeekId}", id);
             TempData["ErrorMessage"] = "Unable to load timesheet details. Please try again.";
             return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Generate(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _timesheetApiService.GenerateWeeklyTimesheetAsync(id, cancellationToken);
+            TempData["SuccessMessage"] = "Weekly timesheet generated successfully. Staff members have been notified.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate timesheet for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to generate timesheet: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Lock(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _timesheetApiService.LockWeeklyTimesheetAsync(id, cancellationToken);
+            TempData["SuccessMessage"] = "Weekly timesheet locked successfully. Attendance hours finalized for payroll calculation.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to lock timesheet for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to lock timesheet: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> StaffDetail(
+        int scheduleWeekId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (scheduleWeekId <= 0 || userId == Guid.Empty)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week or staff member specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var weekDetail = await _timesheetApiService.GetWeeklyTimesheetDetailAsync(scheduleWeekId, cancellationToken);
+            if (weekDetail == null)
+            {
+                TempData["ErrorMessage"] = $"Weekly timesheet details not found for week ID {scheduleWeekId}.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var staffTimesheet = weekDetail.StaffTimesheets.Find(s => s.UserId == userId);
+            if (staffTimesheet == null)
+            {
+                TempData["ErrorMessage"] = "Staff member not found in this weekly timesheet.";
+                return RedirectToAction(nameof(Details), new { id = scheduleWeekId });
+            }
+
+            var viewModel = new ManagerStaffTimesheetDetailViewModel
+            {
+                ScheduleWeekId = weekDetail.ScheduleWeekId,
+                Period = weekDetail.Period,
+                WeekStartDate = weekDetail.WeekStartDate,
+                WeekEndDate = weekDetail.WeekEndDate,
+                BranchId = weekDetail.BranchId,
+                BranchName = weekDetail.BranchName,
+                WeekStatus = weekDetail.Status,
+                Staff = staffTimesheet
+            };
+
+            return View(viewModel);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load staff timesheet details for week {ScheduleWeekId}, user {UserId}", scheduleWeekId, userId);
+            TempData["ErrorMessage"] = "Unable to load staff timesheet details.";
+            return RedirectToAction(nameof(Details), new { id = scheduleWeekId });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportExcel(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var (fileBytes, fileName, contentType) = await _timesheetApiService.DownloadWeeklyTimesheetExcelAsync(id, cancellationToken);
+            return File(fileBytes, contentType, fileName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to export timesheet Excel for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to export timesheet: {ex.Message}";
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 }

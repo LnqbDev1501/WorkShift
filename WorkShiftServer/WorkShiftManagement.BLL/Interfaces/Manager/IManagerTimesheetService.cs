@@ -17,4 +17,42 @@ public interface IManagerTimesheetService
         Guid managerId,
         int scheduleWeekId,
         CancellationToken cancellationToken = default);
+
+    Task<ManagerWeeklyTimesheetDetailResponse> GenerateWeeklyTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
+
+    Task<ManagerWeeklyTimesheetDetailResponse> LockWeeklyTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
+
+    Task<ManagerTimesheetAdjustmentPagedResponse> GetTimesheetAdjustmentsAsync(
+        Guid managerId,
+        ManagerTimesheetAdjustmentListQuery query,
+        CancellationToken cancellationToken = default);
+
+    Task<ManagerTimesheetAdjustmentDto?> GetAdjustmentDetailAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default);
+
+    Task<ManagerTimesheetAdjustmentDto> ApproveAdjustmentRequestAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default);
+
+    Task<ManagerTimesheetAdjustmentDto> RejectAdjustmentRequestAsync(
+        Guid managerId,
+        int adjustmentRequestId,
+        RejectAdjustmentRequestDto dto,
+        CancellationToken cancellationToken = default);
+
+    Task AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default);
+
+    Task<(byte[] FileBytes, string FileName)> ExportWeeklyTimesheetExcelAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        CancellationToken cancellationToken = default);
 }

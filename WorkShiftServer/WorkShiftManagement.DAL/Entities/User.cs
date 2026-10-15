@@ -165,6 +165,10 @@ public partial class User
 
     public virtual StaffSalaryHistory? StaffSalaryHistoryUser { get; set; }
 
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestReviewedByNavigations { get; set; } = new List<TimesheetAdjustmentRequest>();
+
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestUsers { get; set; } = new List<TimesheetAdjustmentRequest>();
+
     public virtual ICollection<Timesheet> TimesheetLockedByNavigations { get; set; } = new List<Timesheet>();
 
     public virtual ICollection<Timesheet> TimesheetReviewedByNavigations { get; set; } = new List<Timesheet>();
