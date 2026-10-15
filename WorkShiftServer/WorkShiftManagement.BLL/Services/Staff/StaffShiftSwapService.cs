@@ -21,8 +21,8 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         var source = await repo.FindAssignmentAsync(sourceAssignmentId, ct)
             ?? throw new KeyNotFoundException("Your shift assignment was not found.");
         if (source.UserId != actor) throw new UnauthorizedAccessException("You can only offer your own assignment.");
-        if (!staff.EmployeeTypeId.HasValue || source.Status != "ASSIGNED" || source.Shift.ScheduledStartAt <= DateTime.UtcNow)
-            throw new InvalidOperationException("Choose a future assigned shift.");
+        if (!staff.EmployeeTypeId.HasValue || source.Status != "ASSIGNED" || source.Shift.ScheduledStartAt < DateTime.UtcNow.AddHours(24))
+            throw new InvalidOperationException("Choose an assigned shift that starts at least 24 hours from now.");
         ValidateStaff(source.User, staff.BranchId);
         ValidateSwappableAssignment(source, staff.BranchId!.Value);
         if (await repo.HasPendingAsync(sourceAssignmentId, sourceAssignmentId, ct))
@@ -192,9 +192,9 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         var shift = assignment.Shift;
         if (assignment.Status != "ASSIGNED" || shift.Status != "SCHEDULED" ||
             shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED") ||
-            shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt <= DateTime.UtcNow ||
+            shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt < DateTime.UtcNow.AddHours(24) ||
             shift.ScheduledEndAt <= shift.ScheduledStartAt)
-            throw new InvalidOperationException("Only future assigned shifts in this branch can be swapped.");
+            throw new InvalidOperationException("Both shifts must be scheduled and assigned, in this branch, and start at least 24 hours from now.");
         if (assignment.Attendance != null || assignment.PayslipWorkDetails.Any() ||
             assignment.LeaveRequestAssignments.Any() || assignment.TimeAdjustmentRequestDetails.Any())
             throw new InvalidOperationException("Assignments with attendance, payroll, or employee request history cannot be swapped.");

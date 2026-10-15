@@ -19,7 +19,8 @@ public interface IStaffEmployeeRequestRepo
         DateTime? toUtc,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool sortByUpdatedAt = false);
 
     Task<EmployeeRequest?> GetByIdAsync(
         int requestId,

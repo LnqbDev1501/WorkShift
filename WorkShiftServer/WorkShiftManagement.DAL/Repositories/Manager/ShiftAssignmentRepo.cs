@@ -6,6 +6,7 @@ using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Version.Rules;
+using WorkShiftManagement.DAL.Notifications;
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignmentRepo
@@ -44,7 +45,13 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
         // The conditional update locks matching request rows and never overwrites a
         // terminal outcome. A conflicting concurrent transition causes the outer
         // serializable transaction to roll back instead of partially cancelling.
-        await context.ShiftSwapRequests
+        var pending = await context.ShiftSwapRequests
+            .Include(r => r.SourceAssignment).ThenInclude(a => a.Shift)
+            .Include(r => r.TargetAssignment).ThenInclude(a => a.Shift)
+            .Where(r => r.Status == "PENDING" &&
+                (r.SourceAssignmentId == assignmentId || r.TargetAssignmentId == assignmentId))
+            .AsNoTracking().ToListAsync(ct);
+        var affected = await context.ShiftSwapRequests
             .Where(request => request.Status == "PENDING" &&
                 (request.SourceAssignmentId == assignmentId || request.TargetAssignmentId == assignmentId))
             .ExecuteUpdateAsync(setters => setters
@@ -53,6 +60,14 @@ public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignment
                 .SetProperty(request => request.RespondedAt, cancelledAt)
                 .SetProperty(request => request.ResponseNote, reason)
                 .SetProperty(request => request.UpdatedAt, cancelledAt), ct);
+        if (affected != pending.Count)
+            throw new InvalidOperationException("Pending swaps changed concurrently. Reload and try again.");
+        foreach (var swap in pending)
+        {
+            swap.Status = "CANCELLED";
+            swap.ResponseNote = $"Assignment cancelled by manager. Reason: {reason}";
+            context.Notifications.Add(ScheduleNotificationFactory.SwapChanged(swap, actor, cancelledAt));
+        }
     }
 
     public Task<bool> HasApprovedLeaveAsync(Guid staffId, DateTime start, DateTime end, CancellationToken ct) =>

@@ -185,55 +185,25 @@ class _QuickActionsState extends State<QuickActions> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title + See more / Collapse button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (allActions.length > 6)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: Icon(
-                  _isExpanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-                label: Text(
-                  _isExpanded ? 'Collapse' : 'See more',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-          ],
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 12),
 
+        const Text(
+          'Everything you need for your workday',
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 16),
         // Display actions in 2-column grid rows
         for (int i = 0; i < displayedActions.length; i += 2) ...[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: QuickActionItem(
@@ -263,50 +233,35 @@ class _QuickActionsState extends State<QuickActions> {
           ),
           if (i + 2 < displayedActions.length) const SizedBox(height: 12),
         ],
-
-        // Bottom toggle button
-        if (allActions.length > 6) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _isExpanded
-                          ? 'Collapse list'
-                          : 'See ${allActions.length - 6} more actions',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isExpanded
-                          ? Icons.keyboard_arrow_up_rounded
-                          : Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: Icon(
+              _isExpanded
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+            label: Text(
+              _isExpanded ? 'Collapse' : 'See more',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
               ),
             ),
           ),
-        ],
+        ),
       ],
     );
   }

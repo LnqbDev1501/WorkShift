@@ -52,8 +52,12 @@ class TodayShiftCard extends StatelessWidget {
       // Trường hợp hôm nay không có ca làm việc hoặc các ca đã kết thúc / hết thời gian checkout
       return Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.surface, AppColors.primaryLight],
+          ),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.borderLight),
           boxShadow: [
             BoxShadow(
@@ -79,7 +83,9 @@ class TodayShiftCard extends StatelessWidget {
                 isFaceNotRegistered
                     ? Icons.face_retouching_off_rounded
                     : Icons.event_available_rounded,
-                color: isFaceNotRegistered ? Colors.deepOrange : AppColors.primary,
+                color: isFaceNotRegistered
+                    ? Colors.deepOrange
+                    : AppColors.primary,
                 size: 30,
               ),
             ),
@@ -139,23 +145,30 @@ class TodayShiftCard extends StatelessWidget {
 
     final isCompleted = shift!.hasCheckedOut;
     final isInProgress = shift!.hasCheckedIn && !shift!.hasCheckedOut;
-    final hasReason = !isCompleted && !isInProgress && !shift!.canCheckInNow &&
+    final hasReason =
+        !isCompleted &&
+        !isInProgress &&
+        !shift!.canCheckInNow &&
         shift!.canNotCheckInReason != null &&
         shift!.canNotCheckInReason!.trim().isNotEmpty;
 
     // Shift scheduled for today
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.surface, AppColors.primaryLight],
+        ),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isInProgress
               ? const Color(0xFFF59E0B).withValues(alpha: 0.3)
               : (isCompleted
-                  ? const Color(0xFF10B981).withValues(alpha: 0.3)
-                  : (shift!.canCheckInNow
-                      ? AppColors.primary.withValues(alpha: 0.25)
-                      : AppColors.borderLight)),
+                    ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                    : (shift!.canCheckInNow
+                          ? AppColors.primary.withValues(alpha: 0.25)
+                          : AppColors.borderLight)),
           width: (shift!.canCheckInNow || isInProgress) ? 1.5 : 1,
         ),
         boxShadow: [
@@ -163,20 +176,22 @@ class TodayShiftCard extends StatelessWidget {
             color: isInProgress
                 ? const Color(0xFFF59E0B).withValues(alpha: 0.05)
                 : (shift!.canCheckInNow
-                    ? AppColors.primary.withValues(alpha: 0.06)
-                    : Colors.black.withValues(alpha: 0.03)),
+                      ? AppColors.primary.withValues(alpha: 0.06)
+                      : Colors.black.withValues(alpha: 0.03)),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Shift title & compact status badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -188,8 +203,10 @@ class TodayShiftCard extends StatelessWidget {
                       color: isCompleted
                           ? const Color(0xFF10B981)
                           : (isInProgress
-                              ? const Color(0xFFF59E0B)
-                              : (shift!.canCheckInNow ? AppColors.success : AppColors.warning)),
+                                ? const Color(0xFFF59E0B)
+                                : (shift!.canCheckInNow
+                                      ? AppColors.success
+                                      : AppColors.warning)),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -208,27 +225,33 @@ class TodayShiftCard extends StatelessWidget {
                 text: isCompleted
                     ? 'Shift Finished'
                     : (isInProgress
-                        ? 'Working Now'
-                        : (shift!.canCheckInNow
-                            ? 'Ready to check-in'
-                            : (shift!.hasApprovedLeave ? 'On Leave' : 'Off Hours'))),
+                          ? 'Working Now'
+                          : (shift!.canCheckInNow
+                                ? 'Ready to check-in'
+                                : (shift!.hasApprovedLeave
+                                      ? 'On Leave'
+                                      : 'Off Hours'))),
                 backgroundColor: isCompleted
                     ? const Color(0xFFDCFCE7)
                     : (isInProgress
-                        ? const Color(0xFFFEF3C7)
-                        : (shift!.canCheckInNow ? AppColors.successBg : AppColors.warningBg)),
+                          ? const Color(0xFFFEF3C7)
+                          : (shift!.canCheckInNow
+                                ? AppColors.successBg
+                                : AppColors.warningBg)),
                 textColor: isCompleted
                     ? const Color(0xFF15803D)
                     : (isInProgress
-                        ? const Color(0xFFB45309)
-                        : (shift!.canCheckInNow ? AppColors.success : AppColors.warning)),
+                          ? const Color(0xFFB45309)
+                          : (shift!.canCheckInNow
+                                ? AppColors.success
+                                : AppColors.warning)),
                 icon: isCompleted
                     ? Icons.check_circle_rounded
                     : (isInProgress
-                        ? Icons.timer_outlined
-                        : (shift!.canCheckInNow
-                            ? Icons.check_circle_outline_rounded
-                            : Icons.schedule_rounded)),
+                          ? Icons.timer_outlined
+                          : (shift!.canCheckInNow
+                                ? Icons.check_circle_outline_rounded
+                                : Icons.schedule_rounded)),
               ),
             ],
           ),
@@ -279,7 +302,11 @@ class TodayShiftCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.verified_rounded, color: Color(0xFF16A34A), size: 18),
+                  const Icon(
+                    Icons.verified_rounded,
+                    color: Color(0xFF16A34A),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -305,7 +332,11 @@ class TodayShiftCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.timer_rounded, color: Color(0xFFD97706), size: 18),
+                  const Icon(
+                    Icons.timer_rounded,
+                    color: Color(0xFFD97706),
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -364,13 +395,18 @@ class TodayShiftCard extends StatelessWidget {
                 size: 24,
               ),
               const SizedBox(width: 8),
-              Text(
-                shift!.formattedTimeRange,
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                  letterSpacing: -0.5,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    shift!.formattedTimeRange,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -434,8 +470,12 @@ class TodayShiftCard extends StatelessWidget {
               Expanded(
                 child: AppButton(
                   text: shift!.hasCheckedIn ? 'Checked In' : 'Check In',
-                  icon: shift!.hasCheckedIn ? Icons.check_circle_rounded : Icons.how_to_reg_rounded,
-                  type: shift!.hasCheckedIn ? AppButtonType.secondary : AppButtonType.primary,
+                  icon: shift!.hasCheckedIn
+                      ? Icons.check_circle_rounded
+                      : Icons.how_to_reg_rounded,
+                  type: shift!.hasCheckedIn
+                      ? AppButtonType.secondary
+                      : AppButtonType.primary,
                   onPressed: onCheckInTap,
                 ),
               ),
@@ -443,8 +483,12 @@ class TodayShiftCard extends StatelessWidget {
               Expanded(
                 child: AppButton(
                   text: shift!.hasCheckedOut ? 'Checked Out' : 'Check Out',
-                  icon: shift!.hasCheckedOut ? Icons.check_circle_rounded : Icons.logout_rounded,
-                  type: isInProgress ? AppButtonType.primary : AppButtonType.secondary,
+                  icon: shift!.hasCheckedOut
+                      ? Icons.check_circle_rounded
+                      : Icons.logout_rounded,
+                  type: isInProgress
+                      ? AppButtonType.primary
+                      : AppButtonType.secondary,
                   onPressed: onCheckOutTap,
                 ),
               ),
@@ -458,7 +502,11 @@ class TodayShiftCard extends StatelessWidget {
             Center(
               child: TextButton.icon(
                 onPressed: onViewAttendanceHistoryTap,
-                icon: const Icon(Icons.history_rounded, size: 16, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.history_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary,
+                ),
                 label: const Text(
                   'Attendance History',
                   style: TextStyle(
@@ -475,4 +523,3 @@ class TodayShiftCard extends StatelessWidget {
     );
   }
 }
-

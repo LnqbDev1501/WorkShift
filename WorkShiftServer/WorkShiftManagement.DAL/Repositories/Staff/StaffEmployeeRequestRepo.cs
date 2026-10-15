@@ -39,7 +39,8 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         DateTime? toUtc,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool sortByUpdatedAt = false)
     {
         var query = _context.EmployeeRequests.AsNoTracking()
             .AsSplitQuery()
@@ -84,7 +85,7 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderByDescending(r => r.CreatedAt)
+            .OrderByDescending(r => sortByUpdatedAt ? r.UpdatedAt : r.CreatedAt)
             .ThenByDescending(r => r.RequestId)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)

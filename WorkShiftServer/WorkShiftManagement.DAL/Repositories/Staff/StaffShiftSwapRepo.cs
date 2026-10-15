@@ -5,6 +5,7 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Notifications;
 
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
@@ -15,10 +16,11 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
 
     public Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId, CancellationToken ct)
     {
-        var now = DateTime.UtcNow;
+        var earliestStart = DateTime.UtcNow.AddHours(24);
         return AssignmentDetails().AsNoTracking()
             .Where(a => a.UserId != actor && a.User.BranchId == branchId && a.User.EmployeeTypeId == employeeTypeId &&
-                a.Status == "ASSIGNED" && a.Shift.Status == "SCHEDULED" && a.Shift.ScheduledStartAt > now &&
+                a.Status == "ASSIGNED" &&
+                a.Shift.Status == "SCHEDULED" && a.Shift.ScheduledStartAt >= earliestStart &&
                 a.Shift.ScheduleWeek.BranchId == branchId &&
                 (a.Shift.ScheduleWeek.Status == "OPEN_REGISTRATION" || a.Shift.ScheduleWeek.Status == "REGISTRATION_CLOSED") &&
                 !context.ShiftSwapRequests.Any(r => r.Status == "PENDING" &&
@@ -124,6 +126,26 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
                 Audit(result.RequesterId, "SUBMIT_SHIFT_SWAP", result, null);
                 await context.SaveChangesAsync(ct);
             }
+            // IDs are generated above; keep the inbox entries in the same transaction.
+            context.Notifications.Add(ScheduleNotificationFactory.SwapChanged(result,
+                isNew ? result.RequesterId : result.RespondedBy!.Value, result.UpdatedAt));
+            if (result.Status == "ACCEPTED")
+            {
+                // Swaps currently require both staff to be in the same branch.
+                // Resolve current staff branches explicitly rather than broadcasting to all managers.
+                var branchIds = await context.Users.AsNoTracking()
+                    .Where(u => u.UserId == result.RequesterId || u.UserId == result.TargetUserId)
+                    .Where(u => u.BranchId.HasValue).Select(u => u.BranchId!.Value).Distinct().ToListAsync(ct);
+                var managers = await context.Users.AsNoTracking()
+                    .Where(u => u.BranchId.HasValue && branchIds.Contains(u.BranchId.Value) &&
+                        u.Status == "ACTIVE" && u.DeletedAt == null &&
+                        u.Role.RoleName == "MANAGER" && u.Role.Status == "ACTIVE")
+                    .Select(u => u.UserId).ToListAsync(ct);
+                if (managers.Count > 0)
+                    context.Notifications.Add(ScheduleNotificationFactory.SwapCompletedForManagers(result,
+                        result.RespondedBy!.Value, managers, result.UpdatedAt));
+            }
+            await context.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
             return result;
         }

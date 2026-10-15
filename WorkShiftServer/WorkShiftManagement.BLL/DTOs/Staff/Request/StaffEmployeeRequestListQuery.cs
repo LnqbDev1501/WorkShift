@@ -14,6 +14,8 @@ public class StaffEmployeeRequestListQuery
 
     public DateOnly? ToDate { get; set; }
 
+    public bool SortByUpdatedAt { get; set; }
+
     public int PageNumber { get; set; } = 1;
 
     public int PageSize { get; set; } = 10;

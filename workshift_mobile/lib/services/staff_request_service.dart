@@ -15,17 +15,21 @@ class StaffRequestService {
     DateTime? toDate,
     int pageNumber = 1,
     int pageSize = 10,
+    bool sortByUpdatedAt = false,
   }) async {
     try {
       final queryParams = <String, dynamic>{
         'pageNumber': pageNumber,
         'pageSize': pageSize,
+        if (sortByUpdatedAt) 'sortByUpdatedAt': true,
       };
 
       if (reason != null && reason.trim().isNotEmpty) {
         queryParams['reason'] = reason.trim();
       }
-      if (requestType != null && requestType.trim().isNotEmpty && requestType != 'ALL') {
+      if (requestType != null &&
+          requestType.trim().isNotEmpty &&
+          requestType != 'ALL') {
         queryParams['requestType'] = requestType.trim();
       }
       if (status != null && status.trim().isNotEmpty && status != 'ALL') {
@@ -46,7 +50,9 @@ class StaffRequestService {
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return PagedStaffRequestModel.fromJson(response.data as Map<String, dynamic>);
+        return PagedStaffRequestModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
 
       return PagedStaffRequestModel(
@@ -64,11 +70,15 @@ class StaffRequestService {
   }
 
   /// Lấy chi tiết yêu cầu theo ID
-  Future<StaffEmployeeRequestDetailModel> getRequestDetail(int requestId) async {
+  Future<StaffEmployeeRequestDetailModel> getRequestDetail(
+    int requestId,
+  ) async {
     try {
       final response = await _apiClient.get('/api/staff/requests/$requestId');
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffEmployeeRequestDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không tìm thấy dữ liệu chi tiết yêu cầu.';
     } on DioException catch (e) {
@@ -79,7 +89,9 @@ class StaffRequestService {
   }
 
   /// Lấy danh sách ca làm việc đủ điều kiện tạo đơn (LEAVE, LATE_ARRIVAL, EARLY_LEAVE)
-  Future<List<StaffEligibleShiftModel>> getEligibleShifts(String requestType) async {
+  Future<List<StaffEligibleShiftModel>> getEligibleShifts(
+    String requestType,
+  ) async {
     try {
       final response = await _apiClient.get(
         '/api/staff/requests/eligible-shifts',
@@ -88,12 +100,18 @@ class StaffRequestService {
 
       if (response.data != null && response.data is List) {
         return (response.data as List)
-            .map((e) => StaffEligibleShiftModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  StaffEligibleShiftModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList();
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể lấy danh sách ca làm việc đủ điều kiện');
+      throw _extractErrorMessage(
+        e,
+        'Không thể lấy danh sách ca làm việc đủ điều kiện',
+      );
     } catch (e) {
       throw e.toString();
     }
@@ -107,14 +125,13 @@ class StaffRequestService {
     try {
       final response = await _apiClient.post(
         '/api/staff/requests/leave',
-        data: {
-          'assignmentIds': assignmentIds,
-          'reason': reason.trim(),
-        },
+        data: {'assignmentIds': assignmentIds, 'reason': reason.trim()},
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffEmployeeRequestDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
     } on DioException catch (e) {
@@ -141,7 +158,9 @@ class StaffRequestService {
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffEmployeeRequestDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
     } on DioException catch (e) {
@@ -168,7 +187,9 @@ class StaffRequestService {
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffEmployeeRequestDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
     } on DioException catch (e) {
@@ -186,7 +207,9 @@ class StaffRequestService {
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffEmployeeRequestDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Hủy đơn thất bại. Vui lòng thử lại sau.';
     } on DioException catch (e) {
@@ -210,7 +233,10 @@ class StaffRequestService {
       }
       if (data['errors'] != null && data['errors'] is Map) {
         final errors = data['errors'] as Map;
-        final firstList = errors.values.firstWhere((v) => v is List && v.isNotEmpty, orElse: () => null);
+        final firstList = errors.values.firstWhere(
+          (v) => v is List && v.isNotEmpty,
+          orElse: () => null,
+        );
         if (firstList != null && firstList is List && firstList.isNotEmpty) {
           return _localizeErrorMessage(firstList.first.toString());
         }
@@ -255,14 +281,18 @@ class StaffRequestService {
       return 'Thời gian $action ($reqVn) không hợp lệ! Phải nằm trong khung giờ của ca làm việc: từ $startVn đến $endVn.';
     }
 
-    final advanceRegex = RegExp(r'must be submitted at least (\d+) day\(s\) in advance', caseSensitive: false);
+    final advanceRegex = RegExp(
+      r'must be submitted at least (\d+) day\(s\) in advance',
+      caseSensitive: false,
+    );
     final advanceMatch = advanceRegex.firstMatch(msg);
     if (advanceMatch != null) {
       final days = advanceMatch.group(1);
       return 'Đơn yêu cầu phải được gửi trước ít nhất $days ngày theo quy định chi nhánh.';
     }
 
-    if (msg.toLowerCase().contains('monthly limit') || msg.toLowerCase().contains('limit of')) {
+    if (msg.toLowerCase().contains('monthly limit') ||
+        msg.toLowerCase().contains('limit of')) {
       return 'Bạn đã đạt giới hạn tối đa số đơn được gửi cho loại yêu cầu này trong tháng.';
     }
 

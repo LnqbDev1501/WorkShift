@@ -45,6 +45,7 @@ class StaffEmployeeRequestListItemModel {
   final String? reason;
   final String status;
   final DateTime createdAt;
+  final DateTime? updatedAt;
   final String? reviewedBy;
   final String? reviewerFullName;
   final DateTime? reviewedAt;
@@ -61,6 +62,7 @@ class StaffEmployeeRequestListItemModel {
     this.reason,
     required this.status,
     required this.createdAt,
+    this.updatedAt,
     this.reviewedBy,
     this.reviewerFullName,
     this.reviewedAt,
@@ -68,7 +70,9 @@ class StaffEmployeeRequestListItemModel {
     this.shiftSummary,
   });
 
-  factory StaffEmployeeRequestListItemModel.fromJson(Map<String, dynamic> json) {
+  factory StaffEmployeeRequestListItemModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return StaffEmployeeRequestListItemModel(
       requestId: json['requestId'] as int? ?? 0,
       userId: json['userId']?.toString() ?? '',
@@ -81,6 +85,7 @@ class StaffEmployeeRequestListItemModel {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
       reviewedBy: json['reviewedBy']?.toString(),
       reviewerFullName: json['reviewerFullName'] as String?,
       reviewedAt: json['reviewedAt'] != null
@@ -88,7 +93,9 @@ class StaffEmployeeRequestListItemModel {
           : null,
       reviewNote: json['reviewNote'] as String?,
       shiftSummary: json['shiftSummary'] != null
-          ? StaffRequestShiftSummaryModel.fromJson(json['shiftSummary'] as Map<String, dynamic>)
+          ? StaffRequestShiftSummaryModel.fromJson(
+              json['shiftSummary'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -165,7 +172,9 @@ class StaffAppliedRequestLimitRuleModel {
     required this.maxRequestsPerMonth,
   });
 
-  factory StaffAppliedRequestLimitRuleModel.fromJson(Map<String, dynamic> json) {
+  factory StaffAppliedRequestLimitRuleModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return StaffAppliedRequestLimitRuleModel(
       ruleId: json['ruleId'] as int? ?? 0,
       requestType: json['requestType']?.toString() ?? '',
@@ -207,10 +216,12 @@ class StaffLeaveRequestAssignmentModel {
       shiftName: json['shiftName']?.toString() ?? '',
       shiftTemplateName: json['shiftTemplateName'] as String?,
       scheduledStartAt: json['scheduledStartAt'] != null
-          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       scheduledEndAt: json['scheduledEndAt'] != null
-          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       branchName: json['branchName'] as String?,
     );
@@ -245,17 +256,20 @@ class StaffTimeAdjustmentDetailModel {
     return StaffTimeAdjustmentDetailModel(
       assignmentId: json['assignmentId'] as int? ?? 0,
       requestedTime: json['requestedTime'] != null
-          ? DateTime.tryParse(json['requestedTime'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['requestedTime'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       assignmentStatus: json['assignmentStatus']?.toString() ?? '',
       shiftId: json['shiftId'] as int? ?? 0,
       shiftName: json['shiftName']?.toString() ?? '',
       shiftTemplateName: json['shiftTemplateName'] as String?,
       scheduledStartAt: json['scheduledStartAt'] != null
-          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       scheduledEndAt: json['scheduledEndAt'] != null
-          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       branchName: json['branchName'] as String?,
     );
@@ -325,15 +339,23 @@ class StaffEmployeeRequestDetailModel {
           : null,
       reviewNote: json['reviewNote'] as String?,
       appliedRule: json['appliedRule'] != null
-          ? StaffAppliedRequestLimitRuleModel.fromJson(json['appliedRule'] as Map<String, dynamic>)
+          ? StaffAppliedRequestLimitRuleModel.fromJson(
+              json['appliedRule'] as Map<String, dynamic>,
+            )
           : null,
       leaveAssignments: json['leaveAssignments'] != null
           ? (json['leaveAssignments'] as List)
-              .map((e) => StaffLeaveRequestAssignmentModel.fromJson(e as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (e) => StaffLeaveRequestAssignmentModel.fromJson(
+                    e as Map<String, dynamic>,
+                  ),
+                )
+                .toList()
           : null,
       timeAdjustmentDetail: json['timeAdjustmentDetail'] != null
-          ? StaffTimeAdjustmentDetailModel.fromJson(json['timeAdjustmentDetail'] as Map<String, dynamic>)
+          ? StaffTimeAdjustmentDetailModel.fromJson(
+              json['timeAdjustmentDetail'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -403,10 +425,12 @@ class StaffEligibleShiftModel {
       branchId: json['branchId'] as int? ?? 0,
       branchName: json['branchName']?.toString() ?? '',
       scheduledStartAt: json['scheduledStartAt'] != null
-          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledStartAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       scheduledEndAt: json['scheduledEndAt'] != null
-          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['scheduledEndAt'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
     );
   }
@@ -432,11 +456,16 @@ class PagedStaffRequestModel {
     final list = json['items'] as List? ?? [];
     return PagedStaffRequestModel(
       items: list
-          .map((e) => StaffEmployeeRequestListItemModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => StaffEmployeeRequestListItemModel.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList(),
       pageNumber: json['pageNumber'] as int? ?? (json['page'] as int? ?? 1),
       pageSize: json['pageSize'] as int? ?? 10,
-      totalItems: json['totalItems'] as int? ?? (json['totalCount'] as int? ?? 0),
+      totalItems:
+          json['totalItems'] as int? ?? (json['totalCount'] as int? ?? 0),
       totalPages: json['totalPages'] as int? ?? 0,
     );
   }

@@ -101,7 +101,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             toUtc,
             query.PageNumber,
             query.PageSize,
-            cancellationToken);
+            cancellationToken,
+            query.SortByUpdatedAt);
 
         var responseItems = items.Select(r =>
         {
@@ -150,6 +151,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                 Reason = r.Reason,
                 Status = r.Status,
                 CreatedAt = ToUtc(r.CreatedAt),
+                UpdatedAt = ToUtc(r.UpdatedAt),
                 ReviewedBy = r.ReviewedBy,
                 ReviewerFullName = r.ReviewedByNavigation?.FullName,
                 ReviewedAt = ToUtc(r.ReviewedAt),

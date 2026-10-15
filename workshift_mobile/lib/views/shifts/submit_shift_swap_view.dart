@@ -146,7 +146,7 @@ class _SubmitShiftSwapViewState extends State<SubmitShiftSwapView> {
               padding: const EdgeInsets.all(16),
               children: [
                 const Text(
-                  'Choose the shift you want to give, then the shift you want to receive.',
+                  'Choose the shift you want to give, then the shift you want to receive. Both shifts must start at least 24 hours from now.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
@@ -168,9 +168,9 @@ class _SubmitShiftSwapViewState extends State<SubmitShiftSwapView> {
                 else if (_controller.sources.isEmpty)
                   AppStatePanel(
                     icon: Icons.event_busy_outlined,
-                    title: 'No future assigned shifts',
+                    title: 'No eligible shifts',
                     message:
-                        'You need a future confirmed shift to request a swap.',
+                        'Assigned shifts must start at least 24 hours from now and meet the swap requirements.',
                     actionLabel: 'Refresh',
                     onAction: _controller.loadSources,
                   )

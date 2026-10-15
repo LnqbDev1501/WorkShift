@@ -100,7 +100,12 @@ public sealed class ManagerShiftController(ManagerShiftApiService shifts, Manage
         try
         {
             var saved = await shifts.SaveAsync(model, ct);
-            TempData["ShiftSuccess"] = model.Id.HasValue ? "Shift updated successfully." : "Shift created successfully.";
+            if (!model.Id.HasValue)
+            {
+                TempData["ScheduleSuccess"] = "Shift created successfully.";
+                return RedirectToAction("Details", "ManagerSchedule", new { id = saved.ScheduleWeekId });
+            }
+            TempData["ShiftSuccess"] = "Shift updated successfully.";
             return RedirectToAction(nameof(Details), new { id = saved.ShiftId });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

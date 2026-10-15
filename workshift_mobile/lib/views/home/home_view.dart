@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../controllers/home_controller.dart';
+import '../../controllers/staff_request_controller.dart';
+import '../requests/staff_request_detail_view.dart';
+import '../../models/staff_request_model.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_view.dart';
@@ -49,7 +52,9 @@ class _HomeViewState extends State<HomeView> {
   void _onControllerUpdated() {
     if (mounted) {
       setState(() {});
-      if (!_controller.isLoading && _controller.isFaceNotRegistered && !_hasPromptedFaceRegistration) {
+      if (!_controller.isLoading &&
+          _controller.isFaceNotRegistered &&
+          !_hasPromptedFaceRegistration) {
         _hasPromptedFaceRegistration = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -92,12 +97,19 @@ class _HomeViewState extends State<HomeView> {
         content: Text(
           _controller.shiftErrorMessage ??
               'Your account has not registered a biometric face profile yet. You must complete face registration before performing shift attendance.',
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Later', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Later',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx, true),
@@ -106,7 +118,9 @@ class _HomeViewState extends State<HomeView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7C3AED),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
@@ -177,6 +191,23 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
+  Future<void> _openRequest(StaffEmployeeRequestListItemModel request) async {
+    final requestController = StaffRequestController();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => StaffRequestDetailView(
+            requestId: request.requestId,
+            controller: requestController,
+          ),
+        ),
+      );
+      if (mounted) await _controller.loadHomeData(silent: true);
+    } finally {
+      requestController.dispose();
+    }
+  }
+
   Widget _buildPlaceholderTab(String title, IconData icon) {
     return SafeArea(
       child: Center(
@@ -232,7 +263,10 @@ class _HomeViewState extends State<HomeView> {
                     )
                   : SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -248,33 +282,41 @@ class _HomeViewState extends State<HomeView> {
                           // 2. Thẻ Ca làm hôm nay (08:00 – 16:00, Chấm công vào)
                           TodayShiftCard(
                             shift: _controller.todayShift,
-                            isFaceNotRegistered: _controller.isFaceNotRegistered,
+                            isFaceNotRegistered:
+                                _controller.isFaceNotRegistered,
                             onRegisterFaceTap: () async {
-                              final success = await showFaceRegistrationModal(context: context);
+                              final success = await showFaceRegistrationModal(
+                                context: context,
+                              );
                               if (success == true && mounted) {
                                 await _controller.loadHomeData();
                               }
                             },
-                            onCheckInTap: () => AttendanceFlowHandler.handleCheckIn(
-                              context: context,
-                              homeController: _controller,
-                            ),
-                            onCheckOutTap: () => AttendanceFlowHandler.handleCheckOut(
-                              context: context,
-                              homeController: _controller,
-                            ),
+                            onCheckInTap: () =>
+                                AttendanceFlowHandler.handleCheckIn(
+                                  context: context,
+                                  homeController: _controller,
+                                ),
+                            onCheckOutTap: () =>
+                                AttendanceFlowHandler.handleCheckOut(
+                                  context: context,
+                                  homeController: _controller,
+                                ),
                             onViewAttendanceHistoryTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => AttendanceHistoryView(homeController: _controller),
+                                  builder: (_) => AttendanceHistoryView(
+                                    homeController: _controller,
+                                  ),
                                 ),
                               );
                             },
                           ),
 
                           // 2b. Cảnh báo ca làm việc trước chưa Checkout (nếu có)
-                          if (_controller.unCheckedOutPreviousShift != null) ...[
+                          if (_controller.unCheckedOutPreviousShift !=
+                              null) ...[
                             UnfinishedShiftWarningBanner(
                               shift: _controller.unCheckedOutPreviousShift!,
                             ),
@@ -283,17 +325,37 @@ class _HomeViewState extends State<HomeView> {
 
                           // 3. Quick Actions
                           QuickActions(
-                            onFaceRegistrationSuccess: () => _controller.loadHomeData(),
-                            onShiftsChanged: () => _controller.loadHomeData(silent: true),
+                            onFaceRegistrationSuccess: () =>
+                                _controller.loadHomeData(),
+                            onShiftsChanged: () =>
+                                _controller.loadHomeData(silent: true),
                           ),
                           const SizedBox(height: 24),
 
-                          // 4. Pending Tasks
-                          const PendingTasks(),
+                          // 4. Most recently updated requests
+                          PendingTasks(
+                            requests: _controller.recentRequests,
+                            errorMessage: _controller.requestsError,
+                            onRequestTap: _openRequest,
+                            onViewAll: () =>
+                                setState(() => _currentTabIndex = 3),
+                          ),
                           const SizedBox(height: 24),
 
-                          // 5. Documents & Records
-                          const DocumentsSection(),
+                          // 5. Recorded hours for the current week
+                          DocumentsSection(
+                            workingMinutes: _controller.weeklyWorkingMinutes,
+                            weekStart: _controller.weekStart,
+                            weekEnd: _controller.weekEnd,
+                            errorMessage: _controller.weeklyHoursError,
+                            onViewHistory: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AttendanceHistoryView(
+                                  homeController: _controller,
+                                ),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 32),
                         ],
                       ),
@@ -303,7 +365,9 @@ class _HomeViewState extends State<HomeView> {
           // Tab 1: Timesheet
           _buildPlaceholderTab('Timesheet', Icons.assignment_outlined),
           // Tab 2: Schedule
-          _currentTabIndex == 2 ? const MyShiftsView(showBackButton: false) : const SizedBox.shrink(),
+          _currentTabIndex == 2
+              ? const MyShiftsView(showBackButton: false)
+              : const SizedBox.shrink(),
           // Tab 3: Requests
           const StaffRequestListView(showBackButton: false),
           // Tab 4: Profile
@@ -311,9 +375,17 @@ class _HomeViewState extends State<HomeView> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         currentIndex: _currentTabIndex,
         onTap: (index) {
-          final returningFromSchedule = index == 0 && _currentTabIndex == 2;
+          final returningFromSchedule = index == 0 && _currentTabIndex != 0;
           setState(() {
             _currentTabIndex = index;
           });

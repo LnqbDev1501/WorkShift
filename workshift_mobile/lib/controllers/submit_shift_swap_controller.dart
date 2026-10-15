@@ -63,7 +63,9 @@ class SubmitShiftSwapController extends ChangeNotifier {
             (s) =>
                 s.myRegistration?.status == 'ASSIGNED' &&
                 s.status == 'SCHEDULED' &&
-                s.scheduledStartAt.isAfter(now) &&
+                !s.scheduledStartAt.isBefore(
+                  now.add(const Duration(hours: 24)),
+                ) &&
                 [
                   'OPEN_REGISTRATION',
                   'REGISTRATION_CLOSED',

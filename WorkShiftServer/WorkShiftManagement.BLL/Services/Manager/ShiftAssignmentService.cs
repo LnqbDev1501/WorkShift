@@ -125,8 +125,12 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
                 (cancelled ? $"has been cancelled by your manager. Reason: {reason}" : "has been confirmed by your manager."),
             NotificationType = "ShiftAssignment",
             CreatedBy = actor, CreatedAt = timestamp, UpdatedAt = timestamp,
-            TargetType = "Custom", Channels = ["InApp"], TargetRoles = ["STAFF"],
-            UserNotifications = [new UserNotification { UserId = recipient, CreatedAt = timestamp }]
+            // The recipient is selected by UserNotifications, not a custom broadcast audience.
+            TargetType = "Staff", Channels = ["InApp"], TargetRoles = [],
+            UserNotifications = [new UserNotification
+            {
+                UserId = recipient, CreatedAt = timestamp, IsRead = false, IsDeleted = false
+            }]
         };
         // Persist the recipient's inbox item atomically with the assignment.
         repo.AddNotification(notification);

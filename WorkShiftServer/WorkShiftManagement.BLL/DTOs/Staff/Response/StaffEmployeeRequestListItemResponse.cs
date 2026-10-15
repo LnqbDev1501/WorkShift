@@ -24,6 +24,8 @@ public class StaffEmployeeRequestListItemResponse
 
     public DateTime CreatedAt { get; set; }
 
+    public DateTime UpdatedAt { get; set; }
+
     public Guid? ReviewedBy { get; set; }
 
     public string? ReviewerFullName { get; set; }
