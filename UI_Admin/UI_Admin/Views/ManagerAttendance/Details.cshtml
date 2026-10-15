@@ -1,0 +1,666 @@
+@model UI_Admin.Models.Manager.Attendance.ManagerAttendanceDetailViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"Attendance Details - {Model.FullName}";
+
+    var status = (Model.Status ?? "SCHEDULED").ToUpperInvariant();
+    var scheduledDate = Model.ScheduledStartAt.AddHours(7).ToString("dddd, dd/MM/yyyy");
+    var scheduledRange = $"{Model.ScheduledStartAt.AddHours(7):HH:mm} – {Model.ScheduledEndAt.AddHours(7):HH:mm}";
+    var scheduledDurationHours = Math.Round((Model.ScheduledEndAt - Model.ScheduledStartAt).TotalHours, 1);
+    var actualWorkHours = Math.Round((decimal)Model.ActualWorkingMinutes / 60m, 2);
+}
+
+<div class="px-7 py-6 max-w-[1280px] mx-auto space-y-6">
+    <!-- Top Bar & Breadcrumb -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <a asp-action="Index" class="hover:underline">Personnel &amp; Attendance</a>
+                <span>/</span>
+                <a asp-action="Index" class="hover:underline">Attendance Monitoring</a>
+                <span>/</span>
+                <span class="text-slate-400">Details</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Shift Attendance Details</h1>
+                <!-- Status Badge -->
+                @if (Model.IsExcusedLeave || status == "LEAVE")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="material-symbols-outlined text-sm">event_available</span>
+                        <span>ON LEAVE</span>
+                    </span>
+                }
+                else if (status is "ABSENT" or "NOT_CHECKED_IN")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="material-symbols-outlined text-sm">close</span>
+                        <span>@(status == "NOT_CHECKED_IN" ? "NOT CHECKED IN" : "ABSENT")</span>
+                    </span>
+                }
+                else if (status == "COMPLETED")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="material-symbols-outlined text-sm">check_circle</span>
+                        <span>COMPLETED</span>
+                    </span>
+                }
+                else if (status == "IN_PROGRESS")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>WORKING NOW</span>
+                    </span>
+                }
+                else if (status == "LATE")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="material-symbols-outlined text-sm">warning</span>
+                        <span>LATE ARRIVAL</span>
+                    </span>
+                }
+                else if (status == "EARLY_LEAVE")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                        <span class="material-symbols-outlined text-sm">directions_walk</span>
+                        <span>EARLY LEAVE</span>
+                    </span>
+                }
+                else if (status == "LATE_AND_EARLY_LEAVE")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                        <span class="material-symbols-outlined text-sm">warning</span>
+                        <span>LATE &amp; EARLY</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        <span>SCHEDULED</span>
+                    </span>
+                }
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Assignment #@Model.AssignmentId &bull; Attendance Log #@(Model.AttendanceId.HasValue ? Model.AttendanceId.Value.ToString() : "N/A")
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <a asp-action="Index"
+               class="h-9 px-4 inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 shadow-xs transition-colors">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span>Back to Attendance List</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Attendance Remarks & Exceptions Note Banner -->
+    @{
+        var remarks = new List<string>();
+        if (Model.IsExcusedLeave && !string.IsNullOrWhiteSpace(Model.LeaveReason))
+        {
+            remarks.Add($"Approved Leave: {Model.LeaveReason}");
+        }
+        if (Model.TotalLateMinutes > 0)
+        {
+            var excusedPart = Model.ExcusedLateMinutes > 0 ? $" ({Model.ExcusedLateMinutes} minutes excused by approved request)" : "";
+            var chargePart = Model.ChargeableLateMinutes > 0 ? $", {Model.ChargeableLateMinutes} minutes penalty applied" : "";
+            remarks.Add($"Late Arrival: {Model.TotalLateMinutes} minutes late{excusedPart}{chargePart}.");
+        }
+        if (Model.TotalEarlyLeaveMinutes > 0)
+        {
+            var excusedPart = Model.ExcusedEarlyLeaveMinutes > 0 ? $" ({Model.ExcusedEarlyLeaveMinutes} minutes excused by approved request)" : "";
+            var chargePart = Model.ChargeableEarlyLeaveMinutes > 0 ? $", {Model.ChargeableEarlyLeaveMinutes} minutes penalty applied" : "";
+            remarks.Add($"Early Departure: {Model.TotalEarlyLeaveMinutes} minutes early{excusedPart}{chargePart}.");
+        }
+        if (!remarks.Any() && status == "COMPLETED")
+        {
+            remarks.Add("Shift completed on time without attendance infractions.");
+        }
+    }
+
+    @if (remarks.Any())
+    {
+        <div class="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-150 flex items-start gap-3 shadow-xs">
+            <span class="material-symbols-outlined text-indigo-600 text-xl shrink-0 mt-0.5">info</span>
+            <div class="space-y-1">
+                <span class="text-xs font-bold text-indigo-950 uppercase tracking-wider block">Attendance Remarks &amp; Exceptions Note</span>
+                <ul class="text-xs text-indigo-900 list-disc list-inside space-y-0.5">
+                    @foreach (var r in remarks)
+                    {
+                        <li>@r</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
+    <!-- Grid 1: Staff Info & Shift Schedule Overview -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Staff Info Card -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base text-indigo-600">badge</span>
+                <span>Staff Member</span>
+            </h3>
+            <div class="flex items-center gap-4">
+                @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                {
+                    <img src="@Model.AvatarUrl"
+                         alt="@Model.FullName"
+                         class="w-16 h-16 rounded-2xl object-cover border border-slate-200 shrink-0 shadow-xs"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div class="hidden w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-xl items-center justify-center border border-indigo-200 shrink-0 shadow-xs">
+                        @(string.Concat(Model.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpperInvariant(w[0]))))
+                    </div>
+                }
+                else
+                {
+                    <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-700 font-bold text-xl flex items-center justify-center border border-indigo-200 shrink-0 shadow-xs">
+                        @(string.Concat(Model.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).TakeLast(2).Select(w => char.ToUpperInvariant(w[0]))))
+                    </div>
+                }
+                <div class="min-w-0">
+                    <h2 class="text-base font-bold text-slate-900 truncate">@Model.FullName</h2>
+                    <span class="inline-block mt-0.5 px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-150">
+                        @Model.RoleName
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500">Email:</span>
+                    <span class="font-semibold text-slate-800 truncate max-w-[200px]">@Model.Email</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500">Phone:</span>
+                    <span class="font-semibold text-slate-800">@(string.IsNullOrWhiteSpace(Model.Phone) ? "Not provided" : Model.Phone)</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500">User ID:</span>
+                    <span class="font-mono text-[11px] text-slate-400">@Model.UserId.ToString().Substring(0, 8)...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shift Schedule Card -->
+        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base text-indigo-600">event_note</span>
+                    <span>Shift &amp; Branch Information</span>
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[11px]">Shift Name</span>
+                            <span class="text-base font-bold text-slate-900">@Model.ShiftName</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[11px]">Scheduled Date</span>
+                            <span class="font-semibold text-indigo-700">@scheduledDate</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[11px]">Scheduled Time</span>
+                            <span class="font-semibold text-slate-800">@scheduledRange (@scheduledDurationHours hours)</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <span class="text-slate-500 block text-[11px]">Branch Location</span>
+                            <span class="text-base font-bold text-slate-900">@Model.BranchName</span>
+                            @if (!string.IsNullOrWhiteSpace(Model.BranchAddress))
+                            {
+                                <span class="text-slate-500 text-[11px] block mt-0.5">@Model.BranchAddress</span>
+                            }
+                        </div>
+                        <div>
+                            <span class="text-slate-500 block text-[11px]">Schedule Week Period</span>
+                            <span class="font-semibold text-slate-800">@Model.WeekPeriodDisplay</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick stats bar -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Actual Clocked Work: <strong class="text-slate-900 font-mono">@actualWorkHours hrs</strong> (@Model.ActualWorkingMinutes mins)</span>
+                <span>Schedule Week ID: <strong class="text-slate-700 font-mono">#@Model.ScheduleWeekId</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid 2: Check-In vs Check-Out Verification -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- CHECK-IN CARD -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg">login</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">Clock-In Verification</h3>
+                </div>
+                @if (Model.CheckInTime.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        RECORDED
+                    </span>
+                }
+                else
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                        NOT RECORDED
+                    </span>
+                }
+            </div>
+
+            @if (Model.CheckInTime.HasValue)
+            {
+                <div class="space-y-3.5 text-xs">
+                    <!-- Timestamp -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 flex items-center justify-between">
+                        <span class="text-slate-500 font-medium">Recorded Time:</span>
+                        <span class="font-mono font-bold text-slate-900 text-sm">
+                            @Model.CheckInTime.Value.AddHours(7).ToString("HH:mm:ss — dd/MM/yyyy")
+                        </span>
+                    </div>
+
+                    <!-- Face Verification -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500 font-medium flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-indigo-600">face</span>
+                                <span>Face Recognition:</span>
+                            </span>
+                            @if (Model.CheckInFaceVerified == true)
+                            {
+                                <span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">
+                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                    <span>Verified</span>
+                                </span>
+                            }
+                            else if (Model.CheckInFaceVerified == false)
+                            {
+                                <span class="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-100/60 px-2 py-0.5 rounded-md">
+                                    <span class="material-symbols-outlined text-sm">cancel</span>
+                                    <span>Failed</span>
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400 font-medium">Bypassed / Not Used</span>
+                            }
+                        </div>
+                        @if (Model.CheckInFaceConfidence.HasValue)
+                        {
+                            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-600">
+                                <span>Confidence Score:</span>
+                                <span class="font-mono font-bold text-slate-800">
+                                    @((Model.CheckInFaceConfidence.Value * 100).ToString("0.0"))%
+                                </span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- GPS Location -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500 font-medium flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-indigo-600">near_me</span>
+                                <span>Distance to Branch:</span>
+                            </span>
+                            @if (Model.CheckInDistanceMeters.HasValue)
+                            {
+                                var dist = Math.Round(Model.CheckInDistanceMeters.Value, 1);
+                                <span class="font-bold @(dist <= 100 ? "text-emerald-700" : "text-amber-700")">
+                                    @dist meters
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400">N/A</span>
+                            }
+                        </div>
+
+                        @if (Model.CheckInLatitude.HasValue && Model.CheckInLongitude.HasValue)
+                        {
+                            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                                <span>GPS Coordinates:</span>
+                                <a href="https://maps.google.com/?q=@Model.CheckInLatitude.Value,@Model.CheckInLongitude.Value"
+                                   target="_blank"
+                                   class="font-mono text-indigo-600 hover:underline flex items-center gap-1">
+                                    <span>@Model.CheckInLatitude.Value.ToString("0.00000"), @Model.CheckInLongitude.Value.ToString("0.00000")</span>
+                                    <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                </a>
+                            </div>
+                        }
+
+                        @if (Model.CheckInAccuracyMeters.HasValue)
+                        {
+                            <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                <span>GPS Accuracy:</span>
+                                <span class="font-mono text-slate-700">±@Math.Round(Model.CheckInAccuracyMeters.Value, 1)m</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="py-8 text-center text-slate-400 text-xs">
+                    <span class="material-symbols-outlined text-3xl mb-1 block">pending</span>
+                    No clock-in record found for this shift assignment.
+                </div>
+            }
+        </div>
+
+        <!-- CHECK-OUT CARD -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-lg">logout</span>
+                    </div>
+                    <h3 class="font-bold text-slate-900 text-sm">Clock-Out Verification</h3>
+                </div>
+                @if (Model.CheckOutTime.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        RECORDED
+                    </span>
+                }
+                else if (Model.CheckInTime.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        IN PROGRESS
+                    </span>
+                }
+                else
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                        NOT RECORDED
+                    </span>
+                }
+            </div>
+
+            @if (Model.CheckOutTime.HasValue)
+            {
+                <div class="space-y-3.5 text-xs">
+                    <!-- Timestamp -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 flex items-center justify-between">
+                        <span class="text-slate-500 font-medium">Recorded Time:</span>
+                        <span class="font-mono font-bold text-slate-900 text-sm">
+                            @Model.CheckOutTime.Value.AddHours(7).ToString("HH:mm:ss — dd/MM/yyyy")
+                        </span>
+                    </div>
+
+                    <!-- Face Verification -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500 font-medium flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-indigo-600">face</span>
+                                <span>Face Recognition:</span>
+                            </span>
+                            @if (Model.CheckOutFaceVerified == true)
+                            {
+                                <span class="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">
+                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                    <span>Verified</span>
+                                </span>
+                            }
+                            else if (Model.CheckOutFaceVerified == false)
+                            {
+                                <span class="inline-flex items-center gap-1 font-bold text-rose-700 bg-rose-100/60 px-2 py-0.5 rounded-md">
+                                    <span class="material-symbols-outlined text-sm">cancel</span>
+                                    <span>Failed</span>
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400 font-medium">Bypassed / Not Used</span>
+                            }
+                        </div>
+                        @if (Model.CheckOutFaceConfidence.HasValue)
+                        {
+                            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-600">
+                                <span>Confidence Score:</span>
+                                <span class="font-mono font-bold text-slate-800">
+                                    @((Model.CheckOutFaceConfidence.Value * 100).ToString("0.0"))%
+                                </span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- GPS Location -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-150 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500 font-medium flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-base text-indigo-600">near_me</span>
+                                <span>Distance to Branch:</span>
+                            </span>
+                            @if (Model.CheckOutDistanceMeters.HasValue)
+                            {
+                                var dist = Math.Round(Model.CheckOutDistanceMeters.Value, 1);
+                                <span class="font-bold @(dist <= 100 ? "text-emerald-700" : "text-amber-700")">
+                                    @dist meters
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="text-slate-400">N/A</span>
+                            }
+                        </div>
+
+                        @if (Model.CheckOutLatitude.HasValue && Model.CheckOutLongitude.HasValue)
+                        {
+                            <div class="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+                                <span>GPS Coordinates:</span>
+                                <a href="https://maps.google.com/?q=@Model.CheckOutLatitude.Value,@Model.CheckOutLongitude.Value"
+                                   target="_blank"
+                                   class="font-mono text-indigo-600 hover:underline flex items-center gap-1">
+                                    <span>@Model.CheckOutLatitude.Value.ToString("0.00000"), @Model.CheckOutLongitude.Value.ToString("0.00000")</span>
+                                    <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                                </a>
+                            </div>
+                        }
+
+                        @if (Model.CheckOutAccuracyMeters.HasValue)
+                        {
+                            <div class="flex items-center justify-between text-[11px] text-slate-500">
+                                <span>GPS Accuracy:</span>
+                                <span class="font-mono text-slate-700">±@Math.Round(Model.CheckOutAccuracyMeters.Value, 1)m</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            else if (Model.CheckInTime.HasValue)
+            {
+                <div class="py-8 text-center text-amber-600 text-xs">
+                    <span class="material-symbols-outlined text-3xl mb-1 block animate-spin">progress_activity</span>
+                    Shift is currently in progress. Staff has not checked out yet.
+                </div>
+            }
+            else
+            {
+                <div class="py-8 text-center text-slate-400 text-xs">
+                    <span class="material-symbols-outlined text-3xl mb-1 block">pending</span>
+                    No clock-out record recorded.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Grid 3: Time Calculations & Penalty Breakdown -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base text-indigo-600">calculate</span>
+            <span>Working Time &amp; Penalties Breakdown</span>
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- 1. Actual Work -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-150">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Actual Work</span>
+                <span class="text-2xl font-bold font-mono text-slate-900 mt-1 block">@actualWorkHours hrs</span>
+                <span class="text-xs text-slate-500 mt-0.5 block">@Model.ActualWorkingMinutes minutes clocked</span>
+            </div>
+
+            <!-- 2. Late Minutes Breakdown -->
+            <div class="p-4 rounded-xl @(Model.ChargeableLateMinutes > 0 ? "bg-amber-50 border border-amber-200" : "bg-slate-50 border border-slate-150")">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Late Arrival</span>
+                    @if (Model.ChargeableLateMinutes > 0)
+                    {
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-800">Penalty</span>
+                    }
+                </div>
+                <span class="text-2xl font-bold font-mono @(Model.ChargeableLateMinutes > 0 ? "text-amber-800" : "text-slate-900") mt-1 block">
+                    @Model.TotalLateMinutes m
+                </span>
+                <div class="text-[11px] text-slate-500 mt-0.5 space-y-0.5">
+                    <div>Excused: <strong class="text-emerald-700">@Model.ExcusedLateMinutes m</strong></div>
+                    <div>Chargeable: <strong class="@(Model.ChargeableLateMinutes > 0 ? "text-rose-700" : "text-slate-700")">@Model.ChargeableLateMinutes m</strong></div>
+                </div>
+            </div>
+
+            <!-- 3. Early Leave Breakdown -->
+            <div class="p-4 rounded-xl @(Model.ChargeableEarlyLeaveMinutes > 0 ? "bg-orange-50 border border-orange-200" : "bg-slate-50 border border-slate-150")">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Early Leave</span>
+                    @if (Model.ChargeableEarlyLeaveMinutes > 0)
+                    {
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-orange-200 text-orange-800">Penalty</span>
+                    }
+                </div>
+                <span class="text-2xl font-bold font-mono @(Model.ChargeableEarlyLeaveMinutes > 0 ? "text-orange-800" : "text-slate-900") mt-1 block">
+                    @Model.TotalEarlyLeaveMinutes m
+                </span>
+                <div class="text-[11px] text-slate-500 mt-0.5 space-y-0.5">
+                    <div>Excused: <strong class="text-emerald-700">@Model.ExcusedEarlyLeaveMinutes m</strong></div>
+                    <div>Chargeable: <strong class="@(Model.ChargeableEarlyLeaveMinutes > 0 ? "text-rose-700" : "text-slate-700")">@Model.ChargeableEarlyLeaveMinutes m</strong></div>
+                </div>
+            </div>
+
+            <!-- 4. Leave / Absent Status -->
+            <div class="p-4 rounded-xl @(Model.IsExcusedLeave ? "bg-blue-50 border border-blue-200" : "bg-slate-50 border border-slate-150")">
+                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Leave Status</span>
+                @if (Model.IsExcusedLeave)
+                {
+                    <span class="text-base font-bold text-blue-700 mt-1 block">Excused Leave</span>
+                    <span class="text-xs text-blue-900 mt-0.5 block truncate" title="@Model.LeaveReason">
+                        @(string.IsNullOrWhiteSpace(Model.LeaveReason) ? "Approved leave request" : Model.LeaveReason)
+                    </span>
+                }
+                else if (status is "ABSENT" or "NOT_CHECKED_IN")
+                {
+                    <span class="text-base font-bold text-rose-700 mt-1 block">Unexcused</span>
+                    <span class="text-xs text-rose-600 mt-0.5 block">Staff did not attend shift</span>
+                }
+                else
+                {
+                    <span class="text-base font-bold text-emerald-700 mt-1 block">Normal Shift</span>
+                    <span class="text-xs text-slate-500 mt-0.5 block">No full-day leave taken</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid 4: Attached Employee Requests -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-base text-indigo-600">assignment</span>
+            <span>Attached Employee Requests</span>
+        </h3>
+
+        @if (Model.LateArrivalRequest == null && Model.EarlyLeaveRequest == null && Model.LeaveRequest == null)
+        {
+            <div class="py-6 text-center text-slate-400 text-xs">
+                <span class="material-symbols-outlined text-2xl mb-1 block">check_circle</span>
+                No adjustment or leave requests were submitted for this shift.
+            </div>
+        }
+        else
+        {
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Late Request -->
+                @if (Model.LateArrivalRequest != null)
+                {
+                    var req = Model.LateArrivalRequest;
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-900 text-xs flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-indigo-600">hourglass_top</span>
+                                <span>Late Arrival Request</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold @(req.Status == "APPROVED" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700")">
+                                @req.Status
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-600 space-y-1">
+                            <div>Request ID: <strong class="font-mono">#@req.RequestId</strong></div>
+                            @if (req.RequestedTime.HasValue)
+                            {
+                                <div>Expected Arrival: <strong>@req.RequestedTime.Value.AddHours(7).ToString("HH:mm")</strong></div>
+                            }
+                            <div>Reason: <span class="italic text-slate-700">@(string.IsNullOrWhiteSpace(req.Reason) ? "No reason specified" : req.Reason)</span></div>
+                            <div class="text-[10px] text-slate-400">Created: @req.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Early Request -->
+                @if (Model.EarlyLeaveRequest != null)
+                {
+                    var req = Model.EarlyLeaveRequest;
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-900 text-xs flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-indigo-600">hourglass_bottom</span>
+                                <span>Early Leave Request</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold @(req.Status == "APPROVED" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700")">
+                                @req.Status
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-600 space-y-1">
+                            <div>Request ID: <strong class="font-mono">#@req.RequestId</strong></div>
+                            @if (req.RequestedTime.HasValue)
+                            {
+                                <div>Expected Departure: <strong>@req.RequestedTime.Value.AddHours(7).ToString("HH:mm")</strong></div>
+                            }
+                            <div>Reason: <span class="italic text-slate-700">@(string.IsNullOrWhiteSpace(req.Reason) ? "No reason specified" : req.Reason)</span></div>
+                            <div class="text-[10px] text-slate-400">Created: @req.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Leave Request -->
+                @if (Model.LeaveRequest != null)
+                {
+                    var req = Model.LeaveRequest;
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-900 text-xs flex items-center gap-1">
+                                <span class="material-symbols-outlined text-sm text-indigo-600">event_busy</span>
+                                <span>Leave Request</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold @(req.Status == "APPROVED" ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700")">
+                                @req.Status
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-600 space-y-1">
+                            <div>Request ID: <strong class="font-mono">#@req.RequestId</strong></div>
+                            <div>Reason: <span class="italic text-slate-700">@(string.IsNullOrWhiteSpace(req.Reason) ? "No reason specified" : req.Reason)</span></div>
+                            <div class="text-[10px] text-slate-400">Created: @req.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
