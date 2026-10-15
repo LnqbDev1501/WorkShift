@@ -54,7 +54,11 @@ class _CreateOrderViewState extends State<CreateOrderView> {
     setState(() => _isLoading = true);
     try {
       final req = CreateOrderRequest(
-        items: _items.map((i) => CreateOrderItemRequest(productId: i.productId!, quantity: i.quantity)).toList(),
+        items: _items.map((i) => CreateOrderItemRequest(
+          productId: i.productId!,
+          quantity: i.quantity,
+          note: i.noteController.text.trim().isEmpty ? null : i.noteController.text.trim(),
+        )).toList(),
         note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
       );
       await _orderService.createOrder(req);
