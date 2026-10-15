@@ -365,7 +365,7 @@ class AttendanceController extends ChangeNotifier {
         break;
 
       case 'NOD':
-        if (eulerX.abs() > 10) {
+        if (eulerX < -10) {
           isPassed = true;
         } else {
           detectionStatus = 'Please nod your head slightly';

@@ -47,7 +47,8 @@ class FaceRegistrationController extends ChangeNotifier {
   FaceRegistrationVerifyResult? verifyResult;
   bool isSuccess = false;
 
-  List<FaceChallengeItem> get challenges => registrationSession?.challenges ?? [];
+  List<FaceChallengeItem> get challenges =>
+      registrationSession?.challenges ?? [];
 
   FaceChallengeItem? get currentChallenge {
     if (challenges.isEmpty) return null;
@@ -131,12 +132,15 @@ class FaceRegistrationController extends ChangeNotifier {
         cameraController = null;
       }
 
-      final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      final isAndroid =
+          !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
       final controller = CameraController(
         targetCam,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        imageFormatGroup: isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
 
       await controller.initialize();
@@ -151,12 +155,14 @@ class FaceRegistrationController extends ChangeNotifier {
 
   /// Start Face Detection Stream with Google ML Kit
   Future<void> startChallengeDetection() async {
-    if (cameraController == null || !cameraController!.value.isInitialized) return;
+    if (cameraController == null || !cameraController!.value.isInitialized)
+      return;
     if (_isStreaming) return;
 
     isDetecting = true;
     currentChallengeIndex = 0;
-    detectionStatus = currentChallenge?.instruction ?? 'Align face inside oval frame...';
+    detectionStatus =
+        currentChallenge?.instruction ?? 'Align face inside oval frame...';
     notifyListeners();
 
     try {
@@ -173,7 +179,8 @@ class FaceRegistrationController extends ChangeNotifier {
 
   /// Process camera frame through Google ML Kit
   Future<void> _processCameraFrame(CameraImage image) async {
-    if (_stepCooldown || _faceDetector == null || selectedCamera == null) return;
+    if (_stepCooldown || _faceDetector == null || selectedCamera == null)
+      return;
     _isProcessingFrame = true;
 
     try {
@@ -191,7 +198,8 @@ class FaceRegistrationController extends ChangeNotifier {
       final face = faces.first;
       final rawWidth = inputImage.metadata?.size.width ?? 1.0;
       final rawHeight = inputImage.metadata?.size.height ?? 1.0;
-      final isRotated = inputImage.metadata?.rotation == InputImageRotation.rotation90deg ||
+      final isRotated =
+          inputImage.metadata?.rotation == InputImageRotation.rotation90deg ||
           inputImage.metadata?.rotation == InputImageRotation.rotation270deg;
       final actualWidth = isRotated ? rawHeight : rawWidth;
       final actualHeight = isRotated ? rawWidth : rawHeight;
@@ -216,7 +224,10 @@ class FaceRegistrationController extends ChangeNotifier {
       }
 
       // 2. Validate Face Centering
-      if (centerXRatio < 0.15 || centerXRatio > 0.85 || centerYRatio < 0.15 || centerYRatio > 0.85) {
+      if (centerXRatio < 0.15 ||
+          centerXRatio > 0.85 ||
+          centerYRatio < 0.15 ||
+          centerYRatio > 0.85) {
         isFaceFramedProperly = false;
         detectionStatus = 'Please align your face inside the oval frame';
         notifyListeners();
@@ -249,7 +260,9 @@ class FaceRegistrationController extends ChangeNotifier {
 
     switch (action) {
       case 'BLINK':
-        if (leftEye != null && rightEye != null && (leftEye < 0.35 || rightEye < 0.35)) {
+        if (leftEye != null &&
+            rightEye != null &&
+            (leftEye < 0.35 || rightEye < 0.35)) {
           isPassed = true;
         } else {
           detectionStatus = 'Please blink your eyes';
@@ -281,7 +294,7 @@ class FaceRegistrationController extends ChangeNotifier {
         break;
 
       case 'NOD':
-        if (eulerX.abs() > 10) {
+        if (eulerX < -10) {
           isPassed = true;
         } else {
           detectionStatus = 'Please nod your head slightly';
@@ -309,7 +322,9 @@ class FaceRegistrationController extends ChangeNotifier {
 
       _challengeHoldStartTime ??= DateTime.now();
 
-      final elapsedMs = DateTime.now().difference(_challengeHoldStartTime!).inMilliseconds;
+      final elapsedMs = DateTime.now()
+          .difference(_challengeHoldStartTime!)
+          .inMilliseconds;
       const targetHoldMs = 2000;
 
       challengeHoldProgress = (elapsedMs / targetHoldMs).clamp(0.0, 1.0);
@@ -322,7 +337,8 @@ class FaceRegistrationController extends ChangeNotifier {
         remainingHoldSeconds = 0.0;
         _handleChallengePassed(challenge.action);
       } else {
-        detectionStatus = '✓ Position held! Keep steady: ${remainingSec.toStringAsFixed(1)}s remaining...';
+        detectionStatus =
+            '✓ Position held! Keep steady: ${remainingSec.toStringAsFixed(1)}s remaining...';
         notifyListeners();
       }
     } else {
@@ -382,12 +398,14 @@ class FaceRegistrationController extends ChangeNotifier {
     InputImageRotation? rotation;
 
     if (Platform.isAndroid) {
-      var rotationCompensation = _orientations[cameraController!.value.deviceOrientation];
+      var rotationCompensation =
+          _orientations[cameraController!.value.deviceOrientation];
       if (rotationCompensation == null) return null;
       if (selectedCamera!.lensDirection == CameraLensDirection.front) {
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
-        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
       }
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
     } else {
@@ -475,7 +493,8 @@ class FaceRegistrationController extends ChangeNotifier {
       await _stopStream();
 
       if (cameraController == null || !cameraController!.value.isInitialized) {
-        errorMessage = 'Camera is not available. Please restart the app and try again.';
+        errorMessage =
+            'Camera is not available. Please restart the app and try again.';
         isSubmitting = false;
         notifyListeners();
         return false;
