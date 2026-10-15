@@ -301,9 +301,8 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 ),
               ),
               const SizedBox(width: 8),
-              InkWell(
+              GestureDetector(
                 onTap: () => _controller.toggleTestGps(),
-                borderRadius: BorderRadius.circular(10),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(

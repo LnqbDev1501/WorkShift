@@ -27,7 +27,5 @@ public partial class Region
 
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
-    public virtual ICollection<Province> Provinces { get; set; } = new List<Province>();
-
     public virtual RegionalMinimumWage? RegionalMinimumWage { get; set; }
 }

@@ -67,5 +67,7 @@ public partial class Timesheet
 
     public virtual User? ReviewedByNavigation { get; set; }
 
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequests { get; set; } = new List<TimesheetAdjustmentRequest>();
+
     public virtual User User { get; set; } = null!;
 }

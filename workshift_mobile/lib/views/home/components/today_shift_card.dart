@@ -51,6 +51,7 @@ class TodayShiftCard extends StatelessWidget {
     if (shift == null) {
       // Trường hợp hôm nay không có ca làm việc hoặc các ca đã kết thúc / hết thời gian checkout
       return Container(
+        width: double.infinity,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             begin: Alignment.topLeft,

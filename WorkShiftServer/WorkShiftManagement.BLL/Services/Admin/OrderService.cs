@@ -38,8 +38,8 @@ public class OrderService : IOrderService
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             status = query.Status.Trim().ToUpperInvariant();
-            if (status != "ACTIVE" && status != "INACTIVE" && status != "COMPLETED" && status != "CANCELLED")
-                throw new ArgumentException("Status filter only accepts 'ACTIVE', 'INACTIVE', 'COMPLETED', or 'CANCELLED'.");
+            if (status != "DRAFT" && status != "COMPLETED" && status != "CANCELLED")
+                throw new ArgumentException("Status filter only accepts 'DRAFT', 'COMPLETED', or 'CANCELLED'.");
         }
 
         string? paymentStatus = null;
@@ -95,7 +95,10 @@ public class OrderService : IOrderService
 
     public async Task<OrderDetailResponse> CreateAsync(CreateOrderRequest request, Guid actorId)
     {
-        var branchId = await RequireManagerBranchAsync(actorId);
+        var actor = await GetActorAsync(actorId);
+        if (!actor.BranchId.HasValue)
+            throw new UnauthorizedAccessException("Your account is not assigned to a branch.");
+        var branchId = actor.BranchId.Value;
 
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
@@ -133,8 +136,9 @@ public class OrderService : IOrderService
             BranchNameSnapshot = (await _context.Branches.FindAsync(branchId))?.BranchName ?? string.Empty,
             CreatedBy = actorId,
             OrderDate = now,
-            Status = "ACTIVE",
-            PaymentStatus = "UNPAID",
+            Status = "PENDING",
+            PaymentStatus = "PAID",
+            PaidAt = now,
             Note = request.Note?.Trim() ?? string.Empty,
             CreatedAt = now,
             UpdatedAt = now
@@ -236,21 +240,26 @@ public class OrderService : IOrderService
 
     public async Task<bool> UpdateStatusAsync(int id, string status, Guid actorId)
     {
-        var branchId = await RequireManagerBranchAsync(actorId);
+        var actor = await GetActorAsync(actorId);
+        var branchId = actor.Role == "MANAGER" ? actor.BranchId.Value : (actor.BranchId ?? throw new UnauthorizedAccessException("User not assigned to a branch."));
         var normalizedStatus = status.Trim().ToUpperInvariant();
 
-        if (!new[] { "ACTIVE", "INACTIVE", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))
-            throw new ArgumentException("Invalid status. Allowed: ACTIVE, INACTIVE, COMPLETED, CANCELLED.");
+        if (!new[] { "PENDING", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))
+            throw new ArgumentException("Invalid status. Allowed: PENDING, COMPLETED, CANCELLED.");
 
         var existing = await _orderRepo.GetByIdWithBranchAsync(id, branchId);
         if (existing == null)
             return false;
 
+        // Staff can complete their own orders
+        if (actor.Role == "STAFF" && existing.CreatedBy != actorId)
+            throw new UnauthorizedAccessException("You can only complete your own orders.");
+
         if (normalizedStatus == "COMPLETED" && existing.PaymentStatus != "PAID")
             throw new InvalidOperationException("Order must be fully paid before it can be completed.");
 
-        if (normalizedStatus == "CANCELLED" && existing.PaymentStatus == "PAID")
-            throw new InvalidOperationException("Cannot cancel a fully paid order. Process a refund instead.");
+        if (normalizedStatus == "CANCELLED" && existing.Status == "COMPLETED")
+            throw new InvalidOperationException("Cannot cancel a completed order.");
 
         return await _orderRepo.UpdateStatusAsync(id, normalizedStatus);
     }

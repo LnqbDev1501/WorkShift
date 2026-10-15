@@ -256,6 +256,14 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerTi
     WorkShiftManagement.DAL.Repositories.Manager.ManagerTimesheetRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService,
     WorkShiftManagement.BLL.Services.Manager.ManagerTimesheetService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerAttendanceRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerAttendanceRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerAttendanceService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerAttendanceService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffTimesheetRepo,
+    WorkShiftManagement.DAL.Repositories.Staff.StaffTimesheetRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffTimesheetService,
+    WorkShiftManagement.BLL.Services.Staff.StaffTimesheetService>();
 
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffSalaryHistoryRepo,
     WorkShiftManagement.DAL.Repositories.Staff.StaffSalaryHistoryRepo>();
@@ -344,6 +352,12 @@ try
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
             "overdue-contracts-cancellation",
             service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
+            Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService>(
+            "timesheet-deadline-autolock",
+            service => service.AutoLockExpiredTimesheetsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 

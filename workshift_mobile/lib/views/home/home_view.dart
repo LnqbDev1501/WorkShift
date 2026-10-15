@@ -18,6 +18,7 @@ import '../shifts/my_shifts_view.dart';
 
 import '../face_registration/face_registration_modal.dart';
 import '../requests/staff_request_list_view.dart';
+import '../timesheet/staff_timesheet_view.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
 class HomeView extends StatefulWidget {
@@ -363,7 +364,7 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
           // Tab 1: Timesheet
-          _buildPlaceholderTab('Timesheet', Icons.assignment_outlined),
+          const StaffTimesheetView(),
           // Tab 2: Schedule
           _currentTabIndex == 2
               ? const MyShiftsView(showBackButton: false)

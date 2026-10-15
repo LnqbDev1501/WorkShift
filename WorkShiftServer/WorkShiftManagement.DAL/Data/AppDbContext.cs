@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -88,8 +88,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<ProductCategory> ProductCategories { get; set; }
 
-    public virtual DbSet<Province> Provinces { get; set; }
-
     public virtual DbSet<PublicHolidayConfig> PublicHolidayConfigs { get; set; }
 
     public virtual DbSet<Region> Regions { get; set; }
@@ -116,6 +114,8 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Timesheet> Timesheets { get; set; }
 
+    public virtual DbSet<TimesheetAdjustmentRequest> TimesheetAdjustmentRequests { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<UserNotification> UserNotifications { get; set; }
@@ -125,6 +125,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909;No Reset On Close=true;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1479,6 +1483,45 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("order_items_product_id_fkey");
         });
 
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasKey(e => e.PaymentId).HasName("payments_pkey");
+
+            entity.ToTable("payments");
+
+            entity.HasIndex(e => e.OrderId, "ix_payments_order");
+            entity.HasIndex(e => e.RecordedBy, "ix_payments_recorded_by");
+
+            entity.Property(e => e.PaymentId).HasColumnName("payment_id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2)
+                .HasColumnName("amount");
+            entity.Property(e => e.PaymentMethod)
+                .HasMaxLength(50)
+                .HasColumnName("payment_method");
+            entity.Property(e => e.ReferenceNumber)
+                .HasMaxLength(100)
+                .HasColumnName("reference_number");
+            entity.Property(e => e.Note)
+                .HasMaxLength(500)
+                .HasColumnName("note");
+            entity.Property(e => e.RecordedBy).HasColumnName("recorded_by");
+            entity.Property(e => e.RecordedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("recorded_at");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("payments_order_id_fkey");
+
+            entity.HasOne(d => d.RecordedByNavigation).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.RecordedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("payments_recorded_by_fkey");
+        });
+
         modelBuilder.Entity<Payroll>(entity =>
         {
             entity.HasKey(e => e.PayrollId).HasName("payrolls_pkey");
@@ -2114,41 +2157,6 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("updated_at");
         });
 
-        modelBuilder.Entity<Province>(entity =>
-        {
-            entity.HasKey(e => e.ProvinceId).HasName("provinces_pkey");
-
-            entity.ToTable("provinces");
-
-            entity.HasIndex(e => e.RegionId, "idx_provinces_region_id");
-
-            entity.HasIndex(e => e.ProvinceCode, "provinces_province_code_key").IsUnique();
-
-            entity.HasIndex(e => e.ProvinceName, "provinces_province_name_key").IsUnique();
-
-            entity.Property(e => e.ProvinceId)
-                .UseIdentityAlwaysColumn()
-                .HasColumnName("province_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Description)
-                .HasColumnType("character varying")
-                .HasColumnName("description");
-            entity.Property(e => e.ProvinceCode)
-                .HasColumnType("character varying")
-                .HasColumnName("province_code");
-            entity.Property(e => e.ProvinceName)
-                .HasColumnType("character varying")
-                .HasColumnName("province_name");
-            entity.Property(e => e.RegionId).HasColumnName("region_id");
-
-            entity.HasOne(d => d.Region).WithMany(p => p.Provinces)
-                .HasForeignKey(d => d.RegionId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("provinces_region_id_fkey");
-        });
-
         modelBuilder.Entity<PublicHolidayConfig>(entity =>
         {
             entity.HasKey(e => e.PublicHolidayId).HasName("public_holiday_configs_pkey");
@@ -2732,6 +2740,71 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("timesheets_user_id_fkey");
+        });
+
+        modelBuilder.Entity<TimesheetAdjustmentRequest>(entity =>
+        {
+            entity.HasKey(e => e.AdjustmentRequestId).HasName("timesheet_adjustment_requests_pkey");
+
+            entity.ToTable("timesheet_adjustment_requests");
+
+            entity.HasIndex(e => e.AttendanceId, "ix_timesheet_adj_attendance_id");
+
+            entity.HasIndex(e => e.Status, "ix_timesheet_adj_status");
+
+            entity.HasIndex(e => e.TimesheetId, "ix_timesheet_adj_timesheet_id");
+
+            entity.HasIndex(e => e.AttendanceId, "uq_attendance_pending_adj")
+                .IsUnique()
+                .HasFilter("((status)::text = 'PENDING'::text)");
+
+            entity.Property(e => e.AdjustmentRequestId)
+                .UseIdentityAlwaysColumn()
+                .HasColumnName("adjustment_request_id");
+            entity.Property(e => e.AdjustCheckIn)
+                .HasDefaultValue(false)
+                .HasColumnName("adjust_check_in");
+            entity.Property(e => e.AdjustCheckOut)
+                .HasDefaultValue(false)
+                .HasColumnName("adjust_check_out");
+            entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CurrentCheckInSnapshot).HasColumnName("current_check_in_snapshot");
+            entity.Property(e => e.CurrentCheckOutSnapshot).HasColumnName("current_check_out_snapshot");
+            entity.Property(e => e.ManagerNote).HasColumnName("manager_note");
+            entity.Property(e => e.Reason).HasColumnName("reason");
+            entity.Property(e => e.RequestedCheckInTime).HasColumnName("requested_check_in_time");
+            entity.Property(e => e.RequestedCheckOutTime).HasColumnName("requested_check_out_time");
+            entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
+            entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'PENDING'::character varying")
+                .HasColumnName("status");
+            entity.Property(e => e.TimesheetId).HasColumnName("timesheet_id");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.Attendance).WithOne(p => p.TimesheetAdjustmentRequest)
+                .HasForeignKey<TimesheetAdjustmentRequest>(d => d.AttendanceId)
+                .HasConstraintName("fk_timesheet_adj_attendance");
+
+            entity.HasOne(d => d.ReviewedByNavigation).WithMany(p => p.TimesheetAdjustmentRequestReviewedByNavigations)
+                .HasForeignKey(d => d.ReviewedBy)
+                .HasConstraintName("fk_timesheet_adj_reviewer");
+
+            entity.HasOne(d => d.Timesheet).WithMany(p => p.TimesheetAdjustmentRequests)
+                .HasForeignKey(d => d.TimesheetId)
+                .HasConstraintName("fk_timesheet_adj_timesheet");
+
+            entity.HasOne(d => d.User).WithMany(p => p.TimesheetAdjustmentRequestUsers)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_timesheet_adj_user");
         });
 
         modelBuilder.Entity<User>(entity =>

@@ -18,6 +18,7 @@ public sealed class ManagerWeeklyTimesheetSummaryResponse
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }
+    public int TotalWorkMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
     public bool IsLocked { get; set; }
