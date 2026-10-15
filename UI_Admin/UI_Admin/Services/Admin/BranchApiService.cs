@@ -113,6 +113,27 @@ public class BranchApiService
         }
     }
 
+    public async Task<List<BranchOptionViewModel>> GetActiveBranchesAsync(CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/branches?pageSize=100&status=ACTIVE";
+        try
+        {
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            if (!response.IsSuccessStatusCode) return [];
+
+            var result = await response.Content.ReadFromJsonAsync<PagedApiResponse<BranchApiResponse>>(cancellationToken: cancellationToken);
+            return result?.Items?.Select(b => new BranchOptionViewModel
+            {
+                Id = b.BranchId,
+                Name = b.BranchName
+            }).ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
     public async Task<BranchDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         var url = $"{_apiBaseUrl}/api/admin/branches/{id}";

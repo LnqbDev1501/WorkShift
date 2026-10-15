@@ -306,6 +306,38 @@
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
                         </a>
                     </nav>
+
+                    <!-- Manager: Catalog -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CATALOG</span>
+                        </div>
+                        <a asp-controller="ManagerCategories" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerCategories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Categories">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">category</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Categories</span>
+                        </a>
+                        <a asp-controller="ManagerProducts" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerProducts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Products">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
+                        </a>
+                    </nav>
+
+                    <!-- Manager: Orders -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">ORDERS</span>
+                        </div>
+                        <a asp-controller="ManagerOrders" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerOrders" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Order List">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">receipt_long</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Order List</span>
+                        </a>
+                    </nav>
                 }
                 else
                 {
@@ -395,21 +427,21 @@
                             </a>
                         </nav>
                     }
-                    @if (User.IsInRole("MANAGER") || User.IsInRole("ACCOUNTANT"))
+                    else if (User.IsInRole("ACCOUNTANT"))
                     {
                         <nav class="space-y-unit-1">
                             <div class="sidebar-category-header px-unit-3 pb-unit-1">
                                 <span
                                 class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CATALOG</span>
                             </div>
-                            <a asp-controller="Categories" asp-action="Index"
-                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Categories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                            <a asp-controller="AccountantCategories" asp-action="Index"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantCategories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                                title="Categories">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">category</span>
                                 <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Categories</span>
                             </a>
-                            <a asp-controller="Products" asp-action="Index"
-                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Products" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                            <a asp-controller="AccountantProducts" asp-action="Index"
+                               class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantProducts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
                                title="Products">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
                                 <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>

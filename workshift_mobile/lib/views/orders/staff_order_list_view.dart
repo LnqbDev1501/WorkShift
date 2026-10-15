@@ -95,12 +95,11 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        child: InkWell(
+                        child: GestureDetector(
                           onTap: () async {
                             await Navigator.push(context, MaterialPageRoute(builder: (_) => StaffOrderDetailView(orderId: order.orderId)));
                             _controller.loadOrders(refresh: true);
                           },
-                          borderRadius: BorderRadius.circular(16),
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

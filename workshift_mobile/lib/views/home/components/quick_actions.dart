@@ -270,13 +270,12 @@ class _QuickActionsState extends State<QuickActions> {
         if (allActions.length > 6) ...[
           const SizedBox(height: 8),
           Center(
-            child: InkWell(
+            child: GestureDetector(
               onTap: () {
                 setState(() {
                   _isExpanded = !_isExpanded;
                 });
               },
-              borderRadius: BorderRadius.circular(20),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,

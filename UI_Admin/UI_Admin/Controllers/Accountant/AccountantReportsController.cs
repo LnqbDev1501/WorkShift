@@ -3,18 +3,25 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models.Accountant;
 using UI_Admin.Services;
+using UI_Admin.Services.Accountant;
 
 namespace UI_Admin.Controllers;
 
 [Authorize(Roles = "ACCOUNTANT,ADMIN")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class AccountantReportsController(AccountantOrderApiService api) : Controller
+public class AccountantReportsController(AccountantOrderApiService api, BranchApiService branchApi) : Controller
 {
     [HttpGet]
-    public IActionResult BranchSales()
+    public async Task<IActionResult> BranchSales(CancellationToken ct = default)
     {
-        return View();
+        var branches = await branchApi.GetActiveBranchesAsync(ct);
+        var model = new BranchSalesReportViewModel
+        {
+            Branches = branches.Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name }).ToList()
+        };
+        return View(model);
     }
 
     [HttpGet]

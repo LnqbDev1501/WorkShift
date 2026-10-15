@@ -64,3 +64,25 @@ public class AccountantOrderListViewModel
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
 }
+
+public class RecordPaymentViewModel
+{
+    public decimal Amount { get; set; }
+    public string PaymentMethod { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
+    public string? Note { get; set; }
+}
+
+public class BranchOptionViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+public class BranchSalesReportViewModel
+{
+    public List<BranchOptionViewModel> Branches { get; set; } = [];
+    public int? SelectedBranchId { get; set; }
+    public DateTime? DateFrom { get; set; }
+    public DateTime? DateTo { get; set; }
+}

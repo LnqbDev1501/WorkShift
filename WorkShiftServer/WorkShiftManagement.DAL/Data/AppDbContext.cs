@@ -1483,6 +1483,45 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("order_items_product_id_fkey");
         });
 
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasKey(e => e.PaymentId).HasName("payments_pkey");
+
+            entity.ToTable("payments");
+
+            entity.HasIndex(e => e.OrderId, "ix_payments_order");
+            entity.HasIndex(e => e.RecordedBy, "ix_payments_recorded_by");
+
+            entity.Property(e => e.PaymentId).HasColumnName("payment_id");
+            entity.Property(e => e.OrderId).HasColumnName("order_id");
+            entity.Property(e => e.Amount)
+                .HasPrecision(18, 2)
+                .HasColumnName("amount");
+            entity.Property(e => e.PaymentMethod)
+                .HasMaxLength(50)
+                .HasColumnName("payment_method");
+            entity.Property(e => e.ReferenceNumber)
+                .HasMaxLength(100)
+                .HasColumnName("reference_number");
+            entity.Property(e => e.Note)
+                .HasMaxLength(500)
+                .HasColumnName("note");
+            entity.Property(e => e.RecordedBy).HasColumnName("recorded_by");
+            entity.Property(e => e.RecordedAt)
+                .HasDefaultValueSql("now()")
+                .HasColumnName("recorded_at");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("payments_order_id_fkey");
+
+            entity.HasOne(d => d.RecordedByNavigation).WithMany(p => p.Payments)
+                .HasForeignKey(d => d.RecordedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("payments_recorded_by_fkey");
+        });
+
         modelBuilder.Entity<Payroll>(entity =>
         {
             entity.HasKey(e => e.PayrollId).HasName("payrolls_pkey");

@@ -1,0 +1,193 @@
+@model UI_Admin.Models.Staff.Orders.StaffCreateOrderViewModel
+
+@{
+    ViewData["Title"] = "Create Order";
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <div class="flex items-center gap-unit-3">
+        <a asp-controller="StaffOrders" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+        </a>
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Order Management</div>
+            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Customer Order</h1>
+            <p class="font-body-sm text-body-sm text-secondary mt-1">Select products, set quantities, and create a new customer order.</p>
+        </div>
+    </div>
+
+    <div class="w-full max-w-4xl bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
+        <form method="post" asp-controller="StaffOrders" asp-action="Create" class="flex flex-col gap-unit-6">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-error font-body-sm text-body-sm"></div>
+
+            <!-- Product Selection -->
+            <div class="bg-surface-container-low rounded-xl p-unit-4">
+                <div class="flex items-center gap-unit-3 mb-4">
+                    <span class="material-symbols-outlined text-[24px] text-primary">add_shopping_cart</span>
+                    <h2 class="font-title-md text-title-md text-on-surface">Select Products</h2>
+                </div>
+
+                @if (Model.Products.Count == 0)
+                {
+                    <div class="text-center py-8 text-secondary">
+                        <span class="material-symbols-outlined text-[48px] block mb-2">inventory_2</span>
+                        <p>No products available in your branch. Please contact your manager.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="products-grid">
+                        @foreach (var product in Model.Products)
+                        {
+                            <div class="product-card border border-surface-container-high rounded-xl p-4 hover:border-primary-container hover:bg-surface-container-low transition-all cursor-pointer"
+                                 data-product-id="@product.ProductId"
+                                 data-product-name="@product.ProductName"
+                                 data-product-price="@product.Price"
+                                 data-category-id="@product.CategoryId">
+                                <div class="flex items-start gap-3">
+                                    <input type="checkbox" class="product-checkbox mt-1" value="@product.ProductId" />
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-body-md-medium text-body-md text-on-surface truncate">@product.ProductName</h3>
+                                        <p class="font-code-num text-code-num text-primary text-sm mt-1">@product.ProductCode</p>
+                                        <p class="font-body-sm text-secondary mt-1">@UI_Admin.Helpers.CurrencyHelper.FormatVnd(product.Price) / unit</p>
+                                    </div>
+                                </div>
+                                <div class="quantity-controls mt-3 hidden flex items-center gap-2" id="qty-@product.ProductId">
+                                    <label class="font-label-sm text-secondary">Qty:</label>
+                                    <input type="number"
+                                           class="w-16 h-8 px-2 border border-surface-container-high rounded-lg text-on-surface font-body-md text-center"
+                                           min="1"
+                                           max="999"
+                                           value="1"
+                                           name="Items[@Model.Items.Count].Quantity"
+                                           data-product-id="@product.ProductId" />
+                                    <input type="hidden" name="Items[@Model.Items.Count].ProductId" value="@product.ProductId" />
+                                    <input type="hidden" name="Items[@Model.Items.Count].DiscountAmount" value="0" />
+                                    <input type="hidden" name="Items[@Model.Items.Count].Note" value="" />
+                                    <span class="material-symbols-outlined text-secondary remove-product" data-product-id="@product.ProductId">close</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- Selected Products Summary -->
+            <div id="selected-products" class="hidden bg-primary-container/10 border border-primary-container rounded-xl p-4">
+                <h3 class="font-title-sm text-primary mb-3">Selected Products (@Model.Items.Count)</h3>
+                <div id="selected-items-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Populated by JS -->
+                </div>
+                <div class="mt-4 pt-4 border-t border-primary-container/30 flex justify-between items-center">
+                    <span class="font-body-md-medium text-on-surface">Subtotal:</span>
+                    <span id="subtotal-display" class="font-code-num text-code-num text-primary font-bold text-lg">@UI_Admin.Helpers.CurrencyHelper.FormatVnd(0)</span>
+                </div>
+            </div>
+
+            <!-- Order Note -->
+            <div class="flex flex-col gap-unit-2">
+                <label asp-for="Note" class="font-label-md text-label-md text-on-surface">Note (Optional)</label>
+                <textarea asp-for="Note" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="Special instructions, delivery notes, etc."></textarea>
+                <span asp-validation-for="Note" class="text-error font-body-sm text-body-sm"></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-unit-3 pt-unit-2 border-t border-surface-container-high">
+                <a asp-controller="StaffOrders" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
+                <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                    <span>Create Order</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productCards = document.querySelectorAll('.product-card');
+            const selectedProducts = document.getElementById('selected-products');
+            const selectedItemsList = document.getElementById('selected-items-list');
+            const subtotalDisplay = document.getElementById('subtotal-display');
+            const productsGrid = document.getElementById('products-grid');
+
+            function updateSelection() {
+                const selected = document.querySelectorAll('.product-checkbox:checked');
+                const count = selected.length;
+
+                if (count > 0) {
+                    selectedProducts.classList.remove('hidden');
+                } else {
+                    selectedProducts.classList.add('hidden');
+                }
+
+                let subtotal = 0;
+                selectedItemsList.innerHTML = '';
+
+                selected.forEach(cb => {
+                    const card = cb.closest('.product-card');
+                    const name = card.dataset.productName;
+                    const price = parseFloat(card.dataset.productPrice);
+                    const qtyInput = document.querySelector(`#qty-${cb.value} input[type="number"]`);
+                    const qty = qtyInput ? parseInt(qtyInput.value) || 1 : 1;
+                    const lineTotal = price * qty;
+                    subtotal += lineTotal;
+
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between gap-2 text-sm';
+                    div.innerHTML = `
+                        <span class="truncate">${name} x ${qty}</span>
+                        <span class="font-code-num text-primary">${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(lineTotal)}</span>
+                    `;
+                    selectedItemsList.appendChild(div);
+                });
+
+                if (subtotalDisplay) {
+                    subtotalDisplay.textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(subtotal);
+                }
+            }
+
+            // Checkbox change
+            document.querySelectorAll('.product-checkbox').forEach(cb => {
+                cb.addEventListener('change', function () {
+                    const card = this.closest('.product-card');
+                    const qtyControls = document.getElementById(`qty-${this.value}`);
+
+                    if (this.checked) {
+                        card.classList.add('ring-2', 'ring-primary', 'bg-primary-container/5');
+                        if (qtyControls) qtyControls.classList.remove('hidden');
+                    } else {
+                        card.classList.remove('ring-2', 'ring-primary', 'bg-primary-container/5');
+                        if (qtyControls) qtyControls.classList.add('hidden');
+                    }
+                    updateSelection();
+                });
+            });
+
+            // Quantity change
+            document.addEventListener('input', function (e) {
+                if (e.target.matches('.quantity-controls input[type="number"]')) {
+                    updateSelection();
+                }
+            });
+
+            // Remove product
+            document.addEventListener('click', function (e) {
+                if (e.target.matches('.remove-product')) {
+                    const productId = e.target.dataset.productId;
+                    const checkbox = document.querySelector(`.product-checkbox[value="${productId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+
+            // Initial update
+            updateSelection();
+        });
+    </script>
+}
