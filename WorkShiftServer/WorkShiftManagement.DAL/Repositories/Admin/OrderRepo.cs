@@ -271,6 +271,12 @@ public class OrderRepo : IOrderRepo
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
+        var creator = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.UserId == order.CreatedBy)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync();
+
         return new OrderData
         {
             OrderId = order.OrderId,
@@ -278,7 +284,7 @@ public class OrderRepo : IOrderRepo
             BranchId = order.BranchId,
             BranchName = order.BranchNameSnapshot,
             CreatedBy = order.CreatedBy,
-            CreatedByName = order.CreatedByNavigation.FullName,
+            CreatedByName = creator ?? string.Empty,
             OrderDate = order.OrderDate,
             Subtotal = order.Subtotal,
             TotalAmount = order.TotalAmount,

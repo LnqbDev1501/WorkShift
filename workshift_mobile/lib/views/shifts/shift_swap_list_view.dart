@@ -222,8 +222,7 @@ class _ShiftSwapListViewState extends State<ShiftSwapListView>
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Card(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+        child: GestureDetector(
           onTap: () => _openDetail(request.swapRequestId),
           child: Padding(
             padding: const EdgeInsets.all(14),

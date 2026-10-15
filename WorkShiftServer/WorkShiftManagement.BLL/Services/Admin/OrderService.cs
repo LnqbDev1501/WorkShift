@@ -38,8 +38,8 @@ public class OrderService : IOrderService
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             status = query.Status.Trim().ToUpperInvariant();
-            if (status != "ACTIVE" && status != "INACTIVE" && status != "COMPLETED" && status != "CANCELLED")
-                throw new ArgumentException("Status filter only accepts 'ACTIVE', 'INACTIVE', 'COMPLETED', or 'CANCELLED'.");
+            if (status != "DRAFT" && status != "COMPLETED" && status != "CANCELLED")
+                throw new ArgumentException("Status filter only accepts 'DRAFT', 'COMPLETED', or 'CANCELLED'.");
         }
 
         string? paymentStatus = null;
@@ -136,8 +136,9 @@ public class OrderService : IOrderService
             BranchNameSnapshot = (await _context.Branches.FindAsync(branchId))?.BranchName ?? string.Empty,
             CreatedBy = actorId,
             OrderDate = now,
-            Status = "ACTIVE",
-            PaymentStatus = "UNPAID",
+            Status = "COMPLETED",
+            PaymentStatus = "PAID",
+            PaidAt = now,
             Note = request.Note?.Trim() ?? string.Empty,
             CreatedAt = now,
             UpdatedAt = now
@@ -242,8 +243,8 @@ public class OrderService : IOrderService
         var branchId = await RequireManagerBranchAsync(actorId);
         var normalizedStatus = status.Trim().ToUpperInvariant();
 
-        if (!new[] { "ACTIVE", "INACTIVE", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))
-            throw new ArgumentException("Invalid status. Allowed: ACTIVE, INACTIVE, COMPLETED, CANCELLED.");
+        if (!new[] { "DRAFT", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))
+            throw new ArgumentException("Invalid status. Allowed: DRAFT, COMPLETED, CANCELLED.");
 
         var existing = await _orderRepo.GetByIdWithBranchAsync(id, branchId);
         if (existing == null)

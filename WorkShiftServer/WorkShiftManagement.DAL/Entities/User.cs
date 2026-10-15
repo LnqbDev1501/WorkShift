@@ -107,6 +107,8 @@ public partial class User
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+
     public virtual ICollection<Payroll> PayrollApprovedByNavigations { get; set; } = new List<Payroll>();
 
     public virtual ICollection<Payroll> PayrollCalculatedByNavigations { get; set; } = new List<Payroll>();

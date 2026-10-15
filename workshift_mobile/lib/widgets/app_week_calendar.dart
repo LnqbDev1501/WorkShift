@@ -109,9 +109,8 @@ class _DayButton extends StatelessWidget {
     selected: selected,
     label:
         '${day.day}/${day.month}/${day.year}${isToday ? ', today' : ''}${marked ? ', has shifts' : ''}',
-    child: InkWell(
+    child: GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(

@@ -15,7 +15,6 @@ class CreateOrderView extends StatefulWidget {
 }
 
 class _CreateOrderViewState extends State<CreateOrderView> {
-  final _formKey = GlobalKey<FormState>();
   final _noteController = TextEditingController();
   final _orderService = StaffOrderService();
   final _productService = ProductService();
@@ -46,18 +45,16 @@ class _CreateOrderViewState extends State<CreateOrderView> {
     if (result != null) {
       setState(() {
         _items[itemIndex].product = result;
-        _items[itemIndex].discount = 0;
       });
     }
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
     for (int i = 0; i < _items.length; i++) { if (!_items[i].validate()) { setState(() {}); return; } }
     setState(() => _isLoading = true);
     try {
       final req = CreateOrderRequest(
-        items: _items.map((i) => CreateOrderItemRequest(productId: i.productId!, quantity: i.quantity, discountAmount: i.discount)).toList(),
+        items: _items.map((i) => CreateOrderItemRequest(productId: i.productId!, quantity: i.quantity)).toList(),
         note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
       );
       await _orderService.createOrder(req);
@@ -66,7 +63,6 @@ class _CreateOrderViewState extends State<CreateOrderView> {
   }
 
   double get _total => _items.fold(0.0, (s, i) => s + i.lineTotal);
-  double get _discount => _items.fold(0.0, (s, i) => s + i.discount * i.quantity);
 
   @override
   Widget build(BuildContext context) {
@@ -77,25 +73,23 @@ class _CreateOrderViewState extends State<CreateOrderView> {
         backgroundColor: AppColors.surface, elevation: 0, centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
       ),
-      body: Form(
-        key: _formKey,
-        child: Column(children: [
-          if (_errorMessage != null)
-            Container(
-              margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.3))),
-              child: Row(children: [
-                const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error))),
-                IconButton(icon: const Icon(Icons.close_rounded, color: AppColors.error, size: 20), onPressed: () => setState(() => _errorMessage = null)),
-              ]),
-            ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
+      body: Column(children: [
+        if (_errorMessage != null)
+          Container(
+            margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.error.withValues(alpha: 0.3))),
+            child: Row(children: [
+              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.error))),
+              IconButton(icon: const Icon(Icons.close_rounded, color: AppColors.error, size: 20), onPressed: () => setState(() => _errorMessage = null)),
+            ]),
+          ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
                 const Text('Order Items', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 12),
                 ..._items.asMap().entries.map((e) {
@@ -105,7 +99,10 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         Row(children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -116,7 +113,7 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                           if (idx > 0) IconButton(icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error), onPressed: () => _removeItem(idx)),
                         ]),
                         const SizedBox(height: 16),
-                        InkWell(
+                        GestureDetector(
                           onTap: () => _showProductPicker(idx),
                           child: Container(
                             padding: const EdgeInsets.all(12),
@@ -137,11 +134,7 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                                   ),
                                 ),
                         const SizedBox(height: 16),
-                        Row(children: [
-                          Expanded(child: _buildField('Quantity', item.quantity, (v) { item.quantity = v; setState(() {}); }, item.quantityError, 1)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildField('Discount', item.discount.toInt(), (v) { item.discount = v.toDouble(); setState(() {}); }, item.discountError, 0)),
-                        ]),
+                        _buildField('Quantity', item.quantity, (v) { item.quantity = v; setState(() {}); }, item.quantityError, 1),
                         const SizedBox(height: 12),
                         AppTextField(label: 'Note (Optional)', hintText: 'Special requests', controller: item.noteController, prefixIcon: Icons.note_alt_outlined, onChanged: (_) => setState(() {})),
                         const SizedBox(height: 8),
@@ -164,19 +157,36 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     const Text('Order Summary', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 12),
-                    buildTotalRow('Subtotal', formatCurrency(_total)),
-                    if (_discount > 0) buildTotalRow('Discount', '- ${formatCurrency(_discount)}', color: AppColors.success),
-                    const Divider(height: 16),
-                    buildTotalRow('Total', formatCurrency(_total - _discount), isTotal: true),
+                    buildTotalRow('Total', formatCurrency(_total), isTotal: true),
                   ]),
                 )),
                 const SizedBox(height: 24),
-                AppButton(text: 'Create Order', icon: Icons.receipt_long_rounded, isLoading: _isLoading, onPressed: _submit),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        text: 'Cancel',
+                        type: AppButtonType.outline,
+                        icon: Icons.close_rounded,
+                        onPressed: _isLoading ? null : () => Navigator.pop(context),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppButton(
+                        text: 'Create Order',
+                        icon: Icons.receipt_long_rounded,
+                        isLoading: _isLoading,
+                        onPressed: _submit,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
               ],
             ),
           ),
-        ]),
+        ],
       ),
     );
   }
@@ -200,10 +210,8 @@ class _CreateOrderViewState extends State<CreateOrderView> {
 class _ItemBuilder {
   ProductModel? product;
   int quantity = 1;
-  double discount = 0;
   final noteController = TextEditingController();
   String? quantityError;
-  String? discountError;
 
   int? get productId => product?.productId;
 
@@ -211,12 +219,11 @@ class _ItemBuilder {
     bool ok = true;
     if (productId == null) { ok = false; }
     if (quantity < 1) { quantityError = 'Must be ≥ 1'; ok = false; } else { quantityError = null; }
-    if (discount < 0) { discountError = 'Cannot be negative'; ok = false; } else { discountError = null; }
     return ok;
   }
 
   double get unitPrice => product?.price ?? 0;
-  double get lineTotal => unitPrice * quantity - discount;
+  double get lineTotal => unitPrice * quantity;
   void dispose() => noteController.dispose();
 }
 

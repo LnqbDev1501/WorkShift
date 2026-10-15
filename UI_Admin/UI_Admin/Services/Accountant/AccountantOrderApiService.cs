@@ -50,6 +50,19 @@ public class AccountantOrderApiService(HttpClient client, IConfiguration configu
         return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
+    public async Task RecordPaymentAsync(int id, RecordPaymentViewModel model, CancellationToken ct)
+    {
+        var payload = new
+        {
+            amount = model.Amount,
+            paymentMethod = model.PaymentMethod,
+            referenceNumber = model.ReferenceNumber,
+            note = model.Note
+        };
+        using var response = await client.PostAsJsonAsync($"{baseUrl}/api/accountant/orders/{id}/payment", payload, ct);
+        await EnsureSuccessAsync(response, ct);
+    }
+
     public async Task<byte[]> ExportBranchSalesReportAsync(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct)
     {
         var queryParams = new List<string>();
