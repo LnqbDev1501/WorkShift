@@ -256,6 +256,10 @@ builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerTi
     WorkShiftManagement.DAL.Repositories.Manager.ManagerTimesheetRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService,
     WorkShiftManagement.BLL.Services.Manager.ManagerTimesheetService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerAttendanceRepo,
+    WorkShiftManagement.DAL.Repositories.Manager.ManagerAttendanceRepo>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerAttendanceService,
+    WorkShiftManagement.BLL.Services.Manager.ManagerAttendanceService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Staff.IStaffTimesheetRepo,
     WorkShiftManagement.DAL.Repositories.Staff.StaffTimesheetRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Staff.IStaffTimesheetService,
