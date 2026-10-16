@@ -2,22 +2,26 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
+using WorkShiftManagement.DAL.Data;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
 public class AuthService : IAuthService
 {
     private readonly HttpClient _httpClient;
+    private readonly AppDbContext _context;
     private readonly string _inviteRedirectUrl;
     private readonly string _passwordRecoveryRedirectUrl;
     private readonly string _staffSetupRedirectUrl;
 
-    public AuthService(HttpClient httpClient, string inviteRedirectUrl, string passwordRecoveryRedirectUrl, string staffSetupRedirectUrl)
+    public AuthService(HttpClient httpClient, AppDbContext context, string inviteRedirectUrl, string passwordRecoveryRedirectUrl, string staffSetupRedirectUrl)
     {
         _httpClient = httpClient;
+        _context = context;
         _inviteRedirectUrl = string.IsNullOrWhiteSpace(inviteRedirectUrl)
             ? throw new ArgumentException("Password setup URL is required.", nameof(inviteRedirectUrl))
             : inviteRedirectUrl;
@@ -155,15 +159,35 @@ public class AuthService : IAuthService
             response.StatusCode);
     }
 
-    public async Task<Guid> SetPasswordAsync(string accessToken, string password)
+    public async Task<Guid> SetPasswordAsync(Guid userId, string currentPassword, string password)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Put, "auth/v1/user")
-        {
-            Content = JsonContent.Create(new { password = password.Trim() })
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        if (string.Equals(currentPassword, password, StringComparison.Ordinal))
+            throw new ArgumentException("The new password must not be the same as the old password.");
 
-        using var response = await _httpClient.SendAsync(request);
+        // Get email from local database to verify current password via Supabase
+        var email = await _context.Users
+            .Where(u => u.UserId == userId)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(email))
+            throw new KeyNotFoundException("User profile not found.");
+
+        // Verify current password via Supabase token endpoint
+        var verifyResponse = await _httpClient.PostAsJsonAsync("auth/v1/token?grant_type=password", new
+        {
+            email = email.Trim(),
+            password = currentPassword.Trim()
+        });
+
+        var verifyBody = await verifyResponse.Content.ReadAsStringAsync();
+        if (!verifyResponse.IsSuccessStatusCode)
+            throw new UnauthorizedAccessException("The current password is incorrect.");
+
+        using var response = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { password = password.Trim() });
+
         var body = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {
@@ -171,7 +195,21 @@ public class AuthService : IAuthService
                 $"Unable to set password: {GetErrorMessage(body)}", null, response.StatusCode);
         }
 
-        return GetUserId(body);
+        return userId;
+    }
+
+    private async Task<string> GetEmailFromTokenAsync(string accessToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "auth/v1/user");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await _httpClient.SendAsync(request);
+        var body = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            throw new UnauthorizedAccessException("Your session has expired. Please sign in again.");
+
+        using var doc = JsonDocument.Parse(body);
+        return doc.RootElement.GetProperty("email").GetString() ?? string.Empty;
     }
 
     public async Task UpdateEmailAsync(Guid userId, string email)
@@ -329,6 +367,34 @@ public class AuthService : IAuthService
         }
 
         throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+    }
+
+    private static Guid GetUserIdFromToken(string accessToken)
+    {
+        try
+        {
+            var parts = accessToken.Split('.');
+            if (parts.Length != 3)
+                throw new InvalidDataException("Invalid JWT token format.");
+
+            // Decode the payload (second part)
+            var payload = parts[1];
+            // Add padding if needed
+            payload = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+            // Base64 decode
+            var jsonBytes = Convert.FromBase64String(payload);
+            var jsonString = System.Text.Encoding.UTF8.GetString(jsonBytes);
+            using var doc = JsonDocument.Parse(jsonString);
+            if (doc.RootElement.TryGetProperty("sub", out var sub) &&
+                Guid.TryParse(sub.GetString(), out var userId))
+                return userId;
+        }
+        catch
+        {
+            // If JWT decode fails, try parsing body
+        }
+
+        throw new InvalidDataException("Cannot extract user ID from token.");
     }
 
     private static string GetActionLink(string body)

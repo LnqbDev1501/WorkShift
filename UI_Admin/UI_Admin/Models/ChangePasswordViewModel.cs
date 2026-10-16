@@ -4,8 +4,18 @@ namespace UI_Admin.Models;
 
 public class ChangePasswordViewModel
 {
+    private string _currentPassword = string.Empty;
     private string _newPassword = string.Empty;
     private string _confirmPassword = string.Empty;
+
+    [Required(ErrorMessage = "Please enter your current password.")]
+    [DataType(DataType.Password)]
+    [Display(Name = "Current Password")]
+    public string CurrentPassword
+    {
+        get => _currentPassword;
+        set => _currentPassword = value?.Trim() ?? string.Empty;
+    }
 
     [Required(ErrorMessage = "Please enter a new password.")]
     [MinLength(6, ErrorMessage = "The password must contain at least 6 characters.")]

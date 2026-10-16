@@ -123,11 +123,12 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
     {
         // Supplied schema uses NUMERIC, but protect installations still using NUMERIC(p,2):
         // reject unrepresentable values instead of letting PostgreSQL round money/hours silently.
-        if (db.ChangeTracker.Entries().Any(e => e.State == EntityState.Added && (e.Entity is Payroll or PayrollDetail)))
+        static bool RequiresNumericCheck(object entity) => entity is Payroll or PayrollDetail or PayrollCarryForwardDeduction or PayrollCarryForwardApplication;
+        if (db.ChangeTracker.Entries().Any(e => e.State is EntityState.Added or EntityState.Modified && RequiresNumericCheck(e.Entity)))
         {
             numericColumns ??= await db.Database.SqlQueryRaw<NumericColumn>(
-                "SELECT table_name AS \"TableName\", column_name AS \"ColumnName\", numeric_scale AS \"Scale\" FROM information_schema.columns WHERE table_schema = 'public' AND table_name IN ('payrolls', 'payroll_details') AND data_type = 'numeric'").ToListAsync(ct);
-            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.State == EntityState.Added && (e.Entity is Payroll or PayrollDetail)))
+                "SELECT table_name AS \"TableName\", column_name AS \"ColumnName\", numeric_scale AS \"Scale\" FROM information_schema.columns WHERE table_schema = 'public' AND table_name IN ('payrolls', 'payroll_details', 'payroll_carry_forward_deductions', 'payroll_carry_forward_applications') AND data_type = 'numeric'").ToListAsync(ct);
+            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Modified && RequiresNumericCheck(e.Entity)))
             {
                 var table = entry.Metadata.GetTableName()!;
                 var identifier = StoreObjectIdentifier.Table(table, entry.Metadata.GetSchema());

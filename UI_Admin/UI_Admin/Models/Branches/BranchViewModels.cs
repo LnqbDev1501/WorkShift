@@ -10,6 +10,12 @@ public class RegionOptionViewModel
     public string Status { get; set; } = "ACTIVE";
 }
 
+public class BranchOptionViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
 public class BranchListItemViewModel
 {
     public int BranchId { get; set; }

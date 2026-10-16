@@ -92,4 +92,39 @@ public class AdminEmployeeRequestController : ControllerBase
                 new { message = "The employee request could not be retrieved. Please try again later." });
         }
     }
+
+    /// <summary>
+    /// Retrieves the chronological audit history of an employee request across the entire system.
+    /// </summary>
+    [HttpGet("{requestId:int}/history")]
+    [ProducesResponseType(typeof(IReadOnlyList<AdminEmployeeRequestHistoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IReadOnlyList<AdminEmployeeRequestHistoryResponse>>> GetRequestHistory(
+        int requestId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _requestService.GetHistoryAsync(requestId, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error occurred while retrieving history for employee request {RequestId}.", requestId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "The employee request history could not be retrieved. Please try again later." });
+        }
+    }
 }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_colors.dart';
-import '../../../widgets/status_badge.dart';
 
-/// Component 1: Phần đầu Trang chủ (Lời chào, Avatar, Chi nhánh, Thông báo)
+/// Staff identity and daily welcome on the home screen.
 class HomeHeader extends StatelessWidget {
   final String userName;
   final String branchName;
   final String? avatarUrl;
   final VoidCallback? onLogoutTap;
+  final VoidCallback? onNotificationTap;
+  final int unreadCount;
 
   const HomeHeader({
     super.key,
@@ -15,110 +16,174 @@ class HomeHeader extends StatelessWidget {
     required this.branchName,
     this.avatarUrl,
     this.onLogoutTap,
+    this.onNotificationTap,
+    this.unreadCount = 0,
   });
-
-  String _getFormattedDate() {
-    final now = DateTime.now();
-    const weekdays = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
-    ];
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    final weekday = weekdays[now.weekday - 1];
-    final month = months[now.month - 1];
-    final day = now.day.toString().padLeft(2, '0');
-    final year = now.year;
-    return '$weekday, $month $day, $year';
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // App header bar: Logo WorkShift + Branch + Bell + Avatar
-        Row(
-          children: [
-            Expanded(
-              child: Row(
-                children: [
-                  const Text(
-                    'WorkShift',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: StatusBadge.branch(text: branchName),
-                  ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
-                ),
-                IconButton(
-                  tooltip: 'Logout',
-                  onPressed: onLogoutTap,
-                  icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-                ),
-                const SizedBox(width: 4),
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: (avatarUrl != null && avatarUrl!.isNotEmpty)
-                      ? NetworkImage(avatarUrl!)
-                      : null,
-                  onBackgroundImageError: (avatarUrl != null && avatarUrl!.isNotEmpty)
-                      ? (exception, stackTrace) {
-                          // Silently catch 404 or image loading exceptions without throwing
-                        }
-                      : null,
-                  child: (avatarUrl == null || avatarUrl!.isEmpty)
-                      ? const Icon(Icons.person, color: AppColors.primary, size: 18)
-                      : null,
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
+    final now = DateTime.now();
+    final greeting = now.hour < 12
+        ? 'Good morning'
+        : now.hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
+    final date = MaterialLocalizations.of(context).formatFullDate(now);
+    final hasAvatar = avatarUrl?.isNotEmpty == true;
 
-        // Greeting & Current date
-        Text(
-          _getFormattedDate(),
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.textMuted,
-            fontWeight: FontWeight.w500,
-          ),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.homeHeroStart, AppColors.homeHeroEnd],
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Hi, $userName! 👋',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 12),
           ),
-        ),
-      ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.workspaces_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'WorkShift',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Logout',
+                onPressed: onLogoutTap,
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+              ),
+              CircleAvatar(
+                radius: 21,
+                backgroundColor: Colors.white.withValues(alpha: 0.18),
+                backgroundImage: hasAvatar ? NetworkImage(avatarUrl!) : null,
+                onBackgroundImageError: hasAvatar ? (_, _) {} : null,
+                child: hasAvatar
+                    ? null
+                    : const Icon(
+                        Icons.person_outline_rounded,
+                        color: Colors.white,
+                      ),
+              ),
+              if (onNotificationTap != null)
+                Stack(
+                  children: [
+                    IconButton(
+                      tooltip: 'Notification',
+                      onPressed: onNotificationTap,
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 28),
+          Text(
+            '$greeting,',
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            userName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 30,
+              height: 1.15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Your day. Your shift. Let’s make it count.',
+            style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 22),
+          Divider(color: Colors.white.withValues(alpha: 0.16), height: 1),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.storefront_outlined,
+                color: AppColors.homeAccent,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  branchName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    height: 1.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            date,
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }

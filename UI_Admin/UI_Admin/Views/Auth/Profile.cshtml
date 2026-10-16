@@ -1,7 +1,7 @@
 @using UI_Admin.Models.Admin.UserAdmin
 @model UserDetailViewModel
 @{
-    Layout = "_AdminLayout";
+    Layout = User.IsInRole("ACCOUNTANT") ? "_AccountantLayout" : "_AdminLayout";
     ViewData["Title"] = "My Profile";
     var isPending = Model.IsPending;
     var isActive = Model.IsActive;
@@ -341,6 +341,14 @@
                     <form asp-controller="Auth" asp-action="ChangePassword" method="post" class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4 pt-unit-4">
                         @Html.AntiForgeryToken()
                         <div class="flex flex-col gap-unit-2">
+                            <label for="change-current-password" class="font-label-md text-label-md text-on-surface">Current Password <span class="text-error">*</span></label>
+                            <div class="flex items-center gap-2">
+                                <input name="CurrentPassword" id="change-current-password" type="password" autocomplete="current-password" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                                <button type="button" class="h-[40px] px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-secondary hover:text-on-surface font-body-sm text-body-sm transition-colors flex-shrink-0 cursor-pointer" data-toggle-password="change-current-password">Show</button>
+                            </div>
+                            <span class="text-error font-body-sm text-body-sm" data-valmsg-for="CurrentPassword" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="flex flex-col gap-unit-2">
                             <label for="change-new-password" class="font-label-md text-label-md text-on-surface">New Password <span class="text-error">*</span></label>
                             <div class="flex items-center gap-2">
                                 <input name="NewPassword" id="change-new-password" type="password" autocomplete="new-password" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
@@ -353,7 +361,6 @@
                                 <input name="ConfirmPassword" id="change-confirm-password" type="password" autocomplete="new-password" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
                                 <button type="button" class="h-[40px] px-3 rounded-xl bg-surface-container hover:bg-surface-container-high text-secondary hover:text-on-surface font-body-sm text-body-sm transition-colors flex-shrink-0 cursor-pointer" data-toggle-password="change-confirm-password">Show</button>
                             </div>
-                        </div>
                         <div class="sm:col-span-2 flex items-center justify-end">
                             <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
                                 <span class="material-symbols-outlined text-[20px]">lock_reset</span>

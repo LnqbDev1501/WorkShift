@@ -3,6 +3,14 @@ import '../../../theme/app_colors.dart';
 import '../../../widgets/quick_action_item.dart';
 
 import '../../face_registration/face_registration_modal.dart';
+import '../../shifts/available_shifts_view.dart';
+import '../../shifts/my_shifts_view.dart';
+import '../../shifts/shift_swap_list_view.dart';
+import '../../requests/staff_request_list_view.dart';
+import '../../contracts/staff_contract_list_view.dart';
+import '../../orders/staff_order_list_view.dart';
+import '../../orders/create_order_view.dart';
+import '../../timesheet/staff_timesheet_view.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -26,8 +34,13 @@ class _QuickActionData {
 /// Component: Quick Actions on Homepage (Default 6 actions, expandable)
 class QuickActions extends StatefulWidget {
   final VoidCallback? onFaceRegistrationSuccess;
+  final VoidCallback? onShiftsChanged;
 
-  const QuickActions({super.key, this.onFaceRegistrationSuccess});
+  const QuickActions({
+    super.key,
+    this.onFaceRegistrationSuccess,
+    this.onShiftsChanged,
+  });
 
   @override
   State<QuickActions> createState() => _QuickActionsState();
@@ -60,21 +73,35 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Timesheet')),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
         },
       ),
       _QuickActionData(
-        title: 'Shift Schedule',
-        subtitle: 'Next week',
+        title: 'Available Shifts',
+        subtitle: 'Browse open shifts',
         icon: Icons.event_note_rounded,
         iconColor: AppColors.actionRegisterIcon,
         iconBgColor: AppColors.actionRegisterBg,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Shift Registration')),
+        onTap: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const AvailableShiftsView()),
           );
+          if (mounted) widget.onShiftsChanged?.call();
+        },
+      ),
+      _QuickActionData(
+        title: 'Work Schedule',
+        subtitle: 'Your shifts and details',
+        icon: Icons.event_note_outlined,
+        iconColor: AppColors.actionRegisterIcon,
+        iconBgColor: AppColors.actionRegisterBg,
+        onTap: () async {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+          if (mounted) widget.onShiftsChanged?.call();
         },
       ),
       _QuickActionData(
@@ -84,9 +111,9 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to POS Order Creation')),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
         },
       ),
       _QuickActionData(
@@ -96,9 +123,9 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionHistoryIcon,
         iconBgColor: AppColors.actionHistoryBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Order History')),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const StaffOrderListView()));
         },
       ),
       _QuickActionData(
@@ -107,10 +134,11 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.swap_horiz_rounded,
         iconColor: AppColors.actionSwapIcon,
         iconBgColor: AppColors.actionSwapBg,
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Shift Swap')),
-          );
+        onTap: () async {
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
+          if (mounted) widget.onShiftsChanged?.call();
         },
       ),
       _QuickActionData(
@@ -120,8 +148,8 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionLeaveIcon,
         iconBgColor: AppColors.actionLeaveBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Leave Requests')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffRequestListView()),
           );
         },
       ),
@@ -145,63 +173,40 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionContractIcon,
         iconBgColor: AppColors.actionContractBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Contracts')),
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffContractListView()),
           );
         },
       ),
     ];
 
     // Limit to 6 items when collapsed
-    final displayedActions = _isExpanded ? allActions : allActions.take(6).toList();
+    final displayedActions = _isExpanded
+        ? allActions
+        : allActions.take(6).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title + See more / Collapse button
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (allActions.length > 6)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  visualDensity: VisualDensity.compact,
-                ),
-                icon: Icon(
-                  _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                  size: 18,
-                  color: AppColors.primary,
-                ),
-                label: Text(
-                  _isExpanded ? 'Collapse' : 'See more',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
-          ],
+        const Text(
+          'Quick Actions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 12),
 
+        const Text(
+          'Everything you need for your workday',
+          style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        const SizedBox(height: 16),
         // Display actions in 2-column grid rows
         for (int i = 0; i < displayedActions.length; i += 2) ...[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: QuickActionItem(
@@ -231,45 +236,35 @@ class _QuickActionsState extends State<QuickActions> {
           ),
           if (i + 2 < displayedActions.length) const SizedBox(height: 12),
         ],
-
-        // Bottom toggle button
-        if (allActions.length > 6) ...[
-          const SizedBox(height: 8),
-          Center(
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _isExpanded
-                          ? 'Collapse list'
-                          : 'See ${allActions.length - 6} more actions',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      _isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                      size: 16,
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _isExpanded = !_isExpanded;
+              });
+            },
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: Icon(
+              _isExpanded
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+            label: Text(
+              _isExpanded ? 'Collapse' : 'See more',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
               ),
             ),
           ),
-        ],
+        ),
       ],
     );
   }

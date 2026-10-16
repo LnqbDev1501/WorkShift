@@ -82,6 +82,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         options.Authority = $"{supabaseUrl.TrimEnd('/')}/auth/v1";
         options.Audience = "authenticated";
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // SignalR browser transports send the bearer token as a query parameter.
+                if (context.Request.Path.StartsWithSegments("/hubs/payroll-notifications")
+                    && context.Request.Query.TryGetValue("access_token", out var token))
+                    context.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization(options =>
 {
@@ -96,8 +107,17 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 var myCnn = builder.Configuration.GetConnectionString("MyCnn")
     ?? throw new InvalidOperationException("Missing MyCnn connection string.");
 // The Supabase pooler allows only 15 session clients: bound client-side pooling
-// and Hangfire workers so background jobs cannot starve web requests.
-var pooledConnectionString = new Npgsql.NpgsqlConnectionStringBuilder(myCnn) { MaxPoolSize = 8 }.ToString();
+// and Hangfire workers so background jobs cannot starve web requests or hit EMAXCONNSESSION.
+var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
+{
+    MaxPoolSize = 5,
+    MinPoolSize = 0,
+    ConnectionIdleLifetime = 5,
+    ConnectionPruningInterval = 2,
+    Timeout = 15,
+    CommandTimeout = 30
+};
+var pooledConnectionString = efConnBuilder.ToString();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -105,7 +125,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
-var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire") ?? pooledConnectionString;
+var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
+var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
+{
+    MaxPoolSize = 3,
+    MinPoolSize = 0,
+    ConnectionIdleLifetime = 5,
+    ConnectionPruningInterval = 2,
+    Timeout = 15,
+    CommandTimeout = 30
+};
+var hangfireConnection = hangfireConnBuilder.ToString();
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -119,12 +149,25 @@ builder.Services.AddHangfireServer(options =>
 
 builder.Services.AddScoped<IPayrollApprovalRepo, PayrollApprovalRepo>();
 builder.Services.AddScoped<IPayrollApprovalService, PayrollApprovalService>();
+builder.Services.AddScoped<IPayrollChangeTransaction>(sp => sp.GetRequiredService<HolidayConfigurationRepo>());
 builder.Services.AddScoped<ISalaryHistoryRepo, SalaryHistoryRepo>();
 builder.Services.AddScoped<ISalaryHistoryService, SalaryHistoryService>();
 builder.Services.AddScoped<IPayrollPeriodRepo, PayrollPeriodRepo>();
 builder.Services.AddScoped<IPayrollPeriodService, PayrollPeriodService>();
 builder.Services.AddScoped<IPayrollCalculationRepo, PayrollCalculationRepo>();
 builder.Services.AddScoped<IPayrollCalculationService, PayrollCalculationService>();
+builder.Services.AddScoped<IPayrollRevisionRepo, PayrollRevisionRepo>();
+builder.Services.AddScoped<IPayrollRevisionService, PayrollRevisionService>();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+builder.Services.AddScoped<IPayslipRepo, PayslipRepo>();
+builder.Services.AddScoped<IPayslipService, PayslipService>();
+builder.Services.AddScoped<IPayrollFeedbackRepo, PayrollFeedbackRepo>();
+builder.Services.AddScoped<IPayrollFeedbackService, PayrollFeedbackService>();
+builder.Services.AddScoped<PayslipPublicationJob>();
+builder.Services.AddScoped<IPayrollSettlementRepo, PayrollSettlementRepo>();
+builder.Services.AddScoped<IPayrollSettlementService, PayrollSettlementService>();
+builder.Services.AddScoped<IPayrollClosureNotifier, HangfirePayrollClosureNotifier>();
+builder.Services.AddScoped<PayrollClosureNotificationJob>();
 
 builder.Services.AddHttpClient<AuthService>(client =>
 {
@@ -135,7 +178,7 @@ builder.Services.AddHttpClient<AuthService>(client =>
     client.DefaultRequestHeaders.Add("apikey", serviceRoleKey);
     client.DefaultRequestHeaders.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceRoleKey);
-}).AddTypedClient<IAuthService>((client, _) =>
+}).AddTypedClient<IAuthService>((client, sp) =>
 {
     var setPasswordUrl = builder.Configuration["AdminUi:SetPasswordUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:SetPasswordUrl configuration.");
@@ -143,7 +186,8 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
     var staffSetupUrl = builder.Configuration["AdminUi:StaffSetupUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:StaffSetupUrl configuration.");
-    return new AuthService(client, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new AuthService(client, context, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
@@ -193,6 +237,11 @@ builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
+        builder.Services.AddScoped<IOrderRepo, OrderRepo>();
+        builder.Services.AddScoped<IOrderService, OrderService>();
+        builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
+            WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
+        builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
@@ -214,6 +263,8 @@ builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IAccoun
     WorkShiftManagement.BLL.Services.Accountant.AccountantDashboardService>();
 builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
+builder.Services.AddScoped<IEmployeeAdjustmentRepo, EmployeeAdjustmentRepo>();
+builder.Services.AddScoped<IEmployeeAdjustmentService, EmployeeAdjustmentService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
     WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
@@ -258,6 +309,10 @@ builder.Services.AddScoped<IShiftRepo, ShiftRepo>();
 builder.Services.AddScoped<IShiftService, ShiftService>();
 builder.Services.AddScoped<IShiftAssignmentRepo, ShiftAssignmentRepo>();
 builder.Services.AddScoped<IShiftAssignmentService, ShiftAssignmentService>();
+builder.Services.AddScoped<IStaffShiftRepo, StaffShiftRepo>();
+builder.Services.AddScoped<IStaffShiftService, StaffShiftService>();
+builder.Services.AddScoped<IStaffShiftSwapRepo, StaffShiftSwapRepo>();
+builder.Services.AddScoped<IStaffShiftSwapService, StaffShiftSwapService>();
 builder.Services.AddHttpClient<INotificationEmailSender, ResendNotificationEmailSender>(client =>
 {
     client.BaseAddress = new Uri("https://api.resend.com/");
@@ -274,6 +329,20 @@ var app = builder.Build();
 
 try
 {
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<PayrollClosureNotificationJob>(
+            "payroll-closure-notification-recovery",
+            job => job.SendPendingAsync(CancellationToken.None),
+            Cron.Minutely());
+    // UTC+7 Thursday 00:00 = Wednesday 17:00 UTC. Existing payslips and
+    // transaction locks make retries idempotent; there is no manual publish endpoint.
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<PayslipPublicationJob>(
+            "initial-payslip-publication",
+            job => job.ExecuteAsync(CancellationToken.None),
+            "0 17 * * 3",
+            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
@@ -306,11 +375,16 @@ try
             "overdue-contracts-cancellation",
             service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
             Cron.Minutely());
-
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService>(
             "timesheet-deadline-autolock",
             service => service.AutoLockExpiredTimesheetsAsync(CancellationToken.None),
+            Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService>(
+            "overdue-requests-cancellation",
+            service => service.CancelOverduePendingRequestsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 
@@ -336,5 +410,6 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
+app.MapHub<PayrollNotificationHub>("/hubs/payroll-notifications");
 
 app.Run();

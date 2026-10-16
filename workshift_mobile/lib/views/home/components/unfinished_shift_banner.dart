@@ -5,10 +5,7 @@ import '../../../models/attendance_shift_model.dart';
 class UnfinishedShiftWarningBanner extends StatelessWidget {
   final EligibleShiftModel shift;
 
-  const UnfinishedShiftWarningBanner({
-    super.key,
-    required this.shift,
-  });
+  const UnfinishedShiftWarningBanner({super.key, required this.shift});
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '--:--';
@@ -26,7 +23,10 @@ class UnfinishedShiftWarningBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFF7ED), // Warm amber background
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFDBA74), width: 1.2), // Amber border
+        border: Border.all(
+          color: const Color(0xFFFDBA74),
+          width: 1.2,
+        ), // Amber border
         boxShadow: [
           BoxShadow(
             color: Colors.orange.withValues(alpha: 0.06),

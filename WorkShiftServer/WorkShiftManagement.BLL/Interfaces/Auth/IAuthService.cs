@@ -11,7 +11,7 @@ public interface IAuthService
     Task DeleteUserAsync(Guid userId);
     Task BanUserAsync(Guid userId);
     Task UnbanUserAsync(Guid userId);
-    Task<Guid> SetPasswordAsync(string accessToken, string password);
+    Task<Guid> SetPasswordAsync(Guid userId, string currentPassword, string password);
     Task UpdateEmailAsync(Guid userId, string email);
     Task<LoginResponse> LoginAsync(LoginRequest request);
     Task<LoginResponse> RefreshAsync(string refreshToken);

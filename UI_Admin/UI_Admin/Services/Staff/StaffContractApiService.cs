@@ -116,6 +116,16 @@ public class StaffContractApiService(HttpClient client, IConfiguration configura
         return await response.Content.ReadFromJsonAsync<List<StaffContractChangeRequestViewModel>>(cancellationToken: ct) ?? [];
     }
 
+    public async Task<List<string>> GetActivePositionOptionsAsync(CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/staff/contracts/active-positions";
+        using var response = await client.GetAsync(url, ct);
+        if (!response.IsSuccessStatusCode)
+            return [];
+
+        return await response.Content.ReadFromJsonAsync<List<string>>(cancellationToken: ct) ?? [];
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)

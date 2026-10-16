@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../controllers/home_controller.dart';
+import '../../controllers/notification_controller.dart';
+import '../../controllers/staff_request_controller.dart';
+import '../requests/staff_request_detail_view.dart';
+import '../../models/staff_request_model.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_view.dart';
@@ -11,7 +15,12 @@ import 'components/today_shift_card.dart';
 import 'components/unfinished_shift_banner.dart';
 import 'handlers/attendance_flow_handler.dart';
 import '../attendance/attendance_history_view.dart';
+import '../shifts/my_shifts_view.dart';
+
 import '../face_registration/face_registration_modal.dart';
+import '../staff_notifications_view.dart';
+import '../staff_profile_view.dart';
+import '../requests/staff_request_list_view.dart';
 import '../timesheet/staff_timesheet_view.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
@@ -27,6 +36,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
+  final NotificationController _notificationController = NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
 
@@ -36,6 +46,7 @@ class _HomeViewState extends State<HomeView> {
     _controller.addListener(_onControllerUpdated);
     // Tải dữ liệu từ Backend .NET
     _controller.loadHomeData();
+    _notificationController.loadUnreadCount();
   }
 
   @override
@@ -47,7 +58,9 @@ class _HomeViewState extends State<HomeView> {
   void _onControllerUpdated() {
     if (mounted) {
       setState(() {});
-      if (!_controller.isLoading && _controller.isFaceNotRegistered && !_hasPromptedFaceRegistration) {
+      if (!_controller.isLoading &&
+          _controller.isFaceNotRegistered &&
+          !_hasPromptedFaceRegistration) {
         _hasPromptedFaceRegistration = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -90,12 +103,19 @@ class _HomeViewState extends State<HomeView> {
         content: Text(
           _controller.shiftErrorMessage ??
               'Your account has not registered a biometric face profile yet. You must complete face registration before performing shift attendance.',
-          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Later', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Later',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx, true),
@@ -104,7 +124,9 @@ class _HomeViewState extends State<HomeView> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7C3AED),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
@@ -175,6 +197,57 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
+  Future<void> _openRequest(StaffEmployeeRequestListItemModel request) async {
+    final requestController = StaffRequestController();
+    try {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => StaffRequestDetailView(
+            requestId: request.requestId,
+            controller: requestController,
+          ),
+        ),
+      );
+      if (mounted) await _controller.loadHomeData(silent: true);
+    } finally {
+      requestController.dispose();
+    }
+  }
+
+  Widget _buildPlaceholderTab(String title, IconData icon) {
+    return SafeArea(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF6FF),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 48, color: AppColors.primary),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Chức năng đang được cập nhật',
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,23 +255,153 @@ class _HomeViewState extends State<HomeView> {
       body: IndexedStack(
         index: _currentTabIndex,
         children: [
-          _buildHomeTab(),
+          // Tab 0: Home
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _controller.loadHomeData,
+              color: AppColors.primary,
+              child: _controller.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 20,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 1. Tiêu đề & Lời chào (Chào buổi sáng, Minh!)
+                          HomeHeader(
+                            userName: _controller.displayName,
+                            branchName: _controller.branchName,
+                            avatarUrl: _controller.user?.avatarUrl,
+                            onLogoutTap: _handleLogout,
+                            onNotificationTap: () {
+                              setState(() => _currentTabIndex = 4);
+                            },
+                            unreadCount: _notificationController.unreadCount,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // 2. Thẻ Ca làm hôm nay (08:00 – 16:00, Chấm công vào)
+                          TodayShiftCard(
+                            shift: _controller.todayShift,
+                            isFaceNotRegistered:
+                                _controller.isFaceNotRegistered,
+                            onRegisterFaceTap: () async {
+                              final success = await showFaceRegistrationModal(
+                                context: context,
+                              );
+                              if (success == true && mounted) {
+                                await _controller.loadHomeData();
+                              }
+                            },
+                            onCheckInTap: () =>
+                                AttendanceFlowHandler.handleCheckIn(
+                                  context: context,
+                                  homeController: _controller,
+                                ),
+                            onCheckOutTap: () =>
+                                AttendanceFlowHandler.handleCheckOut(
+                                  context: context,
+                                  homeController: _controller,
+                                ),
+                            onViewAttendanceHistoryTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AttendanceHistoryView(
+                                    homeController: _controller,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+
+                          // 2b. Cảnh báo ca làm việc trước chưa Checkout (nếu có)
+                          if (_controller.unCheckedOutPreviousShift !=
+                              null) ...[
+                            UnfinishedShiftWarningBanner(
+                              shift: _controller.unCheckedOutPreviousShift!,
+                            ),
+                          ],
+                          const SizedBox(height: 24),
+
+                          // 3. Quick Actions
+                          QuickActions(
+                            onFaceRegistrationSuccess: () =>
+                                _controller.loadHomeData(),
+                            onShiftsChanged: () =>
+                                _controller.loadHomeData(silent: true),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 4. Most recently updated requests
+                          PendingTasks(
+                            requests: _controller.recentRequests,
+                            errorMessage: _controller.requestsError,
+                            onRequestTap: _openRequest,
+                            onViewAll: () =>
+                                setState(() => _currentTabIndex = 3),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // 5. Recorded hours for the current week
+                          DocumentsSection(
+                            workingMinutes: _controller.weeklyWorkingMinutes,
+                            weekStart: _controller.weekStart,
+                            weekEnd: _controller.weekEnd,
+                            errorMessage: _controller.weeklyHoursError,
+                            onViewHistory: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AttendanceHistoryView(
+                                  homeController: _controller,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+          // Tab 1: Timesheet
           const StaffTimesheetView(),
-          _buildPlaceholderTab(title: 'Shift Schedule', icon: Icons.calendar_month_outlined),
-          _buildPlaceholderTab(title: 'Employee Requests', icon: Icons.description_outlined),
-          _buildPlaceholderTab(title: 'Account Profile', icon: Icons.person_outline),
+          // Tab 2: Schedule
+          _currentTabIndex == 2
+              ? const MyShiftsView(showBackButton: false)
+              : const SizedBox.shrink(),
+          // Tab 3: Requests
+          const StaffRequestListView(showBackButton: false),
+          // Tab 4: Notifications
+          StaffNotificationsView(),
+          // Tab 5: Profile
+          StaffProfileView(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textMuted,
-        backgroundColor: Colors.white,
+        unselectedItemColor: AppColors.textSecondary,
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         currentIndex: _currentTabIndex,
         onTap: (index) {
+          final returningFromSchedule = index == 0 && _currentTabIndex != 0;
           setState(() {
             _currentTabIndex = index;
           });
+          if (returningFromSchedule) _controller.loadHomeData(silent: true);
         },
         items: const [
           BottomNavigationBarItem(
@@ -222,120 +425,14 @@ class _HomeViewState extends State<HomeView> {
             label: 'Requests',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            activeIcon: Icon(Icons.notifications),
+            label: 'Notification',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHomeTab() {
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: _controller.loadHomeData,
-        color: AppColors.primary,
-        child: _controller.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.primary,
-                ),
-              )
-            : SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Tiêu đề & Lời chào (Chào buổi sáng, Minh!)
-                    HomeHeader(
-                      userName: _controller.displayName,
-                      branchName: _controller.branchName,
-                      avatarUrl: _controller.user?.avatarUrl,
-                      onLogoutTap: _handleLogout,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 2. Thẻ Ca làm hôm nay (08:00 – 16:00, Chấm công vào)
-                    TodayShiftCard(
-                      shift: _controller.todayShift,
-                      isFaceNotRegistered: _controller.isFaceNotRegistered,
-                      onRegisterFaceTap: () async {
-                        final success = await showFaceRegistrationModal(context: context);
-                        if (success == true && mounted) {
-                          await _controller.loadHomeData();
-                        }
-                      },
-                      onCheckInTap: () => AttendanceFlowHandler.handleCheckIn(
-                        context: context,
-                        homeController: _controller,
-                      ),
-                      onCheckOutTap: () => AttendanceFlowHandler.handleCheckOut(
-                        context: context,
-                        homeController: _controller,
-                      ),
-                      onViewAttendanceHistoryTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AttendanceHistoryView(homeController: _controller),
-                          ),
-                        );
-                      },
-                    ),
-
-                    // 2b. Cảnh báo ca làm việc trước chưa Checkout (nếu có)
-                    if (_controller.unCheckedOutPreviousShift != null) ...[
-                      UnfinishedShiftWarningBanner(
-                        shift: _controller.unCheckedOutPreviousShift!,
-                      ),
-                    ],
-                    const SizedBox(height: 24),
-
-                    // 3. Quick Actions
-                    QuickActions(
-                      onFaceRegistrationSuccess: () => _controller.loadHomeData(),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 4. Pending Tasks
-                    const PendingTasks(),
-                    const SizedBox(height: 24),
-
-                    // 5. Documents & Records
-                    const DocumentsSection(),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderTab({required String title, required IconData icon}) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 36, color: AppColors.primary),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'This section is under development.',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
         ],
       ),

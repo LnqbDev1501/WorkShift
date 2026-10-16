@@ -15,7 +15,7 @@ class ApiClient {
   // comment đoạn này nếu muốn chạy web
   static String get defaultBaseUrl {
     if (kIsWeb) {
-      return 'https://localhost:7193';
+      return 'http://localhost:5267';
     }
     return 'http://10.0.2.2:5267';
   }

@@ -27,6 +27,14 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
 
         Task<User?> GetDetailByIdAsync(Guid userId);
 
+        Task<User?> GetActiveProfileByIdAsync(Guid userId);
+
+        Task<User?> GetByIdWithTrackingAsync(Guid userId);
+
+        Task<bool> ExistsByEmailAsync(string email, Guid? excludeUserId = null);
+
+        Task<bool> ExistsByPhoneAsync(string phone, Guid? excludeUserId = null);
+
         Task<(IReadOnlyList<User> Items, int TotalItems)> GetPagedAsync(
             int pageNumber,
             int pageSize,

@@ -8,7 +8,7 @@ using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
-using WorkShiftManagement.DAL.Version.Rules;
+using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo,
@@ -24,6 +24,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         var result = await repo.ExecuteAsync(shiftId, request.UserId, branchId, async (shift, staff) =>
         {
             ValidateShift(shift);
+            ValidateAssignmentDeadline(shift.ScheduledStartAt, DateTime.UtcNow);
             if (staff.BranchId != branchId) throw new KeyNotFoundException("Staff not found in this branch.");
             if (staff.Status != "ACTIVE" || staff.DeletedAt.HasValue ||
                 staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE")
@@ -38,13 +39,7 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
             if (existing != null && existing.Status != "CANCELLED")
                 throw new InvalidOperationException("Staff is already assigned to this shift.");
             if (existing != null) ValidateHistory(existing, restoring: true);
-            if (shift.ShiftAssignments.Any(a => a.Status is "ASSIGNED" or "COMPLETED" &&
-                !shift.ShiftEmployeeRequirements.Any(r => r.ShiftRequirementId == a.ShiftRequirementId)))
-                throw new InvalidOperationException("An existing assignment has no valid employee requirement. Correct the staffing data first.");
-            var occupied = shift.ShiftAssignments.Count(a => a.ShiftRequirementId == requirement.ShiftRequirementId &&
-                a.Status is "ASSIGNED" or "COMPLETED");
-            if (occupied >= requirement.RequiredCount)
-                throw new InvalidOperationException("There are no remaining slots for this employee type.");
+            ValidateCapacity(shift, requirement);
 
             var firstDay = DateOnly.FromDateTime(shift.ScheduledStartAt.AddHours(7));
             var lastDay = DateOnly.FromDateTime(shift.ScheduledEndAt.AddTicks(-1).AddHours(7));
@@ -130,8 +125,12 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
                 (cancelled ? $"has been cancelled by your manager. Reason: {reason}" : "has been confirmed by your manager."),
             NotificationType = "ShiftAssignment",
             CreatedBy = actor, CreatedAt = timestamp, UpdatedAt = timestamp,
-            TargetType = "Custom", Channels = ["InApp"], TargetRoles = ["STAFF"],
-            UserNotifications = [new UserNotification { UserId = recipient, CreatedAt = timestamp }]
+            // The recipient is selected by UserNotifications, not a custom broadcast audience.
+            TargetType = "Staff", Channels = ["InApp"], TargetRoles = [],
+            UserNotifications = [new UserNotification
+            {
+                UserId = recipient, CreatedAt = timestamp, IsRead = false, IsDeleted = false
+            }]
         };
         // Persist the recipient's inbox item atomically with the assignment.
         repo.AddNotification(notification);
@@ -168,54 +167,20 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
         return branchId;
     }
 
+    internal static void ValidateAssignmentDeadline(DateTime scheduledStartAt, DateTime utcNow)
+    {
+        // A Thursday shift closes assignment at Wednesday 00:00 in Vietnam.
+        var deadlineUtc = DateTime.SpecifyKind(scheduledStartAt.AddHours(7).Date.AddDays(-1).AddHours(-7), DateTimeKind.Utc);
+        if (utcNow >= deadlineUtc)
+            throw new InvalidOperationException("Employees must be assigned before 00:00 on the day before the shift (UTC+7).");
+    }
+
     private static void ValidateShift(WorkShift shift)
     {
         if (shift.Status != "SCHEDULED" || shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED"))
             throw new InvalidOperationException("Assignments can only be changed in a scheduled shift in an opened or closed registration week.");
         if (shift.ScheduledStartAt <= DateTime.UtcNow || shift.ScheduledEndAt <= shift.ScheduledStartAt)
             throw new InvalidOperationException("The shift has started or has invalid times.");
-    }
-
-    private static void ValidateHistory(ShiftAssignment assignment, bool restoring)
-    {
-        if (assignment.Attendance != null || assignment.PayslipWorkDetails.Count != 0)
-            throw new InvalidOperationException("The assignment has attendance or payroll data.");
-        if (assignment.LeaveRequestAssignments.Any(l => restoring || l.Request.Status is "PENDING" or "APPROVED") ||
-            (restoring && (assignment.ShiftSwapRequestSourceAssignments.Any() ||
-                assignment.ShiftSwapRequestTargetAssignments.Any())))
-            throw new InvalidOperationException("Resolve the linked leave or shift-swap request before changing this assignment; assignments with request history cannot be restored.");
-    }
-
-    internal static DateOnly StartOfWeek(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
-    private static DateTime ToUtc(DateOnly date) => DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc);
-
-    private static void ValidateWorkingTime(WorkShift candidate, List<WorkShift> others, List<WorkingTimeRule> rules)
-    {
-        var first = DateOnly.FromDateTime(candidate.ScheduledStartAt.AddHours(7));
-        var last = DateOnly.FromDateTime(candidate.ScheduledEndAt.AddTicks(-1).AddHours(7));
-        var all = others.Append(candidate).ToList();
-        for (var day = first; day <= last; day = day.AddDays(1))
-        {
-            var rule = WorkingTimeRuleLifecycle.SelectApplicable(rules, day)
-                ?? throw new InvalidOperationException($"No working time rule applies on {day:yyyy-MM-dd}.");
-            var dayStart = ToUtc(day);
-            var weekStart = ToUtc(StartOfWeek(day));
-            if (all.Sum(s => MinutesWithin(s, dayStart, dayStart.AddDays(1))) > rule.MaxDailyMinutes + 0.000001)
-                throw new InvalidOperationException($"The assignment exceeds the daily working time limit on {day:yyyy-MM-dd}.");
-            if (all.Sum(s => MinutesWithin(s, weekStart, weekStart.AddDays(7))) > rule.MaxWeeklyMinutes + 0.000001)
-                throw new InvalidOperationException("The assignment exceeds the weekly working time limit.");
-        }
-    }
-
-    private static double MinutesWithin(WorkShift shift, DateTime from, DateTime to)
-    {
-        var start = shift.ScheduledStartAt > from ? shift.ScheduledStartAt : from;
-        var end = shift.ScheduledEndAt < to ? shift.ScheduledEndAt : to;
-        if (end <= start) return 0;
-        var duration = (shift.ScheduledEndAt - shift.ScheduledStartAt).TotalMinutes;
-        if (duration <= 0)
-            throw new InvalidOperationException("An existing shift has invalid working time data.");
-        return (end - start).TotalMinutes;
     }
 
     private static ShiftAssignmentResponse Map(ShiftAssignment a) => new()

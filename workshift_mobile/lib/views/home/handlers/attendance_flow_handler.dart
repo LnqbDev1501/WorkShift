@@ -24,13 +24,18 @@ class AttendanceFlowHandler {
       final registerNow = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Row(
             children: [
               Icon(Icons.face_retouching_off_rounded, color: Colors.deepOrange),
               SizedBox(width: 8),
               Expanded(
-                child: Text('Face Profile Required', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Face Profile Required',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -42,7 +47,10 @@ class AttendanceFlowHandler {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
             ),
             ElevatedButton.icon(
               onPressed: () => Navigator.pop(ctx, true),
@@ -51,7 +59,9 @@ class AttendanceFlowHandler {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7C3AED),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ],
@@ -87,16 +97,25 @@ class AttendanceFlowHandler {
     }
 
     // Guard: Có ca làm việc trước đó chưa Checkout
-    final prevShift = currentShift.unfinishedPreviousShift ?? homeController.unCheckedOutPreviousShift;
+    final prevShift =
+        currentShift.unfinishedPreviousShift ??
+        homeController.unCheckedOutPreviousShift;
     if (prevShift != null) {
-      final prevStart = prevShift.scheduledStartAt.toLocal().toString().substring(11, 16);
-      final prevEnd = prevShift.scheduledEndAt.toLocal().toString().substring(11, 16);
+      final prevStart = prevShift.scheduledStartAt
+          .toLocal()
+          .toString()
+          .substring(11, 16);
+      final prevEnd = prevShift.scheduledEndAt.toLocal().toString().substring(
+        11,
+        16,
+      );
       _showAlertDialog(
         context: context,
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.deepOrange,
         title: 'Check-Out Required',
-        message: 'You have an unfinished shift: ${prevShift.shiftName} ($prevStart – $prevEnd) that has not been checked out.\n\nPlease complete Check-Out in Attendance History before checking in for this shift.',
+        message:
+            'You have an unfinished shift: ${prevShift.shiftName} ($prevStart – $prevEnd) that has not been checked out.\n\nPlease complete Check-Out in Attendance History before checking in for this shift.',
         buttonText: 'Understood',
       );
       return;
@@ -109,7 +128,8 @@ class AttendanceFlowHandler {
         icon: Icons.info_outline_rounded,
         iconColor: AppColors.primary,
         title: 'Already Checked In',
-        message: 'You have already checked in for this shift at ${currentShift.checkInTime?.toLocal().toString().substring(11, 16) ?? ''}.\nYou cannot check in again.',
+        message:
+            'You have already checked in for this shift at ${currentShift.checkInTime?.toLocal().toString().substring(11, 16) ?? ''}.\nYou cannot check in again.',
         buttonText: 'OK',
       );
       return;
@@ -122,7 +142,8 @@ class AttendanceFlowHandler {
         icon: Icons.cancel_outlined,
         iconColor: Colors.red,
         title: 'Attendance Window Closed',
-        message: 'The attendance window for this shift has closed (cut-off passed).\n\nYou cannot check in for this shift.',
+        message:
+            'The attendance window for this shift has closed (cut-off passed).\n\nYou cannot check in for this shift.',
         buttonText: 'Understood',
       );
       return;
@@ -135,7 +156,9 @@ class AttendanceFlowHandler {
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
         title: 'Cannot Check In',
-        message: currentShift.canNotCheckInReason ?? 'Check-in is currently not available for this shift.',
+        message:
+            currentShift.canNotCheckInReason ??
+            'Check-in is currently not available for this shift.',
         buttonText: 'Understood',
       );
       return;
@@ -149,7 +172,9 @@ class AttendanceFlowHandler {
     );
 
     if (refreshed == true && context.mounted) {
-      homeController.markCheckInSuccess(assignmentId: currentShift.assignmentId);
+      homeController.markCheckInSuccess(
+        assignmentId: currentShift.assignmentId,
+      );
       homeController.loadHomeData(silent: true);
     }
   }
@@ -171,7 +196,8 @@ class AttendanceFlowHandler {
         icon: Icons.face_retouching_off_rounded,
         iconColor: Colors.deepOrange,
         title: 'Face Profile Required',
-        message: 'You have not registered your biometric face profile yet.\n\nPlease complete face registration before checking out.',
+        message:
+            'You have not registered your biometric face profile yet.\n\nPlease complete face registration before checking out.',
         buttonText: 'Understood',
       );
       return;
@@ -203,7 +229,8 @@ class AttendanceFlowHandler {
         icon: Icons.warning_amber_rounded,
         iconColor: Colors.orange,
         title: 'Check-In Required',
-        message: 'You have not checked in for this shift yet.\nYou must check in before checking out.',
+        message:
+            'You have not checked in for this shift yet.\nYou must check in before checking out.',
         buttonText: 'Understood',
       );
       return;
@@ -216,20 +243,32 @@ class AttendanceFlowHandler {
         icon: Icons.check_circle_rounded,
         iconColor: Colors.green,
         title: 'Shift Completed',
-        message: 'You have already completed check-out for this shift at ${currentShift.checkOutTime?.toLocal().toString().substring(11, 16) ?? ''}.',
+        message:
+            'You have already completed check-out for this shift at ${currentShift.checkOutTime?.toLocal().toString().substring(11, 16) ?? ''}.',
         buttonText: 'OK',
       );
       return;
     }
 
     // Guard: Ca đã hết thời gian checkout (Hiển thị popup thông báo ngay lập tức, không cho vào quét mặt)
-    if (currentShift.isCheckoutExpired || (!currentShift.canCheckOutNow && (currentShift.canNotCheckOutReason?.toLowerCase().contains('closed') == true || currentShift.canNotCheckOutReason?.toLowerCase().contains('quá hạn') == true))) {
+    if (currentShift.isCheckoutExpired ||
+        (!currentShift.canCheckOutNow &&
+            (currentShift.canNotCheckOutReason?.toLowerCase().contains(
+                      'closed',
+                    ) ==
+                    true ||
+                currentShift.canNotCheckOutReason?.toLowerCase().contains(
+                      'quá hạn',
+                    ) ==
+                    true))) {
       _showAlertDialog(
         context: context,
         icon: Icons.access_time_filled_rounded,
         iconColor: Colors.red,
         title: 'Check-Out Window Closed',
-        message: currentShift.canNotCheckOutReason ?? 'Check-out window has closed for this shift.\n\nYou cannot check out for this shift anymore. Please contact your Manager.',
+        message:
+            currentShift.canNotCheckOutReason ??
+            'Check-out window has closed for this shift.\n\nYou cannot check out for this shift anymore. Please contact your Manager.',
         buttonText: 'Understood',
       );
       return;
@@ -242,7 +281,9 @@ class AttendanceFlowHandler {
         icon: Icons.info_outline_rounded,
         iconColor: Colors.orange,
         title: 'Cannot Check Out',
-        message: currentShift.canNotCheckOutReason ?? 'You cannot check out at this time.',
+        message:
+            currentShift.canNotCheckOutReason ??
+            'You cannot check out at this time.',
         buttonText: 'Understood',
       );
       return;
@@ -256,7 +297,9 @@ class AttendanceFlowHandler {
     );
 
     if (refreshed == true && context.mounted) {
-      homeController.markCheckOutSuccess(assignmentId: currentShift.assignmentId);
+      homeController.markCheckOutSuccess(
+        assignmentId: currentShift.assignmentId,
+      );
       homeController.loadHomeData(silent: true);
     }
   }
@@ -276,7 +319,10 @@ class AttendanceFlowHandler {
           children: [
             Icon(icon, color: iconColor),
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
@@ -286,7 +332,10 @@ class AttendanceFlowHandler {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(buttonText, style: const TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(
+              buttonText,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

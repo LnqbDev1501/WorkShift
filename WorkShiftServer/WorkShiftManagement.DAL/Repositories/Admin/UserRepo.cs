@@ -154,5 +154,57 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<User?> GetActiveProfileByIdAsync(Guid userId)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.UserId == userId && u.Status == "ACTIVE" && u.DeletedAt == null)
+                .Select(u => new User
+                {
+                    UserId = u.UserId,
+                    RoleId = u.RoleId,
+                    BranchId = u.BranchId,
+                    EmployeeTypeId = u.EmployeeTypeId,
+                    FullName = u.FullName,
+                    Email = u.Email,
+                    Phone = u.Phone,
+                    IdentityNo = u.IdentityNo,
+                    Gender = u.Gender,
+                    DateOfBirth = u.DateOfBirth,
+                    AvatarUrl = u.AvatarUrl,
+                    Address = u.Address,
+                    Status = u.Status,
+                    HasPassword = u.HasPassword,
+                    CreatedAt = u.CreatedAt,
+                    UpdatedAt = u.UpdatedAt,
+                    Role = u.Role,
+                    Branch = u.Branch,
+                    EmployeeType = u.EmployeeType
+                })
+                .SingleOrDefaultAsync();
+        }
+
+        public async Task<User?> GetByIdWithTrackingAsync(Guid userId)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+        }
+
+        public async Task<bool> ExistsByEmailAsync(string email, Guid? excludeUserId = null)
+        {
+            var normalized = email.Trim().ToLowerInvariant();
+            return await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Email.ToLower() == normalized && u.UserId != excludeUserId && u.DeletedAt == null);
+        }
+
+        public async Task<bool> ExistsByPhoneAsync(string phone, Guid? excludeUserId = null)
+        {
+            var normalized = phone.Trim();
+            return await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.Phone == normalized && u.UserId != excludeUserId && u.DeletedAt == null);
+        }
     }
 }

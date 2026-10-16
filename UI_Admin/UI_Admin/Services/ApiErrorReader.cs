@@ -30,21 +30,22 @@ internal static class ApiErrorReader
                         var detail = detailProp.GetString();
                         if (!string.IsNullOrWhiteSpace(detail))
                         {
-                            return !string.IsNullOrWhiteSpace(msg) && !msg.Equals(detail, StringComparison.OrdinalIgnoreCase)
+                            var combined = !string.IsNullOrWhiteSpace(msg) && !msg.Equals(detail, StringComparison.OrdinalIgnoreCase)
                                 ? $"{msg} ({detail})"
                                 : detail;
+                            return LocalizeErrorMessage(combined);
                         }
                     }
 
                     if (!string.IsNullOrWhiteSpace(msg))
-                        return msg;
+                        return LocalizeErrorMessage(msg);
 
                     // 3. Check for "error" or "Error" property
                     if (TryGetPropertyCaseInsensitive(root, "error", out var errorProp) && errorProp.ValueKind == JsonValueKind.String)
                     {
                         var err = errorProp.GetString();
                         if (!string.IsNullOrWhiteSpace(err))
-                            return err;
+                            return LocalizeErrorMessage(err);
                     }
 
                     // 4. Check for "title" or "Title" property
@@ -52,7 +53,7 @@ internal static class ApiErrorReader
                     {
                         var title = titleProp.GetString();
                         if (!string.IsNullOrWhiteSpace(title))
-                            return title;
+                            return LocalizeErrorMessage(title);
                     }
 
                     // 5. Check for "errors" dictionary (e.g. ASP.NET ModelState validation errors)
@@ -84,7 +85,7 @@ internal static class ApiErrorReader
                                 }
                             }
                             if (errorList.Count > 0)
-                                return string.Join("; ", errorList);
+                                return LocalizeErrorMessage(string.Join("; ", errorList));
                         }
                         else if (errorsProp.ValueKind == JsonValueKind.Array)
                         {
@@ -98,7 +99,7 @@ internal static class ApiErrorReader
                                 }
                             }
                             if (errorList.Count > 0)
-                                return string.Join("; ", errorList);
+                                return LocalizeErrorMessage(string.Join("; ", errorList));
                         }
                     }
                 }
@@ -106,13 +107,74 @@ internal static class ApiErrorReader
         }
         catch (Exception exception) when (exception is JsonException or NotSupportedException)
         {
-            if (!string.IsNullOrWhiteSpace(rawContent) && !rawContent.Contains("<html", StringComparison.OrdinalIgnoreCase))
-            {
-                return rawContent.Trim();
-            }
+            // Ignored: Fall back to raw content
         }
 
-        return $"Request failed with status code {(int)response.StatusCode}.";
+        var finalMessage = !string.IsNullOrWhiteSpace(rawContent) && !rawContent.Contains("<html", StringComparison.OrdinalIgnoreCase)
+            ? rawContent.Trim()
+            : $"Request failed with status code {(int)response.StatusCode}.";
+        return LocalizeErrorMessage(finalMessage);
+    }
+
+    public static string LocalizeErrorMessage(string msg)
+    {
+        if (string.IsNullOrWhiteSpace(msg)) return msg;
+
+        // Pattern: Requested (late arrival|early leave) time (2026-10-27 15:03:00 UTC) must be between shift start (2026-10-26 23:00:00 UTC) and shift end (2026-10-27 04:30:00 UTC).
+        var timeMatch = System.Text.RegularExpressions.Regex.Match(
+            msg,
+            @"Requested (late arrival|early leave) time \(([^)]+)\) must be between shift start \(([^)]+)\) and shift end \(([^)]+)\)",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        if (timeMatch.Success)
+        {
+            var isLate = timeMatch.Groups[1].Value.Equals("late arrival", StringComparison.OrdinalIgnoreCase);
+            var reqStr = timeMatch.Groups[2].Value.Replace(" UTC", "").Trim();
+            var startStr = timeMatch.Groups[3].Value.Replace(" UTC", "").Trim();
+            var endStr = timeMatch.Groups[4].Value.Replace(" UTC", "").Trim();
+
+            string reqVn = reqStr;
+            string startVn = startStr;
+            string endVn = endStr;
+
+            if (DateTime.TryParse(reqStr, System.Globalization.CultureInfo.InvariantCulture, out var reqDt))
+                reqVn = reqDt.AddHours(7).ToString("HH:mm dd/MM/yyyy");
+            if (DateTime.TryParse(startStr, System.Globalization.CultureInfo.InvariantCulture, out var startDt))
+                startVn = startDt.AddHours(7).ToString("HH:mm dd/MM/yyyy");
+            if (DateTime.TryParse(endStr, System.Globalization.CultureInfo.InvariantCulture, out var endDt))
+                endVn = endDt.AddHours(7).ToString("HH:mm dd/MM/yyyy");
+
+            var action = isLate ? "xin đi trễ" : "xin về sớm";
+            return $"Thời gian {action} ({reqVn}) không hợp lệ! Phải nằm trong khung giờ của ca làm việc: từ {startVn} đến {endVn}.";
+        }
+
+        // Pattern: must be submitted at least X day(s) in advance
+        var advanceMatch = System.Text.RegularExpressions.Regex.Match(
+            msg,
+            @"must be submitted at least (\d+) day\(s\) in advance",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (advanceMatch.Success)
+        {
+            var days = advanceMatch.Groups[1].Value;
+            return $"Đơn yêu cầu phải được gửi trước ít nhất {days} ngày theo quy định của chi nhánh.";
+        }
+
+        if (msg.Contains("Monthly limit", StringComparison.OrdinalIgnoreCase) || msg.Contains("limit of", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Bạn đã đạt giới hạn tối đa số đơn được gửi cho loại yêu cầu này trong tháng theo quy định chi nhánh.";
+        }
+
+        if (msg.Contains("has already started or ended", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Ca làm việc này đã bắt đầu hoặc đã kết thúc, không thể gửi yêu cầu nữa.";
+        }
+
+        if (msg.Contains("already exists for assignment", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Bạn đã có một đơn yêu cầu khác đang chờ duyệt hoặc đã duyệt cho ca làm này.";
+        }
+
+        return msg;
     }
 
     private static bool TryGetPropertyCaseInsensitive(JsonElement element, string propertyName, out JsonElement result)

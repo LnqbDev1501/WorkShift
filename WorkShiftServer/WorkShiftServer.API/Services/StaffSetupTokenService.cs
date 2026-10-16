@@ -6,7 +6,7 @@ namespace WorkShiftServer.API.Services;
 
 public sealed class StaffSetupTokenService
 {
-    public static readonly TimeSpan TokenLifetime = TimeSpan.FromMinutes(3);
+    public static readonly TimeSpan TokenLifetime = TimeSpan.FromHours(24);
 
     private readonly ITimeLimitedDataProtector _protector;
 

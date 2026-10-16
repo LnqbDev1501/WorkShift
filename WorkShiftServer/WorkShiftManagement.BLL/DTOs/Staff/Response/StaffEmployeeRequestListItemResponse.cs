@@ -4,6 +4,8 @@ namespace WorkShiftManagement.BLL.DTOs.Staff.Response;
 
 public class StaffEmployeeRequestListItemResponse
 {
+    public StaffSalaryIncreaseDetailResponse? SalaryIncreaseDetail { get; set; }
+
     public int RequestId { get; set; }
 
     public Guid UserId { get; set; }
@@ -21,6 +23,8 @@ public class StaffEmployeeRequestListItemResponse
     public string Status { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
+
+    public DateTime UpdatedAt { get; set; }
 
     public Guid? ReviewedBy { get; set; }
 

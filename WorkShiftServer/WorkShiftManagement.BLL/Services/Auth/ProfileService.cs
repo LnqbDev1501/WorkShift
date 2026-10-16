@@ -2,24 +2,24 @@ using System.Net.Mail;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Interfaces.Upload;
-using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
 public sealed class ProfileService : IProfileService
 {
-    private readonly AppDbContext _context;
+    private readonly IUserRepo _userRepo;
     private readonly IAuthService _authService;
     private readonly ICloudinaryService _cloudinaryService;
 
-    public ProfileService(AppDbContext context, IAuthService authService, ICloudinaryService cloudinaryService)
+    public ProfileService(IUserRepo userRepo, IAuthService authService, ICloudinaryService cloudinaryService)
     {
-        _context = context;
+        _userRepo = userRepo;
         _authService = authService;
         _cloudinaryService = cloudinaryService;
     }
@@ -30,33 +30,9 @@ public sealed class ProfileService : IProfileService
         if (userId == null)
             return null;
 
-        var entity = await _context.Users.AsNoTracking()
-            .Where(u => u.UserId == userId.Value && u.Status == "ACTIVE" && u.DeletedAt == null)
-            .Select(u => new ProfileResponse
-            {
-                UserId = u.UserId,
-                FullName = u.FullName,
-                Email = u.Email,
-                Phone = u.Phone,
-                IdentityNo = u.IdentityNo,
-                Gender = u.Gender,
-                DateOfBirth = u.DateOfBirth,
-                AvatarUrl = u.AvatarUrl,
-                Address = u.Address,
-                RoleId = u.RoleId,
-                RoleName = u.Role.RoleName,
-                BranchId = u.BranchId,
-                BranchCode = u.Branch == null ? null : u.Branch.BranchCode,
-                BranchName = u.Branch == null ? null : u.Branch.BranchName,
-                EmployeeTypeId = u.EmployeeTypeId,
-                EmployeeTypeName = u.EmployeeType == null ? null : u.EmployeeType.TypeName,
-                Status = u.Status,
-                CreatedAt = u.CreatedAt,
-                UpdatedAt = u.UpdatedAt
-            })
-            .SingleOrDefaultAsync();
+        var entity = await _userRepo.GetActiveProfileByIdAsync(userId.Value);
 
-        return entity;
+        return entity == null ? null : MapToProfileResponse(entity);
     }
 
     public async Task<ProfileResponse> UpdateMyProfileAsync(ClaimsPrincipal user, UpdateMyProfileRequest request)
@@ -64,7 +40,7 @@ public sealed class ProfileService : IProfileService
         var userId = GetUserId(user) ?? throw new UnauthorizedAccessException("Unable to identify the current user.");
         ArgumentNullException.ThrowIfNull(request);
 
-        var entity = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId)
+        var entity = await _userRepo.GetByIdWithTrackingAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
         RequireActive(entity);
 
@@ -75,6 +51,9 @@ public sealed class ProfileService : IProfileService
         var phone = request.Phone?.Trim() ?? string.Empty;
         if (!Regex.IsMatch(phone, @"^0[35789]\d{8}$"))
             throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
+
+        if (await _userRepo.ExistsByPhoneAsync(phone, userId))
+            ThrowIdentityConflict("Phone number");
 
         var gender = request.Gender?.Trim().ToUpperInvariant() ?? string.Empty;
         if (gender is not ("MALE" or "FEMALE" or "OTHER"))
@@ -92,21 +71,17 @@ public sealed class ProfileService : IProfileService
         if (address.Length is 0 or > 500)
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
 
-        var phoneOwner = await _context.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Phone == phone && u.UserId != userId && u.DeletedAt == null);
-        if (phoneOwner != null)
-            ThrowIdentityConflict(phoneOwner.Status, "Phone number");
-
         entity.FullName = fullName;
         entity.Phone = phone;
         entity.Gender = gender;
         entity.DateOfBirth = request.DateOfBirth.Value;
         entity.Address = address;
         entity.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _userRepo.SaveChangesAsync();
 
-        return await GetMyProfileAsync(user)
+        var updated = await _userRepo.GetActiveProfileByIdAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
+        return MapToProfileResponse(updated);
     }
 
     public async Task<string> UpdateMyAvatarAsync(ClaimsPrincipal user, IFormFile? avatarFile)
@@ -115,13 +90,13 @@ public sealed class ProfileService : IProfileService
         if (avatarFile == null || avatarFile.Length == 0)
             throw new ArgumentException("Please select an image file.");
 
-        var entity = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId)
+        var entity = await _userRepo.GetByIdWithTrackingAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
         RequireActive(entity);
 
         entity.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, avatarFile);
         entity.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        await _userRepo.SaveChangesAsync();
 
         return entity.AvatarUrl;
     }
@@ -130,8 +105,7 @@ public sealed class ProfileService : IProfileService
     {
         var userId = GetUserId(user) ?? throw new UnauthorizedAccessException("Unable to identify the current user.");
 
-        var entity = await _context.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.UserId == userId)
+        var entity = await _userRepo.GetByIdWithTrackingAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
         RequireActive(entity);
 
@@ -139,7 +113,8 @@ public sealed class ProfileService : IProfileService
         if (string.Equals(entity.Email, normalized, StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The new email address is the same as the current one.");
 
-        await EnsureEmailAvailableAsync(normalized, userId);
+        if (await _userRepo.ExistsByEmailAsync(normalized, userId))
+            throw new InvalidOperationException("Email address is already in use.");
 
         return new PendingEmailChange { UserId = userId, FullName = entity.FullName, NewEmail = normalized };
     }
@@ -150,35 +125,25 @@ public sealed class ProfileService : IProfileService
             throw new ArgumentException("Invalid verification link.");
         var normalized = NormalizeEmail(newEmail);
 
-        var entity = await _context.Users.FirstOrDefaultAsync(u => u.UserId == userId)
+        var entity = await _userRepo.GetByIdWithTrackingAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
         RequireActive(entity);
 
         if (string.Equals(entity.Email, normalized, StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("This email address is already in use.");
 
-        await EnsureEmailAvailableAsync(normalized, userId);
+        if (await _userRepo.ExistsByEmailAsync(normalized, userId))
+            throw new InvalidOperationException("Email address is already in use.");
 
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            entity.Email = normalized;
-            entity.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+        entity.Email = normalized;
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _userRepo.SaveChangesAsync();
 
-            await _authService.UpdateEmailAsync(userId, normalized);
+        await _authService.UpdateEmailAsync(userId, normalized);
 
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        var principal = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", userId.ToString())]));
-        return await GetMyProfileAsync(principal)
+        var updated = await _userRepo.GetActiveProfileByIdAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
+        return MapToProfileResponse(updated);
     }
 
     private static Guid? GetUserId(ClaimsPrincipal user)
@@ -187,7 +152,7 @@ public sealed class ProfileService : IProfileService
         return Guid.TryParse(subject, out var userId) ? userId : null;
     }
 
-    private static void RequireActive(DAL.Entities.User entity)
+    private static void RequireActive(User entity)
     {
         if (entity.DeletedAt.HasValue)
             throw new InvalidOperationException("Deleted accounts cannot be updated.");
@@ -211,21 +176,34 @@ public sealed class ProfileService : IProfileService
         return normalized;
     }
 
-    private async Task EnsureEmailAvailableAsync(string normalizedEmail, Guid excludeUserId)
+    private static void ThrowIdentityConflict(string fieldName)
     {
-        var owner = await _context.Users.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail && u.UserId != excludeUserId && u.DeletedAt == null);
-        if (owner != null)
-            ThrowIdentityConflict(owner.Status, "Email address");
+        throw new InvalidOperationException($"{fieldName} is already in use.");
     }
 
-    private static void ThrowIdentityConflict(string status, string fieldName)
+    private static ProfileResponse MapToProfileResponse(User u)
     {
-        if (status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException(
-                $"{fieldName} belongs to an inactive account. Restore the existing account instead.");
-        if (status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"{fieldName} belongs to an account pending activation.");
-        throw new InvalidOperationException($"{fieldName} is already in use.");
+        return new ProfileResponse
+        {
+            UserId = u.UserId,
+            FullName = u.FullName,
+            Email = u.Email,
+            Phone = u.Phone,
+            IdentityNo = u.IdentityNo,
+            Gender = u.Gender,
+            DateOfBirth = u.DateOfBirth,
+            AvatarUrl = u.AvatarUrl,
+            Address = u.Address,
+            RoleId = u.RoleId,
+            RoleName = u.Role?.RoleName,
+            BranchId = u.BranchId,
+            BranchCode = u.Branch?.BranchCode,
+            BranchName = u.Branch?.BranchName,
+            EmployeeTypeId = u.EmployeeTypeId,
+            EmployeeTypeName = u.EmployeeType?.TypeName,
+            Status = u.Status,
+            CreatedAt = u.CreatedAt,
+            UpdatedAt = u.UpdatedAt
+        };
     }
 }

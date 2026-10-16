@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 
 enum AppButtonType {
-  primary,   // Nút xanh chính (như nút "Chấm công vào")
+  primary, // Nút xanh chính (như nút "Chấm công vào")
   secondary, // Nút nền xám nhạt (như nút "Xem" ở danh sách)
-  outline,   // Nút viền ngoài
-  text,      // Nút chữ (như "Xem chi tiết ca ->")
+  outline, // Nút viền ngoài
+  dangerOutline,
+  text, // Nút chữ (như "Xem chi tiết ca ->")
 }
 
 /// Nút bấm chuẩn của ứng dụng WorkShift
@@ -78,6 +80,11 @@ class AppButton extends StatelessWidget {
         textColor = AppColors.primary;
         borderSide = const BorderSide(color: AppColors.primary, width: 1.5);
         break;
+      case AppButtonType.dangerOutline:
+        bgColor = Colors.transparent;
+        textColor = AppColors.error;
+        borderSide = const BorderSide(color: AppColors.error, width: 1.5);
+        break;
       default:
         bgColor = AppColors.primary;
         textColor = Colors.white;
@@ -85,7 +92,6 @@ class AppButton extends StatelessWidget {
 
     return SizedBox(
       width: width,
-      height: height,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
@@ -94,19 +100,20 @@ class AppButton extends StatelessWidget {
           disabledBackgroundColor: AppColors.border,
           disabledForegroundColor: AppColors.textMuted,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          minimumSize: Size(0, height),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: borderSide,
           ),
         ),
         child: isLoading
-            ? const SizedBox(
+            ? SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor: AlwaysStoppedAnimation<Color>(textColor),
                 ),
               )
             : Row(
@@ -117,12 +124,15 @@ class AppButton extends StatelessWidget {
                     Icon(icon, size: 20, color: textColor),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    text,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
                     ),
                   ),
                 ],

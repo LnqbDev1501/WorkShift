@@ -12,21 +12,28 @@ public class CreateContractViewModel : IValidatableObject
 
     public int? ReplacesContractId { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng chọn nhân viên.")]
+    [Required(ErrorMessage = "Please select a staff member.")]
     public Guid? StaffUserId { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập ngày bắt đầu.")]
+    [Required(ErrorMessage = "Please enter a start date.")]
     [DataType(DataType.Date)]
     public DateOnly? StartDate { get; set; }
 
     [DataType(DataType.Date)]
     public DateOnly? EndDate { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập chức danh.")]
-    [StringLength(100, ErrorMessage = "Chức danh tối đa 100 ký tự.")]
+    [Required(ErrorMessage = "Please enter a position/title.")]
+    [StringLength(100, ErrorMessage = "Position cannot exceed 100 characters.")]
     public string EmployeePosition { get; set; } = string.Empty;
 
+    [Range(0, 100000000, ErrorMessage = "Hourly rate must be a positive number.")]
+    [Display(Name = "Hourly Rate (VNĐ/h)")]
+    public decimal? HourlyRate { get; set; }
+
     public string? ContractTerms { get; set; }
+
+    [BindNever, ValidateNever]
+    public IReadOnlyList<string> PositionOptions { get; set; } = [];
 
     [BindNever, ValidateNever]
     public IReadOnlyList<ContractStaffOption> StaffOptions { get; set; } = [];
@@ -37,15 +44,22 @@ public class CreateContractViewModel : IValidatableObject
     [BindNever, ValidateNever]
     public IReadOnlyList<ContractStaffOption> RenewalStaffOptions { get; set; } = [];
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext context)
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (StaffUserId == Guid.Empty) yield return new("Vui lòng chọn nhân viên.", [nameof(StaffUserId)]);
-        if (StartDate == default(DateOnly)) yield return new("Ngày bắt đầu không hợp lệ.", [nameof(StartDate)]);
-        if (EndDate <= StartDate) yield return new("Ngày kết thúc phải sau ngày bắt đầu.", [nameof(EndDate)]);
-        if (string.IsNullOrWhiteSpace(EmployeePosition)) yield return new("Vui lòng nhập chức danh.", [nameof(EmployeePosition)]);
+        if (StaffUserId == Guid.Empty) yield return new("Please select a staff member.", [nameof(StaffUserId)]);
+        if (StartDate == default(DateOnly)) yield return new("Invalid start date.", [nameof(StartDate)]);
+        
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        if (StartDate.HasValue && StartDate.Value < today)
+        {
+            yield return new("The contract start date cannot be in the past. It must be today or a future date.", [nameof(StartDate)]);
+        }
+
+        if (EndDate <= StartDate) yield return new("End date must be after start date.", [nameof(EndDate)]);
+        if (string.IsNullOrWhiteSpace(EmployeePosition)) yield return new("Please enter a position/title.", [nameof(EmployeePosition)]);
         if (string.Equals(ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase) && (!ReplacesContractId.HasValue || ReplacesContractId.Value <= 0))
         {
-            yield return new("Vui lòng chọn hợp đồng cũ cần gia hạn hoặc thay thế.", [nameof(ReplacesContractId)]);
+            yield return new("Please select an existing contract to renew or replace.", [nameof(ReplacesContractId)]);
         }
     }
 }
@@ -55,7 +69,14 @@ public record ContractStaffOption(
     string FullName,
     int? CurrentContractId = null,
     string? CurrentContractNumber = null,
-    string? CurrentPosition = null
+    string? CurrentPosition = null,
+    DateOnly? CurrentStartDate = null,
+    DateOnly? CurrentEndDate = null,
+    decimal? CurrentHourlyRate = null,
+    string? CurrentStatus = null,
+    int? DaysUntilExpiration = null,
+    string? ExpirationCategory = null,
+    string? CurrentContractTerms = null
 );
 
 public record ContractCreatedResponse(int ContractId, string ContractNumber, Guid StaffUserId,

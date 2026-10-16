@@ -314,7 +314,7 @@ namespace UI_Admin.Controllers
 
             try
             {
-                await _authService.ChangePasswordAsync(model.NewPassword, cancellationToken);
+                await _authService.ChangePasswordAsync(model.CurrentPassword, model.NewPassword, cancellationToken);
                 TempData["PasswordChanged"] = true;
             }
             catch (InvalidOperationException exception)

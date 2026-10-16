@@ -1,0 +1,200 @@
+@{
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    var userName = User.Identity?.Name ?? "Accountant User";
+    var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "ACCOUNTANT";
+    var words = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var initials = words.Length == 0
+        ? "A"
+        : string.Concat(words.TakeLast(2).Select(w => char.ToUpperInvariant(w[0])));
+
+    var defaultAccountantAvatar = "https://res.cloudinary.com/workshift/image/upload/v1789317142/logo_nh%C3%B3m_knjs8l.jpg";
+}
+
+<aside id="accountant-sidebar"
+       class="fixed left-0 top-0 h-screen w-[232px] bg-[#111827] z-50 flex flex-col justify-between border-r border-[#1f2937] select-none shadow-xl">
+    <div class="flex flex-col flex-1 min-h-0">
+        <!-- Sidebar Header -->
+        <div class="h-[64px] px-unit-3 flex items-center justify-between border-b border-[#1f2937]/80 bg-[#0d131f]/50">
+            <!-- Full Header View -->
+            <div class="sidebar-header-full flex items-center justify-between w-full px-1">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white shadow-md flex-shrink-0 cursor-pointer overflow-hidden transition-all duration-150 hover:scale-105 active:scale-95 hover:shadow-indigo-500/30 hover:shadow-lg"
+                         title="Nhấp vào để chọc chú cáo!">
+                        <canvas id="sidebar-mascot" class="w-full h-full object-contain pointer-events-none"></canvas>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+
+                        <span class="font-title-md text-white text-[14px] font-semibold leading-tight tracking-tight truncate">WorkShift</span>
+                        <span class="font-label-sm text-[#9ca3af] text-[9px] tracking-widest uppercase truncate font-medium">ACCOUNTANT HUB</span>
+                    </div>
+                    </div>
+                    <!-- Stylish Collapse Toggle Button -->
+                    <button type="button" onclick="toggleAccountantSidebar()"
+                            class="w-7 h-7 rounded-lg bg-[#1f2937] hover:bg-primary-container text-[#9ca3af] hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer flex-shrink-0 border border-[#374151]/60 shadow-sm group"
+                            title="Collapse Sidebar">
+                        <span
+                        class="material-symbols-outlined text-[18px] transition-transform duration-200 group-hover:-translate-x-0.5">chevron_left</span>
+                    </button>
+                </div>
+
+                <!-- Collapsed Header View -->
+                <div class="sidebar-header-collapsed hidden items-center justify-center w-full">
+                    <!-- Stylish Expand Toggle Button -->
+                    <button type="button" onclick="toggleAccountantSidebar()"
+                            class="w-9 h-9 rounded-xl bg-[#1f2937] hover:bg-primary-container text-[#9ca3af] hover:text-white flex items-center justify-center transition-all duration-200 cursor-pointer border border-[#374151]/60 shadow-sm group"
+                            title="Expand Sidebar">
+                        <span
+                        class="material-symbols-outlined text-[20px] transition-transform duration-200 group-hover:translate-x-0.5">chevron_right</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="flex-1 overflow-y-auto px-unit-3 py-unit-4 space-y-unit-6">
+                    <!-- Accountant: Workspace -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">WORKSPACE</span>
+                        </div>
+                        <a asp-controller="AccountantDashboard" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantDashboard" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Overview">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">dashboard</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Overview</span>
+                        </a>
+                    </nav>
+
+                    <!-- Accountant: Payroll -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PAYROLL &amp; COMPENSATION</span>
+                        </div>
+                        <a asp-controller="AccountantPayrollPeriods" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AccountantPayrollPeriods" or "AccountantPayrollRevision" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Payroll Periods">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Periods</span>
+                        </a>
+                        <a asp-controller="AccountantPayrollCalculation" asp-action="Periods" title="Payroll Calculation"
+                           aria-current="@(currentController == "AccountantPayrollCalculation" ? "page" : null)"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayrollCalculation" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">calculate</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Calculation</span>
+                        </a>
+                        <a asp-controller="AccountantSalaryHistory" asp-action="Index"
+                           aria-current="@(currentController == "AccountantSalaryHistory" ? "page" : null)"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantSalaryHistory" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Salary History">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">history</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Salary History</span>
+                        </a>
+                        <a asp-controller="AccountantPayslips" asp-action="Index" title="Published Payslips" aria-current="@(currentController == "AccountantPayslips" ? "page" : null)" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayslips" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"><span class="material-symbols-outlined text-[20px] flex-shrink-0">receipt_long</span><span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Published Payslips</span></a>
+                        <a asp-controller="AccountantPayrollFeedback" asp-action="Index" title="Payroll Feedback" aria-current="@(currentController == "AccountantPayrollFeedback" ? "page" : null)" class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantPayrollFeedback" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"><span class="material-symbols-outlined text-[20px] flex-shrink-0">feedback</span><span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Feedback</span></a>
+                    </nav>
+
+                    <!-- Accountant: Notifications -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">SYSTEM</span>
+                        </div>
+                        <a asp-controller="Notifications" asp-action="Personal"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Notifications">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                        </a>
+                    </nav>
+
+                    <!-- Accountant: Catalog -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">CATALOG</span>
+                        </div>
+                        <a asp-controller="AccountantCategories" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantCategories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Categories">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">category</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Categories</span>
+                        </a>
+                        <a asp-controller="AccountantProducts" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantProducts" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Products">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">inventory_2</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
+                        </a>
+                    </nav>
+
+                    <!-- Accountant: Orders -->
+                    <nav class="space-y-unit-1">
+                        <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                            <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">ORDERS</span>
+                        </div>
+                        <a asp-controller="AccountantOrders" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantOrders" && currentAction == "Index" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Order List">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">receipt_long</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Order List</span>
+                        </a>
+                        <a asp-controller="AccountantReports" asp-action="BranchSales"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AccountantReports" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Export Branch Sales Report">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">download</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Export Sales Report</span>
+                        </a>
+                    </nav>
+            </div>
+        </div>
+
+        <!-- Sidebar Bottom Profile Section -->
+        <div class="p-unit-3 border-t border-[#1f2937] bg-[#0d131f]">
+            <!-- Full Profile View -->
+            <div class="sidebar-user-full flex items-center gap-unit-3 px-unit-2 py-unit-1">
+                <a asp-controller="Auth" asp-action="Profile" class="flex items-center gap-unit-3 min-w-0 flex-1 group" title="My Profile">
+                    <img alt="Accountant Profile"
+                         class="w-8 h-8 rounded-full object-cover border border-[#374151] flex-shrink-0 shadow-sm group-hover:border-rose-400/80 transition-all"
+                         src="@defaultAccountantAvatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div
+                        class="hidden w-8 h-8 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] flex-shrink-0 shadow-sm">
+                        @initials
+                    </div>
+                    <span class="flex flex-col min-w-0 flex-1">
+                        <span class="font-title-md text-white text-[13px] leading-snug truncate font-medium group-hover:underline"
+                              title="@userName">@userName</span>
+                        <span
+                        class="font-label-sm text-[#9ca3af] text-[10px] truncate uppercase tracking-wider font-semibold">@userRole</span>
+                    </span>
+                </a>
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="flex-shrink-0">
+                    @Html.AntiForgeryToken()
+                    <button type="submit"
+                            class="text-[#9ca3af] hover:text-rose-400 text-[11px] font-medium transition-colors cursor-pointer"
+                            title="Sign out">Sign out</button>
+                </form>
+            </div>
+
+            <!-- Collapsed Profile View -->
+            <div class="sidebar-user-collapsed hidden items-center justify-center py-unit-1">
+                <form asp-controller="Auth" asp-action="Logout" method="post" class="flex items-center justify-center">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="relative group cursor-pointer" title="Sign out: @userName (@userRole)">
+                        <img alt="Accountant Profile"
+                             class="w-9 h-9 rounded-full object-cover border border-[#374151] group-hover:border-rose-400/80 transition-all shadow-sm"
+                             src="@defaultAccountantAvatar"
+                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                        <div
+                            class="hidden w-9 h-9 rounded-full bg-gradient-to-tr from-[#6366f1] to-[#a855f7] text-white font-bold text-[12px] items-center justify-center border border-[#374151] group-hover:border-rose-400 transition-all shadow-sm">
+                            @initials
+                        </div>
+                        <span
+                            class="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                            <span class="material-symbols-outlined text-[16px]">logout</span>
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</aside>

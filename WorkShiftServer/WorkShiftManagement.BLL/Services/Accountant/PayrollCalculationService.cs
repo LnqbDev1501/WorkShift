@@ -59,6 +59,85 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
             Employees = inputs.EmployeeIds.Select(u => Readiness(inputs, u, actor)).OrderBy(r => r.EmployeeName).ThenBy(r => r.UserId).ToList() };
     }
 
+    public async Task<CalculationInputResponse> GetEmployeeInputsAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
+    {
+        if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
+        var scope = await Scope(actor, true, ct);
+        var period = await Period(periodId, scope, ct);
+        var input = await repo.GetInputsAsync(period, ct);
+        if (!input.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
+        var result = new CalculationInputResponse { PayrollPeriodId = periodId, PeriodStatus = period.Status,
+            BranchName = period.BranchNameSnapshot, Readiness = Readiness(input, userId, actor) };
+        // Raw, available sources for inspection. They are not a successful Payroll calculation.
+        foreach (var t in input.Timesheets.Where(t => t.UserId == userId))
+            result.Sources.Add(new() { Type = "TIMESHEET", SourceId = t.TimesheetId, Description = "Bảng công", Status = t.Status, Minutes = t.TotalWorkMinutes });
+        foreach (var a in input.Assignments.Where(a => a.UserId == userId).OrderBy(a => a.Shift.ScheduledStartAt))
+        {
+            result.Sources.Add(new() { Type = "WORK", SourceId = a.AssignmentId, Description = a.Shift.ShiftNameSnapshot,
+                Status = a.Attendance?.Status ?? "MISSING_ATTENDANCE", WorkDate = DateOnly.FromDateTime(a.Shift.ScheduledStartAt.AddHours(7)),
+                StartAt = a.Shift.ScheduledStartAt, EndAt = a.Shift.ScheduledEndAt,
+                CheckIn = a.Attendance?.CheckInTime, CheckOut = a.Attendance?.CheckOutTime, Minutes = a.Attendance?.ActualWorkingMinutes });
+            foreach (var penalty in a.Attendance?.AttendancePenaltyRecords ?? [])
+                result.Sources.Add(new() { Type = "ATTENDANCE_DEDUCTION", SourceId = penalty.AttendancePenaltyId,
+                    Description = penalty.ViolationType, Amount = penalty.PenaltyAmount });
+        }
+        foreach (var salary in input.Salaries.Where(s => s.UserId == userId).OrderBy(s => s.EffectiveFrom))
+            result.Sources.Add(new() { Type = "SALARY", SourceId = salary.SalaryHistoryId, Description = salary.Reason ?? "Mức lương theo giờ",
+                Rate = salary.HourlyRate, Status = salary.Status, EffectiveFrom = salary.EffectiveFrom, EffectiveTo = salary.EffectiveTo });
+        foreach (var adjustment in input.Adjustments.Where(a => a.UserId == userId && !a.IsDeleted).OrderBy(a => a.CreatedAt))
+            result.Sources.Add(new() { Type = adjustment.AdjustmentType, SourceId = adjustment.RewardPenaltyId,
+                Description = adjustment.AdjustmentName + " · " + adjustment.Reason, Amount = adjustment.Amount, Status = adjustment.ApprovalStatus ?? "" });
+        foreach (var carry in input.CarryForwards.Where(c => c.UserId == userId).OrderBy(c => c.CreatedAt).ThenBy(c => c.CarryForwardId))
+            result.Sources.Add(new() { Type = "CARRY_FORWARD", SourceId = carry.CarryForwardId, Description = carry.Reason ?? "Carry Forward",
+                Amount = carry.OriginalAmount, RemainingAmount = carry.RemainingAmount, Status = carry.Status });
+        foreach (var holiday in input.Holidays.OrderBy(h => h.HolidayDate))
+            result.Sources.Add(new() { Type = "HOLIDAY", SourceId = holiday.PublicHolidayId, Description = holiday.HolidayName,
+                WorkDate = holiday.HolidayDate, Status = holiday.IsActive ? "ACTIVE" : "INACTIVE" });
+        foreach (var rule in input.HolidayRules.OrderBy(r => r.EffectiveFrom))
+            result.Sources.Add(new() { Type = "HOLIDAY_RULE", SourceId = rule.HolidayPayRuleId, Description = rule.RuleName,
+                Multiplier = rule.PayMultiplier, Status = rule.Status, EffectiveFrom = rule.EffectiveFrom, EffectiveTo = rule.EffectiveTo });
+        return result;
+    }
+
+    // Use the same pure policy as persistence, without Add, Save, Audit or balance updates.
+    public async Task<PayrollCalculationResponse> PreviewEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
+    {
+        if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
+        var scope = await Scope(actor, true, ct);
+        var period = await Period(periodId, scope, ct);
+        var inputs = await repo.GetInputsAsync(period, ct);
+        if (!inputs.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
+        var ready = Readiness(inputs, userId, actor);
+        if (!ready.CanCalculate) throw new PayrollCalculationBlockedException(ready);
+        return Preview(PayrollCalculationPolicy.Build(inputs, userId, actor, DateTime.UtcNow));
+    }
+
+    public async Task<CalculationBatchResponse> PreviewPeriodAsync(Guid actor, int periodId, CancellationToken ct)
+    {
+        var scope = await Scope(actor, true, ct);
+        var period = await Period(periodId, scope, ct);
+        if (period.Status is not ("OPEN" or "CALCULATED")) throw new InvalidOperationException("Kỳ phải OPEN hoặc CALCULATED.");
+        var inputs = await repo.GetInputsAsync(period, ct);
+        var result = new CalculationBatchResponse { PayrollPeriodId = periodId, PeriodStatus = period.Status };
+        foreach (var userId in inputs.EmployeeIds.Where(id => !inputs.Payrolls.Any(p => p.UserId == id)))
+        {
+            ct.ThrowIfCancellationRequested();
+            var ready = Readiness(inputs, userId, actor);
+            if (!ready.CanCalculate) { result.FailedEmployees.Add(ready); continue; }
+            result.Payrolls.Add(Preview(PayrollCalculationPolicy.Build(inputs, userId, actor, DateTime.UtcNow)));
+        }
+        return result;
+    }
+
+    private static PayrollCalculationResponse Preview(Payroll payroll)
+    {
+        var result = Map(payroll);
+        result.Status = "PREVIEW";
+        result.CalculatedBy = null;
+        result.CalculatedAt = null;
+        return result;
+    }
+
     public async Task<PayrollCalculationResponse> CalculateEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
     {
         if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
@@ -147,12 +226,20 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
         PreviousPayrollId = payroll.PreviousPayrollId, CorrectionReason = payroll.CorrectionReason,
         RejectionCategory = payroll.RejectionCategory, RejectReason = payroll.RejectReason,
         CalculatedBy = payroll.CalculatedBy, CalculatedAt = payroll.CalculatedAt,
+        SubmittedBy = payroll.SubmittedBy, SubmittedAt = payroll.SubmittedAt,
+        RejectedBy = payroll.RejectedBy, RejectedAt = payroll.RejectedAt,
+        ApprovedBy = payroll.ApprovedBy, ApprovedAt = payroll.ApprovedAt,
+        ReplacedAt = payroll.ReplacedAt, PaidAt = payroll.PaidAt,
         HourlyRate = payroll.HourlyRateSnapshot, TotalWorkHours = payroll.TotalWorkHours, WorkPay = payroll.WorkPay,
         TotalReward = payroll.TotalReward, TotalPenalty = payroll.TotalPenalty, AttendanceDeduction = payroll.AttendanceDeduction,
         CarryForwardDeduction = payroll.CarryForwardDeduction, DeferredDeductionAmount = payroll.DeferredDeductionAmount,
         GrossSalary = payroll.GrossSalary, TotalDeduction = payroll.TotalDeduction, NetSalary = payroll.NetSalary,
         WorkInputSnapshot = string.IsNullOrWhiteSpace(payroll.WorkInputSnapshot) ? null : JsonSerializer.Deserialize<JsonElement>(payroll.WorkInputSnapshot),
-        Details = payroll.PayrollDetails.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId).Select(d => new PayrollCalculationDetailResponse
+        Details = MapDetails(payroll)
+    };
+
+    public static List<PayrollCalculationDetailResponse> MapDetails(Payroll payroll)
+        => payroll.PayrollDetails.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId).Select(d => new PayrollCalculationDetailResponse
         {
             PayrollDetailId = d.PayrollDetailId, Type = d.Type, ItemCode = d.ItemCode, Description = d.Description,
             WorkFrom = d.WorkFrom, WorkTo = d.WorkTo, Quantity = d.Quantity, Rate = d.Rate, Multiplier = d.Multiplier,
@@ -160,6 +247,5 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
             PublicHolidayId = d.PublicHolidayId, HolidayPayRuleId = d.HolidayPayRuleId,
             RewardPenaltyId = d.RewardPenaltyId, AttendancePenaltyId = d.AttendancePenaltyId,
             CarryForwardId = d.CarryForwardId, DisplayOrder = d.DisplayOrder, Note = d.Note
-        }).ToList()
-    };
+        }).ToList();
 }

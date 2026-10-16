@@ -1,0 +1,27 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodListViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = "Payroll Periods"; }
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<div class="payroll-page">
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1>Payroll Periods</h1><p>Manage weekly payroll periods in your branch.</p></div><a asp-action="Create" class="payroll-button primary">Create Draft Period</a></header>
+    @if (Model.Error != null || TempData["PeriodError"] is string) { <div class="payroll-message error" role="alert">@(Model.Error ?? TempData["PeriodError"]?.ToString())</div> }
+    @if (TempData["PeriodSuccess"] is string success) { <div class="payroll-message" role="status">@success</div> }
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] { new("Matching Periods", Model.Page.TotalItems.ToString("N0"), "Matching current filters", "date_range"), new("Draft Periods", Model.Page.Items.Count(p => p.Status == "DRAFT").ToString(), "On this page", "edit_note"), new("Open Periods", Model.Page.Items.Count(p => p.Status == "OPEN").ToString(), "On this page", "lock_open"), new("Closed Periods", Model.Page.Items.Count(p => p.Status == "CLOSED").ToString(), "On this page", "task_alt") })' />
+    <section class="payroll-filters"><form method="get" asp-action="Index">
+        <div asp-validation-summary="All" class="w-full text-red-700" role="alert"></div>
+        <label class="search-field"><span class="text-xs text-secondary">Period code or name</span><input name="Search" value="@Model.Query.Search" maxlength="200" placeholder="Search payroll periods..." /></label>
+        <label><span class="text-xs text-secondary">Status</span><select name="Status"><option value="">All statuses</option>@foreach (var s in D.Statuses) { <option value="@s" selected="@(Model.Query.Status == s)">@s.Replace('_', ' ')</option> }</select></label>
+        <label><span class="text-xs text-secondary">Week starts from</span><input type="date" name="StartDateFrom" value="@Model.Query.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
+        <label><span class="text-xs text-secondary">Week starts to</span><input type="date" name="StartDateTo" value="@Model.Query.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
+        <partial name="_ListFilterActions" model='"Index"' />
+    </form></section>
+    <section class="payroll-table-card"><div class="payroll-table-scroll"><table><thead><tr><th>PERIOD</th><th>BRANCH</th><th>WORK WEEK</th><th>STAFF / PAYROLLS</th><th class="money">NET SALARY</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody>
+        @foreach (var p in Model.Page.Items)
+        {
+            <tr><td><strong>@p.PeriodCode</strong><small>@p.PeriodName</small></td><td>@p.BranchName</td><td class="dates">@p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy")</td><td>@p.ExpectedEmployeeCount staff<small>@p.TotalPayrolls payrolls · @p.LockedTimesheetCount locked timesheets</small></td><td class="money">@D.Money(p.TotalNetSalary)</td><td><span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status.Replace('_', ' ')</span></td><td><a asp-action="Details" asp-route-id="@p.PayrollPeriodId" class="payroll-button">View Details</a></td></tr>
+        }
+        @if (Model.Page.Items.Count == 0) { <tr><td colspan="7" class="payroll-empty"><strong>@(Model.Error != null ? "Payroll data unavailable" : !ViewData.ModelState.IsValid ? "Please correct the filters" : "No payroll periods found")</strong><p>Try another search or clear your filters.</p></td></tr> }
+    </tbody></table></div>
+    @if (Model.Error == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Page.PageNumber, PageSize = Model.Page.PageSize, TotalItems = Model.Page.TotalItems, PageParameter = "pageNumber", ItemLabel = "periods" })' /> }
+    </section>
+</div>

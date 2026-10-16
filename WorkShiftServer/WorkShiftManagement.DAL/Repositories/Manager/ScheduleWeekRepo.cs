@@ -3,6 +3,7 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Notifications;
 
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
@@ -90,7 +91,7 @@ public sealed class ScheduleWeekRepo(AppDbContext context) : IScheduleWeekRepo
         await transaction.CommitAsync();
     }
 
-    public async Task<bool> OpenRegistrationAsync(int scheduleWeekId, int branchId, DateTime openedAt)
+    public async Task<bool> OpenRegistrationAsync(int scheduleWeekId, int branchId, DateTime openedAt, Guid openedBy)
     {
         await using var transaction = await context.Database.BeginTransactionAsync();
 
@@ -129,6 +130,14 @@ public sealed class ScheduleWeekRepo(AppDbContext context) : IScheduleWeekRepo
                 .SetProperty(shift => shift.Status, "SCHEDULED")
                 .SetProperty(shift => shift.UpdatedAt, openedAt));
 
+        var week = await context.WorkScheduleWeeks.AsNoTracking()
+            .SingleAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId);
+        var recipients = await context.Users.AsNoTracking()
+            .Where(u => u.BranchId == branchId && u.Status == "ACTIVE" && u.DeletedAt == null &&
+                u.Role.RoleName == "STAFF" && u.Role.Status == "ACTIVE")
+            .Select(u => u.UserId).ToListAsync();
+        context.Notifications.Add(ScheduleNotificationFactory.RegistrationOpened(week, openedBy, recipients, openedAt));
+        await context.SaveChangesAsync();
         await transaction.CommitAsync();
         return true;
     }

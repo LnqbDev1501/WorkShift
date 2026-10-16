@@ -51,6 +51,7 @@ public class StaffContractsController(StaffContractApiService api) : Controller
             var detail = await api.GetMyContractByIdAsync(id, ct);
             detail.ChangeRequests = await api.GetMyContractChangeRequestsAsync(id, ct);
             detail.ChangeRequestForm = new SubmitStaffContractChangeRequestViewModel { ContractId = id };
+            try { detail.PositionOptions = await api.GetActivePositionOptionsAsync(ct); } catch { detail.PositionOptions = []; }
             return View(detail);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)

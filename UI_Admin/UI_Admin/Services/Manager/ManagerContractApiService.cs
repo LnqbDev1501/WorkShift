@@ -44,7 +44,8 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
                 employeePosition = model.EmployeePosition.Trim(),
                 contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim(),
                 contractType = "RENEWAL",
-                replacesContractId = model.ReplacesContractId
+                replacesContractId = model.ReplacesContractId,
+                hourlyRate = model.HourlyRate
             };
         }
         else
@@ -55,7 +56,8 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
                 startDate = model.StartDate,
                 endDate = model.EndDate,
                 employeePosition = model.EmployeePosition.Trim(),
-                contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim()
+                contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim(),
+                hourlyRate = model.HourlyRate
             };
         }
 
@@ -258,6 +260,20 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
 
         using var response = await client.PostAsJsonAsync(url, payload, ct);
         await EnsureSuccessAsync(response, ct);
+    }
+
+    public async Task<List<string>> GetActivePositionOptionsAsync(CancellationToken ct = default)
+    {
+        var url = $"{baseUrl}/api/manager/employee-types/active";
+        using var response = await client.GetAsync(url, ct);
+        if (!response.IsSuccessStatusCode) return [];
+        var types = await response.Content.ReadFromJsonAsync<List<ActiveEmployeeTypeDto>>(cancellationToken: ct) ?? [];
+        return types
+            .Select(t => t.TypeName.Trim())
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(n => n)
+            .ToList();
     }
 
     private class PagedApiResponse<T>

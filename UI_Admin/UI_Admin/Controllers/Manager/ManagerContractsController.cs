@@ -47,7 +47,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
-            ModelState.AddModelError(string.Empty, "Không tải được danh sách hợp đồng: " + ex.Message);
+            ModelState.AddModelError(string.Empty, "Unable to load contract list: " + ex.Message);
         }
 
         try
@@ -94,13 +94,13 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 if (contract.History == null)
                 {
                     contract.HistoryLoadFailed = true;
-                    contract.HistoryErrorMessage = "Không thể tải dữ liệu lịch sử hợp đồng từ máy chủ.";
+                    contract.HistoryErrorMessage = "Unable to load contract history data from the server.";
                 }
             }
             catch (Exception ex)
             {
                 contract.HistoryLoadFailed = true;
-                contract.HistoryErrorMessage = "Lỗi kết nối khi tải lịch sử hợp đồng: " + ex.Message;
+                contract.HistoryErrorMessage = "Connection error loading contract history: " + ex.Message;
             }
 
             return View(contract);
@@ -110,12 +110,12 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden)
             {
-                TempData["ErrorMessage"] = "Bạn không có quyền truy cập hợp đồng của chi nhánh khác.";
+                TempData["ErrorMessage"] = "You do not have permission to access contracts belonging to another branch.";
                 return RedirectToAction(nameof(Index));
             }
             if (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy hợp đồng yêu cầu.";
+                TempData["ErrorMessage"] = "The requested contract was not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -161,7 +161,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             var result = await api.CreateAsync(model, cancellationToken);
             var key = Guid.NewGuid().ToString("N");
             cache.Set($"manager-contract:{key}", new Confirmation(Owner, result with { ContractTerms = null }), TimeSpan.FromMinutes(20));
-            TempData["SuccessMessage"] = "Tạo hợp đồng nháp thành công";
+            TempData["SuccessMessage"] = "Draft contract created successfully.";
             return RedirectToAction(nameof(Created), new { key });
         }
         catch (HttpRequestException ex)
@@ -170,11 +170,11 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             // A branch-scope 403 must keep the entered form and the backend explanation.
             if (ex.StatusCode == HttpStatusCode.Forbidden && ex.Message.StartsWith("Request failed with status code"))
                 return RedirectToAction("AccessDenied", "Auth");
-            ModelState.AddModelError(string.Empty, ex.StatusCode.HasValue ? ex.Message : "Không kết nối được máy chủ. Vui lòng kiểm tra trước khi gửi lại.");
+            ModelState.AddModelError(string.Empty, ex.StatusCode.HasValue ? ex.Message : "Unable to connect to the server. Please check your connection and try again.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { ModelState.AddModelError(string.Empty, "Yêu cầu quá thời gian chờ. Vui lòng kiểm tra trước khi gửi lại."); }
-        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Không đọc được kết quả tạo hợp đồng. Vui lòng kiểm tra trước khi gửi lại."); }
+        { ModelState.AddModelError(string.Empty, "Request timed out. Please try again."); }
+        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Unable to parse contract creation response. Please try again."); }
         catch (InvalidOperationException ex) { ModelState.AddModelError(string.Empty, ex.Message); }
         return await ReloadAsync(model, cancellationToken);
     }
@@ -198,7 +198,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             var contract = await api.GetByIdAsync(id, cancellationToken);
             if (!string.Equals(contract.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
             {
-                TempData["ErrorMessage"] = "Chỉ có thể chỉnh sửa hợp đồng khi còn ở trạng thái Bản nháp (DRAFT).";
+                TempData["ErrorMessage"] = "Contracts can only be edited while in DRAFT status.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
@@ -214,7 +214,8 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 EmployeePosition = contract.EmployeePosition,
-                ContractTerms = contract.ContractTerms
+                ContractTerms = contract.ContractTerms,
+                PositionOptions = await api.GetActivePositionOptionsAsync(cancellationToken)
             };
 
             return View(model);
@@ -224,12 +225,12 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden)
             {
-                TempData["ErrorMessage"] = "Bạn không có quyền truy cập hợp đồng của chi nhánh khác.";
+                TempData["ErrorMessage"] = "You do not have permission to access contracts belonging to another branch.";
                 return RedirectToAction(nameof(Index));
             }
             if (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy hợp đồng yêu cầu.";
+                TempData["ErrorMessage"] = "The requested contract was not found.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -251,7 +252,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             await api.UpdateAsync(id, model, cancellationToken);
-            TempData["SuccessMessage"] = "Cập nhật hợp đồng nháp thành công";
+            TempData["SuccessMessage"] = "Draft contract updated successfully.";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (HttpRequestException ex)
@@ -259,11 +260,11 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden && ex.Message.StartsWith("Request failed with status code"))
                 return RedirectToAction("AccessDenied", "Auth");
-            ModelState.AddModelError(string.Empty, ex.StatusCode.HasValue ? ex.Message : "Không kết nối được máy chủ. Vui lòng kiểm tra trước khi gửi lại.");
+            ModelState.AddModelError(string.Empty, ex.StatusCode.HasValue ? ex.Message : "Unable to connect to the server. Please check your connection and try again.");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { ModelState.AddModelError(string.Empty, "Yêu cầu quá thời gian chờ. Vui lòng kiểm tra trước khi gửi lại."); }
-        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Không đọc được kết quả cập nhật hợp đồng. Vui lòng kiểm tra trước khi gửi lại."); }
+        { ModelState.AddModelError(string.Empty, "Request timed out. Please try again."); }
+        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Unable to parse contract update response. Please try again."); }
         catch (InvalidOperationException ex) { ModelState.AddModelError(string.Empty, ex.Message); }
 
         await PopulateEditDisplayFieldsAsync(id, model, cancellationToken);
@@ -278,14 +279,14 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do hủy hợp đồng.";
+            TempData["ErrorMessage"] = "Please provide a reason for cancelling the contract.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
         try
         {
             await api.CancelAsync(id, reason.Trim(), cancellationToken);
-            TempData["SuccessMessage"] = "Hủy hợp đồng nháp thành công";
+            TempData["SuccessMessage"] = "Draft contract cancelled successfully.";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (HttpRequestException ex)
@@ -330,7 +331,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             await api.SendContractAsync(id, cancellationToken);
-            TempData["SuccessMessage"] = "Hợp đồng đã được tạo PDF và gửi cho nhân viên thành công.";
+            TempData["SuccessMessage"] = "The contract PDF has been generated and sent to the staff member successfully.";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (HttpRequestException ex)
@@ -370,7 +371,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             var res = await api.GetPdfFileAsync(id, isDownload: true, cancellationToken);
-            return File(res.Bytes, res.ContentType, res.FileName ?? $"HopDong_{id}.pdf");
+            return File(res.Bytes, res.ContentType, res.FileName ?? $"Contract_{id}.pdf");
         }
         catch (HttpRequestException ex)
         {
@@ -399,12 +400,12 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
-            TempData["ErrorMessage"] = $"Không tải được danh sách yêu cầu thay đổi: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to load change requests list: {ex.Message}";
             return View(new ManagerContractChangeRequestListViewModel { StatusFilter = status });
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Đã xảy ra lỗi: {ex.Message}";
+            TempData["ErrorMessage"] = $"An error occurred: {ex.Message}";
             return View(new ManagerContractChangeRequestListViewModel { StatusFilter = status });
         }
     }
@@ -427,7 +428,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Không tìm thấy chi tiết yêu cầu thay đổi: {ex.Message}";
+            TempData["ErrorMessage"] = $"Change request details not found: {ex.Message}";
             return RedirectToAction(nameof(ChangeRequests));
         }
     }
@@ -444,18 +445,18 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             await api.ApproveChangeRequestAsync(id, model, cancellationToken);
-            TempData["SuccessMessage"] = "Đã phê duyệt và cập nhật hợp đồng thành công. Hợp đồng phiên bản mới đã được gửi cho nhân viên để xác nhận.";
+            TempData["SuccessMessage"] = "The change request has been approved and the contract updated. The revised contract has been sent to the staff member for acceptance.";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
         catch (HttpRequestException ex)
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
-            TempData["ErrorMessage"] = $"Không thể phê duyệt yêu cầu: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to approve change request: {ex.Message}";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Đã xảy ra lỗi khi phê duyệt yêu cầu: {ex.Message}";
+            TempData["ErrorMessage"] = $"An error occurred while approving the change request: {ex.Message}";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
     }
@@ -471,25 +472,25 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         if (string.IsNullOrWhiteSpace(model.Reason))
         {
-            TempData["ErrorMessage"] = "Lý do từ chối yêu cầu là bắt buộc.";
+            TempData["ErrorMessage"] = "A reason for rejecting the change request is required.";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
 
         try
         {
             await api.RejectChangeRequestAsync(id, model.Reason, cancellationToken);
-            TempData["SuccessMessage"] = "Đã từ chối yêu cầu thay đổi hợp đồng. Trạng thái hợp đồng đã được khôi phục.";
+            TempData["SuccessMessage"] = "The change request has been rejected. The contract status has been restored.";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
         catch (HttpRequestException ex)
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
-            TempData["ErrorMessage"] = $"Không thể từ chối yêu cầu: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to reject change request: {ex.Message}";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = $"Đã xảy ra lỗi khi từ chối yêu cầu: {ex.Message}";
+            TempData["ErrorMessage"] = $"An error occurred while rejecting the change request: {ex.Message}";
             return RedirectToAction(nameof(ChangeRequestDetails), new { id });
         }
     }
@@ -505,6 +506,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             model.RegionName = existing.RegionName;
             model.CurrentHourlyRate = existing.HourlyRate;
             model.Status = existing.Status;
+            model.PositionOptions = await api.GetActivePositionOptionsAsync(ct);
         }
         catch
         {
@@ -533,11 +535,21 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
-            ModelState.AddModelError(string.Empty, "Không tải được danh sách nhân viên. Vui lòng thử lại.");
+            ModelState.AddModelError(string.Empty, "Unable to load staff list. Please try again.");
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        { ModelState.AddModelError(string.Empty, "Tải danh sách nhân viên quá thời gian chờ. Vui lòng thử lại."); }
-        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Không đọc được danh sách nhân viên. Vui lòng thử lại."); }
+        { ModelState.AddModelError(string.Empty, "Staff list loading timed out. Please try again."); }
+        catch (System.Text.Json.JsonException) { ModelState.AddModelError(string.Empty, "Unable to parse staff list data. Please try again."); }
+
+        try
+        {
+            model.PositionOptions = await api.GetActivePositionOptionsAsync(ct);
+        }
+        catch
+        {
+            model.PositionOptions = [];
+        }
+
         return View("Create", model);
     }
 

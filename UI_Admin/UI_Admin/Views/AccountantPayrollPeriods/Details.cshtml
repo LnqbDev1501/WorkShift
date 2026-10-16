@@ -1,0 +1,29 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = Model.PeriodCode; }
+@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
+<div class="payroll-page">
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1>@Model.PeriodName</h1><p>@Model.PeriodCode · @Model.BranchName · @Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</p></div><div class="flex flex-wrap gap-2">
+        @if (Model.Status == "CALCULATED") { <form asp-controller="AccountantPayrollRevision" asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post"><button class="payroll-button primary" type="submit">Submit Period for Approval</button></form> }
+        <a asp-action="Index" class="payroll-button">Back to periods</a>
+        @if (Model.CanUpdate) { <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Edit Draft</a> }
+        @if (Model.CanDelete) { <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Delete Draft</a> }
+        @if (Model.CanOpen) { <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Open Period</a> }
+        @if (Model.CanExport) { <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Export Excel</a> }
+    </div></header>
+    @if (TempData["PeriodError"] is string error) { <div class="payroll-message error" role="alert">@error</div> }
+    <partial name="_PayrollWorkflowMessages" />
+    @if (TempData["PeriodSuccess"] is string success) { <div class="payroll-message" role="status">@success</div> }
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] { new("Status", Model.Status.Replace("_", " "), "Current period status", "info"), new("Staff", Model.ExpectedEmployeeCount.ToString(), Model.LockedTimesheetCount + " locked timesheets", "groups"), new("Payrolls", Model.TotalPayrolls.ToString(), Model.RejectedPayrollCount + " rejected · " + Model.PendingCorrectionCount + " pending corrections", "receipt_long"), new("Net Salary", D.Money(Model.TotalNetSalary), "Current payroll versions", "payments") })' />
+    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="text-title-md font-semibold mb-4">Period Information</h2><dl class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div><dt class="text-xs text-secondary">Schedule week</dt><dd>#@Model.ScheduleWeekId</dd></div><div><dt class="text-xs text-secondary">Approval deadline (UTC+7)</dt><dd>@D.Time(Model.ApprovalDeadlineAt)</dd></div><div><dt class="text-xs text-secondary">Created at (UTC+7)</dt><dd>@D.Time(Model.CreatedAt)</dd></div>
+        <div><dt class="text-xs text-secondary">Created by</dt><dd class="text-xs break-all">@Model.CreatedBy</dd></div><div><dt class="text-xs text-secondary">Paid at (UTC+7)</dt><dd>@D.Time(Model.PaidAt)</dd></div><div><dt class="text-xs text-secondary">Closed at (UTC+7)</dt><dd>@D.Time(Model.ClosedAt)</dd></div>
+    </dl></section>
+    @if (Model.Status is "PAID" or "CLOSED") { <aside class="payroll-compliance"><div><strong>Settled period</strong><small>This period is read-only. View historical payroll data or export the Excel report.</small></div></aside> }
+    else if (Model.Status == "OPEN") { <aside class="payroll-compliance"><div><strong>Period opened</strong><small>The period can no longer be edited or deleted. Payroll calculation uses locked timesheets.</small></div></aside> }
+    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Current Employee Payrolls</strong><span>@Model.Payrolls.Count records</span></div><div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE</th><th>STATUS</th><th class="money">WORK PAY</th><th class="money">REWARD</th><th class="money">DEDUCTION</th><th class="money">NET SALARY</th><th>CALCULATION</th></tr></thead><tbody>
+        @foreach (var p in Model.Payrolls)
+        { <tr><td><strong>@p.EmployeeFullName</strong><small>Payroll #@p.PayrollId · @p.EmployeePosition</small></td><td><span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status.Replace('_', ' ')</span></td><td class="money">@D.Money(p.WorkPay)</td><td class="money">@D.Money(p.TotalReward)</td><td class="money">@D.Money(p.TotalDeduction)</td><td class="money">@D.Money(p.NetSalary)</td><td><a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId" class="payroll-button">Submission / Versions</a><details><summary>View calculation</summary>@if (p.Rejection?.Reason != null) { <p class="text-red-700">@p.Rejection.Reason</p> }@foreach (var d in p.Details) { <p><strong>@d.Description</strong><br />@d.Type · @D.Money(d.Amount)@if (d.AppliedAmount.HasValue) { <span> · Applied: @D.Money(d.AppliedAmount.Value)</span> }@if (d.Note != null) { <small>@d.Note</small> }</p> }</details></td></tr> }
+        @if (Model.Payrolls.Count == 0) { <tr><td colspan="7" class="payroll-empty">No payroll has been calculated for this period.</td></tr> }
+    </tbody></table></div></section>
+</div>

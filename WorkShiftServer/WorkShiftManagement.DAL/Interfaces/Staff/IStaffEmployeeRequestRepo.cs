@@ -19,7 +19,8 @@ public interface IStaffEmployeeRequestRepo
         DateTime? toUtc,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool sortByUpdatedAt = false);
 
     Task<EmployeeRequest?> GetByIdAsync(
         int requestId,
@@ -59,8 +60,15 @@ public interface IStaffEmployeeRequestRepo
         DateOnly todayVn,
         CancellationToken cancellationToken = default);
 
+    Task<EmployeeRequest> SubmitSalaryIncreaseRequestAsync(
+        Guid staffId, int branchId, decimal proposedHourlyRate, string reason, DateOnly todayVn, CancellationToken cancellationToken = default);
+
     Task<EmployeeRequest> CancelRequestAsync(
         int requestId,
         Guid staffId,
+        CancellationToken cancellationToken = default);
+
+    Task<List<EmployeeRequest>> CancelOverduePendingRequestsAsync(
+        DateTime nowUtc,
         CancellationToken cancellationToken = default);
 }

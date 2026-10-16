@@ -172,7 +172,7 @@ public sealed class ScheduleWeekService(IScheduleWeekRepo scheduleWeekRepo) : IS
             }
         }
 
-        if (!await scheduleWeekRepo.OpenRegistrationAsync(scheduleWeekId, branchId, now))
+        if (!await scheduleWeekRepo.OpenRegistrationAsync(scheduleWeekId, branchId, now, managerId))
             throw new InvalidOperationException(
                 "The work schedule status changed while the request was being processed. Reload and try again.");
 

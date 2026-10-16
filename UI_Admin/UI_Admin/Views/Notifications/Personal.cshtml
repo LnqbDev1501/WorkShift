@@ -176,9 +176,17 @@
                 var isShiftRelated = (item.Title?.Contains("ca", StringComparison.OrdinalIgnoreCase) ?? false)
                                   || (item.Title?.Contains("shift", StringComparison.OrdinalIgnoreCase) ?? false)
                                   || (item.NotificationType?.Contains("Shift", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isRequestRelated = (item.Title?.Contains("yêu cầu", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("đơn", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("request", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.NotificationType?.Contains("Request", StringComparison.OrdinalIgnoreCase) ?? false);
 
-                var iconName = isContractRelated ? "description" : isShiftRelated ? "schedule" : (item.NotificationType == "Broadcast" ? "campaign" : "notifications");
+                var iconName = isContractRelated ? "description" :
+                               isRequestRelated ? "pending_actions" :
+                               isShiftRelated ? "schedule" :
+                               (item.NotificationType == "Broadcast" ? "campaign" : "notifications");
                 var iconBg = isContractRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isRequestRelated ? "bg-violet-50 text-violet-600 border-violet-100" :
                              isShiftRelated ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
                              (item.NotificationType == "Broadcast" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-blue-50 text-blue-600 border-blue-100");
 
@@ -214,6 +222,7 @@
                                     {
                                         "SYSTEM" => "System",
                                         "ShiftAssignment" => "Shift Assignment",
+                                        "EmployeeRequest" => "Yêu cầu",
                                         "Broadcast" => "Broadcast",
                                         _ => item.NotificationType
                                     })
@@ -225,7 +234,7 @@
                                 </span>
                             </div>
 
-                            <h3 class="text-sm sm:text-base font-bold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2">
+                            <h3 class="text-sm sm:text-base @(item.IsRead ? "font-medium text-gray-500" : "font-bold text-gray-900") hover:text-blue-600 transition-colors line-clamp-2">
                                 <a asp-action="PersonalDetail" asp-route-id="@item.UserNotificationId">
                                     @item.Title
                                 </a>

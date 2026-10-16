@@ -498,7 +498,7 @@
 
             <div>
                 <label class="block font-semibold text-gray-700 mb-1">Field to Change <span class="text-rose-500">*</span></label>
-                <select name="FieldName" required
+                <select name="FieldName" id="changeRequestFieldName" required onchange="toggleProposedValueInput(this.value)"
                         class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none">
                     <option value="">-- Select field to change --</option>
                     <option value="EmployeePosition">Position / Title</option>
@@ -512,8 +512,20 @@
 
             <div>
                 <label class="block font-semibold text-gray-700 mb-1">Proposed Value <span class="text-rose-500">*</span></label>
-                <input type="text" name="ProposedValue" required placeholder="Enter your proposed value..."
-                       class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                <div id="textProposedWrapper">
+                    <input type="text" id="textProposedInput" name="ProposedValue" required placeholder="Enter your proposed value..."
+                           class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none" />
+                </div>
+                <div id="positionSelectWrapper" class="hidden">
+                    <select id="positionProposedSelect" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none cursor-pointer">
+                        <option value="">-- Select position from system --</option>
+                        @foreach (var pos in Model.PositionOptions)
+                        {
+                            <option value="@pos">@pos</option>
+                        }
+                    </select>
+                    <p class="text-[11px] text-gray-400 mt-1">Chỉ được chọn các vị trí đang hoạt động trong hệ thống.</p>
+                </div>
             </div>
 
             <div>
@@ -555,6 +567,30 @@
         }
         function closeChangeRequestModal() {
             document.getElementById('changeRequestModal').classList.add('hidden');
+        }
+        function toggleProposedValueInput(fieldName) {
+            const textWrapper = document.getElementById('textProposedWrapper');
+            const textInput = document.getElementById('textProposedInput');
+            const posWrapper = document.getElementById('positionSelectWrapper');
+            const posSelect = document.getElementById('positionProposedSelect');
+
+            if (fieldName === 'EmployeePosition') {
+                textWrapper.classList.add('hidden');
+                textInput.removeAttribute('name');
+                textInput.removeAttribute('required');
+
+                posWrapper.classList.remove('hidden');
+                posSelect.setAttribute('name', 'ProposedValue');
+                posSelect.setAttribute('required', 'required');
+            } else {
+                posWrapper.classList.add('hidden');
+                posSelect.removeAttribute('name');
+                posSelect.removeAttribute('required');
+
+                textWrapper.classList.remove('hidden');
+                textInput.setAttribute('name', 'ProposedValue');
+                textInput.setAttribute('required', 'required');
+            }
         }
     </script>
 }
