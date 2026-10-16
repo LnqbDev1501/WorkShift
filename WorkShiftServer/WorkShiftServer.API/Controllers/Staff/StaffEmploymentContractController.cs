@@ -231,4 +231,23 @@ public class StaffEmploymentContractController(
             return StatusCode(500, new { message = ex.Message });
         }
     }
+
+    /// <summary>
+    /// Gets the list of active employee positions/types from the system for staff contract change requests.
+    /// </summary>
+    [HttpGet("active-positions")]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetActivePositions(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var positions = await service.GetActivePositionNamesAsync(cancellationToken);
+            return Ok(positions);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to retrieve active positions for staff.");
+            return StatusCode(500, new { message = "Could not retrieve active position options." });
+        }
+    }
 }

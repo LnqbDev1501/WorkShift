@@ -13,5 +13,6 @@ public record ContractStaffOptionResponse(
     decimal? CurrentHourlyRate = null,
     string? CurrentStatus = null,
     int? DaysUntilExpiration = null,
-    string? ExpirationCategory = null
+    string? ExpirationCategory = null,
+    string? CurrentContractTerms = null
 );

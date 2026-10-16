@@ -92,14 +92,14 @@ public class ManagerEmploymentContractService(
             if (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0)
             {
                 oldContract = await repository.GetByIdAsync(request.ReplacesContractId.Value, cancellationToken);
-                if (oldContract == null || oldContract.UserId != staff.UserId || oldContract.BranchId != manager.BranchId!.Value)
-                    throw new ArgumentException("Invalid old contract for renewal.");
+                if (oldContract == null || oldContract.UserId != staff.UserId || oldContract.BranchId != manager.BranchId!.Value || oldContract.Status == "CANCELLED")
+                    throw new ArgumentException("Cannot renew a cancelled contract. For this staff, please create a new contract instead.");
             }
             else
             {
                 oldContract = await repository.GetLatestContractForStaffInBranchAsync(staff.UserId, manager.BranchId!.Value, cancellationToken);
-                if (oldContract == null)
-                    throw new ArgumentException("Staff has no prior contract in this branch to renew.");
+                if (oldContract == null || oldContract.Status == "CANCELLED")
+                    throw new ArgumentException("Staff has no prior active or expired contract in this branch to renew. Please use 'New Staff' contract creation instead.");
             }
 
             replacesContractId = oldContract.ContractId;
@@ -111,8 +111,8 @@ public class ManagerEmploymentContractService(
         }
         else
         {
-            if (await repository.HasAnyContractAsync(staff.UserId, cancellationToken))
-                throw new InvalidOperationException("Staff already has an employment contract. For existing staff, please use contract renewal instead.");
+            if (await repository.HasActiveOrScheduledContractAsync(staff.UserId, cancellationToken))
+                throw new InvalidOperationException("Staff already has an active or scheduled employment contract. For existing active staff, please use contract renewal instead.");
         }
 
         var branch = manager.Branch ?? staff.Branch;
@@ -120,6 +120,16 @@ public class ManagerEmploymentContractService(
             throw new ArgumentException("Manager branch must be ACTIVE.");
         var region = branch.Region;
         var minimumHourlyRate = ValidateAndGetMinimumWage(region, request.StartDate);
+
+        decimal finalHourlyRate = minimumHourlyRate;
+        if (request.HourlyRate.HasValue && request.HourlyRate.Value > 0)
+        {
+            if (request.HourlyRate.Value < minimumHourlyRate)
+            {
+                throw new ArgumentException($"Hourly rate ({request.HourlyRate.Value:N0} VNĐ/h) cannot be lower than the regional minimum wage ({minimumHourlyRate:N0} VNĐ/h).");
+            }
+            finalHourlyRate = request.HourlyRate.Value;
+        }
 
         if (await repository.HasPendingContractAsync(staff.UserId, cancellationToken))
             throw new InvalidOperationException("Staff already has a draft or pending employment contract.");
@@ -131,7 +141,7 @@ public class ManagerEmploymentContractService(
             ContractNumber = $"EC-{Guid.NewGuid():N}",
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            HourlyRate = minimumHourlyRate,
+            HourlyRate = finalHourlyRate,
             EmployeePositionSnapshot = request.EmployeePosition.Trim(),
             BranchId = manager.BranchId!.Value,
             RegionId = region!.RegionId,
@@ -204,10 +214,11 @@ public class ManagerEmploymentContractService(
                         contract.EmployeePositionSnapshot,
                         contract.StartDate,
                         contract.EndDate,
-                        contract.HourlyRate,
+                        x.LatestSalary ?? contract.HourlyRate,
                         contract.Status,
                         daysLeft,
-                        category
+                        category,
+                        contract.ContractTerms
                     );
                 })
                 .OrderBy(x => x.ExpirationCategory switch
@@ -223,7 +234,7 @@ public class ManagerEmploymentContractService(
                 .ToList();
         }
 
-        var staff = await repository.GetStaffWithoutContractAsync(cancellationToken);
+        var staff = await repository.GetStaffWithoutContractAsync(manager.BranchId!.Value, cancellationToken);
         return staff.Select(u => new ContractStaffOptionResponse(u.UserId, u.FullName)).ToList();
     }
 

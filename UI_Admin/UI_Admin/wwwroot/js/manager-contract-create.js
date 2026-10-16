@@ -18,6 +18,10 @@
     const indicatorNew = document.getElementById('indicator-new');
     const indicatorRenewal = document.getElementById('indicator-renewal');
 
+    const hourlyRateInput = document.getElementById('HourlyRate');
+    const contractTermsInput = document.getElementById('ContractTerms');
+    const wageSourceBadge = document.getElementById('wage-source-badge');
+
     // Smart Guidance Elements
     const renewalGuidanceCard = document.getElementById('renewal-guidance-card');
     const guidanceIconBox = document.getElementById('guidance-icon-box');
@@ -102,14 +106,20 @@
         if (staffHelpText) {
             staffHelpText.textContent = isRenewal
                 ? 'Only displaying staff belonging to your branch who previously had an employment contract.'
-                : 'Only displaying staff who have never had an employment contract. Branch and minimum wage will follow your managed branch.';
+                : 'Only displaying staff without an active contract (including new staff or staff whose previous contract was cancelled/expired). Branch and minimum wage will follow your managed branch.';
         }
         if (button) {
             button.textContent = isRenewal ? 'Save Renewal Draft' : 'Save Draft';
         }
 
-        if (!isRenewal && renewalGuidanceCard) {
-            renewalGuidanceCard.classList.add('hidden');
+        if (!isRenewal) {
+            if (renewalGuidanceCard) {
+                renewalGuidanceCard.classList.add('hidden');
+            }
+            if (wageSourceBadge) {
+                wageSourceBadge.textContent = 'Regional min wage';
+                wageSourceBadge.className = 'text-[11px] text-slate-400';
+            }
         }
     }
 
@@ -155,6 +165,8 @@
                 el.dataset.startDate = opt.currentStartDate || '';
                 el.dataset.endDate = opt.currentEndDate || '';
                 el.dataset.hourlyRate = opt.currentHourlyRate != null ? Number(opt.currentHourlyRate).toLocaleString('vi-VN') : '';
+                el.dataset.hourlyRateRaw = opt.currentHourlyRate != null ? opt.currentHourlyRate : '';
+                el.dataset.contractTerms = opt.currentContractTerms || '';
                 el.dataset.daysLeft = opt.daysUntilExpiration != null ? opt.daysUntilExpiration : '';
                 el.dataset.category = opt.expirationCategory || '';
 
@@ -255,6 +267,20 @@
             }
         }
         if (snapshotHourlyRate) snapshotHourlyRate.textContent = wage;
+
+        // Auto-fill Hourly Rate from salary history (history_salary)
+        if (hourlyRateInput && opt.dataset.hourlyRateRaw) {
+            hourlyRateInput.value = opt.dataset.hourlyRateRaw;
+            if (wageSourceBadge) {
+                wageSourceBadge.textContent = 'History salary';
+                wageSourceBadge.className = 'text-[11px] text-emerald-600 font-medium';
+            }
+        }
+
+        // Auto-fill Contract Terms from previous contract
+        if (contractTermsInput && opt.dataset.contractTerms) {
+            contractTermsInput.value = opt.dataset.contractTerms;
+        }
 
         let termText = '';
         if (startDate && endDate) {

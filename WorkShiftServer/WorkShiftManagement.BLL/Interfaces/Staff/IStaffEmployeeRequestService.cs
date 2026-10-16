@@ -47,4 +47,7 @@ public interface IStaffEmployeeRequestService
         Guid staffId,
         int requestId,
         CancellationToken cancellationToken = default);
+
+    Task<int> CancelOverduePendingRequestsAsync(
+        CancellationToken cancellationToken = default);
 }

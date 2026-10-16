@@ -4,18 +4,25 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 {
     private readonly IManagerEmployeeRequestRepo _repo;
+    private readonly INotificationRepo? _notificationRepo;
+    private readonly INotificationRealtimePublisher? _realtimePublisher;
+    private readonly ILogger<ManagerEmployeeRequestService>? _logger;
 
     private static readonly HashSet<string> AllowedRequestTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -33,9 +40,16 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         "CANCELLED"
     };
 
-    public ManagerEmployeeRequestService(IManagerEmployeeRequestRepo repo)
+    public ManagerEmployeeRequestService(
+        IManagerEmployeeRequestRepo repo,
+        INotificationRepo? notificationRepo = null,
+        INotificationRealtimePublisher? realtimePublisher = null,
+        ILogger<ManagerEmployeeRequestService>? logger = null)
     {
         _repo = repo;
+        _notificationRepo = notificationRepo;
+        _realtimePublisher = realtimePublisher;
+        _logger = logger;
     }
 
     public async Task<PagedResponse<ManagerEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -293,6 +307,8 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             throw new KeyNotFoundException("Request not found after approval.");
         }
 
+        await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: true, request.ReviewNote);
+
         return MapToDetailResponse(updated);
     }
 
@@ -324,8 +340,93 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             throw new KeyNotFoundException("Request not found after rejection.");
         }
 
+        await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: false, request.ReviewNote);
+
         return MapToDetailResponse(updated);
     }
+
+    private async Task SendManagerReviewNotificationToStaffAsync(
+        Guid managerId,
+        EmployeeRequest request,
+        bool isApproved,
+        string? reviewNote)
+    {
+        if (_notificationRepo == null) return;
+
+        try
+        {
+            var typeVietnamese = TranslateRequestType(request.RequestType);
+            var title = isApproved
+                ? $"Yêu cầu #{request.RequestId} đã được phê duyệt"
+                : $"Yêu cầu #{request.RequestId} đã bị từ chối";
+
+            string content;
+            if (isApproved)
+            {
+                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã được Quản lý phê duyệt.";
+                if (!string.IsNullOrWhiteSpace(reviewNote))
+                {
+                    content += $" Ghi chú: {reviewNote.Trim()}";
+                }
+            }
+            else
+            {
+                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã bị Quản lý từ chối. Lý do: {reviewNote?.Trim()}";
+            }
+
+            var now = DateTime.UtcNow;
+
+            var notification = new NotificationEntity
+            {
+                Title = title,
+                Content = content,
+                NotificationType = "EmployeeRequest",
+                CreatedBy = managerId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = request.BranchId,
+                TargetRoles = new List<string> { "STAFF" },
+                Channels = new List<string> { "InApp" }
+            };
+
+            await _notificationRepo.CreateAsync(notification, new[] { request.UserId }, true);
+
+            if (_realtimePublisher != null)
+            {
+                var realtime = new RealtimeNotificationResponse
+                {
+                    NotificationId = notification.NotificationId,
+                    Title = notification.Title,
+                    Message = notification.Content,
+                    CreatedAt = notification.CreatedAt
+                };
+
+                try
+                {
+                    await _realtimePublisher.PublishAsync(request.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to publish realtime review notification to staff {UserId} for request {RequestId}", request.UserId, request.RequestId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to create/send review notification to staff {UserId} for request {RequestId}", request.UserId, request.RequestId);
+        }
+    }
+
+    private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
+    {
+        "LEAVE" => "xin nghỉ phép",
+        "LATE_ARRIVAL" => "xin đi muộn",
+        "EARLY_LEAVE" => "xin về sớm",
+        "SALARY_INCREASE" => "xin tăng lương",
+        _ => requestType ?? "khác"
+    };
 
     private async Task<int> GetActiveBranchIdAsync(Guid managerId, CancellationToken cancellationToken)
     {

@@ -44,7 +44,8 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
                 employeePosition = model.EmployeePosition.Trim(),
                 contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim(),
                 contractType = "RENEWAL",
-                replacesContractId = model.ReplacesContractId
+                replacesContractId = model.ReplacesContractId,
+                hourlyRate = model.HourlyRate
             };
         }
         else
@@ -55,7 +56,8 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
                 startDate = model.StartDate,
                 endDate = model.EndDate,
                 employeePosition = model.EmployeePosition.Trim(),
-                contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim()
+                contractTerms = string.IsNullOrWhiteSpace(model.ContractTerms) ? null : model.ContractTerms.Trim(),
+                hourlyRate = model.HourlyRate
             };
         }
 

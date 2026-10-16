@@ -31,38 +31,48 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             .Select(u => new User { UserId = u.UserId, FullName = u.FullName })
             .ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<User>> GetStaffWithoutContractAsync(CancellationToken cancellationToken = default) =>
+    public async Task<IReadOnlyList<User>> GetStaffWithoutContractAsync(int? branchId = null, CancellationToken cancellationToken = default) =>
         await _context.Users.AsNoTracking()
-            .Where(u => u.DeletedAt == null &&
+            .Where(u => (branchId == null || u.BranchId == null || u.BranchId == branchId.Value) &&
+                u.DeletedAt == null &&
                 u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING") &&
-                !_context.EmploymentContracts.Any(c => c.UserId == u.UserId))
+                !_context.EmploymentContracts.Any(c => c.UserId == u.UserId &&
+                    (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+                     c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")))
             .OrderBy(u => u.FullName).ThenBy(u => u.UserId)
             .Select(u => new User { UserId = u.UserId, FullName = u.FullName })
             .ToListAsync(cancellationToken);
 
-    public async Task<IReadOnlyList<(User User, EmploymentContract Contract)>> GetStaffForRenewalAsync(int branchId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<(User User, EmploymentContract Contract, decimal? LatestSalary)>> GetStaffForRenewalAsync(int branchId, CancellationToken cancellationToken = default)
     {
         var eligibleUsers = await _context.Users.AsNoTracking()
             .Where(u => u.BranchId == branchId && u.DeletedAt == null &&
                 u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING") &&
-                _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == branchId) &&
+                _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == branchId && c.Status != "CANCELLED") &&
                 !_context.EmploymentContracts.Any(c => c.UserId == u.UserId &&
                     (c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")))
             .OrderBy(u => u.FullName).ThenBy(u => u.UserId)
             .ToListAsync(cancellationToken);
 
-        var results = new List<(User User, EmploymentContract Contract)>();
+        var results = new List<(User User, EmploymentContract Contract, decimal? LatestSalary)>();
         foreach (var user in eligibleUsers)
         {
             var latestContract = await _context.EmploymentContracts.AsNoTracking()
-                .Where(c => c.UserId == user.UserId && c.BranchId == branchId)
+                .Where(c => c.UserId == user.UserId && c.BranchId == branchId && c.Status != "CANCELLED")
                 .OrderByDescending(c => c.CreatedAt)
                 .ThenByDescending(c => c.ContractId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (latestContract != null)
             {
-                results.Add((user, latestContract));
+                var salaryHistory = await _context.StaffSalaryHistories.AsNoTracking()
+                    .Where(s => (s.ContractId == latestContract.ContractId || s.UserId == user.UserId) && s.Status != "SCHEDULED")
+                    .OrderByDescending(s => s.EffectiveFrom)
+                    .ThenByDescending(s => s.SalaryHistoryId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                decimal? latestSalary = salaryHistory?.HourlyRate ?? latestContract.HourlyRate;
+                results.Add((user, latestContract, latestSalary));
             }
         }
         return results;
@@ -80,6 +90,19 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     public Task<bool> HasAnyContractAsync(Guid userId, CancellationToken cancellationToken = default) =>
         _context.EmploymentContracts.AnyAsync(c => c.UserId == userId, cancellationToken);
 
+    public Task<bool> HasActiveOrScheduledContractAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        _context.EmploymentContracts.AnyAsync(c => c.UserId == userId &&
+            (c.Status == "ACTIVE" || c.Status == "SCHEDULED"), cancellationToken);
+
+    public async Task<IReadOnlyList<string>> GetActivePositionNamesAsync(CancellationToken cancellationToken = default) =>
+        await _context.EmployeeTypes.AsNoTracking()
+            .Where(et => et.Status == "ACTIVE")
+            .OrderBy(et => et.TypeName)
+            .Select(et => et.TypeName.Trim())
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
     public Task<EmploymentContract?> GetLatestContractForStaffInBranchAsync(Guid userId, int branchId, CancellationToken cancellationToken = default) =>
         _context.EmploymentContracts.AsNoTracking()
             .Where(c => c.UserId == userId && c.BranchId == branchId)
@@ -92,9 +115,9 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            if (contract.ReplacesContractId == null && await _context.EmploymentContracts.AnyAsync(c => c.UserId == contract.UserId, cancellationToken))
+            if (contract.ReplacesContractId == null && await _context.EmploymentContracts.AnyAsync(c => c.UserId == contract.UserId && (c.Status == "ACTIVE" || c.Status == "SCHEDULED"), cancellationToken))
             {
-                throw new InvalidOperationException("Staff already has an existing employment contract. For existing staff, please use contract renewal instead.");
+                throw new InvalidOperationException("Staff already has an active or scheduled employment contract. For existing active staff, please use contract renewal instead.");
             }
 
             _context.EmploymentContracts.Add(contract);
@@ -154,7 +177,24 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23505")
         {
             await transaction.RollbackAsync(cancellationToken);
-            throw new InvalidOperationException("Staff already has a draft or pending employment contract.", ex);
+            if (string.Equals(pg.ConstraintName, "employment_contracts_pkey", StringComparison.OrdinalIgnoreCase))
+            {
+                await SyncEmploymentContractSequenceAsync(cancellationToken);
+                throw new InvalidOperationException("Primary key collision on employment contract. Sequence has been synchronized; please try again.", ex);
+            }
+            if (string.Equals(pg.ConstraintName, "uq_one_pending_contract_per_staff", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Staff already has a draft or pending employment contract.", ex);
+            }
+            if (string.Equals(pg.ConstraintName, "uq_one_active_contract_per_staff", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Staff already has an active employment contract.", ex);
+            }
+            if (string.Equals(pg.ConstraintName, "employment_contracts_contract_number_key", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Contract number already exists. Please try again.", ex);
+            }
+            throw new InvalidOperationException("Database unique constraint violation: " + pg.MessageText, ex);
         }
     }
 
@@ -1218,6 +1258,26 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             catch (Exception ex)
             {
                 Console.WriteLine($"[Sequence Sync Warning] Failed to sync sequence for staff_salary_history: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task SyncEmploymentContractSequenceAsync(CancellationToken cancellationToken = default)
+    {
+        if (_context.Database.IsRelational())
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync(
+                    @"SELECT setval(
+                        pg_get_serial_sequence('public.employment_contracts', 'contract_id'),
+                        COALESCE((SELECT MAX(contract_id) FROM public.employment_contracts), 0) + 1,
+                        false
+                    );", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Sequence Sync Warning] Failed to sync sequence for employment_contracts: {ex.Message}");
             }
         }
     }

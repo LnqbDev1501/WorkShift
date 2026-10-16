@@ -1,20 +1,22 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 {
     private readonly IStaffEmployeeRequestRepo _repo;
+    private readonly INotificationRepo? _notificationRepo;
+    private readonly INotificationRealtimePublisher? _realtimePublisher;
+    private readonly ILogger<StaffEmployeeRequestService>? _logger;
 
     private static readonly HashSet<string> AllowedRequestTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -34,9 +36,16 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 
     private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
-    public StaffEmployeeRequestService(IStaffEmployeeRequestRepo repo)
+    public StaffEmployeeRequestService(
+        IStaffEmployeeRequestRepo repo,
+        INotificationRepo? notificationRepo = null,
+        INotificationRealtimePublisher? realtimePublisher = null,
+        ILogger<StaffEmployeeRequestService>? logger = null)
     {
         _repo = repo;
+        _notificationRepo = notificationRepo;
+        _realtimePublisher = realtimePublisher;
+        _logger = logger;
     }
 
     public async Task<PagedResponse<StaffEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -259,7 +268,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new ArgumentException("Reason must not exceed 500 characters.");
         }
 
-        var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
+        var branchId = staff.BranchId!.Value;
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
 
         var created = await _repo.SubmitLeaveRequestAsync(
@@ -269,6 +279,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             request.Reason,
             todayVn,
             cancellationToken);
+
+        await SendStaffRequestNotificationToManagerAsync(staff, created, "LEAVE",
+            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin nghỉ phép cho {request.AssignmentIds.Count} ca làm việc. Lý do: {request.Reason.Trim()}");
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -297,7 +310,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new ArgumentException("Reason must not exceed 500 characters.");
         }
 
-        var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
+        var branchId = staff.BranchId!.Value;
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var requestedTimeUtc = request.RequestedTime.UtcDateTime;
 
@@ -309,6 +323,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             request.Reason,
             todayVn,
             cancellationToken);
+
+        await SendStaffRequestNotificationToManagerAsync(staff, created, "LATE_ARRIVAL",
+            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin đi muộn vào lúc {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Lý do: {request.Reason.Trim()}");
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -337,7 +354,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new ArgumentException("Reason must not exceed 500 characters.");
         }
 
-        var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
+        var branchId = staff.BranchId!.Value;
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var requestedTimeUtc = request.RequestedTime.UtcDateTime;
 
@@ -349,6 +367,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             request.Reason,
             todayVn,
             cancellationToken);
+
+        await SendStaffRequestNotificationToManagerAsync(staff, created, "EARLY_LEAVE",
+            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin về sớm vào lúc {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Lý do: {request.Reason.Trim()}");
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -363,9 +384,14 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         if (request.ProposedHourlyRate <= 0 || request.ProposedHourlyRate > 9999999999999999.99m
             || request.ProposedHourlyRate != decimal.Truncate(request.ProposedHourlyRate * 100) / 100)
             throw new ArgumentException("Mức đề xuất phải dương và phù hợp NUMERIC(18,2); không tự làm tròn.");
-        var branchId = await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
+        var branchId = staff.BranchId!.Value;
         var created = await _repo.SubmitSalaryIncreaseRequestAsync(staffId, branchId, request.ProposedHourlyRate,
             request.Reason.Trim(), DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)), cancellationToken);
+
+        await SendStaffRequestNotificationToManagerAsync(staff, created, "SALARY_INCREASE",
+            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin tăng lương với mức lương đề xuất {request.ProposedHourlyRate:N0} đ/giờ. Lý do: {request.Reason.Trim()}");
+
         return MapToDetailResponse(await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken) ?? created);
     }
 
@@ -381,12 +407,217 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new ArgumentException("Request ID must be a positive integer.");
         }
 
-        await GetActiveBranchIdAsync(staffId, cancellationToken);
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
         var cancelled = await _repo.CancelRequestAsync(requestId, staffId, cancellationToken);
+
+        await SendStaffCancelNotificationToManagerAsync(staff, cancelled);
 
         var detail = await _repo.GetByIdAsync(cancelled.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? cancelled);
     }
+
+    public async Task<int> CancelOverduePendingRequestsAsync(CancellationToken cancellationToken = default)
+    {
+        var nowUtc = DateTime.UtcNow;
+        var cancelledList = await _repo.CancelOverduePendingRequestsAsync(nowUtc, cancellationToken);
+        if (cancelledList.Count == 0) return 0;
+
+        foreach (var r in cancelledList)
+        {
+            try
+            {
+                if (_notificationRepo != null)
+                {
+                    var typeVietnamese = TranslateRequestType(r.RequestType);
+                    var notifTitle = $"Yêu cầu #{r.RequestId} đã tự động hủy do quá hạn";
+                    var notifContent = $"Yêu cầu {typeVietnamese} #{r.RequestId} của bạn đã bị hệ thống tự động hủy do ca làm việc đã kết thúc mà chưa được quản lý phê duyệt.";
+
+                    var notification = new NotificationEntity
+                    {
+                        Title = notifTitle,
+                        Content = notifContent,
+                        NotificationType = "EmployeeRequest",
+                        CreatedBy = r.UserId,
+                        CreatedAt = nowUtc,
+                        UpdatedAt = nowUtc,
+                        IsDeleted = false,
+                        TargetType = "Custom",
+                        TargetBranchId = r.BranchId,
+                        TargetRoles = new List<string> { "STAFF" },
+                        Channels = new List<string> { "InApp" }
+                    };
+
+                    await _notificationRepo.CreateAsync(notification, new[] { r.UserId }, true);
+
+                    if (_realtimePublisher != null)
+                    {
+                        var realtime = new RealtimeNotificationResponse
+                        {
+                            NotificationId = notification.NotificationId,
+                            Title = notification.Title,
+                            Message = notification.Content,
+                            CreatedAt = notification.CreatedAt
+                        };
+
+                        try
+                        {
+                            await _realtimePublisher.PublishAsync(r.UserId, realtime);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex, "Failed to publish realtime overdue cancel notification to staff {UserId}", r.UserId);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to send notification for auto-cancelled request #{RequestId}", r.RequestId);
+            }
+        }
+
+        return cancelledList.Count;
+    }
+
+    private async Task SendStaffRequestNotificationToManagerAsync(
+        User staff,
+        EmployeeRequest createdRequest,
+        string requestType,
+        string detailMessage)
+    {
+        if (_notificationRepo == null) return;
+
+        try
+        {
+            var branchManagers = await _notificationRepo.GetRecipientsAsync(new[] { "MANAGER" }, null, createdRequest.BranchId);
+            if (branchManagers == null || branchManagers.Count == 0)
+            {
+                _logger?.LogInformation("No active managers found for branch {BranchId} to send request notification", createdRequest.BranchId);
+                return;
+            }
+
+            var typeVietnamese = TranslateRequestType(requestType);
+            var title = $"Yêu cầu {typeVietnamese} mới từ {staff.FullName}";
+            var now = DateTime.UtcNow;
+
+            var notification = new NotificationEntity
+            {
+                Title = title,
+                Content = detailMessage,
+                NotificationType = "EmployeeRequest",
+                CreatedBy = staff.UserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Branch",
+                TargetBranchId = createdRequest.BranchId,
+                TargetRoles = new List<string> { "MANAGER" },
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = branchManagers.Select(m => m.UserId).Distinct().ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            if (_realtimePublisher != null)
+            {
+                var realtime = new RealtimeNotificationResponse
+                {
+                    NotificationId = notification.NotificationId,
+                    Title = notification.Title,
+                    Message = notification.Content,
+                    CreatedAt = notification.CreatedAt
+                };
+
+                foreach (var managerId in recipientUserIds)
+                {
+                    try
+                    {
+                        await _realtimePublisher.PublishAsync(managerId, realtime);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to publish realtime notification to manager {UserId} for request {RequestId}", managerId, createdRequest.RequestId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to create/send request notification to managers for request {RequestId}", createdRequest.RequestId);
+        }
+    }
+
+    private async Task SendStaffCancelNotificationToManagerAsync(
+        User staff,
+        EmployeeRequest cancelledRequest)
+    {
+        if (_notificationRepo == null) return;
+
+        try
+        {
+            var branchManagers = await _notificationRepo.GetRecipientsAsync(new[] { "MANAGER" }, null, cancelledRequest.BranchId);
+            if (branchManagers == null || branchManagers.Count == 0) return;
+
+            var typeVietnamese = TranslateRequestType(cancelledRequest.RequestType);
+            var title = $"Nhân viên đã hủy yêu cầu #{cancelledRequest.RequestId}";
+            var content = $"Nhân viên {staff.FullName} đã hủy yêu cầu {typeVietnamese} #{cancelledRequest.RequestId}.";
+            var now = DateTime.UtcNow;
+
+            var notification = new NotificationEntity
+            {
+                Title = title,
+                Content = content,
+                NotificationType = "EmployeeRequest",
+                CreatedBy = staff.UserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Branch",
+                TargetBranchId = cancelledRequest.BranchId,
+                TargetRoles = new List<string> { "MANAGER" },
+                Channels = new List<string> { "InApp" }
+            };
+
+            var recipientUserIds = branchManagers.Select(m => m.UserId).Distinct().ToList();
+            await _notificationRepo.CreateAsync(notification, recipientUserIds, true);
+
+            if (_realtimePublisher != null)
+            {
+                var realtime = new RealtimeNotificationResponse
+                {
+                    NotificationId = notification.NotificationId,
+                    Title = notification.Title,
+                    Message = notification.Content,
+                    CreatedAt = notification.CreatedAt
+                };
+
+                foreach (var managerId in recipientUserIds)
+                {
+                    try
+                    {
+                        await _realtimePublisher.PublishAsync(managerId, realtime);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Failed to publish realtime cancel notification to manager {UserId} for request {RequestId}", managerId, cancelledRequest.RequestId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to create/send cancel notification to managers for request {RequestId}", cancelledRequest.RequestId);
+        }
+    }
+
+    private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
+    {
+        "LEAVE" => "xin nghỉ phép",
+        "LATE_ARRIVAL" => "xin đi muộn",
+        "EARLY_LEAVE" => "xin về sớm",
+        "SALARY_INCREASE" => "xin tăng lương",
+        _ => requestType ?? "khác"
+    };
 
     private static void ValidateStaffId(Guid staffId)
     {
@@ -396,7 +627,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         }
     }
 
-    private async Task<int> GetActiveBranchIdAsync(Guid staffId, CancellationToken cancellationToken)
+    private async Task<User> GetActiveStaffOrThrowAsync(Guid staffId, CancellationToken cancellationToken)
     {
         var staff = await _repo.GetActiveStaffAsync(staffId, cancellationToken);
         if (staff == null)
@@ -414,7 +645,13 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             throw new UnauthorizedAccessException("Staff is not assigned to an active branch.");
         }
 
-        return staff.BranchId.Value;
+        return staff;
+    }
+
+    private async Task<int> GetActiveBranchIdAsync(Guid staffId, CancellationToken cancellationToken)
+    {
+        var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
+        return staff.BranchId!.Value;
     }
 
     private static StaffEmployeeRequestDetailResponse MapToDetailResponse(EmployeeRequest request)

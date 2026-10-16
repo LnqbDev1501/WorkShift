@@ -85,6 +85,7 @@ class _SubmitContractChangeRequestViewState
         icon: Icons.description_outlined,
       ),
     ];
+    widget.controller.loadActivePositions();
   }
 
   @override
@@ -111,6 +112,9 @@ class _SubmitContractChangeRequestViewState
         _selectedFieldKeys.add(key);
         _proposedControllers[key] = TextEditingController();
         _reasonControllers[key] = TextEditingController();
+        if (key == 'EmployeePosition') {
+          widget.controller.loadActivePositions();
+        }
       }
     });
   }
@@ -388,22 +392,92 @@ class _SubmitContractChangeRequestViewState
             ],
           ),
           const SizedBox(height: 10),
-          TextFormField(
-            controller: proposedCtrl,
-            decoration: InputDecoration(
-              labelText: 'Giá trị đề xuất mới *',
-              hintText: 'Nhập thông tin đúng mà bạn mong muốn',
-              labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          if (field.key == 'EmployeePosition') ...[
+            ListenableBuilder(
+              listenable: widget.controller,
+              builder: (context, _) {
+                final positions = widget.controller.activePositions;
+                final isLoading = widget.controller.isLoadingPositions;
+
+                if (isLoading) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Đang tải danh mục vị trí...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                final currentVal = proposedCtrl.text.trim();
+                final dropdownValue = positions.contains(currentVal) ? currentVal : null;
+
+                return DropdownButtonFormField<String>(
+                  initialValue: dropdownValue,
+                  decoration: InputDecoration(
+                    labelText: 'Vị trí công việc mong muốn *',
+                    hintText: '-- Chọn vị trí từ hệ thống --',
+                    helperText: 'Chỉ chọn các vị trí đang hoạt động trong hệ thống',
+                    helperStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                  isExpanded: true,
+                  items: positions.map((pos) {
+                    return DropdownMenuItem<String>(
+                      value: pos,
+                      child: Text(
+                        pos,
+                        style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        proposedCtrl.text = val;
+                      });
+                    }
+                  },
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return 'Vui lòng chọn vị trí công việc từ danh sách.';
+                    }
+                    return null;
+                  },
+                );
+              },
             ),
-            validator: (val) {
-              if (val == null || val.trim().isEmpty) {
-                return 'Vui lòng nhập giá trị đề xuất mới.';
-              }
-              return null;
-            },
-          ),
+          ] else ...[
+            TextFormField(
+              controller: proposedCtrl,
+              decoration: InputDecoration(
+                labelText: 'Giá trị đề xuất mới *',
+                hintText: 'Nhập thông tin đúng mà bạn mong muốn',
+                labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Vui lòng nhập giá trị đề xuất mới.';
+                }
+                return null;
+              },
+            ),
+          ],
           const SizedBox(height: 10),
           TextFormField(
             controller: reasonCtrl,

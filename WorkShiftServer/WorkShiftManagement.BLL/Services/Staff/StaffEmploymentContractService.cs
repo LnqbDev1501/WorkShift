@@ -201,6 +201,9 @@ public class StaffEmploymentContractService(
         return await GetMyContractByIdAsync(staffUserId, contractId, cancellationToken);
     }
 
+    public Task<IReadOnlyList<string>> GetActivePositionNamesAsync(CancellationToken cancellationToken = default) =>
+        repository.GetActivePositionNamesAsync(cancellationToken);
+
     public async Task<StaffContractChangeRequestResponse> SubmitChangeRequestAsync(Guid staffUserId, int contractId, SubmitContractChangeRequestRequest request, CancellationToken cancellationToken = default)
     {
         if (contractId <= 0)
@@ -245,6 +248,17 @@ public class StaffEmploymentContractService(
         foreach (var item in request.Items)
         {
             string cleanField = item.FieldName.Trim();
+            if (string.Equals(cleanField, "EmployeePosition", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cleanField, "Position", StringComparison.OrdinalIgnoreCase))
+            {
+                var validPositions = await repository.GetActivePositionNamesAsync(cancellationToken);
+                var isMatched = validPositions.Any(p => string.Equals(p, item.ProposedValue.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (!isMatched)
+                {
+                    throw new ArgumentException($"Vị trí '{item.ProposedValue}' không hợp lệ hoặc không có trong danh mục vị trí hoạt động của hệ thống.");
+                }
+            }
+
             string? originalValue = cleanField.ToLowerInvariant() switch
             {
                 "startdate" => contract.StartDate.ToString("yyyy-MM-dd"),
