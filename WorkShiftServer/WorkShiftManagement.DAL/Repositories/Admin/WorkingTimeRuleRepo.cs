@@ -3,6 +3,7 @@ using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Version.Rules;
+using WorkShiftManagement.DAL.Notifications;
 
 namespace WorkShiftManagement.DAL.Repositories.Admin;
 
@@ -48,7 +49,7 @@ public class WorkingTimeRuleRepo : IWorkingTimeRuleRepo
             return Task.CompletedTask;
         }, cancellationToken);
 
-    public Task<WorkingTimeRule> PublishAsync(int id, CancellationToken cancellationToken) =>
+    public Task<WorkingTimeRule> PublishAsync(int id, Guid actor, CancellationToken cancellationToken) =>
         MutateAsync(id, async rule =>
         {
             WorkingTimeRuleLifecycle.RequireStatus(rule, WorkingTimeRuleLifecycle.Draft);
@@ -59,15 +60,25 @@ public class WorkingTimeRuleRepo : IWorkingTimeRuleRepo
             WorkingTimeRuleLifecycle.EnsurePublicationAvailable(publishedVersion);
             await ValidateScheduleAsync(id, rule.EffectiveFrom, cancellationToken);
             rule.Status = WorkingTimeRuleLifecycle.Published;
+            await QueueNotificationAsync(rule, actor, cancellationToken);
         }, cancellationToken);
 
-    public Task<WorkingTimeRule> CancelAsync(int id, CancellationToken cancellationToken) =>
-        MutateAsync(id, rule =>
+    public Task<WorkingTimeRule> CancelAsync(int id, Guid actor, CancellationToken cancellationToken) =>
+        MutateAsync(id, async rule =>
         {
             WorkingTimeRuleLifecycle.RequireStatus(rule, WorkingTimeRuleLifecycle.Published);
             rule.Status = WorkingTimeRuleLifecycle.Cancelled;
-            return Task.CompletedTask;
+            await QueueNotificationAsync(rule, actor, cancellationToken);
         }, cancellationToken);
+
+    private async Task QueueNotificationAsync(WorkingTimeRule rule, Guid actor, CancellationToken ct)
+    {
+        if (actor == Guid.Empty) throw new ArgumentException("An authenticated administrator is required.");
+        // Every role and branch receives the change, including accounts temporarily inactive.
+        var recipients = await _context.Users.AsNoTracking().Where(u => u.DeletedAt == null)
+            .Select(u => u.UserId).ToListAsync(ct);
+        _context.Notifications.Add(WorkingTimeRuleNotificationFactory.Create(rule, actor, recipients, DateTime.UtcNow));
+    }
 
     // Serialize all state changes across API instances, including the first activation.
     private async Task<WorkingTimeRule> MutateAsync(int id, Func<WorkingTimeRule, Task> mutation, CancellationToken cancellationToken)
