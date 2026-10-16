@@ -110,9 +110,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             int totalLateMinutes = timesheets.Sum(t => t.TotalLateMinutes);
             int totalEarlyLeaveMinutes = timesheets.Sum(t => t.TotalEarlyLeaveMinutes);
 
-            string status = timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
-                ? "LOCKED"
-                : (!string.IsNullOrWhiteSpace(week.PayrollPeriod?.Status) ? week.PayrollPeriod.Status : "GENERATED");
+            string status = timesheets.All(t => string.Equals(t.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+                ? "REVIEWED"
+                : (timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+                    ? "LOCKED"
+                    : (!string.IsNullOrWhiteSpace(week.PayrollPeriod?.Status) ? week.PayrollPeriod.Status : "GENERATED"));
 
             return (totalStaff, confirmedStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status);
         }
@@ -161,7 +163,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             TotalWorkMinutes = totalWorkMinutes,
             TotalLateMinutes = totalLateMinutes,
             TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
-            IsLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase)
+            IsLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "REVIEWED", StringComparison.OrdinalIgnoreCase)
         };
     }
 
@@ -335,7 +337,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         bool canLockTimesheet = false;
         string? lockEligibilityMessage = null;
 
-        if (status != "NOT GENERATED" && status != "LOCKED" && timesheets.Any())
+        if (status != "NOT GENERATED" && status != "LOCKED" && status != "REVIEWED" && timesheets.Any())
         {
             var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt) 
                 ?? week.PayrollPeriod?.CreatedAt 
@@ -352,17 +354,17 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             if (pendingAdjustmentCount > 0)
             {
                 canLockTimesheet = false;
-                lockEligibilityMessage = $"Cannot lock: {pendingAdjustmentCount} pending adjustment request(s) must be resolved first.";
+                lockEligibilityMessage = $"Cannot review: {pendingAdjustmentCount} pending adjustment request(s) must be resolved first.";
             }
             else if (isAllConfirmed)
             {
                 canLockTimesheet = true;
-                lockEligibilityMessage = "Ready to lock: 100% staff members have confirmed.";
+                lockEligibilityMessage = "Ready to review: 100% staff members have confirmed.";
             }
             else if (isPastDeadline)
             {
                 canLockTimesheet = true;
-                lockEligibilityMessage = "Ready to lock: Review deadline has expired at end of day.";
+                lockEligibilityMessage = "Ready to review: Review deadline has expired at end of day.";
             }
             else
             {
@@ -371,10 +373,10 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 lockEligibilityMessage = $"Waiting for 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until end of day ({deadlineVn:HH:mm dd/MM/yyyy}).";
             }
         }
-        else if (status == "LOCKED")
+        else if (status == "REVIEWED" || status == "LOCKED")
         {
             canLockTimesheet = false;
-            lockEligibilityMessage = "Timesheet is locked.";
+            lockEligibilityMessage = "Timesheet has been reviewed.";
         }
         else
         {
@@ -479,7 +481,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         int branchId = manager.BranchId
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
-        var (_, _, staffUserIds, notificationId, notificationContent) =
+        var (_, _, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent) =
             await _timesheetRepo.LockWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, cancellationToken);
 
         if (notificationId > 0 && staffUserIds.Any())
@@ -491,7 +493,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     await _realtimePublisher.PublishAsync(staffId, new RealtimeNotificationResponse
                     {
                         NotificationId = notificationId,
-                        Title = "Weekly Timesheet Locked",
+                        Title = "Weekly Timesheet Reviewed",
                         Message = notificationContent,
                         CreatedAt = DateTime.UtcNow
                     });
@@ -503,8 +505,29 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             }
         }
 
+        if (accountantNotificationId > 0 && accountantUserIds.Any())
+        {
+            foreach (var accId in accountantUserIds)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(accId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = accountantNotificationId,
+                        Title = "Weekly Timesheet Reviewed",
+                        Message = accountantNotificationContent,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to accountant {AccountantId}", accId);
+                }
+            }
+        }
+
         var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken);
-        return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after locking.");
+        return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after reviewing.");
     }
 
     public async Task<ManagerTimesheetAdjustmentPagedResponse> GetTimesheetAdjustmentsAsync(

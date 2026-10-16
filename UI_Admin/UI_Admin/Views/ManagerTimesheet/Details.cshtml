@@ -4,6 +4,7 @@
     ViewData["Title"] = $"Week {Model.Period} Details";
     var isNotGenerated = string.Equals(Model.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
     var isGenerated = string.Equals(Model.Status, "GENERATED", StringComparison.OrdinalIgnoreCase);
+    var isReviewed = string.Equals(Model.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
     var isLocked = string.Equals(Model.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -23,7 +24,14 @@
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Week @Model.Period</h1>
                 
                 <!-- Status Badge -->
-                @if (isLocked)
+                @if (isReviewed)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span>REVIEWED</span>
+                    </span>
+                }
+                else if (isLocked)
                 {
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -78,16 +86,16 @@
                 </form>
             }
 
-            @if (!isLocked && !Model.CanGenerateTimesheet)
+            @if (!isLocked && !isReviewed && !Model.CanGenerateTimesheet)
             {
                 if (Model.CanLockTimesheet)
                 {
                     <form id="formLockTimesheet" asp-action="Lock" asp-route-id="@Model.ScheduleWeekId" method="post" class="inline">
                         @Html.AntiForgeryToken()
                         <button type="button" id="btnLockTimesheet"
-                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
-                            <span class="material-symbols-outlined text-lg">lock</span>
-                            <span>Lock Timesheet</span>
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-lg">rate_review</span>
+                            <span>Review Timesheet</span>
                         </button>
                     </form>
                 }
@@ -96,8 +104,8 @@
                     <button type="button" disabled
                             title="@Model.LockEligibilityMessage"
                             class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-sm font-semibold shadow-xs cursor-not-allowed">
-                        <span class="material-symbols-outlined text-lg">lock</span>
-                        <span>Lock Timesheet</span>
+                        <span class="material-symbols-outlined text-lg">rate_review</span>
+                        <span>Review Timesheet</span>
                     </button>
                 }
             }
@@ -180,6 +188,20 @@
                     </span>
                 </div>
             }
+        </div>
+    }
+
+    @if (isReviewed)
+    {
+        <!-- Informational banner for REVIEWED state -->
+        <div class="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-900 text-sm flex items-start gap-3.5 shadow-sm">
+            <span class="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">verified</span>
+            <div>
+                <p class="font-bold text-blue-900">Timesheet Is Reviewed</p>
+                <p class="text-xs text-blue-800 mt-0.5">
+                    This weekly timesheet has been reviewed and finalized by the manager. An automated notification has been sent to the branch accountant for payroll calculation.
+                </p>
+            </div>
         </div>
     }
 
@@ -497,33 +519,33 @@
     </div>
 </div>
 
-<!-- Confirmation Modal: Lock Timesheet -->
+<!-- Confirmation Modal: Review Timesheet -->
 <div id="modalLockTimesheet" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-lock-title" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"></div>
     <div class="flex min-h-full items-center justify-center p-4 text-center">
         <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
             <div class="p-6">
                 <div class="flex items-center gap-4 mb-4">
-                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                        <span class="material-symbols-outlined text-2xl">lock</span>
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">rate_review</span>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900" id="modal-lock-title">Lock Weekly Timesheet</h3>
+                        <h3 class="text-lg font-bold text-slate-900" id="modal-lock-title">Review Weekly Timesheet</h3>
                         <p class="text-xs text-slate-500">Week @Model.Period • @Model.BranchName</p>
                     </div>
                 </div>
                 
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    You are about to lock this weekly timesheet batch. Once locked, attendance hours and metrics will be finalized for payroll calculation.
+                    You are about to review and approve this weekly timesheet batch. Once approved, timesheet hours will be finalized and an automated notification will be sent to the branch accountant to calculate payroll.
                 </p>
 
                 <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
                     <p class="font-semibold flex items-center gap-1.5 text-amber-950">
-                        <span class="material-symbols-outlined text-sm text-amber-600">warning</span>
-                        <span>Locking Notice</span>
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Review Notice</span>
                     </p>
                     <p class="text-amber-800">
-                        Staff members will no longer be able to submit confirmations or adjustment requests. Assigned hours will be frozen permanently.
+                        Staff members will no longer be able to submit adjustment requests. All finalized hours will be forwarded to the branch accountant.
                     </p>
                 </div>
             </div>
@@ -534,9 +556,9 @@
                     Cancel
                 </button>
                 <button type="button" id="btnConfirmLock"
-                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-black text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
-                    <span class="material-symbols-outlined text-sm">lock</span>
-                    <span id="btnConfirmLockText">Yes, Lock Timesheet</span>
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmLockText">Yes, Review Timesheet</span>
                 </button>
             </div>
         </div>

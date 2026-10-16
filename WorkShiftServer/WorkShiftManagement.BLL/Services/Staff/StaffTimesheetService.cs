@@ -105,7 +105,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             totalWorkMinutes = staffTimesheet.TotalWorkMinutes;
             totalLateMinutes = staffTimesheet.TotalLateMinutes;
             totalEarlyLeaveMinutes = staffTimesheet.TotalEarlyLeaveMinutes;
-            isLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+            isLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
 
             var firstGeneratedAt = staffTimesheet.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? DateTime.UtcNow;
             var vnOffset = TimeSpan.FromHours(7);
@@ -156,6 +156,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             bool canRequestAdj = !isLocked &&
                                  string.Equals(status, "GENERATED", StringComparison.OrdinalIgnoreCase) &&
                                  !isPastDeadline &&
+                                 !string.Equals(staffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase) &&
                                  !string.Equals(adjStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
                                  !string.Equals(adjStatus, "REJECTED", StringComparison.OrdinalIgnoreCase);
 

@@ -89,8 +89,8 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         if (timesheet == null)
             return false;
 
-        if (string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Cannot confirm: Timesheet is already locked.");
+        if (string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase) || string.Equals(timesheet.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cannot confirm: Timesheet is already reviewed or locked.");
 
         if (string.Equals(timesheet.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("This timesheet has already been confirmed.");
@@ -174,9 +174,14 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             throw new KeyNotFoundException("Timesheet has not been generated for this week yet.");
         }
 
-        if (string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase) || string.Equals(timesheet.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("This timesheet is locked. No adjustments can be submitted.");
+            throw new InvalidOperationException("This timesheet has been reviewed. No adjustments can be submitted.");
+        }
+
+        if (string.Equals(timesheet.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("You have already confirmed this timesheet. No adjustments can be submitted.");
         }
 
         // Deadline check

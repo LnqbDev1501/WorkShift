@@ -169,7 +169,7 @@ public sealed class ManagerTimesheetController : Controller
         try
         {
             await _timesheetApiService.LockWeeklyTimesheetAsync(id, cancellationToken);
-            TempData["SuccessMessage"] = "Weekly timesheet locked successfully. Attendance hours finalized for payroll calculation.";
+            TempData["SuccessMessage"] = "Weekly timesheet reviewed successfully. Notification sent to branch accountant.";
         }
         catch (InvalidOperationException ex)
         {
@@ -177,8 +177,8 @@ public sealed class ManagerTimesheetController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to lock timesheet for week {ScheduleWeekId}", id);
-            TempData["ErrorMessage"] = $"Failed to lock timesheet: {ex.Message}";
+            _logger.LogError(ex, "Failed to review timesheet for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to review timesheet: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Details), new { id });

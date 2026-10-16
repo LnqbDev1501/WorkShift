@@ -317,7 +317,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         return (week, generatedTimesheets, staffUserIds, notificationId, notificationContent);
     }
 
-    public async Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)> LockWeeklyTimesheetAsync(
+    public async Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, List<Guid> AccountantUserIds, int NotificationId, int AccountantNotificationId, string NotificationContent, string AccountantNotificationContent)> LockWeeklyTimesheetAsync(
         int scheduleWeekId,
         int branchId,
         Guid managerId,
@@ -337,14 +337,14 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         if (week.PayrollPeriod == null || !week.PayrollPeriod.Timesheets.Any())
         {
-            throw new InvalidOperationException("Cannot lock timesheet: Timesheet for this week has not been generated yet.");
+            throw new InvalidOperationException("Cannot review timesheet: Timesheet for this week has not been generated yet.");
         }
 
         var timesheets = week.PayrollPeriod.Timesheets.ToList();
 
-        if (timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase)))
+        if (timesheets.All(t => string.Equals(t.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase) || string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase)))
         {
-            throw new InvalidOperationException("Timesheet for this week has already been locked.");
+            throw new InvalidOperationException("Timesheet for this week has already been reviewed.");
         }
 
         int pendingAdjustmentsCount = timesheets
@@ -353,7 +353,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         if (pendingAdjustmentsCount > 0)
         {
-            throw new InvalidOperationException($"Cannot lock timesheet: There are {pendingAdjustmentsCount} pending adjustment request(s) awaiting review. Please approve or reject all requests before locking.");
+            throw new InvalidOperationException($"Cannot review timesheet: There are {pendingAdjustmentsCount} pending adjustment request(s) awaiting review. Please approve or reject all requests before reviewing.");
         }
 
         var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt)
@@ -374,26 +374,26 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         if (!isAllConfirmed && !isPastDeadline)
         {
             var deadlineVnDisplay = (reviewDeadlineUtc + vnOffset).ToString("HH:mm dd/MM/yyyy");
-            throw new InvalidOperationException($"Cannot lock timesheet: Requires 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until the review deadline expires at end of day ({deadlineVnDisplay}).");
+            throw new InvalidOperationException($"Cannot review timesheet: Requires 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until the review deadline expires at end of day ({deadlineVnDisplay}).");
         }
 
         foreach (var timesheet in timesheets)
         {
-            timesheet.Status = "LOCKED";
-            timesheet.LockedAt = now;
-            timesheet.LockedBy = managerId;
+            timesheet.Status = "REVIEWED";
+            timesheet.ReviewedAt = now;
+            timesheet.ReviewedBy = managerId;
             timesheet.UpdatedAt = now;
         }
 
         var staffUserIds = timesheets.Select(t => t.UserId).Distinct().ToList();
         int notificationId = 0;
-        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been locked by the branch manager. Attendance hours have been finalized for payroll calculation.";
+        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been reviewed by the branch manager.";
 
         if (staffUserIds.Count > 0)
         {
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
-                Title = "Weekly Timesheet Locked",
+                Title = "Weekly Timesheet Reviewed",
                 Content = notificationContent,
                 NotificationType = "TIMESHEET",
                 CreatedBy = managerId,
@@ -421,12 +421,55 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             await _context.SaveChangesAsync(cancellationToken);
             notificationId = notification.NotificationId;
         }
+
+        // Query active branch accountants for English notification
+        var accountantUserIds = await _context.Users
+            .Where(u => u.BranchId == branchId && u.Role.RoleName == "ACCOUNTANT" && u.Status == "ACTIVE" && u.DeletedAt == null)
+            .Select(u => u.UserId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        int accountantNotificationId = 0;
+        string accountantNotificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been reviewed by the branch manager and is ready for payroll processing.";
+
+        if (accountantUserIds.Count > 0)
+        {
+            var accountantNotification = new WorkShiftManagement.DAL.Entities.Notification
+            {
+                Title = "Weekly Timesheet Reviewed",
+                Content = accountantNotificationContent,
+                NotificationType = "TIMESHEET",
+                CreatedBy = managerId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = branchId,
+                TargetRegionId = null,
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { "ACCOUNTANT" }
+            };
+
+            foreach (var accId in accountantUserIds)
+            {
+                accountantNotification.UserNotifications.Add(new UserNotification
+                {
+                    UserId = accId,
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
+
+            _context.Notifications.Add(accountantNotification);
+            await _context.SaveChangesAsync(cancellationToken);
+            accountantNotificationId = accountantNotification.NotificationId;
+        }
         else
         {
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return (week, timesheets, staffUserIds, notificationId, notificationContent);
+        return (week, timesheets, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent);
     }
 
     public async Task<(List<TimesheetAdjustmentRequest> Items, int TotalCount, int PendingCount, int ApprovedCount, int RejectedCount)> GetTimesheetAdjustmentsAsync(
@@ -835,21 +878,21 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 var creatorId = week.PayrollPeriod!.CreatedBy;
                 foreach (var t in targetTimesheets)
                 {
-                    t.Status = "LOCKED";
-                    t.LockedAt = now;
-                    t.LockedBy = creatorId;
+                    t.Status = "REVIEWED";
+                    t.ReviewedAt = now;
+                    t.ReviewedBy = creatorId;
                     t.UpdatedAt = now;
                 }
 
                 var staffUserIds = targetTimesheets.Select(t => t.UserId).Distinct().ToList();
                 int notificationId = 0;
-                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. All timesheets have been automatically finalized and locked for payroll processing.";
+                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. Timesheets have been finalized and reviewed.";
 
                 if (staffUserIds.Count > 0)
                 {
                     var notification = new WorkShiftManagement.DAL.Entities.Notification
                     {
-                        Title = "Timesheet Finalized and Locked",
+                        Title = "Weekly Timesheet Reviewed",
                         Content = notificationContent,
                         NotificationType = "TIMESHEET",
                         CreatedBy = creatorId,

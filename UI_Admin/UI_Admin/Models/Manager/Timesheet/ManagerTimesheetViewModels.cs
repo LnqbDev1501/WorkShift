@@ -132,7 +132,8 @@ public sealed class ManagerWeeklyTimesheetDetailViewModel
     public string BranchName { get; set; } = null!;
     public string Status { get; set; } = null!;
     public bool CanGenerateTimesheet => string.Equals(Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
-    public bool IsLocked => string.Equals(Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+    public bool IsReviewed => string.Equals(Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
+    public bool IsLocked => string.Equals(Status, "LOCKED", StringComparison.OrdinalIgnoreCase) || IsReviewed;
     public bool CanLockTimesheet { get; set; }
     public DateTime? ReviewDeadline { get; set; }
     public bool IsPastDeadline { get; set; }
