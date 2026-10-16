@@ -159,7 +159,7 @@ builder.Services.AddHttpClient<AuthService>(client =>
     client.DefaultRequestHeaders.Add("apikey", serviceRoleKey);
     client.DefaultRequestHeaders.Authorization =
         new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceRoleKey);
-}).AddTypedClient<IAuthService>((client, _) =>
+}).AddTypedClient<IAuthService>((client, sp) =>
 {
     var setPasswordUrl = builder.Configuration["AdminUi:SetPasswordUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:SetPasswordUrl configuration.");
@@ -167,7 +167,8 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
     var staffSetupUrl = builder.Configuration["AdminUi:StaffSetupUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:StaffSetupUrl configuration.");
-    return new AuthService(client, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
+    var context = sp.GetRequiredService<AppDbContext>();
+    return new AuthService(client, context, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();

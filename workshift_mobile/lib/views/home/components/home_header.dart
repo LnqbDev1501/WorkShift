@@ -7,6 +7,8 @@ class HomeHeader extends StatelessWidget {
   final String branchName;
   final String? avatarUrl;
   final VoidCallback? onLogoutTap;
+  final VoidCallback? onNotificationTap;
+  final int unreadCount;
 
   const HomeHeader({
     super.key,
@@ -14,6 +16,8 @@ class HomeHeader extends StatelessWidget {
     required this.branchName,
     this.avatarUrl,
     this.onLogoutTap,
+    this.onNotificationTap,
+    this.unreadCount = 0,
   });
 
   @override
@@ -94,6 +98,37 @@ class HomeHeader extends StatelessWidget {
                         color: Colors.white,
                       ),
               ),
+              if (onNotificationTap != null)
+                Stack(
+                  children: [
+                    IconButton(
+                      tooltip: 'Notification',
+                      onPressed: onNotificationTap,
+                      icon: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: AppColors.error,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
             ],
           ),
           const SizedBox(height: 28),

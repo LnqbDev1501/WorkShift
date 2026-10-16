@@ -156,8 +156,15 @@ class HomeController extends ChangeNotifier {
           fullName: savedUser['fullName']?.toString() ?? '',
           email: savedUser['email']?.toString() ?? '',
           phone: '',
+          identityNo: '',
+          gender: '',
+          dateOfBirth: null,
+          address: '',
           avatarUrl: '',
           roleName: savedUser['role']?.toString() ?? '',
+          status: 'ACTIVE',
+          createdAt: '',
+          updatedAt: '',
         );
       }
 

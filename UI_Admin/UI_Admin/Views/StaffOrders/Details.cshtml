@@ -166,6 +166,13 @@
                         <tr class="h-[56px] hover:bg-surface-container-low transition-colors">
                             <td class="px-unit-5 py-2 font-body-md-medium text-body-md-medium text-on-surface">
                                 @item.ProductName
+                                @if (!string.IsNullOrEmpty(item.Note))
+                                {
+                                    <div class="mt-1 text-xs text-secondary font-normal">
+                                        <span class="material-symbols-outlined text-[14px] align-middle mr-1">note</span>
+                                        @item.Note
+                                    </div>
+                                }
                             </td>
                             <td class="px-unit-4 py-2 font-code-num text-code-num text-on-surface text-right">
                                 @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.UnitPrice)
@@ -233,6 +240,26 @@
                     </tbody>
                 </table>
             </div>
+        </div>
+    }
+
+    <!-- Order Note -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
+        <div class="flex items-center gap-2.5 pb-unit-4 border-b border-surface-container-highest">
+            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-[20px]">sticky_note_2</span>
+            </span>
+            <h2 class="font-title-md text-title-md text-on-surface">Order Note</h2>
+        </div>
+        <div class="pt-unit-4">
+            @if (!string.IsNullOrEmpty(Model.Note))
+            {
+                <p class="font-body-md text-body-md text-on-surface">@Model.Note</p>
+            }
+            else
+            {
+                <p class="font-body-md text-body-md text-secondary italic">Không có</p>
+            }
         </div>
     }
 </div>

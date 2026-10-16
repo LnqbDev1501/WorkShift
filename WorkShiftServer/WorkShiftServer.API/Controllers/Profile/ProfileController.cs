@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
@@ -63,8 +64,19 @@ public sealed class ProfileController : ControllerBase
 
         try
         {
-            await _authService.SetPasswordAsync(accessToken, request.Password);
+            var userId = User.FindFirstValue("sub") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userId, out var guid))
+                return Unauthorized(new { message = "Your session has expired. Please sign in again." });
+            await _authService.SetPasswordAsync(guid, request.CurrentPassword, request.Password);
             return NoContent();
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Unauthorized(new { message = exception.Message });
         }
         catch (HttpRequestException exception)
             when (exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)

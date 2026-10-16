@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/home_controller.dart';
+import '../../controllers/notification_controller.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../requests/staff_request_detail_view.dart';
 import '../../models/staff_request_model.dart';
@@ -17,6 +18,8 @@ import '../attendance/attendance_history_view.dart';
 import '../shifts/my_shifts_view.dart';
 
 import '../face_registration/face_registration_modal.dart';
+import '../staff_notifications_view.dart';
+import '../staff_profile_view.dart';
 import '../requests/staff_request_list_view.dart';
 import '../timesheet/staff_timesheet_view.dart';
 
@@ -33,6 +36,7 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
+  final NotificationController _notificationController = NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
 
@@ -42,6 +46,7 @@ class _HomeViewState extends State<HomeView> {
     _controller.addListener(_onControllerUpdated);
     // Tải dữ liệu từ Backend .NET
     _controller.loadHomeData();
+    _notificationController.loadUnreadCount();
   }
 
   @override
@@ -277,6 +282,10 @@ class _HomeViewState extends State<HomeView> {
                             branchName: _controller.branchName,
                             avatarUrl: _controller.user?.avatarUrl,
                             onLogoutTap: _handleLogout,
+                            onNotificationTap: () {
+                              setState(() => _currentTabIndex = 4);
+                            },
+                            unreadCount: _notificationController.unreadCount,
                           ),
                           const SizedBox(height: 16),
 
@@ -371,8 +380,10 @@ class _HomeViewState extends State<HomeView> {
               : const SizedBox.shrink(),
           // Tab 3: Requests
           const StaffRequestListView(showBackButton: false),
-          // Tab 4: Profile
-          _buildPlaceholderTab('Profile', Icons.person_outline),
+          // Tab 4: Notifications
+          StaffNotificationsView(),
+          // Tab 5: Profile
+          StaffProfileView(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -412,6 +423,11 @@ class _HomeViewState extends State<HomeView> {
             icon: Icon(Icons.description_outlined),
             activeIcon: Icon(Icons.description),
             label: 'Requests',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_outlined),
+            activeIcon: Icon(Icons.notifications),
+            label: 'Notification',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

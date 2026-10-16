@@ -122,22 +122,25 @@ namespace UI_Admin.Services
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
         }
 
-        public async Task ChangePasswordAsync(string newPassword, CancellationToken cancellationToken = default)
-    {
-        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+        public async Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken = default)
+        {
+            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
+                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
 
-        using var response = await _httpClient.PutAsJsonAsync(
-            $"{apiBaseUrl.TrimEnd('/')}/api/profile/password",
-            new { password = newPassword.Trim() },
-            cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl.TrimEnd('/')}/api/profile/password")
+            {
+                Content = JsonContent.Create(new { currentPassword = currentPassword.Trim(), password = newPassword.Trim() })
+            };
+            await AttachBearerTokenAsync(request);
 
-        if (response.IsSuccessStatusCode)
-            return;
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
 
-        var body = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new InvalidOperationException(GetErrorMessage(body));
-    }
+            if (response.IsSuccessStatusCode)
+                return;
+
+            var body = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new InvalidOperationException(GetErrorMessage(body));
+        }
 
     private async Task AttachBearerTokenAsync(HttpRequestMessage request)
     {
