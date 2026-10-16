@@ -115,23 +115,30 @@ public class BranchApiService
 
     public async Task<List<BranchOptionViewModel>> GetActiveBranchesAsync(CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl}/api/admin/branches?pageSize=100&status=ACTIVE";
+        var url = $"{_apiBaseUrl}/api/branches/assignable";
         try
         {
             using var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode) return [];
 
-            var result = await response.Content.ReadFromJsonAsync<PagedApiResponse<BranchApiResponse>>(cancellationToken: cancellationToken);
-            return result?.Items?.Select(b => new BranchOptionViewModel
+            var result = await response.Content.ReadFromJsonAsync<List<BranchAssignableApiResponse>>(cancellationToken: cancellationToken);
+            return result?.Select(b => new BranchOptionViewModel
             {
                 Id = b.BranchId,
                 Name = b.BranchName
-            }).ToList() ?? [];
+            }).OrderBy(b => b.Name).ToList() ?? [];
         }
         catch
         {
             return [];
         }
+    }
+
+    private sealed class BranchAssignableApiResponse
+    {
+        public int BranchId { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
     }
 
     public async Task<BranchDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

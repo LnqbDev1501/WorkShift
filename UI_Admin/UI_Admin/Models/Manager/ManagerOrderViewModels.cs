@@ -63,11 +63,3 @@ public class ManagerOrderListViewModel
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
 }
-
-public class RecordPaymentViewModel
-{
-    public decimal Amount { get; set; }
-    public string PaymentMethod { get; set; } = string.Empty;
-    public string? ReferenceNumber { get; set; }
-    public string? Note { get; set; }
-}

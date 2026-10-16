@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Accountant;
 
 namespace WorkShiftServer.API.Controllers.Accountant;
 
@@ -13,11 +13,14 @@ namespace WorkShiftServer.API.Controllers.Accountant;
 [Authorize(Roles = "ACCOUNTANT,ADMIN")]
 public class AccountantReportController : ControllerBase
 {
-    private readonly IOrderService _orderService;
+    private const string ExcelContentType =
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-    public AccountantReportController(IOrderService orderService)
+    private readonly IBranchSalesReportService _branchSalesReportService;
+
+    public AccountantReportController(IBranchSalesReportService branchSalesReportService)
     {
-        _orderService = orderService;
+        _branchSalesReportService = branchSalesReportService;
     }
 
     private Guid? GetActorId()
@@ -27,7 +30,7 @@ public class AccountantReportController : ControllerBase
     }
 
     /// <summary>
-    /// Exports branch sales report (CSV/Excel).
+    /// Exports the sales report (Excel) for a single branch within an optional date range.
     /// </summary>
     [HttpGet("branch-sales")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
@@ -38,22 +41,37 @@ public class AccountantReportController : ControllerBase
         [FromQuery] int? branchId,
         [FromQuery] DateTime? dateFrom,
         [FromQuery] DateTime? dateTo,
-        [FromQuery] string format = "csv")
+        CancellationToken cancellationToken = default)
     {
         var actor = GetActorId();
         if (actor == null)
             return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
 
+        if (branchId is null || branchId <= 0)
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = "A branch must be selected to export the sales report."
+            });
+
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = "The start date cannot be after the end date."
+            });
+
         try
         {
-            // TODO: Implement report generation
-            var csv = "Branch,OrderCount,TotalAmount\nSample Branch,10,5000000";
-            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
-            var fileName = $"branch_sales_{DateTime.UtcNow:yyyyMMdd}.csv";
+            var bytes = await _branchSalesReportService.GenerateBranchSalesReportAsync(
+                branchId.Value, dateFrom, dateTo, cancellationToken);
+            var fileName = $"branch_sales_{branchId.Value}_{DateTime.UtcNow:yyyyMMdd}.xlsx";
 
-            return File(bytes, "text/csv", fileName);
+            return File(bytes, ExcelContentType, fileName);
         }
-        catch (Exception exception)
+        catch (ArgumentException exception)
         {
             return BadRequest(new ProblemDetails
             {

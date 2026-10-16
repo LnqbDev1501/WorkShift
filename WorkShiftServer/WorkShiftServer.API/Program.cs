@@ -237,9 +237,11 @@ builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
-builder.Services.AddScoped<IOrderRepo, OrderRepo>();
-builder.Services.AddScoped<IOrderService, OrderService>();
-builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
+        builder.Services.AddScoped<IOrderRepo, OrderRepo>();
+        builder.Services.AddScoped<IOrderService, OrderService>();
+        builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
+            WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
+        builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();

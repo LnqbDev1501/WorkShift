@@ -1418,7 +1418,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("payment_status");
             entity.Property(e => e.Status)
                 .HasMaxLength(20)
-                .HasDefaultValueSql("'DRAFT'::character varying")
+                .HasDefaultValueSql("'PENDING'::character varying")
                 .HasColumnName("status");
             entity.Property(e => e.Subtotal)
                 .HasPrecision(18, 2)

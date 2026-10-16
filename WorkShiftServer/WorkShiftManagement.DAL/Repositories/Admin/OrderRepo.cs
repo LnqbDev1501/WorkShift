@@ -52,12 +52,14 @@ public class OrderRepo : IOrderRepo
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(order => order.OrderDate >= dateFrom.Value);
+            var fromUtc = ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value));
+            query = query.Where(order => order.OrderDate >= fromUtc);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(order => order.OrderDate <= dateTo.Value.Date.AddDays(1).AddTicks(-1));
+            var toUtcExclusive = ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value));
+            query = query.Where(order => order.OrderDate < toUtcExclusive);
         }
 
         var totalCount = await query.CountAsync();
@@ -395,6 +397,33 @@ public class OrderRepo : IOrderRepo
         order.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    private static TimeZoneInfo VietnamTimeZone { get; } = ResolveVietnamTimeZone();
+
+    private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)
+    {
+        var vnDateTime = date.ToDateTime(TimeOnly.MinValue);
+        return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(vnDateTime, DateTimeKind.Unspecified), VietnamTimeZone);
+    }
+
+    private static DateTime ConvertVnDateToUtcStartOfNextDay(DateOnly date) =>
+        ConvertVnDateToUtcStartOfDay(date.AddDays(1));
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
     }
 }
 

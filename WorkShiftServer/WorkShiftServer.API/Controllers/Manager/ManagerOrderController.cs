@@ -97,61 +97,6 @@ public class ManagerOrderController : ControllerBase
     }
 
     /// <summary>
-    /// Records a payment for an order.
-    /// </summary>
-    [HttpPost("{id:int}/payment")]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> RecordPayment(int id, [FromBody] RecordPaymentRequest request)
-    {
-        var actor = GetActorId();
-        if (actor == null)
-            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
-
-        try
-        {
-            var success = await _orderService.RecordPaymentAsync(id, request, actor.Value);
-            if (!success)
-            {
-                return NotFound(new ProblemDetails
-                {
-                    Status = StatusCodes.Status404NotFound,
-                    Title = "Not Found",
-                    Detail = "Order not found."
-                });
-            }
-
-            return Ok(new { message = "Payment recorded successfully." });
-        }
-        catch (ArgumentException exception)
-        {
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Bad Request",
-                Detail = exception.Message
-            });
-        }
-        catch (InvalidOperationException exception)
-        {
-            return Conflict(new ProblemDetails
-            {
-                Status = StatusCodes.Status409Conflict,
-                Title = "Conflict",
-                Detail = exception.Message
-            });
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: exception.Message);
-        }
-    }
-
-    /// <summary>
     /// Completes an order.
     /// </summary>
     [HttpPost("{id:int}/complete")]

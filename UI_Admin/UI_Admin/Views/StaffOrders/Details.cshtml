@@ -4,13 +4,12 @@
     ViewData["Title"] = $"Order - {Model.OrderNumber}";
     var isCompleted = Model.Status.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase);
     var isCancelled = Model.Status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase);
-    var isDraft = Model.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase);
-    var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+    var isPending = Model.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase);
     var isPaid = Model.PaymentStatus.Equals("PAID", StringComparison.OrdinalIgnoreCase);
-    // Complete: only for ACTIVE + PAID orders
-    var canComplete = isActive && isPaid;
-    // Cancel: for ACTIVE and DRAFT orders (not completed/cancelled)
-    var canCancel = (isActive || isDraft) && !isCompleted && !isCancelled;
+    // Complete: only for PENDING + PAID orders
+    var canComplete = isPending && isPaid;
+    // Cancel: only for PENDING orders (not completed/cancelled)
+    var canCancel = isPending && !isCompleted && !isCancelled;
 }
 
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
@@ -45,13 +44,9 @@
             {
                 <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">Cancelled</span>
             }
-            else if (isDraft)
-            {
-                <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-amber-50 text-amber-700">Draft</span>
-            }
             else
             {
-                <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-blue-50 text-blue-700">Active</span>
+                <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-blue-50 text-blue-700">Pending</span>
             }
         </div>
         <div class="flex items-center gap-unit-3 self-start md:self-auto">
@@ -98,7 +93,7 @@
                 </div>
                 <div class="flex flex-col sm:col-span-2">
                     <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Status</span>
-                    <span class="font-body-md-medium text-body-md mt-0.5 font-semibold @(isCompleted ? "text-emerald-700" : isCancelled ? "text-secondary" : isDraft ? "text-amber-700" : "text-blue-700")">@Model.Status</span>
+                    <span class="font-body-md-medium text-body-md mt-0.5 font-semibold @(isCompleted ? "text-emerald-700" : isCancelled ? "text-secondary" : "text-blue-700")">@Model.Status</span>
                 </div>
                 <div class="flex flex-col">
                     <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Payment Status</span>

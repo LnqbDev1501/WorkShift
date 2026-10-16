@@ -42,18 +42,6 @@ public class ManagerOrderApiService(HttpClient client, IConfiguration configurat
             ?? throw new InvalidOperationException("Failed to read order details.");
     }
 
-    public async Task RecordPaymentAsync(int id, RecordPaymentViewModel model, CancellationToken ct)
-    {
-        using var response = await client.PostAsJsonAsync($"{baseUrl}/api/manager/orders/{id}/payment", new
-        {
-            amount = model.Amount,
-            paymentMethod = model.PaymentMethod.Trim(),
-            referenceNumber = string.IsNullOrWhiteSpace(model.ReferenceNumber) ? null : model.ReferenceNumber.Trim(),
-            note = string.IsNullOrWhiteSpace(model.Note) ? null : model.Note.Trim()
-        }, ct);
-        await EnsureSuccessAsync(response, ct);
-    }
-
     public async Task CompleteOrderAsync(int id, CancellationToken ct)
     {
         using var response = await client.PostAsync($"{baseUrl}/api/manager/orders/{id}/complete", null, ct);

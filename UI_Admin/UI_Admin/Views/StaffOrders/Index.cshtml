@@ -27,7 +27,7 @@
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
 new("Total Orders", Model.TotalItems.ToString("N0"), "All time", "receipt_long"),
 new("Completed", Model.Items.Count(x => x.Status == "COMPLETED").ToString("N0"), "This page", "check_circle"),
-new("Pending", Model.Items.Count(x => x.Status == "DRAFT" || x.Status == "ACTIVE").ToString("N0"), "This page", "pending"),
+new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString("N0"), "This page", "pending"),
 new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"), "This page", "cancel")
 })' />
     <!-- Filter Toolbar -->
@@ -50,8 +50,7 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                         name="status"
                         onchange="this.form.submit()">
                     <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All Statuses</option>
-                    <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft</option>
-                    <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active</option>
+                    <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                     <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
                     <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
                 </select>
@@ -109,8 +108,6 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                         {
                             var isCompleted = item.Status.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase);
                             var isCancelled = item.Status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase);
-                            var isDraft = item.Status.Equals("DRAFT", StringComparison.OrdinalIgnoreCase);
-                            var isActive = item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
                             var isPaid = item.PaymentStatus.Equals("PAID", StringComparison.OrdinalIgnoreCase);
 
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isCompleted && !isCancelled ? "" : "bg-surface-container-lowest/70")">
@@ -141,18 +138,11 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                                             Cancelled
                                         </span>
                                     }
-                                    else if (isDraft)
-                                    {
-                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-amber-50 text-amber-700">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                            Draft
-                                        </span>
-                                    }
                                     else
                                     {
                                         <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-blue-50 text-blue-700">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                                            Active
+                                            Pending
                                         </span>
                                     }
                                 </td>

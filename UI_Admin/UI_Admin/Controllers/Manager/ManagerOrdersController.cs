@@ -71,26 +71,6 @@ public class ManagerOrdersController(ManagerOrderApiService api) : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> RecordPayment(int id, RecordPaymentViewModel model, CancellationToken cancellationToken = default)
-    {
-        if (id <= 0) return RedirectToAction(nameof(Index));
-        if (!ModelState.IsValid) return View("Details", await api.GetByIdAsync(id, cancellationToken));
-
-        try
-        {
-            await api.RecordPaymentAsync(id, model, cancellationToken);
-            TempData["SuccessMessage"] = "Payment recorded successfully.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-        catch (HttpRequestException ex)
-        {
-            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
-            TempData["ErrorMessage"] = ex.Message;
-            return RedirectToAction(nameof(Details), new { id });
-        }
-    }
-
-    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0) return RedirectToAction(nameof(Index));

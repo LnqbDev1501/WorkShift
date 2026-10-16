@@ -53,6 +53,7 @@ public class AccountantPaymentViewModel
 public class AccountantOrderListViewModel
 {
     public List<AccountantOrderListItemViewModel> Items { get; set; } = [];
+    public List<BranchOptionViewModel> Branches { get; set; } = [];
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public int TotalItems { get; set; }
@@ -63,14 +64,6 @@ public class AccountantOrderListViewModel
     public string? PaymentStatusFilter { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
-}
-
-public class RecordPaymentViewModel
-{
-    public decimal Amount { get; set; }
-    public string PaymentMethod { get; set; } = string.Empty;
-    public string? ReferenceNumber { get; set; }
-    public string? Note { get; set; }
 }
 
 public class BranchOptionViewModel

@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -12,13 +15,11 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepo _orderRepo;
-    private readonly IPaymentRepo _paymentRepo;
     private readonly AppDbContext _context;
 
-    public OrderService(IOrderRepo orderRepo, IPaymentRepo paymentRepo, AppDbContext context)
+    public OrderService(IOrderRepo orderRepo, AppDbContext context)
     {
         _orderRepo = orderRepo;
-        _paymentRepo = paymentRepo;
         _context = context;
     }
 
@@ -38,8 +39,8 @@ public class OrderService : IOrderService
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             status = query.Status.Trim().ToUpperInvariant();
-            if (status != "DRAFT" && status != "COMPLETED" && status != "CANCELLED")
-                throw new ArgumentException("Status filter only accepts 'DRAFT', 'COMPLETED', or 'CANCELLED'.");
+            if (status != "PENDING" && status != "COMPLETED" && status != "CANCELLED")
+                throw new ArgumentException("Status filter only accepts 'PENDING', 'COMPLETED', or 'CANCELLED'.");
         }
 
         string? paymentStatus = null;
@@ -188,8 +189,8 @@ public class OrderService : IOrderService
         if (existing == null)
             return null;
 
-        if (existing.Status != "ACTIVE")
-            throw new InvalidOperationException("Only active orders can be updated.");
+        if (existing.Status != "PENDING")
+            throw new InvalidOperationException("Only pending orders can be updated.");
 
         // Validate all products exist and are active in the branch
         var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
@@ -264,49 +265,6 @@ public class OrderService : IOrderService
         return await _orderRepo.UpdateStatusAsync(id, normalizedStatus);
     }
 
-    public async Task<bool> RecordPaymentAsync(int id, RecordPaymentRequest request, Guid actorId)
-    {
-        var branchId = await RequireManagerBranchAsync(actorId);
-
-        var existing = await _orderRepo.GetByIdWithBranchAsync(id, branchId);
-        if (existing == null)
-            return false;
-
-        if (existing.PaymentStatus == "PAID")
-            throw new InvalidOperationException("Order is already fully paid.");
-
-        if (request.Amount <= 0)
-            throw new ArgumentException("Payment amount must be greater than 0.");
-
-        var totalPaid = existing.Payments.Sum(p => p.Amount);
-        var remaining = existing.TotalAmount - totalPaid;
-
-        if (request.Amount > remaining)
-            throw new InvalidOperationException($"Payment amount exceeds remaining balance. Remaining: {remaining:N0}");
-
-        var payment = new Payment
-        {
-            OrderId = id,
-            Amount = request.Amount,
-            PaymentMethod = request.PaymentMethod.Trim().ToUpperInvariant(),
-            ReferenceNumber = request.ReferenceNumber?.Trim(),
-            Note = request.Note?.Trim(),
-            RecordedBy = await GetActorIdFromContextAsync(actorId),
-            RecordedAt = DateTime.UtcNow
-        };
-
-        await _paymentRepo.CreateAsync(payment);
-
-        // Update order payment status
-        var newTotalPaid = totalPaid + request.Amount;
-        var newPaymentStatus = newTotalPaid >= existing.TotalAmount ? "PAID" : "PARTIAL";
-        var paidAt = newPaymentStatus == "PAID" ? DateTime.UtcNow : (DateTime?)null;
-
-        await _orderRepo.UpdatePaymentStatusAsync(id, newPaymentStatus, paidAt);
-
-        return true;
-    }
-
     public async Task<OrderDetailResponse?> GetByOrderNumberAsync(string orderNumber, Guid actorId)
     {
         if (string.IsNullOrWhiteSpace(orderNumber))
@@ -333,9 +291,114 @@ public class OrderService : IOrderService
         if (detail == null)
             throw new InvalidOperationException("Order not found.");
 
-        // TODO: Implement PDF generation (using QuestPDF or similar)
-        // For now return empty bytes
-        return Array.Empty<byte>();
+        return BuildInvoicePdf(detail);
+    }
+
+    private static byte[] BuildInvoicePdf(OrderDetailResponse order)
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(30);
+                page.DefaultTextStyle(x => x.FontSize(10).FontFamily(Fonts.Arial));
+
+                page.Header().Column(col =>
+                {
+                    col.Item().Text("HÓA ĐƠN THANH TOÁN").Bold().FontSize(18).FontColor(Colors.Indigo.Darken3).AlignCenter();
+                    col.Item().Text($"Mã đơn: {order.OrderNumber}").FontSize(9).FontColor(Colors.Grey.Darken1).AlignCenter();
+                    col.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Medium);
+                });
+
+                page.Content().PaddingVertical(12).Column(col =>
+                {
+                    col.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.ConstantColumn(110);
+                            cols.RelativeColumn();
+                            cols.ConstantColumn(110);
+                            cols.RelativeColumn();
+                        });
+
+                        AddInfoRow(table, "Chi nhánh:", order.BranchName);
+                        AddInfoRow(table, "Ngày:", order.OrderDate.ToString("dd/MM/yyyy HH:mm"));
+                        AddInfoRow(table, "Nhân viên:", order.CreatedByName);
+                        AddInfoRow(table, "Trạng thái:", order.Status);
+                    });
+
+                    col.Item().PaddingTop(16).Table(table =>
+                    {
+                        table.ColumnsDefinition(cols =>
+                        {
+                            cols.RelativeColumn(4);
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn();
+                            cols.RelativeColumn(2);
+                            cols.RelativeColumn(2);
+                        });
+
+                        table.Header(header =>
+                        {
+                            header.Cell().Element(HeaderCell).Text("Sản phẩm").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Đơn giá").Bold();
+                            header.Cell().Element(HeaderCell).AlignCenter().Text("SL").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Giảm giá").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Thành tiền").Bold();
+                        });
+
+                        foreach (var item in order.Items)
+                        {
+                            table.Cell().Element(BodyCell).Text(item.ProductName);
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{item.UnitPrice:N0}");
+                            table.Cell().Element(BodyCell).AlignCenter().Text(item.Quantity.ToString());
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{item.DiscountAmount:N0}");
+                            table.Cell().Element(BodyCell).AlignRight().Text($"{item.TotalAmount:N0}");
+                        }
+                    });
+
+                    col.Item().PaddingTop(10).AlignRight().Column(totals =>
+                    {
+                        totals.Item().Text($"Tạm tính: {order.Subtotal:N0} VNĐ").FontSize(10);
+                        totals.Item().Text($"Tổng cộng: {order.TotalAmount:N0} VNĐ").Bold().FontSize(13).FontColor(Colors.Indigo.Darken3);
+                    });
+
+                    if (!string.IsNullOrWhiteSpace(order.Note))
+                    {
+                        col.Item().PaddingTop(14).Text("Ghi chú:").Bold().FontSize(10);
+                        col.Item().PaddingTop(3).Background(Colors.Grey.Lighten4).Padding(8).Text(order.Note).FontSize(9);
+                    }
+
+                    col.Item().PaddingTop(20).Text("Cảm ơn quý khách đã sử dụng dịch vụ!").Italic().FontSize(9).FontColor(Colors.Grey.Darken1);
+                });
+
+                page.Footer().AlignCenter().Text(x =>
+                {
+                    x.Span("Trang ").FontSize(8).FontColor(Colors.Grey.Medium);
+                    x.CurrentPageNumber().FontSize(8).FontColor(Colors.Grey.Medium);
+                    x.Span(" / ").FontSize(8).FontColor(Colors.Grey.Medium);
+                    x.TotalPages().FontSize(8).FontColor(Colors.Grey.Medium);
+                });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
+    private static IContainer HeaderCell(IContainer container) =>
+        container.Background(Colors.Grey.Lighten3).BorderBottom(1).BorderColor(Colors.Grey.Medium).Padding(5);
+
+    private static IContainer BodyCell(IContainer container) =>
+        container.BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5);
+
+    private static void AddInfoRow(TableDescriptor table, string label, string value)
+    {
+        table.Cell().PaddingVertical(2).Text(label).Bold().FontSize(9);
+        table.Cell().PaddingVertical(2).Text(value ?? "—").FontSize(9);
     }
 
     private async Task<(string Role, int? BranchId)> GetActorAsync(Guid actorId)
@@ -361,11 +424,6 @@ public class OrderService : IOrderService
             throw new UnauthorizedAccessException("The manager account is not assigned to a branch.");
 
         return actor.BranchId.Value;
-    }
-
-    private async Task<Guid> GetActorIdFromContextAsync(Guid actorId)
-    {
-        return actorId; // Simplified - in reality might come from HttpContext
     }
 
     private async Task<string> GenerateOrderNumberAsync(int branchId)
