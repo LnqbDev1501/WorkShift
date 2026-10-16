@@ -23,6 +23,7 @@ public class UserService : IUserService
     private const string PendingStatus = "PENDING";
     private const string ActiveStatus = "ACTIVE";
     private const string InactiveStatus = "INACTIVE";
+    private const string IdentityNoPattern = @"^(001|002|004|006|008|010|011|012|014|015|017|019|020|022|024|025|026|027|030|031|033|034|035|036|037|038|040|042|044|045|046|048|049|051|052|054|056|058|060|062|064|066|067|068|070|072|074|075|077|079|080|082|083|084|086|087|089|091|092|093|094|095|096)\d{6}(\d{3})?$";
     private static readonly TimeZoneInfo VietnamTimeZone = GetVietnamTimeZone();
 
     private readonly IUserRepo _userRepo;
@@ -271,8 +272,9 @@ public class UserService : IUserService
         if (user.DeletedAt.HasValue)
             throw new InvalidOperationException("Deleted accounts cannot be updated.");
 
-        if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Only active accounts can be updated.");
+        if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase) &&
+            !user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only active or pending accounts can be updated.");
 
         var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
         var isAdmin = roleName == "ADMIN";
@@ -314,39 +316,10 @@ public class UserService : IUserService
             if (isBranchChanged || isRoleChanged)
             {
                 var branchId = user.BranchId.GetValueOrDefault();
-                if (roleName == ManagerRole && branchId > 0)
-                {
-                    var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
-                        .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-
-                    var hasEmployeeRequests = await _dbContext.EmployeeRequests
-                        .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
-
-                    var hasSwapRequests = await _dbContext.ShiftSwapRequests
-                        .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
-                        .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
-
-                    var hasContracts = await _dbContext.EmploymentContracts
-                        .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-
-                    var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
-                        .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
-
-                    var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
-                        .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
-
-                    var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
-                        .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
-
-                    if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
-                    {
-                        throw new InvalidOperationException("Cannot update Branch or Role because the Manager has pending tasks in the current branch.");
-                    }
-                }
-                else if (roleName == AccountantRole && branchId > 0)
+                if (roleName == AccountantRole && branchId > 0)
                 {
                     var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
 
                     var hasPayrolls = await _dbContext.Payrolls
                         .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
@@ -418,6 +391,22 @@ public class UserService : IUserService
             }
 
             await transaction.CommitAsync();
+
+            if (emailChanged && user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var setupLink = await _authService.ResendSetupLinkAsync(user.UserId, request.Email);
+                    if (setupLink is not null)
+                    {
+                        await _accountSetupEmailSender.SendAsync(request.Email, setupLink);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to auto-resend setup email to new address {Email} for pending user {UserId}", request.Email, userId);
+                }
+            }
         }
         catch (DbUpdateException exception)
         {
@@ -519,39 +508,10 @@ public class UserService : IUserService
         if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
         {
             var branchId = user.BranchId.GetValueOrDefault();
-            if (roleName == ManagerRole && branchId > 0)
-            {
-                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
-                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-
-                var hasEmployeeRequests = await _dbContext.EmployeeRequests
-                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
-
-                var hasSwapRequests = await _dbContext.ShiftSwapRequests
-                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
-                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
-
-                var hasContracts = await _dbContext.EmploymentContracts
-                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-
-                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
-                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
-
-                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
-                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
-
-                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
-                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
-
-                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
-                {
-                    throw new InvalidOperationException("Cannot delete because the Manager has pending tasks in the current branch.");
-                }
-            }
-            else if (roleName == AccountantRole && branchId > 0)
+            if (roleName == AccountantRole && branchId > 0)
             {
                 var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
 
                 var hasPayrolls = await _dbContext.Payrolls
                     .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
@@ -759,8 +719,8 @@ public class UserService : IUserService
         catch (FormatException) { throw new ArgumentException("Email format is invalid."); }
         if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
-        if (!Regex.IsMatch(request.IdentityNo, @"^\d{9}$|^\d{12}$"))
-            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+        if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
             throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.BranchId.HasValue || request.BranchId.Value <= 0)
@@ -789,8 +749,8 @@ public class UserService : IUserService
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
         if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
-        if (!Regex.IsMatch(request.IdentityNo, @"^\d{9}$|^\d{12}$"))
-            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+        if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
             throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.DateOfBirth.HasValue)
