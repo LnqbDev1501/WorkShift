@@ -67,4 +67,8 @@ public interface IStaffEmployeeRequestRepo
         int requestId,
         Guid staffId,
         CancellationToken cancellationToken = default);
+
+    Task<List<EmployeeRequest>> CancelOverduePendingRequestsAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default);
 }

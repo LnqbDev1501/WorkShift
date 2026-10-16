@@ -13,4 +13,5 @@ public class CreateEmploymentContractRequest
     public string? ContractTerms { get; set; }
     public string? ContractType { get; set; } = "NEW";
     public int? ReplacesContractId { get; set; }
+    public decimal? HourlyRate { get; set; }
 }

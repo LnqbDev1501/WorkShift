@@ -107,8 +107,17 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 var myCnn = builder.Configuration.GetConnectionString("MyCnn")
     ?? throw new InvalidOperationException("Missing MyCnn connection string.");
 // The Supabase pooler allows only 15 session clients: bound client-side pooling
-// and Hangfire workers so background jobs cannot starve web requests.
-var pooledConnectionString = new Npgsql.NpgsqlConnectionStringBuilder(myCnn) { MaxPoolSize = 8 }.ToString();
+// and Hangfire workers so background jobs cannot starve web requests or hit EMAXCONNSESSION.
+var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
+{
+    MaxPoolSize = 5,
+    MinPoolSize = 0,
+    ConnectionIdleLifetime = 5,
+    ConnectionPruningInterval = 2,
+    Timeout = 15,
+    CommandTimeout = 30
+};
+var pooledConnectionString = efConnBuilder.ToString();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -116,7 +125,17 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
-var hangfireConnection = builder.Configuration.GetConnectionString("Hangfire") ?? pooledConnectionString;
+var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
+var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
+{
+    MaxPoolSize = 3,
+    MinPoolSize = 0,
+    ConnectionIdleLifetime = 5,
+    ConnectionPruningInterval = 2,
+    Timeout = 15,
+    CommandTimeout = 30
+};
+var hangfireConnection = hangfireConnBuilder.ToString();
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
@@ -353,11 +372,16 @@ try
             "overdue-contracts-cancellation",
             service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
             Cron.Minutely());
-
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService>(
             "timesheet-deadline-autolock",
             service => service.AutoLockExpiredTimesheetsAsync(CancellationToken.None),
+            Cron.Minutely());
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService>(
+            "overdue-requests-cancellation",
+            service => service.CancelOverduePendingRequestsAsync(CancellationToken.None),
             Cron.Minutely());
 }
 

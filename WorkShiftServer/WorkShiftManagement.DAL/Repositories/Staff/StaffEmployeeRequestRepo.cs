@@ -789,4 +789,79 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             throw new InvalidOperationException($"You have reached the limit of {maxRequestsPerMonth} {requestType} request(s) for this month ({todayVn:MM/yyyy}).");
         }
     }
+
+    public async Task<List<EmployeeRequest>> CancelOverduePendingRequestsAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var pendingRequests = await _context.EmployeeRequests
+            .Include(r => r.User)
+            .Include(r => r.Branch)
+            .Include(r => r.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Assignment)
+                    .ThenInclude(a => a.Shift)
+            .Include(r => r.TimeAdjustmentRequestDetail)
+                .ThenInclude(tard => tard!.Assignment)
+                    .ThenInclude(a => a.Shift)
+            .Where(r => r.Status == "PENDING" &&
+                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"))
+            .ToListAsync(cancellationToken);
+
+        var overdueList = new List<EmployeeRequest>();
+        foreach (var r in pendingRequests)
+        {
+            bool isOverdue = false;
+            if (r.RequestType == "LEAVE")
+            {
+                if (r.LeaveRequestAssignments.Count > 0 &&
+                    r.LeaveRequestAssignments.All(lra => lra.Assignment?.Shift != null && lra.Assignment.Shift.ScheduledEndAt <= nowUtc))
+                {
+                    isOverdue = true;
+                }
+            }
+            else if (r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE")
+            {
+                if (r.TimeAdjustmentRequestDetail?.Assignment?.Shift != null &&
+                    r.TimeAdjustmentRequestDetail.Assignment.Shift.ScheduledEndAt <= nowUtc)
+                {
+                    isOverdue = true;
+                }
+            }
+
+            if (isOverdue)
+            {
+                var oldStatus = r.Status;
+                r.Status = "CANCELLED";
+                r.ReviewNote = "Hệ thống tự động hủy đơn do ca làm việc đã kết thúc mà chưa được duyệt.";
+                r.UpdatedAt = nowUtc;
+
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    UserId = null,
+                    Action = "AUTO_CANCEL_REQUEST",
+                    TableName = "employee_requests",
+                    RecordId = r.RequestId.ToString(),
+                    OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                    NewValue = JsonSerializer.Serialize(new
+                    {
+                        fromStatus = oldStatus,
+                        toStatus = "CANCELLED",
+                        reason = "EXPIRED_SHIFT_ENDED",
+                        cancelledAt = nowUtc,
+                        note = r.ReviewNote
+                    }),
+                    CreatedAt = nowUtc
+                });
+
+                overdueList.Add(r);
+            }
+        }
+
+        if (overdueList.Count > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return overdueList;
+    }
 }

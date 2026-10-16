@@ -147,6 +147,24 @@ class StaffContractService {
     }
   }
 
+  /// Lấy danh sách vị trí công việc hoạt động từ hệ thống (DB)
+  Future<List<String>> getActivePositions() async {
+    try {
+      final response = await _apiClient.get('/api/staff/contracts/active-positions');
+      if (response.data != null && response.data is List) {
+        return (response.data as List)
+            .map((e) => e.toString().trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      throw _extractErrorMessage(e, 'Không thể tải danh sách vị trí công việc');
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
   String _extractErrorMessage(DioException e, String defaultMessage) {
     if (e.response?.data != null && e.response!.data is Map<String, dynamic>) {
       final data = e.response!.data as Map<String, dynamic>;

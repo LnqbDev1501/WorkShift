@@ -35,10 +35,17 @@ class StaffContractController extends ChangeNotifier {
   // PDF
   bool _isDownloadingPdf = false;
 
+  // Active positions from DB
+  List<String> _activePositions = [];
+  bool _isLoadingPositions = false;
+
   // Getters
   List<StaffContractListItemModel> get contracts => List.unmodifiable(_contracts);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  List<String> get activePositions => List.unmodifiable(_activePositions);
+  bool get isLoadingPositions => _isLoadingPositions;
 
   String get searchQuery => _searchQuery;
   String get selectedStatus => _selectedStatus;
@@ -60,6 +67,21 @@ class StaffContractController extends ChangeNotifier {
       List.unmodifiable(_changeRequests);
   bool get isLoadingChangeRequests => _isLoadingChangeRequests;
   bool get isDownloadingPdf => _isDownloadingPdf;
+
+  /// Tải danh mục vị trí công việc từ DB
+  Future<void> loadActivePositions() async {
+    if (_activePositions.isNotEmpty) return;
+    _isLoadingPositions = true;
+    notifyListeners();
+    try {
+      _activePositions = await _service.getActivePositions();
+    } catch (_) {
+      // ignore
+    } finally {
+      _isLoadingPositions = false;
+      notifyListeners();
+    }
+  }
 
   /// Nạp danh sách hợp đồng
   Future<void> loadContracts({bool refresh = false}) async {

@@ -26,6 +26,10 @@ public class CreateContractViewModel : IValidatableObject
     [StringLength(100, ErrorMessage = "Position cannot exceed 100 characters.")]
     public string EmployeePosition { get; set; } = string.Empty;
 
+    [Range(0, 100000000, ErrorMessage = "Hourly rate must be a positive number.")]
+    [Display(Name = "Hourly Rate (VNĐ/h)")]
+    public decimal? HourlyRate { get; set; }
+
     public string? ContractTerms { get; set; }
 
     [BindNever, ValidateNever]
@@ -71,7 +75,8 @@ public record ContractStaffOption(
     decimal? CurrentHourlyRate = null,
     string? CurrentStatus = null,
     int? DaysUntilExpiration = null,
-    string? ExpirationCategory = null
+    string? ExpirationCategory = null,
+    string? CurrentContractTerms = null
 );
 
 public record ContractCreatedResponse(int ContractId, string ContractNumber, Guid StaffUserId,

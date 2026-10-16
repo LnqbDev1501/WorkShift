@@ -10,11 +10,13 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 public interface IEmploymentContractRepo
 {
     Task<IReadOnlyList<User>> GetEligibleStaffAsync(int branchId, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<User>> GetStaffWithoutContractAsync(CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<(User User, EmploymentContract Contract)>> GetStaffForRenewalAsync(int branchId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<User>> GetStaffWithoutContractAsync(int? branchId = null, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<(User User, EmploymentContract Contract, decimal? LatestSalary)>> GetStaffForRenewalAsync(int branchId, CancellationToken cancellationToken = default);
     Task<User?> GetCreationUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<bool> HasPendingContractAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<bool> HasAnyContractAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<bool> HasActiveOrScheduledContractAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> GetActivePositionNamesAsync(CancellationToken cancellationToken = default);
     Task<EmploymentContract?> GetLatestContractForStaffInBranchAsync(Guid userId, int branchId, CancellationToken cancellationToken = default);
     Task CreateDraftAsync(EmploymentContract contract, CancellationToken cancellationToken = default);
 

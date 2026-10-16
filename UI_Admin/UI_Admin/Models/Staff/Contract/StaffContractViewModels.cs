@@ -71,6 +71,7 @@ public class StaffContractDetailViewModel
 
     public IReadOnlyList<StaffContractChangeRequestViewModel> ChangeRequests { get; set; } = [];
     public SubmitStaffContractChangeRequestViewModel ChangeRequestForm { get; set; } = new();
+    public IReadOnlyList<string> PositionOptions { get; set; } = [];
 }
 
 public class StaffContractChangeRequestViewModel
