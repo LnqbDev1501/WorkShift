@@ -115,9 +115,17 @@ public partial class User
 
     public virtual ICollection<PayrollCarryForwardDeduction> PayrollCarryForwardDeductions { get; set; } = new List<PayrollCarryForwardDeduction>();
 
+    public virtual ICollection<PayrollCorrectionRequest> PayrollCorrectionRequestRequestedByNavigations { get; set; } = new List<PayrollCorrectionRequest>();
+
+    public virtual ICollection<PayrollCorrectionRequest> PayrollCorrectionRequestRespondedByNavigations { get; set; } = new List<PayrollCorrectionRequest>();
+
+    public virtual ICollection<PayrollCorrectionRequest> PayrollCorrectionRequestReviewedByNavigations { get; set; } = new List<PayrollCorrectionRequest>();
+
     public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestEmployees { get; set; } = new List<PayrollFeedbackRequest>();
 
     public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestProcessedByNavigations { get; set; } = new List<PayrollFeedbackRequest>();
+
+    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestSentByNavigations { get; set; } = new List<PayrollFeedbackRequest>();
 
     public virtual ICollection<Payroll> PayrollPaymentConfirmedByNavigations { get; set; } = new List<Payroll>();
 
@@ -129,9 +137,9 @@ public partial class User
 
     public virtual ICollection<PayrollPeriod> PayrollPeriodCreatedByNavigations { get; set; } = new List<PayrollPeriod>();
 
-    public virtual ICollection<PayrollPeriod> PayrollPeriodSubmittedByNavigations { get; set; } = new List<PayrollPeriod>();
+    public virtual ICollection<PayrollPeriod> PayrollPeriodPublishedByNavigations { get; set; } = new List<PayrollPeriod>();
 
-    public virtual ICollection<Payroll> PayrollRejectedByNavigations { get; set; } = new List<Payroll>();
+    public virtual ICollection<PayrollPeriod> PayrollPeriodSubmittedByNavigations { get; set; } = new List<PayrollPeriod>();
 
     public virtual ICollection<Payroll> PayrollSubmittedByNavigations { get; set; } = new List<Payroll>();
 
@@ -148,6 +156,14 @@ public partial class User
     public virtual ICollection<RequestLimitRule> RequestLimitRulePublishedByNavigations { get; set; } = new List<RequestLimitRule>();
 
     public virtual Role Role { get; set; } = null!;
+
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestCancelledByNavigations { get; set; } = new List<SalaryChangeRequest>();
+
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestRequestedByNavigations { get; set; } = new List<SalaryChangeRequest>();
+
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestReviewedByNavigations { get; set; } = new List<SalaryChangeRequest>();
+
+    public virtual SalaryChangeRequest? SalaryChangeRequestUser { get; set; }
 
     public virtual ICollection<ShiftAssignment> ShiftAssignmentAssignedByNavigations { get; set; } = new List<ShiftAssignment>();
 

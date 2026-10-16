@@ -45,12 +45,6 @@ public partial class Payroll
 
     public DateTime? CalculatedAt { get; set; }
 
-    public Guid? RejectedBy { get; set; }
-
-    public DateTime? RejectedAt { get; set; }
-
-    public string? RejectReason { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
@@ -60,8 +54,6 @@ public partial class Payroll
     public int? PreviousPayrollId { get; set; }
 
     public string? CorrectionReason { get; set; }
-
-    public string? RejectionCategory { get; set; }
 
     public Guid? CalculatedBy { get; set; }
 
@@ -107,19 +99,19 @@ public partial class Payroll
 
     public virtual ICollection<PayrollCarryForwardDeduction> PayrollCarryForwardDeductions { get; set; } = new List<PayrollCarryForwardDeduction>();
 
+    public virtual ICollection<PayrollCorrectionRequest> PayrollCorrectionRequestPayrolls { get; set; } = new List<PayrollCorrectionRequest>();
+
+    public virtual ICollection<PayrollCorrectionRequest> PayrollCorrectionRequestResolvedPayrolls { get; set; } = new List<PayrollCorrectionRequest>();
+
     public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
 
-    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestPayrolls { get; set; } = new List<PayrollFeedbackRequest>();
-
-    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequestResolvedPayrolls { get; set; } = new List<PayrollFeedbackRequest>();
+    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequests { get; set; } = new List<PayrollFeedbackRequest>();
 
     public virtual PayrollPeriod PayrollPeriod { get; set; } = null!;
 
     public virtual Payslip? Payslip { get; set; }
 
     public virtual Payroll? PreviousPayroll { get; set; }
-
-    public virtual User? RejectedByNavigation { get; set; }
 
     public virtual StaffSalaryHistory SalaryHistory { get; set; } = null!;
 
