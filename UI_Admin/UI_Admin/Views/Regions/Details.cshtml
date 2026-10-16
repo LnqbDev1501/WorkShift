@@ -5,6 +5,7 @@
     ViewData["Title"] = $"Region {Model.RegionCode} - Details";
     var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
     var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
+    var vietMapServicesKey = Configuration["VietMap:ServicesKey"] ?? string.Empty;
 }
 
 @section Styles {
@@ -366,12 +367,13 @@
                     });
                 } else {
                     const regionName = '@Model.RegionName';
-                    if (regionName) {
-                        fetch(`https://maps.vietmap.vn/api/autocomplete/v3?apikey=${vietMapKey}&text=${encodeURIComponent(regionName)}`)
+                    const servicesApiKey = '@vietMapServicesKey' || vietMapKey;
+                    if (regionName && servicesApiKey) {
+                        fetch(`https://maps.vietmap.vn/api/autocomplete/v3?apikey=${servicesApiKey}&text=${encodeURIComponent(regionName)}`)
                             .then(res => res.json())
                             .then(data => {
                                 if (Array.isArray(data) && data.length > 0 && data[0].ref_id) {
-                                    return fetch(`https://maps.vietmap.vn/api/place/v3?apikey=${vietMapKey}&refid=${data[0].ref_id}`);
+                                    return fetch(`https://maps.vietmap.vn/api/place/v3?apikey=${servicesApiKey}&refid=${data[0].ref_id}`);
                                 }
                             })
                             .then(res => res ? res.json() : null)
