@@ -15,8 +15,11 @@ public interface IPayrollFeedbackRepo
     Task<int?> PeriodForPayrollAsync(int id, CancellationToken ct);
     Task<List<int>> ReviewPeriodIdsAsync(int? branch, Guid? employee, CancellationToken ct);
     Task<List<int>> DueReviewPeriodsAsync(DateTime now, CancellationToken ct);
+    Task<string?> CorrectionImpactAsync(int correctionRequestId, CancellationToken ct);
     void Add(PayrollFeedbackRequest row);
     void Add(PayrollCorrectionRequest row);
     void Add(Payslip row);
     void Audit(Guid? actor, string action, string table, int id, object payload, DateTime now);
+    void NotifyInApp(int periodId, int branchId, string role, Guid? user, string title, string message, DateTime now, Guid? sender = null);
+    Task<List<PayrollCorrectionRequest>> QueryIssuesAsync(int? branchId, int? periodId, string? status, CancellationToken ct);
 }

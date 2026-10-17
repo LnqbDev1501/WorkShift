@@ -1,0 +1,405 @@
+@model List<UI_Admin.Models.PayrollDocuments.PayrollIssueResponse>
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = "Payroll Corrections";
+    int? currentPeriodId = ViewBag.PeriodId as int?;
+    string currentStatus = (ViewBag.CurrentStatus as string) ?? "ALL";
+    string currentSearch = (ViewBag.Search as string) ?? "";
+    string? successMsg = (TempData["SuccessMessage"] ?? TempData["WorkflowSuccess"]) as string;
+    string? errorMsg = (TempData["ErrorMessage"] ?? TempData["WorkflowError"]) as string;
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">build</span>
+                <span>Manager / Attendance &amp; Timesheets</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Payroll Corrections</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Review and respond to payroll source correction requests submitted by Accountants.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">refresh</span>
+                <span>Refresh</span>
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(successMsg))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@successMsg</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMsg))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@errorMsg</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Search & Filter Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <form method="get" asp-action="Index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <!-- Search Input -->
+            <div class="md:col-span-5">
+                <label for="search" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Search</label>
+                <div class="relative flex items-center">
+                    <span class="material-symbols-outlined absolute left-3.5 pointer-events-none text-slate-400 text-lg">search</span>
+                    <input type="text" id="search" name="search" value="@currentSearch" placeholder="Search employee name, reason..."
+                           class="w-full h-11 pl-10 pr-4 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="md:col-span-3">
+                <label for="status" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Status</label>
+                <select id="status" name="status"
+                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
+                    <option value="ALL" selected="@(currentStatus == "ALL")">All Statuses</option>
+                    <option value="OPEN" selected="@(currentStatus == "OPEN")">OPEN (Pending Response)</option>
+                    <option value="RESPONDED" selected="@(currentStatus == "RESPONDED")">RESPONDED</option>
+                    <option value="RETURNED" selected="@(currentStatus == "RETURNED")">RETURNED</option>
+                    <option value="COMPLETED" selected="@(currentStatus == "COMPLETED")">COMPLETED</option>
+                </select>
+            </div>
+
+            <!-- Period ID Filter (Optional) -->
+            <div class="md:col-span-2">
+                <label for="periodId" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Period ID</label>
+                <input type="number" id="periodId" name="periodId" value="@currentPeriodId" placeholder="e.g. 1, 2..."
+                       class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="md:col-span-2 flex items-center gap-2">
+                <button type="submit" class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer box-border">
+                    <span class="material-symbols-outlined text-base">filter_alt</span>
+                    <span>Filter</span>
+                </button>
+                <a asp-action="Index" class="h-11 w-11 shrink-0 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl text-sm transition-all box-border" title="Reset Filters">
+                    <span class="material-symbols-outlined text-base">restart_alt</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Requests Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">build_circle</span>
+                <h2 class="text-sm font-bold text-slate-900">Correction Requests</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Count @(Model.Count == 1 ? "Request" : "Requests")
+                </span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium hidden sm:block">
+                Timezone: Vietnam (UTC+7)
+            </div>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">task_alt</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">No Correction Requests Found</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">No payroll correction requests match your filter criteria at this time.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Request ID</th>
+                            <th class="py-3.5 px-6">Employee</th>
+                            <th class="py-3.5 px-6">Period</th>
+                            <th class="py-3.5 px-6">Accountant Reason</th>
+                            <th class="py-3.5 px-6">Status</th>
+                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var req in Model)
+                        {
+                            var isPending = req.Status is "OPEN" or "RETURNED";
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Request ID -->
+                                <td class="py-4 px-6 font-semibold text-slate-900">
+                                    <span class="inline-flex items-center gap-1 font-mono text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+                                        #@req.CorrectionRequestId
+                                    </span>
+                                </td>
+
+                                <!-- Employee -->
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-900">
+                                        @(string.IsNullOrWhiteSpace(req.EmployeeName) ? "Employee #" + req.PayrollId : req.EmployeeName)
+                                    </div>
+                                    <div class="text-xs text-slate-400 mt-0.5">
+                                        Payroll #@req.PayrollId
+                                    </div>
+                                </td>
+
+                                <!-- Period -->
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-slate-800">
+                                        @(string.IsNullOrWhiteSpace(req.PeriodCode) ? "Period #" + req.PayrollPeriodId : req.PeriodCode)
+                                    </div>
+                                    @if (req.ScheduleWeekId.HasValue)
+                                    {
+                                        <a asp-controller="ManagerTimesheet" asp-action="Details" asp-route-id="@req.ScheduleWeekId" target="_blank"
+                                           class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 font-medium">
+                                            <span>Week #@req.ScheduleWeekId</span>
+                                            <span class="material-symbols-outlined text-xs">open_in_new</span>
+                                        </a>
+                                    }
+                                </td>
+
+                                <!-- Accountant Reason -->
+                                <td class="py-4 px-6 max-w-md">
+                                    <p class="text-slate-800 text-xs font-medium line-clamp-2" title="@req.Reason">
+                                        @req.Reason
+                                    </p>
+                                    <div class="text-[11px] text-slate-400 mt-1">
+                                        @req.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </td>
+
+                                <!-- Status -->
+                                <td class="py-4 px-6">
+                                    @if (req.Status == "OPEN")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            OPEN
+                                        </span>
+                                    }
+                                    else if (req.Status == "RESPONDED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            RESPONDED
+                                        </span>
+                                    }
+                                    else if (req.Status == "RETURNED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            RETURNED
+                                        </span>
+                                    }
+                                    else if (req.Status == "COMPLETED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            COMPLETED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            @req.Status
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-4 px-6 text-right">
+                                    @if (isPending)
+                                    {
+                                        <button type="button" onclick="openModal('modalRespond-@req.CorrectionRequestId')"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer">
+                                            <span class="material-symbols-outlined text-sm">reply</span>
+                                            <span>Respond</span>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" onclick="openModal('modalDetails-@req.CorrectionRequestId')"
+                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer">
+                                            <span class="material-symbols-outlined text-sm">visibility</span>
+                                            <span>Details</span>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Response Modals for Pending Requests -->
+@foreach (var req in Model)
+{
+    var isPending = req.Status is "OPEN" or "RETURNED";
+    if (isPending)
+    {
+        <div id="modalRespond-@req.CorrectionRequestId" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title-@req.CorrectionRequestId" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeModal('modalRespond-@req.CorrectionRequestId')"></div>
+            <div class="flex min-h-full items-center justify-center p-4 text-center">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+                    <form asp-action="Respond" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="CorrectionRequestId" value="@req.CorrectionRequestId" />
+                        <input type="hidden" name="periodId" value="@(req.PayrollPeriodId > 0 ? req.PayrollPeriodId : currentPeriodId)" />
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+                        <div class="p-6">
+                            <div class="flex items-center gap-4 mb-4">
+                                <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                                    <span class="material-symbols-outlined text-2xl">reply</span>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-900" id="modal-title-@req.CorrectionRequestId">Respond to Correction Request</h3>
+                                    <p class="text-xs text-slate-500">Request #@req.CorrectionRequestId • @(string.IsNullOrWhiteSpace(req.EmployeeName) ? "Employee #" + req.PayrollId : req.EmployeeName)</p>
+                                </div>
+                            </div>
+
+                            <!-- Reason Box -->
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs mb-4">
+                                <div class="font-semibold text-slate-700 mb-1">Accountant's Reason:</div>
+                                <div class="text-slate-900 font-medium">@req.Reason</div>
+                            </div>
+
+                            <!-- Action Selection -->
+                            <div class="mb-4">
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Select Action</label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <label class="flex items-start gap-2.5 p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-colors">
+                                        <input type="radio" name="Action" value="EXPLAIN" checked class="mt-0.5 text-amber-600 focus:ring-amber-500 cursor-pointer" />
+                                        <div>
+                                            <div class="text-xs font-bold text-amber-900">EXPLAIN (Explanation Only)</div>
+                                            <div class="text-[11px] text-slate-500 mt-0.5 font-normal">Send note or explanation without modifying attendance/reward records.</div>
+                                        </div>
+                                    </label>
+                                    <label class="flex items-start gap-2.5 p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 cursor-pointer transition-colors">
+                                        <input type="radio" name="Action" value="CORRECT" class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                                        <div>
+                                            <div class="text-xs font-bold text-indigo-900">CORRECT (Source Updated)</div>
+                                            <div class="text-[11px] text-slate-500 mt-0.5 font-normal">Select ONLY if shifts, timesheet hours, or adjustments were already updated.</div>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Explanation Note -->
+                            <div class="mb-2">
+                                <label for="note-@req.CorrectionRequestId" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                                    Note / Explanation <span class="text-rose-500">*</span>
+                                </label>
+                                <textarea id="note-@req.CorrectionRequestId" name="Note" required rows="3"
+                                          placeholder="Enter your explanation or details of source updates made..."
+                                          class="w-full px-3.5 py-2.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                            <button type="button" onclick="closeModal('modalRespond-@req.CorrectionRequestId')"
+                                    class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                                Cancel
+                            </button>
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                                <span class="material-symbols-outlined text-sm">send</span>
+                                <span>Submit Response</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div id="modalDetails-@req.CorrectionRequestId" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-det-title-@req.CorrectionRequestId" role="dialog" aria-modal="true">
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeModal('modalDetails-@req.CorrectionRequestId')"></div>
+            <div class="flex min-h-full items-center justify-center p-4 text-center">
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+                    <div class="p-6">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                                <span class="material-symbols-outlined text-2xl">info</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900" id="modal-det-title-@req.CorrectionRequestId">Request Details #@req.CorrectionRequestId</h3>
+                                <p class="text-xs text-slate-500">@(string.IsNullOrWhiteSpace(req.EmployeeName) ? "Employee #" + req.PayrollId : req.EmployeeName) • Payroll #@req.PayrollId</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-sm">
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Accountant's Reason</span>
+                                <p class="text-slate-800 font-medium">@req.Reason</p>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Manager's Action</span>
+                                <p class="font-bold @(req.ResponseAction == "CORRECT" ? "text-indigo-600" : "text-amber-600")">
+                                    @(req.ResponseAction ?? "—")
+                                </p>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Manager's Note</span>
+                                <p class="text-slate-800 font-medium">@(req.ResponseNote ?? req.ManagerNote ?? "—")</p>
+                            </div>
+
+                            @if (req.RespondedAt.HasValue)
+                            {
+                                <div class="text-xs text-slate-500">
+                                    Responded at: <strong class="text-slate-700 font-medium">@req.RespondedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong>
+                                </div>
+                            }
+
+                            @if (req.ResolvedPayrollId.HasValue)
+                            {
+                                <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base text-emerald-600">verified</span>
+                                    <span>Resolved in Payroll #@req.ResolvedPayrollId</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+                        <button type="button" onclick="closeModal('modalDetails-@req.CorrectionRequestId')"
+                                class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+<script>
+    function openModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.remove('hidden');
+    }
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        if (modal) modal.classList.add('hidden');
+    }
+</script>

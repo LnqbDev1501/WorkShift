@@ -690,127 +690,127 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 throw new InvalidOperationException("Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.");
             }
 
-        var oldStatus = existing.Status;
-        existing.Status = newStatus;
-        existing.StaffAcceptedAt = acceptedAtUtc;
-        existing.UpdatedAt = acceptedAtUtc;
+            var oldStatus = existing.Status;
+            existing.Status = newStatus;
+            existing.StaffAcceptedAt = acceptedAtUtc;
+            existing.UpdatedAt = acceptedAtUtc;
 
-        var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == staffUserId, cancellationToken);
-        if (staffUser != null)
-        {
-            staffUser.BranchId = existing.BranchId;
-            var positionTrimmed = existing.EmployeePositionSnapshot?.Trim();
-            if (!string.IsNullOrWhiteSpace(positionTrimmed))
+            var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == staffUserId, cancellationToken);
+            if (staffUser != null)
             {
-                var allEmployeeTypes = await _context.EmployeeTypes.ToListAsync(cancellationToken);
-                var matchedType = allEmployeeTypes.FirstOrDefault(t =>
-                    string.Equals(t.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase))
-                    ?? allEmployeeTypes.FirstOrDefault(t =>
-                    string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase));
-
-                if (matchedType != null)
+                staffUser.BranchId = existing.BranchId;
+                var positionTrimmed = existing.EmployeePositionSnapshot?.Trim();
+                if (!string.IsNullOrWhiteSpace(positionTrimmed))
                 {
-                    staffUser.EmployeeTypeId = matchedType.EmployeeTypeId;
-                }
-            }
-            staffUser.UpdatedAt = acceptedAtUtc;
-        }
+                    var allEmployeeTypes = await _context.EmployeeTypes.ToListAsync(cancellationToken);
+                    var matchedType = allEmployeeTypes.FirstOrDefault(t =>
+                        string.Equals(t.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase))
+                        ?? allEmployeeTypes.FirstOrDefault(t =>
+                        string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase));
 
-        var note = newStatus == "ACTIVE"
-            ? "Nhân viên đã chấp thuận hợp đồng. Hợp đồng có hiệu lực ngay lập tức."
-            : "Nhân viên đã chấp thuận hợp đồng. Hợp đồng chuyển sang trạng thái SCHEDULED chờ đến ngày bắt đầu.";
-
-        var salaryStatus = (newStatus == "ACTIVE") ? "ACTIVE" : "SCHEDULED";
-
-        if (salaryStatus == "ACTIVE")
-        {
-            var otherActiveSalaries = await _context.StaffSalaryHistories
-                .Where(s => s.UserId == staffUserId && s.Status == "ACTIVE")
-                .ToListAsync(cancellationToken);
-
-            foreach (var oldSalary in otherActiveSalaries)
-            {
-                oldSalary.Status = "INACTIVE";
-                if (oldSalary.EffectiveTo == null || oldSalary.EffectiveTo >= existing.StartDate)
-                {
-                    var dayBefore = existing.StartDate.AddDays(-1);
-                    if (dayBefore >= oldSalary.EffectiveFrom)
+                    if (matchedType != null)
                     {
-                        oldSalary.EffectiveTo = dayBefore;
+                        staffUser.EmployeeTypeId = matchedType.EmployeeTypeId;
+                    }
+                }
+                staffUser.UpdatedAt = acceptedAtUtc;
+            }
+
+            var note = newStatus == "ACTIVE"
+                ? "Nhân viên đã chấp thuận hợp đồng. Hợp đồng có hiệu lực ngay lập tức."
+                : "Nhân viên đã chấp thuận hợp đồng. Hợp đồng chuyển sang trạng thái SCHEDULED chờ đến ngày bắt đầu.";
+
+            var salaryStatus = (newStatus == "ACTIVE") ? "ACTIVE" : "SCHEDULED";
+
+            if (salaryStatus == "ACTIVE")
+            {
+                var otherActiveSalaries = await _context.StaffSalaryHistories
+                    .Where(s => s.UserId == staffUserId && s.Status == "ACTIVE")
+                    .ToListAsync(cancellationToken);
+
+                foreach (var oldSalary in otherActiveSalaries)
+                {
+                    oldSalary.Status = "INACTIVE";
+                    if (oldSalary.EffectiveTo == null || oldSalary.EffectiveTo >= existing.StartDate)
+                    {
+                        var dayBefore = existing.StartDate.AddDays(-1);
+                        if (dayBefore >= oldSalary.EffectiveFrom)
+                        {
+                            oldSalary.EffectiveTo = dayBefore;
+                        }
                     }
                 }
             }
-        }
-        else if (existing.ReplacesContractId.HasValue)
-        {
-            var predSalaries = await _context.StaffSalaryHistories
-                .Where(s => s.ContractId == existing.ReplacesContractId.Value && s.UserId == staffUserId)
-                .ToListAsync(cancellationToken);
-
-            foreach (var predSalary in predSalaries)
+            else if (existing.ReplacesContractId.HasValue)
             {
-                if (predSalary.EffectiveTo == null || predSalary.EffectiveTo >= existing.StartDate)
+                var predSalaries = await _context.StaffSalaryHistories
+                    .Where(s => s.ContractId == existing.ReplacesContractId.Value && s.UserId == staffUserId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var predSalary in predSalaries)
                 {
-                    var dayBefore = existing.StartDate.AddDays(-1);
-                    if (dayBefore >= predSalary.EffectiveFrom)
+                    if (predSalary.EffectiveTo == null || predSalary.EffectiveTo >= existing.StartDate)
                     {
-                        predSalary.EffectiveTo = dayBefore;
+                        var dayBefore = existing.StartDate.AddDays(-1);
+                        if (dayBefore >= predSalary.EffectiveFrom)
+                        {
+                            predSalary.EffectiveTo = dayBefore;
+                        }
                     }
                 }
             }
-        }
 
-        var existingSalary = await _context.StaffSalaryHistories
-            .FirstOrDefaultAsync(s => s.ContractId == contractId && s.ChangeType == "INITIAL", cancellationToken);
+            var existingSalary = await _context.StaffSalaryHistories
+                .FirstOrDefaultAsync(s => s.ContractId == contractId && s.ChangeType == "INITIAL", cancellationToken);
 
-        if (existingSalary == null)
-        {
-            await SyncSalaryHistorySequenceAsync(cancellationToken);
-
-            var salaryHistory = new StaffSalaryHistory
+            if (existingSalary == null)
             {
-                UserId = existing.UserId,
-                ContractId = existing.ContractId,
-                HourlyRate = existing.HourlyRate,
-                PreviousHourlyRate = null,
-                ChangeType = "INITIAL",
-                EffectiveFrom = existing.StartDate,
-                EffectiveTo = existing.EndDate,
-                Status = salaryStatus,
-                Reason = $"Mức lương ban đầu theo hợp đồng lao động {existing.ContractNumber}.",
-                CreatedBy = existing.CreatedBy,
+                await SyncSalaryHistorySequenceAsync(cancellationToken);
+
+                var salaryHistory = new StaffSalaryHistory
+                {
+                    UserId = existing.UserId,
+                    ContractId = existing.ContractId,
+                    HourlyRate = existing.HourlyRate,
+                    PreviousHourlyRate = null,
+                    ChangeType = "INITIAL",
+                    EffectiveFrom = existing.StartDate,
+                    EffectiveTo = existing.EndDate,
+                    Status = salaryStatus,
+                    Reason = $"Mức lương ban đầu theo hợp đồng lao động {existing.ContractNumber}.",
+                    CreatedBy = existing.CreatedBy,
+                    CreatedAt = acceptedAtUtc
+                };
+                _context.StaffSalaryHistories.Add(salaryHistory);
+            }
+            else
+            {
+                // A proposal refers to this history as the immutable hourly-rate source.
+                // Never resync a changed contract rate into an existing salary record.
+                if (existingSalary.HourlyRate != existing.HourlyRate
+                    || existingSalary.EffectiveFrom != existing.StartDate
+                    || existingSalary.UserId != existing.UserId)
+                    throw new InvalidOperationException("Lịch sử lương ban đầu đã tồn tại và không khớp hợp đồng. Không được ghi đè đơn giá/ngày bắt đầu; hãy xử lý bằng nghiệp vụ thay đổi lương hoặc hợp đồng.");
+                existingSalary.Status = salaryStatus;
+            }
+
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = staffUserId,
+                Action = "STAFF_ACCEPT_CONTRACT",
+                TableName = "employment_contracts",
+                RecordId = existing.ContractId.ToString(),
+                OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                NewValue = JsonSerializer.Serialize(new
+                {
+                    fromStatus = oldStatus,
+                    toStatus = newStatus,
+                    staffAcceptedAt = acceptedAtUtc,
+                    note = note
+                }),
                 CreatedAt = acceptedAtUtc
-            };
-            _context.StaffSalaryHistories.Add(salaryHistory);
-        }
-        else
-        {
-            // A proposal refers to this history as the immutable hourly-rate source.
-            // Never resync a changed contract rate into an existing salary record.
-            if (existingSalary.HourlyRate != existing.HourlyRate
-                || existingSalary.EffectiveFrom != existing.StartDate
-                || existingSalary.UserId != existing.UserId)
-                throw new InvalidOperationException("Lịch sử lương ban đầu đã tồn tại và không khớp hợp đồng. Không được ghi đè đơn giá/ngày bắt đầu; hãy xử lý bằng nghiệp vụ thay đổi lương hoặc hợp đồng.");
-            existingSalary.Status = salaryStatus;
-        }
-
-        _context.AuditLogs.Add(new AuditLog
-        {
-            UserId = staffUserId,
-            Action = "STAFF_ACCEPT_CONTRACT",
-            TableName = "employment_contracts",
-            RecordId = existing.ContractId.ToString(),
-            OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
-            NewValue = JsonSerializer.Serialize(new
-            {
-                fromStatus = oldStatus,
-                toStatus = newStatus,
-                staffAcceptedAt = acceptedAtUtc,
-                note = note
-            }),
-            CreatedAt = acceptedAtUtc
-        });
+            });
 
             try
             {

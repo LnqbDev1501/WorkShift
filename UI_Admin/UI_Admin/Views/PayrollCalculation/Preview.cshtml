@@ -6,24 +6,65 @@
     <style>.calculation-money-summary .list-metrics { grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr)); } .calculation-money-summary .list-metric-value { font-size:20px; }</style>
 }
 <div class="payroll-page">
-    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · REVIEW BEFORE CALCULATION</div><h1>Preview Payroll Calculation</h1><p>Period #@Model.PeriodId · Review work pay, rewards and deductions before saving.</p></div><a asp-action="Index" asp-route-id="@Model.PeriodId" class="payroll-button">Back to employee payrolls</a></header>
-    <aside class="payroll-compliance"><div><strong>Not saved yet</strong><small>This preview does not create Payroll or apply Carry Forward. When you confirm, the backend checks the sources again and calculates from current valid data.</small></div></aside>
+    <header class="payroll-heading">
+        <div>
+            <div class="list-eyebrow">PAYROLL · XEM TRƯỚC VÀ TÍNH TOÀN KỲ</div>
+            <h1>@(Model.UserId.HasValue ? "Xem Trước Tính Lương Nhân Viên" : "Xem Trước Tính Lương Toàn Kỳ")</h1>
+            <p>Period #@Model.PeriodId · Kiểm tra lương công, thưởng, phạt và giảm trừ trước khi lưu.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a asp-action="Index" asp-route-id="@Model.PeriodId" class="payroll-button">Quay lại danh sách nhân sự</a>
+            @if (Model.UserId.HasValue)
+            {
+                <a asp-action="Preview" asp-route-id="@Model.PeriodId" class="payroll-button primary">Xem trước toàn kỳ</a>
+            }
+        </div>
+    </header>
+
+    <aside class="payroll-compliance">
+        <div>
+            <strong>Dữ liệu chưa lưu vào cơ sở dữ liệu</strong>
+            <small>Bản xem trước này không tạo phiên bản Payroll hay trừ số dư Carry Forward. Khi bạn bấm xác nhận, backend sẽ kiểm tra lại toàn bộ nguồn và thực hiện tính toán trong một transaction duy nhất.</small>
+        </div>
+    </aside>
+
     @if (Model.Error != null) { <div class="payroll-message error" role="alert">@Model.Error</div> }
-    @if (Model.Inputs != null) { @foreach (var warning in Model.Inputs.Readiness.Warnings) { <p class="p-3 text-amber-700">@warning</p> } }
+    @if (Model.Inputs != null) { @foreach (var warning in Model.Inputs.Readiness.Warnings) { <p class="p-3 text-amber-700 bg-amber-50 rounded mb-2">@warning</p> } }
     @foreach (var employee in Model.FailedEmployees) { <div class="payroll-message error" role="alert"><strong>@employee.EmployeeName</strong>: @string.Join(" · ", employee.BlockingReasons)</div> }
-    @if (Model.Inputs == null && Model.Payrolls.Count == 0 && Model.Error == null) { <p class="p-5">No employees are available for a new calculation. Check readiness or view saved Payrolls.</p> }
-    @if (Model.Payrolls.Count > 1) { <div class="payroll-compliance"><strong>@Model.Payrolls.Count employee previews · Total net salary: @D.Money(Model.Payrolls.Sum(p => p.NetSalary))</strong></div> }
+    @if (Model.Inputs == null && Model.Payrolls.Count == 0 && Model.Error == null) { <p class="p-5">Không có nhân sự nào khả dụng để tính mới. Vui lòng kiểm tra điều kiện hoặc xem các Payroll đã lưu.</p> }
+    @if (Model.Payrolls.Count > 1) { <div class="payroll-compliance"><strong>@Model.Payrolls.Count nhân viên xem trước · Tổng thực nhận dự kiến: @D.Money(Model.Payrolls.Sum(p => p.NetSalary))</strong></div> }
 </div>
+
 @if (Model.Inputs != null && Model.Payrolls.Count == 0) { <partial name="~/Views/PayrollCalculation/_AvailableInputs.cshtml" model="Model.Inputs" /> }
 @foreach (var payroll in Model.Payrolls) { <partial name="~/Views/PayrollCalculation/_CalculationDetail.cshtml" model="payroll" /> }
-@if (Model.CanSave)
+
+@if (Model.UserId.HasValue)
 {
     <div class="payroll-page">
-        <form method="post" asp-action="@(Model.UserId.HasValue ? "CalculateEmployee" : "CalculatePeriod")" asp-route-id="@Model.PeriodId" data-calculation-form>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5">
+            <h3 class="text-sm font-bold text-blue-900 mb-1">Lưu ý về quy trình tính lương</h3>
+            <p class="text-xs text-blue-800 mb-3">
+                Theo quy định Bước 4, kỳ lương lần đầu phải được tính toàn bộ cho tất cả nhân sự trong cùng một transaction.
+                Không lưu riêng lẻ từng nhân viên. Hãy chuyển sang xem trước toàn kỳ để thực hiện tính toán.
+            </p>
+            <a asp-action="Preview" asp-route-id="@Model.PeriodId" class="payroll-button primary">Xem Trước &amp; Tính Toàn Kỳ</a>
+        </div>
+    </div>
+}
+else if (Model.CanSave)
+{
+    <div class="payroll-page">
+        <form method="post" asp-action="CalculatePeriod" asp-route-id="@Model.PeriodId" data-calculation-form class="bg-surface-container-lowest p-5 rounded-xl border border-gray-200">
+            @Html.AntiForgeryToken()
             <input type="hidden" name="reviewToken" value="@Model.ReviewToken" />
-            @if (Model.UserId.HasValue) { <input type="hidden" name="userId" value="@Model.UserId" /> }
-            <p class="text-secondary mb-3">Review all details above before confirming. This review expires after 15 minutes; expired reviews must be loaded again.</p>
-            <button type="submit" class="payroll-button primary">Confirm Calculation &amp; Save Payroll</button>
+            <h3 class="text-sm font-bold text-gray-900 mb-1">Bước 4 — Xác nhận tính lần đầu toàn kỳ</h3>
+            <p class="text-xs text-secondary mb-4">
+                Kiểm tra kỹ toàn bộ chi tiết ở trên. Token xem trước này có hiệu lực trong 15 phút.
+                Khi xác nhận, toàn bộ nhân sự sẽ có Payroll V1 (CALCULATED) và Kỳ lương chuyển sang CALCULATED.
+            </p>
+            <button type="submit" class="payroll-button primary" onclick="return confirm('Bạn có chắc chắn muốn tính toàn bộ kỳ lương này? Toàn bộ nhân viên sẽ có Payroll V1.');">
+                Xác Nhận Tính &amp; Lưu Kỳ Lương (Batch Calculate)
+            </button>
         </form>
     </div>
 }

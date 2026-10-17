@@ -1,0 +1,134 @@
+@model UI_Admin.Models.PayrollDocuments.PayrollSourceImpactResponse
+@{
+    ViewData["Title"] = "Kiểm Tra Lệch Nguồn Kỳ Lương #" + Model.PayrollPeriodId;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+}
+
+<div class="payroll-page">
+    <header class="payroll-heading">
+        <div>
+            <div class="list-eyebrow">KIỂM TRA NGUỒN · SOURCE IMPACT AUDIT</div>
+            <h1>Kiểm Tra Nguồn: Kỳ Lương #@Model.PayrollPeriodId</h1>
+            <p>Đối chiếu dữ liệu nguồn thực tế hiện tại với snapshot công/thưởng/phạt của kỳ lương.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a asp-action="Details" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Quay lại chi tiết kỳ</a>
+        </div>
+    </header>
+
+    @if (Model.HasBlockingChanges)
+    {
+        <div class="bg-red-50 border border-red-200 text-red-800 rounded-xl p-5 mb-6" role="alert">
+            <h2 class="text-title-md font-bold mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-red-600">warning</span>
+                Phát hiện nguồn đã thay đổi hoặc có dữ liệu chặn tính lương
+            </h2>
+            <p class="text-sm">
+                Một số nhân viên có nguồn chấm công, thưởng phạt, hoặc mức lương đã thay đổi sau khi tính lương.
+                Toàn bộ các nhân viên này cần được giải trình hoặc tính lại trước khi gửi Admin phê duyệt.
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl p-5 mb-6">
+            <h2 class="text-title-md font-bold mb-1 flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600">verified</span>
+                Dữ liệu nguồn hoàn toàn khớp với Snapshot hiện hành
+            </h2>
+            <p class="text-sm">
+                Không phát hiện thay đổi nguồn ngoài dự kiến. Kỳ lương đủ điều kiện nguồn để tiếp tục quy trình.
+            </p>
+        </div>
+    }
+
+    <section class="payroll-table-card">
+        <div class="payroll-table-toolbar">
+            <strong>Danh sách đối chiếu nhân viên (@Model.Employees.Count nhân viên)</strong>
+            <span>@(Model.Employees.Count(e => e.HasChanges)) nhân viên có nguồn thay đổi</span>
+        </div>
+        <div class="payroll-table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NHÂN VIÊN</th>
+                        <th>VERSION HIỆN TẠI</th>
+                        <th>NGUỒN THAY ĐỔI?</th>
+                        <th>CHI TIẾT THAY ĐỔI</th>
+                        <th>LÝ DO CHẶN / GHI CHÚ</th>
+                        <th>THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <tr class="@(emp.HasChanges ? "bg-amber-50/50" : "")">
+                            <td>
+                                <strong>@emp.EmployeeName</strong>
+                                <small class="text-xs text-secondary">ID: @emp.UserId</small>
+                            </td>
+                            <td>
+                                @if (emp.PayrollId.HasValue)
+                                {
+                                    <span>Payroll #@emp.PayrollId · V@(emp.VersionNo)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-red-600 font-semibold">Chưa có Payroll</span>
+                                }
+                            </td>
+                            <td>
+                                @if (emp.HasChanges)
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800">CÓ THAY ĐỔI</span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800">KHỚP NGUỒN</span>
+                                }
+                            </td>
+                            <td>
+                                @if (emp.ChangedSources.Count > 0)
+                                {
+                                    <ul class="list-disc pl-4 text-xs space-y-0.5 text-amber-900">
+                                        @foreach (var s in emp.ChangedSources)
+                                        {
+                                            <li>@s</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-secondary">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (emp.BlockingReasons.Count > 0)
+                                {
+                                    <ul class="list-disc pl-4 text-xs space-y-0.5 text-red-700">
+                                        @foreach (var b in emp.BlockingReasons)
+                                        {
+                                            <li>@b</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-secondary">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (emp.PayrollId.HasValue)
+                                {
+                                    <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@emp.PayrollId" class="payroll-button">Kiểm Tra Payroll</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

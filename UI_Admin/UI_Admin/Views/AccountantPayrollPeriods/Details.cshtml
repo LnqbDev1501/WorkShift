@@ -1,29 +1,553 @@
 @model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
-@{ ViewData["Title"] = Model.PeriodCode; }
-@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
-<div class="payroll-page">
-    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1>@Model.PeriodName</h1><p>@Model.PeriodCode · @Model.BranchName · @Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</p></div><div class="flex flex-wrap gap-2">
-        @if (Model.Status == "CALCULATED") { <form asp-controller="AccountantPayrollRevision" asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post"><button class="payroll-button primary" type="submit">Submit Period for Approval</button></form> }
-        <a asp-action="Index" class="payroll-button">Back to periods</a>
-        @if (Model.CanUpdate) { <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Edit Draft</a> }
-        @if (Model.CanDelete) { <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Delete Draft</a> }
-        @if (Model.CanOpen) { <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Open Period</a> }
-        @if (Model.CanExport) { <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">Export Excel</a> }
-    </div></header>
-    @if (TempData["PeriodError"] is string error) { <div class="payroll-message error" role="alert">@error</div> }
+@{
+    ViewData["Title"] = $"{Model.PeriodCode} - Chi tiết kỳ lương";
+    var status = Model.Status;
+    var isDraft = status == "DRAFT";
+    var isOpen = status == "OPEN";
+    var isCalculated = status == "CALCULATED";
+    var isRevisionRequired = status == "REVISION_REQUIRED";
+    var isSubmitted = status == "SUBMITTED";
+    var isApproved = status == "APPROVED";
+    var isPaid = status == "PAID";
+    var isClosed = status == "CLOSED";
+
+    var statusText = status switch
+    {
+        "DRAFT" => "Bản nháp",
+        "OPEN" => "Đã mở (Open)",
+        "CALCULATED" => "Đã tính toán",
+        "SUBMITTED" => "Chờ Admin duyệt",
+        "REVISION_REQUIRED" => "Yêu cầu chỉnh sửa",
+        "APPROVED" => "Đã duyệt",
+        "PAID" => "Đã chi trả",
+        "CLOSED" => "Đã đóng kỳ",
+        _ => status.Replace('_', ' ')
+    };
+
+    var totalWorkPay = Model.Payrolls.Sum(p => p.WorkPay);
+    var totalReward = Model.Payrolls.Sum(p => p.TotalReward);
+    var totalDeduction = Model.Payrolls.Sum(p => p.TotalDeduction);
+    var totalPenalty = Model.Payrolls.Sum(p => p.TotalPenalty);
+    var totalAttendanceDeduction = Model.Payrolls.Sum(p => p.AttendanceDeduction);
+    var totalHours = Model.Payrolls.Sum(p => p.TotalWorkHours);
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/payroll-detail.css" asp-append-version="true" />
+    <style>
+        .payroll-tabs a.tab-btn {
+            cursor: pointer;
+        }
+        .tab-content[hidden] {
+            display: none;
+        }
+        .staff-identity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .staff-avatar-initial {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            background: #ede9fe;
+            color: #5b21b6;
+            flex-shrink: 0;
+        }
+        .period-info-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin-bottom: 22px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+    </style>
+}
+
+<div class="payroll-page period-detail">
+    <!-- PERIOD HEADER -->
+    <section class="period-header">
+        <div>
+            <div class="period-title">
+                <h1>@Model.PeriodName</h1>
+                <span class="payroll-status @status.ToLowerInvariant()">● @statusText</span>
+            </div>
+            <p>
+                <strong>@Model.PeriodCode</strong><span>•</span>
+                Mã kỳ: <strong>#@Model.PayrollPeriodId</strong><span>•</span>
+                Chu kỳ: <strong>@Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</strong><span>•</span>
+                Chi nhánh: <strong class="purple">@Model.BranchName</strong>
+                @if (Model.ScheduleWeekId.HasValue)
+                {
+                    <span>•</span><span>Tuần lịch trình: <strong>#@Model.ScheduleWeekId</strong></span>
+                }
+            </p>
+            <p>
+                Tạo lúc: <strong>@D.Time(Model.CreatedAt)</strong>
+                @if (Model.PublishedAt.HasValue)
+                {
+                    <span>•</span><span>Mở kỳ: <strong>@D.Time(Model.PublishedAt)</strong></span>
+                }
+                @if (Model.ApprovalDeadlineAt.HasValue)
+                {
+                    <span>•</span><span>Hạn Admin duyệt (UTC+7): <strong>@D.Time(Model.ApprovalDeadlineAt)</strong></span>
+                }
+                @if (Model.PaidAt.HasValue)
+                {
+                    <span>•</span><span>Quyết toán (UTC+7): <strong>@D.Time(Model.PaidAt)</strong></span>
+                }
+                @if (Model.ClosedAt.HasValue)
+                {
+                    <span>•</span><span>Đóng kỳ (UTC+7): <strong>@D.Time(Model.ClosedAt)</strong></span>
+                }
+            </p>
+        </div>
+        <div class="period-header-actions">
+            <a asp-action="Index" class="payroll-button payroll-back-button">
+                <span aria-hidden="true">←</span> Danh sách kỳ lương
+            </a>
+
+            @if (Model.CanOpen)
+            {
+                <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
+                    Publish Kỳ (Open)
+                </a>
+            }
+            @if (isOpen)
+            {
+                <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
+                    Tính lương toàn kỳ
+                </a>
+            }
+            @if (isCalculated || isRevisionRequired)
+            {
+                <a asp-action="SourceImpact" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
+                    Kiểm tra lệch nguồn
+                </a>
+                <button type="button" class="payroll-button" onclick="document.getElementById('send-previews-dialog').showModal()">
+                    Gửi Preview cho Staff
+                </button>
+                <form asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <button class="payroll-button primary" type="submit" onclick="return confirm('Bạn có chắc chắn muốn Submit toàn bộ kỳ lương này cho Admin phê duyệt không? Điều kiện: Tất cả review/correction phải hoàn tất.');">
+                        Submit Toàn Kỳ
+                    </button>
+                </form>
+            }
+            @if (isApproved || isPaid || isClosed)
+            {
+                <a asp-action="Settlement" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
+                    @(isPaid || isClosed ? "Xem Quyết Toán" : "Quyết Toán Kỳ Lương")
+                </a>
+                <a asp-controller="AccountantPayslips" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" class="payroll-button">
+                    Xem Phiếu Lương
+                </a>
+            }
+            @if (Model.CanExport)
+            {
+                <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
+                    Xuất Excel
+                </a>
+            }
+            @if (Model.CanUpdate)
+            {
+                <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
+                    Sửa kỳ
+                </a>
+            }
+            @if (Model.CanDelete)
+            {
+                <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="payroll-button" style="color:#ef4444;">
+                    Xóa Draft
+                </a>
+            }
+        </div>
+    </section>
+
+    @if (TempData["PeriodError"] is string error)
+    {
+        <div class="payroll-message error" role="alert">@error</div>
+    }
     <partial name="_PayrollWorkflowMessages" />
-    @if (TempData["PeriodSuccess"] is string success) { <div class="payroll-message" role="status">@success</div> }
-    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] { new("Status", Model.Status.Replace("_", " "), "Current period status", "info"), new("Staff", Model.ExpectedEmployeeCount.ToString(), Model.LockedTimesheetCount + " locked timesheets", "groups"), new("Payrolls", Model.TotalPayrolls.ToString(), Model.RejectedPayrollCount + " rejected · " + Model.PendingCorrectionCount + " pending corrections", "receipt_long"), new("Net Salary", D.Money(Model.TotalNetSalary), "Current payroll versions", "payments") })' />
-    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="text-title-md font-semibold mb-4">Period Information</h2><dl class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div><dt class="text-xs text-secondary">Schedule week</dt><dd>#@Model.ScheduleWeekId</dd></div><div><dt class="text-xs text-secondary">Approval deadline (UTC+7)</dt><dd>@D.Time(Model.ApprovalDeadlineAt)</dd></div><div><dt class="text-xs text-secondary">Created at (UTC+7)</dt><dd>@D.Time(Model.CreatedAt)</dd></div>
-        <div><dt class="text-xs text-secondary">Created by</dt><dd class="text-xs break-all">@Model.CreatedBy</dd></div><div><dt class="text-xs text-secondary">Paid at (UTC+7)</dt><dd>@D.Time(Model.PaidAt)</dd></div><div><dt class="text-xs text-secondary">Closed at (UTC+7)</dt><dd>@D.Time(Model.ClosedAt)</dd></div>
-    </dl></section>
-    @if (Model.Status is "PAID" or "CLOSED") { <aside class="payroll-compliance"><div><strong>Settled period</strong><small>This period is read-only. View historical payroll data or export the Excel report.</small></div></aside> }
-    else if (Model.Status == "OPEN") { <aside class="payroll-compliance"><div><strong>Period opened</strong><small>The period can no longer be edited or deleted. Payroll calculation uses locked timesheets.</small></div></aside> }
-    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Current Employee Payrolls</strong><span>@Model.Payrolls.Count records</span></div><div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE</th><th>STATUS</th><th class="money">WORK PAY</th><th class="money">REWARD</th><th class="money">DEDUCTION</th><th class="money">NET SALARY</th><th>CALCULATION</th></tr></thead><tbody>
-        @foreach (var p in Model.Payrolls)
-        { <tr><td><strong>@p.EmployeeFullName</strong><small>Payroll #@p.PayrollId · @p.EmployeePosition</small></td><td><span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status.Replace('_', ' ')</span></td><td class="money">@D.Money(p.WorkPay)</td><td class="money">@D.Money(p.TotalReward)</td><td class="money">@D.Money(p.TotalDeduction)</td><td class="money">@D.Money(p.NetSalary)</td><td><a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId" class="payroll-button">Submission / Versions</a><details><summary>View calculation</summary>@if (p.Rejection?.Reason != null) { <p class="text-red-700">@p.Rejection.Reason</p> }@foreach (var d in p.Details) { <p><strong>@d.Description</strong><br />@d.Type · @D.Money(d.Amount)@if (d.AppliedAmount.HasValue) { <span> · Applied: @D.Money(d.AppliedAmount.Value)</span> }@if (d.Note != null) { <small>@d.Note</small> }</p> }</details></td></tr> }
-        @if (Model.Payrolls.Count == 0) { <tr><td colspan="7" class="payroll-empty">No payroll has been calculated for this period.</td></tr> }
-    </tbody></table></div></section>
+    @if (TempData["PeriodSuccess"] is string success)
+    {
+        <div class="payroll-message" role="status">@success</div>
+    }
+
+    @if (isRevisionRequired)
+    {
+        <div class="revision-notice">
+            Kỳ lương đang yêu cầu chỉnh sửa (REVISION REQUIRED). Có <strong>@Model.RejectedPayrollCount</strong> phiếu lương bị từ chối hoặc @Model.PendingCorrectionCount yêu cầu kiểm tra nguồn chưa xử lý xong với Quản lý chi nhánh trước khi gửi lại Admin duyệt.
+        </div>
+    }
+
+    <!-- KPI STATS CARDS -->
+    <section class="payroll-stats detail-stats" aria-label="Period totals">
+        <article>
+            <div>TỔNG THỰC NHẬN <span>▣</span></div>
+            <p><strong>@D.Money(Model.TotalNetSalary)</strong></p>
+            <small>Tổng thực nhận toàn kỳ</small>
+        </article>
+        <article>
+            <div>LƯƠNG CÔNG <span>◷</span></div>
+            <p><strong>@D.Money(totalWorkPay)</strong></p>
+            <small>@totalHours.ToString("0.##") giờ làm việc</small>
+        </article>
+        <article>
+            <div>TỔNG THƯỞNG <span>⊕</span></div>
+            <p><strong class="reward">@D.Money(totalReward)</strong></p>
+            <small>Các khoản thưởng kỳ</small>
+        </article>
+        <article>
+            <div>TỔNG GIẢM TRỪ <span>⊖</span></div>
+            <p><strong class="red">@D.Money(totalDeduction)</strong></p>
+            <small>Phạt: @D.Money(totalPenalty) · Chấm công: @D.Money(totalAttendanceDeduction)</small>
+        </article>
+        <article>
+            <div>NHÂN SỰ / PHIẾU LƯƠNG <span>♙</span></div>
+            <p><strong>@Model.TotalPayrolls / @Model.ExpectedEmployeeCount <em>Staff</em></strong></p>
+            <small class="@(Model.RejectedPayrollCount > 0 ? "red" : "reward")">
+                @Model.LockedTimesheetCount bảng công Locked · @Model.RejectedPayrollCount phiếu từ chối
+            </small>
+        </article>
+    </section>
+
+    <!-- PERIOD AUDIT INFORMATION CARD -->
+    <section class="period-info-card">
+        <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Thông Tin Kỳ Lương &amp; Bảng Công</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div>
+                <span class="text-gray-500 block mb-1">Tuần lịch trình (Schedule Week)</span>
+                <strong class="text-sm text-gray-900">#(Model.ScheduleWeekId?.ToString() ?? "—")</strong>
+            </div>
+            <div>
+                <span class="text-gray-500 block mb-1">Bảng công nhân sự đã khóa (Locked)</span>
+                <strong class="text-sm text-gray-900">@Model.LockedTimesheetCount / @Model.ExpectedEmployeeCount nhân viên</strong>
+            </div>
+            <div>
+                <span class="text-gray-500 block mb-1">Hạn phản hồi Staff (UTC+7)</span>
+                <strong class="text-sm text-gray-900">@(Model.InitialFeedbackDeadlineAt.HasValue ? D.Time(Model.InitialFeedbackDeadlineAt) : "Chưa gửi Preview")</strong>
+            </div>
+            <div>
+                <span class="text-gray-500 block mb-1">Hạn Admin phê duyệt (UTC+7)</span>
+                <strong class="text-sm text-gray-900">@D.Time(Model.ApprovalDeadlineAt)</strong>
+            </div>
+        </div>
+    </section>
+
+    <!-- TAB NAVIGATION -->
+    <nav class="payroll-tabs" role="tablist">
+        <a href="javascript:void(0)" class="tab-btn active" onclick="switchPeriodTab('tab-payrolls', this)">
+            Phiếu Lương Nhân Viên <span>@Model.Payrolls.Count</span>
+        </a>
+        <a href="javascript:void(0)" class="tab-btn" onclick="switchPeriodTab('tab-corrections', this)">
+            Yêu Cầu Sửa Nguồn Manager <span>@(Model.CorrectionRequests?.Count ?? 0)</span>
+        </a>
+        <a href="javascript:void(0)" class="tab-btn" onclick="switchPeriodTab('tab-feedbacks', this)">
+            Lượt Preview &amp; Feedback Staff <span>@(Model.Feedbacks?.Count ?? 0)</span>
+        </a>
+    </nav>
+
+    <!-- TAB 1: PAYROLLS TABLE -->
+    <div id="tab-payrolls" class="tab-content">
+        <section class="payroll-table-card">
+            <div class="payroll-table-toolbar">
+                <strong>Bảng Lương Nhân Viên Hiện Hành</strong>
+                <span>@Model.Payrolls.Count bản ghi</span>
+            </div>
+            <div class="payroll-table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>NHÂN VIÊN &amp; MÃ PHIẾU</th>
+                            <th>VỊ TRÍ &amp; MỨC LƯƠNG</th>
+                            <th>GIỜ LÀM</th>
+                            <th class="money">LƯƠNG CÔNG</th>
+                            <th class="money">THƯỞNG</th>
+                            <th class="money">GIẢM TRỪ</th>
+                            <th class="money">THỰC NHẬN</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Payrolls)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="staff-identity">
+                                        <span class="staff-avatar-initial">
+                                            @(string.IsNullOrWhiteSpace(p.EmployeeFullName) ? "?" : p.EmployeeFullName.Trim()[..1])
+                                        </span>
+                                        <div>
+                                            <strong>@p.EmployeeFullName</strong>
+                                            <small>Payroll #@p.PayrollId · V@(p.VersionNo)</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>@(p.EmployeePosition ?? "Nhân viên")</strong>
+                                    <small>@D.Money(p.HourlyRate)/h</small>
+                                </td>
+                                <td>
+                                    <strong>@p.TotalWorkHours.ToString("0.##") h</strong>
+                                </td>
+                                <td class="money">@D.Money(p.WorkPay)</td>
+                                <td class="money">
+                                    <span class="@(p.TotalReward > 0 ? "reward font-semibold" : "")">@D.Money(p.TotalReward)</span>
+                                </td>
+                                <td class="money">
+                                    <span class="@(p.TotalDeduction > 0 ? "red font-semibold" : "")">@D.Money(p.TotalDeduction)</span>
+                                    @if (p.CarryForwardDeduction > 0)
+                                    {
+                                        <small class="text-secondary">CF: @D.Money(p.CarryForwardDeduction)</small>
+                                    }
+                                </td>
+                                <td class="money">
+                                    <strong>@D.Money(p.NetSalary)</strong>
+                                </td>
+                                <td>
+                                    <span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status.Replace('_', ' ')</span>
+                                </td>
+                                <td>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId" class="payroll-button">
+                                            Xem xét
+                                        </a>
+                                        <a asp-controller="AccountantPayrollCalculation" asp-action="Details" asp-route-id="@p.PayrollId" class="payroll-button">
+                                            Dòng tính
+                                        </a>
+                                    </div>
+                                    @if (p.Details != null && p.Details.Count > 0)
+                                    {
+                                        <details class="mt-1">
+                                            <summary class="text-xs cursor-pointer text-indigo-600">Chi tiết cấu thành (@p.Details.Count)</summary>
+                                            <div class="p-2 bg-slate-50 rounded mt-1 text-xs">
+                                                @if (p.Rejection?.Reason != null)
+                                                {
+                                                    <p class="text-red-700 font-medium mb-1">Lý do từ chối: @p.Rejection.Reason</p>
+                                                }
+                                                @foreach (var d in p.Details)
+                                                {
+                                                    <div class="py-1 border-b border-gray-100 last:border-0 flex justify-between gap-2">
+                                                        <span>@d.Description:</span>
+                                                        <strong>@D.Money(d.Amount)</strong>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </details>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (Model.Payrolls.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="9" class="payroll-empty">
+                                    <strong>Chưa có phiếu lương nào được tính cho kỳ này.</strong>
+                                    <p>Hãy mở kỳ (Open) và thực hiện tính lương toàn kỳ để xem bảng lương nhân viên.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- TAB 2: CORRECTION REQUESTS TABLE -->
+    <div id="tab-corrections" class="tab-content" hidden>
+        <section class="payroll-table-card">
+            <div class="payroll-table-toolbar">
+                <strong>Yêu Cầu Kiểm Tra / Sửa Nguồn Gửi Manager</strong>
+                <span>@(Model.CorrectionRequests?.Count ?? 0) yêu cầu</span>
+            </div>
+            <div class="payroll-table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MÃ / PAYROLL</th>
+                            <th>NHÂN VIÊN</th>
+                            <th>TRẠNG THÁI</th>
+                            <th>HÀNH ĐỘNG MANAGER</th>
+                            <th>LÝ DO TỪ ACCOUNTANT</th>
+                            <th>GHI CHÚ PHẢN HỒI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.CorrectionRequests != null && Model.CorrectionRequests.Count > 0)
+                        {
+                            @foreach (var c in Model.CorrectionRequests)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>Req #@c.CorrectionRequestId</strong>
+                                        <small class="block">Payroll #@c.PayrollId</small>
+                                        @if (c.ResolvedPayrollId.HasValue)
+                                        {
+                                            <small class="block text-emerald-700">Resolved: Payroll #@c.ResolvedPayrollId</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <strong>@c.EmployeeName</strong>
+                                    </td>
+                                    <td>
+                                        <span class="payroll-status @c.Status.ToLowerInvariant()">@c.Status</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(c.ManagerAction))
+                                        {
+                                            <span class="font-bold @(c.ManagerAction == "CORRECT" ? "text-indigo-600" : "text-amber-600")">
+                                                @c.ManagerAction
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <p class="text-xs max-w-xs break-words">@c.Reason</p>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs max-w-xs break-words">@(c.ManagerNote ?? "—")</p>
+                                    </td>
+                                    <td>
+                                        <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@c.PayrollId" class="payroll-button">
+                                            Xem &amp; Xử lý
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="payroll-empty">
+                                    <strong>Chưa có yêu cầu sửa nguồn nào trong kỳ này.</strong>
+                                    <p>Khi có phiếu lương cần điều chỉnh với quản lý, tạo yêu cầu từ màn hình Xem xét / Revision.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- TAB 3: STAFF PREVIEWS & FEEDBACK -->
+    <div id="tab-feedbacks" class="tab-content" hidden>
+        <section class="payroll-table-card">
+            <div class="payroll-table-toolbar">
+                <strong>Danh Sách Lượt Xem Trước &amp; Phản Hồi Của Nhân Viên</strong>
+                <span>@(Model.Feedbacks?.Count ?? 0) lượt gửi</span>
+            </div>
+            <div class="payroll-table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MÃ LƯỢT / ROUND</th>
+                            <th>NHÂN VIÊN</th>
+                            <th>REVIEW STATUS</th>
+                            <th>FEEDBACK STATUS</th>
+                            <th>HẠN CHÓT</th>
+                            <th>NỘI DUNG PHẢN HỒI</th>
+                            <th>THAO TÁC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Feedbacks != null && Model.Feedbacks.Count > 0)
+                        {
+                            @foreach (var fb in Model.Feedbacks)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>#@fb.FeedbackId</strong>
+                                        <small class="block">Round @fb.RoundNo · Payroll #@fb.PayrollId</small>
+                                    </td>
+                                    <td>
+                                        <strong>@fb.EmployeeName</strong>
+                                    </td>
+                                    <td>
+                                        <span class="payroll-status @(fb.ReviewStatus?.ToLowerInvariant() ?? "")">@fb.ReviewStatus</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(fb.Status))
+                                        {
+                                            <span class="payroll-status @fb.Status.ToLowerInvariant()">@fb.Status</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-secondary">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@D.Time(fb.ReviewDeadlineAt)</small>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs max-w-xs break-words">@(fb.Description ?? "Chưa có phản hồi")</p>
+                                    </td>
+                                    <td>
+                                        <a asp-controller="AccountantPayrollFeedback" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" asp-route-userId="@fb.UserId" class="payroll-button">
+                                            Xem Phản Hồi
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="payroll-empty">
+                                    <strong>Chưa có lượt gửi Preview nào cho nhân viên.</strong>
+                                    <p>Nhấn "Gửi Preview cho Staff" sau khi tính toán kỳ lương để bắt đầu lượt phản hồi.</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 </div>
+
+<!-- MODAL: SEND PREVIEWS -->
+<dialog id="send-previews-dialog" class="rounded-xl p-0 shadow-2xl border-0 max-w-md w-full backdrop:bg-black/40">
+    <form asp-action="SendPreviews" asp-route-id="@Model.PayrollPeriodId" method="post" class="p-6">
+        @Html.AntiForgeryToken()
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Gửi Payroll Preview Cho Staff</h3>
+        <p class="text-sm text-gray-600 mb-4">
+            Hệ thống sẽ tạo lượt review (review_status = PENDING) cho toàn bộ nhân viên có Payroll hiện hành.
+            Retry sẽ không tạo lượt trùng lặp.
+        </p>
+        <div class="mb-4">
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Hạn phản hồi ban đầu (Initial Feedback Deadline - UTC+7)</label>
+            <input type="datetime-local" name="initialFeedbackDeadlineAt" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm" />
+            <small class="text-xs text-gray-500 block mt-1">Để trống để hệ thống tự động gán là 00:00 đầu ngày kế tiếp theo UTC+7 (cho phản hồi đến hết ngày gửi).</small>
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+            <button type="button" class="payroll-button" onclick="document.getElementById('send-previews-dialog').close()">Hủy</button>
+            <button type="submit" class="payroll-button primary">Xác Nhận Gửi Preview</button>
+        </div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script>
+        function switchPeriodTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.hidden = true);
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            const target = document.getElementById(tabId);
+            if (target) target.hidden = false;
+            btn.classList.add('active');
+        }
+    </script>
+}

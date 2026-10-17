@@ -1,0 +1,161 @@
+@model UI_Admin.Models.Accountant.PayrollSettlement.PayrollSettlementSummaryResponse
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = "Quyết Toán Kỳ Lương · " + Model.PeriodCode;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+}
+
+<div class="payroll-page">
+    <header class="payroll-heading">
+        <div>
+            <div class="list-eyebrow">PAYROLL · QUYẾT TOÁN VÀ ĐÓNG KỲ LƯƠNG</div>
+            <h1>Quyết Toán: @Model.PeriodCode</h1>
+            <p>Xác nhận chi trả bên ngoài, áp dụng Carry Forward và chính thức đóng kỳ lương (PAID → CLOSED).</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a asp-action="Details" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Quay lại chi tiết kỳ</a>
+        </div>
+    </header>
+
+    @if (TempData["PeriodError"] is string error)
+    {
+        <div class="payroll-message error" role="alert">@error</div>
+    }
+    @if (TempData["PeriodSuccess"] is string success)
+    {
+        <div class="payroll-message" role="status">@success</div>
+    }
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Trạng Thái", Model.PeriodStatus.Replace("_", " "), Model.IsSettled ? "Đã quyết toán" : "Sẵn sàng quyết toán", "verified"),
+        new("Tổng Thực Nhận", D.Money(Model.TotalNetSalary), Model.Employees.Count + " nhân viên", "payments"),
+        new("Carry Forward Trừ", D.Money(Model.TotalCarryForwardApplied), "Số dư nợ cũ chuyển sang trừ kỳ này", "trending_down"),
+        new("Carry Forward Mới", D.Money(Model.TotalNewCarryForward), "Khoản chưa trừ hết chuyển kỳ sau", "forward")
+    })' />
+
+    @if (Model.BlockingReasons.Count > 0)
+    {
+        <div class="bg-red-50 border border-red-200 text-red-800 rounded-xl p-5 mb-6" role="alert">
+            <h2 class="text-title-md font-bold mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-red-600">block</span>
+                Chưa đủ điều kiện quyết toán
+            </h2>
+            <ul class="list-disc pl-5 space-y-1 text-sm">
+                @foreach (var reason in Model.BlockingReasons)
+                {
+                    <li>@reason</li>
+                }
+            </ul>
+        </div>
+    }
+    else if (!Model.IsSettled && Model.CanConfirmSettlement)
+    {
+        <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-5 mb-6">
+            <h2 class="text-title-md font-bold mb-2 flex items-center gap-2">
+                <span class="material-symbols-outlined text-amber-600">info</span>
+                Lưu ý quan trọng trước khi quyết toán
+            </h2>
+            <p class="text-sm mb-3">
+                Thao tác này xác nhận toàn bộ số tiền lương thực nhận (@D.Money(Model.TotalNetSalary)) đã được chi trả bên ngoài cho nhân viên.
+                Hệ thống sẽ đồng thời:
+            </p>
+            <ul class="list-disc pl-5 space-y-1 text-sm mb-4">
+                <li>Chuyển toàn bộ Current Payrolls sang trạng thái <strong>PAID</strong>.</li>
+                <li>Ghi áp dụng Carry Forward: trừ số dư nợ cũ đã áp dụng (@D.Money(Model.TotalCarryForwardApplied)).</li>
+                <li>Tạo các khoản Carry Forward mới cho các khoản giảm trừ chưa được khấu trừ hết (@D.Money(Model.TotalNewCarryForward)).</li>
+                <li>Chuyển kỳ lương sang trạng thái <strong>PAID → CLOSED</strong> và thông báo cho Admin.</li>
+            </ul>
+
+            <form asp-action="ConfirmSettlement" asp-route-id="@Model.PayrollPeriodId" method="post" class="space-y-4 max-w-xl">
+                <div class="flex items-start gap-3">
+                    <input type="checkbox" id="confirmedExternalSettlement" name="ConfirmedExternalSettlement" value="true" required class="mt-1 w-5 h-5 rounded text-primary focus:ring-primary" />
+                    <label for="confirmedExternalSettlement" class="text-sm font-semibold">
+                        Tôi xác nhận toàn bộ lương của kỳ này đã được chi trả cho nhân viên qua ngân hàng hoặc tiền mặt bên ngoài.
+                    </label>
+                </div>
+                <div>
+                    <label for="paymentReference" class="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Mã tham chiếu thanh toán (Tùy chọn)</label>
+                    <input type="text" id="paymentReference" name="PaymentReference" maxlength="100" placeholder="VD: UNC-20261017-01 hoặc Mã giao dịch NH" class="w-full border rounded-xl p-3 text-sm" />
+                </div>
+                <div>
+                    <label for="paymentNote" class="block text-xs font-semibold text-secondary uppercase tracking-wider mb-1">Ghi chú quyết toán (Tùy chọn)</label>
+                    <textarea id="paymentNote" name="PaymentNote" maxlength="2000" rows="2" placeholder="Ghi chú thêm về đợt chi trả..." class="w-full border rounded-xl p-3 text-sm"></textarea>
+                </div>
+                <button type="submit" class="payroll-button primary">
+                    ✓ Xác Nhận Quyết Toán &amp; Đóng Kỳ Lương
+                </button>
+            </form>
+        </div>
+    }
+    else if (Model.IsSettled)
+    {
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl p-5 mb-6">
+            <h2 class="text-title-md font-bold mb-1 flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+                Kỳ lương đã được quyết toán và đóng (CLOSED)
+            </h2>
+            <p class="text-sm">
+                Chi trả tại: @(Model.PaidAt.HasValue ? Model.PaidAt.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—") ·
+                Đóng kỳ tại: @(Model.ClosedAt.HasValue ? Model.ClosedAt.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")
+            </p>
+        </div>
+    }
+
+    <section class="payroll-table-card">
+        <div class="payroll-table-toolbar">
+            <strong>Danh sách nhân viên quyết toán (@Model.Employees.Count nhân viên)</strong>
+            <span>Tổng Net: @D.Money(Model.TotalNetSalary)</span>
+        </div>
+        <div class="payroll-table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>NHÂN VIÊN</th>
+                        <th>VERSION</th>
+                        <th>TRẠNG THÁI</th>
+                        <th class="money">THỰC NHẬN</th>
+                        <th class="money">CARRY FORWARD TRỪ</th>
+                        <th class="money">CARRY FORWARD MỚI</th>
+                        <th>PHIẾU LƯƠNG</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@emp.EmployeeName</strong>
+                                <small class="text-xs text-secondary">ID: @emp.UserId</small>
+                            </td>
+                            <td>V@(emp.VersionNo)</td>
+                            <td>
+                                <span class="payroll-status @emp.Status.ToLowerInvariant()">@emp.Status.Replace('_', ' ')</span>
+                            </td>
+                            <td class="money"><strong>@D.Money(emp.NetSalary)</strong></td>
+                            <td class="money text-amber-700">@(emp.CarryForwardDeduction > 0 ? "-" + D.Money(emp.CarryForwardDeduction) : "—")</td>
+                            <td class="money text-indigo-700">@(emp.DeferredDeductionAmount > 0 ? "+" + D.Money(emp.DeferredDeductionAmount) : "—")</td>
+                            <td>
+                                @if (emp.PayslipId.HasValue)
+                                {
+                                    <a asp-controller="AccountantPayslips" asp-action="Details" asp-route-id="@emp.PayslipId" class="payroll-button">Xem Phiếu #@emp.PayslipId</a>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-secondary">Chưa có</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Employees.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="payroll-empty">Không có nhân viên trong kỳ quyết toán này.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

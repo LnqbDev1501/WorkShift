@@ -10,6 +10,33 @@ public sealed class PayrollVersions
     public int? EffectivePayrollId { get; set; }
     public List<CalculatedPayroll> Versions { get; set; } = [];
 }
+public sealed class CreateCorrectionInput
+{
+    [Range(1, int.MaxValue)] public int PayrollId { get; set; }
+    [Required, StringLength(2000)] public string Reason { get; set; } = "";
+}
+
+public sealed class RespondCorrectionInput
+{
+    [Range(1, int.MaxValue)] public int CorrectionRequestId { get; set; }
+    [Required] public string Action { get; set; } = "CORRECT"; // CORRECT or EXPLAIN
+    [Required, StringLength(2000)] public string Note { get; set; } = "";
+}
+
+public sealed class ReviewCorrectionInput
+{
+    [Range(1, int.MaxValue)] public int CorrectionRequestId { get; set; }
+    [Required] public string Decision { get; set; } = "ACCEPT_EXPLANATION"; // ACCEPT_EXPLANATION or RETURN
+    [Required, StringLength(2000)] public string Note { get; set; } = "";
+}
+
+public sealed class CompleteCorrectionInput
+{
+    [Range(1, int.MaxValue)] public int CorrectionRequestId { get; set; }
+    [Range(1, int.MaxValue)] public int PayrollId { get; set; }
+    [Required, StringLength(2000)] public string Note { get; set; } = "";
+}
+
 public sealed class CorrectionInput
 {
     [Required, StringLength(1000)] public string CorrectionReason { get; set; } = "";
@@ -37,6 +64,8 @@ public sealed class PayrollReview
     public PayrollVersions History { get; set; } = new();
     public string PeriodStatus { get; set; } = "";
     public bool Latest => History.LatestCandidatePayrollId == Payroll.PayrollId;
+    public List<PayrollIssueResponse> Issues { get; set; } = [];
+    public PayrollIssueResponse? ActiveIssue => Issues.LastOrDefault(i => i.Status is "OPEN" or "RESPONDED");
 }
 public sealed class PayslipListViewModel
 {

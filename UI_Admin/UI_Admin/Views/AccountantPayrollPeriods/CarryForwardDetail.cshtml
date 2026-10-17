@@ -1,0 +1,100 @@
+@model UI_Admin.Models.Accountant.PayrollSettlement.CarryForwardDetailViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = "Chi Tiết Khoản Chuyển Kỳ #" + Model.Item.CarryForwardId;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+}
+
+<div class="payroll-page">
+    <header class="payroll-heading">
+        <div>
+            <div class="list-eyebrow">CARRY FORWARD · APPLICATION HISTORY</div>
+            <h1>Carry Forward #@Model.Item.CarryForwardId</h1>
+            <p>@Model.Item.EmployeeName · Số tiền gốc: @D.Money(Model.Item.OriginalAmount) · Còn lại: @D.Money(Model.Item.RemainingAmount)</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a asp-action="Index" class="payroll-button">Quay lại danh sách</a>
+        </div>
+    </header>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="payroll-message error" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5 shadow-sm">
+        <h2 class="text-title-md font-semibold mb-3">Thông tin khoản giảm trừ gốc</h2>
+        <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Nhân viên</dt>
+                <dd>@Model.Item.EmployeeName (@Model.Item.UserId)</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Kỳ nguồn</dt>
+                <dd>@Model.Item.SourcePeriodCode (Payroll #@Model.Item.SourcePayrollId V@(Model.Item.SourcePayrollVersionNo))</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Trạng thái hiện tại</dt>
+                <dd><span class="payroll-status @Model.Item.Status.ToLowerInvariant()">@Model.Item.Status.Replace('_', ' ')</span></dd>
+            </div>
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Loại khoản giảm trừ</dt>
+                <dd>@Model.Item.SourceDetailType · @Model.Item.SourceDetailDescription</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Số tiền gốc / Đã trừ</dt>
+                <dd>@D.Money(Model.Item.OriginalAmount) / @D.Money(Model.Item.TotalAppliedAmount)</dd>
+            </div>
+            <div>
+                <dt class="text-xs text-secondary font-semibold uppercase">Số dư còn nợ lại</dt>
+                <dd class="text-red-700 font-bold">@D.Money(Model.Item.RemainingAmount)</dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="payroll-table-card">
+        <div class="payroll-table-toolbar">
+            <strong>Lịch sử áp dụng khấu trừ qua các kỳ lương (@Model.Applications.TotalItems lần áp dụng)</strong>
+        </div>
+        <div class="payroll-table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>LẦN ÁP DỤNG</th>
+                        <th>KỲ ÁP DỤNG</th>
+                        <th>THỜI GIAN KỲ</th>
+                        <th class="money">SỐ TIỀN KHẤU TRỪ</th>
+                        <th>NGÀY ÁP DỤNG</th>
+                        <th>THAO TÁC</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var app in Model.Applications.Items)
+                    {
+                        <tr>
+                            <td>#@app.ApplicationId</td>
+                            <td>
+                                <strong>@app.PeriodCode</strong>
+                                <small class="text-xs text-secondary">Payroll #@app.PayrollId · V@(app.PayrollVersionNo)</small>
+                            </td>
+                            <td>@app.PeriodStart.ToString("dd/MM/yyyy") – @app.PeriodEnd.ToString("dd/MM/yyyy")</td>
+                            <td class="money text-emerald-700"><strong>-@D.Money(app.AppliedAmount)</strong></td>
+                            <td>@app.AppliedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>
+                                <a asp-controller="AccountantPayrollPeriods" asp-action="Details" asp-route-id="@app.PayrollPeriodId" class="payroll-button">Xem Kỳ Lương</a>
+                            </td>
+                        </tr>
+                    }
+                    @if (Model.Applications.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="6" class="payroll-empty">Chưa có lần khấu trừ nào được ghi nhận cho khoản chuyển kỳ này.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

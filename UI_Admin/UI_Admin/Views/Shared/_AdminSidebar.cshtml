@@ -184,6 +184,12 @@
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">payments</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Approvals</span>
                         </a>
+                        <a asp-controller="ManagerPayrollCorrection" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerPayrollCorrection" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Payroll Corrections">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">build</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Corrections</span>
+                        </a>
                         <a asp-controller="AdminSalaryChanges" asp-action="Index" title="Salary Increase Requests"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "AdminSalaryChanges" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">trending_up</span>
@@ -278,6 +284,12 @@
                            title="Timesheet Adjustments">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">rule</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Timesheet Adjustments</span>
+                        </a>
+                        <a asp-controller="ManagerPayrollCorrection" asp-action="Index"
+                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerPayrollCorrection" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                           title="Payroll Corrections">
+                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">build</span>
+                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Payroll Corrections</span>
                         </a>
                         <a asp-controller="ManagerEmployeeRequests" asp-action="Index"
                            class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerEmployeeRequests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"

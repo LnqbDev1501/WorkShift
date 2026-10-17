@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollFeedback;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
+using WorkShiftManagement.BLL.Services.Accountant;
 namespace WorkShiftServer.API.Controllers.Accountant;
 
 [ApiController, Authorize(Roles = "ACCOUNTANT,STAFF,MANAGER,ADMIN"), Route("api")]
@@ -15,7 +16,9 @@ public sealed class PayrollFeedbackController(IPayrollFeedbackService service) :
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
         {
             var status = ex switch { ArgumentException => 400, UnauthorizedAccessException => 403, KeyNotFoundException => 404, _ => 409 };
-            return StatusCode(status, new ProblemDetails { Status = status, Detail = ex.Message, Instance = Request.Path });
+            var problem = new ProblemDetails { Status = status, Detail = ex.Message, Instance = Request.Path };
+            if (ex is PayrollSourceChangedException changed) problem.Extensions["sourceImpact"] = changed.SourceImpact;
+            return StatusCode(status, problem);
         }
     }
     [HttpPost("payroll-periods/{id:int}/send-previews"), Authorize(Roles = "ACCOUNTANT")]
@@ -36,8 +39,21 @@ public sealed class PayrollFeedbackController(IPayrollFeedbackService service) :
     public Task<IActionResult> CreateIssue(int id, CreatePayrollIssueRequest request, CancellationToken ct) => Execute(async a => await service.CreateIssueAsync(a, id, request, ct));
     [HttpGet("payroll-periods/{id:int}/correction-requests"), Authorize(Roles = "ACCOUNTANT,MANAGER")]
     public Task<IActionResult> Issues(int id, CancellationToken ct) => Execute(async a => await service.IssuesAsync(a, id, ct));
+    [HttpGet("payroll-correction-requests"), Authorize(Roles = "ACCOUNTANT,MANAGER,ADMIN")]
+    public Task<IActionResult> ListCorrectionRequests([FromQuery] int? periodId, [FromQuery] string? status, CancellationToken ct)
+        => Execute(async a => await service.ListIssuesAsync(a, periodId, status, ct));
     [HttpPost("payroll-correction-requests/{id:int}/respond"), Authorize(Roles = "MANAGER")]
     public Task<IActionResult> Respond(int id, RespondPayrollIssueRequest request, CancellationToken ct) => Execute(async a => await service.RespondAsync(a, id, request, ct));
     [HttpPost("payroll-correction-requests/{id:int}/review"), Authorize(Roles = "ACCOUNTANT")]
     public Task<IActionResult> ReviewIssue(int id, ReviewPayrollIssueRequest request, CancellationToken ct) => Execute(async a => await service.ReviewIssueAsync(a, id, request, ct));
+    [HttpGet("payrolls/{id:int}/correction-preview"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> PreviewCorrection(int id, [FromQuery] int correctionRequestId, CancellationToken ct)
+        => Execute(async a => await service.PreviewCorrectionAsync(a, id, correctionRequestId, ct));
+    [HttpPost("payroll-correction-requests/{id:int}/complete"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> CompleteCorrection(int id, CompletePayrollCorrectionRequest request, CancellationToken ct)
+        => Execute(async a => await service.CompleteCorrectionAsync(a, id, request, ct));
+    [HttpGet("payroll-periods/{id:int}/source-impact"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> SourceImpact(int id, CancellationToken ct) => Execute(async a => await service.SourceImpactAsync(a, id, ct));
+    [HttpPost("payroll-correction-requests/{id:int}/register-related-impact"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> RegisterRelatedImpact(int id, CancellationToken ct) => Execute(async a => await service.RegisterRelatedImpactAsync(a, id, ct));
 }

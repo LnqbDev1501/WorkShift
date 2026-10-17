@@ -143,6 +143,16 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
             }
         }
         try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.ConstraintName != null
+            && pg.ConstraintName.Contains("notifications", StringComparison.OrdinalIgnoreCase))
+        {
+            // If in-app notification violates a database constraint, detach notification entities and ensure the core payroll transaction succeeds
+            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.Entity is WorkShiftManagement.DAL.Entities.Notification or WorkShiftManagement.DAL.Entities.UserNotification).ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+            await db.SaveChangesAsync(ct);
+        }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState is "23505" or "23503")
         { throw new InvalidOperationException("Dữ liệu nguồn đã được sử dụng hoặc thay đổi. Tải lại trước khi tính lương.", ex); }
     }

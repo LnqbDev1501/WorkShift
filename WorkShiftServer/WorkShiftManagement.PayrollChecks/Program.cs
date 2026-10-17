@@ -12,6 +12,7 @@ using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 using Recalculate = WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation.PayrollCorrectionRequest;
 
+
 var count = 0;
 void Check(bool ok, string label) { if (!ok) throw new Exception("FAILED: " + label); Console.WriteLine($"PASS {++count}: {label}"); }
 async Task Block(Func<Task> work, string label)
@@ -67,9 +68,16 @@ await svc.ApproveAsync(acct, next.FeedbackId, new() { ResolutionNote = "Correct 
 var correction = (await svc.IssuesAsync(acct, 1, ct)).Single(i => i.Status == "OPEN");
 f.State.Sources.Adjustments.Add(new() { RewardPenaltyId = 55, UserId = staff, PayrollPeriodId = 1, AdjustmentType = "REWARD", ApprovalStatus = "APPROVED", AdjustmentName = "Reward", Reason = "Performance", Amount = 50000, CreatedAt = f.Clock.Utc });
 await svc.RespondAsync(manager, correction.CorrectionRequestId, new() { Action = "CORRECT", Note = "Reward now approved" }, ct);
+var beforePreview = f.State.Payrolls.Count;
+var correctionPreview = await svc.PreviewCorrectionAsync(acct, oldId, correction.CorrectionRequestId, ct);
+Check(correctionPreview.HasChanges && !correctionPreview.CreatesVersion && f.State.Payrolls.Count == beforePreview, "Correction preview reads changed sources without saving a version");
 var version = await svc.RecalculateAsync(acct, oldId, new Recalculate { CorrectionRequestId = correction.CorrectionRequestId }, ct);
 Check(version.VersionNo == 2 && version.PreviousPayrollId == oldId && version.NetSalary == 290000m, "Recalculation creates successor from live approved sources");
 Check(f.State.Payrolls.Count == 3 && f.State.Payrolls.Single(p => p.PayrollId == oldId).Status == "REPLACED", "Old version preserved and unrelated employee not recalculated");
+Check((await svc.IssuesAsync(acct,1,ct)).Single(i=>i.CorrectionRequestId==correction.CorrectionRequestId).AwaitingAccountantCompletion,"Saved correction awaits Accountant completion");
+Check(!(await svc.ListAsync(staff,new(),ct)).Items.Any(i=>i.PayrollId==version.PayrollId),"Recalculate does not send Staff a preview");
+await Block(()=>svc.SubmitPeriodAsync(acct,1,ct),"Saved-but-uncompleted correction blocks Submit");
+await svc.CompleteCorrectionAsync(acct,correction.CorrectionRequestId,new(){PayrollId=version.PayrollId,Note="Checked saved result; send to Staff"},ct);
 var v2review = (await svc.ListAsync(staff, new(), ct)).Items.Single(i => i.ReviewStatus == "PENDING");
 Check(v2review.PayrollId == version.PayrollId && v2review.RoundNo == 3 && v2review.PreviousFeedbackId == next.FeedbackId, "Review round number is distinct from payroll version number");
 await Block(() => svc.RecalculateAsync(acct, oldId, new Recalculate { CorrectionRequestId = correction.CorrectionRequestId }, ct), "Cannot branch or repeat an old version");
@@ -163,6 +171,18 @@ using(var db=new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseNpg
     payroll.NetSalary=999;db.ChangeTracker.DetectChanges();
     Check(!PayrollInputFreezePolicy.IsFinalApproval(db.ChangeTracker,db.Entry(payroll),77,"Status","ApprovedBy","ApprovedAt","UpdatedAt"),"Approval cannot smuggle changes to frozen salary amounts");
 }
+
+var sharedBefore = new Payroll { UserId = staff, TimesheetId = 1, TotalWorkHours = 8, WorkInputSnapshot = "{\"workDetails\":[1]}" };
+sharedBefore.PayrollDetails.Add(new PayrollDetail { Type = "WORK", ItemCode = "WORK-1", WorkFrom = new DateOnly(2026,10,15), Rate = 30000, Multiplier = 1, Quantity = 8, Amount = 240000 });
+var sharedAfter = new Payroll { UserId = staff, TimesheetId = 1, TotalWorkHours = 8, WorkInputSnapshot = sharedBefore.WorkInputSnapshot };
+sharedAfter.PayrollDetails.Add(new PayrollDetail { Type = "WORK", ItemCode = "WORK-1", WorkFrom = new DateOnly(2026,10,15), Rate = 30000, Multiplier = 2, Quantity = 8, Amount = 480000 });
+var sharedKeys = PayrollSourceImpactPolicy.SharedChanges(sharedBefore, sharedAfter);
+Check(PayrollSourceImpactPolicy.OnlyCapturedSharedChanges(sharedBefore, sharedAfter, sharedKeys), "Captured holiday change may extend to affected Staff");
+sharedAfter.WorkInputSnapshot = "{\"workDetails\":[2]}";
+Check(!PayrollSourceImpactPolicy.OnlyCapturedSharedChanges(sharedBefore, sharedAfter, sharedKeys), "Shared holiday correction cannot authorize a coincident attendance edit");
+sharedAfter.WorkInputSnapshot = sharedBefore.WorkInputSnapshot;
+sharedAfter.PayrollDetails.Single().Multiplier = 3;
+Check(!PayrollSourceImpactPolicy.OnlyCapturedSharedChanges(sharedBefore, sharedAfter, sharedKeys), "Later unrelated holiday values cannot reuse prior correction evidence");
 Console.WriteLine($"ALL {count} PAYROLL CHECKS PASSED");
 await ApiChecks.RunAsync();
 
@@ -178,6 +198,7 @@ public sealed class State
     public List<PayrollCarryForwardDeduction> Carries {get;set;}=[];
     public List<PayrollSystemEvent> Events {get;set;}=[];
     public HashSet<string> ReminderSlots {get;set;}=[];
+    public Dictionary<int,string> ImpactEvidence {get;set;}=[];
 }
 public sealed class Fixture : IPayrollCalculationRepo, IPayrollFeedbackRepo, IPayrollSettlementRepo, IPayrollSystemEventRepo
 {
@@ -224,7 +245,10 @@ public sealed class Fixture : IPayrollCalculationRepo, IPayrollFeedbackRepo, IPa
     public void Add(PayrollFeedbackRequest row){row.FeedbackId=State.Feedback.Count+1;State.Feedback.Add(row);}
     public void Add(PayrollCorrectionRequest row){row.CorrectionRequestId=State.Issues.Count+1;State.Issues.Add(row);}
     public void Add(Payslip row){row.PayslipId=State.Payslips.Count+1;row.Payroll.Payslip=row;State.Payslips.Add(row);}
-    public void Audit(Guid? actor,string action,string table,int id,object payload,DateTime now){if(action=="PAYROLL_SYSTEM_EVENT")State.Events.Add(new(){EventId=State.Events.Count+1,CreatedAt=now,Payload=JsonSerializer.Serialize(payload)});}
+    public Task<string?> CorrectionImpactAsync(int id,CancellationToken ct)=>Task.FromResult(State.ImpactEvidence.GetValueOrDefault(id));
+    public void Audit(Guid? actor,string action,string table,int id,object payload,DateTime now){if(action=="PAYROLL_CORRECTION_SOURCE_IMPACT")State.ImpactEvidence[id]=JsonSerializer.Serialize(payload);if(action=="PAYROLL_SYSTEM_EVENT")State.Events.Add(new(){EventId=State.Events.Count+1,CreatedAt=now,Payload=JsonSerializer.Serialize(payload)});}
+    public void NotifyInApp(int periodId, int branchId, string role, Guid? user, string title, string message, DateTime now, Guid? sender = null){}
+    public Task<List<PayrollCorrectionRequest>> QueryIssuesAsync(int? branchId, int? periodId, string? status, CancellationToken ct) => Task.FromResult(State.Issues.ToList());
     public Task<List<PayrollSystemEvent>> ListAsync(string role,int? branch,Guid user,int page,int size,CancellationToken ct)=>Task.FromResult(State.Events);
     public Task<List<PayrollSystemEvent>> PendingAsync(CancellationToken ct)=>Task.FromResult(State.Events);
     public Task<bool> IsDeliveredAsync(long id,CancellationToken ct)=>Task.FromResult(false);
