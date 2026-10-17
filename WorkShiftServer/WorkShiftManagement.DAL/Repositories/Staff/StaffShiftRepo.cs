@@ -30,7 +30,8 @@ public sealed class StaffShiftRepo(AppDbContext context) : IStaffShiftRepo
         if (availableOnly)
         {
             query = query.Where(s => s.ScheduleWeek.BranchId == branchId && s.Status == "SCHEDULED" &&
-                s.ScheduleWeek.Status == "OPEN_REGISTRATION" && s.ScheduleWeek.RegistrationDeadline > now &&
+                ((s.ScheduleWeek.Status == "OPEN_REGISTRATION" && s.ScheduleWeek.RegistrationDeadline > now) ||
+                 (s.ScheduleWeek.Status == "PUBLISHED" || s.ScheduleWeek.Status == "IN_PROGRESS")) &&
                 s.ScheduledStartAt > now && s.ScheduledEndAt > s.ScheduledStartAt &&
                 !s.ShiftAssignments.Any(a => a.UserId == staffId && a.Status != "CANCELLED") &&
                 s.ShiftEmployeeRequirements.Any(r => r.EmployeeTypeId == employeeTypeId &&

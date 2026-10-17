@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import 'staff_notification_detail_view.dart';
 
@@ -16,6 +18,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
   final NotificationController _controller = NotificationController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
 
   @override
   void initState() {
@@ -27,10 +31,26 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
       });
       _controller.loadNotifications(search: _searchQuery);
     });
+
+    // 1. Tự động cập nhật ngay khi có thông báo Realtime từ Backend SignalR
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted && _searchQuery.isEmpty) {
+        _controller.loadNotifications(silent: true);
+      }
+    });
+
+    // 2. Tự động sync ngầm định kỳ (mỗi 6s) để luôn cập nhật thông báo mới
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && !_controller.isLoading && _searchQuery.isEmpty) {
+        _controller.loadNotifications(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }

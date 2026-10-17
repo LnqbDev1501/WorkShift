@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
 import '../../theme/app_colors.dart';
+import 'shifts/available_shifts_view.dart';
 
 /// Màn hình chi tiết thông báo - hiển thị toàn bộ nội dung thư thông báo
 class StaffNotificationDetailView extends StatefulWidget {
@@ -377,6 +378,38 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
                           ),
                         ),
                       ),
+                      if (_notification!.notificationType.toLowerCase() == 'openshift' ||
+                          _notification!.title.contains('nhận ca') ||
+                          _notification!.message.contains('nhận ca')) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AvailableShiftsView(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.event_available_rounded, size: 20),
+                            label: const Text(
+                              'Xem danh sách & Nhận ca (Pick up)',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 32),
                     ],
                   ),

@@ -63,12 +63,20 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_outline_rounded, color: AppColors.success, size: 24),
+            Icon(Icons.verified_rounded, color: AppColors.success, size: 24),
             SizedBox(width: 8),
-            Text('Ký hợp đồng lao động', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                'Xác nhận & Ký hợp đồng',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -76,8 +84,97 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Bạn xác nhận đồng ý với tất cả điều khoản và ký hợp đồng ${contract.contractNumber}?',
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary, height: 1.4),
+              'Xác nhận ký kết hợp đồng điện tử ${contract.contractNumber}',
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            // Khung 2 cột mô phỏng chữ ký 2 bên
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                children: [
+                  // Cột trái: Người lao động
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFBFDBFE)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'NGƯỜI LAO ĐỘNG',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF1E40AF)),
+                          ),
+                          const SizedBox(height: 4),
+                          const Icon(Icons.edit_document, color: Color(0xFF2563EB), size: 22),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Sẵn sàng ký số',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF2563EB)),
+                          ),
+                          Text(
+                            contract.employeePosition,
+                            style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Cột phải: WorkShift Stamp
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFFECACA)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'CÔNG TY WORKSHIFT',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                          ),
+                          const SizedBox(height: 4),
+                          Image.asset(
+                            'assets/images/workshift_stamp.png',
+                            height: 22,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Text(
+                              'WorkShift',
+                              style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            '✓ Đã chứng thực',
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Color(0xFFDC2626)),
+                          ),
+                          Text(
+                            contract.branchName,
+                            style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             Container(
@@ -89,12 +186,12 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.verified_outlined, color: AppColors.success, size: 18),
+                  Icon(Icons.info_outline_rounded, color: AppColors.success, size: 16),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Hợp đồng sau khi ký sẽ chuyển sang trạng thái Sắp bắt đầu / Có hiệu lực và không thể tự ý hủy.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF15803D)),
+                      'Hợp đồng sau khi ký sẽ có giá trị pháp lý chính thức và chuyển sang trạng thái Sắp bắt đầu / Có hiệu lực.',
+                      style: TextStyle(fontSize: 11, color: Color(0xFF15803D), height: 1.3),
                     ),
                   ),
                 ],
@@ -107,14 +204,16 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Xem lại', style: TextStyle(color: AppColors.textSecondary)),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.draw_rounded, size: 16),
+            label: const Text('Xác nhận & Ký'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Xác nhận ký'),
           ),
         ],
       ),
@@ -565,7 +664,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                       if (contract.isPendingStaff) ...[
                         if (contract.canAccept) ...[
                           AppButton(
-                            text: 'Ký / Chấp nhận hợp đồng',
+                            text: 'Xác nhận & Ký hợp đồng',
                             icon: Icons.draw_rounded,
                             isLoading: isAccepting,
                             onPressed: isAccepting ? null : () => _handleAcceptContract(contract),

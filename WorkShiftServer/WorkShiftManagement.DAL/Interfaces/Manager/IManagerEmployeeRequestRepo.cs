@@ -45,4 +45,10 @@ public interface IManagerEmployeeRequestRepo
         Guid managerId,
         string reviewNote,
         CancellationToken cancellationToken = default);
+
+    Task<List<Guid>> GetEligibleStaffUserIdsAsync(
+        int branchId,
+        int employeeTypeId,
+        Guid excludeStaffId,
+        CancellationToken cancellationToken = default);
 }

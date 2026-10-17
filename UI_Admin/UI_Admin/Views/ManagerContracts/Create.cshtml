@@ -227,15 +227,20 @@
         </div>
         <div>
             <div class="flex items-center justify-between mb-1.5">
-                <label asp-for="HourlyRate" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">Hourly Rate (VNĐ/h)</label>
-                <span id="wage-source-badge" class="text-[11px] text-indigo-600 font-medium">History salary</span>
+                <label asp-for="HourlyRate" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">Hourly Rate (VND/h)</label>
+                <span id="wage-source-badge" class="text-[11px] @(!isRenewal ? "text-indigo-600 font-medium" : "text-emerald-600 font-medium")">
+                    @(!isRenewal ? "Regional min wage" : "History salary")
+                </span>
             </div>
             <div class="relative">
                 <input asp-for="HourlyRate" id="HourlyRate" type="number" step="1000" min="0" placeholder="e.g. 25000" class="w-full h-11 px-3.5 pr-14 rounded-xl border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono" />
-                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-xs font-medium text-slate-400">VNĐ/h</span>
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-xs font-medium text-slate-400">VND/h</span>
             </div>
             <span asp-validation-for="HourlyRate" class="text-xs text-rose-600 mt-1 block"></span>
-            <p id="hourly-rate-guidance-note" class="text-[11px] text-slate-500 mt-1">Lấy từ lịch sử lương (history_salary) hoặc lương tối thiểu vùng.</p>
+            <p id="hourly-rate-guidance-note" class="text-[11px] text-slate-500 mt-1">
+                @(!isRenewal ? "Auto-filled with regional minimum wage (can be adjusted)." : "Auto-filled from staff salary history (can be adjusted).")
+            </p>
+            <input type="hidden" id="regional-minimum-wage-data" value="@(Model.RegionalMinimumWage > 0 ? Model.RegionalMinimumWage.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "")" />
         </div>
     </div>
 

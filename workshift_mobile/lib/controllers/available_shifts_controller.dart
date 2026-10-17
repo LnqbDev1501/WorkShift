@@ -143,38 +143,54 @@ class AvailableShiftsController extends ChangeNotifier {
     await _loadFirstPage(clearItems: true);
   }
 
-  Future<void> refresh({bool resetRegisteredShifts = false}) {
+  Future<void> refresh({bool resetRegisteredShifts = false, bool silent = false}) {
     if (resetRegisteredShifts) _registeredShiftIds.clear();
-    return _loadFirstPage(clearItems: false);
+    return _loadFirstPage(clearItems: false, silent: silent);
   }
 
   bool isOpen(AvailableShiftModel shift) {
     final now = _now().toUtc();
-    return shift.status == 'SCHEDULED' &&
-        shift.scheduleWeekStatus == 'OPEN_REGISTRATION' &&
-        shift.registrationDeadline.isAfter(now) &&
-        shift.scheduledStartAt.isAfter(now);
+    if (shift.status != 'SCHEDULED' || !shift.scheduledStartAt.isAfter(now)) {
+      return false;
+    }
+    if (shift.scheduleWeekStatus == 'OPEN_REGISTRATION') {
+      return shift.registrationDeadline.isAfter(now);
+    }
+    if (shift.scheduleWeekStatus == 'PUBLISHED' ||
+        shift.scheduleWeekStatus == 'IN_PROGRESS' ||
+        shift.isOpenShift) {
+      return true;
+    }
+    return false;
   }
 
-  bool isClosingSoon(AvailableShiftModel shift) =>
-      isOpen(shift) &&
-      shift.registrationDeadline.difference(_now().toUtc()) <=
+  bool isClosingSoon(AvailableShiftModel shift) {
+    if (!isOpen(shift)) return false;
+    final now = _now().toUtc();
+    if (shift.scheduleWeekStatus == 'OPEN_REGISTRATION') {
+      return shift.registrationDeadline.difference(now) <=
           const Duration(hours: 24);
+    }
+    // Đối với Open Shift trong tuần đã phát hành, nếu ca bắt đầu trong vòng 24h thì báo sắp đóng
+    return shift.scheduledStartAt.difference(now) <= const Duration(hours: 24);
+  }
 
-  Future<void> _loadFirstPage({required bool clearItems}) async {
+  Future<void> _loadFirstPage({required bool clearItems, bool silent = false}) async {
     if (_disposed) return;
     final generation = ++_generation;
-    _isLoading = true;
-    _isLoadingMore = false;
-    _errorMessage = null;
-    _loadMoreError = null;
-    if (clearItems) {
-      _shifts.clear();
-      _totalItems = 0;
-      _pageNumber = 0;
-      _totalPages = 0;
+    if (!silent) {
+      _isLoading = true;
+      _isLoadingMore = false;
+      _errorMessage = null;
+      _loadMoreError = null;
+      if (clearItems) {
+        _shifts.clear();
+        _totalItems = 0;
+        _pageNumber = 0;
+        _totalPages = 0;
+      }
+      notifyListeners();
     }
-    notifyListeners();
     try {
       final page = await _service.getAvailableShifts(
         fromDate: _fromDate,
@@ -190,7 +206,8 @@ class AvailableShiftsController extends ChangeNotifier {
         );
       _updatePagination(page);
     } catch (error) {
-      if (_isCurrent(generation)) _errorMessage = _message(error);
+      if (!_isCurrent(generation)) return;
+      if (!silent) _errorMessage = _message(error);
     } finally {
       if (_isCurrent(generation)) {
         _isLoading = false;

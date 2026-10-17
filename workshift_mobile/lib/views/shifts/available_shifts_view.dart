@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../controllers/available_shifts_controller.dart';
 import '../../models/available_shift_model.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_state_panel.dart';
@@ -24,6 +26,8 @@ class _AvailableShiftsViewState extends State<AvailableShiftsView>
     with WidgetsBindingObserver {
   late final AvailableShiftsController _controller;
   bool _isConfirmingRegistration = false;
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
 
   Future<void> _registerShift(AvailableShiftModel shift) async {
     if (_isConfirmingRegistration || !_controller.canRegister(shift)) return;
@@ -78,15 +82,31 @@ class _AvailableShiftsViewState extends State<AvailableShiftsView>
     _controller = widget.controller ?? AvailableShiftsController();
     WidgetsBinding.instance.addObserver(this);
     _controller.refresh();
+
+    // 1. Tự động cập nhật ngay tức thì khi có thông báo Realtime SignalR
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted) {
+        _controller.refresh(silent: true);
+      }
+    });
+
+    // 2. Tự động sync ngầm định kỳ (mỗi 5s) để ca trống tự xuất hiện mà không cần reload
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted && !_controller.isLoading && !_controller.isRegistering) {
+        _controller.refresh(silent: true);
+      }
+    });
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _controller.refresh();
+    if (state == AppLifecycleState.resumed) _controller.refresh(silent: true);
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     if (widget.controller == null) _controller.dispose();
     super.dispose();

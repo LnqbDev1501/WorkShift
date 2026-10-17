@@ -143,6 +143,20 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     }
 
     [HttpGet]
+    public async Task<IActionResult> BranchMinimumWage(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var wage = await api.GetBranchMinimumWageAsync(cancellationToken);
+            return Json(new { minimumWage = wage });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Create(string? contractType, CancellationToken cancellationToken)
     {
         var model = new CreateContractViewModel
@@ -548,6 +562,19 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         catch
         {
             model.PositionOptions = [];
+        }
+
+        try
+        {
+            model.RegionalMinimumWage = await api.GetBranchMinimumWageAsync(ct);
+            if (string.Equals(model.ContractType, "NEW", StringComparison.OrdinalIgnoreCase) && (!model.HourlyRate.HasValue || model.HourlyRate.Value <= 0) && model.RegionalMinimumWage > 0)
+            {
+                model.HourlyRate = model.RegionalMinimumWage;
+            }
+        }
+        catch
+        {
+            model.RegionalMinimumWage = 0m;
         }
 
         return View("Create", model);

@@ -16,6 +16,7 @@ class AvailableShiftModel {
   final ShiftRegistrationModel? myRegistration;
   final bool canCancelRegistration;
   final String? cancellationBlockedReason;
+  final bool isOpenShift;
   final List<ShiftRequirementModel> employeeRequirements;
 
   const AvailableShiftModel({
@@ -33,10 +34,12 @@ class AvailableShiftModel {
     this.myRegistration,
     this.canCancelRegistration = false,
     this.cancellationBlockedReason,
+    this.isOpenShift = false,
     required this.employeeRequirements,
   });
 
   factory AvailableShiftModel.fromJson(Map<String, dynamic> json) {
+    final weekStatus = json['scheduleWeekStatus'] as String? ?? '';
     return AvailableShiftModel(
       shiftId: (json['shiftId'] as num).toInt(),
       scheduleWeekId: (json['scheduleWeekId'] as num).toInt(),
@@ -51,7 +54,7 @@ class AvailableShiftModel {
         json['registrationDeadline'] as String,
       ).toUtc(),
       status: json['status'] as String,
-      scheduleWeekStatus: json['scheduleWeekStatus'] as String,
+      scheduleWeekStatus: weekStatus,
       note: json['note'] as String?,
       myRegistration: json['myRegistration'] == null
           ? null
@@ -60,6 +63,9 @@ class AvailableShiftModel {
             ),
       canCancelRegistration: json['canCancelRegistration'] == true,
       cancellationBlockedReason: json['cancellationBlockedReason'] as String?,
+      isOpenShift: json['isOpenShift'] == true ||
+          weekStatus == 'PUBLISHED' ||
+          weekStatus == 'IN_PROGRESS',
       employeeRequirements: List.unmodifiable(
         (json['employeeRequirements'] as List).map(
           (item) =>
