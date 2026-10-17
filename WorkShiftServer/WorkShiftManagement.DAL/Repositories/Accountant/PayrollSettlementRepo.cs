@@ -36,7 +36,8 @@ public sealed class PayrollSettlementRepo(AppDbContext db) : IPayrollSettlementR
         {
             Period = period, Payrolls = rows, ExpectedEmployees = expected.ToHashSet(), UnsettledPriorEmployees = prior.ToHashSet(),
             UnresolvedFeedbackCount = await db.PayrollFeedbackRequests.CountAsync(f => f.Payroll.PayrollPeriodId == periodId
-                && (f.Status == "SUBMITTED" || f.Status == "APPROVED" && f.CorrectionStatus != "COMPLETED"), ct),
+                && (f.ReviewStatus == "PENDING" || f.ReviewStatus == "FEEDBACK_PENDING"), ct)
+                + await db.PayrollCorrectionRequests.CountAsync(r => r.Payroll.PayrollPeriodId == periodId && (r.Status == "OPEN" || r.Status == "RESPONDED"), ct),
             CarryForwards = await CarryGraph(tracking).Where(c => users.Contains(c.UserId)).ToListAsync(ct)
         };
     }

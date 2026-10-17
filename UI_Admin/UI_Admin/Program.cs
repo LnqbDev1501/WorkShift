@@ -39,6 +39,7 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 builder.Services.AddTransient<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<SalaryChangeApiService>(client => client.Timeout = TimeSpan.FromSeconds(30)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 builder.Services.AddHttpClient<AuthApiService>();
 builder.Services.AddHttpClient<PayrollApiService>(client => client.Timeout = TimeSpan.FromSeconds(15))

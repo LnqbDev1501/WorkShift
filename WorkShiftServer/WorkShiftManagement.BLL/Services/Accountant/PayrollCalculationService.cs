@@ -138,58 +138,35 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
         return result;
     }
 
-    public async Task<PayrollCalculationResponse> CalculateEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
-    {
-        if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
-        var scope = await Scope(actor, true, ct);
-        await using var tx = await repo.BeginCalculationAsync(ct);
-        var period = await Period(periodId, scope, ct);
-        if (period.Status is not ("OPEN" or "CALCULATED"))
-            throw new InvalidOperationException("Kỳ phải OPEN hoặc CALCULATED; không tính đè sau khi gửi duyệt.");
-        var inputs = await repo.GetInputsAsync(period, ct);
-        if (!inputs.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
-        var existing = inputs.Payrolls.Where(p => p.UserId == userId).OrderByDescending(p => p.VersionNo)
-            .ThenByDescending(p => p.PayrollId).FirstOrDefault();
-        if (existing != null)
-        {
-            if (existing.Status != "CALCULATED") throw new InvalidOperationException("Payroll đã tồn tại; dùng luồng correction khi bị reject.");
-            // Idempotent retry: use the saved snapshot/result, never silently recalculate live inputs.
-            await tx.CommitAsync(ct);
-            return Map(existing);
-        }
-        var readiness = Readiness(inputs, userId, actor);
-        if (!readiness.CanCalculate) throw new PayrollCalculationBlockedException(readiness);
-        var payroll = PayrollCalculationPolicy.Build(inputs, userId, actor, DateTime.UtcNow);
-        repo.Add(payroll);
-        await repo.SaveAsync(ct);
-        repo.Audit(actor, payroll);
-        var completed = inputs.EmployeeIds.All(id => id == userId || inputs.Payrolls.Any(p => p.UserId == id && p.Status == "CALCULATED"));
-        if (completed)
-        {
-            period.Status = "CALCULATED"; period.CalculatedBy = actor;
-            period.CalculatedAt = payroll.CalculatedAt; period.UpdatedAt = DateTime.UtcNow;
-        }
-        await repo.SaveAsync(ct);
-        await tx.CommitAsync(ct);
-        return Map(payroll);
-    }
+    public Task<PayrollCalculationResponse> CalculateEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
+        => throw new InvalidOperationException("Lần đầu phải tính toàn kỳ. Payroll bị yêu cầu sửa sử dụng /payrolls/{id}/recalculate.");
 
     public async Task<CalculationBatchResponse> CalculatePeriodAsync(Guid actor, int periodId, CancellationToken ct)
     {
-        var initial = await GetReadinessAsync(actor, periodId, ct);
-        if (initial.PeriodStatus is not ("OPEN" or "CALCULATED")) throw new InvalidOperationException("Kỳ phải OPEN hoặc CALCULATED.");
-        if (initial.Employees.Count == 0) throw new InvalidOperationException("Kỳ chưa có nhân viên/bảng công cần tính.");
-        var result = new CalculationBatchResponse { PayrollPeriodId = periodId };
-        foreach (var employee in initial.Employees)
+        var branch = await Scope(actor, true, ct);
+        await using var tx = await repo.BeginCalculationAsync(ct);
+        var period = await Period(periodId, branch, ct);
+        var inputs = await repo.GetInputsAsync(period, ct);
+        if (period.Status != "OPEN")
         {
-            ct.ThrowIfCancellationRequested();
-            try { result.Payrolls.Add(await CalculateEmployeeAsync(actor, periodId, employee.UserId, ct)); }
-            catch (PayrollCalculationBlockedException ex) { result.FailedEmployees.Add(ex.Readiness); }
-            // Persistence, authorization and concurrency errors abort the request; no false success.
+            // A retry returns the persisted batch, never recalculates it from changed live sources.
+            if (period.Status == "CALCULATED" && inputs.EmployeeIds.Count > 0
+                && inputs.EmployeeIds.ToHashSet().SetEquals(inputs.Payrolls.Select(p => p.UserId))
+                && inputs.Payrolls.All(p => p.Status == "CALCULATED"))
+                return new() { PayrollPeriodId = periodId, PeriodStatus = period.Status, Payrolls = inputs.Payrolls.Select(Map).ToList() };
+            throw new InvalidOperationException("Chỉ tính lần đầu khi kỳ OPEN; bản sửa phải qua Correction Request.");
         }
-        var scope = await Scope(actor, true, ct);
-        result.PeriodStatus = (await Period(periodId, scope, ct)).Status;
-        return result;
+        if (inputs.EmployeeIds.Count == 0 || inputs.Payrolls.Count != 0)
+            throw new InvalidOperationException("Kỳ phải có nhân viên và chưa có Payroll trước lần tính toàn kỳ.");
+        // Build all results before persisting anything. Any source or storage failure rolls back the entire batch.
+        var now = DateTime.UtcNow;
+        var results = inputs.EmployeeIds.Select(id => PayrollCalculationPolicy.Build(inputs, id, actor, now)).ToList();
+        foreach (var payroll in results) repo.Add(payroll);
+        await repo.SaveAsync(ct);
+        foreach (var payroll in results) repo.Audit(actor, payroll);
+        period.Status = "CALCULATED"; period.CalculatedBy = actor; period.CalculatedAt = now; period.UpdatedAt = now;
+        await repo.SaveAsync(ct); await tx.CommitAsync(ct);
+        return new() { PayrollPeriodId = periodId, PeriodStatus = period.Status, Payrolls = results.Select(Map).ToList() };
     }
 
     public async Task<PagedResponse<PayrollCalculationResponse>> GetPayrollsAsync(Guid actor, int periodId,
@@ -224,10 +201,8 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
         EmployeeName = payroll.EmployeeFullNameSnapshot, EmployeePosition = payroll.EmployeePositionSnapshot,
         BranchName = payroll.BranchNameSnapshot, Status = payroll.Status, VersionNo = payroll.VersionNo,
         PreviousPayrollId = payroll.PreviousPayrollId, CorrectionReason = payroll.CorrectionReason,
-        RejectionCategory = payroll.RejectionCategory, RejectReason = payroll.RejectReason,
         CalculatedBy = payroll.CalculatedBy, CalculatedAt = payroll.CalculatedAt,
         SubmittedBy = payroll.SubmittedBy, SubmittedAt = payroll.SubmittedAt,
-        RejectedBy = payroll.RejectedBy, RejectedAt = payroll.RejectedAt,
         ApprovedBy = payroll.ApprovedBy, ApprovedAt = payroll.ApprovedAt,
         ReplacedAt = payroll.ReplacedAt, PaidAt = payroll.PaidAt,
         HourlyRate = payroll.HourlyRateSnapshot, TotalWorkHours = payroll.TotalWorkHours, WorkPay = payroll.WorkPay,

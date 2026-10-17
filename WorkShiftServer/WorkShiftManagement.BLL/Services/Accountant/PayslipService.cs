@@ -111,7 +111,7 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
             BranchName = p.BranchNameSnapshot, PeriodCode = s.PeriodCodeSnapshot, PeriodName = s.PeriodNameSnapshot,
             PeriodStart = s.PeriodStartSnapshot, PeriodEnd = s.PeriodEndSnapshot, VersionNo = s.VersionNo,
             PreviousPayslipId = s.PreviousPayslipId, Status = s.Status, PayrollStatus = p.Status,
-            PublishedAt = s.PublishedAt, ReplacedAt = s.ReplacedAt, FeedbackDeadlineAt = PayslipPolicy.FeedbackDeadlineAt(s.PeriodEndSnapshot),
+            PublishedAt = s.PublishedAt, ReplacedAt = s.ReplacedAt, FeedbackDeadlineAt = p.PayrollPeriod.InitialFeedbackDeadlineAt ?? s.PublishedAt,
             CanSubmitFeedback = blocked == null, FeedbackBlockedReason = blocked, CorrectionReason = p.CorrectionReason,
             HourlyRate = p.HourlyRateSnapshot, TotalWorkHours = p.TotalWorkHours, WorkPay = p.WorkPay,
             TotalReward = p.TotalReward, TotalPenalty = p.TotalPenalty, AttendanceDeduction = p.AttendanceDeduction,
@@ -120,14 +120,7 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
         };
     }
 
-    public Task<List<int>> DuePeriodIdsAsync(CancellationToken ct)
-    {
-        var now = clock.GetUtcNow();
-        var local = now.ToOffset(TimeSpan.FromHours(7));
-        if (local.DayOfWeek != DayOfWeek.Thursday)
-            return Task.FromResult(new List<int>());
-        return repo.DuePeriodIdsAsync(DateOnly.FromDateTime(local.DateTime).AddDays(-4), ct);
-    }
+    public Task<List<int>> DuePeriodIdsAsync(CancellationToken ct) => repo.DuePeriodIdsAsync(ct);
 
     public async Task PublishInitialAsync(int periodId, CancellationToken ct)
     {
@@ -146,12 +139,8 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
         if (all.Any(p => p.Payslip != null))
             throw new InvalidOperationException("Kỳ đã có Payslip nhưng chưa đủ cho các Payroll hiện hành; cần kiểm tra dữ liệu phát hành, không tự phát lại cả kỳ.");
         var now = clock.GetUtcNow().UtcDateTime;
-        var scheduled = PayslipPolicy.PublicationAt(period.EndDate);
-        if (now < scheduled || now >= PayslipPolicy.FeedbackDeadlineAt(period.EndDate))
-            throw new InvalidOperationException("Chỉ phát phiếu trong ngày thứ Năm, từ 00:00 đến trước 00:00 thứ Sáu; không phát bù sang ngày khác.");
-        var approvalDeadline = period.ApprovalDeadlineAt ?? scheduled;
-        if (period.Status != "APPROVED" || !period.ApprovedAt.HasValue || period.ApprovedAt >= approvalDeadline)
-            throw new InvalidOperationException("Kỳ phải được Admin APPROVED trước hạn duyệt để phát phiếu 00:00 thứ Năm.");
+        var scheduled = period.ApprovedAt ?? throw new InvalidOperationException("Kỳ chưa có thời điểm Admin duyệt.");
+        if (period.Status != "APPROVED") throw new InvalidOperationException("Chỉ phát phiếu cho kỳ APPROVED.");
         if (current.Any(p => p.Status != "APPROVED"))
             throw new InvalidOperationException("Tất cả Payroll hiện hành phải APPROVED trước khi phát phiếu.");
         // Validate/build the whole batch before adding anything; any failure rolls back every slip.

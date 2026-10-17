@@ -129,7 +129,6 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 await query.CountAsync();
 
             var items = await query
-                .Include(x => x.RejectedByNavigation)
                 .Include(x => x.PayrollDetails)
                 .AsSplitQuery()
                 .OrderBy(x =>
@@ -197,14 +196,10 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             RecordId = (payroll?.PayrollId ?? period.PayrollPeriodId).ToString(), CreatedAt = DateTime.UtcNow,
             NewValue = System.Text.Json.JsonSerializer.Serialize(new { period.PayrollPeriodId, PeriodStatus = period.Status,
                 payroll?.PayrollId, payroll?.VersionNo, PayrollStatus = payroll?.Status, payroll?.PreviousPayrollId,
-                payroll?.RejectionCategory, payroll?.RejectReason })
+                payroll?.CorrectionReason })
         });
 
-        public Task<bool> HasApprovedCorrectionFeedbackAsync(Payroll payroll) => _context.PayrollFeedbackRequests.AnyAsync(f =>
-            f.ResolvedPayrollId == payroll.PayrollId && f.Status == "APPROVED" && f.CorrectionStatus == "IN_PROGRESS"
-            && f.EmployeeId == payroll.UserId && f.Payroll.UserId == payroll.UserId
-            && f.Payroll.PayrollPeriodId == payroll.PayrollPeriodId && f.Payslip.Status == "PUBLISHED"
-            && f.Payslip.PayrollId == f.PayrollId);
+        public Task<bool> HasApprovedCorrectionFeedbackAsync(Payroll payroll) => Task.FromResult(false);
 
         public Task<int?> GetAccountantBranchIdAsync(Guid userId) => _context.Users.AsNoTracking()
             .Where(u => u.UserId == userId && u.Status == "ACTIVE" && u.DeletedAt == null

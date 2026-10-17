@@ -224,6 +224,7 @@ public sealed class ManagerTimesheetController : ControllerBase
     /// <summary>
     /// Locks weekly timesheet batch for a schedule week, finalizing work hours for payroll calculation.
     /// </summary>
+    [HttpPost("{id:int}/review")]
     [HttpPost("{id:int}/lock")]
     [ProducesResponseType(typeof(ManagerWeeklyTimesheetDetailResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

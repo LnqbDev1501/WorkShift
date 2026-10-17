@@ -211,6 +211,8 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             CreatedBy = p.CreatedBy,
             CreatedAt = p.CreatedAt,
             ApprovalDeadlineAt = p.ApprovalDeadlineAt,
+            PublishedBy = p.PublishedBy, PublishedAt = p.PublishedAt, InitialFeedbackDeadlineAt = p.InitialFeedbackDeadlineAt,
+            ReviewedTimesheetCount = p.Timesheets.Count(t => t.Status == "REVIEWED"),
             PaidAt = p.PaidAt,
             ClosedAt = p.ClosedAt,
 
@@ -228,10 +230,8 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             RejectedPayrollCount =
                 current.Count(w => w.Status == "REJECTED"),
 
-            PendingCorrectionCount = current.Count(
-                w => w.Status == "REJECTED"
-                    || w.PreviousPayrollId != null
-                    && w.Status is "DRAFT" or "CALCULATED"),
+            PendingCorrectionCount = p.Payrolls.SelectMany(w => w.PayrollCorrectionRequestPayrolls)
+                .Count(r => r.Status is "OPEN" or "RESPONDED"),
 
             TotalNetSalary = current.Sum(w => w.NetSalary),
 
@@ -243,7 +243,6 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
                 && p.Payrolls.Count == 0
                 && !string.IsNullOrWhiteSpace(p.PeriodName)
                 && p.ScheduleWeekId != null
-                && p.ApprovalDeadlineAt != null
                 && p.ScheduleWeek != null
                 && p.StartDate == p.ScheduleWeek.WeekStartDate
                 && p.EndDate == p.ScheduleWeek.WeekEndDate
@@ -275,16 +274,6 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
                         CorrectionReason = w.CorrectionReason,
                         CarryForwardDeduction = w.CarryForwardDeduction,
                         DeferredDeductionAmount = w.DeferredDeductionAmount,
-
-                        Rejection = w.Status == "REJECTED"
-                            ? new PayrollRejectionResponse
-                            {
-                                RejectedById = w.RejectedBy,
-                                RejectedAt = w.RejectedAt,
-                                Reason = w.RejectReason,
-                                Category = w.RejectionCategory
-                            }
-                            : null,
 
                         Details = w.PayrollDetails
                             .OrderBy(d => d.DisplayOrder)
@@ -587,11 +576,10 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
         }
 
         if (p.ScheduleWeekId == null
-            || p.ApprovalDeadlineAt == null
             || string.IsNullOrWhiteSpace(p.PeriodName))
         {
             throw new InvalidOperationException(
-                "Schedule week, name and approval deadline are required.");
+                "Schedule week and name are required.");
         }
 
         var week = await WeekAsync(
@@ -613,6 +601,7 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
         };
 
         p.Status = "OPEN";
+        p.PublishedBy = actor; p.PublishedAt = DateTime.UtcNow;
         p.UpdatedAt = DateTime.UtcNow;
 
         repo.Audit(

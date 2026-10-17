@@ -27,7 +27,7 @@ public sealed class PayrollRevisionController(IPayrollRevisionService service) :
     [HttpGet("{id:int}/versions")]
     public Task<IActionResult> Versions(int id, CancellationToken ct)
         => Execute(async actor => await service.VersionsAsync(actor, id, ct));
-    [HttpPost("{id:int}/approve-correction"), Authorize(Roles = "ADMIN")]
+    [NonAction]
     public Task<IActionResult> Approve(int id, CancellationToken ct)
         => Execute(async actor => await service.ApproveCorrectionAsync(actor, id, ct));
 }

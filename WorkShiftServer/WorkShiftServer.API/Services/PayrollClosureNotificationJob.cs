@@ -35,7 +35,7 @@ public sealed class PayrollClosureNotificationJob(IPayrollSettlementRepo repo, I
             if (data?.Period.Status == "CLOSED")
             {
                 var period = data.Period;
-                await hub.Clients.All.SendAsync("PayrollPeriodClosed", new
+                await hub.Clients.Group("Payroll:ADMIN").SendAsync("PayrollPeriodClosed", new
                 { eventId, period.PayrollPeriodId, period.PeriodCode, period.BranchId, period.ClosedAt, status = "CLOSED" }, ct);
                 repo.Audit(null, "PAYROLL_CLOSURE_NOTIFIED", period, clock.GetUtcNow().UtcDateTime, new { eventId });
                 await calculation.SaveAsync(ct);

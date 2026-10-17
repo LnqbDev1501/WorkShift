@@ -341,6 +341,8 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         }
 
         var timesheets = week.PayrollPeriod.Timesheets.ToList();
+        if (week.PayrollPeriod.Status is "SUBMITTED" or "APPROVED" or "PAID" or "CLOSED")
+            throw new InvalidOperationException("Payroll period is frozen; timesheet review cannot change it.");
 
         if (timesheets.All(t => string.Equals(t.Status, "LOCKED", StringComparison.OrdinalIgnoreCase)))
         {
@@ -363,7 +365,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var vnOffset = TimeSpan.FromHours(7);
         var generatedAtVn = firstGeneratedAt + vnOffset;
         var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-        var reviewDeadlineUtc = week.PayrollPeriod.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+        var reviewDeadlineUtc = endOfDayVn - vnOffset;
 
         var now = DateTime.UtcNow;
         bool isPastDeadline = now >= reviewDeadlineUtc;
@@ -379,21 +381,24 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         foreach (var timesheet in timesheets)
         {
-            timesheet.Status = "LOCKED";
-            timesheet.LockedAt = now;
-            timesheet.LockedBy = managerId;
+            timesheet.Status = "REVIEWED";
+            timesheet.ReviewedAt = now;
+            timesheet.ReviewedBy = managerId;
+            timesheet.LockedAt = null;
+            timesheet.LockedBy = null;
+            if (timesheet.Status == "REVIEWED") { timesheet.ReviewedAt = now; timesheet.ReviewedBy = managerId; }
             timesheet.UpdatedAt = now;
         }
 
         var staffUserIds = timesheets.Select(t => t.UserId).Distinct().ToList();
         int notificationId = 0;
-        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been locked by the branch manager. Attendance hours have been finalized for payroll calculation.";
+        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has completed review (REVIEWED). Accountant can calculate payroll; final lock occurs when Admin approves the period.";
 
         if (staffUserIds.Count > 0)
         {
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
-                Title = "Weekly Timesheet Locked",
+                Title = "Weekly Timesheet Reviewed",
                 Content = notificationContent,
                 NotificationType = "TIMESHEET",
                 CreatedBy = managerId,
@@ -697,7 +702,8 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 timesheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
                 timesheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
                 timesheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
-                timesheet.UpdatedAt = now;
+                if (timesheet.Status == "REVIEWED") { timesheet.ReviewedAt = now; timesheet.ReviewedBy = managerId; }
+            timesheet.UpdatedAt = now;
             }
         }
 
@@ -825,7 +831,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 ?? week.PayrollPeriod!.CreatedAt;
             var generatedAtVn = firstGeneratedAt + vnOffset;
             var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            var reviewDeadlineUtc = week.PayrollPeriod!.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+            var reviewDeadlineUtc = endOfDayVn - vnOffset;
 
             if (now >= reviewDeadlineUtc)
             {
@@ -835,15 +841,18 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 var creatorId = week.PayrollPeriod!.CreatedBy;
                 foreach (var t in targetTimesheets)
                 {
-                    t.Status = "LOCKED";
-                    t.LockedAt = now;
-                    t.LockedBy = creatorId;
+                    t.Status = "REVIEWED";
+                    t.ReviewedAt = now;
+                    t.ReviewedBy = null;
+                    t.ReviewNote = "System ended the timesheet review window; final lock occurs at payroll approval.";
+                    t.LockedAt = null;
+                    t.LockedBy = null;
                     t.UpdatedAt = now;
                 }
 
                 var staffUserIds = targetTimesheets.Select(t => t.UserId).Distinct().ToList();
                 int notificationId = 0;
-                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. All timesheets have been automatically finalized and locked for payroll processing.";
+                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. All timesheets have been automatically marked REVIEWED for payroll processing. Admin approval will perform the final lock.";
 
                 if (staffUserIds.Count > 0)
                 {

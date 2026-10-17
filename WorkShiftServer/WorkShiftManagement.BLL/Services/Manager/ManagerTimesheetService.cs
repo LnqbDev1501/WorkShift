@@ -491,7 +491,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     await _realtimePublisher.PublishAsync(staffId, new RealtimeNotificationResponse
                     {
                         NotificationId = notificationId,
-                        Title = "Weekly Timesheet Locked",
+                        Title = "Weekly Timesheet Reviewed",
                         Message = notificationContent,
                         CreatedAt = DateTime.UtcNow
                     });

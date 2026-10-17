@@ -14,16 +14,7 @@ public static class PayslipPolicy
     }
 
     public static string? FeedbackBlocked(Payslip slip, bool isOwnerStaff, bool unresolved, DateTime now)
-    {
-        if (!isOwnerStaff) return "Chỉ Staff sở hữu phiếu được gửi phản hồi.";
-        if (slip.Status != "PUBLISHED") return "Phiếu đã được thay thế; hãy xem phiếu hiện hành.";
-        if (slip.Payroll.PayrollPeriod.Status != "APPROVED" || slip.Payroll.Status != "APPROVED")
-            return "Kỳ lương/Payroll không còn ở trạng thái cho phép phản hồi.";
-        if (now < slip.PublishedAt) return "Phiếu chưa đến thời điểm phát hành.";
-        if (now >= FeedbackDeadlineAt(slip.PeriodEndSnapshot)) return "Đã hết ngày thứ Năm; hạn phản hồi kết thúc lúc 00:00 thứ Sáu.";
-        if (unresolved) return "Đang có phản hồi hoặc correction chưa xử lý xong trong kỳ này.";
-        return null;
-    }
+        => "Phiếu lương chính thức chỉ để xem. Phản hồi được xử lý trên Payroll Preview trước khi Admin duyệt.";
 
     // Both initial publication and replacement use ONLY the immutable payroll work snapshot.
     public static Payslip Create(Payroll payroll, DateTime now, Payslip? previous = null)

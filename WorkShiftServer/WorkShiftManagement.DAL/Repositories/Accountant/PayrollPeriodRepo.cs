@@ -29,6 +29,8 @@ public sealed class PayrollPeriodRepo(AppDbContext db) : IPayrollPeriodRepo
             .Include(p => p.EmployeeRewardsPenalties)
             .Include(p => p.Payrolls)
                 .ThenInclude(p => p.PayrollDetails)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCorrectionRequestPayrolls)
             .AsSplitQuery();
 
     public async Task<(List<PayrollPeriod> Items, int Count)> GetPagedAsync(

@@ -26,7 +26,7 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
 
     public async Task<PayrollCalculationInputs> GetInputsAsync(PayrollPeriod period, CancellationToken ct)
     {
-        var timesheets = await db.Timesheets.AsNoTracking().Include(t => t.User)
+        var timesheets = await db.Timesheets.AsNoTracking().Include(t => t.User).Include(t => t.TimesheetAdjustmentRequests)
             .Where(t => t.PayrollPeriodId == period.PayrollPeriodId).ToListAsync(ct);
         var assignments = await db.ShiftAssignments.AsNoTracking().Include(a => a.Shift).Include(a => a.User)
             .Include(a => a.Attendance).ThenInclude(a => a!.AttendancePenaltyRecords)
@@ -67,11 +67,12 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
         var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
-            // Bulk calculation uses one transaction per employee; reload tracked periods on every retry.
+            // All payroll/review mutations share this lock order; initial calculation is one transaction.
             db.ChangeTracker.Clear();
             // Match approval lock order. Serialize retries, settlement and configuration changes.
             await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_periods, public.payrolls IN SHARE ROW EXCLUSIVE MODE", ct);
-            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.timesheets, public.shift_assignments, public.work_shifts, public.attendances, public.attendance_penalty_records, public.staff_salary_history, public.employment_contracts, public.employee_rewards_penalties, public.public_holiday_configs, public.holiday_pay_rules, public.payroll_carry_forward_deductions IN SHARE MODE", ct);
+            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_feedback_requests, public.payroll_correction_requests, public.payslips, public.payroll_carry_forward_deductions, public.payroll_carry_forward_applications IN SHARE ROW EXCLUSIVE MODE", ct);
+            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.timesheets, public.shift_assignments, public.work_shifts, public.attendances, public.attendance_penalty_records, public.staff_salary_history, public.employment_contracts, public.employee_rewards_penalties, public.public_holiday_configs, public.holiday_pay_rules IN SHARE MODE", ct);
             return tx;
         }
         catch { await tx.DisposeAsync(); throw; }

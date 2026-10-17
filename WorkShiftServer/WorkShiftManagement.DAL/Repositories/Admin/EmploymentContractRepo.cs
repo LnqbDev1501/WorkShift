@@ -786,10 +786,13 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         }
         else
         {
+            // A proposal refers to this history as the immutable hourly-rate source.
+            // Never resync a changed contract rate into an existing salary record.
+            if (existingSalary.HourlyRate != existing.HourlyRate
+                || existingSalary.EffectiveFrom != existing.StartDate
+                || existingSalary.UserId != existing.UserId)
+                throw new InvalidOperationException("Lịch sử lương ban đầu đã tồn tại và không khớp hợp đồng. Không được ghi đè đơn giá/ngày bắt đầu; hãy xử lý bằng nghiệp vụ thay đổi lương hoặc hợp đồng.");
             existingSalary.Status = salaryStatus;
-            existingSalary.EffectiveFrom = existing.StartDate;
-            existingSalary.EffectiveTo = existing.EndDate;
-            existingSalary.HourlyRate = existing.HourlyRate;
         }
 
         _context.AuditLogs.Add(new AuditLog
