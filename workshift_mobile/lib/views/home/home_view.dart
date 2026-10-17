@@ -48,6 +48,7 @@ class _HomeViewState extends State<HomeView> {
   void initState() {
     super.initState();
     _controller.addListener(_onControllerUpdated);
+    _notificationController.addListener(_onNotificationUpdated);
     // Tải dữ liệu từ Backend .NET
     _controller.loadHomeData();
     _notificationController.loadUnreadCount();
@@ -77,7 +78,12 @@ class _HomeViewState extends State<HomeView> {
     _autoSyncTimer?.cancel();
     _realtimeSubscription?.cancel();
     _controller.removeListener(_onControllerUpdated);
+    _notificationController.removeListener(_onNotificationUpdated);
     super.dispose();
+  }
+
+  void _onNotificationUpdated() {
+    if (mounted) setState(() {});
   }
 
   void _onControllerUpdated() {
@@ -238,6 +244,16 @@ class _HomeViewState extends State<HomeView> {
     } finally {
       requestController.dispose();
     }
+  }
+
+  Widget _buildNotificationIcon(IconData icon) {
+    final unreadCount = _notificationController.unreadCount;
+    if (unreadCount <= 0) return Icon(icon);
+    return Badge(
+      label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+      backgroundColor: AppColors.error,
+      child: Icon(icon),
+    );
   }
 
   Widget _buildPlaceholderTab(String title, IconData icon) {
@@ -428,34 +444,35 @@ class _HomeViewState extends State<HomeView> {
             _currentTabIndex = index;
           });
           if (returningFromSchedule) _controller.loadHomeData(silent: true);
+          _notificationController.loadUnreadCount();
         },
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_filled),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             activeIcon: Icon(Icons.assignment),
             label: 'Timesheet',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_month),
             label: 'Schedule',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.description_outlined),
             activeIcon: Icon(Icons.description),
             label: 'Requests',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            activeIcon: Icon(Icons.notifications),
+            icon: _buildNotificationIcon(Icons.notifications_outlined),
+            activeIcon: _buildNotificationIcon(Icons.notifications),
             label: 'Notification',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',
