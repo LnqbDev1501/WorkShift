@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/home_controller.dart';
 import '../../controllers/notification_controller.dart';
@@ -5,6 +6,7 @@ import '../../controllers/staff_request_controller.dart';
 import '../requests/staff_request_detail_view.dart';
 import '../../models/staff_request_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_view.dart';
 import 'components/documents_section.dart';
@@ -39,6 +41,8 @@ class _HomeViewState extends State<HomeView> {
   final NotificationController _notificationController = NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
 
   @override
   void initState() {
@@ -47,10 +51,31 @@ class _HomeViewState extends State<HomeView> {
     // Tải dữ liệu từ Backend .NET
     _controller.loadHomeData();
     _notificationController.loadUnreadCount();
+
+    // 1. Kết nối SignalR Realtime Hub
+    RealtimeService.instance.connect();
+
+    // 2. Lắng nghe thông báo Realtime từ Backend (khi manager duyệt đơn nghỉ, mở ca, v.v.)
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((payload) {
+      if (mounted) {
+        _notificationController.loadUnreadCount(silent: true);
+        _controller.loadHomeData(silent: true);
+      }
+    });
+
+    // 3. Tự động sync ngầm định kỳ (mỗi 8s) để dữ liệu luôn mới nhất mà không cần tải lại trang
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted && !_controller.isLoading) {
+        _notificationController.loadUnreadCount(silent: true);
+        _controller.loadHomeData(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     _controller.removeListener(_onControllerUpdated);
     super.dispose();
   }
@@ -186,6 +211,7 @@ class _HomeViewState extends State<HomeView> {
     );
 
     if (confirm == true && mounted) {
+      await RealtimeService.instance.disconnect();
       await _authService.logout();
       if (mounted) {
         Navigator.pushAndRemoveUntil(

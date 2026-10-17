@@ -309,6 +309,11 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: true, request.ReviewNote);
 
+        if (updated.RequestType == "LEAVE")
+        {
+            await BroadcastOpenShiftNotificationAsync(managerId, updated, cancellationToken);
+        }
+
         return MapToDetailResponse(updated);
     }
 
@@ -559,6 +564,92 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             {
                 return TimeZoneInfo.CreateCustomTimeZone("ICT", TimeSpan.FromHours(7), "Indochina Time", "Indochina Time");
             }
+        }
+    }
+
+    private async Task BroadcastOpenShiftNotificationAsync(
+        Guid managerId,
+        EmployeeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (_notificationRepo == null) return;
+        if (request.RequestType != "LEAVE") return;
+        if (request.LeaveRequestAssignments == null || request.LeaveRequestAssignments.Count == 0) return;
+
+        var employeeTypeId = request.User?.EmployeeTypeId;
+        if (!employeeTypeId.HasValue) return;
+
+        try
+        {
+            // Lấy danh sách nhân viên cùng chi nhánh, cùng vị trí (loại trừ người xin nghỉ)
+            var eligibleStaffIds = await _repo.GetEligibleStaffUserIdsAsync(
+                request.BranchId,
+                employeeTypeId.Value,
+                request.UserId,
+                cancellationToken);
+
+            if (eligibleStaffIds.Count == 0) return;
+
+            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "nhân viên";
+            var now = DateTime.UtcNow;
+
+            // Mỗi ca được giải phóng slot trong đơn nghỉ sẽ tạo 1 thông báo Open Shift
+            foreach (var lra in request.LeaveRequestAssignments)
+            {
+                var shift = lra.Assignment?.Shift;
+                if (shift == null || shift.ScheduledStartAt <= now) continue;
+
+                var startVn = shift.ScheduledStartAt.AddHours(7);
+                var endVn = shift.ScheduledEndAt.AddHours(7);
+                var shiftName = shift.ShiftNameSnapshot;
+
+                var title = "📢 Ca làm việc cần người làm thay";
+                var content = $"Ca {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) ngày {startVn:dd/MM/yyyy} đang cần 1 {employeeTypeName} làm thay. Nhấn để xem và nhận ca!";
+
+                var notification = new NotificationEntity
+                {
+                    Title = title,
+                    Content = content,
+                    NotificationType = "OpenShift",
+                    CreatedBy = managerId,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false,
+                    TargetType = "Custom",
+                    TargetBranchId = request.BranchId,
+                    TargetRoles = new List<string> { "STAFF" },
+                    Channels = new List<string> { "InApp" }
+                };
+
+                await _notificationRepo.CreateAsync(notification, eligibleStaffIds, true);
+
+                if (_realtimePublisher != null)
+                {
+                    var realtime = new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    };
+
+                    foreach (var staffId in eligibleStaffIds)
+                    {
+                        try
+                        {
+                            await _realtimePublisher.PublishAsync(staffId, realtime);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex, "Failed to publish realtime open shift notification to staff {UserId}", staffId);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to broadcast open shift notification for leave request #{RequestId}", request.RequestId);
         }
     }
 }

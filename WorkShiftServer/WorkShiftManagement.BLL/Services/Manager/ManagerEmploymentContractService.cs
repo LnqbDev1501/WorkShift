@@ -234,8 +234,22 @@ public class ManagerEmploymentContractService(
                 .ToList();
         }
 
+        var regionalMinWage = manager.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
         var staff = await repository.GetStaffWithoutContractAsync(manager.BranchId!.Value, cancellationToken);
-        return staff.Select(u => new ContractStaffOptionResponse(u.UserId, u.FullName)).ToList();
+        return staff.Select(u => new ContractStaffOptionResponse(
+            u.UserId,
+            u.FullName,
+            CurrentHourlyRate: regionalMinWage
+        )).ToList();
+    }
+
+    public async Task<decimal> GetBranchMinimumWageAsync(Guid managerId, CancellationToken cancellationToken = default)
+    {
+        var manager = await RequireManagerAsync(managerId, cancellationToken);
+        var wage = manager.Branch?.Region?.RegionalMinimumWage;
+        return wage != null && wage.Status == "ACTIVE" && wage.MinimumHourlyRate > 0
+            ? wage.MinimumHourlyRate
+            : 0m;
     }
 
     public async Task<PagedResponse<ManagerEmploymentContractListItemResponse>> GetPagedAsync(Guid managerId,

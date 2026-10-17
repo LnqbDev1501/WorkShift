@@ -40,6 +40,7 @@ dependencies:
   geolocator: ^14.1.1
   camera: ^0.12.1
   google_mlkit_face_detection: ^0.15.1
+  signalr_netcore: ^1.4.4
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,7 @@ flutter:
     - assets/sample_face.jpg
     - assets/images/LoginPage.jpg
     - assets/images/ForgotPassword.jpg
+    - assets/images/workshift_stamp.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

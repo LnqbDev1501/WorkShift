@@ -51,9 +51,12 @@ class AvailableShiftCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              isOpen
-                  ? StatusBadge.success(text: 'Open')
-                  : StatusBadge.neutral(text: 'Closed'),
+              if (shift.isOpenShift && isOpen)
+                StatusBadge.warning(text: 'Cần người thay')
+              else if (isOpen)
+                StatusBadge.success(text: 'Open')
+              else
+                StatusBadge.neutral(text: 'Closed'),
             ],
           ),
           const SizedBox(height: 8),
@@ -187,20 +190,22 @@ class AvailableShiftCard extends StatelessWidget {
               Icon(
                 Icons.schedule_rounded,
                 size: 15,
-                color: isClosingSoon
+                color: isClosingSoon || shift.isOpenShift
                     ? AppColors.warning
                     : AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
+                  shift.isOpenShift
+                      ? 'Ca mở cần người làm thay · Nhận trước ${ShiftDisplayFormat.deadline(shift.scheduledStartAt)}'
+                      : '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: isClosingSoon
+                    fontWeight: isClosingSoon || shift.isOpenShift
                         ? FontWeight.w600
                         : FontWeight.normal,
-                    color: isClosingSoon
+                    color: isClosingSoon || shift.isOpenShift
                         ? AppColors.warning
                         : AppColors.textSecondary,
                   ),
@@ -212,7 +217,9 @@ class AvailableShiftCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final register = AppButton(
-                text: isOpen ? 'Register for shift' : 'Registration closed',
+                text: isOpen
+                    ? (shift.isOpenShift ? 'Nhận ca (Pick up)' : 'Register for shift')
+                    : 'Registration closed',
                 height: 46,
                 borderRadius: 10,
                 width: double.infinity,

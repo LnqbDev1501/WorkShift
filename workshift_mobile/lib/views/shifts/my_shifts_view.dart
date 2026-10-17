@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/my_shifts_controller.dart';
 import '../../models/available_shift_model.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_state_panel.dart';
@@ -73,12 +75,29 @@ class _MyShiftsViewState extends State<MyShiftsView>
     await _controller.selectDateRange(range.start, range.end);
   }
 
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
+
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? MyShiftsController();
     WidgetsBinding.instance.addObserver(this);
     _controller.showWeek(_controller.today);
+
+    // 1. Tự động cập nhật lịch khi có thông báo Realtime từ Backend SignalR
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted) {
+        _controller.refresh();
+      }
+    });
+
+    // 2. Tự động sync ngầm định kỳ (mỗi 6s) để luôn cập nhật ca mới
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && !_controller.isLoading) {
+        _controller.refresh();
+      }
+    });
   }
 
   @override
@@ -88,6 +107,8 @@ class _MyShiftsViewState extends State<MyShiftsView>
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     if (widget.controller == null) _controller.dispose();
