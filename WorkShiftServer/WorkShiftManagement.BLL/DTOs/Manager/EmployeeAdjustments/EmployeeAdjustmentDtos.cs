@@ -24,8 +24,7 @@ public sealed class SaveEmployeeAdjustmentRequest
 public sealed class ReviewEmployeeAdjustmentRequest
 {
     [StringLength(1000)] public string? ReviewNote { get; set; }
-}
-public sealed class EmployeeAdjustmentResponse
+}public sealed class EmployeeAdjustmentResponse
 {
     public int RewardPenaltyId { get; set; }
     public string AdjustmentType { get; set; } = "";
@@ -57,4 +56,13 @@ public sealed class EmployeeAdjustmentResponse
     public bool CanDelete { get; set; }
     public bool CanApprove { get; set; }
     public bool CanReject { get; set; }
+}
+public sealed class PayrollPeriodOptionResponse
+{
+    public int PayrollPeriodId { get; set; }
+    public string PeriodCode { get; set; } = "";
+    public string PeriodName { get; set; } = "";
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    public string Status { get; set; } = "";
 }

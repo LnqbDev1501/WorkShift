@@ -21,7 +21,11 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         return actor;
     }
     private static int? Scope(User actor) => actor.Role.RoleName == "ADMIN" ? null : actor.BranchId;
-    private static bool MutablePeriod(PayrollPeriod p) => p.Status is "DRAFT" or "OPEN" or "CALCULATED" or "SUBMITTED" or "REVISION_REQUIRED" or "APPROVED";
+    // Rewards/penalties only feed the payroll that has not been calculated yet. Once the accountant
+    // calculates the period, adjusting a reward/penalty would invalidate the computed payroll, so the
+    // whole lifecycle (create/update/delete plus approve/reject) is limited to DRAFT and OPEN periods.
+    private static readonly string[] MutablePeriodStatuses = ["DRAFT", "OPEN"];
+    private static bool MutablePeriod(PayrollPeriod p) => MutablePeriodStatuses.Contains(p.Status);
     private static void CheckPeriod(PayrollPeriod p)
     { if (!MutablePeriod(p)) throw new InvalidOperationException("Kỳ đã quyết toán/đóng hoặc không hợp lệ; chỉ được xem thưởng/phạt."); }
     private async Task<EmployeeRewardsPenalty> Item(int id, string type, User actor, bool tracking, CancellationToken ct)
@@ -132,6 +136,16 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         await Pending(item, ct); var old = Snapshot(item);
         item.IsDeleted = true; item.DeletedBy = id; item.DeletedAt = DateTime.UtcNow; item.DeletionReason = "Manager xóa khoản đang chờ duyệt.";
         repo.Audit(id, "DELETE_EMPLOYEE_" + type, item, old); await repo.SaveAsync(ct); await tx.CommitAsync(ct);
+    }
+    public async Task<List<PayrollPeriodOptionResponse>> PeriodsAsync(Guid id, CancellationToken ct)
+    {
+        var actor = await Actor(id, "MANAGER", ct);
+        var periods = await repo.PeriodsAsync(actor.BranchId!.Value, MutablePeriodStatuses, ct);
+        return periods.Select(p => new PayrollPeriodOptionResponse
+        {
+            PayrollPeriodId = p.PayrollPeriodId, PeriodCode = p.PeriodCode, PeriodName = p.PeriodName,
+            StartDate = p.StartDate, EndDate = p.EndDate, Status = p.Status
+        }).ToList();
     }
     public async Task<EmployeeAdjustmentResponse> ReviewAsync(Guid id, string type, int itemId, bool approve, ReviewEmployeeAdjustmentRequest r, CancellationToken ct)
     {
