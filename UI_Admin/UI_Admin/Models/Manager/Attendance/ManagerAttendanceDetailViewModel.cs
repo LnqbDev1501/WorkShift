@@ -56,6 +56,18 @@ public sealed class ManagerAttendanceDetailViewModel
     public AttendanceRequestSummaryViewModel? LeaveRequest { get; set; }
 
     public string? ErrorMessage { get; set; }
+
+    public System.Collections.Generic.List<ManagerAttendancePenaltyItemViewModel> Penalties { get; set; } = new();
+}
+
+public sealed class ManagerAttendancePenaltyItemViewModel
+{
+    public int AttendancePenaltyId { get; set; }
+    public string ViolationType { get; set; } = string.Empty;
+    public int ViolationMinutes { get; set; }
+    public decimal PenaltyAmount { get; set; }
+    public string Status { get; set; } = "APPLIED";
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class AttendanceRequestSummaryViewModel

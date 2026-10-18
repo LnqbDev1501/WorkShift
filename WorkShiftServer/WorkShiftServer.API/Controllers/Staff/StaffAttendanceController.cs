@@ -128,6 +128,48 @@ public sealed class StaffAttendanceController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieves full detailed attendance record for a specific assignment for authenticated staff.
+    /// </summary>
+    [HttpGet("history/{assignmentId:int}")]
+    [ProducesResponseType(typeof(StaffAttendanceDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<StaffAttendanceDetailResponse>> GetAttendanceDetail(
+        int assignmentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        try
+        {
+            var result = await _attendanceService.GetStaffAttendanceDetailAsync(userId, assignmentId, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = $"Attendance record for assignment ID {assignmentId} not found." });
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving attendance detail for staff {UserId}, assignment {AssignmentId}", userId, assignmentId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve attendance details.",
+                error = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
     /// Creates an active liveness challenge session for check-in (TTL: 90 seconds).
     /// </summary>
     [HttpPost("check-in/session")]

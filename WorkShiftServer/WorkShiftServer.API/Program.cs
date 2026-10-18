@@ -128,11 +128,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = 10,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
-    Timeout = 15,
+    Timeout = 30,
     CommandTimeout = 30
 };
 var hangfireConnection = hangfireConnBuilder.ToString();

@@ -28,7 +28,7 @@ public interface IManagerTimesheetRepo
         Guid managerId,
         CancellationToken cancellationToken = default);
 
-    Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)> LockWeeklyTimesheetAsync(
+    Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, List<Guid> AccountantUserIds, int NotificationId, int AccountantNotificationId, string NotificationContent, string AccountantNotificationContent)> LockWeeklyTimesheetAsync(
         int scheduleWeekId,
         int branchId,
         Guid managerId,
@@ -63,4 +63,10 @@ public interface IManagerTimesheetRepo
         CancellationToken cancellationToken = default);
 
     Task<List<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)>> AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default);
+
+    Task<(Timesheet Timesheet, int ScheduleWeekId, Guid StaffUserId, int NotificationId, string NotificationContent)> ReopenStaffTimesheetAsync(
+        int timesheetId,
+        int branchId,
+        Guid managerId,
+        CancellationToken cancellationToken = default);
 }

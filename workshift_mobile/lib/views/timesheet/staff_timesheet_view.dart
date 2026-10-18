@@ -3,6 +3,7 @@ import '../../controllers/staff_timesheet_controller.dart';
 import '../../models/staff_timesheet_model.dart';
 import '../../theme/app_colors.dart';
 import 'components/timesheet_adjustment_sheet.dart';
+import 'components/week_selection_bottom_sheet.dart';
 
 class StaffTimesheetView extends StatefulWidget {
   const StaffTimesheetView({super.key});
@@ -94,89 +95,20 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     }
   }
 
-  void _showWeekSelectionModal() {
+  Future<void> _showWeekSelectionModal() async {
     final weeks = _controller.availableWeeks;
     if (weeks.isEmpty) return;
 
-    showModalBottomSheet(
+    final selectedWeekId = await WeekSelectionBottomSheet.show(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Schedule Week',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => Navigator.pop(ctx),
-                      color: AppColors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: AppColors.border),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: weeks.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.borderLight),
-                  itemBuilder: (_, index) {
-                    final item = weeks[index];
-                    final isSelected = item.scheduleWeekId == _controller.selectedWeekId;
-
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      title: Text(
-                        'Week ${item.period}',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${item.weekStartDate} – ${item.weekEndDate}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _buildStatusPill(item.status),
-                          const SizedBox(width: 8),
-                          if (isSelected)
-                            const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 20),
-                        ],
-                      ),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _clearSelection();
-                        _controller.selectWeek(item.scheduleWeekId);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      weeks: weeks,
+      selectedWeekId: _controller.selectedWeekId,
     );
+
+    if (selectedWeekId != null && selectedWeekId != _controller.selectedWeekId) {
+      _clearSelection();
+      await _controller.selectWeek(selectedWeekId);
+    }
   }
 
   Future<void> _handleConfirmTimesheet() async {
@@ -567,15 +499,15 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
     final (bg, border, iconColor, icon, badgeLabel, badgeBg, badgeText, title, message) = isLocked
         ? (
-            const Color(0xFFF0F9FF),
-            const Color(0xFFBAE6FD),
-            const Color(0xFF0284C7),
-            Icons.lock_outline_rounded,
-            'FINALIZED',
-            const Color(0xFFE0F2FE),
-            const Color(0xFF0369A1),
-            'Timesheet Locked',
-            'All shift records for this period are finalized for payroll processing. No more adjustments allowed.',
+            const Color(0xFFF0FDF4),
+            const Color(0xFFBBF7D0),
+            const Color(0xFF16A34A),
+            Icons.verified_rounded,
+            'REVIEWED',
+            const Color(0xFFDCFCE7),
+            const Color(0xFF15803D),
+            'Timesheet Reviewed',
+            'All shift records for this period have been reviewed and finalized by the manager for payroll calculation.',
           )
         : isPast
             ? (
@@ -587,7 +519,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 const Color(0xFFFEE2E2),
                 const Color(0xFFB91C1C),
                 'Review Deadline Expired',
-                'The review deadline ($deadlineText) has passed. Pending automatic finalization by the system.',
+                'The review deadline ($deadlineText) has passed. Confirmation is closed, pending manager review.',
               )
             : (
                 const Color(0xFFEFF6FF),
@@ -598,7 +530,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 const Color(0xFFDBEAFE),
                 const Color(0xFF1D4ED8),
                 'Review & Adjustment Deadline',
-                'Please verify your shift hours before $deadlineText (end of day). Shifts will be locked automatically once expired.',
+                'Please verify your shift hours before $deadlineText. Confirmation window will close automatically once expired, pending manager review.',
               );
 
     return Container(
@@ -763,7 +695,6 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
   }
 
   Widget _buildShiftCard(StaffShiftAttendanceModel shift) {
-    final status = shift.attendanceStatus.toUpperCase();
     final isSelected = _selectedAssignmentIds.contains(shift.assignmentId);
 
     return InkWell(
@@ -816,7 +747,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                   ),
                 ),
-                _buildAttendanceStatusPill(status),
+                _buildAttendanceStatusPill(shift),
               ],
             ),
             const SizedBox(height: 4),
@@ -854,12 +785,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
+                                color: shift.isLateExcused ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(6),
+                                border: shift.isLateExcused ? Border.all(color: const Color(0xFFBAE6FD)) : null,
                               ),
                               child: Text(
-                                'Late ${shift.lateDisplay}',
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                                shift.isLateExcused ? 'Late ${shift.lateDisplay} (Excused)' : 'Late ${shift.lateDisplay}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: shift.isLateExcused ? const Color(0xFF0284C7) : const Color(0xFFB45309),
+                                ),
                               ),
                             ),
                           ],
@@ -885,12 +821,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFEDD5),
+                                color: shift.isEarlyLeaveExcused ? const Color(0xFFE0F2FE) : const Color(0xFFFFEDD5),
                                 borderRadius: BorderRadius.circular(6),
+                                border: shift.isEarlyLeaveExcused ? Border.all(color: const Color(0xFFBAE6FD)) : null,
                               ),
                               child: Text(
-                                'Early ${shift.earlyLeaveDisplay}',
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFC2410C)),
+                                shift.isEarlyLeaveExcused ? 'Early ${shift.earlyLeaveDisplay} (Excused)' : 'Early ${shift.earlyLeaveDisplay}',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: shift.isEarlyLeaveExcused ? const Color(0xFF0284C7) : const Color(0xFFC2410C),
+                                ),
                               ),
                             ),
                           ],
@@ -901,6 +842,37 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 ),
               ],
             ),
+            if (shift.isLateExcused || shift.isEarlyLeaveExcused) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F9FF),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFBAE6FD)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF0284C7)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        shift.isLateExcused && shift.isEarlyLeaveExcused
+                            ? 'Late arrival & early leave excused by approved request (No penalty)'
+                            : shift.isLateExcused
+                                ? 'Late arrival excused by approved request (No penalty)'
+                                : 'Early leave excused by approved request (No penalty)',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0369A1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
 
             // Row 4: Compiled Work Time
@@ -925,6 +897,12 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 ],
               ),
             ),
+
+            // Penalties History (if any)
+            if (shift.penalties.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _buildPenaltySection(shift),
+            ],
 
             // Row 5: Adjustment Request Banner (if any)
             if (shift.hasAdjustmentRequest) ...[
@@ -1020,9 +998,15 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               ),
             ],
             const SizedBox(height: 4),
-            const Text(
-              'This shift cannot be adjusted again.',
-              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Color(0xFFDC2626)),
+            Text(
+              shift.canRequestAdjustment
+                  ? 'The rejected time is locked, but you can still request adjustment for the other time.'
+                  : 'All adjustments for this shift have been resolved.',
+              style: TextStyle(
+                fontSize: 10,
+                fontStyle: FontStyle.italic,
+                color: shift.canRequestAdjustment ? const Color(0xFFD97706) : const Color(0xFFDC2626),
+              ),
             ),
           ],
         ),
@@ -1037,24 +1021,127 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFBBF7D0)),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                shift.managerNote != null && shift.managerNote!.isNotEmpty
-                    ? 'Adjustment Approved: "${shift.managerNote}"'
-                    : 'Adjustment Approved by Manager',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
-              ),
+            Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    shift.managerNote != null && shift.managerNote!.isNotEmpty
+                        ? 'Adjustment Approved: "${shift.managerNote}"'
+                        : 'Adjustment Approved by Manager',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                  ),
+                ),
+              ],
             ),
+            if (shift.canRequestAdjustment) ...[
+              const SizedBox(height: 4),
+              const Text(
+                'You can still submit an adjustment for the other time if needed.',
+                style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Color(0xFF16A34A)),
+              ),
+            ],
           ],
         ),
       );
     }
 
     return const SizedBox.shrink();
+  }
+
+  Widget _buildPenaltySection(StaffShiftAttendanceModel shift) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.gavel_rounded, size: 14, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              const Text(
+                'Violation & Penalty History',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              if (shift.activePenalties.isNotEmpty)
+                Text(
+                  '-${shift.formattedTotalActivePenaltyAmount}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ...shift.penalties.map((p) {
+            final isApplied = p.isApplied;
+            return Container(
+              margin: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: isApplied ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: isApplied ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isApplied ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+                    size: 13,
+                    color: isApplied ? const Color(0xFFDC2626) : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${p.violationTypeDisplay} (${p.violationMinutes}m): -${p.formattedPenaltyAmount}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: isApplied ? const Color(0xFFB91C1C) : AppColors.textMuted,
+                        decoration: isApplied ? null : TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: isApplied ? const Color(0xFFFEE2E2) : const Color(0xFFE0F2FE),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      isApplied ? 'Applied' : 'Excused',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                        color: isApplied ? const Color(0xFF991B1B) : const Color(0xFF0284C7),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyShiftsCard() {
@@ -1087,13 +1174,16 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
   Widget _buildReviewStatusBadge(StaffWeeklyTimesheetModel timesheet) {
     if (timesheet.isLocked) {
-      return _buildBadge(label: 'LOCKED', bgColor: const Color(0xFFE0F2FE), textColor: const Color(0xFF0284C7));
+      return _buildBadge(label: 'REVIEWED', bgColor: const Color(0xFFE0F2FE), textColor: const Color(0xFF0284C7));
     }
-    if (timesheet.staffReviewStatus.toUpperCase() == 'CONFIRMED') {
+    if (timesheet.isConfirmed) {
       return _buildBadge(label: 'CONFIRMED', bgColor: const Color(0xFFD1FAE5), textColor: const Color(0xFF059669));
     }
-    if (timesheet.pendingAdjustmentCount > 0) {
-      return _buildBadge(label: 'ADJUSTMENT PENDING', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
+    if (timesheet.isAdjustmentPending || timesheet.pendingAdjustmentCount > 0) {
+      return _buildBadge(label: 'ADJUSTMENT PENDING', bgColor: const Color(0xFFEDE9FE), textColor: const Color(0xFF7C3AED));
+    }
+    if (timesheet.isNoResponse) {
+      return _buildBadge(label: 'NO RESPONSE', bgColor: const Color(0xFFF1F5F9), textColor: const Color(0xFF475569));
     }
     if (timesheet.status.toUpperCase() == 'GENERATED') {
       return _buildBadge(label: 'PENDING REVIEW', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
@@ -1101,25 +1191,35 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     return _buildBadge(label: 'NOT GENERATED', bgColor: const Color(0xFFF1F5F9), textColor: const Color(0xFF64748B));
   }
 
-  Widget _buildStatusPill(String status) {
-    final upper = status.toUpperCase();
-    if (upper == 'LOCKED') {
-      return _buildBadge(label: 'LOCKED', bgColor: const Color(0xFFE0F2FE), textColor: const Color(0xFF0284C7));
-    }
-    if (upper == 'GENERATED') {
-      return _buildBadge(label: 'GENERATED', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
-    }
-    return _buildBadge(label: 'NOT GENERATED', bgColor: const Color(0xFFF1F5F9), textColor: const Color(0xFF64748B));
-  }
+  Widget _buildAttendanceStatusPill(StaffShiftAttendanceModel shift) {
+    final status = shift.attendanceStatus.toUpperCase();
 
-  Widget _buildAttendanceStatusPill(String status) {
+    if (shift.isPresentExcused) {
+      return _buildExcusedPill('PRESENT (EXCUSED)');
+    }
+
+    if (status == 'LATE' && shift.isLateExcused) {
+      return _buildExcusedPill('LATE (EXCUSED)');
+    }
+
+    if ((status == 'EARLY_LEAVE' || status == 'EARLY') && shift.isEarlyLeaveExcused) {
+      return _buildExcusedPill('EARLY (EXCUSED)');
+    }
+
+    if (status == 'LATE_AND_EARLY_LEAVE') {
+      if (shift.isLateExcused && shift.isEarlyLeaveExcused) {
+        return _buildExcusedPill('LATE & EARLY (EXCUSED)');
+      } else if (shift.isLateExcused) {
+        return _buildPillWithIcon('LATE (EXCUSED) & EARLY', const Color(0xFFFFEDD5), const Color(0xFFC2410C), Icons.warning_rounded);
+      } else if (shift.isEarlyLeaveExcused) {
+        return _buildPillWithIcon('LATE & EARLY (EXCUSED)', const Color(0xFFFFEDD5), const Color(0xFFC2410C), Icons.warning_rounded);
+      }
+    }
+
     Color bg = const Color(0xFFF1F5F9);
     Color text = const Color(0xFF64748B);
 
-    if (status == 'COMPLETED') {
-      bg = const Color(0xFFD1FAE5);
-      text = const Color(0xFF059669);
-    } else if (status == 'PRESENT') {
+    if (status == 'COMPLETED' || status == 'PRESENT') {
       bg = const Color(0xFFDBEAFE);
       text = const Color(0xFF2563EB);
     } else if (status == 'ABSENT') {
@@ -1128,14 +1228,63 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     } else if (status == 'LATE') {
       bg = const Color(0xFFFEF3C7);
       text = const Color(0xFFD97706);
+    } else if (status == 'EARLY_LEAVE' || status == 'LATE_AND_EARLY_LEAVE') {
+      bg = const Color(0xFFFFEDD5);
+      text = const Color(0xFFC2410C);
+    } else if (status == 'LEAVE') {
+      bg = const Color(0xFFE0E7FF);
+      text = const Color(0xFF4338CA);
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
       child: Text(
-        status,
+        status == 'LATE_AND_EARLY_LEAVE' ? 'LATE & EARLY' : status,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: text),
+      ),
+    );
+  }
+
+  Widget _buildExcusedPill(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2FE),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFBAE6FD)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.verified_rounded, size: 12, color: Color(0xFF0284C7)),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPillWithIcon(String label, Color bg, Color text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: text),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: text),
+          ),
+        ],
       ),
     );
   }
@@ -1253,22 +1402,24 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       );
     }
 
-    if (timesheet.pendingAdjustmentCount > 0) {
+    if (timesheet.isAdjustmentPending || timesheet.pendingAdjustmentCount > 0) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(
-          color: Color(0xFFFFFBEB),
-          border: Border(top: BorderSide(color: Color(0xFFFDE68A))),
+          color: Color(0xFFF5F3FF),
+          border: Border(top: BorderSide(color: Color(0xFFDDD6FE))),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.hourglass_top_rounded, color: Color(0xFFD97706), size: 18),
+            const Icon(Icons.hourglass_top_rounded, color: Color(0xFF7C3AED), size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Waiting for manager to review ${timesheet.pendingAdjustmentCount} pending adjustment request(s).',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                timesheet.pendingAdjustmentCount > 0
+                    ? 'Waiting for manager to review ${timesheet.pendingAdjustmentCount} pending adjustment request(s).'
+                    : 'Adjustment request submitted. Awaiting manager review.',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF6D28D9)),
               ),
             ),
           ],
@@ -1276,7 +1427,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       );
     }
 
-    if (timesheet.staffReviewStatus.toUpperCase() == 'CONFIRMED') {
+    if (timesheet.isConfirmed) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: const BoxDecoration(
@@ -1291,6 +1442,27 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             Text(
               'You have confirmed this weekly timesheet.',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (timesheet.isNoResponse) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: Color(0xFFF8FAFC),
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timer_off_outlined, color: Color(0xFF64748B), size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Review deadline expired (No response).',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
             ),
           ],
         ),

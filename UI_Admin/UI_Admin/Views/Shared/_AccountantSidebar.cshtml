@@ -105,6 +105,7 @@
                            title="Notifications">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                            @await Component.InvokeAsync("NotificationBadge")
                         </a>
                     </nav>
 

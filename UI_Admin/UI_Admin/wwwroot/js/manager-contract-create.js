@@ -21,6 +21,8 @@
     const hourlyRateInput = document.getElementById('HourlyRate');
     const contractTermsInput = document.getElementById('ContractTerms');
     const wageSourceBadge = document.getElementById('wage-source-badge');
+    const hourlyRateGuidanceNote = document.getElementById('hourly-rate-guidance-note');
+    const regionalWageInput = document.getElementById('regional-minimum-wage-data');
 
     // Smart Guidance Elements
     const renewalGuidanceCard = document.getElementById('renewal-guidance-card');
@@ -39,6 +41,34 @@
     const startDateGuidanceNote = document.getElementById('start-date-guidance-note');
 
     const cache = {};
+
+    let regionalWage = 0;
+    if (regionalWageInput && regionalWageInput.value) {
+        regionalWage = parseFloat(regionalWageInput.value) || 0;
+    }
+
+    let isUserCustomRate = false;
+
+    async function ensureRegionalWage() {
+        if (regionalWage > 0) return regionalWage;
+        try {
+            const resp = await fetch('/ManagerContracts/BranchMinimumWage');
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.minimumWage) {
+                    regionalWage = parseFloat(data.minimumWage) || 0;
+                    if (regionalWageInput) regionalWageInput.value = regionalWage;
+                    const isRenewal = Boolean(radioRenewal?.checked);
+                    if (!isRenewal && (!hourlyRateInput.value || !isUserCustomRate)) {
+                        applyNewContractWage();
+                    }
+                }
+            }
+        } catch {
+            // ignore network errors
+        }
+        return regionalWage;
+    }
 
     const activeCardClasses = ['border-indigo-600', 'bg-gradient-to-br', 'from-indigo-50/70', 'via-white', 'to-indigo-50/20', 'shadow-md', 'shadow-indigo-100/50', 'ring-4', 'ring-indigo-600/10'];
     const inactiveCardClasses = ['border-slate-200', 'bg-white'];
@@ -116,11 +146,133 @@
             if (renewalGuidanceCard) {
                 renewalGuidanceCard.classList.add('hidden');
             }
-            if (wageSourceBadge) {
-                wageSourceBadge.textContent = 'Regional min wage';
-                wageSourceBadge.className = 'text-[11px] text-slate-400';
+        }
+    }
+
+    function applyNewContractWage() {
+        if (!hourlyRateInput) return;
+        if (!isUserCustomRate || !hourlyRateInput.value) {
+            if (regionalWage > 0) {
+                hourlyRateInput.value = regionalWage;
             }
         }
+        updateWageDisplayAndValidation();
+    }
+
+    function applyRenewalContractWage(opt) {
+        if (!hourlyRateInput) return;
+        if (opt && opt.dataset.hourlyRateRaw) {
+            if (!isUserCustomRate || !hourlyRateInput.value) {
+                hourlyRateInput.value = opt.dataset.hourlyRateRaw;
+            }
+        } else if (!opt || !opt.value) {
+            if (!isUserCustomRate) {
+                hourlyRateInput.value = '';
+            }
+        } else {
+            if (!isUserCustomRate || !hourlyRateInput.value) {
+                if (regionalWage > 0) {
+                    hourlyRateInput.value = regionalWage;
+                }
+            }
+        }
+        updateWageDisplayAndValidation();
+    }
+
+    function updateWageDisplayAndValidation() {
+        if (!hourlyRateInput) return;
+        const isRenewal = Boolean(radioRenewal?.checked);
+        const rate = parseFloat(hourlyRateInput.value);
+        const opt = staffSelect && staffSelect.selectedIndex >= 0 ? staffSelect.options[staffSelect.selectedIndex] : null;
+
+        if (isRenewal) {
+            const historyRate = opt && opt.dataset.hourlyRateRaw ? parseFloat(opt.dataset.hourlyRateRaw) : 0;
+            if (!opt || !opt.value) {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Salary history';
+                    wageSourceBadge.className = 'text-[11px] text-slate-400';
+                }
+                if (hourlyRateGuidanceNote) {
+                    hourlyRateGuidanceNote.textContent = 'Select a staff member to auto-load salary history.';
+                    hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                }
+            } else if (historyRate > 0 && rate === historyRate && !isUserCustomRate) {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Salary history';
+                    wageSourceBadge.className = 'text-[11px] text-emerald-600 font-medium';
+                }
+                if (hourlyRateGuidanceNote) {
+                    hourlyRateGuidanceNote.textContent = `Auto-filled from staff salary history (${Number(historyRate).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                }
+                hourlyRateInput.setCustomValidity('');
+            } else if (regionalWage > 0 && rate === regionalWage && historyRate === 0 && !isUserCustomRate) {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Regional min wage';
+                    wageSourceBadge.className = 'text-[11px] text-indigo-600 font-medium';
+                }
+                if (hourlyRateGuidanceNote) {
+                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                }
+                hourlyRateInput.setCustomValidity('');
+            } else {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Custom rate';
+                    wageSourceBadge.className = 'text-[11px] text-slate-600 font-medium';
+                }
+                if (regionalWage > 0 && rate < regionalWage) {
+                    if (hourlyRateGuidanceNote) {
+                        hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+                        hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
+                    }
+                    hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
+                } else {
+                    if (hourlyRateGuidanceNote) {
+                        hourlyRateGuidanceNote.textContent = 'Manually adjusted rate (must be at or above regional minimum wage).';
+                        hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                    }
+                    hourlyRateInput.setCustomValidity('');
+                }
+            }
+        } else {
+            if (regionalWage > 0 && rate === regionalWage && !isUserCustomRate) {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Regional min wage';
+                    wageSourceBadge.className = 'text-[11px] text-indigo-600 font-medium';
+                }
+                if (hourlyRateGuidanceNote) {
+                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                }
+                hourlyRateInput.setCustomValidity('');
+            } else {
+                if (wageSourceBadge) {
+                    wageSourceBadge.textContent = 'Custom rate';
+                    wageSourceBadge.className = 'text-[11px] text-slate-600 font-medium';
+                }
+                if (regionalWage > 0 && rate < regionalWage) {
+                    if (hourlyRateGuidanceNote) {
+                        hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+                        hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
+                    }
+                    hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
+                } else {
+                    if (hourlyRateGuidanceNote) {
+                        hourlyRateGuidanceNote.textContent = 'Manually adjusted rate (must be at or above regional minimum wage).';
+                        hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+                    }
+                    hourlyRateInput.setCustomValidity('');
+                }
+            }
+        }
+    }
+
+    if (hourlyRateInput) {
+        hourlyRateInput.addEventListener('input', () => {
+            isUserCustomRate = true;
+            updateWageDisplayAndValidation();
+        });
     }
 
     async function loadStaffOptions(mode) {
@@ -164,7 +316,7 @@
                 el.dataset.position = opt.currentPosition || '';
                 el.dataset.startDate = opt.currentStartDate || '';
                 el.dataset.endDate = opt.currentEndDate || '';
-                el.dataset.hourlyRate = opt.currentHourlyRate != null ? Number(opt.currentHourlyRate).toLocaleString('vi-VN') : '';
+                el.dataset.hourlyRate = opt.currentHourlyRate != null ? Number(opt.currentHourlyRate).toLocaleString('en-US') : '';
                 el.dataset.hourlyRateRaw = opt.currentHourlyRate != null ? opt.currentHourlyRate : '';
                 el.dataset.contractTerms = opt.currentContractTerms || '';
                 el.dataset.daysLeft = opt.daysUntilExpiration != null ? opt.daysUntilExpiration : '';
@@ -213,7 +365,7 @@
     function onStaffSelected() {
         if (!staffSelect) return;
         const opt = staffSelect.options[staffSelect.selectedIndex];
-        const isRenewal = radioRenewal && radioRenewal.checked;
+        const isRenewal = Boolean(radioRenewal && radioRenewal.checked);
 
         if (opt && opt.value) {
             if (isRenewal && replacesContractInput) {
@@ -222,15 +374,22 @@
                     position.value = opt.dataset.position;
                 }
                 updateGuidanceCard(opt);
+                applyRenewalContractWage(opt);
             } else {
                 if (replacesContractInput) replacesContractInput.value = '';
                 if (renewalGuidanceCard) renewalGuidanceCard.classList.add('hidden');
                 clearStartDateGuidance();
+                applyNewContractWage();
             }
         } else {
             if (replacesContractInput) replacesContractInput.value = '';
             if (renewalGuidanceCard) renewalGuidanceCard.classList.add('hidden');
             clearStartDateGuidance();
+            if (isRenewal) {
+                applyRenewalContractWage(null);
+            } else {
+                applyNewContractWage();
+            }
         }
     }
 
@@ -244,7 +403,7 @@
 
         const contractNum = opt.dataset.contractNumber || 'N/A';
         const pos = opt.dataset.position || 'N/A';
-        const wage = opt.dataset.hourlyRate ? `${opt.dataset.hourlyRate} ₫/h` : 'N/A';
+        const wage = opt.dataset.hourlyRate ? `${opt.dataset.hourlyRate} VND/h` : 'N/A';
         const startDate = opt.dataset.startDate || '';
         const endDate = opt.dataset.endDate || '';
         const daysLeft = opt.dataset.daysLeft !== '' ? Number.parseInt(opt.dataset.daysLeft, 10) : null;
@@ -267,15 +426,6 @@
             }
         }
         if (snapshotHourlyRate) snapshotHourlyRate.textContent = wage;
-
-        // Auto-fill Hourly Rate from salary history (history_salary)
-        if (hourlyRateInput && opt.dataset.hourlyRateRaw) {
-            hourlyRateInput.value = opt.dataset.hourlyRateRaw;
-            if (wageSourceBadge) {
-                wageSourceBadge.textContent = 'History salary';
-                wageSourceBadge.className = 'text-[11px] text-emerald-600 font-medium';
-            }
-        }
 
         // Auto-fill Contract Terms from previous contract
         if (contractTermsInput && opt.dataset.contractTerms) {
@@ -452,7 +602,9 @@
     if (radioNew) {
         radioNew.addEventListener('change', () => {
             if (radioNew.checked) {
+                isUserCustomRate = false;
                 updateModeStyles();
+                applyNewContractWage();
                 void loadStaffOptions('NEW');
             }
         });
@@ -461,7 +613,9 @@
     if (radioRenewal) {
         radioRenewal.addEventListener('change', () => {
             if (radioRenewal.checked) {
+                isUserCustomRate = false;
                 updateModeStyles();
+                applyRenewalContractWage(null);
                 void loadStaffOptions('RENEWAL');
             }
         });
@@ -479,6 +633,17 @@
         }
         if (position) {
             position.setCustomValidity(position.value.trim() ? '' : 'Please enter employee position.');
+        }
+
+        if (hourlyRateInput && regionalWage > 0) {
+            const rate = parseFloat(hourlyRateInput.value);
+            if (!rate || isNaN(rate)) {
+                hourlyRateInput.setCustomValidity('Please enter an hourly rate.');
+            } else if (rate < regionalWage) {
+                hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
+            } else {
+                hourlyRateInput.setCustomValidity('');
+            }
         }
     }
 
@@ -511,6 +676,8 @@
     });
 
     // Initialize on load
-    updateModeStyles();
-    onStaffSelected();
+    void ensureRegionalWage().then(() => {
+        updateModeStyles();
+        onStaffSelected();
+    });
 })();

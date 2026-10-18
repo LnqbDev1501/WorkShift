@@ -326,6 +326,7 @@
                            title="Notifications">
                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                            @await Component.InvokeAsync("NotificationBadge")
                         </a>
                     </nav>
 
@@ -416,36 +417,37 @@
                                title="Notifications">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
                                 <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
+                                @await Component.InvokeAsync("NotificationBadge")
                             </a>
                         </nav>
                     }
                     @if (User.IsInRole("MANAGER"))
                     {
-                        <nav class="space-y-unit-1" aria-label="Quản lý nhân sự">
-                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">NHÂN SỰ</span></div>
-                            <a asp-controller="ManagerContracts" asp-action="Index" title="Quản lý hợp đồng"
+                        <nav class="space-y-unit-1" aria-label="Personnel Management">
+                            <div class="sidebar-category-header px-unit-3 pb-unit-1"><span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">PERSONNEL</span></div>
+                            <a asp-controller="ManagerContracts" asp-action="Index" title="Employment Contracts"
                                aria-current="@(currentController == "ManagerContracts" && currentAction != "ChangeRequests" && currentAction != "ChangeRequestDetails" ? "page" : null)"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" && currentAction != "ChangeRequests" && currentAction != "ChangeRequestDetails" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">contract</span>
-                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý hợp đồng</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employment Contracts</span>
                             </a>
-                            <a asp-controller="ManagerContracts" asp-action="ChangeRequests" title="Yêu cầu thay đổi HĐ"
+                            <a asp-controller="ManagerContracts" asp-action="ChangeRequests" title="Contract Change Requests"
                                aria-current="@(currentController == "ManagerContracts" && (currentAction == "ChangeRequests" || currentAction == "ChangeRequestDetails") ? "page" : null)"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerContracts" && (currentAction == "ChangeRequests" || currentAction == "ChangeRequestDetails") ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
-                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Yêu cầu thay đổi HĐ</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Contract Change Requests</span>
                             </a>
-                            <a asp-controller="ManagerStaff" asp-action="Index" title="Quản lý nhân viên"
+                            <a asp-controller="ManagerStaff" asp-action="Index" title="Branch Staff"
                                aria-current="@(currentController == "ManagerStaff" ? "page" : null)"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerStaff" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">groups</span>
-                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Quản lý nhân viên</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branch Staff</span>
                             </a>
-                            <a asp-controller="ManagerEmployeeRequests" asp-action="Index" title="Đơn từ nhân viên"
+                            <a asp-controller="ManagerEmployeeRequests" asp-action="Index" title="Employee Requests"
                                aria-current="@(currentController == "ManagerEmployeeRequests" ? "page" : null)"
                                class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerEmployeeRequests" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150">
                                 <span class="material-symbols-outlined text-[20px] flex-shrink-0">pending_actions</span>
-                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Đơn từ nhân viên</span>
+                                <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Requests</span>
                             </a>
                         </nav>
                     }

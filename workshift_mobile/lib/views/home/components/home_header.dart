@@ -112,17 +112,34 @@ class HomeHeader extends StatelessWidget {
                     ),
                     if (unreadCount > 0)
                       Positioned(
-                        right: 6,
-                        top: 6,
+                        right: 2,
+                        top: 2,
                         child: Container(
-                          width: 8,
-                          height: 8,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.error,
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(9),
                             border: Border.all(
                               color: Colors.white,
                               width: 1.5,
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              unreadCount > 99 ? '99+' : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                height: 1,
+                              ),
                             ),
                           ),
                         ),

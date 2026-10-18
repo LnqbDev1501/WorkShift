@@ -56,6 +56,7 @@ class AttendanceController extends ChangeNotifier {
   bool isLocating = false;
   bool isTestGpsMode = false;
   String? locationMessage;
+  StreamSubscription<Position>? _positionStreamSubscription;
 
   // Biometrics & Live Challenge Tracking
   int currentChallengeIndex = 0;
@@ -97,8 +98,11 @@ class AttendanceController extends ChangeNotifier {
     return isCheckIn ? checkInSession?.sessionId : checkOutSession?.sessionId;
   }
 
+  double get effectiveAccuracy => math.min(currentAccuracy ?? 0.0, 50.0);
+  double get effectiveDistanceMeters => math.max(0.0, distanceMeters - effectiveAccuracy);
+
   bool get isWithinGeofence {
-    return distanceMeters <= shift.maxAttendanceDistanceMeters;
+    return effectiveDistanceMeters <= shift.maxAttendanceDistanceMeters;
   }
 
   /// Initialize attendance flow with Guard 3 (Fail-Fast)
@@ -347,8 +351,8 @@ class AttendanceController extends ChangeNotifier {
         break;
 
       case 'TURN_LEFT':
-        // Turning to user's LEFT (angle < -10)
-        if (eulerY < -10) {
+        // Turning to user's LEFT (eulerY > 10 on front camera)
+        if (eulerY > 10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the left';
@@ -356,8 +360,8 @@ class AttendanceController extends ChangeNotifier {
         break;
 
       case 'TURN_RIGHT':
-        // Turning to user's RIGHT (angle > 10)
-        if (eulerY > 10) {
+        // Turning to user's RIGHT (eulerY < -10 on front camera)
+        if (eulerY < -10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the right';
@@ -688,6 +692,9 @@ class AttendanceController extends ChangeNotifier {
       currentAccuracy = position.accuracy;
       _calculateDistance();
       locationMessage = 'Real GPS: ${distanceMeters.toStringAsFixed(1)}m away';
+
+      // 4. Start Live GPS Stream (auto-updates as staff moves)
+      _startPositionStream();
     } catch (e) {
       _useBranchFallback();
       locationMessage = 'Unable to read real GPS. Using fallback location';
@@ -697,7 +704,38 @@ class AttendanceController extends ChangeNotifier {
     }
   }
 
+  void _startPositionStream() {
+    _positionStreamSubscription?.cancel();
+    const locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1, // trigger update every 1 meter moved
+    );
+    _positionStreamSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
+    ).listen(
+      (Position position) {
+        if (isTestGpsMode) return;
+        currentLat = position.latitude;
+        currentLng = position.longitude;
+        currentAccuracy = position.accuracy;
+        _calculateDistance();
+        locationMessage =
+            'Real GPS: ${distanceMeters.toStringAsFixed(1)}m (±${currentAccuracy?.toStringAsFixed(1) ?? "0"}m)';
+        notifyListeners();
+      },
+      onError: (e) {
+        // Stream connection error handled gracefully
+      },
+    );
+  }
+
+  void _stopPositionStream() {
+    _positionStreamSubscription?.cancel();
+    _positionStreamSubscription = null;
+  }
+
   void _useBranchFallback() {
+    _stopPositionStream();
     currentLat = shift.branchLatitude ?? 10.8411;
     currentLng = shift.branchLongitude ?? 106.8099;
     currentAccuracy = 5.0;
@@ -708,6 +746,7 @@ class AttendanceController extends ChangeNotifier {
   void toggleTestGps() {
     isTestGpsMode = !isTestGpsMode;
     if (isTestGpsMode) {
+      _stopPositionStream();
       _useBranchFallback();
       locationMessage = 'Test GPS mode active (0m)';
     } else {
@@ -897,6 +936,7 @@ class AttendanceController extends ChangeNotifier {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _stopPositionStream();
     _stopStream();
     _faceDetector?.close();
     cameraController?.dispose();

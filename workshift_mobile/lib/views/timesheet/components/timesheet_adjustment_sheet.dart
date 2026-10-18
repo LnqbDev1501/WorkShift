@@ -73,18 +73,29 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
       final defaultIn = TimeOfDay(hour: scheduledStart.hour, minute: scheduledStart.minute);
       final defaultOut = TimeOfDay(hour: scheduledEnd.hour, minute: scheduledEnd.minute);
 
-      // Default checkbox heuristic:
-      // If check-in is missing or late, default adjustCheckIn = true
-      // If check-out is missing or early leave, default adjustCheckOut = true
-      final needCheckIn = s.checkInTime == null || s.totalLateMinutes > 0;
-      final needCheckOut = s.checkOutTime == null || s.totalEarlyLeaveMinutes > 0;
+      // Default checkbox heuristic considering granular locks:
+      bool initAdjustIn = false;
+      bool initAdjustOut = false;
+
+      if (s.isCheckInLocked && !s.isCheckOutLocked) {
+        initAdjustIn = false;
+        initAdjustOut = true;
+      } else if (!s.isCheckInLocked && s.isCheckOutLocked) {
+        initAdjustIn = true;
+        initAdjustOut = false;
+      } else if (!s.isCheckInLocked && !s.isCheckOutLocked) {
+        final needCheckIn = s.checkInTime == null || s.totalLateMinutes > 0;
+        final needCheckOut = s.checkOutTime == null || s.totalEarlyLeaveMinutes > 0;
+        initAdjustIn = needCheckIn || !needCheckOut;
+        initAdjustOut = needCheckOut;
+      }
 
       _configs.add(
         ShiftAdjustmentConfig(
           shift: s,
-          adjustCheckIn: needCheckIn || !needCheckOut,
+          adjustCheckIn: initAdjustIn,
           requestedCheckIn: defaultIn,
-          adjustCheckOut: needCheckOut,
+          adjustCheckOut: initAdjustOut,
           requestedCheckOut: defaultOut,
           reasonController: TextEditingController(),
         ),
@@ -166,6 +177,20 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
       if (!cfg.adjustCheckIn && !cfg.adjustCheckOut) {
         setState(() {
           _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Please select at least one time adjustment (Check-In or Check-Out).';
+        });
+        return;
+      }
+
+      if (cfg.adjustCheckIn && shift.isCheckInLocked) {
+        setState(() {
+          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-in adjustment is locked and cannot be resubmitted.';
+        });
+        return;
+      }
+
+      if (cfg.adjustCheckOut && shift.isCheckOutLocked) {
+        setState(() {
+          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-out adjustment is locked and cannot be resubmitted.';
         });
         return;
       }
@@ -497,19 +522,27 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
           Row(
             children: [
               Checkbox(
-                value: cfg.adjustCheckIn,
+                value: shift.isCheckInLocked ? false : cfg.adjustCheckIn,
                 activeColor: AppColors.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                onChanged: (val) {
-                  setState(() => cfg.adjustCheckIn = val ?? false);
-                },
+                onChanged: shift.isCheckInLocked
+                    ? null
+                    : (val) {
+                        setState(() => cfg.adjustCheckIn = val ?? false);
+                      },
               ),
-              const Text(
+              Text(
                 'Adjust Check-In:',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: shift.isCheckInLocked ? AppColors.textMuted : AppColors.textPrimary,
+                ),
               ),
               const Spacer(),
-              if (cfg.adjustCheckIn)
+              if (shift.isCheckInLocked)
+                _buildLockBadge(shift.checkInLockReason)
+              else if (cfg.adjustCheckIn)
                 InkWell(
                   onTap: () {
                     _pickTime(
@@ -548,7 +581,19 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
             ],
           ),
 
-          if (cfg.adjustCheckIn)
+          if (shift.isCheckInLocked)
+            Padding(
+              padding: const EdgeInsets.only(left: 48, bottom: 6),
+              child: Text(
+                shift.checkInLockReason == 'APPROVED'
+                    ? 'Check-in was already approved and cannot be adjusted again.'
+                    : (shift.checkInLockReason == 'REJECTED'
+                        ? 'Check-in was rejected by manager and cannot be adjusted again.'
+                        : 'Check-in adjustment request is currently pending manager review.'),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+              ),
+            )
+          else if (cfg.adjustCheckIn)
             Padding(
               padding: const EdgeInsets.only(left: 48, bottom: 6),
               child: Text(
@@ -561,19 +606,27 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
           Row(
             children: [
               Checkbox(
-                value: cfg.adjustCheckOut,
+                value: shift.isCheckOutLocked ? false : cfg.adjustCheckOut,
                 activeColor: AppColors.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                onChanged: (val) {
-                  setState(() => cfg.adjustCheckOut = val ?? false);
-                },
+                onChanged: shift.isCheckOutLocked
+                    ? null
+                    : (val) {
+                        setState(() => cfg.adjustCheckOut = val ?? false);
+                      },
               ),
-              const Text(
+              Text(
                 'Adjust Check-Out:',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: shift.isCheckOutLocked ? AppColors.textMuted : AppColors.textPrimary,
+                ),
               ),
               const Spacer(),
-              if (cfg.adjustCheckOut)
+              if (shift.isCheckOutLocked)
+                _buildLockBadge(shift.checkOutLockReason)
+              else if (cfg.adjustCheckOut)
                 InkWell(
                   onTap: () {
                     _pickTime(
@@ -612,7 +665,19 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
             ],
           ),
 
-          if (cfg.adjustCheckOut)
+          if (shift.isCheckOutLocked)
+            Padding(
+              padding: const EdgeInsets.only(left: 48, bottom: 6),
+              child: Text(
+                shift.checkOutLockReason == 'APPROVED'
+                    ? 'Check-out was already approved and cannot be adjusted again.'
+                    : (shift.checkOutLockReason == 'REJECTED'
+                        ? 'Check-out was rejected by manager and cannot be adjusted again.'
+                        : 'Check-out adjustment request is currently pending manager review.'),
+                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+              ),
+            )
+          else if (cfg.adjustCheckOut)
             Padding(
               padding: const EdgeInsets.only(left: 48, bottom: 6),
               child: Text(
@@ -647,6 +712,89 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
             ),
             maxLines: 2,
             style: const TextStyle(fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLockBadge(String? reason) {
+    if (reason == 'APPROVED') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFDCFCE7),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFF86EFAC)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF16A34A)),
+            SizedBox(width: 4),
+            Text(
+              'Approved (Locked)',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+            ),
+          ],
+        ),
+      );
+    } else if (reason == 'REJECTED') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEE2E2),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFFCA5A5)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.cancel_rounded, size: 12, color: Color(0xFFDC2626)),
+            SizedBox(width: 4),
+            Text(
+              'Rejected (Locked)',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+            ),
+          ],
+        ),
+      );
+    } else if (reason == 'PENDING') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF3C7),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: const Color(0xFFFDE68A)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFD97706)),
+            SizedBox(width: 4),
+            Text(
+              'Pending Review',
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+            ),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFFCBD5E1)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_outline_rounded, size: 12, color: Color(0xFF64748B)),
+          SizedBox(width: 4),
+          Text(
+            'Locked',
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
           ),
         ],
       ),

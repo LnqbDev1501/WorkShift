@@ -14,7 +14,7 @@ public sealed class StaffWeeklyTimesheetResponse
     public int BranchId { get; set; }
     public string BranchName { get; set; } = null!;
     public string Status { get; set; } = null!; // "GENERATED", "NOT GENERATED", "LOCKED"
-    public string StaffReviewStatus { get; set; } = null!; // "PENDING", "CONFIRMED", "-"
+    public string StaffReviewStatus { get; set; } = null!; // "PENDING", "CONFIRMED", "NO_RESPONSE", "ADJUSTMENT_PENDING", "-"
     public bool CanConfirm { get; set; }
     public bool IsLocked { get; set; }
     public DateTime? ReviewDeadline { get; set; }
@@ -55,9 +55,17 @@ public sealed class StaffShiftAttendanceDto
     public DateTime? CheckOutTime { get; set; }
     public int ActualWorkingMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
+    public int ExcusedLateMinutes { get; set; }
+    public int ChargeableLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
+    public int ExcusedEarlyLeaveMinutes { get; set; }
+    public int ChargeableEarlyLeaveMinutes { get; set; }
+    public bool HasApprovedLateArrival { get; set; }
+    public bool HasApprovedEarlyLeave { get; set; }
     public string AttendanceStatus { get; set; } = null!;
     public string AssignmentStatus { get; set; } = null!;
+    public bool IsExcusedLeave { get; set; }
+    public string? LeaveReason { get; set; }
 
     // Adjustment information
     public bool HasAdjustmentRequest { get; set; }
@@ -69,6 +77,12 @@ public sealed class StaffShiftAttendanceDto
     public string? ManagerNote { get; set; }
     public bool CanRequestAdjustment { get; set; }
 
+    // Granular Lock Status for Check-In and Check-Out
+    public bool IsCheckInLocked { get; set; }
+    public string? CheckInLockReason { get; set; } // "PENDING", "APPROVED", "REJECTED", null
+    public bool IsCheckOutLocked { get; set; }
+    public string? CheckOutLockReason { get; set; } // "PENDING", "APPROVED", "REJECTED", null
+
     public string DateDisplay => ScheduledStartAt.AddHours(7).ToString("ddd, dd/MM/yyyy");
     public string ScheduledRangeDisplay => $"{ScheduledStartAt.AddHours(7):HH:mm} – {ScheduledEndAt.AddHours(7):HH:mm}";
     public string CheckInDisplay => CheckInTime.HasValue ? CheckInTime.Value.AddHours(7).ToString("HH:mm") : "-";
@@ -76,6 +90,18 @@ public sealed class StaffShiftAttendanceDto
     public string WorkTimeDisplay => $"{ActualWorkingMinutes / 60}h {ActualWorkingMinutes % 60}m";
     public string LateDisplay => $"{TotalLateMinutes / 60}h {TotalLateMinutes % 60}m";
     public string EarlyLeaveDisplay => $"{TotalEarlyLeaveMinutes / 60}h {TotalEarlyLeaveMinutes % 60}m";
+
+    public List<StaffShiftAttendancePenaltyDto> Penalties { get; set; } = new();
+}
+
+public sealed class StaffShiftAttendancePenaltyDto
+{
+    public int AttendancePenaltyId { get; set; }
+    public string ViolationType { get; set; } = string.Empty;
+    public int ViolationMinutes { get; set; }
+    public decimal PenaltyAmount { get; set; }
+    public string Status { get; set; } = "APPLIED";
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class StaffTimesheetWeekOptionDto

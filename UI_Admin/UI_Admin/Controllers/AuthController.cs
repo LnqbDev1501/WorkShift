@@ -225,6 +225,25 @@ namespace UI_Admin.Controllers
             return RedirectToAction(nameof(Profile));
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> ChangeEmail(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var profile = await _authService.GetMyProfileAsync(cancellationToken);
+                if (profile == null)
+                {
+                    return RedirectToAction(nameof(AccessDenied));
+                }
+                return View(profile);
+            }
+            catch (HttpRequestException)
+            {
+                return RedirectToAction(nameof(AccessDenied));
+            }
+        }
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -233,7 +252,7 @@ namespace UI_Admin.Controllers
             if (string.IsNullOrWhiteSpace(email))
             {
                 TempData["EmailChangeError"] = "Please enter a new email address.";
-                return RedirectToAction(nameof(Profile));
+                return RedirectToAction(nameof(ChangeEmail));
             }
 
             try
@@ -250,7 +269,7 @@ namespace UI_Admin.Controllers
                 TempData["EmailChangeError"] = "The authentication service is temporarily unavailable. Please try again.";
             }
 
-            return RedirectToAction(nameof(Profile));
+            return RedirectToAction(nameof(ChangeEmail));
         }
 
         [HttpGet]
@@ -298,6 +317,13 @@ namespace UI_Admin.Controllers
                 authResult.Properties ?? new AuthenticationProperties());
         }
 
+        [HttpGet]
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            return View(new ChangePasswordViewModel());
+        }
+
         [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
@@ -309,7 +335,7 @@ namespace UI_Admin.Controllers
                     .SelectMany(state => state.Errors)
                     .Select(error => error.ErrorMessage)
                     .FirstOrDefault() ?? "The new password is invalid.";
-                return RedirectToAction(nameof(Profile));
+                return RedirectToAction(nameof(ChangePassword));
             }
 
             try
@@ -326,7 +352,7 @@ namespace UI_Admin.Controllers
                 TempData["PasswordError"] = "The authentication service is temporarily unavailable. Please try again.";
             }
 
-            return RedirectToAction(nameof(Profile));
+            return RedirectToAction(nameof(ChangePassword));
         }
 
         [HttpGet]

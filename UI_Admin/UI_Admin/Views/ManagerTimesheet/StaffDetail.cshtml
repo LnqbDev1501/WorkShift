@@ -4,10 +4,38 @@
     ViewData["Title"] = $"{Model.Staff.FullName} - Week {Model.Period} Shifts";
     var staff = Model.Staff;
     var isConfirmed = string.Equals(staff.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+    var isNoResponse = string.Equals(staff.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
+    var isAdjustmentPending = string.Equals(staff.StaffReviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase);
     var isPending = string.Equals(staff.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
 }
 
 <div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@Model.SuccessMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@Model.ErrorMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
     <!-- Header Title & Breadcrumb -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -36,6 +64,20 @@
                         <span>CONFIRMED</span>
                     </span>
                 }
+                else if (isAdjustmentPending)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200" title="Staff submitted adjustment requests pending manager review">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        <span>DISPUTED</span>
+                    </span>
+                }
+                else if (isNoResponse)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Review deadline expired with no response">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                        <span>NO RESPONSE</span>
+                    </span>
+                }
                 else
                 {
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -50,6 +92,15 @@
         </div>
 
         <div class="flex items-center gap-3">
+            @if (staff.CanReopenReview && !string.Equals(Model.WeekStatus, "LOCKED", StringComparison.OrdinalIgnoreCase) && !string.Equals(Model.WeekStatus, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+            {
+                <button type="button" onclick="openReopenModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-all shadow-xs cursor-pointer"
+                        title="Mở lại hạn rà soát bảng công cho nhân viên này">
+                    <span class="material-symbols-outlined text-sm">replay</span>
+                    <span>Mở lại rà soát</span>
+                </button>
+            }
             <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId"
                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs">
                 <span class="material-symbols-outlined text-sm">arrow_back</span>
@@ -167,6 +218,48 @@
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
                                         <span class="text-xs text-slate-500 mt-0.5">@shift.ShiftName</span>
+                                        <div class="mt-1.5 flex flex-wrap gap-1">
+                                            @if (shift.HasApprovedLateArrival || (shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0))
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Late arrival approved (@shift.TotalLateMinutes mins, penalty waived)">
+                                                    <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                    <span>Late @(shift.TotalLateMinutes)m: Excused (Approved)</span>
+                                                </span>
+                                            }
+                                            @if (shift.HasApprovedEarlyLeave || (shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0))
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Early departure approved (@shift.TotalEarlyLeaveMinutes mins, penalty waived)">
+                                                    <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                    <span>Early @(shift.TotalEarlyLeaveMinutes)m: Excused (Approved)</span>
+                                                </span>
+                                            }
+                                            @if (shift.Penalties != null && shift.Penalties.Count > 0)
+                                            {
+                                                @foreach (var p in shift.Penalties)
+                                                {
+                                                    var isApplied = string.Equals(p.Status, "APPLIED", StringComparison.OrdinalIgnoreCase);
+                                                    var vType = p.ViolationType switch {
+                                                        "LATE" => "Late",
+                                                        "EARLY_LEAVE" => "Early",
+                                                        _ => p.ViolationType
+                                                    };
+                                                    if (isApplied)
+                                                    {
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @p.PenaltyAmount.ToString("N0") VND (@p.ViolationMinutes mins)">
+                                                            <span class="material-symbols-outlined text-[11px]">gavel</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0")đ</span>
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-400 border border-slate-200 line-through" title="Waived violation @vType (@p.ViolationMinutes mins)">
+                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0")đ</span>
+                                                            <span class="text-[9px] no-underline font-semibold text-slate-500">(Waived)</span>
+                                                        </span>
+                                                    }
+                                                }
+                                            }
+                                        </div>
                                     </div>
                                 </td>
 
@@ -192,16 +285,50 @@
 
                                 <!-- Late Time (Xh Ym) -->
                                 <td class="px-6 py-4 text-center">
-                                    <span class="@(shift.TotalLateMinutes > 0 ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" : "text-slate-400 font-medium")">
-                                        @shift.LateDisplay
-                                    </span>
+                                    @{
+                                        bool isLateExcused = shift.TotalLateMinutes > 0 && (shift.HasApprovedLateArrival || shift.ChargeableLateMinutes == 0);
+                                    }
+                                    @if (isLateExcused)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused late arrival: @shift.TotalLateMinutes mins (Penalty waived)">
+                                            <span class="material-symbols-outlined text-[11px]">verified</span>
+                                            <span>@shift.LateDisplay</span>
+                                        </span>
+                                    }
+                                    else if (shift.TotalLateMinutes > 0)
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            @shift.LateDisplay
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-400 font-medium">@shift.LateDisplay</span>
+                                    }
                                 </td>
 
                                 <!-- Early Leave (Xh Ym) -->
                                 <td class="px-6 py-4 text-center">
-                                    <span class="@(shift.TotalEarlyLeaveMinutes > 0 ? "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200" : "text-slate-400 font-medium")">
-                                        @shift.EarlyLeaveDisplay
-                                    </span>
+                                    @{
+                                        bool isEarlyExcused = shift.TotalEarlyLeaveMinutes > 0 && (shift.HasApprovedEarlyLeave || shift.ChargeableEarlyLeaveMinutes == 0);
+                                    }
+                                    @if (isEarlyExcused)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused early departure: @shift.TotalEarlyLeaveMinutes mins (Penalty waived)">
+                                            <span class="material-symbols-outlined text-[11px]">verified</span>
+                                            <span>@shift.EarlyLeaveDisplay</span>
+                                        </span>
+                                    }
+                                    else if (shift.TotalEarlyLeaveMinutes > 0)
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                            @shift.EarlyLeaveDisplay
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-400 font-medium">@shift.EarlyLeaveDisplay</span>
+                                    }
                                 </td>
 
                                 <!-- Status Badge -->
@@ -215,10 +342,89 @@
                                     }
                                     else if (status == "PRESENT")
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                            <span class="material-symbols-outlined text-xs">timer</span>
-                                            <span>PRESENT</span>
-                                        </span>
+                                        bool isExcusedPresent = shift.HasApprovedLateArrival || shift.HasApprovedEarlyLeave 
+                                            || (shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0)
+                                            || (shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0);
+
+                                        if (isExcusedPresent)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Valid attendance: Late/Early departure fully excused by approved request">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>PRESENT (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="material-symbols-outlined text-xs">timer</span>
+                                                <span>PRESENT</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "LATE")
+                                    {
+                                        if (isLateExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>LATE (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE ARRIVAL</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "EARLY_LEAVE")
+                                    {
+                                        if (isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">directions_walk</span>
+                                                <span>EARLY LEAVE</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "LATE_AND_EARLY_LEAVE")
+                                    {
+                                        if (isLateExcused && isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>LATE &amp; EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else if (isLateExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE (EXCUSED) &amp; EARLY</span>
+                                            </span>
+                                        }
+                                        else if (isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE &amp; EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE &amp; EARLY</span>
+                                            </span>
+                                        }
                                     }
                                     else if (status == "ABSENT")
                                     {
@@ -242,3 +448,85 @@
         </div>
     </div>
 </div>
+
+<!-- Form for Reopen Staff Review -->
+<form id="formReopenStaff" asp-action="ReopenStaff" asp-route-id="@Model.ScheduleWeekId" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="timesheetId" value="@staff.TimesheetId" />
+    <input type="hidden" name="userId" value="@staff.UserId" />
+    <input type="hidden" name="returnUrl" value="StaffDetail" />
+</form>
+
+<!-- Confirmation Modal: Reopen Staff Review -->
+<div id="modalReopenStaff" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-reopen-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeReopenModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">replay</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Mở Lại Hạn Rà Soát Bảng Công</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Reopen timesheet review deadline for staff</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Bạn có chắc chắn muốn mở lại quyền rà soát bảng công cho nhân viên <strong class="text-slate-900">@staff.FullName</strong> không?
+                </p>
+
+                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Thông tin hiệu lực</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>Trạng thái rà soát của nhân viên sẽ chuyển từ <strong>NO RESPONSE</strong> về <strong>PENDING</strong>.</li>
+                        <li>Thời hạn phản hồi sẽ được gia hạn đến <strong>23:59:59 hôm nay (giờ VN)</strong>.</li>
+                        <li>Hệ thống sẽ gửi thông báo và mở khoá cho nhân viên xác nhận hoặc gửi khiếu nại trên ứng dụng di động.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeReopenModal()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button type="button" id="btnConfirmReopen" onclick="confirmReopenModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmReopenText">Xác nhận mở lại</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openReopenModal() {
+            document.getElementById('modalReopenStaff').classList.remove('hidden');
+        }
+
+        function closeReopenModal() {
+            document.getElementById('modalReopenStaff').classList.add('hidden');
+        }
+
+        function confirmReopenModal() {
+            const btn = document.getElementById('btnConfirmReopen');
+            btn.disabled = true;
+            document.getElementById('btnConfirmReopenText').textContent = 'Đang xử lý...';
+            document.getElementById('formReopenStaff').submit();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const el = document.getElementById('modalReopenStaff');
+                if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
+            }
+        });
+    </script>
+}

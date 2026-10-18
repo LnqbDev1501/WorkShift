@@ -278,7 +278,8 @@ class FaceRegistrationController extends ChangeNotifier {
         break;
 
       case 'TURN_LEFT':
-        if (eulerY < -10) {
+        // Turning to user's LEFT (eulerY > 10 on front camera)
+        if (eulerY > 10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the left';
@@ -286,7 +287,8 @@ class FaceRegistrationController extends ChangeNotifier {
         break;
 
       case 'TURN_RIGHT':
-        if (eulerY > 10) {
+        // Turning to user's RIGHT (eulerY < -10 on front camera)
+        if (eulerY < -10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the right';

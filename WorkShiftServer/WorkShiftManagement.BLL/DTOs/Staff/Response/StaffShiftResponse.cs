@@ -16,6 +16,7 @@ public sealed class StaffShiftResponse
     public StaffShiftRegistrationResponse? MyRegistration { get; set; }
     public bool CanCancelRegistration { get; set; }
     public string? CancellationBlockedReason { get; set; }
+    public bool IsOpenShift { get; set; }
     public List<StaffShiftRequirementResponse> EmployeeRequirements { get; set; } = [];
 }
 

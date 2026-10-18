@@ -15,6 +15,7 @@ public sealed class ManagerWeeklyTimesheetSummaryResponse
     public string Status { get; set; } = null!;
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }
+    public int NoResponseStaff { get; set; }
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }
