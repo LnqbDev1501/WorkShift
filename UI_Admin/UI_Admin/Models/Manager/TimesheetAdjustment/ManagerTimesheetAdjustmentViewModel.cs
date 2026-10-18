@@ -44,6 +44,39 @@ public class ManagerTimesheetAdjustmentItemModel
     public string OriginalCheckOutDisplay { get; set; } = "--:--";
     public string RequestedCheckInDisplay { get; set; } = "--:--";
     public string RequestedCheckOutDisplay { get; set; } = "--:--";
+
+    public List<AttendanceAdjustmentAuditHistoryModel> AuditHistories { get; set; } = new();
+}
+
+public class AttendanceAdjustmentAuditHistoryModel
+{
+    public long AdjustmentHistoryId { get; set; }
+    public int AttendanceId { get; set; }
+    public Guid AdjustedBy { get; set; }
+    public string? AdjustedByName { get; set; }
+    public string AdjustmentSource { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+    public DateTime? OldCheckInTime { get; set; }
+    public DateTime? NewCheckInTime { get; set; }
+    public DateTime? OldCheckOutTime { get; set; }
+    public DateTime? NewCheckOutTime { get; set; }
+    public int? OldActualWorkingMinutes { get; set; }
+    public int? NewActualWorkingMinutes { get; set; }
+    public int? OldTotalLateMinutes { get; set; }
+    public int? NewTotalLateMinutes { get; set; }
+    public int? OldChargeableLateMinutes { get; set; }
+    public int? NewChargeableLateMinutes { get; set; }
+    public int? OldTotalEarlyLeaveMinutes { get; set; }
+    public int? NewTotalEarlyLeaveMinutes { get; set; }
+    public int? OldChargeableEarlyLeaveMinutes { get; set; }
+    public int? NewChargeableEarlyLeaveMinutes { get; set; }
+    public DateTime AdjustedAt { get; set; }
+
+    public string AdjustedAtDisplay { get; set; } = string.Empty;
+    public string OldCheckInDisplay { get; set; } = "--:--";
+    public string NewCheckInDisplay { get; set; } = "--:--";
+    public string OldCheckOutDisplay { get; set; } = "--:--";
+    public string NewCheckOutDisplay { get; set; } = "--:--";
 }
 
 public class ManagerTimesheetAdjustmentListViewModel

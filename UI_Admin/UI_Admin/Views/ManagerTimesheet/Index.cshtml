@@ -135,6 +135,7 @@
                     <option value="ALL" selected="@(string.Equals(Model.Status, "ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
                     <option value="NOT GENERATED" selected="@(string.Equals(Model.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase))">NOT GENERATED</option>
                     <option value="GENERATED" selected="@(string.Equals(Model.Status, "GENERATED", StringComparison.OrdinalIgnoreCase))">GENERATED</option>
+                    <option value="REVIEWED" selected="@(string.Equals(Model.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase))">REVIEWED</option>
                     <option value="LOCKED" selected="@(string.Equals(Model.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))">LOCKED</option>
                 </select>
             </div>
@@ -195,6 +196,7 @@
                     {
                         @foreach (var item in Model.Items)
                         {
+                            var isReviewed = string.Equals(item.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
                             var isLocked = string.Equals(item.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
                             var isGenerated = string.Equals(item.Status, "GENERATED", StringComparison.OrdinalIgnoreCase);
                             var isNotGenerated = string.Equals(item.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
@@ -228,7 +230,14 @@
 
                                 <!-- Status Badge -->
                                 <td class="px-6 py-4">
-                                    @if (isLocked)
+                                    @if (isReviewed)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            <span>REVIEWED</span>
+                                        </span>
+                                    }
+                                    else if (isLocked)
                                     {
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

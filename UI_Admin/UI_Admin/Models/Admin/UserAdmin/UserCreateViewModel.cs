@@ -21,7 +21,7 @@ public sealed class UserCreateViewModel
     public string Phone { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "National citizen ID is required.")]
-    [RegularExpression(@"^\d{9}$|^\d{12}$", ErrorMessage = "National Citizen ID must contain either 9 or 12 numeric digits.")]
+    [RegularExpression(@"^(001|002|004|006|008|010|011|012|014|015|017|019|020|022|024|025|026|027|030|031|033|034|035|036|037|038|040|042|044|045|046|048|049|051|052|054|056|058|060|062|064|066|067|068|070|072|074|075|077|079|080|082|083|084|086|087|089|091|092|093|094|095|096)\d{6}(\d{3})?$", ErrorMessage = "National Citizen ID is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.")]
     [Display(Name = "National Citizen ID (CCCD/CMND)")]
     public string IdentityNo { get; set; } = string.Empty;
 

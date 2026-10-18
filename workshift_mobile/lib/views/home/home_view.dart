@@ -38,7 +38,8 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
-  final NotificationController _notificationController = NotificationController();
+  final NotificationController _notificationController =
+      NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
   Timer? _autoSyncTimer;
@@ -57,7 +58,9 @@ class _HomeViewState extends State<HomeView> {
     RealtimeService.instance.connect();
 
     // 2. Lắng nghe thông báo Realtime từ Backend (khi manager duyệt đơn nghỉ, mở ca, v.v.)
-    _realtimeSubscription = RealtimeService.instance.onNotification.listen((payload) {
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((
+      payload,
+    ) {
       if (mounted) {
         _notificationController.loadUnreadCount(silent: true);
         _controller.loadHomeData(silent: true);
@@ -381,6 +384,10 @@ class _HomeViewState extends State<HomeView> {
                                 _controller.loadHomeData(),
                             onShiftsChanged: () =>
                                 _controller.loadHomeData(silent: true),
+                            onNavigateToTimesheet: () =>
+                                setState(() => _currentTabIndex = 1),
+                            onNavigateToSchedule: () =>
+                                setState(() => _currentTabIndex = 2),
                           ),
                           const SizedBox(height: 24),
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -419,10 +419,16 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("attendance_penalty_records");
 
-            entity.HasIndex(e => new { e.AttendanceId, e.ViolationType }, "uq_attendance_penalty_type").IsUnique();
+            entity.HasIndex(e => new { e.AttendanceId, e.ViolationType }, "uq_attendance_penalty_type_applied")
+                .HasFilter("\"status\" = 'APPLIED'")
+                .IsUnique();
 
             entity.Property(e => e.AttendancePenaltyId).HasColumnName("attendance_penalty_id");
             entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValue("APPLIED")
+                .HasColumnName("status");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -2852,9 +2858,6 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.LockedAt).HasColumnName("locked_at");
             entity.Property(e => e.LockedBy).HasColumnName("locked_by");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
-            entity.Property(e => e.ReviewNote)
-                .HasMaxLength(500)
-                .HasColumnName("review_note");
             entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
             entity.Property(e => e.ReviewedBy).HasColumnName("reviewed_by");
             entity.Property(e => e.StaffReviewNote)
@@ -2956,8 +2959,8 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.Attendance).WithOne(p => p.TimesheetAdjustmentRequest)
-                .HasForeignKey<TimesheetAdjustmentRequest>(d => d.AttendanceId)
+            entity.HasOne(d => d.Attendance).WithMany(p => p.TimesheetAdjustmentRequests)
+                .HasForeignKey(d => d.AttendanceId)
                 .HasConstraintName("fk_timesheet_adj_attendance");
 
             entity.HasOne(d => d.ReviewedByNavigation).WithMany(p => p.TimesheetAdjustmentRequestReviewedByNavigations)

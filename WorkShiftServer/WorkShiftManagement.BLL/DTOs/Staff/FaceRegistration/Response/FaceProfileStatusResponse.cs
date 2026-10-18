@@ -7,4 +7,7 @@ public class FaceProfileStatusResponse
     public string? Status { get; set; }
     public DateTime? RegisteredAt { get; set; }
     public string? RegistrationType { get; set; }
+    public bool CanRegisterOrUpdate { get; set; }
+    public DateTime? NextAllowedRegistrationDate { get; set; }
+    public string? Message { get; set; }
 }
