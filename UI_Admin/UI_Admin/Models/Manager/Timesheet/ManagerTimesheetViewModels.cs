@@ -15,6 +15,7 @@ public sealed class ManagerWeeklyTimesheetItemModel
     public string Status { get; set; } = null!;
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }
+    public int NoResponseStaff { get; set; }
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }
@@ -78,6 +79,9 @@ public sealed class ManagerStaffTimesheetItemViewModel
     public int TotalEarlyLeaveMinutes { get; set; }
     public string StaffReviewStatus { get; set; } = null!;
     public string Status { get; set; } = null!;
+    public bool CanReopenReview => TimesheetId.HasValue 
+        && string.Equals(Status, "GENERATED", StringComparison.OrdinalIgnoreCase) 
+        && string.Equals(StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
     public List<ManagerStaffShiftAttendanceViewModel> Shifts { get; set; } = new();
 
     public string TotalWorkTimeDisplay => $"{TotalWorkMinutes / 60}h {TotalWorkMinutes % 60}m";
@@ -96,7 +100,13 @@ public sealed class ManagerStaffShiftAttendanceViewModel
     public DateTime? CheckOutTime { get; set; }
     public int ActualWorkingMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
+    public int ExcusedLateMinutes { get; set; }
+    public int ChargeableLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
+    public int ExcusedEarlyLeaveMinutes { get; set; }
+    public int ChargeableEarlyLeaveMinutes { get; set; }
+    public bool HasApprovedLateArrival { get; set; }
+    public bool HasApprovedEarlyLeave { get; set; }
     public string AttendanceStatus { get; set; } = null!;
     public string AssignmentStatus { get; set; } = null!;
 
@@ -107,6 +117,7 @@ public sealed class ManagerStaffShiftAttendanceViewModel
     public string WorkTimeDisplay => $"{ActualWorkingMinutes / 60}h {ActualWorkingMinutes % 60}m";
     public string LateDisplay => $"{TotalLateMinutes / 60}h {TotalLateMinutes % 60}m";
     public string EarlyLeaveDisplay => $"{TotalEarlyLeaveMinutes / 60}h {TotalEarlyLeaveMinutes % 60}m";
+    public List<UI_Admin.Models.Manager.Attendance.ManagerAttendancePenaltyItemViewModel> Penalties { get; set; } = new();
 }
 
 public sealed class ManagerStaffTimesheetDetailViewModel
@@ -119,6 +130,8 @@ public sealed class ManagerStaffTimesheetDetailViewModel
     public string BranchName { get; set; } = null!;
     public string WeekStatus { get; set; } = null!;
     public ManagerStaffTimesheetItemViewModel Staff { get; set; } = null!;
+    public string? ErrorMessage { get; set; }
+    public string? SuccessMessage { get; set; }
 }
 
 public sealed class ManagerWeeklyTimesheetDetailViewModel
@@ -146,6 +159,7 @@ public sealed class ManagerWeeklyTimesheetDetailViewModel
 
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }
+    public int NoResponseStaff { get; set; }
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }

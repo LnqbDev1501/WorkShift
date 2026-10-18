@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -55,6 +56,11 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.Attendance)
+                        .ThenInclude(att => att!.AttendancePenaltyRecords)
+            .Include(w => w.WorkShifts)
+                .ThenInclude(s => s.ShiftAssignments)
+                    .ThenInclude(a => a.LeaveRequestAssignments)
+                        .ThenInclude(l => l.Request)
             .FirstOrDefaultAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId, cancellationToken);
     }
 
@@ -71,8 +77,26 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         if (week?.PayrollPeriod == null)
             return null;
 
-        return await _context.Timesheets
+        var timesheet = await _context.Timesheets
             .FirstOrDefaultAsync(t => t.PayrollPeriodId == week.PayrollPeriod.PayrollPeriodId && t.UserId == staffId, cancellationToken);
+
+        if (timesheet != null && string.Equals(timesheet.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            var firstGeneratedAt = timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt;
+            var vnOffset = TimeSpan.FromHours(7);
+            var generatedAtVn = firstGeneratedAt + vnOffset;
+            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+            var reviewDeadlineUtc = endOfDayVn - vnOffset;
+
+            if (DateTime.UtcNow >= reviewDeadlineUtc)
+            {
+                timesheet.StaffReviewStatus = "NO_RESPONSE";
+                timesheet.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        return timesheet;
     }
 
     public async Task<bool> ConfirmTimesheetAsync(
@@ -94,6 +118,12 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
 
         if (string.Equals(timesheet.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("This timesheet has already been confirmed.");
+
+        if (string.Equals(timesheet.StaffReviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cannot confirm: You have pending adjustment requests under review by your manager.");
+
+        if (string.Equals(timesheet.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cannot confirm: The review deadline has expired and this timesheet is marked as NO_RESPONSE.");
 
         var now = DateTime.UtcNow;
         timesheet.StaffReviewStatus = "CONFIRMED";
@@ -184,12 +214,17 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             throw new InvalidOperationException("You have already confirmed this timesheet. No adjustments can be submitted.");
         }
 
+        if (string.Equals(timesheet.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("The review deadline has expired (NO_RESPONSE). No adjustments can be submitted.");
+        }
+
         // Deadline check
         var firstGeneratedAt = timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt;
         var vnOffset = TimeSpan.FromHours(7);
         var generatedAtVn = firstGeneratedAt + vnOffset;
         var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-        var reviewDeadline = week.PayrollPeriod.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+        var reviewDeadline = endOfDayVn - vnOffset;
 
         if (DateTime.UtcNow >= reviewDeadline)
         {
@@ -222,13 +257,52 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         {
             var branch = await _context.Branches.FindAsync(new object[] { week.BranchId }, cancellationToken);
 
+            var activePenaltyRule = await _context.AttendancePenaltyRules
+                .Include(r => r.AttendancePenaltyLevels)
+                .Where(r => r.Status == "ACTIVE")
+                .OrderByDescending(r => r.EffectiveFrom)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            string initialRuleSnapshot = "{}";
+            if (activeRule != null)
+            {
+                var snapshotObj = new
+                {
+                    AttendanceRule = new
+                    {
+                        activeRule.AttendanceRuleId,
+                        activeRule.RuleName,
+                        activeRule.CheckInBeforeMinutes,
+                        activeRule.CheckInGraceMinutes,
+                        activeRule.CheckOutGraceMinutes,
+                        activeRule.CheckOutAfterMinutes,
+                        activeRule.MaxAttendanceDistanceMeters
+                    },
+                    AttendancePenaltyRule = activePenaltyRule != null ? new
+                    {
+                        activePenaltyRule.PenaltyRuleId,
+                        activePenaltyRule.RuleName,
+                        PenaltyLevels = activePenaltyRule.AttendancePenaltyLevels.Select(l => new
+                        {
+                            l.PenaltyLevelId,
+                            l.ViolationType,
+                            l.FromMinutes,
+                            l.ToMinutes,
+                            l.PenaltyAmount
+                        }).ToList()
+                    } : null,
+                    SnapshottedAt = now
+                };
+                initialRuleSnapshot = JsonSerializer.Serialize(snapshotObj);
+            }
+
             foreach (var a in assignmentsNeedingAttendance)
             {
                 var newAttendance = new Attendance
                 {
                     AssignmentId = a.AssignmentId,
                     AttendanceRuleId = activeRule?.AttendanceRuleId ?? 1,
-                    RuleSnapshotJson = "{}",
+                    RuleSnapshotJson = initialRuleSnapshot,
                     EmployeeFullNameSnapshot = staffUser?.FullName ?? "Staff",
                     ShiftStartAtSnapshot = a.Shift.ScheduledStartAt,
                     ShiftEndAtSnapshot = a.Shift.ScheduledEndAt,
@@ -240,6 +314,8 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                 _context.Attendances.Add(newAttendance);
                 a.Attendance = newAttendance;
             }
+
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         foreach (var item in items)
@@ -253,19 +329,41 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
             var shift = assignment.Shift;
             int attendanceId = assignment.Attendance!.AttendanceId;
 
-            // Check existing request status for this attendance (most recent request)
-            var existingRequest = existingRequests
+            // Retrieve all past and current requests for this attendance
+            var pastRequests = existingRequests
                 .Where(r => r.AttendanceId == attendanceId)
-                .OrderByDescending(r => r.CreatedAt)
-                .FirstOrDefault();
+                .ToList();
 
-            if (existingRequest != null)
+            // 1. Any pending request blocks this shift until manager finishes review
+            if (pastRequests.Any(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase)))
             {
-                var reqStatus = existingRequest.Status.ToUpperInvariant();
-                if (reqStatus == "PENDING")
-                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' already has a pending adjustment request awaiting manager review.");
-                if (reqStatus == "REJECTED")
-                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' adjustment request was rejected by manager and cannot be resubmitted.");
+                throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}' already has a pending adjustment request awaiting manager review.");
+            }
+
+            // 2. Granular lock: Check-In
+            var resolvedCheckInReq = pastRequests.FirstOrDefault(r => r.AdjustCheckIn &&
+                (string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(r.Status, "REJECTED", StringComparison.OrdinalIgnoreCase)));
+
+            if (item.AdjustCheckIn && resolvedCheckInReq != null)
+            {
+                if (string.Equals(resolvedCheckInReq.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}': Check-in adjustment has already been approved and cannot be modified again.");
+                else
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}': Check-in adjustment was rejected by manager and cannot be requested again.");
+            }
+
+            // 3. Granular lock: Check-Out
+            var resolvedCheckOutReq = pastRequests.FirstOrDefault(r => r.AdjustCheckOut &&
+                (string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(r.Status, "REJECTED", StringComparison.OrdinalIgnoreCase)));
+
+            if (item.AdjustCheckOut && resolvedCheckOutReq != null)
+            {
+                if (string.Equals(resolvedCheckOutReq.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}': Check-out adjustment has already been approved and cannot be modified again.");
+                else
+                    throw new InvalidOperationException($"Shift '{shift.ShiftNameSnapshot}': Check-out adjustment was rejected by manager and cannot be requested again.");
             }
 
             if (!item.AdjustCheckIn && !item.AdjustCheckOut)
@@ -349,40 +447,27 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                 throw new ArgumentException($"Shift '{shift.ShiftNameSnapshot}': Please provide an adjustment reason.");
             }
 
-            var targetRequest = (existingRequest != null && string.Equals(existingRequest.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
-                ? existingRequest
-                : null;
-
-            if (targetRequest != null)
+            var targetRequest = new TimesheetAdjustmentRequest
             {
-                targetRequest.ReviewedBy = null;
-                targetRequest.ReviewedAt = null;
-                targetRequest.ManagerNote = null;
-            }
-            else
-            {
-                targetRequest = new TimesheetAdjustmentRequest
-                {
-                    TimesheetId = timesheet.TimesheetId,
-                    AttendanceId = attendanceId,
-                    UserId = staffId,
-                    CreatedAt = now
-                };
-                _context.TimesheetAdjustmentRequests.Add(targetRequest);
-            }
-
-            targetRequest.CurrentCheckInSnapshot = assignment.Attendance.CheckInTime;
-            targetRequest.CurrentCheckOutSnapshot = assignment.Attendance.CheckOutTime;
-            targetRequest.AdjustCheckIn = item.AdjustCheckIn;
-            targetRequest.RequestedCheckInTime = item.RequestedCheckInTime;
-            targetRequest.AdjustCheckOut = item.AdjustCheckOut;
-            targetRequest.RequestedCheckOutTime = item.RequestedCheckOutTime;
-            targetRequest.Reason = item.Reason.Trim();
-            targetRequest.Status = "PENDING";
-            targetRequest.UpdatedAt = now;
+                TimesheetId = timesheet.TimesheetId,
+                AttendanceId = attendanceId,
+                Attendance = assignment.Attendance!,
+                UserId = staffId,
+                CurrentCheckInSnapshot = assignment.Attendance.CheckInTime,
+                CurrentCheckOutSnapshot = assignment.Attendance.CheckOutTime,
+                AdjustCheckIn = item.AdjustCheckIn,
+                RequestedCheckInTime = item.RequestedCheckInTime,
+                AdjustCheckOut = item.AdjustCheckOut,
+                RequestedCheckOutTime = item.RequestedCheckOutTime,
+                Reason = item.Reason.Trim(),
+                Status = "PENDING",
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _context.TimesheetAdjustmentRequests.Add(targetRequest);
         }
 
-        timesheet.StaffReviewStatus = "PENDING";
+        timesheet.StaffReviewStatus = "ADJUSTMENT_PENDING";
         timesheet.UpdatedAt = now;
 
         var branchId = week.BranchId;

@@ -119,4 +119,21 @@ class HomeService {
       return [];
     }
   }
+
+  /// Lấy chi tiết chấm công ca làm việc: GET /api/staff/attendance/history/{assignmentId}
+  Future<StaffAttendanceDetailModel?> getStaffAttendanceDetail(int assignmentId) async {
+    try {
+      final response = await _apiClient.get('/api/staff/attendance/history/$assignmentId');
+      if (response.statusCode == 200 &&
+          response.data != null &&
+          response.data is Map<String, dynamic>) {
+        return StaffAttendanceDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
 }

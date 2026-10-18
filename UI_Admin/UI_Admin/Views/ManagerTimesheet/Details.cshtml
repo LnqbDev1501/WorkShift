@@ -151,7 +151,7 @@
                 <div>
                     <div class="flex items-center gap-2">
                         <p class="font-bold text-slate-900">
-                            @(Model.CanLockTimesheet ? "Timesheet Ready to Lock" : "Review Window in Progress")
+                            @(Model.CanLockTimesheet ? "Timesheet Ready to Review" : "Review Window in Progress")
                         </p>
                         @if (Model.CanLockTimesheet)
                         {
@@ -173,7 +173,7 @@
                     {
                         <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200">
                             <span class="material-symbols-outlined text-sm text-amber-600">warning</span>
-                            <span>@Model.PendingAdjustmentCount pending adjustment request(s) must be approved or rejected before locking.</span>
+                            <span>@Model.PendingAdjustmentCount pending adjustment request(s) must be approved or rejected before reviewing.</span>
                         </div>
                     }
                 </div>
@@ -263,7 +263,14 @@
                 else
                 {
                     <span class="text-xl font-bold text-slate-900">@Model.ConfirmedStaff / @Model.TotalStaff</span>
-                    <span class="text-[11px] text-emerald-600 font-semibold block mt-0.5">@Model.ConfirmationRate% confirmed</span>
+                    @if (Model.NoResponseStaff > 0)
+                    {
+                        <span class="text-[11px] text-slate-500 font-semibold block mt-0.5">@Model.ConfirmationRate% confirmed • @Model.NoResponseStaff no response</span>
+                    }
+                    else
+                    {
+                        <span class="text-[11px] text-emerald-600 font-semibold block mt-0.5">@Model.ConfirmationRate% confirmed</span>
+                    }
                 }
             </div>
         </div>
@@ -356,6 +363,8 @@
                         @foreach (var staff in Model.StaffTimesheets)
                         {
                             var isStaffConfirmed = string.Equals(staff.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+                            var isStaffNoResponse = string.Equals(staff.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
+                            var isStaffAdjustmentPending = string.Equals(staff.StaffReviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase);
 
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <!-- Staff Member -->
@@ -423,6 +432,20 @@
                                             <span>CONFIRMED</span>
                                         </span>
                                     }
+                                    else if (isStaffAdjustmentPending)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200" title="Staff submitted adjustment requests pending manager review">
+                                            <span class="material-symbols-outlined text-xs">edit_calendar</span>
+                                            <span>DISPUTED</span>
+                                        </span>
+                                    }
+                                    else if (isStaffNoResponse)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Review deadline expired with no response">
+                                            <span class="material-symbols-outlined text-xs text-slate-500">timer_off</span>
+                                            <span>NO RESPONSE</span>
+                                        </span>
+                                    }
                                     else
                                     {
                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -456,13 +479,25 @@
 
                                 <!-- Action -->
                                 <td class="px-6 py-4 text-right">
-                                    <a asp-action="StaffDetail"
-                                       asp-route-scheduleWeekId="@Model.ScheduleWeekId"
-                                       asp-route-userId="@staff.UserId"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 text-xs font-semibold transition-all shadow-xs">
-                                        <span class="material-symbols-outlined text-sm">visibility</span>
-                                        <span>View Details</span>
-                                    </a>
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        @if (staff.CanReopenReview && !isLocked && !isNotGenerated)
+                                        {
+                                            <button type="button"
+                                                    onclick="openReopenModal('@staff.TimesheetId', '@Html.Raw(Html.Encode(staff.FullName))')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-600 text-amber-800 hover:text-white border border-amber-300 hover:border-amber-600 text-xs font-semibold transition-all shadow-xs cursor-pointer"
+                                                    title="Mở lại thời hạn rà soát bảng công cho nhân viên này">
+                                                <span class="material-symbols-outlined text-sm">replay</span>
+                                                <span>Mở lại rà soát</span>
+                                            </button>
+                                        }
+                                        <a asp-action="StaffDetail"
+                                           asp-route-scheduleWeekId="@Model.ScheduleWeekId"
+                                           asp-route-userId="@staff.UserId"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 hover:border-indigo-600 text-xs font-semibold transition-all shadow-xs">
+                                            <span class="material-symbols-outlined text-sm">visibility</span>
+                                            <span>View Details</span>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -565,6 +600,61 @@
     </div>
 </div>
 
+<!-- Form for Reopen Staff Review -->
+<form id="formReopenStaff" asp-action="ReopenStaff" asp-route-id="@Model.ScheduleWeekId" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="timesheetId" id="reopenTimesheetId" value="" />
+    <input type="hidden" name="returnUrl" value="Details" />
+</form>
+
+<!-- Confirmation Modal: Reopen Staff Review -->
+<div id="modalReopenStaff" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-reopen-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeReopenModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">replay</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Mở Lại Hạn Rà Soát Bảng Công</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Reopen timesheet review deadline for staff</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Bạn có chắc chắn muốn mở lại quyền rà soát bảng công cho nhân viên <strong id="reopenStaffName" class="text-slate-900"></strong> không?
+                </p>
+
+                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Thông tin hiệu lực</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>Trạng thái rà soát của nhân viên sẽ chuyển từ <strong>NO RESPONSE</strong> về <strong>PENDING</strong>.</li>
+                        <li>Thời hạn phản hồi sẽ được gia hạn đến <strong>23:59:59 hôm nay (giờ VN)</strong>.</li>
+                        <li>Hệ thống sẽ gửi thông báo và mở khoá cho nhân viên xác nhận hoặc gửi khiếu nại trên ứng dụng di động.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeReopenModal()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Hủy bỏ
+                </button>
+                <button type="button" id="btnConfirmReopen" onclick="confirmReopenModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmReopenText">Xác nhận mở lại</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         function bindModal(btnOpenId, modalId, btnCancelId, btnConfirmId, formId, loadingText) {
@@ -591,12 +681,29 @@
         }
 
         bindModal('btnGenerateTimesheet', 'modalGenerateTimesheet', 'btnCancelGenerate', 'btnConfirmGenerate', 'formGenerateTimesheet', 'Generating...');
-        bindModal('btnLockTimesheet', 'modalLockTimesheet', 'btnCancelLock', 'btnConfirmLock', 'formLockTimesheet', 'Locking...');
+        bindModal('btnLockTimesheet', 'modalLockTimesheet', 'btnCancelLock', 'btnConfirmLock', 'formLockTimesheet', 'Reviewing...');
+
+        function openReopenModal(timesheetId, staffName) {
+            document.getElementById('reopenTimesheetId').value = timesheetId;
+            document.getElementById('reopenStaffName').textContent = staffName;
+            document.getElementById('modalReopenStaff').classList.remove('hidden');
+        }
+
+        function closeReopenModal() {
+            document.getElementById('modalReopenStaff').classList.add('hidden');
+        }
+
+        function confirmReopenModal() {
+            const btn = document.getElementById('btnConfirmReopen');
+            btn.disabled = true;
+            document.getElementById('btnConfirmReopenText').textContent = 'Đang xử lý...';
+            document.getElementById('formReopenStaff').submit();
+        }
 
         // Close any active modal on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                ['modalGenerateTimesheet', 'modalLockTimesheet'].forEach(id => {
+                ['modalGenerateTimesheet', 'modalLockTimesheet', 'modalReopenStaff'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
                 });

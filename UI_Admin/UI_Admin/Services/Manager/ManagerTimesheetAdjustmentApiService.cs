@@ -76,9 +76,19 @@ public sealed class ManagerTimesheetAdjustmentApiService
             return (true, null);
 
         var errorObj = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>(cancellationToken: cancellationToken);
-        var msg = errorObj != null && errorObj.TryGetValue("message", out var val)
-            ? val?.ToString()
-            : $"Failed to approve adjustment (HTTP {response.StatusCode})";
+        string? msg = null;
+        if (errorObj != null)
+        {
+            if (errorObj.TryGetValue("detail", out var detailVal) && detailVal != null && !string.IsNullOrWhiteSpace(detailVal.ToString()))
+            {
+                msg = detailVal.ToString();
+            }
+            else if (errorObj.TryGetValue("message", out var val) && val != null)
+            {
+                msg = val.ToString();
+            }
+        }
+        msg ??= $"Failed to approve adjustment (HTTP {response.StatusCode})";
 
         return (false, msg);
     }
@@ -96,9 +106,19 @@ public sealed class ManagerTimesheetAdjustmentApiService
             return (true, null);
 
         var errorObj = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>(cancellationToken: cancellationToken);
-        var msg = errorObj != null && errorObj.TryGetValue("message", out var val)
-            ? val?.ToString()
-            : $"Failed to reject adjustment (HTTP {response.StatusCode})";
+        string? msg = null;
+        if (errorObj != null)
+        {
+            if (errorObj.TryGetValue("detail", out var detailVal) && detailVal != null && !string.IsNullOrWhiteSpace(detailVal.ToString()))
+            {
+                msg = detailVal.ToString();
+            }
+            else if (errorObj.TryGetValue("message", out var val) && val != null)
+            {
+                msg = val.ToString();
+            }
+        }
+        msg ??= $"Failed to reject adjustment (HTTP {response.StatusCode})";
 
         return (false, msg);
     }

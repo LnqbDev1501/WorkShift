@@ -296,19 +296,4 @@ public class UserController : Controller
             return View(model);
         }
     }
-
-    private async Task<IActionResult> RunActionAsync(Func<Task> action, string successMessage, UserListQueryViewModel query)
-    {
-        try
-        {
-            await action();
-            TempData["SuccessMessage"] = successMessage;
-        }
-        catch (HttpRequestException exception)
-        {
-            TempData["ErrorMessage"] = exception.Message;
-        }
-
-        return RedirectToAction(nameof(List), query);
-    }
 }

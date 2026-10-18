@@ -111,7 +111,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             var vnOffset = TimeSpan.FromHours(7);
             var generatedAtVn = firstGeneratedAt + vnOffset;
             var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            reviewDeadline = week.PayrollPeriod?.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+            reviewDeadline = endOfDayVn - vnOffset;
             isPastDeadline = DateTime.UtcNow >= reviewDeadline.Value;
 
             pendingAdjustmentCount = staffTimesheet.TimesheetAdjustmentRequests?
@@ -138,10 +138,10 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             isLocked = false;
         }
 
-        var latestAdjByAttendance = staffTimesheet?.TimesheetAdjustmentRequests?
+        var allAdjsByAttendance = staffTimesheet?.TimesheetAdjustmentRequests?
             .GroupBy(r => r.AttendanceId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).First())
-            ?? new Dictionary<int, TimesheetAdjustmentRequest>();
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).ToList())
+            ?? new Dictionary<int, List<TimesheetAdjustmentRequest>>();
 
         var shiftDtos = staffAssignments.Select(x =>
         {
@@ -149,16 +149,38 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             string attStatus = att?.Status
                 ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
 
-            var adj = att != null && latestAdjByAttendance.TryGetValue(att.AttendanceId, out var found) ? found : null;
+            var reqList = att != null && allAdjsByAttendance.TryGetValue(att.AttendanceId, out var foundList)
+                ? foundList
+                : new List<TimesheetAdjustmentRequest>();
+
+            var adj = reqList.FirstOrDefault();
 
             bool hasAdj = adj != null;
             string? adjStatus = adj?.Status;
+
+            bool hasPending = reqList.Any(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+
+            var checkInReq = reqList.FirstOrDefault(r => r.AdjustCheckIn);
+            bool isCheckInLocked = checkInReq != null;
+            string? checkInLockReason = checkInReq?.Status;
+
+            var checkOutReq = reqList.FirstOrDefault(r => r.AdjustCheckOut);
+            bool isCheckOutLocked = checkOutReq != null;
+            string? checkOutLockReason = checkOutReq?.Status;
+
             bool canRequestAdj = !isLocked &&
                                  string.Equals(status, "GENERATED", StringComparison.OrdinalIgnoreCase) &&
                                  !isPastDeadline &&
                                  !string.Equals(staffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase) &&
-                                 !string.Equals(adjStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
-                                 !string.Equals(adjStatus, "REJECTED", StringComparison.OrdinalIgnoreCase);
+                                 !hasPending &&
+                                 (!isCheckInLocked || !isCheckOutLocked);
+
+            var approvedLeave = x.Assignment.LeaveRequestAssignments
+                ?.Select(l => l.Request)
+                ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
+
+            bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
+            string? leaveReason = approvedLeave?.Reason;
 
             return new StaffShiftAttendanceDto
             {
@@ -172,9 +194,17 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
                 CheckOutTime = att?.CheckOutTime,
                 ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
                 TotalLateMinutes = att?.TotalLateMinutes ?? 0,
+                ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
+                ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
                 TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                AttendanceStatus = attStatus,
+                ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
+                ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+                HasApprovedLateArrival = att?.LateArrivalRequestId.HasValue ?? false,
+                HasApprovedEarlyLeave = att?.EarlyLeaveRequestId.HasValue ?? false,
+                AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
                 AssignmentStatus = x.Assignment.Status,
+                IsExcusedLeave = isExcusedLeave,
+                LeaveReason = leaveReason,
 
                 HasAdjustmentRequest = hasAdj,
                 AdjustmentRequestId = adj?.AdjustmentRequestId,
@@ -183,7 +213,22 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
                 RequestedCheckOutTime = adj?.RequestedCheckOutTime,
                 AdjustmentReason = adj?.Reason,
                 ManagerNote = adj?.ManagerNote,
-                CanRequestAdjustment = canRequestAdj
+                CanRequestAdjustment = canRequestAdj,
+                IsCheckInLocked = isCheckInLocked,
+                CheckInLockReason = checkInLockReason,
+                IsCheckOutLocked = isCheckOutLocked,
+                CheckOutLockReason = checkOutLockReason,
+                Penalties = att?.AttendancePenaltyRecords
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new StaffShiftAttendancePenaltyDto
+                    {
+                        AttendancePenaltyId = p.AttendancePenaltyId,
+                        ViolationType = p.ViolationType,
+                        ViolationMinutes = p.ViolationMinutes,
+                        PenaltyAmount = p.PenaltyAmount,
+                        Status = p.Status,
+                        CreatedAt = p.CreatedAt
+                    }).ToList() ?? new()
             };
         }).ToList();
 

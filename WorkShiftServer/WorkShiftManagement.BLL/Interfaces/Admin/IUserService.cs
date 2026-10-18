@@ -9,9 +9,8 @@ public interface IUserService
     Task<IReadOnlyList<RoleResponse>> GetAssignableRolesAsync();
     Task<AdminUserDetailResponse> GetAdminUserDetailAsync(Guid userId);
     Task<CreateAdminUserResponse> CreateAdminUserAsync(CreateAdminUserRequest request);
-    Task<UpdateAdminUserResponse> UpdateAdminUserAsync(Guid userId, UpdateAdminUserRequest request);
+    Task<UpdateAdminUserResponse> UpdateAdminUserAsync(Guid userId, UpdateAdminUserRequest request, Guid? adminUserId = null);
     Task ResendSetupLinkAsync(Guid userId);
     Task SoftDeleteAdminUserAsync(Guid userId);
     Task RestoreAdminUserAsync(Guid userId, RestoreAdminUserRequest request);
-    Task ActivateUserAsync(Guid userId);
 }

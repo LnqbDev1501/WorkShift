@@ -99,13 +99,14 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         };
     }
 
-    private static (int TotalStaff, int ConfirmedStaff, int TotalWorkMinutes, int TotalLateMinutes, int TotalEarlyLeaveMinutes, string Status)
+    private static (int TotalStaff, int ConfirmedStaff, int NoResponseStaff, int TotalWorkMinutes, int TotalLateMinutes, int TotalEarlyLeaveMinutes, string Status)
         ComputeSummaryMetrics(WorkScheduleWeek week, List<Timesheet> timesheets)
     {
         if (timesheets.Count > 0)
         {
             int totalStaff = timesheets.Count;
             int confirmedStaff = timesheets.Count(t => string.Equals(t.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase));
+            int noResponseStaff = timesheets.Count(t => string.Equals(t.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase));
             int totalWorkMinutes = timesheets.Sum(t => t.TotalWorkMinutes);
             int totalLateMinutes = timesheets.Sum(t => t.TotalLateMinutes);
             int totalEarlyLeaveMinutes = timesheets.Sum(t => t.TotalEarlyLeaveMinutes);
@@ -116,7 +117,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     ? "LOCKED"
                     : (!string.IsNullOrWhiteSpace(week.PayrollPeriod?.Status) ? week.PayrollPeriod.Status : "GENERATED"));
 
-            return (totalStaff, confirmedStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status);
+            return (totalStaff, confirmedStaff, noResponseStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status);
         }
 
         int ungeneratedStaff = (week.WorkShifts ?? Enumerable.Empty<WorkShift>())
@@ -126,18 +127,20 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             .Distinct()
             .Count();
 
-        return (ungeneratedStaff, 0, 0, 0, 0, "NOT GENERATED");
+        return (ungeneratedStaff, 0, 0, 0, 0, 0, "NOT GENERATED");
     }
 
     private static ManagerWeeklyTimesheetSummaryResponse MapWeeklySummary(WorkScheduleWeek week)
     {
         var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
-        var (totalStaff, confirmedStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
+        var (totalStaff, confirmedStaff, noResponseStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
             ComputeSummaryMetrics(week, timesheets);
 
         string staffReview = status == "NOT GENERATED"
             ? "-"
-            : $"{confirmedStaff}/{totalStaff} Confirmed";
+            : (noResponseStaff > 0
+                ? $"{confirmedStaff}/{totalStaff} Confirmed ({noResponseStaff} No Response)"
+                : $"{confirmedStaff}/{totalStaff} Confirmed");
 
         decimal confirmationRate = (status != "NOT GENERATED" && totalStaff > 0)
             ? Math.Round((decimal)confirmedStaff / totalStaff * 100m, 2)
@@ -157,6 +160,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             Status = status,
             TotalStaff = totalStaff,
             ConfirmedStaff = confirmedStaff,
+            NoResponseStaff = noResponseStaff,
             StaffReview = staffReview,
             ConfirmationRate = confirmationRate,
             TotalWorkHours = totalWorkHours,
@@ -195,7 +199,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         }
 
         var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
-        var (totalStaff, confirmedStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
+        var (totalStaff, confirmedStaff, noResponseStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
             ComputeSummaryMetrics(week, timesheets);
 
         var staffItems = new List<ManagerStaffTimesheetItemDto>();
@@ -235,11 +239,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     CheckOutTime = att?.CheckOutTime,
                     ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
                     TotalLateMinutes = att?.TotalLateMinutes ?? 0,
+                    ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
+                    ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
                     TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
+                    ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
+                    ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+                    HasApprovedLateArrival = att?.LateArrivalRequestId.HasValue ?? false,
+                    HasApprovedEarlyLeave = att?.EarlyLeaveRequestId.HasValue ?? false,
                     AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
                     AssignmentStatus = x.Assignment.Status,
                     IsExcusedLeave = isExcusedLeave,
-                    LeaveReason = leaveReason
+                    LeaveReason = leaveReason,
+                    Penalties = att?.AttendancePenaltyRecords?
+                        .OrderBy(p => p.CreatedAt)
+                        .Select(p => new WorkShiftManagement.BLL.DTOs.Manager.Attendance.AttendancePenaltyDto
+                        {
+                            AttendancePenaltyId = p.AttendancePenaltyId,
+                            ViolationType = p.ViolationType,
+                            ViolationMinutes = p.ViolationMinutes,
+                            PenaltyAmount = p.PenaltyAmount,
+                            Status = p.Status,
+                            CreatedAt = p.CreatedAt
+                        }).ToList() ?? new()
                 };
             }).ToList();
         }
@@ -320,7 +341,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         string staffReview = status == "NOT GENERATED"
             ? "-"
-            : $"{confirmedStaff}/{totalStaff} Confirmed";
+            : (noResponseStaff > 0
+                ? $"{confirmedStaff}/{totalStaff} Confirmed ({noResponseStaff} No Response)"
+                : $"{confirmedStaff}/{totalStaff} Confirmed");
 
         decimal confirmationRate = (status != "NOT GENERATED" && totalStaff > 0)
             ? Math.Round((decimal)confirmedStaff / totalStaff * 100m, 2)
@@ -339,17 +362,32 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         if (status != "NOT GENERATED" && status != "LOCKED" && status != "REVIEWED" && timesheets.Any())
         {
-            var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt) 
-                ?? week.PayrollPeriod?.CreatedAt 
-                ?? DateTime.UtcNow;
-
             var vnOffset = TimeSpan.FromHours(7);
-            var generatedAtVn = firstGeneratedAt + vnOffset;
-            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            reviewDeadline = week.PayrollPeriod?.ApprovalDeadlineAt ?? (endOfDayVn - vnOffset);
+            var now = DateTime.UtcNow;
 
-            isPastDeadline = DateTime.UtcNow >= reviewDeadline.Value;
+            var pendingStaffList = timesheets
+                .Where(t => string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            var latestGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Max(t => t.GeneratedAt)
+                ?? week.PayrollPeriod?.CreatedAt
+                ?? now;
+
+            var generatedAtVn = latestGeneratedAt + vnOffset;
+            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+            reviewDeadline = endOfDayVn - vnOffset;
+
+            bool hasActivePendingReview = pendingStaffList.Any(t =>
+            {
+                var tGenAt = t.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? now;
+                var tGenAtVn = tGenAt + vnOffset;
+                var tDeadlineUtc = tGenAtVn.Date.AddDays(1).AddTicks(-1) - vnOffset;
+                return now < tDeadlineUtc;
+            });
+
+            isPastDeadline = !hasActivePendingReview && (now >= reviewDeadline.Value);
             bool isAllConfirmed = (totalStaff > 0 && confirmedStaff == totalStaff);
+            bool isAllResolved = (totalStaff > 0 && (confirmedStaff + noResponseStaff == totalStaff));
 
             if (pendingAdjustmentCount > 0)
             {
@@ -361,16 +399,18 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 canLockTimesheet = true;
                 lockEligibilityMessage = "Ready to review: 100% staff members have confirmed.";
             }
-            else if (isPastDeadline)
+            else if (isAllResolved || !hasActivePendingReview)
             {
                 canLockTimesheet = true;
-                lockEligibilityMessage = "Ready to review: Review deadline has expired at end of day.";
+                lockEligibilityMessage = noResponseStaff > 0
+                    ? $"Ready to review: {confirmedStaff}/{totalStaff} confirmed, {noResponseStaff} no response (review deadline expired)."
+                    : "Ready to review: Review deadline has expired at end of day.";
             }
             else
             {
                 canLockTimesheet = false;
-                var deadlineVn = reviewDeadline.Value + TimeSpan.FromHours(7);
-                lockEligibilityMessage = $"Waiting for 100% staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until end of day ({deadlineVn:HH:mm dd/MM/yyyy}).";
+                var deadlineVn = reviewDeadline.Value + vnOffset;
+                lockEligibilityMessage = $"Waiting for staff confirmation ({confirmedStaff}/{totalStaff} confirmed) or wait until review deadline expires ({deadlineVn:HH:mm dd/MM/yyyy}).";
             }
         }
         else if (status == "REVIEWED" || status == "LOCKED")
@@ -401,6 +441,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             LockEligibilityMessage = lockEligibilityMessage,
             TotalStaff = totalStaff,
             ConfirmedStaff = confirmedStaff,
+            NoResponseStaff = noResponseStaff,
             StaffReview = staffReview,
             ConfirmationRate = confirmationRate,
             TotalWorkHours = totalWorkHours,
@@ -528,6 +569,58 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         var detail = await GetWeeklyTimesheetDetailAsync(managerId, scheduleWeekId, cancellationToken);
         return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after reviewing.");
+    }
+
+    public async Task<ManagerWeeklyTimesheetDetailResponse> ReopenStaffTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        int timesheetId,
+        CancellationToken cancellationToken = default)
+    {
+        if (managerId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated manager identity is required.");
+        }
+
+        if (scheduleWeekId <= 0)
+        {
+            throw new ArgumentException("Schedule week ID must be greater than zero.");
+        }
+
+        if (timesheetId <= 0)
+        {
+            throw new ArgumentException("Timesheet ID must be greater than zero.");
+        }
+
+        var manager = await _timesheetRepo.GetActiveManagerAsync(managerId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Manager account is inactive or was not found.");
+
+        int branchId = manager.BranchId
+            ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
+
+        var (_, resolvedScheduleWeekId, staffUserId, notificationId, notificationContent) =
+            await _timesheetRepo.ReopenStaffTimesheetAsync(timesheetId, branchId, managerId, cancellationToken);
+
+        if (notificationId > 0 && staffUserId != Guid.Empty)
+        {
+            try
+            {
+                await _realtimePublisher.PublishAsync(staffUserId, new RealtimeNotificationResponse
+                {
+                    NotificationId = notificationId,
+                    Title = "Weekly Timesheet Review Window Reopened",
+                    Message = notificationContent,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to publish realtime notification to staff member {StaffUserId}", staffUserId);
+            }
+        }
+
+        var detail = await GetWeeklyTimesheetDetailAsync(managerId, resolvedScheduleWeekId, cancellationToken);
+        return detail ?? throw new InvalidOperationException("Timesheet details could not be retrieved after reopening.");
     }
 
     public async Task<ManagerTimesheetAdjustmentPagedResponse> GetTimesheetAdjustmentsAsync(
@@ -695,7 +788,33 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             ReviewedBy = r.ReviewedBy,
             ReviewedByName = r.ReviewedByNavigation?.FullName,
             ReviewedAt = r.ReviewedAt,
-            CreatedAt = r.CreatedAt
+            CreatedAt = r.CreatedAt,
+            AuditHistories = r.Attendance?.AttendanceAdjustmentHistories?
+                .OrderByDescending(h => h.AdjustedAt)
+                .Select(h => new AttendanceAdjustmentAuditHistoryDto
+                {
+                    AdjustmentHistoryId = h.AdjustmentHistoryId,
+                    AttendanceId = h.AttendanceId,
+                    AdjustedBy = h.AdjustedBy,
+                    AdjustedByName = h.AdjustedByNavigation?.FullName,
+                    AdjustmentSource = h.AdjustmentSource,
+                    Reason = h.Reason,
+                    OldCheckInTime = h.OldCheckInTime,
+                    NewCheckInTime = h.NewCheckInTime,
+                    OldCheckOutTime = h.OldCheckOutTime,
+                    NewCheckOutTime = h.NewCheckOutTime,
+                    OldActualWorkingMinutes = h.OldActualWorkingMinutes,
+                    NewActualWorkingMinutes = h.NewActualWorkingMinutes,
+                    OldTotalLateMinutes = h.OldTotalLateMinutes,
+                    NewTotalLateMinutes = h.NewTotalLateMinutes,
+                    OldChargeableLateMinutes = h.OldChargeableLateMinutes,
+                    NewChargeableLateMinutes = h.NewChargeableLateMinutes,
+                    OldTotalEarlyLeaveMinutes = h.OldTotalEarlyLeaveMinutes,
+                    NewTotalEarlyLeaveMinutes = h.NewTotalEarlyLeaveMinutes,
+                    OldChargeableEarlyLeaveMinutes = h.OldChargeableEarlyLeaveMinutes,
+                    NewChargeableEarlyLeaveMinutes = h.NewChargeableEarlyLeaveMinutes,
+                    AdjustedAt = h.AdjustedAt
+                }).ToList() ?? new()
         };
     }
 

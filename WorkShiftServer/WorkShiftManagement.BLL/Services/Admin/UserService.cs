@@ -12,6 +12,7 @@ using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.BLL.Interfaces.Upload;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -34,6 +35,7 @@ public class UserService : IUserService
     private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
+    private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
 
     public UserService(
         IUserRepo userRepo,
@@ -43,7 +45,8 @@ public class UserService : IUserService
         IConfiguration configuration,
         AppDbContext dbContext,
         ICloudinaryService cloudinaryService,
-        IAdminRealtimePublisher adminRealtimePublisher)
+        IAdminRealtimePublisher adminRealtimePublisher,
+        INotificationRealtimePublisher notificationRealtimePublisher)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -55,6 +58,7 @@ public class UserService : IUserService
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
         _adminRealtimePublisher = adminRealtimePublisher;
+        _notificationRealtimePublisher = notificationRealtimePublisher;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -239,26 +243,10 @@ public class UserService : IUserService
         }
     }
 
-    public async Task ActivateUserAsync(Guid userId)
-    {
-        var user = await _userRepo.GetByIdAsync(userId)
-            ?? throw new KeyNotFoundException("No matching user profile was found.");
-
-        if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
-            return;
-
-        if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The current account status does not allow activation.");
-
-        user.Status = ActiveStatus;
-        user.UpdatedAt = DateTime.UtcNow;
-        await _userRepo.SaveChangesAsync();
-        await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
-    }
-
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
         Guid userId,
-        UpdateAdminUserRequest request)
+        UpdateAdminUserRequest request,
+        Guid? adminUserId = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (userId == Guid.Empty)
@@ -361,9 +349,39 @@ public class UserService : IUserService
         if (emailOwner is not null && emailOwner.UserId != userId)
             throw new InvalidOperationException("Email is already in use by another user.");
 
-        if (request.AvatarFile is not null)
+        var changedFields = new List<string>();
+
+        if (!string.Equals(user.FullName?.Trim(), request.FullName.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Full Name");
+
+        if (!string.Equals(user.Phone?.Trim(), request.Phone.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Phone Number");
+
+        if (!string.Equals(user.IdentityNo?.Trim(), request.IdentityNo.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Citizen ID");
+
+        if (!string.Equals(user.Gender?.Trim(), request.Gender.Trim(), StringComparison.OrdinalIgnoreCase))
+            changedFields.Add("Gender");
+
+        if (user.DateOfBirth != request.DateOfBirth)
+            changedFields.Add("Date of Birth");
+
+        if (!string.Equals(user.Address?.Trim(), request.Address.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Address");
+
+        if (!string.Equals(user.Email?.Trim(), request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            changedFields.Add("Email");
+
+        if (user.BranchId != request.BranchId)
+            changedFields.Add("Branch");
+
+        if (user.RoleId != request.RoleId)
+            changedFields.Add("Role");
+
+        if (request.AvatarFile is not null && request.AvatarFile.Length > 0)
         {
             user.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, request.AvatarFile);
+            changedFields.Add("Avatar");
         }
 
         var originalEmail = user.Email;
@@ -380,6 +398,51 @@ public class UserService : IUserService
         user.RoleId = request.RoleId;
         user.UpdatedAt = DateTime.UtcNow;
 
+        NotificationEntity? notification = null;
+        if (changedFields.Count > 0)
+        {
+            var createdBy = adminUserId.GetValueOrDefault();
+            if (createdBy == Guid.Empty)
+            {
+                createdBy = await _dbContext.Users
+                    .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null)
+                    .Select(u => u.UserId)
+                    .FirstOrDefaultAsync();
+
+                if (createdBy == Guid.Empty)
+                    createdBy = userId;
+            }
+
+            var fieldsText = string.Join(", ", changedFields);
+            var now = DateTime.UtcNow;
+            notification = new NotificationEntity
+            {
+                Title = "Profile Information Updated",
+                Content = changedFields.Count == 1
+                    ? $"Your profile has been updated by the administrator. Modified field: {fieldsText}."
+                    : $"Your profile has been updated by the administrator. Modified fields: {fieldsText}.",
+                NotificationType = "SYSTEM",
+                CreatedBy = createdBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = user.BranchId,
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { targetRoleName }
+            };
+
+            notification.UserNotifications.Add(new UserNotification
+            {
+                UserId = userId,
+                IsRead = false,
+                IsDeleted = false,
+                CreatedAt = now
+            });
+
+            _dbContext.Notifications.Add(notification);
+        }
+
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
@@ -391,6 +454,33 @@ public class UserService : IUserService
             }
 
             await transaction.CommitAsync();
+
+            if (notification is not null)
+            {
+                try
+                {
+                    await _notificationRealtimePublisher.PublishAsync(userId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", userId);
+                }
+            }
+
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "UPDATED", userId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to publish admin data changed event for user {UserId}", userId);
+            }
 
             if (emailChanged && user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
             {
