@@ -17,6 +17,14 @@ public sealed class ReviewPayrollIssueRequest
     [Required] public string Decision { get; set; } = "";
     [Required, StringLength(2000)] public string Note { get; set; } = "";
 }
+public sealed class ResendPayrollIssueRequest
+{
+    [Required, StringLength(2000)] public string Reason { get; set; } = "";
+}
+public sealed class ResendPayrollPreviewRequest
+{
+    [Required, StringLength(2000)] public string Reason { get; set; } = "";
+}
 public sealed class PayrollFeedbackListRequest
 {
     public string? Keyword { get; set; }
@@ -84,6 +92,10 @@ public sealed class PayrollIssueResponse
     public string PeriodCode { get; set; } = "";
     public int? ScheduleWeekId { get; set; }
     public string EmployeeName { get; set; } = "";
+    public DateTime ResponseDeadlineAt { get; set; }
+    public DateTime? ExpiredAt { get; set; }
+    public bool CanResend { get; set; }
+    public bool CanRespond { get; set; }
 }
 
 public sealed class CompletePayrollCorrectionRequest

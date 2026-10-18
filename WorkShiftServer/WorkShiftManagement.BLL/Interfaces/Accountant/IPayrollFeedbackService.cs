@@ -23,5 +23,7 @@ public interface IPayrollFeedbackService
     Task<PayrollSourceImpactResponse> RegisterRelatedImpactAsync(Guid actor, int correctionRequestId, CancellationToken ct);
     Task SubmitPeriodAsync(Guid actor, int periodId, CancellationToken ct);
     Task ApprovePeriodAsync(Guid actor, int periodId, CancellationToken ct);
+    Task<PayrollIssueResponse> ResendIssueAsync(Guid actor, int correctionRequestId, ResendPayrollIssueRequest request, CancellationToken ct);
+    Task<PayrollFeedbackResponse> ResendPreviewAsync(Guid actor, int feedbackId, ResendPayrollPreviewRequest request, CancellationToken ct);
     Task ExpireDueAsync(CancellationToken ct);
 }

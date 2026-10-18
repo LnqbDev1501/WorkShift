@@ -146,8 +146,24 @@ public class PayrollIssueResponse
     public string? PeriodCode { get; set; }
     public int? ScheduleWeekId { get; set; }
     public string? EmployeeName { get; set; }
+    public DateTime? ResponseDeadlineAt { get; set; }
+    public DateTime? ExpiredAt { get; set; }
+    public bool CanResend { get; set; }
+    public bool CanRespond { get; set; }
     public string? ManagerAction => ResponseAction;
     public string? ManagerNote => ResponseNote;
+}
+
+public sealed class ResendPayrollIssueRequest
+{
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(1000)]
+    public string Reason { get; set; } = "";
+}
+
+public sealed class ResendPayrollPreviewRequest
+{
+    [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(1000)]
+    public string Reason { get; set; } = "";
 }
 
 public class PayrollCorrectionRequestRecord : PayrollIssueResponse { }

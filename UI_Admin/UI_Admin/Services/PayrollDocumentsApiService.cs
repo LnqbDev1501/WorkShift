@@ -70,6 +70,9 @@ public sealed class PayrollDocumentsApiService(HttpClient client, IConfiguration
     public Task<PayrollIssueResponse> ReviewCorrectionAsync(int requestId, string decision, string note, CancellationToken ct)
         => Post<PayrollIssueResponse>($"/payroll-correction-requests/{requestId}/review", new ReviewPayrollIssueRequest { Decision = decision, Note = note }, ct);
 
+    public Task<PayrollIssueResponse> ResendCorrectionAsync(int requestId, string reason, CancellationToken ct)
+        => Post<PayrollIssueResponse>($"/payroll-correction-requests/{requestId}/resend", new ResendPayrollIssueRequest { Reason = reason }, ct);
+
     // Step 6: Recalculate & Complete Correction
     public Task<PayrollCorrectionPreviewResponse> PreviewCorrectionAsync(int payrollId, int correctionRequestId, CancellationToken ct)
         => Get<PayrollCorrectionPreviewResponse>($"/payrolls/{payrollId}/correction-preview?correctionRequestId={correctionRequestId}", ct);
@@ -89,6 +92,9 @@ public sealed class PayrollDocumentsApiService(HttpClient client, IConfiguration
     // Step 7: Send Previews to Staff
     public Task<List<PayrollFeedbackResponse>> SendPreviewsAsync(int periodId, CancellationToken ct)
         => Post<List<PayrollFeedbackResponse>>($"/payroll-periods/{periodId}/send-previews", null, ct);
+
+    public Task<PayrollFeedbackResponse> ResendPreviewAsync(int feedbackId, string reason, CancellationToken ct)
+        => Post<PayrollFeedbackResponse>($"/payroll-previews/{feedbackId}/resend", new ResendPayrollPreviewRequest { Reason = reason }, ct);
 
     // Step 8: Staff Feedback Decision
     public Task<PayrollFeedbackResponse> ApproveFeedbackAsync(int id, string? note, CancellationToken ct)

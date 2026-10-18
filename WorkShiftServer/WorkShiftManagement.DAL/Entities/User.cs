@@ -163,7 +163,7 @@ public partial class User
 
     public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestReviewedByNavigations { get; set; } = new List<SalaryChangeRequest>();
 
-    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestUsers { get; set; } = new List<SalaryChangeRequest>();
+    public virtual SalaryChangeRequest? SalaryChangeRequestUser { get; set; }
 
     public virtual ICollection<ShiftAssignment> ShiftAssignmentAssignedByNavigations { get; set; } = new List<ShiftAssignment>();
 
@@ -179,7 +179,7 @@ public partial class User
 
     public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryCreatedByNavigations { get; set; } = new List<StaffSalaryHistory>();
 
-    public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryUsers { get; set; } = new List<StaffSalaryHistory>();
+    public virtual StaffSalaryHistory? StaffSalaryHistoryUser { get; set; }
 
     public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestReviewedByNavigations { get; set; } = new List<TimesheetAdjustmentRequest>();
 

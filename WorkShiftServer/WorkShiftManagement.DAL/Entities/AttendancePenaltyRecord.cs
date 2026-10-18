@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -19,9 +19,9 @@ public partial class AttendancePenaltyRecord
 
     public decimal PenaltyAmount { get; set; }
 
-    public string Status { get; set; } = "APPLIED";
-
     public DateTime CreatedAt { get; set; }
+
+    public string Status { get; set; } = null!;
 
     public virtual Attendance Attendance { get; set; } = null!;
 

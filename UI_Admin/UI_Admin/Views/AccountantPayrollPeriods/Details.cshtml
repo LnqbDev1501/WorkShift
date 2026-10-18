@@ -1,7 +1,7 @@
 @model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
-    ViewData["Title"] = $"{Model.PeriodCode} - Chi tiết kỳ lương";
+    ViewData["Title"] = $"{Model.PeriodCode} - Period Details";
     var status = Model.Status;
     var isDraft = status == "DRAFT";
     var isOpen = status == "OPEN";
@@ -12,542 +12,842 @@
     var isPaid = status == "PAID";
     var isClosed = status == "CLOSED";
 
-    var statusText = status switch
-    {
-        "DRAFT" => "Bản nháp",
-        "OPEN" => "Đã mở (Open)",
-        "CALCULATED" => "Đã tính toán",
-        "SUBMITTED" => "Chờ Admin duyệt",
-        "REVISION_REQUIRED" => "Yêu cầu chỉnh sửa",
-        "APPROVED" => "Đã duyệt",
-        "PAID" => "Đã chi trả",
-        "CLOSED" => "Đã đóng kỳ",
-        _ => status.Replace('_', ' ')
-    };
-
     var totalWorkPay = Model.Payrolls.Sum(p => p.WorkPay);
     var totalReward = Model.Payrolls.Sum(p => p.TotalReward);
     var totalDeduction = Model.Payrolls.Sum(p => p.TotalDeduction);
     var totalPenalty = Model.Payrolls.Sum(p => p.TotalPenalty);
     var totalAttendanceDeduction = Model.Payrolls.Sum(p => p.AttendanceDeduction);
     var totalHours = Model.Payrolls.Sum(p => p.TotalWorkHours);
-}
-@section Styles {
-    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/css/payroll-detail.css" asp-append-version="true" />
-    <style>
-        .payroll-tabs a.tab-btn {
-            cursor: pointer;
-        }
-        .tab-content[hidden] {
-            display: none;
-        }
-        .staff-identity {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .staff-avatar-initial {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            background: #ede9fe;
-            color: #5b21b6;
-            flex-shrink: 0;
-        }
-        .period-info-card {
-            background: #ffffff;
-            border: 1px solid #e5e7eb;
-            border-radius: 10px;
-            padding: 18px 22px;
-            margin-bottom: 22px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-    </style>
+
+    var pendingReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "PENDING") ?? 0;
+    var expiredReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "EXPIRED") ?? 0;
+    var confirmedReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "CONFIRMED") ?? 0;
+    var openIssues = Model.CorrectionRequests?.Count(c => c.Status is "OPEN" or "RESPONDED") ?? 0;
+    var expiredIssues = Model.CorrectionRequests?.Count(c => c.Status == "EXPIRED") ?? 0;
+
+    // Real submit condition based on backend rules:
+    var isEligibleToSubmit = (isCalculated || isRevisionRequired)
+        && Model.Payrolls.Count > 0
+        && pendingReviews == 0
+        && openIssues == 0
+        && expiredIssues == 0
+        && Model.RejectedPayrollCount == 0;
 }
 
-<div class="payroll-page period-detail">
-    <!-- PERIOD HEADER -->
-    <section class="period-header">
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-            <div class="period-title">
-                <h1>@Model.PeriodName</h1>
-                <span class="payroll-status @status.ToLowerInvariant()">● @statusText</span>
+            <!-- Breadcrumb -->
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">calendar_month</span>
+                <span>Payroll / Periods / Details</span>
             </div>
-            <p>
-                <strong>@Model.PeriodCode</strong><span>•</span>
-                Mã kỳ: <strong>#@Model.PayrollPeriodId</strong><span>•</span>
-                Chu kỳ: <strong>@Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</strong><span>•</span>
-                Chi nhánh: <strong class="purple">@Model.BranchName</strong>
-                @if (Model.ScheduleWeekId.HasValue)
+
+            <!-- Title & Status Badge -->
+            <div class="flex items-center gap-3 flex-wrap">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@Model.PeriodName</h1>
+                @if (isDraft)
                 {
-                    <span>•</span><span>Tuần lịch trình: <strong>#@Model.ScheduleWeekId</strong></span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        DRAFT
+                    </span>
                 }
-            </p>
-            <p>
-                Tạo lúc: <strong>@D.Time(Model.CreatedAt)</strong>
-                @if (Model.PublishedAt.HasValue)
+                else if (isOpen)
                 {
-                    <span>•</span><span>Mở kỳ: <strong>@D.Time(Model.PublishedAt)</strong></span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        OPEN
+                    </span>
                 }
-                @if (Model.ApprovalDeadlineAt.HasValue)
+                else if (isCalculated)
                 {
-                    <span>•</span><span>Hạn Admin duyệt (UTC+7): <strong>@D.Time(Model.ApprovalDeadlineAt)</strong></span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                        CALCULATED
+                    </span>
                 }
-                @if (Model.PaidAt.HasValue)
+                else if (isRevisionRequired)
                 {
-                    <span>•</span><span>Quyết toán (UTC+7): <strong>@D.Time(Model.PaidAt)</strong></span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        REVISION REQUIRED
+                    </span>
                 }
-                @if (Model.ClosedAt.HasValue)
+                else if (isSubmitted)
                 {
-                    <span>•</span><span>Đóng kỳ (UTC+7): <strong>@D.Time(Model.ClosedAt)</strong></span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        SUBMITTED
+                    </span>
                 }
+                else if (isApproved)
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        APPROVED
+                    </span>
+                }
+                else if (isPaid)
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                        PAID
+                    </span>
+                }
+                else if (isClosed)
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        CLOSED
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        @status
+                    </span>
+                }
+            </div>
+
+            <!-- Single Subtitle Line: Period Code, Branch, Date Range -->
+            <p class="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                <span class="font-semibold text-slate-700">@Model.PeriodCode</span>
+                <span class="text-slate-300">•</span>
+                <span>Branch: <strong class="text-slate-800">@Model.BranchName</strong></span>
+                <span class="text-slate-300">•</span>
+                <span>@Model.StartDate.ToString("dd/MM/yyyy") – @Model.EndDate.ToString("dd/MM/yyyy")</span>
             </p>
         </div>
-        <div class="period-header-actions">
-            <a asp-action="Index" class="payroll-button payroll-back-button">
-                <span aria-hidden="true">←</span> Danh sách kỳ lương
-            </a>
 
-            @if (Model.CanOpen)
-            {
-                <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
-                    Publish Kỳ (Open)
-                </a>
-            }
-            @if (isOpen)
-            {
-                <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
-                    Tính lương toàn kỳ
-                </a>
-            }
-            @if (isCalculated || isRevisionRequired)
-            {
-                <a asp-action="SourceImpact" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
-                    Kiểm tra lệch nguồn
-                </a>
-                <button type="button" class="payroll-button" onclick="document.getElementById('send-previews-dialog').showModal()">
-                    Gửi Preview cho Staff
-                </button>
-                <form asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post" style="display:inline;">
-                    @Html.AntiForgeryToken()
-                    <button class="payroll-button primary" type="submit" onclick="return confirm('Bạn có chắc chắn muốn Submit toàn bộ kỳ lương này cho Admin phê duyệt không? Điều kiện: Tất cả review/correction phải hoàn tất.');">
-                        Submit Toàn Kỳ
-                    </button>
-                </form>
-            }
-            @if (isApproved || isPaid || isClosed)
-            {
-                <a asp-action="Settlement" asp-route-id="@Model.PayrollPeriodId" class="payroll-button primary">
-                    @(isPaid || isClosed ? "Xem Quyết Toán" : "Quyết Toán Kỳ Lương")
-                </a>
-                <a asp-controller="AccountantPayslips" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" class="payroll-button">
-                    Xem Phiếu Lương
-                </a>
-            }
-            @if (Model.CanExport)
-            {
-                <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
-                    Xuất Excel
-                </a>
-            }
+        <!-- Back Button -->
+        <div class="flex items-center gap-3 shrink-0">
+            <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Periods</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Period Action Bar (Horizontal, below header) -->
+    <div class="flex flex-wrap items-center gap-2.5 pt-1">
+        @if (isDraft)
+        {
             @if (Model.CanUpdate)
             {
-                <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">
-                    Sửa kỳ
+                <a asp-action="Edit" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-base">edit</span>
+                    <span>Edit Period</span>
+                </a>
+            }
+            @if (Model.CanOpen)
+            {
+                <a asp-action="Open" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-base">lock_open</span>
+                    <span>Open Period</span>
                 </a>
             }
             @if (Model.CanDelete)
             {
-                <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="payroll-button" style="color:#ef4444;">
-                    Xóa Draft
+                <a asp-action="Delete" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-medium transition-all">
+                    <span class="material-symbols-outlined text-base">delete</span>
+                    <span>Delete Draft</span>
                 </a>
             }
-        </div>
-    </section>
+        }
+        @if (isOpen)
+        {
+            <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">calculate</span>
+                <span>Calculation Workspace</span>
+            </a>
+        }
+        @if (isCalculated || isRevisionRequired)
+        {
+            <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">calculate</span>
+                <span>Calculation Workspace</span>
+            </a>
+            <a asp-action="SourceImpact" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">sync_problem</span>
+                <span>Check Source Impact</span>
+            </a>
+            <button type="button" onclick="document.getElementById('send-previews-dialog').showModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-base">send</span>
+                <span>Send Previews to Staff</span>
+            </button>
+            <form asp-action="SubmitPeriod" asp-route-id="@Model.PayrollPeriodId" method="post" class="inline-block">
+                @Html.AntiForgeryToken()
+                <button type="submit" onclick="return confirm('Are you sure you want to submit this entire payroll period to Admin for final approval? All staff previews, feedback, and manager corrections must be completed.');"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl @(isEligibleToSubmit ? "bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm" : "bg-slate-100 text-slate-400 cursor-not-allowed") text-sm transition-all"
+                        @(isEligibleToSubmit ? "" : "disabled") title="@(isEligibleToSubmit ? "Submit period to Admin" : "Cannot submit: pending reviews or unresolved corrections exist")">
+                    <span class="material-symbols-outlined text-base">publish</span>
+                    <span>Submit to Admin</span>
+                </button>
+            </form>
+        }
+        @if (isApproved || isPaid || isClosed)
+        {
+            <a asp-action="Settlement" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">account_balance_wallet</span>
+                <span>@(isPaid || isClosed ? "View Settlement" : "Settle Entire Period")</span>
+            </a>
+            <a asp-controller="AccountantPayslips" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">receipt_long</span>
+                <span>View Payslips</span>
+            </a>
+        }
+        @if (Model.CanExport)
+        {
+            <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">download</span>
+                <span>Export Excel</span>
+            </a>
+        }
+    </div>
 
+    <!-- Alert Messages -->
     @if (TempData["PeriodError"] is string error)
     {
-        <div class="payroll-message error" role="alert">@error</div>
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+            <span class="font-medium">@error</span>
+        </div>
     }
     <partial name="_PayrollWorkflowMessages" />
     @if (TempData["PeriodSuccess"] is string success)
     {
-        <div class="payroll-message" role="status">@success</div>
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+            <span class="font-medium">@success</span>
+        </div>
     }
 
     @if (isRevisionRequired)
     {
-        <div class="revision-notice">
-            Kỳ lương đang yêu cầu chỉnh sửa (REVISION REQUIRED). Có <strong>@Model.RejectedPayrollCount</strong> phiếu lương bị từ chối hoặc @Model.PendingCorrectionCount yêu cầu kiểm tra nguồn chưa xử lý xong với Quản lý chi nhánh trước khi gửi lại Admin duyệt.
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0 mt-0.5">report_problem</span>
+            <div>
+                <strong class="font-bold">Revision Required by Admin:</strong>
+                <p class="mt-0.5 text-rose-800">
+                    There are <strong>@Model.RejectedPayrollCount</strong> rejected payrolls or @Model.PendingCorrectionCount source correction requests that must be resolved with the Branch Manager before re-submitting to Admin.
+                </p>
+            </div>
         </div>
     }
 
-    <!-- KPI STATS CARDS -->
-    <section class="payroll-stats detail-stats" aria-label="Period totals">
-        <article>
-            <div>TỔNG THỰC NHẬN <span>▣</span></div>
-            <p><strong>@D.Money(Model.TotalNetSalary)</strong></p>
-            <small>Tổng thực nhận toàn kỳ</small>
-        </article>
-        <article>
-            <div>LƯƠNG CÔNG <span>◷</span></div>
-            <p><strong>@D.Money(totalWorkPay)</strong></p>
-            <small>@totalHours.ToString("0.##") giờ làm việc</small>
-        </article>
-        <article>
-            <div>TỔNG THƯỞNG <span>⊕</span></div>
-            <p><strong class="reward">@D.Money(totalReward)</strong></p>
-            <small>Các khoản thưởng kỳ</small>
-        </article>
-        <article>
-            <div>TỔNG GIẢM TRỪ <span>⊖</span></div>
-            <p><strong class="red">@D.Money(totalDeduction)</strong></p>
-            <small>Phạt: @D.Money(totalPenalty) · Chấm công: @D.Money(totalAttendanceDeduction)</small>
-        </article>
-        <article>
-            <div>NHÂN SỰ / PHIẾU LƯƠNG <span>♙</span></div>
-            <p><strong>@Model.TotalPayrolls / @Model.ExpectedEmployeeCount <em>Staff</em></strong></p>
-            <small class="@(Model.RejectedPayrollCount > 0 ? "red" : "reward")">
-                @Model.LockedTimesheetCount bảng công Locked · @Model.RejectedPayrollCount phiếu từ chối
-            </small>
-        </article>
-    </section>
-
-    <!-- PERIOD AUDIT INFORMATION CARD -->
-    <section class="period-info-card">
-        <h2 class="text-sm font-bold text-gray-700 uppercase tracking-wide mb-3">Thông Tin Kỳ Lương &amp; Bảng Công</h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-            <div>
-                <span class="text-gray-500 block mb-1">Tuần lịch trình (Schedule Week)</span>
-                <strong class="text-sm text-gray-900">#(Model.ScheduleWeekId?.ToString() ?? "—")</strong>
+    <!-- SUMMARY CARDS (Max 4 cards on desktop) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Total Net Salary -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Net Salary</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">payments</span>
             </div>
             <div>
-                <span class="text-gray-500 block mb-1">Bảng công nhân sự đã khóa (Locked)</span>
-                <strong class="text-sm text-gray-900">@Model.LockedTimesheetCount / @Model.ExpectedEmployeeCount nhân viên</strong>
-            </div>
-            <div>
-                <span class="text-gray-500 block mb-1">Hạn phản hồi Staff (UTC+7)</span>
-                <strong class="text-sm text-gray-900">@(Model.InitialFeedbackDeadlineAt.HasValue ? D.Time(Model.InitialFeedbackDeadlineAt) : "Chưa gửi Preview")</strong>
-            </div>
-            <div>
-                <span class="text-gray-500 block mb-1">Hạn Admin phê duyệt (UTC+7)</span>
-                <strong class="text-sm text-gray-900">@D.Time(Model.ApprovalDeadlineAt)</strong>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(Model.TotalNetSalary)</div>
+                <div class="text-xs text-slate-400 mt-1 truncate">
+                    Work Pay: @D.Money(totalWorkPay) • @totalHours.ToString("0.##")h
+                </div>
             </div>
         </div>
-    </section>
 
-    <!-- TAB NAVIGATION -->
-    <nav class="payroll-tabs" role="tablist">
-        <a href="javascript:void(0)" class="tab-btn active" onclick="switchPeriodTab('tab-payrolls', this)">
-            Phiếu Lương Nhân Viên <span>@Model.Payrolls.Count</span>
-        </a>
-        <a href="javascript:void(0)" class="tab-btn" onclick="switchPeriodTab('tab-corrections', this)">
-            Yêu Cầu Sửa Nguồn Manager <span>@(Model.CorrectionRequests?.Count ?? 0)</span>
-        </a>
-        <a href="javascript:void(0)" class="tab-btn" onclick="switchPeriodTab('tab-feedbacks', this)">
-            Lượt Preview &amp; Feedback Staff <span>@(Model.Feedbacks?.Count ?? 0)</span>
-        </a>
-    </nav>
+        <!-- 2. Staff / Payrolls -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Staff &amp; Payrolls</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">badge</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@Model.TotalPayrolls / @Model.ExpectedEmployeeCount <span class="text-sm font-medium text-slate-500">Staff</span></div>
+                <div class="text-xs @(Model.RejectedPayrollCount > 0 ? "text-rose-600 font-semibold" : "text-slate-400") mt-1 truncate">
+                    @Model.LockedTimesheetCount Locked Timesheets • @Model.RejectedPayrollCount Rejected
+                </div>
+            </div>
+        </div>
 
-    <!-- TAB 1: PAYROLLS TABLE -->
-    <div id="tab-payrolls" class="tab-content">
-        <section class="payroll-table-card">
-            <div class="payroll-table-toolbar">
-                <strong>Bảng Lương Nhân Viên Hiện Hành</strong>
-                <span>@Model.Payrolls.Count bản ghi</span>
+        <!-- 3. Timesheet Reviewed -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Timesheets Reviewed</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">fact_check</span>
             </div>
-            <div class="payroll-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>NHÂN VIÊN &amp; MÃ PHIẾU</th>
-                            <th>VỊ TRÍ &amp; MỨC LƯƠNG</th>
-                            <th>GIỜ LÀM</th>
-                            <th class="money">LƯƠNG CÔNG</th>
-                            <th class="money">THƯỞNG</th>
-                            <th class="money">GIẢM TRỪ</th>
-                            <th class="money">THỰC NHẬN</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>THAO TÁC</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var p in Model.Payrolls)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="staff-identity">
-                                        <span class="staff-avatar-initial">
-                                            @(string.IsNullOrWhiteSpace(p.EmployeeFullName) ? "?" : p.EmployeeFullName.Trim()[..1])
-                                        </span>
-                                        <div>
-                                            <strong>@p.EmployeeFullName</strong>
-                                            <small>Payroll #@p.PayrollId · V@(p.VersionNo)</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <strong>@(p.EmployeePosition ?? "Nhân viên")</strong>
-                                    <small>@D.Money(p.HourlyRate)/h</small>
-                                </td>
-                                <td>
-                                    <strong>@p.TotalWorkHours.ToString("0.##") h</strong>
-                                </td>
-                                <td class="money">@D.Money(p.WorkPay)</td>
-                                <td class="money">
-                                    <span class="@(p.TotalReward > 0 ? "reward font-semibold" : "")">@D.Money(p.TotalReward)</span>
-                                </td>
-                                <td class="money">
-                                    <span class="@(p.TotalDeduction > 0 ? "red font-semibold" : "")">@D.Money(p.TotalDeduction)</span>
-                                    @if (p.CarryForwardDeduction > 0)
-                                    {
-                                        <small class="text-secondary">CF: @D.Money(p.CarryForwardDeduction)</small>
-                                    }
-                                </td>
-                                <td class="money">
-                                    <strong>@D.Money(p.NetSalary)</strong>
-                                </td>
-                                <td>
-                                    <span class="payroll-status @p.Status.ToLowerInvariant()">@p.Status.Replace('_', ' ')</span>
-                                </td>
-                                <td>
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId" class="payroll-button">
-                                            Xem xét
-                                        </a>
-                                        <a asp-controller="AccountantPayrollCalculation" asp-action="Details" asp-route-id="@p.PayrollId" class="payroll-button">
-                                            Dòng tính
-                                        </a>
-                                    </div>
-                                    @if (p.Details != null && p.Details.Count > 0)
-                                    {
-                                        <details class="mt-1">
-                                            <summary class="text-xs cursor-pointer text-indigo-600">Chi tiết cấu thành (@p.Details.Count)</summary>
-                                            <div class="p-2 bg-slate-50 rounded mt-1 text-xs">
-                                                @if (p.Rejection?.Reason != null)
-                                                {
-                                                    <p class="text-red-700 font-medium mb-1">Lý do từ chối: @p.Rejection.Reason</p>
-                                                }
-                                                @foreach (var d in p.Details)
-                                                {
-                                                    <div class="py-1 border-b border-gray-100 last:border-0 flex justify-between gap-2">
-                                                        <span>@d.Description:</span>
-                                                        <strong>@D.Money(d.Amount)</strong>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </details>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        @if (Model.Payrolls.Count == 0)
-                        {
-                            <tr>
-                                <td colspan="9" class="payroll-empty">
-                                    <strong>Chưa có phiếu lương nào được tính cho kỳ này.</strong>
-                                    <p>Hãy mở kỳ (Open) và thực hiện tính lương toàn kỳ để xem bảng lương nhân viên.</p>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@Model.ReviewedTimesheetCount / @Model.ExpectedEmployeeCount</div>
+                <div class="text-xs text-slate-400 mt-1 truncate">
+                    @(Model.ReviewedTimesheetCount == Model.ExpectedEmployeeCount ? "100% Timesheets reviewed by Manager" : $"{Model.ExpectedEmployeeCount - Model.ReviewedTimesheetCount} timesheets pending review")
+                </div>
             </div>
-        </section>
+        </div>
+
+        <!-- 4. Staff Review / Corrections Status -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Reviews &amp; Corrections</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">rule</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">
+                    <span class="text-emerald-600">@confirmedReviews</span> <span class="text-xs font-medium text-slate-400">ok</span>
+                    <span class="text-slate-300 mx-1">/</span>
+                    <span class="@(openIssues > 0 ? "text-amber-600" : "text-slate-900")">@openIssues</span> <span class="text-xs font-medium text-slate-400">corr</span>
+                </div>
+                <div class="text-xs text-slate-400 mt-1 truncate">
+                    @pendingReviews Staff Pending • @expiredIssues Expired Issues
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- TAB 2: CORRECTION REQUESTS TABLE -->
-    <div id="tab-corrections" class="tab-content" hidden>
-        <section class="payroll-table-card">
-            <div class="payroll-table-toolbar">
-                <strong>Yêu Cầu Kiểm Tra / Sửa Nguồn Gửi Manager</strong>
-                <span>@(Model.CorrectionRequests?.Count ?? 0) yêu cầu</span>
+    <!-- TIMESHEET & REVIEW PROGRESS (Organized in Manager style) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 1. Timesheet Source Readiness -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-600 text-lg">schedule</span>
+                    <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">1. Timesheet Source Readiness</h2>
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold @(Model.LockedTimesheetCount == Model.ExpectedEmployeeCount ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200")">
+                    @(Model.LockedTimesheetCount == Model.ExpectedEmployeeCount ? "Fully Locked" : "Reviewed / Pending Approval")
+                </span>
             </div>
-            <div class="payroll-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>MÃ / PAYROLL</th>
-                            <th>NHÂN VIÊN</th>
-                            <th>TRẠNG THÁI</th>
-                            <th>HÀNH ĐỘNG MANAGER</th>
-                            <th>LÝ DO TỪ ACCOUNTANT</th>
-                            <th>GHI CHÚ PHẢN HỒI</th>
-                            <th>THAO TÁC</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.CorrectionRequests != null && Model.CorrectionRequests.Count > 0)
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                    <span class="text-slate-500 block mb-1">Timesheets REVIEWED</span>
+                    <strong class="text-sm font-bold text-slate-800">@Model.ReviewedTimesheetCount / @Model.ExpectedEmployeeCount staff</strong>
+                </div>
+                <div class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                    <span class="text-slate-500 block mb-1">Timesheets LOCKED</span>
+                    <strong class="text-sm font-bold text-slate-800">@Model.LockedTimesheetCount / @Model.ExpectedEmployeeCount staff</strong>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400 mt-3">
+                Schedule Week: <strong class="text-slate-700 font-semibold">#@(Model.ScheduleWeekId.HasValue ? Model.ScheduleWeekId.Value.ToString() : "—")</strong> • Timesheets are officially locked upon Admin period approval.
+            </p>
+        </div>
+
+        <!-- 2. Staff Review & Source Corrections -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-indigo-600 text-lg">rate_review</span>
+                    <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">2. Staff Review &amp; Corrections</h2>
+                </div>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold @(isEligibleToSubmit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200")">
+                    @(isEligibleToSubmit ? "Eligible for Admin Submission" : "Pending Requirements")
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+                <div class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                    <span class="text-slate-500 block mb-1">Staff Previews</span>
+                    <strong class="text-xs font-bold text-slate-800">
+                        <span class="text-emerald-700">@confirmedReviews Confirmed</span> · <span class="text-slate-600">@pendingReviews Pending</span>
+                        @if (expiredReviews > 0)
                         {
-                            @foreach (var c in Model.CorrectionRequests)
+                            <span class="text-amber-700 block mt-0.5">@expiredReviews Expired</span>
+                        }
+                    </strong>
+                </div>
+                <div class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                    <span class="text-slate-500 block mb-1">Correction Requests</span>
+                    <strong class="text-xs font-bold text-slate-800">
+                        <span class="@(openIssues > 0 ? "text-amber-700" : "text-emerald-700")">@openIssues In Progress</span>
+                        @if (expiredIssues > 0)
+                        {
+                            <span class="text-rose-700 block mt-0.5">@expiredIssues Expired</span>
+                        }
+                    </strong>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400 mt-3">
+                Review Deadline (UTC+7): <strong class="text-slate-700 font-semibold">@(Model.InitialFeedbackDeadlineAt.HasValue ? D.Time(Model.InitialFeedbackDeadlineAt) : "Previews not sent")</strong>
+                @if (expiredIssues > 0)
+                {
+                    <span class="text-rose-600 font-semibold block mt-1">⚠ @expiredIssues correction request(s) expired. Must resend or complete before submitting.</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    <!-- TABS NAVIGATION (Styled like Manager) -->
+    <div class="border-b border-slate-200">
+        <nav class="flex gap-6" aria-label="Tabs">
+            <button type="button" onclick="switchPeriodTab('tab-payrolls', this)"
+                    class="tab-btn pb-3 text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-2 cursor-pointer transition-all">
+                <span>Employee Payrolls</span>
+                <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold">@Model.Payrolls.Count</span>
+            </button>
+            <button type="button" onclick="switchPeriodTab('tab-corrections', this)"
+                    class="tab-btn pb-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 cursor-pointer transition-all">
+                <span>Manager Corrections</span>
+                <span class="px-2 py-0.5 rounded-full text-xs @(openIssues > 0 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-slate-100 text-slate-600") font-bold">
+                    @(Model.CorrectionRequests?.Count ?? 0) @(openIssues > 0 ? $"({openIssues} open)" : "")
+                </span>
+            </button>
+            <button type="button" onclick="switchPeriodTab('tab-feedbacks', this)"
+                    class="tab-btn pb-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 cursor-pointer transition-all">
+                <span>Staff Previews &amp; Feedback</span>
+                <span class="px-2 py-0.5 rounded-full text-xs @(pendingReviews > 0 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-slate-100 text-slate-600") font-bold">
+                    @(Model.Feedbacks?.Count ?? 0) @(pendingReviews > 0 ? $"({pendingReviews} pending)" : "")
+                </span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- TAB 1: EMPLOYEE PAYROLLS TABLE -->
+    <div id="tab-payrolls" class="tab-content">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-indigo-600 text-xl">group</span>
+                    <h2 class="text-sm font-bold text-slate-900">Current Employee Payrolls</h2>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        @Model.Payrolls.Count @(Model.Payrolls.Count == 1 ? "Record" : "Records")
+                    </span>
+                </div>
+            </div>
+
+            @if (Model.Payrolls.Count == 0)
+            {
+                <div class="p-12 text-center">
+                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                        <span class="material-symbols-outlined text-3xl">receipt_long</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">No Payrolls Calculated Yet</h3>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">Open this period and proceed to the Calculation Workspace to run the initial calculation for all employees.</p>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">Employee / Version</th>
+                                <th class="py-3.5 px-6">Work Hours</th>
+                                <th class="py-3.5 px-6 text-right">Work Pay</th>
+                                <th class="py-3.5 px-6 text-right">Adjustments</th>
+                                <th class="py-3.5 px-6 text-right">Net Salary</th>
+                                <th class="py-3.5 px-6">Status</th>
+                                <th class="py-3.5 px-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            @foreach (var p in Model.Payrolls)
                             {
-                                <tr>
-                                    <td>
-                                        <strong>Req #@c.CorrectionRequestId</strong>
-                                        <small class="block">Payroll #@c.PayrollId</small>
-                                        @if (c.ResolvedPayrollId.HasValue)
+                                var hasCorrection = Model.CorrectionRequests?.Any(c => c.PayrollId == p.PayrollId) == true;
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <!-- Employee / Version -->
+                                    <td class="py-4 px-6">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-xs text-indigo-700 shrink-0">
+                                                @(string.IsNullOrWhiteSpace(p.EmployeeFullName) ? "?" : p.EmployeeFullName.Trim()[..1])
+                                            </div>
+                                            <div>
+                                                <div class="font-semibold text-slate-900">@p.EmployeeFullName</div>
+                                                <div class="text-xs text-slate-400 mt-0.5">
+                                                    @(p.EmployeePosition ?? "Employee") • @D.Money(p.HourlyRate)/h • Payroll #@p.PayrollId · V@(p.VersionNo)
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    <!-- Work Hours -->
+                                    <td class="py-4 px-6 font-medium text-slate-800">
+                                        @p.TotalWorkHours.ToString("0.##") h
+                                    </td>
+
+                                    <!-- Work Pay -->
+                                    <td class="py-4 px-6 text-right font-medium text-slate-800">
+                                        @D.Money(p.WorkPay)
+                                    </td>
+
+                                    <!-- Adjustments -->
+                                    <td class="py-4 px-6 text-right text-xs">
+                                        @if (p.TotalReward > 0)
                                         {
-                                            <small class="block text-emerald-700">Resolved: Payroll #@c.ResolvedPayrollId</small>
+                                            <span class="font-semibold text-emerald-600 block">+@D.Money(p.TotalReward)</span>
+                                        }
+                                        @if (p.TotalDeduction > 0)
+                                        {
+                                            <span class="font-semibold text-rose-600 block">-@D.Money(p.TotalDeduction)</span>
+                                        }
+                                        @if (p.CarryForwardDeduction > 0)
+                                        {
+                                            <span class="text-[11px] text-slate-400 block">CF: -@D.Money(p.CarryForwardDeduction)</span>
+                                        }
+                                        @if (p.TotalReward == 0 && p.TotalDeduction == 0)
+                                        {
+                                            <span class="text-slate-400">—</span>
                                         }
                                     </td>
-                                    <td>
-                                        <strong>@c.EmployeeName</strong>
+
+                                    <!-- Net Salary -->
+                                    <td class="py-4 px-6 text-right">
+                                        <strong class="font-bold text-slate-900 text-sm">@D.Money(p.NetSalary)</strong>
                                     </td>
-                                    <td>
-                                        <span class="payroll-status @c.Status.ToLowerInvariant()">@c.Status</span>
+
+                                    <!-- Status -->
+                                    <td class="py-4 px-6">
+                                        @if (p.Status == "CALCULATED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                CALCULATED
+                                            </span>
+                                        }
+                                        else if (p.Status == "REJECTED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                REJECTED
+                                            </span>
+                                        }
+                                        else if (p.Status == "APPROVED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                APPROVED
+                                            </span>
+                                        }
+                                        else if (p.Status == "PAID")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                                PAID
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                @p.Status.Replace('_', ' ')
+                                            </span>
+                                        }
                                     </td>
-                                    <td>
+
+                                    <!-- Actions -->
+                                    <td class="py-4 px-6 text-right">
+                                        <div class="inline-flex items-center gap-1.5 justify-end">
+                                            <a asp-controller="AccountantPayrollCalculation" asp-action="Details" asp-route-id="@p.PayrollId"
+                                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                                                <span class="material-symbols-outlined text-sm">visibility</span>
+                                                <span>Details</span>
+                                            </a>
+                                            @if (p.Status == "REJECTED" || isRevisionRequired || hasCorrection)
+                                            {
+                                                <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId"
+                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-all"
+                                                   title="Review or create correction for this payroll">
+                                                    <span class="material-symbols-outlined text-sm">rate_review</span>
+                                                    <span>Review</span>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TAB 2: MANAGER CORRECTION REQUESTS -->
+    <div id="tab-corrections" class="tab-content hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-indigo-600 text-xl">build_circle</span>
+                    <h2 class="text-sm font-bold text-slate-900">Manager Source Correction Requests</h2>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        @(Model.CorrectionRequests?.Count ?? 0) @((Model.CorrectionRequests?.Count ?? 0) == 1 ? "Request" : "Requests")
+                    </span>
+                </div>
+            </div>
+
+            @if (Model.CorrectionRequests == null || Model.CorrectionRequests.Count == 0)
+            {
+                <div class="p-12 text-center">
+                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                        <span class="material-symbols-outlined text-3xl">task_alt</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">No Correction Requests</h3>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">No source correction requests have been created for this period.</p>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">Request ID</th>
+                                <th class="py-3.5 px-6">Employee</th>
+                                <th class="py-3.5 px-6">Status</th>
+                                <th class="py-3.5 px-6">Deadline (UTC+7)</th>
+                                <th class="py-3.5 px-6">Manager Action</th>
+                                <th class="py-3.5 px-6">Accountant Reason</th>
+                                <th class="py-3.5 px-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            @foreach (var c in Model.CorrectionRequests)
+                            {
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <td class="py-4 px-6 font-semibold text-slate-900">
+                                        <span class="inline-flex items-center gap-1 font-mono text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+                                            #@c.CorrectionRequestId
+                                        </span>
+                                        <div class="text-xs text-slate-400 mt-1">Payroll #@c.PayrollId</div>
+                                        @if (c.ResolvedPayrollId.HasValue)
+                                        {
+                                            <div class="text-[11px] text-emerald-700 font-medium">Resolved: #@c.ResolvedPayrollId</div>
+                                        }
+                                    </td>
+                                    <td class="py-4 px-6 font-semibold text-slate-900">
+                                        @c.EmployeeName
+                                    </td>
+                                    <td class="py-4 px-6">
+                                        @if (c.Status == "OPEN")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                OPEN
+                                            </span>
+                                        }
+                                        else if (c.Status == "RESPONDED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                RESPONDED
+                                            </span>
+                                        }
+                                        else if (c.Status == "EXPIRED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                EXPIRED
+                                            </span>
+                                        }
+                                        else if (c.Status == "COMPLETED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                COMPLETED
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                @c.Status
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="py-4 px-6 text-xs text-slate-600">
+                                        <div>@D.Time(c.ResponseDeadlineAt)</div>
+                                        @if (c.Status == "EXPIRED" && c.ExpiredAt.HasValue)
+                                        {
+                                            <div class="text-rose-600 font-semibold text-[11px]">Expired: @D.Time(c.ExpiredAt)</div>
+                                        }
+                                    </td>
+                                    <td class="py-4 px-6 text-xs">
                                         @if (!string.IsNullOrEmpty(c.ManagerAction))
                                         {
                                             <span class="font-bold @(c.ManagerAction == "CORRECT" ? "text-indigo-600" : "text-amber-600")">
                                                 @c.ManagerAction
                                             </span>
+                                            @if (!string.IsNullOrEmpty(c.ManagerNote))
+                                            {
+                                                <p class="text-slate-500 text-[11px] mt-0.5 line-clamp-1" title="@c.ManagerNote">@c.ManagerNote</p>
+                                            }
                                         }
                                         else
                                         {
-                                            <span class="text-secondary">—</span>
+                                            <span class="text-slate-400">—</span>
                                         }
                                     </td>
-                                    <td>
-                                        <p class="text-xs max-w-xs break-words">@c.Reason</p>
+                                    <td class="py-4 px-6 text-xs text-slate-700 max-w-xs">
+                                        <p class="line-clamp-2" title="@c.Reason">@c.Reason</p>
                                     </td>
-                                    <td>
-                                        <p class="text-xs max-w-xs break-words">@(c.ManagerNote ?? "—")</p>
-                                    </td>
-                                    <td>
-                                        <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@c.PayrollId" class="payroll-button">
-                                            Xem &amp; Xử lý
+                                    <td class="py-4 px-6 text-right">
+                                        <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@c.PayrollId"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg @(c.Status == "EXPIRED" ? "bg-rose-600 hover:bg-rose-700 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700") text-xs font-semibold transition-all">
+                                            <span class="material-symbols-outlined text-sm">@(c.Status == "EXPIRED" ? "send" : "visibility")</span>
+                                            <span>@(c.Status == "EXPIRED" ? "Resend to Manager" : "Review")</span>
                                         </a>
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="7" class="payroll-empty">
-                                    <strong>Chưa có yêu cầu sửa nguồn nào trong kỳ này.</strong>
-                                    <p>Khi có phiếu lương cần điều chỉnh với quản lý, tạo yêu cầu từ màn hình Xem xét / Revision.</p>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
 
     <!-- TAB 3: STAFF PREVIEWS & FEEDBACK -->
-    <div id="tab-feedbacks" class="tab-content" hidden>
-        <section class="payroll-table-card">
-            <div class="payroll-table-toolbar">
-                <strong>Danh Sách Lượt Xem Trước &amp; Phản Hồi Của Nhân Viên</strong>
-                <span>@(Model.Feedbacks?.Count ?? 0) lượt gửi</span>
+    <div id="tab-feedbacks" class="tab-content hidden">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <div class="flex items-center gap-2.5">
+                    <span class="material-symbols-outlined text-indigo-600 text-xl">mark_email_read</span>
+                    <h2 class="text-sm font-bold text-slate-900">Staff Previews &amp; Feedback</h2>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        @(Model.Feedbacks?.Count ?? 0) @((Model.Feedbacks?.Count ?? 0) == 1 ? "Round" : "Rounds")
+                    </span>
+                </div>
             </div>
-            <div class="payroll-table-scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>MÃ LƯỢT / ROUND</th>
-                            <th>NHÂN VIÊN</th>
-                            <th>REVIEW STATUS</th>
-                            <th>FEEDBACK STATUS</th>
-                            <th>HẠN CHÓT</th>
-                            <th>NỘI DUNG PHẢN HỒI</th>
-                            <th>THAO TÁC</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model.Feedbacks != null && Model.Feedbacks.Count > 0)
-                        {
+
+            @if (Model.Feedbacks == null || Model.Feedbacks.Count == 0)
+            {
+                <div class="p-12 text-center">
+                    <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                        <span class="material-symbols-outlined text-3xl">send</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">No Previews Sent Yet</h3>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">Click "Send Previews to Staff" above to distribute payroll previews for employee verification.</p>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-6">Feedback / Round</th>
+                                <th class="py-3.5 px-6">Employee</th>
+                                <th class="py-3.5 px-6">Review Status</th>
+                                <th class="py-3.5 px-6">Feedback Status</th>
+                                <th class="py-3.5 px-6">Deadline (UTC+7)</th>
+                                <th class="py-3.5 px-6">Description</th>
+                                <th class="py-3.5 px-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
                             @foreach (var fb in Model.Feedbacks)
                             {
-                                <tr>
-                                    <td>
-                                        <strong>#@fb.FeedbackId</strong>
-                                        <small class="block">Round @fb.RoundNo · Payroll #@fb.PayrollId</small>
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <td class="py-4 px-6 font-semibold text-slate-900">
+                                        <span class="inline-flex items-center gap-1 font-mono text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
+                                            #@fb.FeedbackId
+                                        </span>
+                                        <div class="text-xs text-slate-400 mt-1">Round @fb.RoundNo • Payroll #@fb.PayrollId</div>
                                     </td>
-                                    <td>
-                                        <strong>@fb.EmployeeName</strong>
+                                    <td class="py-4 px-6 font-semibold text-slate-900">
+                                        @fb.EmployeeName
                                     </td>
-                                    <td>
-                                        <span class="payroll-status @(fb.ReviewStatus?.ToLowerInvariant() ?? "")">@fb.ReviewStatus</span>
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(fb.Status))
+                                    <td class="py-4 px-6">
+                                        @if (fb.ReviewStatus == "PENDING")
                                         {
-                                            <span class="payroll-status @fb.Status.ToLowerInvariant()">@fb.Status</span>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                PENDING
+                                            </span>
+                                        }
+                                        else if (fb.ReviewStatus == "CONFIRMED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                CONFIRMED
+                                            </span>
+                                        }
+                                        else if (fb.ReviewStatus == "EXPIRED")
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                EXPIRED
+                                            </span>
+                                            <span class="text-[10px] text-slate-400 block mt-0.5">Deemed agreed</span>
                                         }
                                         else
                                         {
-                                            <span class="text-secondary">—</span>
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                                @fb.ReviewStatus
+                                            </span>
                                         }
                                     </td>
-                                    <td>
-                                        <small>@D.Time(fb.ReviewDeadlineAt)</small>
+                                    <td class="py-4 px-6">
+                                        @if (!string.IsNullOrEmpty(fb.Status))
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                                @fb.Status
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-slate-400 text-xs">—</span>
+                                        }
                                     </td>
-                                    <td>
-                                        <p class="text-xs max-w-xs break-words">@(fb.Description ?? "Chưa có phản hồi")</p>
+                                    <td class="py-4 px-6 text-xs text-slate-600">
+                                        @D.Time(fb.ReviewDeadlineAt)
                                     </td>
-                                    <td>
-                                        <a asp-controller="AccountantPayrollFeedback" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" asp-route-userId="@fb.UserId" class="payroll-button">
-                                            Xem Phản Hồi
+                                    <td class="py-4 px-6 text-xs text-slate-700 max-w-xs">
+                                        <p class="line-clamp-2" title="@fb.Description">@(string.IsNullOrWhiteSpace(fb.Description) ? "No remarks submitted" : fb.Description)</p>
+                                    </td>
+                                    <td class="py-4 px-6 text-right">
+                                        <a asp-controller="AccountantPayrollFeedback" asp-action="Index" asp-route-payrollPeriodId="@Model.PayrollPeriodId" asp-route-userId="@fb.UserId"
+                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                                            <span class="material-symbols-outlined text-sm">visibility</span>
+                                            <span>Details</span>
                                         </a>
                                     </td>
                                 </tr>
                             }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="7" class="payroll-empty">
-                                    <strong>Chưa có lượt gửi Preview nào cho nhân viên.</strong>
-                                    <p>Nhấn "Gửi Preview cho Staff" sau khi tính toán kỳ lương để bắt đầu lượt phản hồi.</p>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </section>
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
 </div>
 
-<!-- MODAL: SEND PREVIEWS -->
-<dialog id="send-previews-dialog" class="rounded-xl p-0 shadow-2xl border-0 max-w-md w-full backdrop:bg-black/40">
-    <form asp-action="SendPreviews" asp-route-id="@Model.PayrollPeriodId" method="post" class="p-6">
-        @Html.AntiForgeryToken()
-        <h3 class="text-lg font-bold text-gray-900 mb-2">Gửi Payroll Preview Cho Staff</h3>
-        <p class="text-sm text-gray-600 mb-4">
-            Hệ thống sẽ tạo lượt review (review_status = PENDING) cho toàn bộ nhân viên có Payroll hiện hành.
-            Retry sẽ không tạo lượt trùng lặp.
-        </p>
-        <div class="mb-4">
-            <label class="block text-xs font-semibold text-gray-700 mb-1">Hạn phản hồi ban đầu (Initial Feedback Deadline - UTC+7)</label>
-            <input type="datetime-local" name="initialFeedbackDeadlineAt" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm" />
-            <small class="text-xs text-gray-500 block mt-1">Để trống để hệ thống tự động gán là 00:00 đầu ngày kế tiếp theo UTC+7 (cho phản hồi đến hết ngày gửi).</small>
-        </div>
-        <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
-            <button type="button" class="payroll-button" onclick="document.getElementById('send-previews-dialog').close()">Hủy</button>
-            <button type="submit" class="payroll-button primary">Xác Nhận Gửi Preview</button>
-        </div>
-    </form>
+<!-- MODAL: SEND PREVIEWS (Manager Modal Style) -->
+<dialog id="send-previews-dialog" class="rounded-2xl p-0 shadow-2xl border border-slate-200 max-w-md w-full backdrop:bg-slate-900/60 backdrop:backdrop-blur-xs">
+    <div class="relative bg-white rounded-2xl overflow-hidden">
+        <form asp-action="SendPreviews" asp-route-id="@Model.PayrollPeriodId" method="post">
+            @Html.AntiForgeryToken()
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">send</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Send Previews to Staff</h3>
+                        <p class="text-xs text-slate-500">Period: @Model.PeriodCode • @Model.Payrolls.Count active payrolls</p>
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 mb-4">
+                    The system creates a preview review record (<strong class="text-slate-800">ReviewStatus = PENDING</strong>) for each employee with a current calculated payroll. Retrying will not create duplicates.
+                </div>
+
+                <div class="mb-2">
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                        Initial Feedback Deadline (UTC+7)
+                    </label>
+                    <input type="datetime-local" name="initialFeedbackDeadlineAt"
+                           class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+                    <p class="text-[11px] text-slate-400 mt-1.5">
+                        Leave empty to automatically assign 23:59:59 of today (Vietnam Time, UTC+7).
+                    </p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="document.getElementById('send-previews-dialog').close()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                    <span>Confirm &amp; Send</span>
+                </button>
+            </div>
+        </form>
+    </div>
 </dialog>
 
 @section Scripts {
     <script>
         function switchPeriodTab(tabId, btn) {
-            document.querySelectorAll('.tab-content').forEach(el => el.hidden = true);
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-indigo-600', 'text-indigo-600');
+                el.classList.add('border-transparent', 'text-slate-500');
+            });
             const target = document.getElementById(tabId);
-            if (target) target.hidden = false;
-            btn.classList.add('active');
+            if (target) target.classList.remove('hidden');
+            btn.classList.add('border-indigo-600', 'text-indigo-600');
+            btn.classList.remove('border-transparent', 'text-slate-500');
         }
     </script>
 }

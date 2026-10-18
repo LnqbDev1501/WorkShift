@@ -29,6 +29,12 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
             review.Issues = allIssues.Where(r => versionIds.Contains(r.PayrollId) || (r.ResolvedPayrollId.HasValue && versionIds.Contains(r.ResolvedPayrollId.Value))).ToList();
         }
         catch { /* non-blocking optional fetch */ }
+        try
+        {
+            var feedbacks = await api.Get<PayrollFeedbackListResponse>($"/payroll-feedback-requests?payrollPeriodId={p.PayrollPeriodId}&pageSize=100", ct);
+            review.LatestFeedbackId = feedbacks.Items.Where(f => f.UserId == p.UserId).MaxBy(f => f.FeedbackId)?.FeedbackId;
+        }
+        catch { /* non-blocking optional fetch */ }
         return View("~/Views/PayrollRevision/Review.cshtml", review);
     }, ct);
 
@@ -155,6 +161,56 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
         {
             await api.RegisterRelatedImpactAsync(requestId, ct);
             TempData["SuccessMessage"] = "Related source impacts registered successfully.";
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) when (Handled(ex))
+        {
+            if (Access(ex) is IActionResult denied) return denied;
+            TempData["ErrorMessage"] = Message(ex);
+        }
+
+        return RedirectToAction(nameof(Review), new { id = payrollId });
+    }
+
+    // Step 5: Accountant resends correction request to Manager (e.g. after EXPIRED)
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendCorrection(int requestId, int payrollId, string reason, CancellationToken ct)
+    {
+        if (requestId <= 0 || string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "Vui lòng nhập lý do gửi lại yêu cầu kiểm tra cho Quản lý.";
+            return RedirectToAction(nameof(Review), new { id = payrollId });
+        }
+
+        try
+        {
+            await api.ResendCorrectionAsync(requestId, reason.Trim(), ct);
+            TempData["SuccessMessage"] = "Đã gửi lại yêu cầu kiểm tra nguồn cho Quản lý với hạn phản hồi mới (23:59:59).";
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception ex) when (Handled(ex))
+        {
+            if (Access(ex) is IActionResult denied) return denied;
+            TempData["ErrorMessage"] = Message(ex);
+        }
+
+        return RedirectToAction(nameof(Review), new { id = payrollId });
+    }
+
+    // Step 6/8: Accountant explicitly resends preview to Staff with reason
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResendPreview(int feedbackId, int payrollId, string reason, CancellationToken ct)
+    {
+        if (feedbackId <= 0 || string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "Vui lòng nhập lý do gửi lại bản xem trước (Preview) cho Nhân viên.";
+            return RedirectToAction(nameof(Review), new { id = payrollId });
+        }
+
+        try
+        {
+            await api.ResendPreviewAsync(feedbackId, reason.Trim(), ct);
+            TempData["SuccessMessage"] = "Đã gửi lại bản xem trước (Payroll Preview) cho Nhân viên thành công với hạn phản hồi mới.";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))

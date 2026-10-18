@@ -56,4 +56,8 @@ public sealed class PayrollFeedbackController(IPayrollFeedbackService service) :
     public Task<IActionResult> SourceImpact(int id, CancellationToken ct) => Execute(async a => await service.SourceImpactAsync(a, id, ct));
     [HttpPost("payroll-correction-requests/{id:int}/register-related-impact"), Authorize(Roles = "ACCOUNTANT")]
     public Task<IActionResult> RegisterRelatedImpact(int id, CancellationToken ct) => Execute(async a => await service.RegisterRelatedImpactAsync(a, id, ct));
+    [HttpPost("payroll-correction-requests/{id:int}/resend"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> ResendCorrection(int id, ResendPayrollIssueRequest request, CancellationToken ct) => Execute(async a => await service.ResendIssueAsync(a, id, request, ct));
+    [HttpPost("payroll-previews/{id:int}/resend"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> ResendPreview(int id, ResendPayrollPreviewRequest request, CancellationToken ct) => Execute(async a => await service.ResendPreviewAsync(a, id, request, ct));
 }

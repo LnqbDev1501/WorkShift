@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -56,6 +56,8 @@ public partial class Timesheet
     public int IncompleteShiftCount { get; set; }
 
     public Guid? LockedBy { get; set; }
+
+    public string? ReviewNote { get; set; }
 
     public virtual User? LockedByNavigation { get; set; }
 

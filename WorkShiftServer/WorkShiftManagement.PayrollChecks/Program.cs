@@ -60,8 +60,9 @@ var issues = await svc.IssuesAsync(acct, 1, ct); var active = issues.Single(i =>
 Check(issues.Count == 2 && active.PreviousRequestId == issue.CorrectionRequestId && issues.First().ResolvedPayrollId == null, "Returned explanation preserves history and creates one next request");
 await svc.RespondAsync(manager, active.CorrectionRequestId, new() { Action = "EXPLAIN", Note = "Verified original source" }, ct);
 await svc.ReviewIssueAsync(acct, active.CorrectionRequestId, new() { Decision = "ACCEPT_EXPLANATION", Note = "Accepted explanation" }, ct);
-var next = (await svc.ListAsync(staff, new(), ct)).Items.Single(i => i.ReviewStatus == "PENDING");
-Check(next.PayrollId == oldId && next.RoundNo == 2 && next.PreviousFeedbackId == round.FeedbackId, "Explanation sends new round for same payroll version");
+Check(!(await svc.ListAsync(staff, new(), ct)).Items.Any(i => i.ReviewStatus == "PENDING"), "Accepting explanation does not auto-send new review round");
+var next = await svc.ResendPreviewAsync(acct, round.FeedbackId, new() { Reason = "Accepted explanation" }, ct);
+Check(next.PayrollId == oldId && next.RoundNo == 2 && next.PreviousFeedbackId == round.FeedbackId, "Resend preview creates new round for same payroll version");
 Check(next.ReviewDeadlineAt == new DateTime(2026,10,16,17,0,0,DateTimeKind.Utc), "Open case gets a new review window after initial cutoff");
 await svc.SubmitAsync(staff, next.FeedbackId, new() { Description = "Reward was approved for this period" }, ct);
 await svc.ApproveAsync(acct, next.FeedbackId, new() { ResolutionNote = "Correct source" }, ct);
@@ -78,7 +79,8 @@ Check((await svc.IssuesAsync(acct,1,ct)).Single(i=>i.CorrectionRequestId==correc
 Check(!(await svc.ListAsync(staff,new(),ct)).Items.Any(i=>i.PayrollId==version.PayrollId),"Recalculate does not send Staff a preview");
 await Block(()=>svc.SubmitPeriodAsync(acct,1,ct),"Saved-but-uncompleted correction blocks Submit");
 await svc.CompleteCorrectionAsync(acct,correction.CorrectionRequestId,new(){PayrollId=version.PayrollId,Note="Checked saved result; send to Staff"},ct);
-var v2review = (await svc.ListAsync(staff, new(), ct)).Items.Single(i => i.ReviewStatus == "PENDING");
+Check(!(await svc.ListAsync(staff, new(), ct)).Items.Any(i => i.ReviewStatus == "PENDING" && i.PayrollId == version.PayrollId), "Complete correction does not auto-send to staff");
+var v2review = await svc.ResendPreviewAsync(acct, next.FeedbackId, new() { Reason = "Send V2 to Staff" }, ct);
 Check(v2review.PayrollId == version.PayrollId && v2review.RoundNo == 3 && v2review.PreviousFeedbackId == next.FeedbackId, "Review round number is distinct from payroll version number");
 await Block(() => svc.RecalculateAsync(acct, oldId, new Recalculate { CorrectionRequestId = correction.CorrectionRequestId }, ct), "Cannot branch or repeat an old version");
 await svc.ConfirmAsync(staff, v2review.FeedbackId, ct);
@@ -103,8 +105,9 @@ await svc.SubmitAsync(staff,round.FeedbackId,new(){Description="Question"},ct);
 f.Clock.Utc = new(2026,10,16,8,0,0,DateTimeKind.Utc);
 await Block(()=>svc.RejectAsync(acct,round.FeedbackId,new(){ResolutionNote=" "},ct),"Rejection requires explanation");
 await svc.RejectAsync(acct,round.FeedbackId,new(){ResolutionNote="Source is correct"},ct);
-next=(await svc.ListAsync(staff,new(),ct)).Items.Single(p=>p.ReviewStatus=="PENDING");
-Check(next.RoundNo==2 && next.PayrollId==round.PayrollId,"Rejected feedback returns same version with result note");
+Check(!(await svc.ListAsync(staff,new(),ct)).Items.Any(p=>p.ReviewStatus=="PENDING"),"Rejecting feedback does not auto-send new review round");
+next=await svc.ResendPreviewAsync(acct,round.FeedbackId,new(){Reason="Source is correct"},ct);
+Check(next.RoundNo==2 && next.PayrollId==round.PayrollId,"Explicit resend creates round 2 for same version");
 await svc.SubmitAsync(staff,next.FeedbackId,new(){Description="Follow-up on existing issue"},ct);
 Check(f.State.Feedback.Single(r=>r.FeedbackId==next.FeedbackId).Status=="SUBMITTED","Valid existing case may continue after initial cutoff");
 // A source change after review blocks submission rather than silently overwriting saved payroll.

@@ -34,13 +34,12 @@ public static class PayrollPreviewPolicy
     }
     public static void RequireReviewed(PayrollReviewData d)
     {
-        if (d.Corrections.Any(r => r.Status is "OPEN" or "RESPONDED")) throw new InvalidOperationException("Còn Correction Request chưa hoàn tất.");
+        if (d.Corrections.Any(r => r.Status is "OPEN" or "RESPONDED" or "EXPIRED")) throw new InvalidOperationException("Còn Correction Request chưa hoàn tất.");
         if (d.Reviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING")) throw new InvalidOperationException("Còn phản hồi Staff chưa hoàn tất.");
         foreach (var p in Current(d))
         {
             var leaf = d.Reviews.Where(f => f.EmployeeId == p.UserId && Leaf(d, f)).OrderByDescending(f => f.FeedbackId).FirstOrDefault();
-            if (leaf == null || leaf.PayrollId != p.PayrollId || leaf.ReviewStatus is not ("CONFIRMED" or "EXPIRED")
-                || Root(d, leaf).ClosedAt == null)
+            if (leaf == null || leaf.PayrollId != p.PayrollId || leaf.ReviewStatus is not ("CONFIRMED" or "EXPIRED"))
                 throw new InvalidOperationException($"{p.EmployeeFullNameSnapshot}: chưa hoàn tất review bản Payroll hiện hành.");
         }
     }
