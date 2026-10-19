@@ -1,0 +1,30 @@
+@model UI_Admin.Models.PayrollCalculation.CalculationPreviewViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{ ViewData["Title"] = "Preview Payroll Calculation"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+    <style>.calculation-money-summary .list-metrics { grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr)); } .calculation-money-summary .list-metric-value { font-size:20px; }</style>
+}
+<div class="payroll-page">
+    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · REVIEW BEFORE CALCULATION</div><h1>Preview Payroll Calculation</h1><p>Period #@Model.PeriodId · Review work pay, rewards and deductions before saving.</p></div><a asp-action="Index" asp-route-id="@Model.PeriodId" class="payroll-button">Back to employee payrolls</a></header>
+    <aside class="payroll-compliance"><div><strong>Not saved yet</strong><small>This preview does not create Payroll or apply Carry Forward. When you confirm, the backend checks the sources again and calculates from current valid data.</small></div></aside>
+    @if (Model.Error != null) { <div class="payroll-message error" role="alert">@Model.Error</div> }
+    @if (Model.Inputs != null) { @foreach (var warning in Model.Inputs.Readiness.Warnings) { <p class="p-3 text-amber-700">@warning</p> } }
+    @foreach (var employee in Model.FailedEmployees) { <div class="payroll-message error" role="alert"><strong>@employee.EmployeeName</strong>: @string.Join(" · ", employee.BlockingReasons)</div> }
+    @if (Model.Inputs == null && Model.Payrolls.Count == 0 && Model.Error == null) { <p class="p-5">No employees are available for a new calculation. Check readiness or view saved Payrolls.</p> }
+    @if (Model.Payrolls.Count > 1) { <div class="payroll-compliance"><strong>@Model.Payrolls.Count employee previews · Total net salary: @D.Money(Model.Payrolls.Sum(p => p.NetSalary))</strong></div> }
+</div>
+@if (Model.Inputs != null && Model.Payrolls.Count == 0) { <partial name="~/Views/PayrollCalculation/_AvailableInputs.cshtml" model="Model.Inputs" /> }
+@foreach (var payroll in Model.Payrolls) { <partial name="~/Views/PayrollCalculation/_CalculationDetail.cshtml" model="payroll" /> }
+@if (Model.CanSave)
+{
+    <div class="payroll-page">
+        <form method="post" asp-action="@(Model.UserId.HasValue ? "CalculateEmployee" : "CalculatePeriod")" asp-route-id="@Model.PeriodId" data-calculation-form>
+            <input type="hidden" name="reviewToken" value="@Model.ReviewToken" />
+            @if (Model.UserId.HasValue) { <input type="hidden" name="userId" value="@Model.UserId" /> }
+            <p class="text-secondary mb-3">Review all details above before confirming. This review expires after 15 minutes; expired reviews must be loaded again.</p>
+            <button type="submit" class="payroll-button primary">Confirm Calculation &amp; Save Payroll</button>
+        </form>
+    </div>
+}
+@section Scripts { <script src="~/js/payroll-calculation.js" asp-append-version="true"></script> }

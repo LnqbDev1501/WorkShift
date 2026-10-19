@@ -33,8 +33,6 @@ public partial class Payslip
 
     public virtual Payroll Payroll { get; set; } = null!;
 
-    public virtual ICollection<PayrollFeedbackRequest> PayrollFeedbackRequests { get; set; } = new List<PayrollFeedbackRequest>();
-
     public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
 
     public virtual Payslip? PreviousPayslip { get; set; }

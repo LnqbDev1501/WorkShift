@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
+using System.Text.Json.Serialization;
+
 namespace UI_Admin.Models.Catalog;
 
 public class StaffAccountListItemViewModel
@@ -19,7 +21,17 @@ public class StaffAccountPagedViewModel
     public List<StaffAccountListItemViewModel> Items { get; set; } = [];
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = ListPaginationViewModel.DefaultPageSize;
-    public int TotalItems { get; set; }
+
+    [JsonPropertyName("totalCount")]
+    public int TotalCount { get; set; }
+
+    [JsonPropertyName("totalItems")]
+    public int TotalItems
+    {
+        get => TotalCount;
+        set => TotalCount = value;
+    }
+
     public int TotalPages { get; set; }
     public string? Search { get; set; }
     public string StatusFilter { get; set; } = "all";

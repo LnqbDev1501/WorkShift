@@ -1,0 +1,54 @@
+@model UI_Admin.Models.SalaryChanges.SalaryChangeListViewModel
+@using D = UI_Admin.Models.SalaryChanges.SalaryChangeDisplay
+@{
+    Layout = User.IsInRole("MANAGER") ? "_ManagerLayout" : "_AdminLayout";
+    ViewData["Title"] = "Salary Increase Requests";
+    var admin = User.IsInRole("ADMIN");
+}
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <div class="flex flex-wrap justify-between items-center gap-3">
+        <div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">Salary Increase Requests</h1><p>@(admin ? "Review and approve salary increases across branches." : "Propose and track salary increases for employees in your branch.")</p></div>
+        @if (!admin) { <a asp-action="Create" class="btn btn-primary inline-flex items-center gap-2"><span class="material-symbols-outlined">add</span>Create request</a> }
+    </div>
+    <partial name="~/Views/Shared/SalaryChanges/_Messages.cshtml" />
+    @if (Model.ErrorMessage != null) { <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@Model.ErrorMessage <a href="@Context.Request.Path@Context.Request.QueryString" class="underline">Retry</a></div> }
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "trending_up"),
+        new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString(), "On this page", "pending_actions"),
+        new("Approved", Model.Items.Count(x => x.Status == "APPROVED").ToString(), "On this page", "check_circle"),
+        new("Scheduled rates", Model.Items.Count(x => x.NewSalaryStatus == "SCHEDULED").ToString(), "On this page", "schedule")
+    })' />
+    <form asp-action="Index" method="get" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-4 flex flex-col gap-unit-3">
+        <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-unit-3">
+            <div><label for="Keyword" class="block text-label-md text-secondary mb-1">Employee name, ID or reason</label><input id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search requests..." class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="Status" class="block text-label-md text-secondary mb-1">Request status</label><select id="Status" name="Status" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All statuses</option>@foreach (var s in new[] { "PENDING", "APPROVED", "REJECTED", "CANCELLED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></div>
+            <div><label for="UserId" class="block text-label-md text-secondary mb-1">Exact Staff ID (optional)</label><input id="UserId" name="UserId" value="@Model.Query.UserId" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="CreatedFrom" class="block text-label-md text-secondary mb-1">Created from (UTC+7)</label><input id="CreatedFrom" name="CreatedFrom" type="date" value="@Model.Query.CreatedFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="CreatedTo" class="block text-label-md text-secondary mb-1">Created to (UTC+7)</label><input id="CreatedTo" name="CreatedTo" type="date" value="@Model.Query.CreatedTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            @if (admin) { <div><label for="BranchId" class="block text-label-md text-secondary mb-1">Branch ID (optional)</label><input id="BranchId" name="BranchId" type="number" min="1" value="@Model.Query.BranchId" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div> }
+            <div><label for="EffectiveFrom" class="block text-label-md text-secondary mb-1">Proposed date from</label><input id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="EffectiveTo" class="block text-label-md text-secondary mb-1">Proposed date to</label><input id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+        </div>
+        <div class="flex justify-end"><partial name="_ListFilterActions" model='"Index"' /></div>
+    </form>
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto"><table class="w-full text-left">
+            <thead><tr class="bg-surface-container-low text-secondary text-label-md uppercase"><th class="px-5 py-3">Employee</th><th class="px-4 py-3">Previous rate</th><th class="px-4 py-3">Proposed rate</th><th class="px-4 py-3">Effective date</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Created (UTC+7)</th><th class="px-5 py-3 text-right">Details</th></tr></thead>
+            <tbody>
+                @if (Model.Items.Count == 0) { <tr><td colspan="7" class="px-5 py-12 text-center text-secondary">@(Model.ErrorMessage != null ? "Requests could not be loaded." : !ViewData.ModelState.IsValid ? "Please correct the filters above." : "No requests match your filters.")</td></tr> }
+                @foreach (var row in Model.Items)
+                {
+                    <tr class="h-[64px] hover:bg-surface-container-low border-b border-surface-container-low">
+                        <td class="px-5 py-3"><strong>@row.EmployeeName</strong><div class="text-xs text-secondary">@row.BranchName · #@row.SalaryChangeRequestId</div></td>
+                        <td class="px-4 py-3 whitespace-nowrap">@D.Money(row.CurrentHourlyRate)</td><td class="px-4 py-3 whitespace-nowrap text-primary font-semibold">@D.Money(row.ProposedHourlyRate)<span class="text-xs text-secondary"> / hour</span></td>
+                        <td class="px-4 py-3 whitespace-nowrap">@D.Date(row.ApprovedEffectiveFrom ?? row.ProposedEffectiveFrom)<div class="text-xs text-secondary">@(row.ApprovedEffectiveFrom.HasValue ? "Approved date" : "Proposed date")</div></td>
+                        <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@row.Status</span>@if (row.NewSalaryStatus != null) { <div class="text-xs text-secondary mt-2">Rate: @row.NewSalaryStatus</div> }</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-secondary">@D.Time(row.CreatedAt)</td><td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryChangeRequestId" class="text-primary hover:underline">View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+        @if (Model.ErrorMessage == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.PageNumber, PageSize = Model.PageSize, TotalItems = Model.TotalItems, ItemLabel = "requests" })' /> }
+    </div>
+</div>

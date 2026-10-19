@@ -26,7 +26,7 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
 
     public async Task<PayrollCalculationInputs> GetInputsAsync(PayrollPeriod period, CancellationToken ct)
     {
-        var timesheets = await db.Timesheets.AsNoTracking().Include(t => t.User)
+        var timesheets = await db.Timesheets.AsNoTracking().Include(t => t.User).Include(t => t.TimesheetAdjustmentRequests)
             .Where(t => t.PayrollPeriodId == period.PayrollPeriodId).ToListAsync(ct);
         var assignments = await db.ShiftAssignments.AsNoTracking().Include(a => a.Shift).Include(a => a.User)
             .Include(a => a.Attendance).ThenInclude(a => a!.AttendancePenaltyRecords)
@@ -67,11 +67,12 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
         var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
-            // Bulk calculation uses one transaction per employee; reload tracked periods on every retry.
+            // All payroll/review mutations share this lock order; initial calculation is one transaction.
             db.ChangeTracker.Clear();
             // Match approval lock order. Serialize retries, settlement and configuration changes.
             await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_periods, public.payrolls IN SHARE ROW EXCLUSIVE MODE", ct);
-            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.timesheets, public.shift_assignments, public.work_shifts, public.attendances, public.attendance_penalty_records, public.staff_salary_history, public.employment_contracts, public.employee_rewards_penalties, public.public_holiday_configs, public.holiday_pay_rules, public.payroll_carry_forward_deductions IN SHARE MODE", ct);
+            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_feedback_requests, public.payroll_correction_requests, public.payslips, public.payroll_carry_forward_deductions, public.payroll_carry_forward_applications IN SHARE ROW EXCLUSIVE MODE", ct);
+            await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.timesheets, public.shift_assignments, public.work_shifts, public.attendances, public.attendance_penalty_records, public.staff_salary_history, public.employment_contracts, public.employee_rewards_penalties, public.public_holiday_configs, public.holiday_pay_rules IN SHARE MODE", ct);
             return tx;
         }
         catch { await tx.DisposeAsync(); throw; }
@@ -123,11 +124,12 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
     {
         // Supplied schema uses NUMERIC, but protect installations still using NUMERIC(p,2):
         // reject unrepresentable values instead of letting PostgreSQL round money/hours silently.
-        if (db.ChangeTracker.Entries().Any(e => e.State == EntityState.Added && (e.Entity is Payroll or PayrollDetail)))
+        static bool RequiresNumericCheck(object entity) => entity is Payroll or PayrollDetail or PayrollCarryForwardDeduction or PayrollCarryForwardApplication;
+        if (db.ChangeTracker.Entries().Any(e => e.State is EntityState.Added or EntityState.Modified && RequiresNumericCheck(e.Entity)))
         {
             numericColumns ??= await db.Database.SqlQueryRaw<NumericColumn>(
-                "SELECT table_name AS \"TableName\", column_name AS \"ColumnName\", numeric_scale AS \"Scale\" FROM information_schema.columns WHERE table_schema = 'public' AND table_name IN ('payrolls', 'payroll_details') AND data_type = 'numeric'").ToListAsync(ct);
-            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.State == EntityState.Added && (e.Entity is Payroll or PayrollDetail)))
+                "SELECT table_name AS \"TableName\", column_name AS \"ColumnName\", numeric_scale AS \"Scale\" FROM information_schema.columns WHERE table_schema = 'public' AND table_name IN ('payrolls', 'payroll_details', 'payroll_carry_forward_deductions', 'payroll_carry_forward_applications') AND data_type = 'numeric'").ToListAsync(ct);
+            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Modified && RequiresNumericCheck(e.Entity)))
             {
                 var table = entry.Metadata.GetTableName()!;
                 var identifier = StoreObjectIdentifier.Table(table, entry.Metadata.GetSchema());

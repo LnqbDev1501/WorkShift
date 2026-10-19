@@ -34,9 +34,9 @@ public class ManagerContractChangeRequestListItemViewModel
 
     public string FieldsSummary => Items.Count switch
     {
-        0 => "Không có trường",
+        0 => "No fields",
         1 => Items[0].FieldNameDisplay,
-        _ => $"{Items[0].FieldNameDisplay} +{Items.Count - 1} mục khác"
+        _ => $"{Items[0].FieldNameDisplay} +{Items.Count - 1} other(s)"
     };
 }
 
@@ -57,7 +57,7 @@ public class ManagerContractChangeRequestDetailViewModel
     public string? ReviewComment { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    // Thông tin hợp đồng hiện tại
+    // Current contract info
     public string? ContractStatus { get; set; }
     public DateOnly? CurrentStartDate { get; set; }
     public DateOnly? CurrentEndDate { get; set; }
@@ -79,17 +79,17 @@ public class ManagerContractChangeRequestItemDetailViewModel
     public string? Reason { get; set; }
 
     /// <summary>
-    /// Giá trị cuối cùng Manager duyệt áp dụng (mặc định lấy ProposedValue của Staff để Manager có thể sửa).
+    /// Final value decided by Manager upon approval (defaults to ProposedValue from Staff).
     /// </summary>
     public string FinalValue { get; set; } = string.Empty;
 
     public string FieldNameDisplay => FieldName.Trim().ToLowerInvariant() switch
     {
-        "startdate" => "Ngày bắt đầu hợp đồng",
-        "enddate" => "Ngày kết thúc hợp đồng",
-        "hourlyrate" => "Mức lương theo giờ (VNĐ/giờ)",
-        "employeeposition" or "position" => "Chức danh / Vị trí làm việc",
-        "contractterms" or "terms" => "Điều khoản hợp đồng",
+        "startdate" => "Contract Start Date",
+        "enddate" => "Contract End Date",
+        "hourlyrate" => "Hourly Rate (VND/hr)",
+        "employeeposition" or "position" => "Position / Title",
+        "contractterms" or "terms" => "Contract Terms",
         _ => FieldName
     };
 }
@@ -98,7 +98,7 @@ public class ApproveContractChangeRequestViewModel
 {
     public int ChangeRequestId { get; set; }
 
-    [MaxLength(1000, ErrorMessage = "Ghi chú phản hồi tối đa 1000 ký tự.")]
+    [MaxLength(1000, ErrorMessage = "Feedback note cannot exceed 1000 characters.")]
     public string? ReviewComment { get; set; }
 
     public List<ApproveContractChangeRequestItemInputViewModel> Items { get; set; } = [];
@@ -114,7 +114,7 @@ public class RejectContractChangeRequestViewModel
 {
     public int ChangeRequestId { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập lý do từ chối yêu cầu thay đổi.")]
-    [MaxLength(1000, ErrorMessage = "Lý do từ chối tối đa 1000 ký tự.")]
+    [Required(ErrorMessage = "Please provide a reason for rejecting the change request.")]
+    [MaxLength(1000, ErrorMessage = "Rejection reason cannot exceed 1000 characters.")]
     public string Reason { get; set; } = string.Empty;
 }

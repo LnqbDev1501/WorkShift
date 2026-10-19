@@ -4,24 +4,32 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 {
     private readonly IManagerEmployeeRequestRepo _repo;
+    private readonly INotificationRepo? _notificationRepo;
+    private readonly INotificationRealtimePublisher? _realtimePublisher;
+    private readonly ILogger<ManagerEmployeeRequestService>? _logger;
 
     private static readonly HashSet<string> AllowedRequestTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "LEAVE",
         "LATE_ARRIVAL",
-        "EARLY_LEAVE"
+        "EARLY_LEAVE",
+        "SALARY_INCREASE"
     };
 
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -32,9 +40,16 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         "CANCELLED"
     };
 
-    public ManagerEmployeeRequestService(IManagerEmployeeRequestRepo repo)
+    public ManagerEmployeeRequestService(
+        IManagerEmployeeRequestRepo repo,
+        INotificationRepo? notificationRepo = null,
+        INotificationRealtimePublisher? realtimePublisher = null,
+        ILogger<ManagerEmployeeRequestService>? logger = null)
     {
         _repo = repo;
+        _notificationRepo = notificationRepo;
+        _realtimePublisher = realtimePublisher;
+        _logger = logger;
     }
 
     public async Task<PagedResponse<ManagerEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -62,7 +77,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             var trimmed = query.RequestType.Trim().ToUpperInvariant();
             if (!AllowedRequestTypes.Contains(trimmed))
             {
-                throw new ArgumentException($"Invalid request type '{query.RequestType}'. Allowed types: LEAVE, LATE_ARRIVAL, EARLY_LEAVE.");
+                throw new ArgumentException($"Invalid request type '{query.RequestType}'. Allowed types: LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE.");
             }
             normalizedRequestType = trimmed;
         }
@@ -149,6 +164,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 BranchId = r.BranchId,
                 BranchName = r.Branch.BranchName,
                 BranchCode = r.Branch.BranchCode,
+                SalaryIncreaseDetail = r.SalaryIncreaseRequestDetail == null ? null : new ManagerSalaryIncreaseDetailResponse { CurrentContractId = r.SalaryIncreaseRequestDetail.CurrentContractId, ContractNumber = r.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber, CurrentHourlyRate = r.SalaryIncreaseRequestDetail.CurrentHourlyRate, ProposedHourlyRate = r.SalaryIncreaseRequestDetail.ProposedHourlyRate },
                 RequestType = r.RequestType,
                 Reason = r.Reason,
                 Status = r.Status,
@@ -207,38 +223,63 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         return auditLogs.Select(a =>
         {
-            string? note = null;
-            if (!string.IsNullOrWhiteSpace(a.NewValue))
+            string? previousStatus = null;
+            string? newStatus = null;
+            string? reviewNote = null;
+
+            if (!string.IsNullOrWhiteSpace(a.OldValue))
             {
                 try
                 {
-                    using var doc = JsonDocument.Parse(a.NewValue);
-                    if (doc.RootElement.TryGetProperty("ReviewNote", out var noteProp) && noteProp.ValueKind == JsonValueKind.String)
+                    using var oldDoc = JsonDocument.Parse(a.OldValue);
+                    if (oldDoc.RootElement.TryGetProperty("Status", out var pStatus) && pStatus.ValueKind == JsonValueKind.String)
                     {
-                        note = noteProp.GetString();
-                    }
-                    else if (doc.RootElement.TryGetProperty("Reason", out var reasonProp) && reasonProp.ValueKind == JsonValueKind.String)
-                    {
-                        note = reasonProp.GetString();
+                        previousStatus = pStatus.GetString();
                     }
                 }
                 catch
                 {
-                    // Ignore JSON parse errors for note extraction
+                    // Ignore JSON parse errors for backward compatibility
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(a.NewValue))
+            {
+                try
+                {
+                    using var newDoc = JsonDocument.Parse(a.NewValue);
+                    if (newDoc.RootElement.TryGetProperty("Status", out var nStatus) && nStatus.ValueKind == JsonValueKind.String)
+                    {
+                        newStatus = nStatus.GetString();
+                    }
+
+                    if (newDoc.RootElement.TryGetProperty("ReviewNote", out var noteProp) && noteProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = noteProp.GetString();
+                    }
+                    else if (newDoc.RootElement.TryGetProperty("Reason", out var reasonProp) && reasonProp.ValueKind == JsonValueKind.String)
+                    {
+                        reviewNote = reasonProp.GetString();
+                    }
+                }
+                catch
+                {
+                    // Ignore JSON parse errors for backward compatibility
                 }
             }
 
             return new ManagerEmployeeRequestHistoryResponse
             {
                 AuditLogId = a.AuditLogId,
+                RequestId = requestId,
                 Action = a.Action,
-                UserId = a.UserId,
-                FullName = a.User?.FullName,
+                PerformedByUserId = a.UserId,
+                PerformedByName = a.User?.FullName,
                 RoleName = a.User?.Role?.RoleName,
-                Timestamp = ToUtc(a.CreatedAt),
-                Note = note,
-                OldValue = a.OldValue,
-                NewValue = a.NewValue
+                PerformedAt = ToUtc(a.CreatedAt),
+                PreviousStatus = previousStatus,
+                NewStatus = newStatus,
+                ReviewNote = reviewNote
             };
         }).ToList();
     }
@@ -264,6 +305,13 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         if (updated == null)
         {
             throw new KeyNotFoundException("Request not found after approval.");
+        }
+
+        await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: true, request.ReviewNote);
+
+        if (updated.RequestType == "LEAVE")
+        {
+            await BroadcastOpenShiftNotificationAsync(managerId, updated, cancellationToken);
         }
 
         return MapToDetailResponse(updated);
@@ -297,8 +345,93 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             throw new KeyNotFoundException("Request not found after rejection.");
         }
 
+        await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: false, request.ReviewNote);
+
         return MapToDetailResponse(updated);
     }
+
+    private async Task SendManagerReviewNotificationToStaffAsync(
+        Guid managerId,
+        EmployeeRequest request,
+        bool isApproved,
+        string? reviewNote)
+    {
+        if (_notificationRepo == null) return;
+
+        try
+        {
+            var typeVietnamese = TranslateRequestType(request.RequestType);
+            var title = isApproved
+                ? $"Yêu cầu #{request.RequestId} đã được phê duyệt"
+                : $"Yêu cầu #{request.RequestId} đã bị từ chối";
+
+            string content;
+            if (isApproved)
+            {
+                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã được Quản lý phê duyệt.";
+                if (!string.IsNullOrWhiteSpace(reviewNote))
+                {
+                    content += $" Ghi chú: {reviewNote.Trim()}";
+                }
+            }
+            else
+            {
+                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã bị Quản lý từ chối. Lý do: {reviewNote?.Trim()}";
+            }
+
+            var now = DateTime.UtcNow;
+
+            var notification = new NotificationEntity
+            {
+                Title = title,
+                Content = content,
+                NotificationType = "EmployeeRequest",
+                CreatedBy = managerId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = request.BranchId,
+                TargetRoles = new List<string> { "STAFF" },
+                Channels = new List<string> { "InApp" }
+            };
+
+            await _notificationRepo.CreateAsync(notification, new[] { request.UserId }, true);
+
+            if (_realtimePublisher != null)
+            {
+                var realtime = new RealtimeNotificationResponse
+                {
+                    NotificationId = notification.NotificationId,
+                    Title = notification.Title,
+                    Message = notification.Content,
+                    CreatedAt = notification.CreatedAt
+                };
+
+                try
+                {
+                    await _realtimePublisher.PublishAsync(request.UserId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to publish realtime review notification to staff {UserId} for request {RequestId}", request.UserId, request.RequestId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to create/send review notification to staff {UserId} for request {RequestId}", request.UserId, request.RequestId);
+        }
+    }
+
+    private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
+    {
+        "LEAVE" => "xin nghỉ phép",
+        "LATE_ARRIVAL" => "xin đi muộn",
+        "EARLY_LEAVE" => "xin về sớm",
+        "SALARY_INCREASE" => "xin tăng lương",
+        _ => requestType ?? "khác"
+    };
 
     private async Task<int> GetActiveBranchIdAsync(Guid managerId, CancellationToken cancellationToken)
     {
@@ -339,6 +472,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             BranchId = request.BranchId,
             BranchName = request.Branch.BranchName,
             BranchCode = request.Branch.BranchCode,
+            SalaryIncreaseDetail = request.SalaryIncreaseRequestDetail == null ? null : new ManagerSalaryIncreaseDetailResponse { CurrentContractId = request.SalaryIncreaseRequestDetail.CurrentContractId, ContractNumber = request.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber, CurrentHourlyRate = request.SalaryIncreaseRequestDetail.CurrentHourlyRate, ProposedHourlyRate = request.SalaryIncreaseRequestDetail.ProposedHourlyRate },
             RequestType = request.RequestType,
             Reason = request.Reason,
             Status = request.Status,
@@ -430,6 +564,92 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             {
                 return TimeZoneInfo.CreateCustomTimeZone("ICT", TimeSpan.FromHours(7), "Indochina Time", "Indochina Time");
             }
+        }
+    }
+
+    private async Task BroadcastOpenShiftNotificationAsync(
+        Guid managerId,
+        EmployeeRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (_notificationRepo == null) return;
+        if (request.RequestType != "LEAVE") return;
+        if (request.LeaveRequestAssignments == null || request.LeaveRequestAssignments.Count == 0) return;
+
+        var employeeTypeId = request.User?.EmployeeTypeId;
+        if (!employeeTypeId.HasValue) return;
+
+        try
+        {
+            // Lấy danh sách nhân viên cùng chi nhánh, cùng vị trí (loại trừ người xin nghỉ)
+            var eligibleStaffIds = await _repo.GetEligibleStaffUserIdsAsync(
+                request.BranchId,
+                employeeTypeId.Value,
+                request.UserId,
+                cancellationToken);
+
+            if (eligibleStaffIds.Count == 0) return;
+
+            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "nhân viên";
+            var now = DateTime.UtcNow;
+
+            // Mỗi ca được giải phóng slot trong đơn nghỉ sẽ tạo 1 thông báo Open Shift
+            foreach (var lra in request.LeaveRequestAssignments)
+            {
+                var shift = lra.Assignment?.Shift;
+                if (shift == null || shift.ScheduledStartAt <= now) continue;
+
+                var startVn = shift.ScheduledStartAt.AddHours(7);
+                var endVn = shift.ScheduledEndAt.AddHours(7);
+                var shiftName = shift.ShiftNameSnapshot;
+
+                var title = "📢 Ca làm việc cần người làm thay";
+                var content = $"Ca {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) ngày {startVn:dd/MM/yyyy} đang cần 1 {employeeTypeName} làm thay. Nhấn để xem và nhận ca!";
+
+                var notification = new NotificationEntity
+                {
+                    Title = title,
+                    Content = content,
+                    NotificationType = "OpenShift",
+                    CreatedBy = managerId,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false,
+                    TargetType = "Custom",
+                    TargetBranchId = request.BranchId,
+                    TargetRoles = new List<string> { "STAFF" },
+                    Channels = new List<string> { "InApp" }
+                };
+
+                await _notificationRepo.CreateAsync(notification, eligibleStaffIds, true);
+
+                if (_realtimePublisher != null)
+                {
+                    var realtime = new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    };
+
+                    foreach (var staffId in eligibleStaffIds)
+                    {
+                        try
+                        {
+                            await _realtimePublisher.PublishAsync(staffId, realtime);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger?.LogWarning(ex, "Failed to publish realtime open shift notification to staff {UserId}", staffId);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Failed to broadcast open shift notification for leave request #{RequestId}", request.RequestId);
         }
     }
 }

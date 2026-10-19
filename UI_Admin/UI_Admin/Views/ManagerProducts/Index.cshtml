@@ -1,0 +1,250 @@
+@model UI_Admin.Models.Manager.ManagerProductListViewModel
+
+@{
+    ViewData["Title"] = "Products";
+    var canWrite = User.IsInRole("MANAGER");
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+
+    <partial name="_NotificationModal" />
+
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Product Catalog</div>
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Products</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">Manage sellable products, pricing and availability for order processing. Products belong to your branch.</p>
+            <p class="font-body-sm text-body-sm text-primary mt-1">Showing products of your branch.</p>
+        </div>
+        @if (canWrite)
+        {
+            <div class="flex items-center gap-unit-3 self-start md:self-auto">
+                <a asp-controller="ManagerProducts" asp-action="Create" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer">
+                    <span class="material-symbols-outlined text-[20px]">add</span>
+                    <span>Create Product</span>
+                </a>
+            </div>
+        }
+    </div>
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+new("Matching Products", Model.TotalItems.ToString("N0"), "Matching current filters", "inventory_2"),
+new("Active Products", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
+new("Inactive Products", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
+new("Categories", Model.Categories.Count.ToString("N0"), "Available for filtering", "category")
+})' />
+    <!-- Filter Toolbar -->
+    <form method="get" asp-controller="ManagerProducts" asp-action="Index" id="filter-form" class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
+        <div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-unit-3">
+            <!-- Search Input -->
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary">search</span>
+                <input class="w-full h-[40px] pl-9 pr-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                       id="product-search"
+                       name="search"
+                       value="@Model.Search"
+                       placeholder="Search product code or name..."
+                       type="text">
+            </div>
+            <!-- Category Filter Dropdown -->
+            <div class="relative sm:w-56">
+                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
+                        id="category-filter"
+                        name="categoryId"
+                        onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">@category.Name</option>
+                    }
+                </select>
+                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
+            </div>
+            <!-- Status Filter Dropdown -->
+            <div class="relative sm:w-48">
+                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
+                        id="status-filter"
+                        name="status"
+                        onchange="this.form.submit()">
+                    <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
+                    <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
+                    <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
+            </div>
+        </div>
+        <partial name="_ListFilterActions" model='"Index"' />
+    </form>
+
+    <!-- Main Table Container -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-5 py-2" scope="col">Product Code</th>
+                        <th class="px-unit-4 py-2" scope="col">Product Name</th>
+                        <th class="px-unit-4 py-2" scope="col">Branch</th>
+                        <th class="px-unit-4 py-2" scope="col">Category</th>
+                        <th class="px-unit-4 py-2 text-right" scope="col">Price</th>
+                        <th class="px-unit-4 py-2" scope="col">Status</th>
+                        <th class="px-unit-5 py-2 text-right" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-0" id="products-table-body">
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="px-unit-5 py-8 text-center text-secondary font-body-md">
+                                No products found matching your filter criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            var isActive = item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isActive ? "bg-surface-container-lowest/70" : "")">
+                                <td class="px-unit-5 py-2">
+                                    <span class="font-code-num text-code-num @(isActive ? "text-primary" : "text-secondary") font-semibold bg-surface-container px-2 py-1 rounded">@item.ProductCode</span>
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary")">
+                                    @item.ProductName
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
+                                    @item.BranchName
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
+                                    @item.CategoryName
+                                </td>
+                                <td class="px-unit-4 py-2 font-code-num text-code-num @(isActive ? "text-on-surface" : "text-secondary") text-right whitespace-nowrap">
+                                    @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.Price)
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    @if (isActive)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                            Inactive
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-unit-5 py-2 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <a href="@Url.Action("Details", "ManagerProducts", new { id = item.ProductId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">View Details</a>
+                                        @if (canWrite)
+                                        {
+                                            <a href="@Url.Action("Edit", "ManagerProducts", new { id = item.ProductId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-sm transition-colors">Edit</a>
+                                            @if (isActive)
+                                            {
+                                                <button type="button"
+                                                        class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn cursor-pointer"
+                                                        data-id="@item.ProductId"
+                                                        data-name="@item.ProductName">
+                                                    Deactivate
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button"
+                                                        class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors open-restore-btn cursor-pointer"
+                                                        data-id="@item.ProductId"
+                                                        data-name="@item.ProductName">
+                                                    <span class="material-symbols-outlined text-[16px]">restore</span>
+                                                    <span>Restore</span>
+                                                </button>
+                                            }
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination / Footer Bar -->
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            ItemLabel = "products",
+        })" />
+    </div>
+
+    @if (canWrite)
+    {
+        <!-- Deactivate Product Modal Dialog -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="deactivate-product-modal">
+            <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
+                <div class="flex items-start gap-unit-3">
+                    <div class="w-10 h-10 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[24px]">warning</span>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="font-title-lg text-title-lg text-on-surface">Deactivate Product</h2>
+                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface" id="deactivate-target-name">this product</strong>?</p>
+                    </div>
+                    <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+                <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                    <p>Deactivating this product hides it from order processing.</p>
+                    <p>The product can be restored later.</p>
+                </div>
+                <form method="post" asp-controller="ManagerProducts" asp-action="Deactivate" id="deactivate-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deactivate-product-id" value="0" />
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-deactivate-modal" type="button">Cancel</button>
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-error hover:bg-error-container hover:text-on-error-container text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-deactivate-btn" type="submit">Deactivate Product</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Restore Product Modal Dialog -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="restore-product-modal">
+            <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
+                <div class="flex items-start gap-unit-3">
+                    <div class="w-10 h-10 rounded-full bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[24px]">restart_alt</span>
+                    </div>
+                    <div class="flex-1">
+                        <h2 class="font-title-lg text-title-lg text-on-surface">Restore Product</h2>
+                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface" id="restore-target-name">this product</strong>?</p>
+                    </div>
+                    <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+                <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                    <p>Restoring this product will change its status back to <strong class="text-on-surface font-medium">Active</strong>.</p>
+                    <p>The product's category must be active.</p>
+                </div>
+                <form method="post" asp-controller="ManagerProducts" asp-action="Restore" id="restore-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="restore-product-id" value="0" />
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-restore-modal" type="button">Cancel</button>
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-restore-btn" type="submit">Confirm Restore</button>
+                </form>
+            </div>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script src="~/js/products.js" asp-append-version="true"></script>
+}

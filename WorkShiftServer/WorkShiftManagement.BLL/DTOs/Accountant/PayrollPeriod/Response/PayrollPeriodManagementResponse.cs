@@ -19,6 +19,10 @@ public sealed class PayrollPeriodManagementResponse
     public DateTime? PaidAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     public int ExpectedEmployeeCount { get; set; }
+    public Guid? PublishedBy { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public DateTime? InitialFeedbackDeadlineAt { get; set; }
+    public int ReviewedTimesheetCount { get; set; }
     public int LockedTimesheetCount { get; set; }
     public int TotalPayrolls { get; set; }
     public int RejectedPayrollCount { get; set; }

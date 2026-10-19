@@ -48,7 +48,7 @@ public sealed class StaffAttendanceController : ControllerBase
             var result = await _attendanceService.GetEligibleShiftAsync(userId, cancellationToken);
             if (result == null)
             {
-                return NotFound(new { message = "You do not have any scheduled shift assigned for today." });
+                return Ok((EligibleShiftResponse?)null);
             }
 
             return Ok(result);
@@ -81,14 +81,17 @@ public sealed class StaffAttendanceController : ControllerBase
         }
     }
 
+
     /// <summary>
-    /// Creates an active liveness challenge session for check-in (TTL: 90 seconds).
+    /// Retrieves chronological attendance history for the authenticated staff member with status (COMPLETED, IN_PROGRESS, INCOMPLETE, ABSENT).
     /// </summary>
-    [HttpPost("check-in/session")]
-    [ProducesResponseType(typeof(CheckInSessionResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [HttpGet("history")]
+    [ProducesResponseType(typeof(List<StaffAttendanceHistoryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<CheckInSessionResponse>> CreateCheckInSession(CancellationToken cancellationToken)
+    public async Task<ActionResult<List<StaffAttendanceHistoryResponse>>> GetAttendanceHistory(
+        [FromQuery] DateOnly? fromDate,
+        [FromQuery] DateOnly? toDate,
+        CancellationToken cancellationToken)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -98,7 +101,92 @@ public sealed class StaffAttendanceController : ControllerBase
 
         try
         {
-            var result = await _attendanceService.CreateCheckInSessionAsync(userId, cancellationToken);
+            var results = await _attendanceService.GetStaffAttendanceHistoryAsync(userId, fromDate, toDate, cancellationToken);
+            return Ok(results);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving attendance history for staff {UserId}", userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve attendance history.",
+                error = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Retrieves full detailed attendance record for a specific assignment for authenticated staff.
+    /// </summary>
+    [HttpGet("history/{assignmentId:int}")]
+    [ProducesResponseType(typeof(StaffAttendanceDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<StaffAttendanceDetailResponse>> GetAttendanceDetail(
+        int assignmentId,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        try
+        {
+            var result = await _attendanceService.GetStaffAttendanceDetailAsync(userId, assignmentId, cancellationToken);
+            if (result == null)
+            {
+                return NotFound(new { message = $"Attendance record for assignment ID {assignmentId} not found." });
+            }
+
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving attendance detail for staff {UserId}, assignment {AssignmentId}", userId, assignmentId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to retrieve attendance details.",
+                error = ex.Message
+            });
+        }
+    }
+
+    /// <summary>
+    /// Creates an active liveness challenge session for check-in (TTL: 90 seconds).
+    /// </summary>
+    [HttpPost("check-in/session")]
+    [ProducesResponseType(typeof(CheckInSessionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<CheckInSessionResponse>> CreateCheckInSession([FromQuery] int? assignmentId, CancellationToken cancellationToken)
+    {
+        var userId = GetCurrentUserId();
+        if (userId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        try
+        {
+            var result = await _attendanceService.CreateCheckInSessionAsync(userId, assignmentId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)

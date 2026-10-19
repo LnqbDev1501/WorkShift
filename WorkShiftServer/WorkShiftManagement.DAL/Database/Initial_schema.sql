@@ -1,4 +1,4 @@
-﻿-- DEVELOPMENT/TEST ONLY.
+-- DEVELOPMENT/TEST ONLY.
 -- Complete public schema for WorkShift Management.
 -- This script removes and recreates ALL public tables listed below and their data.
 -- Supabase's auth.users is the only prerequisite table.
@@ -533,7 +533,6 @@ CREATE TABLE public.attendances (
     check_out_face_verified boolean,
     check_out_face_confidence numeric(5,4) CHECK (check_out_face_confidence BETWEEN 0 AND 1),
     actual_working_minutes integer NOT NULL DEFAULT 0 CHECK (actual_working_minutes >= 0),
-    working_hours numeric(10,4) NOT NULL DEFAULT 0 CHECK (working_hours >= 0),
     late_arrival_request_id integer REFERENCES public.time_adjustment_request_details(request_id) ON DELETE RESTRICT,
     early_leave_request_id integer REFERENCES public.time_adjustment_request_details(request_id) ON DELETE RESTRICT,
     status varchar(40) NOT NULL DEFAULT 'IN_PROGRESS'
@@ -848,7 +847,7 @@ CREATE TABLE public.orders (
     total_amount numeric(18,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
     payment_status varchar(20) NOT NULL DEFAULT 'UNPAID' CHECK (payment_status IN ('UNPAID', 'PAID')),
     paid_at timestamptz,
-    status varchar(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'COMPLETED', 'CANCELLED')),
+    status varchar(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'COMPLETED', 'CANCELLED')),
     note varchar(500),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

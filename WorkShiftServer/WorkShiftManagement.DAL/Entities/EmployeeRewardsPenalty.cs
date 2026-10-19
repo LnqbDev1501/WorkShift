@@ -53,7 +53,7 @@ public partial class EmployeeRewardsPenalty
 
     public virtual Payroll? Payroll { get; set; }
 
-    public virtual PayrollDetail? PayrollDetail { get; set; }
+    public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();
 
     public virtual PayrollPeriod PayrollPeriod { get; set; } = null!;
 

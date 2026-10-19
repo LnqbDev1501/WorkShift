@@ -113,3 +113,11 @@
 .wt-table th.wt-today>small { background:#6753c7; color:#fff; }
 .wt-table td.wt-today-cell { background:#fff; box-shadow:inset 1px 0 #d8cff1,inset -1px 0 #d8cff1; }
 .wt-table td.wt-today-cell .wt-shift { box-shadow:0 3px 10px #6250cb0c; }
+
+.wt-manage-staff{display:flex;align-items:center;gap:5px;margin-top:12px;padding:7px 8px;border:1px solid var(--wt-border);border-radius:6px;background:var(--wt-tint);color:var(--wt-color);font-size:10px;font-weight:600}
+.wt-manage-staff .material-symbols-outlined{font-size:14px}
+.wt-manage-staff:hover{background:#fff;text-decoration:underline}
+.sh-slot-metrics{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:22px}
+#assign-employee{scroll-margin-top:24px;border:1px solid #dbceec;box-shadow:0 5px 20px #8d6bad08}
+#assign-employee:target{outline:3px solid #c3ace0;outline-offset:4px}
+@media(max-width:650px){.sh-slot-metrics{grid-template-columns:1fr}.sh-slot-metrics>article{padding:16px 20px}.sh-slot-metrics>article>div{display:flex;align-items:center;justify-content:space-between;gap:20px;flex:1}.sh-slot-metrics strong{margin-top:0}}

@@ -4,10 +4,19 @@ namespace WorkShiftManagement.BLL.DTOs.Auth.Request;
 
 public class SetPasswordRequest
 {
+    private string _currentPassword = string.Empty;
     private string _password = string.Empty;
 
     [Required(ErrorMessage = "Access token is required.")]
     public string AccessToken { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Current password is required.")]
+    [DataType(DataType.Password)]
+    public string CurrentPassword
+    {
+        get => _currentPassword;
+        set => _currentPassword = value?.Trim() ?? string.Empty;
+    }
 
     [Required(ErrorMessage = "Password is required.")]
     [MinLength(6, ErrorMessage = "Password must contain at least 6 characters.")]

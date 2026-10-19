@@ -12,7 +12,7 @@ using WorkShiftManagement.DAL.Interfaces.Staff;
 
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
-public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
+public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
 {
     private readonly AppDbContext _context;
 
@@ -27,7 +27,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             .AsNoTracking()
             .Include(u => u.Role)
             .Include(u => u.Branch)
-            .FirstOrDefaultAsync(u => u.UserId == staffId && u.DeletedAt == null, cancellationToken);
+            .FirstOrDefaultAsync(u => u.UserId == staffId && u.DeletedAt == null && u.Status == "ACTIVE", cancellationToken);
     }
 
     public async Task<(IReadOnlyList<EmployeeRequest> Items, int TotalCount)> GetPagedAsync(
@@ -39,11 +39,13 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         DateTime? toUtc,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool sortByUpdatedAt = false)
     {
         var query = _context.EmployeeRequests.AsNoTracking()
             .AsSplitQuery()
             .Include(r => r.Branch)
+            .Include(r => r.SalaryIncreaseRequestDetail).ThenInclude(d => d!.CurrentContract)
             .Include(r => r.ReviewedByNavigation)
             .Include(r => r.LeaveRequestAssignments)
                 .ThenInclude(lra => lra.Assignment)
@@ -52,7 +54,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
                 .ThenInclude(tard => tard!.Assignment)
                     .ThenInclude(a => a.Shift)
             .Where(r => r.UserId == staffId &&
-                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"));
+                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE"));
 
         if (!string.IsNullOrWhiteSpace(requestType))
         {
@@ -83,7 +85,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
-            .OrderByDescending(r => r.CreatedAt)
+            .OrderByDescending(r => sortByUpdatedAt ? r.UpdatedAt : r.CreatedAt)
             .ThenByDescending(r => r.RequestId)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -99,6 +101,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
     {
         return await _context.EmployeeRequests.AsNoTracking()
             .Include(r => r.Branch)
+            .Include(r => r.SalaryIncreaseRequestDetail).ThenInclude(d => d!.CurrentContract)
             .Include(r => r.ReviewedByNavigation)
             .Include(r => r.AppliedRequestLimitRule)
             .Include(r => r.LeaveRequestAssignments)
@@ -121,7 +124,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
                             .ThenInclude(w => w.Branch)
             .FirstOrDefaultAsync(r => r.RequestId == requestId &&
                                       r.UserId == staffId &&
-                                      (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"),
+                                      (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE"),
                                  cancellationToken);
     }
 
@@ -667,7 +670,7 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             var request = await _context.EmployeeRequests
                 .SingleAsync(r => r.RequestId == requestId, cancellationToken);
 
-            if (request.RequestType != "LEAVE" && request.RequestType != "LATE_ARRIVAL" && request.RequestType != "EARLY_LEAVE")
+            if (request.RequestType != "LEAVE" && request.RequestType != "LATE_ARRIVAL" && request.RequestType != "EARLY_LEAVE" && request.RequestType != "SALARY_INCREASE")
             {
                 throw new KeyNotFoundException("Request type is not supported.");
             }
@@ -785,5 +788,80 @@ public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         {
             throw new InvalidOperationException($"You have reached the limit of {maxRequestsPerMonth} {requestType} request(s) for this month ({todayVn:MM/yyyy}).");
         }
+    }
+
+    public async Task<List<EmployeeRequest>> CancelOverduePendingRequestsAsync(
+        DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var pendingRequests = await _context.EmployeeRequests
+            .Include(r => r.User)
+            .Include(r => r.Branch)
+            .Include(r => r.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Assignment)
+                    .ThenInclude(a => a.Shift)
+            .Include(r => r.TimeAdjustmentRequestDetail)
+                .ThenInclude(tard => tard!.Assignment)
+                    .ThenInclude(a => a.Shift)
+            .Where(r => r.Status == "PENDING" &&
+                        (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"))
+            .ToListAsync(cancellationToken);
+
+        var overdueList = new List<EmployeeRequest>();
+        foreach (var r in pendingRequests)
+        {
+            bool isOverdue = false;
+            if (r.RequestType == "LEAVE")
+            {
+                if (r.LeaveRequestAssignments.Count > 0 &&
+                    r.LeaveRequestAssignments.All(lra => lra.Assignment?.Shift != null && lra.Assignment.Shift.ScheduledEndAt <= nowUtc))
+                {
+                    isOverdue = true;
+                }
+            }
+            else if (r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE")
+            {
+                if (r.TimeAdjustmentRequestDetail?.Assignment?.Shift != null &&
+                    r.TimeAdjustmentRequestDetail.Assignment.Shift.ScheduledEndAt <= nowUtc)
+                {
+                    isOverdue = true;
+                }
+            }
+
+            if (isOverdue)
+            {
+                var oldStatus = r.Status;
+                r.Status = "CANCELLED";
+                r.ReviewNote = "Hệ thống tự động hủy đơn do ca làm việc đã kết thúc mà chưa được duyệt.";
+                r.UpdatedAt = nowUtc;
+
+                _context.AuditLogs.Add(new AuditLog
+                {
+                    UserId = null,
+                    Action = "AUTO_CANCEL_REQUEST",
+                    TableName = "employee_requests",
+                    RecordId = r.RequestId.ToString(),
+                    OldValue = JsonSerializer.Serialize(new { fromStatus = oldStatus }),
+                    NewValue = JsonSerializer.Serialize(new
+                    {
+                        fromStatus = oldStatus,
+                        toStatus = "CANCELLED",
+                        reason = "EXPIRED_SHIFT_ENDED",
+                        cancelledAt = nowUtc,
+                        note = r.ReviewNote
+                    }),
+                    CreatedAt = nowUtc
+                });
+
+                overdueList.Add(r);
+            }
+        }
+
+        if (overdueList.Count > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return overdueList;
     }
 }

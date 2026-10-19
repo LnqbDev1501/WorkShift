@@ -13,9 +13,12 @@ public interface IAttendanceRepo
     Task<EmploymentContract?> GetActiveContractByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<EmploymentContract?> GetLatestContractByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<FaceProfile?> GetActiveFaceProfileByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<(FaceProfile Profile, float[] Embedding)?> GetActiveFaceProfileWithEmbeddingByUserIdAsync(Guid userId, CancellationToken cancellationToken = default);
 
     Task<List<ShiftAssignment>> GetEligibleShiftAssignmentsForDateAsync(Guid userId, DateOnly targetDate, CancellationToken cancellationToken = default);
+    Task<List<ShiftAssignment>> GetShiftAssignmentsByDateRangeAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default);
     Task<ShiftAssignment?> GetAssignmentWithDetailsAsync(int assignmentId, CancellationToken cancellationToken = default);
+    Task<ShiftAssignment?> GetStaffAssignmentAttendanceDetailAsync(int assignmentId, Guid userId, CancellationToken cancellationToken = default);
     Task<Attendance?> GetAttendanceByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default);
     Task<Attendance?> GetAttendanceWithDetailsByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default);
 

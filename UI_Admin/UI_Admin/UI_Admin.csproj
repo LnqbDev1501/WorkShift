@@ -11,7 +11,7 @@
     <Folder Include="Controllers\Manager\" />
     <Folder Include="Controllers\Accountant\" />
     <Folder Include="Models\Accountant\" />
-    <Folder Include="Models\Manager\" />
+    <Folder Include="Models\Manager\Timesheet\" />
     <Folder Include="Services\Accountant\" />
     <Folder Include="Services\Manager\" />
   </ItemGroup>

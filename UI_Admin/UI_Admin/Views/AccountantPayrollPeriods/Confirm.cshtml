@@ -1,0 +1,8 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodConfirmation
+@{ ViewData["Title"] = Model.Delete ? "Delete Draft Period" : "Open Payroll Period"; }
+<div class="flex flex-col gap-unit-4 px-7 py-4"><header class="form-heading"><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1 class="text-display-lg font-display-lg">@ViewData["Title"]</h1></header>
+    <section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm max-w-2xl"><h2 class="text-title-md font-semibold mb-2">@Model.Period.PeriodName</h2><p>@Model.Period.PeriodCode · @Model.Period.BranchName</p><p class="text-secondary mt-2">@Model.Period.StartDate.ToString("dd/MM/yyyy") – @Model.Period.EndDate.ToString("dd/MM/yyyy")</p>
+        <p class="mt-5 mb-5">@(Model.Delete ? "This deletes the draft period. The work schedule week can then be used to create a new period." : "Opening this period changes DRAFT to OPEN. You will no longer be able to edit or delete it. Opening does not calculate salaries.")</p>
+        <form method="post" asp-action="@(Model.Delete ? "Delete" : "Open")" asp-route-id="@Model.Period.PayrollPeriodId" class="flex gap-3"><button type="submit" class="px-5 py-2 rounded-xl text-white @(Model.Delete ? "bg-red-600" : "bg-primary-container")">@(Model.Delete ? "Delete Draft" : "Confirm Open")</button><a asp-action="Details" asp-route-id="@Model.Period.PayrollPeriodId" class="px-5 py-2 rounded-xl border border-surface-container-high">Back to details</a></form>
+    </section>
+</div>

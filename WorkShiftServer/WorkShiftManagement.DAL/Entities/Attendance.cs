@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -61,8 +61,6 @@ public partial class Attendance
 
     public int ActualWorkingMinutes { get; set; }
 
-    public decimal WorkingHours { get; set; }
-
     public int? LateArrivalRequestId { get; set; }
 
     public int? EarlyLeaveRequestId { get; set; }
@@ -104,4 +102,6 @@ public partial class Attendance
     public virtual TimeAdjustmentRequestDetail? LateArrivalRequest { get; set; }
 
     public virtual ICollection<PayslipWorkDetail> PayslipWorkDetails { get; set; } = new List<PayslipWorkDetail>();
+
+    public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequests { get; set; } = new List<TimesheetAdjustmentRequest>();
 }

@@ -55,7 +55,7 @@ namespace WorkShiftServer.API.Controllers.Accountant
         }
 
         // Gửi lại một Payroll đã bị Admin reject.
-        [HttpPost("{periodId:int}/payrolls/{payrollId:int}/submit")]
+        [NonAction]
         public async Task<IActionResult>
             SubmitRejectedPayroll(
                 int periodId,

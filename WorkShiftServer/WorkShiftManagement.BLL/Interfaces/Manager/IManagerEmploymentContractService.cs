@@ -11,6 +11,7 @@ namespace WorkShiftManagement.BLL.Interfaces.Manager;
 public interface IManagerEmploymentContractService
 {
     Task<IReadOnlyList<ContractStaffOptionResponse>> GetStaffOptionsAsync(Guid managerId, string? mode = null, CancellationToken cancellationToken = default);
+    Task<decimal> GetBranchMinimumWageAsync(Guid managerId, CancellationToken cancellationToken = default);
     Task<CreateEmploymentContractResponse> CreateAsync(Guid managerId, CreateEmploymentContractRequest request,
         CancellationToken cancellationToken = default);
     Task<PagedResponse<ManagerEmploymentContractListItemResponse>> GetPagedAsync(Guid managerId,

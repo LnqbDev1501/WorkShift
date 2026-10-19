@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -109,8 +110,11 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var userId = await _authService.SetPasswordAsync(request.AccessToken, request.Password);
-            var user = await _context.Users.SingleOrDefaultAsync(item => item.UserId == userId)
+            var userId = User.FindFirstValue("sub") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userId, out var guid))
+                throw new UnauthorizedAccessException("Your session has expired. Please sign in again.");
+            var result = await _authService.SetPasswordAsync(guid, request.CurrentPassword, request.Password);
+            var user = await _context.Users.SingleOrDefaultAsync(item => item.UserId == guid)
                 ?? throw new KeyNotFoundException("No matching user profile was found.");
             user.HasPassword = true;
             if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
@@ -130,10 +134,18 @@ public class AuthController : ControllerBase
             }
             return NoContent();
         }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Unauthorized(new { message = exception.Message });
+        }
         catch (HttpRequestException exception)
             when (exception.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
-            return BadRequest(new { message = "The password setup link is invalid or has expired." });
+            return BadRequest(new { message = exception.Message });
         }
         catch (KeyNotFoundException exception)
         {

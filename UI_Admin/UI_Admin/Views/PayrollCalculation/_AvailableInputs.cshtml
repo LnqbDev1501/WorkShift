@@ -1,0 +1,19 @@
+@model UI_Admin.Models.PayrollCalculation.CalculationInputResponse
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+<div class="payroll-page">
+    <header class="payroll-heading"><div><h1>@Model.Readiness.EmployeeName</h1><p>@Model.BranchName · Period @Model.PeriodStatus · Available source data</p></div></header>
+    <aside class="payroll-compliance"><div><strong>Calculation is currently blocked</strong><small>You can inspect available sources below. Missing data is shown as “—”, not zero. These are source records, not a completed calculation; no net salary is inferred and no Payroll is saved. Only approved adjustments are eligible for calculation. Carry Forward may be incomplete until the previous period is settled.</small></div></aside>
+    @foreach (var type in new[] { "TIMESHEET", "WORK", "SALARY", "REWARD", "PENALTY", "ATTENDANCE_DEDUCTION", "CARRY_FORWARD", "HOLIDAY", "HOLIDAY_RULE" })
+    {
+        var rows = Model.Sources.Where(s => s.Type == type).ToList();
+        <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>@(type switch { "TIMESHEET" => "Timesheet", "WORK" => "Work / Attendance", "SALARY" => "Salary rates", "REWARD" => "Rewards", "PENALTY" => "Penalties", "ATTENDANCE_DEDUCTION" => "Attendance deductions", "CARRY_FORWARD" => "Available Carry Forward (FIFO)", "HOLIDAY" => "Public holidays", _ => "Holiday pay rules" })</strong><span>@rows.Count source records</span></div>
+        <div class="payroll-table-scroll"><table><thead><tr><th>SOURCE / DESCRIPTION</th><th>STATUS</th><th>DATES / EFFECTIVE RANGE</th>@if (type == "WORK") { <th>CHECK IN / OUT (UTC+7)</th> }<th>MINUTES / RATE / MULTIPLIER</th><th class="money">AMOUNT / BALANCE</th></tr></thead><tbody>
+            @foreach (var row in rows)
+            {
+                <tr><td><strong>@row.Description</strong><small>#@row.SourceId</small></td><td>@(string.IsNullOrEmpty(row.Status) ? "—" : row.Status)</td><td>@(row.WorkDate?.ToString("dd/MM/yyyy") ?? row.EffectiveFrom?.ToString("dd/MM/yyyy") ?? "—")@if (row.EffectiveTo.HasValue) { <small>Until @row.EffectiveTo.Value.ToString("dd/MM/yyyy")</small> }@if (row.StartAt.HasValue) { <small>@D.Time(row.StartAt) – @D.Time(row.EndAt)</small> }</td>@if (type == "WORK") { <td>@D.Time(row.CheckIn)<small>@D.Time(row.CheckOut)</small></td> }<td>@if (row.Minutes.HasValue) { <span>@row.Minutes minutes</span> } else if (row.Rate.HasValue) { <span>@D.Money(row.Rate.Value) / hour</span> } else if (row.Multiplier.HasValue) { <span>× @row.Multiplier</span> } else { <span>—</span> }</td><td class="money">@(row.Amount.HasValue ? D.Money(row.Amount.Value) : "—")@if (row.RemainingAmount.HasValue) { <small>Remaining: @D.Money(row.RemainingAmount.Value)</small> }</td></tr>
+            }
+            @if (rows.Count == 0) { <tr><td colspan="@(type == "WORK" ? 6 : 5)" class="p-5 text-secondary">No source records currently available.</td></tr> }
+        </tbody></table></div></section>
+    }
+    <a asp-action="Preview" asp-route-id="@Model.PayrollPeriodId" asp-route-userId="@Model.Readiness.UserId" class="payroll-button">Refresh Data &amp; Check Readiness</a>
+</div>

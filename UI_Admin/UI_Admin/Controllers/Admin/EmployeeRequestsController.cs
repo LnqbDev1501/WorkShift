@@ -149,6 +149,10 @@ public class EmployeeRequestsController : Controller
                 detail.ReturnUrl = returnUrl;
             }
 
+            var (history, historyError) = await _apiService.GetHistoryAsync(id, cancellationToken);
+            detail.History = history;
+            detail.HistoryErrorMessage = historyError;
+
             return View(detail);
         }
         catch (UnauthorizedAccessException)

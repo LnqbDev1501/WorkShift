@@ -1,4 +1,5 @@
 using System.Net;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -100,7 +101,10 @@ public class AdminUserController : ControllerBase
     {
         try
         {
-            return Ok(await _userService.UpdateAdminUserAsync(userId, request));
+            var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
+            Guid? adminUserId = Guid.TryParse(adminIdClaim, out var parsedAdminId) ? parsedAdminId : null;
+
+            return Ok(await _userService.UpdateAdminUserAsync(userId, request, adminUserId));
         }
         catch (ArgumentException exception)
         {

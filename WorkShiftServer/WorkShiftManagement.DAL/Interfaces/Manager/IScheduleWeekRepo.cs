@@ -13,6 +13,6 @@ public interface IScheduleWeekRepo
     Task AddAsync(WorkScheduleWeek scheduleWeek);
     Task SaveChangesAsync();
     Task DeleteDraftAsync(WorkScheduleWeek scheduleWeek);
-    Task<bool> OpenRegistrationAsync(int scheduleWeekId, int branchId, DateTime openedAt);
+    Task<bool> OpenRegistrationAsync(int scheduleWeekId, int branchId, DateTime openedAt, Guid openedBy);
     Task<bool> CloseRegistrationAsync(int scheduleWeekId, int branchId, DateTime closedAt);
 }

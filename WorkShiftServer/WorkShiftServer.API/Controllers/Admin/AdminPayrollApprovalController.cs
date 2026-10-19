@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Interfaces.Accountant;
 
 namespace WorkShiftServer.API.Controllers.Admin
 {
@@ -16,11 +17,19 @@ namespace WorkShiftServer.API.Controllers.Admin
             _service;
 
         public AdminPayrollApprovalController(
-            IPayrollApprovalService service)
+            IPayrollApprovalService service, IPayrollCalculationRepo actors)
         {
             _service = service;
+            _actors = actors;
         }
 
+        private readonly IPayrollCalculationRepo _actors;
+        private async Task<bool> ActiveAdmin()
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id)) return false;
+            var u = await _actors.GetActorAsync(id, HttpContext.RequestAborted);
+            return u != null && u.Status == "ACTIVE" && u.DeletedAt == null && u.Role.Status == "ACTIVE" && u.Role.RoleName == "ADMIN";
+        }
         // =====================================================
         // GET /api/admin/payroll-periods
         // =====================================================
@@ -36,6 +45,7 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromQuery] DateOnly? startDateFrom = null,
                 [FromQuery] DateOnly? startDateTo = null)
         {
+            if (!await ActiveAdmin()) return Forbid();
             try
             {
                 var result =
@@ -72,6 +82,7 @@ namespace WorkShiftServer.API.Controllers.Admin
                 [FromQuery] int pageNumber = 1,
                 [FromQuery] int pageSize = 20)
         {
+            if (!await ActiveAdmin()) return Forbid();
             try
             {
                 var result =
@@ -105,8 +116,7 @@ namespace WorkShiftServer.API.Controllers.Admin
         // /api/admin/payroll-periods/{periodId}
         // /payrolls/{payrollId}/reject
         // =====================================================
-        [HttpPost(
-            "{periodId:int}/payrolls/{payrollId:int}/reject")]
+        [NonAction]
         public async Task<IActionResult>
             RejectPayroll(
                 int periodId,

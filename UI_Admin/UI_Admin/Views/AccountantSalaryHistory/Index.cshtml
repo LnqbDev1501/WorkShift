@@ -1,0 +1,46 @@
+@model UI_Admin.Models.Accountant.SalaryHistory.SalaryHistoryListViewModel
+@using D = UI_Admin.Models.Accountant.SalaryHistory.SalaryHistoryDisplay
+@{ ViewData["Title"] = "Salary History"; }
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <div class="form-heading"><div class="list-eyebrow">Payroll · Salary Records</div><h1 class="text-display-lg font-display-lg text-on-surface">Salary History</h1><p>Review employee hourly rates and salary changes in your branch.</p></div>
+    @if (Model.ErrorMessage != null || TempData["SalaryHistoryError"] is string)
+    { <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@(Model.ErrorMessage ?? TempData["SalaryHistoryError"]?.ToString()) <a asp-action="Index" asp-all-route-data="@(Context.Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString()))" class="underline ml-2">Retry</a></div> }
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching Records", Model.TotalItems.ToString("N0"), "Matching current filters", "history"),
+        new("Active", Model.Items.Count(i => i.Status == "ACTIVE").ToString(), "On this page", "check_circle"),
+        new("Scheduled", Model.Items.Count(i => i.Status == "SCHEDULED").ToString(), "On this page", "schedule"),
+        new("Employees", Model.Items.Select(i => i.UserId).Distinct().Count().ToString(), "On this page", "groups")
+    })' />
+    <form asp-action="Index" method="get" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-4 flex flex-col gap-unit-3">
+        <div asp-validation-summary="All" class="text-red-700 text-body-md" role="alert"></div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-unit-3">
+            <div><label for="Keyword" class="block text-label-md text-secondary mb-1">Employee name or ID</label><input id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employees..." class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="Status" class="block text-label-md text-secondary mb-1">Status</label><select id="Status" name="Status" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All statuses</option>@foreach (var value in new[] { "SCHEDULED", "ACTIVE", "INACTIVE" }) { <option value="@value" selected="@(Model.Query.Status == value)">@D.Label(value)</option> }</select></div>
+            <div><label for="ChangeType" class="block text-label-md text-secondary mb-1">Change type</label><select id="ChangeType" name="ChangeType" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All changes</option>@foreach (var value in new[] { "INITIAL", "INCREASE", "DECREASE" }) { <option value="@value" selected="@(Model.Query.ChangeType == value)">@D.Label(value)</option> }</select></div>
+            <div><label for="EffectiveFrom" class="block text-label-md text-secondary mb-1">Effective period from</label><input id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="EffectiveTo" class="block text-label-md text-secondary mb-1">Effective period to</label><input id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+            <div><label for="UserId" class="block text-label-md text-secondary mb-1">Exact Staff ID (optional)</label><input id="UserId" name="UserId" value="@Model.Query.UserId" placeholder="Staff ID" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-body-md text-secondary">Shows salary records whose effective period overlaps the selected dates.</p><partial name="_ListFilterActions" model='"Index"' /></div>
+    </form>
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto"><table class="w-full text-left">
+            <thead><tr class="bg-surface-container-low text-secondary text-label-md uppercase"><th scope="col" class="px-5 py-3">Employee</th><th scope="col" class="px-4 py-3">Previous rate</th><th scope="col" class="px-4 py-3">Hourly rate</th><th scope="col" class="px-4 py-3">Change</th><th scope="col" class="px-4 py-3">Effective period</th><th scope="col" class="px-4 py-3">Status</th><th scope="col" class="px-5 py-3 text-right">Details</th></tr></thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                { <tr><td colspan="7" class="px-5 py-12 text-center text-secondary">@(Model.ErrorMessage != null ? "Salary history could not be loaded." : !ViewData.ModelState.IsValid ? "Please correct the filters above." : "No salary records match your filters.")</td></tr> }
+                @foreach (var row in Model.Items)
+                {
+                    <tr class="h-[64px] hover:bg-surface-container-low transition-colors border-b border-surface-container-low">
+                        <td class="px-5 py-3"><span class="font-semibold">@row.EmployeeFullName</span><div class="text-xs text-secondary">@row.Contract.BranchName · @row.Contract.EmployeePosition</div></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-secondary">@D.Money(row.PreviousHourlyRate)</td><td class="px-4 py-3 whitespace-nowrap font-semibold text-primary">@D.Money(row.HourlyRate)<span class="text-xs text-secondary"> / hour</span></td>
+                        <td class="px-4 py-3">@D.Label(row.ChangeType)</td><td class="px-4 py-3 whitespace-nowrap text-body-md">@D.Date(row.EffectiveFrom)<div class="text-xs text-secondary">to @D.Date(row.EffectiveTo)</div></td>
+                        <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@D.Label(row.Status)</span></td>
+                        <td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryHistoryId" class="text-primary hover:underline inline-flex items-center gap-1" aria-label="View salary change for @row.EmployeeFullName"><span class="material-symbols-outlined text-[18px]">visibility</span>View</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+        @if (Model.ErrorMessage == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.PageNumber, PageSize = Model.PageSize, TotalItems = Model.TotalItems, ItemLabel = "salary records" })' /> }
+    </div>
+</div>

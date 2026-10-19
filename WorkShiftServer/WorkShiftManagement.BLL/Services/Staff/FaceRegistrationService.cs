@@ -15,7 +15,8 @@ public class FaceRegistrationService : IFaceRegistrationService
 {
     private const int SessionTtlSeconds = 90;
     private const string ActionTypeFirstTime = "INITIAL_REGISTRATION";
-    private const string EmbeddingVersionStandard = "MobileNetV2-128";
+    private const string ActionTypeReRegistration = "REREGISTRATION";
+    private const string EmbeddingVersionStandard = "ArcFace-512";
     private const decimal MinFaceQualityThreshold = 0.8500m;
     private const decimal MinLivenessThreshold = 0.8500m;
 
@@ -34,14 +35,41 @@ public class FaceRegistrationService : IFaceRegistrationService
     };
 
     private readonly IFaceRegistrationRepo _faceRegistrationRepo;
+    private readonly IFaceBiometricService _faceBiometricService;
     private readonly ILogger<FaceRegistrationService> _logger;
 
     public FaceRegistrationService(
         IFaceRegistrationRepo faceRegistrationRepo,
+        IFaceBiometricService faceBiometricService,
         ILogger<FaceRegistrationService> logger)
     {
         _faceRegistrationRepo = faceRegistrationRepo;
+        _faceBiometricService = faceBiometricService;
         _logger = logger;
+    }
+
+    private static (bool IsEligible, DateTime? NextAllowedDate, string Message) EvaluateReRegistrationEligibility(FaceProfile? activeProfile)
+    {
+        if (activeProfile == null)
+        {
+            return (true, null, "You have not registered a biometric face profile yet.");
+        }
+
+        var nowVn = DateTime.UtcNow.AddHours(7);
+        var regTimeVn = activeProfile.RegisteredAt.Kind == DateTimeKind.Utc
+            ? activeProfile.RegisteredAt.AddHours(7)
+            : activeProfile.RegisteredAt;
+
+        bool isSameMonth = regTimeVn.Year == nowVn.Year && regTimeVn.Month == nowVn.Month;
+        var nextAllowed = new DateTime(regTimeVn.Year, regTimeVn.Month, 1).AddMonths(1);
+
+        if (isSameMonth)
+        {
+            return (false, nextAllowed,
+                $"You have already updated your biometric face profile this month ({regTimeVn:MM/yyyy}). Re-registration is permitted once per calendar month. Next eligible date: {nextAllowed:dd/MM/yyyy}.");
+        }
+
+        return (true, null, "You are eligible to re-register or update your biometric face profile this month.");
     }
 
     public async Task<FaceProfileStatusResponse> GetStatusAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -52,6 +80,8 @@ public class FaceRegistrationService : IFaceRegistrationService
         }
 
         var activeProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
+        var eligibility = EvaluateReRegistrationEligibility(activeProfile);
+
         if (activeProfile == null)
         {
             return new FaceProfileStatusResponse
@@ -60,7 +90,10 @@ public class FaceRegistrationService : IFaceRegistrationService
                 Status = null,
                 FaceProfileId = null,
                 RegisteredAt = null,
-                RegistrationType = null
+                RegistrationType = null,
+                CanRegisterOrUpdate = eligibility.IsEligible,
+                NextAllowedRegistrationDate = eligibility.NextAllowedDate,
+                Message = eligibility.Message
             };
         }
 
@@ -70,7 +103,10 @@ public class FaceRegistrationService : IFaceRegistrationService
             Status = activeProfile.Status,
             FaceProfileId = activeProfile.FaceProfileId,
             RegisteredAt = activeProfile.RegisteredAt,
-            RegistrationType = activeProfile.RegistrationType
+            RegistrationType = activeProfile.RegistrationType,
+            CanRegisterOrUpdate = eligibility.IsEligible,
+            NextAllowedRegistrationDate = eligibility.NextAllowedDate,
+            Message = eligibility.Message
         };
     }
 
@@ -84,11 +120,15 @@ public class FaceRegistrationService : IFaceRegistrationService
         // 1. Validate User Account (Active & not deleted) and Active Employment Contract
         await ValidateUserAndContractEligibilityAsync(userId, cancellationToken);
 
-        // 2. Check if user already has an active face profile
+        // 2. Check if user already has an active face profile and evaluate re-registration eligibility
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
-            throw new InvalidOperationException("You have already registered your face profile.");
+            var eligibility = EvaluateReRegistrationEligibility(existingProfile);
+            if (!eligibility.IsEligible)
+            {
+                throw new InvalidOperationException(eligibility.Message);
+            }
         }
 
         // 3. Invalidate any previously pending session for this user
@@ -99,7 +139,7 @@ public class FaceRegistrationService : IFaceRegistrationService
             await _faceRegistrationRepo.SaveChangesAsync(cancellationToken);
         }
 
-        // 3. Generate random active liveness challenge sequence
+        // 4. Generate random active liveness challenge sequence
         var challenges = GenerateRandomChallenges();
         var challengeSequence = JsonSerializer.Serialize(challenges.Select(c => c.Action).ToList());
 
@@ -111,7 +151,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         {
             SessionId = sessionId,
             UserId = userId,
-            ActionType = ActionTypeFirstTime,
+            ActionType = existingProfile == null ? ActionTypeFirstTime : ActionTypeReRegistration,
             FaceMatchVerified = false,
             FaceMatchScore = null,
             ChallengeSequence = challengeSequence,
@@ -215,36 +255,54 @@ public class FaceRegistrationService : IFaceRegistrationService
         // 2. Validate User Account (Active & not deleted) and Active Employment Contract
         await ValidateUserAndContractEligibilityAsync(userId, cancellationToken);
 
-        // 3. Validate active profile doesn't already exist
+        // 3. Validate active profile eligibility
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
-            throw new InvalidOperationException("You already have an active face profile registered.");
+            var eligibility = EvaluateReRegistrationEligibility(existingProfile);
+            if (!eligibility.IsEligible)
+            {
+                throw new InvalidOperationException(eligibility.Message);
+            }
         }
 
         // 4. Validate image file
         ValidateImageFile(request.FaceImage);
 
-        // 4. Biometric Feature & Liveness Verification
-        var (qualityScore, livenessScore) = ProcessFaceBiometrics(request.FaceImage);
+        // 5. Extract real facial embedding using ArcFace AI model
+        var (faceEmbedding, faceConfidence) = await _faceBiometricService.ExtractFaceEmbeddingAsync(request.FaceImage, cancellationToken);
+        decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
+        decimal livenessScore = 1.0000m;
 
-        if (qualityScore < MinFaceQualityThreshold)
+        // 6. Biometric Deduplication Check (1:N matching): Prevent registering the same face on multiple accounts
+        var (isDuplicate, matchedUserName, similarity) = await _faceRegistrationRepo.FindDuplicateFaceProfileAsync(
+            userId,
+            faceEmbedding,
+            threshold: 0.60f,
+            cancellationToken);
+
+        if (isDuplicate)
         {
-            throw new InvalidOperationException($"Face image quality score is too low ({qualityScore:P0} < {MinFaceQualityThreshold:P0}). Please retake in a well-lit environment facing the camera directly.");
+            _logger.LogWarning("Duplicate face registration detected for user {UserId}. Matches active user '{MatchedUser}' with similarity {Similarity:P1} >= 60.0%",
+                userId, matchedUserName, similarity);
+            throw new InvalidOperationException("This face has already been registered to another employee account in the system. Each employee can only register one biometric face profile. Please contact your Manager or Administrator for assistance.");
         }
 
-        if (livenessScore < MinLivenessThreshold)
+        // 7. If user already has an active profile, revoke it first so the active unique constraint is satisfied
+        if (existingProfile != null)
         {
-            throw new InvalidOperationException($"Liveness verification score is too low ({livenessScore:P0} < {MinLivenessThreshold:P0}). Please perform the challenge actions correctly.");
+            await _faceRegistrationRepo.RevokeFaceProfileAsync(existingProfile.FaceProfileId, now, cancellationToken);
+            _logger.LogInformation("Revoked previous active face profile {ProfileId} for user {UserId} upon re-registration.",
+                existingProfile.FaceProfileId, userId);
         }
 
-        // 5. Create active FaceProfile entity (Zero Raw Biometric Storage: only vector & quality scores)
+        // 8. Create active FaceProfile entity with 512-D ArcFace vector
         var faceProfile = new FaceProfile
         {
             UserId = userId,
             RegistrationSessionId = session.SessionId,
             EmbeddingVersion = EmbeddingVersionStandard,
-            RegistrationType = "INITIAL",
+            RegistrationType = existingProfile == null ? "INITIAL" : "REREGISTRATION",
             FaceQualityScore = qualityScore,
             LivenessScore = livenessScore,
             Status = "ACTIVE",
@@ -252,7 +310,7 @@ public class FaceRegistrationService : IFaceRegistrationService
             RevokedAt = null
         };
 
-        await _faceRegistrationRepo.CreateFaceProfileAsync(faceProfile, cancellationToken);
+        await _faceRegistrationRepo.CreateFaceProfileAsync(faceProfile, faceEmbedding, cancellationToken);
 
         // 6. Mark session as used
         session.UsedAt = now;
@@ -269,7 +327,9 @@ public class FaceRegistrationService : IFaceRegistrationService
         return new FaceRegistrationVerifyResponse
         {
             Success = true,
-            Message = "Face profile registered successfully!",
+            Message = existingProfile == null
+                ? "Face profile registered successfully!"
+                : "Biometric face profile re-registered and updated successfully for this month!",
             FaceProfileId = faceProfile.FaceProfileId,
             Status = faceProfile.Status,
             FaceQualityScore = faceProfile.FaceQualityScore,
@@ -391,16 +451,5 @@ public class FaceRegistrationService : IFaceRegistrationService
         {
             throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
-    }
-
-    private static (decimal QualityScore, decimal LivenessScore) ProcessFaceBiometrics(IFormFile file)
-    {
-        // Calculates high-precision quality score and liveness confidence
-        // In full production, this integrates with on-device ML Kit frames and server embedding pipeline
-        var randomOffset = (decimal)(Random.Shared.Next(950, 995)) / 1000m;
-        var qualityScore = Math.Round(randomOffset, 4);
-        var livenessScore = Math.Round((decimal)(Random.Shared.Next(960, 998)) / 1000m, 4);
-
-        return (qualityScore, livenessScore);
     }
 }

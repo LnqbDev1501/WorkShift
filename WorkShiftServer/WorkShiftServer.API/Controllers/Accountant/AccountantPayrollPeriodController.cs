@@ -57,6 +57,7 @@ public sealed class AccountantPayrollPeriodController(IPayrollPeriodService serv
     public Task<IActionResult> Delete(int id, CancellationToken ct)
         => ExecuteAsync(async actor => { await service.DeleteAsync(actor, id, ct); return NoContent(); });
 
+    [HttpPost("{id:int}/publish")]
     [HttpPost("{id:int}/open")]
     public Task<IActionResult> Open(int id, CancellationToken ct)
         => ExecuteAsync(async actor => Ok(await service.OpenAsync(actor, id, ct)));

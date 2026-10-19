@@ -21,4 +21,6 @@ public interface IAdminEmployeeRequestRepo
         CancellationToken cancellationToken = default);
 
     Task<EmployeeRequest?> GetByIdAsync(int requestId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AuditLog>> GetHistoryAsync(int requestId, CancellationToken cancellationToken = default);
 }

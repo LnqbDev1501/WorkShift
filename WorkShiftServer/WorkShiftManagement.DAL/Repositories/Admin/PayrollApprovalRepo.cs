@@ -129,7 +129,6 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 await query.CountAsync();
 
             var items = await query
-                .Include(x => x.RejectedByNavigation)
                 .Include(x => x.PayrollDetails)
                 .AsSplitQuery()
                 .OrderBy(x =>
@@ -186,6 +185,21 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             return candidates.Where(x => !candidates.Any(y => y.UserId == x.UserId
                 && (y.VersionNo > x.VersionNo || y.VersionNo == x.VersionNo && y.PayrollId > x.PayrollId)));
         }
+
+        public Task<Payroll?> GetLatestPayrollAsync(Guid userId, int periodId) => _context.Payrolls
+            .Where(p => p.UserId == userId && p.PayrollPeriodId == periodId)
+            .OrderByDescending(p => p.VersionNo).ThenByDescending(p => p.PayrollId).FirstOrDefaultAsync();
+
+        public void Audit(Guid actor, string action, PayrollPeriod period, Payroll? payroll = null) => _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = actor, Action = action, TableName = payroll == null ? "payroll_periods" : "payrolls",
+            RecordId = (payroll?.PayrollId ?? period.PayrollPeriodId).ToString(), CreatedAt = DateTime.UtcNow,
+            NewValue = System.Text.Json.JsonSerializer.Serialize(new { period.PayrollPeriodId, PeriodStatus = period.Status,
+                payroll?.PayrollId, payroll?.VersionNo, PayrollStatus = payroll?.Status, payroll?.PreviousPayrollId,
+                payroll?.CorrectionReason })
+        });
+
+        public Task<bool> HasApprovedCorrectionFeedbackAsync(Payroll payroll) => Task.FromResult(false);
 
         public Task<int?> GetAccountantBranchIdAsync(Guid userId) => _context.Users.AsNoTracking()
             .Where(u => u.UserId == userId && u.Status == "ACTIVE" && u.DeletedAt == null

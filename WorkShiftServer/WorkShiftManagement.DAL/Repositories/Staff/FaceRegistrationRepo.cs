@@ -71,7 +71,7 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task CreateFaceProfileAsync(FaceProfile faceProfile, CancellationToken cancellationToken = default)
+    public async Task CreateFaceProfileAsync(FaceProfile faceProfile, float[] embedding, CancellationToken cancellationToken = default)
     {
         var qualityScore = faceProfile.FaceQualityScore ?? 0.9850m;
         var livenessScore = faceProfile.LivenessScore;
@@ -81,6 +81,8 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         {
             await connection.OpenAsync(cancellationToken);
         }
+
+        string embeddingString = "[" + string.Join(",", embedding.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
         await using var command = connection.CreateCommand();
         command.CommandText = @"
@@ -97,7 +99,7 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
             ) VALUES (
                 @userId,
                 @sessionId,
-                array_fill(0.01::float4, ARRAY[128])::vector,
+                @embeddingStr::vector,
                 @embeddingVersion,
                 @regType,
                 @qualityScore,
@@ -116,7 +118,8 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
 
         AddParam("@userId", faceProfile.UserId);
         AddParam("@sessionId", faceProfile.RegistrationSessionId);
-        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "MobileNetV2-128");
+        AddParam("@embeddingStr", embeddingString);
+        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "ArcFace-512");
         AddParam("@regType", faceProfile.RegistrationType ?? "INITIAL");
         AddParam("@qualityScore", qualityScore);
         AddParam("@livenessScore", livenessScore);
@@ -127,6 +130,66 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         if (scalar != null && int.TryParse(scalar.ToString(), out var profileId))
         {
             faceProfile.FaceProfileId = profileId;
+        }
+    }
+
+    public async Task<(bool IsDuplicate, string? MatchedUserName, float Similarity)> FindDuplicateFaceProfileAsync(
+        Guid currentUserId,
+        float[] embedding,
+        float threshold = 0.60f,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = _context.Database.GetDbConnection();
+        if (connection.State != ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        string embeddingString = "[" + string.Join(",", embedding.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = @"
+            SELECT fp.face_profile_id, fp.user_id, u.full_name, (1 - (fp.face_embedding <=> @embeddingStr::vector)) AS similarity
+            FROM public.face_profiles fp
+            JOIN public.users u ON u.user_id = fp.user_id
+            WHERE fp.status = 'ACTIVE'
+              AND fp.user_id != @userId
+              AND fp.face_embedding IS NOT NULL
+            ORDER BY fp.face_embedding <=> @embeddingStr::vector ASC
+            LIMIT 1;";
+
+        var pEmbedding = command.CreateParameter();
+        pEmbedding.ParameterName = "@embeddingStr";
+        pEmbedding.Value = embeddingString;
+        command.Parameters.Add(pEmbedding);
+
+        var pUserId = command.CreateParameter();
+        pUserId.ParameterName = "@userId";
+        pUserId.Value = currentUserId;
+        command.Parameters.Add(pUserId);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            var similarity = Convert.ToSingle(reader["similarity"]);
+            if (similarity >= threshold)
+            {
+                var matchedName = reader["full_name"]?.ToString();
+                return (true, matchedName, similarity);
+            }
+        }
+
+        return (false, null, 0f);
+    }
+
+    public async Task RevokeFaceProfileAsync(int faceProfileId, DateTime revokedAt, CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FaceProfiles.FirstOrDefaultAsync(p => p.FaceProfileId == faceProfileId, cancellationToken);
+        if (profile != null)
+        {
+            profile.Status = "REVOKED";
+            profile.RevokedAt = revokedAt;
+            await _context.SaveChangesAsync(cancellationToken);
         }
     }
 

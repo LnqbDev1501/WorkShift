@@ -11,7 +11,7 @@ namespace WorkShiftServer.API.Controllers.Manager;
 /// </summary>
 [Route("api/manager/employee-types")]
 [ApiController]
-[Authorize(Roles = "MANAGER")]
+[Authorize(Roles = "MANAGER,STAFF")]
 public sealed class ManagerEmployeeTypeController : ControllerBase
 {
     private readonly IEmployeeTypeService _employeeTypeService;

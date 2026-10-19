@@ -58,10 +58,62 @@ public class AttendanceRepo : IAttendanceRepo
             .FirstOrDefaultAsync(f => f.UserId == userId && f.Status == "ACTIVE", cancellationToken);
     }
 
+    public async Task<(FaceProfile Profile, float[] Embedding)?> GetActiveFaceProfileWithEmbeddingByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        var profile = await _context.FaceProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.UserId == userId && f.Status == "ACTIVE", cancellationToken);
+
+        if (profile == null)
+        {
+            return null;
+        }
+
+        var connection = _context.Database.GetDbConnection();
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT face_embedding::text FROM public.face_profiles WHERE face_profile_id = @id LIMIT 1;";
+        var param = cmd.CreateParameter();
+        param.ParameterName = "@id";
+        param.Value = profile.FaceProfileId;
+        cmd.Parameters.Add(param);
+
+        var embeddingRaw = await cmd.ExecuteScalarAsync(cancellationToken);
+        if (embeddingRaw == null)
+        {
+            return null;
+        }
+
+        var str = embeddingRaw.ToString()?.Trim('[', ']');
+        if (string.IsNullOrWhiteSpace(str))
+        {
+            return null;
+        }
+
+        var parts = str.Split(',');
+        var embedding = new float[parts.Length];
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (float.TryParse(parts[i].Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var val))
+            {
+                embedding[i] = val;
+            }
+        }
+
+        return (profile, embedding);
+    }
+
     public Task<List<ShiftAssignment>> GetEligibleShiftAssignmentsForDateAsync(Guid userId, DateOnly targetDate, CancellationToken cancellationToken = default)
     {
-        var startOfDay = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MinValue), DateTimeKind.Utc);
-        var endOfDay = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MaxValue), DateTimeKind.Utc);
+        // Target date is Vietnam local date (UTC+7). 
+        // 00:00:00 in Vietnam = 17:00:00 (previous day) in UTC
+        // 23:59:59 in Vietnam = 16:59:59 in UTC
+        var startOfDayUtc = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc);
+        var endOfDayUtc = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MaxValue).AddHours(-7), DateTimeKind.Utc);
 
         return _context.ShiftAssignments
             .AsNoTracking()
@@ -72,11 +124,32 @@ public class AttendanceRepo : IAttendanceRepo
             .Include(a => a.Attendance)
             .Where(a =>
                 a.UserId == userId &&
-                a.Status == "ASSIGNED" &&
+                (a.Status == "ASSIGNED" || a.Status == "IN_PROGRESS" || a.Status == "COMPLETED") &&
                 a.Shift.Status != "CANCELLED" &&
-                a.Shift.ScheduledStartAt >= startOfDay &&
-                a.Shift.ScheduledStartAt <= endOfDay)
+                a.Shift.ScheduledStartAt >= startOfDayUtc &&
+                a.Shift.ScheduledStartAt <= endOfDayUtc)
             .OrderBy(a => a.Shift.ScheduledStartAt)
+            .ThenBy(a => a.AssignmentId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<List<ShiftAssignment>> GetShiftAssignmentsByDateRangeAsync(Guid userId, DateOnly fromDate, DateOnly toDate, CancellationToken cancellationToken = default)
+    {
+        var startUtc = DateTime.SpecifyKind(fromDate.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc);
+        var endUtc = DateTime.SpecifyKind(toDate.ToDateTime(TimeOnly.MaxValue).AddHours(-7), DateTimeKind.Utc);
+
+        return _context.ShiftAssignments
+            .Include(a => a.Shift)
+                .ThenInclude(s => s.ScheduleWeek)
+                    .ThenInclude(w => w.Branch)
+            .Include(a => a.Attendance)
+            .Where(a =>
+                a.UserId == userId &&
+                a.Shift.Status != "CANCELLED" &&
+                a.Shift.ScheduledStartAt >= startUtc &&
+                a.Shift.ScheduledStartAt <= endUtc)
+            .OrderByDescending(a => a.Shift.ScheduledStartAt)
+            .ThenByDescending(a => a.AssignmentId)
             .ToListAsync(cancellationToken);
     }
 
@@ -96,6 +169,37 @@ public class AttendanceRepo : IAttendanceRepo
         return _context.Attendances
             .AsNoTracking()
             .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId, cancellationToken);
+    }
+
+    public Task<ShiftAssignment?> GetStaffAssignmentAttendanceDetailAsync(
+        int assignmentId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return _context.ShiftAssignments
+            .AsNoTracking()
+            .Include(sa => sa.User)
+                .ThenInclude(u => u.Role)
+            .Include(sa => sa.Shift)
+                .ThenInclude(s => s.ScheduleWeek)
+                    .ThenInclude(w => w.Branch)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.CheckInFaceSession)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.CheckOutFaceSession)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.AttendancePenaltyRecords)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.LateArrivalRequest)
+                    .ThenInclude(r => r!.Request)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.EarlyLeaveRequest)
+                    .ThenInclude(r => r!.Request)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.TimesheetAdjustmentRequests)
+            .Include(sa => sa.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Request)
+            .FirstOrDefaultAsync(sa => sa.AssignmentId == assignmentId && sa.UserId == userId, cancellationToken);
     }
 
     public Task<Attendance?> GetAttendanceWithDetailsByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default)

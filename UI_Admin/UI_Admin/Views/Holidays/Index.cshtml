@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Holidays.HolidayIndexViewModel
+@model UI_Admin.Models.Admin.Holidays.HolidayIndexViewModel
 @{
     ViewData["Title"] = "Public Holidays";
 }
@@ -34,7 +34,7 @@
                     </article>
                     <article>
                         <div><span class="stat-label">Missing Pay Rules</span><strong>@Model.SummaryItems.Count(x => x.IsActive
-                                                    && x.PayMultiplier == null)</strong><small>Add a rule before calculating payroll</small></div>
+                                                                                && x.PayMultiplier == null)</strong><small>Add a rule before calculating payroll</small></div>
                         </article>
                         <article>
                             <div><span class="stat-label">Upcoming Holiday</span><strong
@@ -65,7 +65,7 @@
                                                 <th>Date</th>
                                                 <th>Pay multiplier</th>
                                                 <th>Status</th>
-                                              <th class="actions">Actions</th>
+                                                <th class="actions">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>@foreach (var item in Model.Result.Items) {
@@ -73,8 +73,8 @@
                                                 <td><strong>@item.HolidayName</strong></td>
                                                 <td>@item.HolidayDate.ToString("dd/MM/yyyy")</td>
                                                 <td><span class="multiplier">@(item.PayMultiplier.HasValue ? "×" +
-                                                                                        item.PayMultiplier.Value.ToString("0.00") : "No applicable rule")</span></td>
-                                                    <td><span class="status @(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active"                 : "Inactive")</span></td>
+                                                                                                                                            item.PayMultiplier.Value.ToString("0.00") : "No applicable rule")</span></td>
+                                                    <td><span class="status @(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active"                  : "Inactive")</span></td>
                                                     <td class="actions-cell">
                                                         <div class="row-actions">
 
@@ -110,19 +110,22 @@
                                                             else if (item.CanRestore)
                                                             {
                                                                 <!-- Inactive -->
-                                                                <form asp-action="Restore" asp-route-id="@item.PublicHolidayId" method="post" class="action-form" onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
-                                                                <button type="submit" class="action-icon action-inactive" title="Restore" aria-label="Restore">
-                                                                    <span class="material-symbols-outlined">
-                                                                        history
-                                                                    </span>
-                                                                </button>
+                                                                <form asp-action="Restore" asp-route-id="@item.PublicHolidayId" method="post"
+                                                                      class="action-form"
+                                                                      onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
+                                                                    <button type="submit" class="action-icon action-inactive" title="Restore"
+                                                                            aria-label="Restore">
+                                                                        <span class="material-symbols-outlined">
+                                                                            history
+                                                                        </span>
+                                                                    </button>
                                                                 </form>
                                                             }
                                                             else
                                                             {
                                                                 <!-- Payroll Locked -->
-                                                                <span class="action-icon action-locked" title="Read-only: today, past date, or payroll lock"
-                                                                      aria-label="Read-only">
+                                                                <span class="action-icon action-locked"
+                                                                      title="Read-only: today, past date, or payroll lock" aria-label="Read-only">
                                                                     <span class="material-symbols-outlined">
                                                                         lock
                                                                     </span>
@@ -144,16 +147,17 @@
                                     </div>
                                 }
                                 <partial name="_ListPagination" model="@(new ListPaginationViewModel
-                                {
-                                    PageNumber = Model.Result.PageNumber,
-                                    PageSize = Model.Result.PageSize,
-                                    TotalItems = Model.Result.TotalCount,
-                                    ItemLabel = "holidays",
-                                    PageParameter = "pageNumber",
-                                })" />
+                                         {
+                                             PageNumber = Model.Result.PageNumber,
+                                             PageSize = Model.Result.PageSize,
+                                             TotalItems = Model.Result.TotalCount,
+                                             ItemLabel = "holidays",
+                                             PageParameter = "pageNumber",
+                                         })" />
                             </section>
                             <section class="holiday-form-note">
-                                <p>Today's and past holidays are read-only and remain available for historical payroll. Only future holidays not locked by payroll can be changed or restored. Calendar changes return affected unfinalized
+                                <p>Today's and past holidays are read-only and remain available for historical payroll. Only future holidays
+                                    not locked by payroll can be changed or restored. Calendar changes return affected unfinalized
                                     payroll periods to draft for recalculation before approval.</p>
                                 </section>
                             </main>

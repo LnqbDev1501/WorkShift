@@ -20,6 +20,7 @@ public interface IStaffEmploymentContractService
     Task<int> CancelOverduePendingContractsAsync(CancellationToken cancellationToken = default);
 
     // Contract Change Requests
+    Task<IReadOnlyList<string>> GetActivePositionNamesAsync(CancellationToken cancellationToken = default);
     Task<StaffContractChangeRequestResponse> SubmitChangeRequestAsync(Guid staffUserId, int contractId, SubmitContractChangeRequestRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffContractChangeRequestResponse>> GetMyContractChangeRequestsAsync(Guid staffUserId, int contractId, CancellationToken cancellationToken = default);
     Task<StaffContractChangeRequestResponse> GetMyChangeRequestByIdAsync(Guid staffUserId, int changeRequestId, CancellationToken cancellationToken = default);

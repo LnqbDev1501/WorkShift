@@ -1,7 +1,6 @@
 # .NET
 bin/
 obj/
-.buildcheck/
 
 # Visual Studio
 .vs/
@@ -19,3 +18,8 @@ appsettings.json
 
 artifacts/
 **/artifacts/
+bin/
+obj/
+
+# Test project (excluded from version control)
+WorkShiftServer/WorkShiftManagement.Tests/

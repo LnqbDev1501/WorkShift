@@ -100,7 +100,12 @@ public sealed class ManagerShiftController(ManagerShiftApiService shifts, Manage
         try
         {
             var saved = await shifts.SaveAsync(model, ct);
-            TempData["ShiftSuccess"] = model.Id.HasValue ? "Shift updated successfully." : "Shift created successfully.";
+            if (!model.Id.HasValue)
+            {
+                TempData["ScheduleSuccess"] = "Shift created successfully.";
+                return RedirectToAction("Details", "ManagerSchedule", new { id = saved.ScheduleWeekId });
+            }
+            TempData["ShiftSuccess"] = "Shift updated successfully.";
             return RedirectToAction(nameof(Details), new { id = saved.ShiftId });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -149,7 +154,7 @@ public sealed class ManagerShiftController(ManagerShiftApiService shifts, Manage
         var assignment = model.Shift?.Staff.SingleOrDefault(x => x.AssignmentId == assignmentId);
         if (model.Shift is not null && assignment is null) return NotFound();
         if (model.ErrorMessage is not null || !ModelState.IsValid) return View(model);
-        if (!model.CanAssign || assignment?.Status != "ASSIGNED") { model.ErrorMessage = "This assignment cannot be cancelled in its current state."; return View(model); }
+        if (!model.CanChangeAssignments || assignment?.Status != "ASSIGNED") { model.ErrorMessage = "This assignment cannot be cancelled in its current state."; return View(model); }
         try { await shifts.CancelAsync(assignmentId, input.Reason, ct); TempData["ShiftSuccess"] = "Assignment cancelled successfully."; return RedirectToAction(nameof(Details), new { id }); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ManagerShiftApiService.IsFailure(ex)) { model.ErrorMessage = ManagerShiftApiService.Error(ex); return View(model); }

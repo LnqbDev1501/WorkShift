@@ -9,13 +9,13 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page">
+<div class="accountant-dashboard schedule-page ms-workspace">
     <a class="ms-back" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@Model.WeekId">← Back to weekly schedule</a>
     <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFTS</span><h1>@ViewData["Title"]</h1><p>Choose a template and define staffing requirements for schedule #@Model.WeekId.</p></div></header>
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (Model.CanSave && Model.Week is { } week)
     {
-        <form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" asp-route-weekId="@Model.WeekId" method="post" class="ad-card ms-edit-form" id="shift-form">
+        <div class="ms-editor-layout"><form asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" asp-route-weekId="@Model.WeekId" method="post" class="ad-card ms-edit-form" id="shift-form">
             <div class="ms-form-section-title"><span class="material-symbols-outlined" aria-hidden="true">work_history</span><div><h2>Shift settings</h2><p>Define when the team works and how many employees are needed.</p></div></div><div asp-validation-summary="All" class="ms-validation" role="alert"></div>
             <div class="ms-form-field"><label asp-for="ShiftTemplateId"></label><select asp-for="ShiftTemplateId" required><option value="">Select a shift template</option>@foreach (var template in Model.Options.Templates) { <option value="@template.Id">@template.Name · @template.StartTime.ToString("HH:mm") – @template.EndTime.ToString("HH:mm") · @template.BreakMinutes min break</option> }</select><span asp-validation-for="ShiftTemplateId" class="ms-field-error"></span><p>Shift times and break duration come from the selected template. Overnight shifts end the next day.</p></div>
             <div class="ms-form-field"><label asp-for="WorkDate"></label><input asp-for="WorkDate" type="date" min="@week.WeekStartDate.ToString("yyyy-MM-dd")" max="@week.WeekEndDate.ToString("yyyy-MM-dd")" required /><span asp-validation-for="WorkDate" class="ms-field-error"></span><p>@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate) · UTC+7</p></div>
@@ -29,7 +29,7 @@
             <div class="ms-form-field"><label asp-for="Note"></label><textarea asp-for="Note" rows="3" maxlength="500"></textarea><span asp-validation-for="Note" class="ms-field-error"></span><p>Optional · Up to 500 characters.</p></div>
             <div class="ms-form-info"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>Shifts must start in the future and after the registration deadline. Only draft shifts in a draft schedule can be changed.</p></div>
             <div class="ms-form-actions"><a class="ms-reset" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@Model.WeekId">Cancel</a><button type="submit" class="ms-primary">@(editing ? "Save changes" : "Create shift")</button></div>
-        </form>
+        </form><aside class="ms-editor-preview" id="shift-preview"><span class="ms-section-kicker">SHIFT PREVIEW · UTC+7</span><span class="material-symbols-outlined ms-preview-icon" aria-hidden="true">work_history</span><h2 data-shift-preview>Select a template</h2><div class="ms-preview-row"><span>Work date</span><strong data-work-date-preview>Not set</strong></div><div class="ms-preview-row"><span>Required slots</span><strong data-slots-preview>1</strong></div><div class="ms-preview-row"><span>Initial status</span><span class="ad-badge muted">Draft</span></div><div class="ms-preview-tip"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>Assignment becomes available after registration opens. You can manage staff directly from the weekly timetable.</p></div></aside></div>
     }
 </div>
 @section Scripts { <script src="~/js/manager-shifts.js" asp-append-version="true"></script> }
