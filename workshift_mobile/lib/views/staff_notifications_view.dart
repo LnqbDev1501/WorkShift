@@ -303,7 +303,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: notifications.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final notification = notifications[index];
                       return _buildNotificationItem(notification);

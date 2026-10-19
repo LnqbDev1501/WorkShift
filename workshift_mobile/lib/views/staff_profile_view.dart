@@ -7,6 +7,7 @@ import '../../theme/app_colors.dart';
 import '../../views/auth/login_view.dart';
 import 'profile/change_email_view.dart';
 import 'profile/change_password_view.dart';
+import 'contracts/staff_contract_list_view.dart';
 
 /// Màn hình Profile của nhân viên - đầy đủ các tính năng như bên Web
 class StaffProfileView extends StatefulWidget {
@@ -228,6 +229,10 @@ class _StaffProfileViewState extends State<StaffProfileView> {
 
                 // ==================== ACCOUNT & SYSTEM INFO ====================
                 _buildAccountSystemCard(user),
+                const SizedBox(height: 16),
+
+                // ==================== EMPLOYMENT CONTRACTS ====================
+                _buildContractsCard(),
                 const SizedBox(height: 16),
 
                 // ==================== ACCOUNT SETTINGS (Change Email/Password) ====================
@@ -1030,6 +1035,79 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             ),
           ),
           const Icon(Icons.copy_rounded, size: 18, color: AppColors.textMuted),
+        ],
+      ),
+    );
+  }
+
+  // ==================== EMPLOYMENT CONTRACTS CARD ====================
+  Widget _buildContractsCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  size: 20,
+                  color: Color(0xFF059669),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Employment Contracts',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Legal records, wage rate & digital signatures',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildOptionRow(
+            icon: Icons.description_rounded,
+            title: 'My Employment Contracts',
+            subtitle: 'Review terms, sign e-contracts & track hourly rates',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StaffContractListView()),
+            ),
+          ),
         ],
       ),
     );

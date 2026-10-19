@@ -105,6 +105,18 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
+        title: 'Contracts',
+        subtitle: 'E-documents & rate',
+        icon: Icons.verified_user_rounded,
+        iconColor: AppColors.actionContractIcon,
+        iconBgColor: AppColors.actionContractBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffContractListView()),
+          );
+        },
+      ),
+      _QuickActionData(
         title: 'Create Order',
         subtitle: 'POS counter',
         icon: Icons.point_of_sale_rounded,
@@ -163,18 +175,6 @@ class _QuickActionsState extends State<QuickActions> {
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Navigating to Payslip')),
-          );
-        },
-      ),
-      _QuickActionData(
-        title: 'Contract',
-        subtitle: 'E-documents',
-        icon: Icons.verified_user_rounded,
-        iconColor: AppColors.actionContractIcon,
-        iconBgColor: AppColors.actionContractBg,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const StaffContractListView()),
           );
         },
       ),

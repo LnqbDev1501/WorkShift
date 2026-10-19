@@ -116,21 +116,21 @@
 
     <!-- Main Table -->
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-surface-container-high/60">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left min-w-[1100px] border-collapse">
                 <thead>
-                    <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
-                        <th class="px-unit-5 py-2" scope="col">Contract No.</th>
-                        <th class="px-unit-4 py-2" scope="col">Employee</th>
-                        <th class="px-unit-4 py-2" scope="col">Position</th>
-                        <th class="px-unit-4 py-2" scope="col">Branch</th>
-                        <th class="px-unit-4 py-2" scope="col">Region</th>
-                        <th class="px-unit-4 py-2" scope="col">Start Date</th>
-                        <th class="px-unit-4 py-2" scope="col">End Date</th>
-                        <th class="px-unit-4 py-2" scope="col">Hourly Rate</th>
-                        <th class="px-unit-4 py-2" scope="col">Status</th>
-                        <th class="px-unit-4 py-2" scope="col">PDF</th>
-                        <th class="px-unit-4 py-2 text-right" scope="col">Action</th>
+                    <tr class="h-[42px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-4 py-2.5 whitespace-nowrap" scope="col">Contract No.</th>
+                        <th class="px-unit-4 py-2.5 whitespace-nowrap" scope="col">Employee</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Position</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Branch</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Region</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Start Date</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">End Date</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Hourly Rate</th>
+                        <th class="px-unit-3 py-2.5 whitespace-nowrap" scope="col">Status</th>
+                        <th class="px-unit-2 py-2.5 whitespace-nowrap text-center" scope="col">PDF</th>
+                        <th class="px-unit-4 py-2.5 whitespace-nowrap text-right sticky right-0 bg-surface-container-low backdrop-blur-sm shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]" scope="col">Action</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-container-high/40">
@@ -157,98 +157,98 @@
                             var statusUpper = contract.Status?.ToUpperInvariant() ?? "";
                             <tr class="hover:bg-surface-container-low/50 transition-colors duration-100 group">
                                 <!-- Contract Number -->
-                                <td class="px-unit-5 py-3">
+                                <td class="px-unit-4 py-3 whitespace-nowrap align-middle">
                                     <span class="font-mono text-xs font-semibold text-on-surface">@contract.ContractNumber</span>
                                 </td>
                                 <!-- Employee -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-4 py-3 whitespace-nowrap align-middle">
                                     <div class="flex flex-col">
-                                        <span class="font-body-md text-sm text-on-surface font-medium">@contract.StaffName</span>
+                                        <span class="font-body-md text-sm text-on-surface font-medium whitespace-nowrap">@contract.StaffName</span>
                                         <span class="text-[11px] text-secondary font-mono">@contract.StaffId.ToString()[..8]…</span>
                                     </div>
                                 </td>
                                 <!-- Position -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     <span class="text-sm text-secondary">@contract.EmployeePosition</span>
                                 </td>
                                 <!-- Branch -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     <span class="text-sm text-on-surface">@contract.BranchName</span>
                                 </td>
                                 <!-- Region -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     <span class="text-sm text-secondary">@contract.RegionName</span>
                                 </td>
                                 <!-- Start Date -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     <span class="text-sm text-on-surface tabular-nums">@contract.StartDate.ToString("dd/MM/yyyy")</span>
                                 </td>
                                 <!-- End Date -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     <span class="text-sm text-secondary tabular-nums">
                                         @(contract.EndDate.HasValue ? contract.EndDate.Value.ToString("dd/MM/yyyy") : "—")
                                     </span>
                                 </td>
                                 <!-- Hourly Rate -->
-                                <td class="px-unit-4 py-3">
-                                    <span class="text-sm font-semibold text-on-surface tabular-nums">@contract.HourlyRate.ToString("N0") ₫/h</span>
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
+                                    <span class="text-sm font-semibold text-on-surface tabular-nums">@contract.HourlyRate.ToString("N0")&nbsp;₫/h</span>
                                 </td>
                                 <!-- Status Badge -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
                                     @switch (statusUpper)
                                     {
                                         case "DRAFT":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Draft
                                             </span>
                                             break;
                                         case "PENDING_APPROVAL":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>Pending
                                             </span>
                                             break;
                                         case "PENDING_STAFF":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse"></span>Pending Staff
                                             </span>
                                             break;
                                         case "APPROVED":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>Approved
                                             </span>
                                             break;
                                         case "ACTIVE":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>Active
                                             </span>
                                             break;
                                         case "REJECTED":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
                                             </span>
                                             break;
                                         case "CANCELLED":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Cancelled
                                             </span>
                                             break;
                                         case "TERMINATED":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Terminated
                                             </span>
                                             break;
                                         case "EXPIRED":
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200 whitespace-nowrap">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span>Expired
                                             </span>
                                             break;
                                         default:
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-500 border border-gray-200">@contract.Status</span>
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-500 border border-gray-200 whitespace-nowrap">@contract.Status</span>
                                             break;
                                     }
                                 </td>
                                 <!-- PDF -->
-                                <td class="px-unit-4 py-3">
+                                <td class="px-unit-2 py-3 whitespace-nowrap text-center align-middle">
                                     @if (contract.HasPdf)
                                     {
                                         <span class="material-symbols-outlined text-[20px] text-emerald-600" title="PDF available">picture_as_pdf</span>
@@ -259,7 +259,7 @@
                                     }
                                 </td>
                                 <!-- Action -->
-                                <td class="px-unit-4 py-3 text-right">
+                                <td class="px-unit-4 py-3 whitespace-nowrap text-right align-middle sticky right-0 bg-surface-container-lowest group-hover:bg-surface-container-low/80 backdrop-blur-sm transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">
                                     <a asp-controller="EmploymentContracts" asp-action="Details"
                                        asp-route-contractId="@contract.ContractId"
                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-primary-container hover:text-on-primary text-on-surface text-xs font-medium transition-all"

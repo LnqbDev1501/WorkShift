@@ -43,7 +43,9 @@
                 <div class="relative">
                     <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
                     <input type="text"
+                           id="contract-search-input"
                            name="search"
+                           aria-label="Search by contract # or staff name"
                            value="@Model.Search"
                            placeholder="Contract # or staff name..."
                            class="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
@@ -51,7 +53,9 @@
 
                 <!-- Staff Filter -->
                 <div>
-                    <select name="staffUserId"
+                    <select id="contract-staff-select"
+                            name="staffUserId"
+                            aria-label="Filter by staff member"
                             class="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all">
                         <option value="">All Staff Members</option>
                         @foreach (var staff in Model.StaffOptions)
@@ -63,7 +67,9 @@
 
                 <!-- Status Filter -->
                 <div>
-                    <select name="status"
+                    <select id="contract-status-select"
+                            name="status"
+                            aria-label="Filter by contract status"
                             class="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all">
                         <option value="all" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "all")">All Statuses</option>
                         <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft (DRAFT)</option>
@@ -117,17 +123,17 @@
 
     <!-- Table -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+        <div class="overflow-x-auto custom-scrollbar">
+            <table class="w-full text-left border-collapse min-w-[960px]">
                 <thead>
-                    <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
-                        <th class="px-5 py-3.5">Contract #</th>
-                        <th class="px-4 py-3.5">Staff Member</th>
-                        <th class="px-4 py-3.5">Position</th>
-                        <th class="px-4 py-3.5">Duration</th>
-                        <th class="px-4 py-3.5">Hourly Rate</th>
-                        <th class="px-4 py-3.5">Status</th>
-                        <th class="px-5 py-3.5 text-right">Actions</th>
+                    <tr class="bg-slate-50/90 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                        <th class="px-5 py-3.5 whitespace-nowrap">Contract #</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Staff Member</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Position</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Duration</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Hourly Rate</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Status</th>
+                        <th class="px-5 py-3.5 whitespace-nowrap text-right sticky right-0 bg-slate-50/95 backdrop-blur-sm shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -152,84 +158,92 @@
                         {
                             var statusUpper = contract.Status?.ToUpperInvariant() ?? "";
                             var isDraft = statusUpper == "DRAFT";
-                            <tr class="hover:bg-slate-50/80 transition-colors">
+                            <tr class="hover:bg-slate-50/80 transition-colors group">
                                 <!-- Contract Number -->
-                                <td class="px-5 py-4">
-                                    <span class="font-mono text-xs font-bold text-slate-900 block truncate max-w-[200px]" title="@contract.ContractNumber">
-                                        @contract.ContractNumber
-                                    </span>
-                                    <span class="text-[11px] text-slate-400">Created: @contract.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                <td class="px-5 py-3.5 whitespace-nowrap align-middle">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono text-xs font-bold text-slate-900 block truncate max-w-[150px]" title="@contract.ContractNumber">
+                                            @contract.ContractNumber
+                                        </span>
+                                        <button type="button"
+                                                onclick="copyContractNumber('@contract.ContractNumber', this)"
+                                                class="text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
+                                                title="Copy Contract #">
+                                            <span class="material-symbols-outlined text-[15px] align-middle">content_copy</span>
+                                        </button>
+                                    </div>
+                                    <span class="text-[11px] text-slate-400 block whitespace-nowrap mt-0.5">Created: @contract.CreatedAt.ToString("dd/MM/yyyy")</span>
                                 </td>
                                 <!-- Employee -->
-                                <td class="px-4 py-4">
+                                <td class="px-4 py-3.5 whitespace-nowrap align-middle">
                                     <div class="font-semibold text-slate-900 text-sm">@contract.EmployeeFullName</div>
                                     <div class="text-[11px] text-slate-400 font-mono">@contract.StaffUserId.ToString()[..8]…</div>
                                 </td>
                                 <!-- Position -->
-                                <td class="px-4 py-4">
-                                    <span class="text-sm text-slate-700">@contract.EmployeePosition</span>
+                                <td class="px-4 py-3.5 whitespace-nowrap align-middle">
+                                    <span class="text-sm font-medium text-slate-700">@contract.EmployeePosition</span>
                                 </td>
                                 <!-- Period -->
-                                <td class="px-4 py-4">
-                                    <div class="text-xs text-slate-800 tabular-nums">
-                                        <span class="font-medium">@contract.StartDate.ToString("dd/MM/yyyy")</span>
-                                        <span class="text-slate-400 mx-1">→</span>
+                                <td class="px-4 py-3.5 whitespace-nowrap align-middle">
+                                    <div class="inline-flex items-center gap-1.5 text-xs text-slate-800 tabular-nums">
+                                        <span class="font-medium text-slate-900">@contract.StartDate.ToString("dd/MM/yyyy")</span>
+                                        <span class="text-slate-400">→</span>
                                         <span class="text-slate-600">@(contract.EndDate.HasValue ? contract.EndDate.Value.ToString("dd/MM/yyyy") : "Indefinite")</span>
                                     </div>
                                 </td>
                                 <!-- Rate -->
-                                <td class="px-4 py-4">
-                                    <span class="font-semibold text-slate-900 text-sm tabular-nums">@contract.HourlyRate.ToString("N0") VND/hr</span>
+                                <td class="px-4 py-3.5 whitespace-nowrap align-middle">
+                                    <span class="font-semibold text-slate-900 text-sm tabular-nums">@contract.HourlyRate.ToString("N0")&nbsp;VND/hr</span>
                                 </td>
                                 <!-- Status Badge -->
-                                <td class="px-4 py-4">
+                                <td class="px-4 py-3.5 whitespace-nowrap align-middle">
                                     @switch (statusUpper)
                                     {
                                         case "DRAFT":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Draft
                                              </span>
                                              break;
                                         case "PENDING_STAFF":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>Pending Staff
                                              </span>
                                              break;
                                         case "PENDING_MANAGER_APPROVAL":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>Pending Approval
                                              </span>
                                              break;
                                         case "ACTIVE":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>Active
                                              </span>
                                              break;
                                         case "CANCELLED":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Cancelled
                                              </span>
                                              break;
                                         case "REJECTED":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
                                              </span>
                                              break;
                                         case "TERMINATED":
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Terminated
                                              </span>
                                              break;
                                         default:
-                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                  @contract.Status
                                              </span>
                                              break;
                                     }
                                 </td>
                                 <!-- Actions -->
-                                <td class="px-5 py-4 text-right">
-                                    <div class="flex items-center justify-end gap-1.5">
+                                <td class="px-5 py-3.5 whitespace-nowrap text-right align-middle sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-sm transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">
+                                    <div class="inline-flex items-center justify-end gap-1.5">
                                         <a asp-action="Details" asp-route-id="@contract.ContractId"
                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors"
                                            title="View Details">
@@ -359,6 +373,22 @@
 
 @section Scripts {
 <script>
+    function copyContractNumber(text, btn) {
+        if (!navigator.clipboard) return;
+        navigator.clipboard.writeText(text).then(function() {
+            var icon = btn.querySelector('.material-symbols-outlined');
+            if (icon) {
+                var oldText = icon.textContent;
+                icon.textContent = 'check';
+                icon.classList.add('text-emerald-600');
+                setTimeout(function() {
+                    icon.textContent = oldText;
+                    icon.classList.remove('text-emerald-600');
+                }, 1400);
+            }
+        });
+    }
+
     function openCancelModal(id, contractNumber) {
         document.getElementById('cancel-contract-id').value = id;
         document.getElementById('cancel-modal-number').textContent = contractNumber;

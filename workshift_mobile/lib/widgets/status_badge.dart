@@ -139,7 +139,7 @@ class StatusBadge extends StatelessWidget {
     switch (status.toUpperCase()) {
       case 'PENDING_STAFF':
         return StatusBadge(
-          text: 'Chờ ký',
+          text: 'Pending Acceptance',
           hasDot: true,
           dotColor: AppColors.warning,
           backgroundColor: AppColors.warningBg,
@@ -147,7 +147,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'ACTIVE':
         return StatusBadge(
-          text: 'Có hiệu lực',
+          text: 'Active',
           hasDot: true,
           dotColor: AppColors.success,
           backgroundColor: AppColors.successBg,
@@ -155,7 +155,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'SCHEDULED':
         return StatusBadge(
-          text: 'Sắp bắt đầu',
+          text: 'Scheduled',
           hasDot: true,
           dotColor: AppColors.info,
           backgroundColor: AppColors.infoBg,
@@ -163,7 +163,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'EXPIRED':
         return StatusBadge(
-          text: 'Đã hết hạn',
+          text: 'Expired',
           hasDot: true,
           dotColor: AppColors.textMuted,
           backgroundColor: AppColors.borderLight,
@@ -171,7 +171,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'CANCELLED':
         return StatusBadge(
-          text: 'Đã hủy',
+          text: 'Cancelled',
           hasDot: true,
           dotColor: AppColors.error,
           backgroundColor: AppColors.errorBg,
@@ -179,7 +179,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'TERMINATED':
         return StatusBadge(
-          text: 'Đã chấm dứt',
+          text: 'Terminated',
           hasDot: true,
           dotColor: AppColors.error,
           backgroundColor: AppColors.errorBg,
@@ -194,8 +194,10 @@ class StatusBadge extends StatelessWidget {
   factory StatusBadge.forChangeRequestStatus(String status) {
     switch (status.toUpperCase()) {
       case 'SUBMITTED':
+      case 'PENDING':
+      case 'PENDING_APPROVAL':
         return StatusBadge(
-          text: 'Đang xem xét',
+          text: 'Pending Review',
           hasDot: true,
           dotColor: AppColors.warning,
           backgroundColor: AppColors.warningBg,
@@ -203,7 +205,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'APPROVED':
         return StatusBadge(
-          text: 'Đã cập nhật',
+          text: 'Approved',
           hasDot: true,
           dotColor: AppColors.success,
           backgroundColor: AppColors.successBg,
@@ -211,7 +213,7 @@ class StatusBadge extends StatelessWidget {
         );
       case 'REJECTED':
         return StatusBadge(
-          text: 'Từ chối sửa',
+          text: 'Rejected',
           hasDot: true,
           dotColor: AppColors.error,
           backgroundColor: AppColors.errorBg,
