@@ -40,7 +40,7 @@ public sealed partial class PayrollFeedbackService
             || candidate != null && current.Status != "CALCULATED")
             throw new InvalidOperationException("Cần yêu cầu RESPONDED/CORRECT và Payroll bị reject hoặc bản sửa chờ Accountant hoàn tất.");
     }
-    private static PayrollIssueResponse MapIssue(PayrollReviewData d, Issue r)
+    private PayrollIssueResponse MapIssue(PayrollReviewData d, Issue r)
     {
         var result = Map(r);
         result.PayrollPeriodId = d.Period.PayrollPeriodId;
@@ -48,6 +48,10 @@ public sealed partial class PayrollFeedbackService
         result.ScheduleWeekId = d.Period.ScheduleWeekId;
         var payroll = d.Payrolls.FirstOrDefault(p => p.PayrollId == r.PayrollId);
         result.EmployeeName = payroll?.EmployeeFullNameSnapshot ?? "";
+        var isLeaf = PayrollPreviewPolicy.Leaf(d, r);
+        var expired = r.Status == "EXPIRED" || (r.Status == "OPEN" && r.ResponseDeadlineAt <= Now);
+        result.CanResend = isLeaf && PayrollPreviewPolicy.Mutable(d.Period) && expired;
+        result.CanRespond = isLeaf && PayrollPreviewPolicy.Mutable(d.Period) && r.Status == "OPEN" && !expired;
         if (r.Status == "RESPONDED" && r.ResponseAction == "CORRECT")
         {
             result.CandidatePayrollId = Candidate(d, r)?.PayrollId;
@@ -61,6 +65,7 @@ public sealed partial class PayrollFeedbackService
         var d = await Data(u, await repo.PeriodForPayrollAsync(payrollId, ct), ct); Editable(d);
         var r = d.Corrections.SingleOrDefault(r => r.CorrectionRequestId == correctionRequestId)
             ?? throw new KeyNotFoundException("Không tìm thấy Correction Request trong kỳ.");
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ xem trước cho yêu cầu sửa mới nhất.");
         var original = d.Payrolls.Single(p => p.PayrollId == r.PayrollId);
         var current = PayrollPreviewPolicy.Current(d).Single(p => p.UserId == original.UserId);
         if (payrollId != original.PayrollId && payrollId != current.PayrollId) throw new InvalidOperationException("Payroll không thuộc yêu cầu sửa.");
@@ -77,6 +82,7 @@ public sealed partial class PayrollFeedbackService
         await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForCorrectionAsync(id, ct), ct);
         var r = d.Corrections.Single(r => r.CorrectionRequestId == id);
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ hoàn tất yêu cầu sửa mới nhất.");
         if (r.Status == "COMPLETED" && r.ResolvedPayrollId == request.PayrollId) { await tx.CommitAsync(ct); return MapIssue(d, r); }
         Editable(d);
         var candidate = Candidate(d, r) ?? throw new InvalidOperationException("Chưa có bản sửa đã lưu để Accountant kiểm tra.");

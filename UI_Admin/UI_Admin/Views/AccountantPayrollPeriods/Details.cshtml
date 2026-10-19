@@ -199,6 +199,38 @@
         }
     </div>
 
+    @if ((isCalculated || isRevisionRequired) && !isEligibleToSubmit)
+    {
+        <div class="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-150 text-slate-800 text-xs flex items-start gap-3 shadow-xs">
+            <span class="material-symbols-outlined text-indigo-600 text-lg shrink-0 mt-0.5">info</span>
+            <div>
+                <strong class="font-bold text-slate-900">Submission Checklist (Required before submitting to Admin):</strong>
+                <ul class="list-disc pl-4 mt-1 space-y-0.5 text-slate-600">
+                    @if (Model.Feedbacks == null || Model.Feedbacks.Count == 0)
+                    {
+                        <li>Staff previews have not yet been sent. Distribute previews via <strong>Send Previews to Staff</strong> above.</li>
+                    }
+                    @if (pendingReviews > 0)
+                    {
+                        <li><strong>@pendingReviews</strong> staff preview(s) are awaiting employee confirmation or deadline expiration.</li>
+                    }
+                    @if (openIssues > 0)
+                    {
+                        <li><strong>@openIssues</strong> Manager correction request(s) in progress. Complete or accept explanation before submitting.</li>
+                    }
+                    @if (expiredIssues > 0)
+                    {
+                        <li class="text-rose-700 font-semibold"><strong>@expiredIssues</strong> Manager correction request(s) expired. Please resend to set a new deadline.</li>
+                    }
+                    @if (Model.RejectedPayrollCount > 0)
+                    {
+                        <li class="text-rose-700 font-semibold"><strong>@Model.RejectedPayrollCount</strong> rejected payroll record(s) require correction and recalculation.</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
     <!-- Alert Messages -->
     @if (TempData["PeriodError"] is string error)
     {

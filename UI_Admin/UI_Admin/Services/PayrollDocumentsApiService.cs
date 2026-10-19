@@ -100,8 +100,12 @@ public sealed class PayrollDocumentsApiService(HttpClient client, IConfiguration
     public Task<PayrollFeedbackResponse> ApproveFeedbackAsync(int id, string? note, CancellationToken ct)
         => Post<PayrollFeedbackResponse>($"/payroll-feedback-requests/{id}/approve", new ReviewPayrollFeedbackRequest { ResolutionNote = note }, ct);
 
+    public Task<PayrollFeedbackResponse> ExplainFeedbackAsync(int id, string note, CancellationToken ct)
+        => Post<PayrollFeedbackResponse>($"/payroll-feedback-requests/{id}/explain", new ReviewPayrollFeedbackRequest { ResolutionNote = note }, ct);
+
+    [Obsolete("Use ExplainFeedbackAsync instead. Old reject endpoint has been migrated to explain.")]
     public Task<PayrollFeedbackResponse> RejectFeedbackAsync(int id, string note, CancellationToken ct)
-        => Post<PayrollFeedbackResponse>($"/payroll-feedback-requests/{id}/reject", new ReviewPayrollFeedbackRequest { ResolutionNote = note }, ct);
+        => ExplainFeedbackAsync(id, note, ct);
 
     // Step 10: Submit Period
     public Task<JsonElement> SubmitPeriodAsync(int periodId, CancellationToken ct)

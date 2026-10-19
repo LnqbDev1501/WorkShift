@@ -9,6 +9,33 @@ String formatDate(DateTime date) {
   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 }
 
+/// Chuyển đổi DateTime sang giờ Việt Nam (UTC+7 / ICT)
+DateTime toVietnamTime(DateTime dt) {
+  return dt.toUtc().add(const Duration(hours: 7));
+}
+
+/// Định dạng ngày giờ theo múi giờ Việt Nam (dd/MM/yyyy HH:mm)
+String formatVietnamDateTime(DateTime? dt) {
+  if (dt == null) return 'N/A';
+  final vn = toVietnamTime(dt);
+  final day = vn.day.toString().padLeft(2, '0');
+  final month = vn.month.toString().padLeft(2, '0');
+  final year = vn.year;
+  final hour = vn.hour.toString().padLeft(2, '0');
+  final minute = vn.minute.toString().padLeft(2, '0');
+  return '$day/$month/$year $hour:$minute';
+}
+
+/// Định dạng ngày theo múi giờ Việt Nam (dd/MM/yyyy)
+String formatVietnamDate(DateTime? dt) {
+  if (dt == null) return 'N/A';
+  final vn = toVietnamTime(dt);
+  final day = vn.day.toString().padLeft(2, '0');
+  final month = vn.month.toString().padLeft(2, '0');
+  final year = vn.year;
+  return '$day/$month/$year';
+}
+
 Color getStatusColor(String status) {
   switch (status.toUpperCase()) {
     case 'ACTIVE':

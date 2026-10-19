@@ -54,7 +54,7 @@
                 <select id="status" name="Status"
                         class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
                     <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
-                    @foreach (var s in new[] { "SUBMITTED", "APPROVED", "REJECTED" })
+                    @foreach (var s in new[] { "SUBMITTED", "APPROVED", "EXPLAINED", "REJECTED" })
                     {
                         <option value="@s" selected="@(Model.Query.Status == s)">@s</option>
                     }
@@ -162,6 +162,12 @@
                                     {
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             APPROVED
+                                        </span>
+                                    }
+                                    else if (f.Status == "EXPLAINED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            EXPLAINED
                                         </span>
                                     }
                                     else if (f.Status == "REJECTED")

@@ -71,6 +71,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
         return Icons.info_rounded;
       case 'alert':
         return Icons.warning_rounded;
+      case 'payroll':
+        return Icons.payments_rounded;
       default:
         return Icons.notifications_rounded;
     }
@@ -88,6 +90,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
         return AppColors.info;
       case 'alert':
         return AppColors.warning;
+      case 'payroll':
+        return AppColors.primary;
       default:
         return AppColors.textSecondary;
     }

@@ -59,7 +59,15 @@ public sealed class PayrollFeedbackResponse
     public DateTime? ClosedAt { get; set; }
     public string? ClosureReason { get; set; }
     public bool CanRespond { get; set; }
+    public bool CanConfirm => CanRespond;
+    public bool CanSubmitFeedback => CanRespond;
+    public string? PreviousResolutionNote { get; set; }
+    public string? PreviousFeedbackDescription { get; set; }
     public List<PayrollIssueResponse> Corrections { get; set; } = [];
+}
+public sealed class ExplainPayrollFeedbackRequest
+{
+    public required string ResolutionNote { get; set; }
 }
 public sealed class PayrollFeedbackDetailsResponse
 {

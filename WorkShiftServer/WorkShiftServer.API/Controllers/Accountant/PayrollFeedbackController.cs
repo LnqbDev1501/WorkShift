@@ -33,8 +33,10 @@ public sealed class PayrollFeedbackController(IPayrollFeedbackService service) :
     public Task<IActionResult> Feedback(int id, SubmitPayrollFeedbackRequest request, CancellationToken ct) => Execute(async a => await service.SubmitAsync(a, id, request, ct));
     [HttpPost("payroll-feedback-requests/{id:int}/approve"), Authorize(Roles = "ACCOUNTANT")]
     public Task<IActionResult> ApproveFeedback(int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Execute(async a => await service.ApproveAsync(a, id, request, ct));
+    [HttpPost("payroll-feedback-requests/{id:int}/explain"), Authorize(Roles = "ACCOUNTANT")]
+    public Task<IActionResult> ExplainFeedback(int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Execute(async a => await service.ExplainAsync(a, id, request, ct));
     [HttpPost("payroll-feedback-requests/{id:int}/reject"), Authorize(Roles = "ACCOUNTANT")]
-    public Task<IActionResult> RejectFeedback(int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Execute(async a => await service.RejectAsync(a, id, request, ct));
+    public Task<IActionResult> RejectFeedback(int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Execute(async a => await service.ExplainAsync(a, id, request, ct));
     [HttpPost("payrolls/{id:int}/correction-requests"), Authorize(Roles = "ACCOUNTANT")]
     public Task<IActionResult> CreateIssue(int id, CreatePayrollIssueRequest request, CancellationToken ct) => Execute(async a => await service.CreateIssueAsync(a, id, request, ct));
     [HttpGet("payroll-periods/{id:int}/correction-requests"), Authorize(Roles = "ACCOUNTANT,MANAGER")]

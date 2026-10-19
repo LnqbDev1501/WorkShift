@@ -94,7 +94,15 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                TargetType = "Custom",
+                // Recipient links select the exact users; the audience label must
+                // also satisfy notifications.target_type's database CHECK.
+                TargetType = role switch
+                {
+                    "STAFF" => "Staff",
+                    "MANAGER" => "Manager",
+                    "ACCOUNTANT" => "Accountant",
+                    _ => "All"
+                },
                 TargetRoles = [role],
                 TargetBranchId = null,
                 TargetRegionId = null,

@@ -178,14 +178,14 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
     {
         if (requestId <= 0 || string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do gửi lại yêu cầu kiểm tra cho Quản lý.";
+            TempData["ErrorMessage"] = "Please enter justification for resending the correction request to Manager.";
             return RedirectToAction(nameof(Review), new { id = payrollId });
         }
 
         try
         {
             await api.ResendCorrectionAsync(requestId, reason.Trim(), ct);
-            TempData["SuccessMessage"] = "Đã gửi lại yêu cầu kiểm tra nguồn cho Quản lý với hạn phản hồi mới (23:59:59).";
+            TempData["SuccessMessage"] = "Correction request resent to Manager successfully with a new 23:59:59 deadline.";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))
@@ -203,14 +203,14 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
     {
         if (feedbackId <= 0 || string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do gửi lại bản xem trước (Preview) cho Nhân viên.";
+            TempData["ErrorMessage"] = "Please enter justification for resending the payroll preview to the employee.";
             return RedirectToAction(nameof(Review), new { id = payrollId });
         }
 
         try
         {
             await api.ResendPreviewAsync(feedbackId, reason.Trim(), ct);
-            TempData["SuccessMessage"] = "Đã gửi lại bản xem trước (Payroll Preview) cho Nhân viên thành công với hạn phản hồi mới.";
+            TempData["SuccessMessage"] = "Payroll preview resent to employee successfully with a new 23:59:59 deadline.";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))

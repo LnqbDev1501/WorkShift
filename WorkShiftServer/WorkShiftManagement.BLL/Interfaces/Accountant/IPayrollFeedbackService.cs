@@ -10,6 +10,7 @@ public interface IPayrollFeedbackService
     Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest query, CancellationToken ct);
     Task<PayrollFeedbackDetailsResponse> GetAsync(Guid actor, int id, CancellationToken ct);
     Task<PayrollFeedbackResponse> ApproveAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct);
+    Task<PayrollFeedbackResponse> ExplainAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct);
     Task<PayrollFeedbackResponse> RejectAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct);
     Task<PayrollIssueResponse> CreateIssueAsync(Guid actor, int payrollId, CreatePayrollIssueRequest request, CancellationToken ct);
     Task<List<PayrollIssueResponse>> IssuesAsync(Guid actor, int periodId, CancellationToken ct);

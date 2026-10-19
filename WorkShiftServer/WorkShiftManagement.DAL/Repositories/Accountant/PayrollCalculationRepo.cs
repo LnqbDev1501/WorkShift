@@ -146,11 +146,21 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.ConstraintName != null
             && pg.ConstraintName.Contains("notifications", StringComparison.OrdinalIgnoreCase))
         {
-            // If in-app notification violates a database constraint, detach notification entities and ensure the core payroll transaction succeeds
-            foreach (var entry in db.ChangeTracker.Entries().Where(e => e.Entity is WorkShiftManagement.DAL.Entities.Notification or WorkShiftManagement.DAL.Entities.UserNotification).ToList())
+            // SaveChanges rolls back the failed write to its transaction savepoint.
+            // Detach added recipients BEFORE their principals: detaching an added
+            // Notification first severs required FKs on its still-tracked children.
+            var autoDetect = db.ChangeTracker.AutoDetectChangesEnabled;
+            try
             {
-                entry.State = EntityState.Detached;
+                db.ChangeTracker.AutoDetectChangesEnabled = false;
+                var notifications = db.ChangeTracker.Entries()
+                    .Where(e => e.State == EntityState.Added
+                        && e.Entity is WorkShiftManagement.DAL.Entities.UserNotification or WorkShiftManagement.DAL.Entities.Notification)
+                    .OrderBy(e => e.Entity is WorkShiftManagement.DAL.Entities.UserNotification ? 0 : 1)
+                    .ToList();
+                foreach (var entry in notifications) entry.State = EntityState.Detached;
             }
+            finally { db.ChangeTracker.AutoDetectChangesEnabled = autoDetect; }
             await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState is "23505" or "23503")

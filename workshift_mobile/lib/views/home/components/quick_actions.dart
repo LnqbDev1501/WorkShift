@@ -11,6 +11,7 @@ import '../../contracts/staff_contract_list_view.dart';
 import '../../orders/staff_order_list_view.dart';
 import '../../orders/create_order_view.dart';
 import '../../timesheet/staff_timesheet_view.dart';
+import '../../payroll/payroll_home_view.dart';
 import '../../../models/face_registration_model.dart';
 import '../../../services/face_registration_service.dart';
 
@@ -39,6 +40,7 @@ class QuickActions extends StatefulWidget {
   final VoidCallback? onShiftsChanged;
   final VoidCallback? onNavigateToTimesheet;
   final VoidCallback? onNavigateToSchedule;
+  final VoidCallback? onNavigateToPayroll;
 
   const QuickActions({
     super.key,
@@ -46,6 +48,7 @@ class QuickActions extends StatefulWidget {
     this.onShiftsChanged,
     this.onNavigateToTimesheet,
     this.onNavigateToSchedule,
+    this.onNavigateToPayroll,
   });
 
   @override
@@ -310,9 +313,13 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionSalaryIcon,
         iconBgColor: AppColors.actionSalaryBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Payslip')),
-          );
+          if (widget.onNavigateToPayroll != null) {
+            widget.onNavigateToPayroll!();
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PayrollHomeView()),
+            );
+          }
         },
       ),
       _QuickActionData(

@@ -99,7 +99,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     {
         if (d.Corrections.Any(r => r.Payroll.UserId == p.UserId && r.Status is "OPEN" or "RESPONDED"))
             throw new InvalidOperationException("Nhân viên đang có Correction Request chưa hoàn tất.");
-        var deadline = (previous != null && Now.Date == previous.ResponseDeadlineAt.Date)
+        var deadline = (previous != null && Now < previous.ResponseDeadlineAt)
             ? previous.ResponseDeadlineAt
             : PayrollPreviewPolicy.EndOfLocalDay(Now);
         var row = new Issue { Payroll = p, PayrollId = p.PayrollId, FeedbackId = feedback?.FeedbackId, PreviousRequestId = previous?.CorrectionRequestId,
@@ -110,9 +110,16 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     }
     private static void RefreshPeriod(PayrollReviewData d, DateTime now)
     {
-        if (d.Period.Status == "REVISION_REQUIRED" && !d.Corrections.Any(r => r.Status is "OPEN" or "RESPONDED" or "EXPIRED")
-            && !d.Reviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING") && PayrollPreviewPolicy.Current(d).All(p => p.Status == "CALCULATED"))
-        { d.Period.Status = "CALCULATED"; d.Period.UpdatedAt = now; }
+        var leafCorrections = d.Corrections.Where(r => PayrollPreviewPolicy.Leaf(d, r)).ToList();
+        var leafReviews = d.Reviews.Where(f => PayrollPreviewPolicy.Leaf(d, f)).ToList();
+        if (d.Period.Status == "REVISION_REQUIRED"
+            && leafCorrections.All(r => r.Status == "COMPLETED")
+            && !leafReviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING")
+            && PayrollPreviewPolicy.Current(d).All(p => p.Status == "CALCULATED"))
+        {
+            d.Period.Status = "CALCULATED";
+            d.Period.UpdatedAt = now;
+        }
     }
     public async Task<List<PayrollFeedbackResponse>> SendPreviewsAsync(Guid actor, int periodId, CancellationToken ct)
     {
@@ -153,19 +160,28 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         Notify(d, "ACCOUNTANT", null, "Staff gửi phản hồi Payroll Preview", $"{d.Period.PeriodCode}: cần xử lý phản hồi #{id}.");
         Audit(actor, "SUBMIT_PAYROLL_PREVIEW_FEEDBACK", d, new { id, f.PayrollId }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(d, f, u);
     }
-    private async Task<PayrollFeedbackResponse> Decide(Guid actor, int id, ReviewPayrollFeedbackRequest request, bool approve, CancellationToken ct)
+    public async Task<PayrollFeedbackResponse> ApproveAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct)
     {
         var note = Text(request.ResolutionNote); var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForReviewAsync(id, ct), ct); Editable(d); var f = Review(d, id, u); var p = Current(d, f.PayrollId);
         if (f.Status != "SUBMITTED" || f.ReviewStatus != "FEEDBACK_PENDING" || !PayrollPreviewPolicy.Leaf(d, f)) throw new InvalidOperationException("Phản hồi không còn chờ Accountant xử lý.");
-        f.Status = approve ? "APPROVED" : "REJECTED"; f.ProcessedBy = actor; f.ProcessedAt = Now; f.ResolutionNote = note; f.UpdatedAt = Now;
-        if (approve) NewIssue(d, p, actor, f.Description!, f);
-        else { RefreshPeriod(d, Now); }
-        await calculation.SaveAsync(ct); Audit(actor, approve ? "APPROVE_PAYROLL_FEEDBACK" : "REJECT_PAYROLL_FEEDBACK", d, new { id, f.Status, note });
+        f.Status = "APPROVED"; f.ProcessedBy = actor; f.ProcessedAt = Now; f.ResolutionNote = note; f.UpdatedAt = Now;
+        NewIssue(d, p, actor, f.Description!, f);
+        await calculation.SaveAsync(ct); Audit(actor, "APPROVE_PAYROLL_FEEDBACK", d, new { id, f.Status, note });
         await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(d, f, u);
     }
-    public Task<PayrollFeedbackResponse> ApproveAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Decide(actor, id, request, true, ct);
-    public Task<PayrollFeedbackResponse> RejectAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct) => Decide(actor, id, request, false, ct);
+    public async Task<PayrollFeedbackResponse> ExplainAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct)
+    {
+        var note = Text(request.ResolutionNote); var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
+        var d = await Data(u, await repo.PeriodForReviewAsync(id, ct), ct); Editable(d); var f = Review(d, id, u);
+        if (f.Status != "SUBMITTED" || f.ReviewStatus != "FEEDBACK_PENDING" || !PayrollPreviewPolicy.Leaf(d, f)) throw new InvalidOperationException("Phản hồi không còn chờ Accountant xử lý.");
+        f.Status = "EXPLAINED"; f.ProcessedBy = actor; f.ProcessedAt = Now; f.ResolutionNote = note; f.UpdatedAt = Now;
+        d.Period.Status = "REVISION_REQUIRED"; d.Period.UpdatedAt = Now;
+        await calculation.SaveAsync(ct); Audit(actor, "EXPLAIN_PAYROLL_FEEDBACK", d, new { id, f.Status, note });
+        await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(d, f, u);
+    }
+    public Task<PayrollFeedbackResponse> RejectAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct)
+        => ExplainAsync(actor, id, request, ct);
     public async Task<PayrollIssueResponse> CreateIssueAsync(Guid actor, int payrollId, CreatePayrollIssueRequest request, CancellationToken ct)
     {
         var reason = Text(request.Reason); var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
@@ -190,7 +206,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             }
         }
         var issue = NewIssue(d, p, actor, reason, f); await calculation.SaveAsync(ct);
-        Audit(actor, "CREATE_PAYROLL_CORRECTION_REQUEST", d, new { issue.CorrectionRequestId, payrollId, reason }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(issue);
+        Audit(actor, "CREATE_PAYROLL_CORRECTION_REQUEST", d, new { issue.CorrectionRequestId, payrollId, reason }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return MapIssue(d, issue);
     }
     public async Task<PayrollIssueResponse> RespondAsync(Guid actor, int id, RespondPayrollIssueRequest request, CancellationToken ct)
     {
@@ -198,8 +214,9 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var u = await Actor(actor, ct, "MANAGER"); await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForCorrectionAsync(id, ct), ct); Editable(d);
         var r = d.Corrections.Single(x => x.CorrectionRequestId == id); var p = Current(d, r.PayrollId);
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ phản hồi yêu cầu mới nhất.");
         if (r.Status != "OPEN") throw new InvalidOperationException("Yêu cầu không còn OPEN.");
-        if (Now > r.ResponseDeadlineAt) throw new InvalidOperationException("Yêu cầu đã hết hạn phản hồi.");
+        if (Now > r.ResponseDeadlineAt) { r.Status = "EXPIRED"; r.ExpiredAt = Now; r.UpdatedAt = Now; throw new InvalidOperationException("Yêu cầu đã hết hạn phản hồi."); }
         if (request.Action == "CORRECT")
         {
             var rebuilt = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), p.UserId, actor, Now, true);
@@ -209,7 +226,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         }
         r.Status = "RESPONDED"; r.ResponseAction = request.Action; r.ResponseNote = note; r.RespondedBy = actor; r.RespondedAt = Now; r.UpdatedAt = Now;
         Notify(d, "ACCOUNTANT", null, "Manager đã phản hồi yêu cầu lương", $"Yêu cầu #{id}: {r.ResponseAction}.", actor);
-        Audit(actor, "RESPOND_PAYROLL_CORRECTION_REQUEST", d, new { id, r.ResponseAction, note }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(r);
+        Audit(actor, "RESPOND_PAYROLL_CORRECTION_REQUEST", d, new { id, r.ResponseAction, note }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return MapIssue(d, r);
     }
     private void Complete(PayrollReviewData d, Issue r, Payroll p, Guid actor, string note)
     {
@@ -222,6 +239,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var note = Text(request.Note); if (request.Decision is not ("ACCEPT_EXPLANATION" or "RETURN")) throw new ArgumentException("Chọn ACCEPT_EXPLANATION hoặc RETURN.");
         var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForCorrectionAsync(id, ct), ct); Editable(d); var r = d.Corrections.Single(x => x.CorrectionRequestId == id);
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ xử lý yêu cầu mới nhất.");
         if (Candidate(d, r) != null) throw new InvalidOperationException("Đã có bản sửa lưu chờ kiểm tra. Hãy Preview/tính lại nếu nguồn đổi, rồi hoàn tất/gửi bản sửa.");
         var p = Current(d, r.PayrollId);
         if (r.Status != "RESPONDED") throw new InvalidOperationException("Manager chưa phản hồi yêu cầu này.");
@@ -237,7 +255,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             if (PayrollPreviewPolicy.Changed(p, rebuilt)) throw new InvalidOperationException("Nguồn đã thay đổi; phải yêu cầu CORRECT và tính version mới.");
             p.Status = "CALCULATED"; p.UpdatedAt = Now; Complete(d, r, p, actor, note);
         }
-        await calculation.SaveAsync(ct); Audit(actor, "REVIEW_PAYROLL_CORRECTION_REQUEST", d, new { id, request.Decision, note }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return Map(r);
+        await calculation.SaveAsync(ct); Audit(actor, "REVIEW_PAYROLL_CORRECTION_REQUEST", d, new { id, request.Decision, note }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return MapIssue(d, r);
     }
     public async Task<PayrollCalculationResponse> RecalculateAsync(Guid actor, int payrollId, RecalculateRequest request, CancellationToken ct)
     {
@@ -245,6 +263,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var d = await Data(u, await repo.PeriodForPayrollAsync(payrollId, ct), ct); Editable(d);
         var r = d.Corrections.SingleOrDefault(r => r.CorrectionRequestId == request.CorrectionRequestId)
             ?? throw new KeyNotFoundException("Không tìm thấy Correction Request trong kỳ.");
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ tính lại cho yêu cầu sửa mới nhất.");
         var original = d.Payrolls.Single(p => p.PayrollId == r.PayrollId);
         var old = PayrollPreviewPolicy.Current(d).Single(p => p.UserId == original.UserId);
         if (payrollId != original.PayrollId && payrollId != old.PayrollId) throw new InvalidOperationException("Payroll không thuộc bản sửa hiện hành của yêu cầu.");
@@ -312,14 +331,24 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var d = await Data(u, await repo.PeriodForCorrectionAsync(correctionRequestId, ct), ct);
         Editable(d);
         var old = d.Corrections.Single(x => x.CorrectionRequestId == correctionRequestId);
-        if (old.Status is not ("EXPIRED" or "OPEN"))
-            throw new InvalidOperationException("Chỉ có thể gửi lại yêu cầu đang OPEN hoặc EXPIRED.");
-        var p = Current(d, old.PayrollId);
-        var deadline = (Now.Date == old.ResponseDeadlineAt.Date)
-            ? old.ResponseDeadlineAt
-            : PayrollPreviewPolicy.EndOfLocalDay(Now);
-        old.Status = "SUPERSEDED";
+        if (!PayrollPreviewPolicy.Leaf(d, old))
+            throw new InvalidOperationException("Chỉ có thể gửi lại từ yêu cầu sửa mới nhất.");
+        if (old.Status == "OPEN")
+        {
+            if (Now < old.ResponseDeadlineAt)
+                throw new InvalidOperationException("Yêu cầu chưa hết hạn; không được gửi lại trước hạn.");
+            old.Status = "EXPIRED";
+            old.ExpiredAt = Now;
+            old.UpdatedAt = Now;
+        }
+        else if (old.Status != "EXPIRED")
+        {
+            throw new InvalidOperationException("Chỉ có thể gửi lại yêu cầu đã EXPIRED.");
+        }
+        old.ExpiredAt ??= Now;
         old.UpdatedAt = Now;
+        var p = Current(d, old.PayrollId);
+        var deadline = PayrollPreviewPolicy.EndOfLocalDay(Now);
         var next = new Issue {
             Payroll = p,
             PayrollId = p.PayrollId,
@@ -362,15 +391,24 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var old = Review(d, feedbackId, u);
         if (!PayrollPreviewPolicy.Leaf(d, old))
             throw new InvalidOperationException("Chỉ gửi lại từ lượt review mới nhất của nhân viên.");
+        if (old.Status == "SUBMITTED")
+            throw new InvalidOperationException("Phản hồi chưa được xử lý (Accountant cần Approve hoặc Explain trước).");
+        if (d.Corrections.Any(r => r.Payroll.UserId == old.EmployeeId && r.Status is "OPEN" or "RESPONDED"))
+            throw new InvalidOperationException("Đang có Correction Request chưa hoàn tất cho nhân viên này.");
         var p = PayrollPreviewPolicy.Current(d).SingleOrDefault(p => p.UserId == old.EmployeeId)
             ?? throw new InvalidOperationException("Không tìm thấy đợt xem trước lương hiện hành.");
+        if (p.Status != "CALCULATED")
+            throw new InvalidOperationException("Payroll version hiện hành chưa ở trạng thái CALCULATED.");
         var root = PayrollPreviewPolicy.Root(d, old);
         root.ClosedAt = null;
         root.ClosureReason = null;
         root.UpdatedAt = Now;
-        old.ReviewStatus = "SUPERSEDED";
+        if (old.ReviewStatus != "EXPIRED")
+        {
+            old.ReviewStatus = "SUPERSEDED";
+        }
         old.UpdatedAt = Now;
-        var deadline = (old.ReviewDeadlineAt.HasValue && Now.Date == old.ReviewDeadlineAt.Value.Date)
+        var deadline = (old.ReviewDeadlineAt.HasValue && Now < old.ReviewDeadlineAt.Value)
             ? old.ReviewDeadlineAt.Value
             : PayrollPreviewPolicy.EndOfLocalDay(Now);
         var next = new PayrollFeedbackRequest {
@@ -378,7 +416,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             PayrollId = p.PayrollId,
             EmployeeId = p.UserId,
             PreviousFeedbackId = old.FeedbackId,
-            RoundNo = old.RoundNo + 1,
+            RoundNo = (old.RoundNo ?? 0) + 1,
             SentBy = actor,
             CreatedAt = Now,
             UpdatedAt = Now,
@@ -388,6 +426,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         };
         repo.Add(next);
         d.Reviews.Add(next);
+        RefreshPeriod(d, Now);
         Audit(actor, "RESEND_PAYROLL_PREVIEW", d, new {
             oldFeedbackId = old.FeedbackId,
             newFeedbackId = next.FeedbackId,
@@ -414,7 +453,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     {
         var u = await Actor(actor, ct, "ACCOUNTANT", "STAFF");
         if (q.Page < 1 || q.PageSize is < 1 or > 100 || (long)(q.Page - 1) * q.PageSize > int.MaxValue || q.Keyword?.Length > 200
-            || q.UserId == Guid.Empty || q.PayrollPeriodId <= 0 || q.Status != null && q.Status is not ("SUBMITTED" or "APPROVED" or "REJECTED")
+            || q.UserId == Guid.Empty || q.PayrollPeriodId <= 0 || q.Status != null && q.Status is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "EXPLAINED")
             || q.ReviewStatus != null && q.ReviewStatus is not ("PENDING" or "CONFIRMED" or "FEEDBACK_PENDING" or "SUPERSEDED" or "EXPIRED")) throw new ArgumentException("Bộ lọc/phân trang không hợp lệ.");
         if (u.Role.RoleName == "STAFF" && q.UserId.HasValue && q.UserId != actor) throw new UnauthorizedAccessException("Staff chỉ tra cứu của mình.");
         var ids = await repo.ReviewPeriodIdsAsync(u.Role.RoleName == "ACCOUNTANT" ? u.BranchId : null, u.Role.RoleName == "STAFF" ? actor : null, ct);
@@ -445,6 +484,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var u = await Actor(actor, ct, "ACCOUNTANT", "MANAGER", "ADMIN");
         var branchId = u.Role.RoleName is "MANAGER" or "ACCOUNTANT" ? u.BranchId : null;
         var issues = await repo.QueryIssuesAsync(branchId, periodId, status, ct);
+        var prevIds = issues.Where(i => i.PreviousRequestId.HasValue).Select(i => i.PreviousRequestId!.Value).ToHashSet();
         return issues.Select(r => new PayrollIssueResponse
         {
             CorrectionRequestId = r.CorrectionRequestId,
@@ -466,8 +506,8 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             CompletedAt = r.CompletedAt,
             ResponseDeadlineAt = r.ResponseDeadlineAt,
             ExpiredAt = r.ExpiredAt,
-            CanResend = r.Status is "EXPIRED" or "OPEN",
-            CanRespond = r.Status == "OPEN",
+            CanResend = !prevIds.Contains(r.CorrectionRequestId) && (r.Status == "EXPIRED" || (r.Status == "OPEN" && r.ResponseDeadlineAt <= Now)),
+            CanRespond = !prevIds.Contains(r.CorrectionRequestId) && r.Status == "OPEN" && r.ResponseDeadlineAt > Now,
             PayrollPeriodId = r.Payroll.PayrollPeriodId,
             PeriodCode = r.Payroll.PayrollPeriod?.PeriodCode ?? "",
             ScheduleWeekId = r.Payroll.PayrollPeriod?.ScheduleWeekId,
@@ -478,6 +518,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     {
         var expired = f.ReviewStatus == "PENDING" && f.ReviewDeadlineAt <= Now;
         var root = PayrollPreviewPolicy.Root(d, f);
+        var prev = f.PreviousFeedbackId.HasValue ? d.Reviews.FirstOrDefault(r => r.FeedbackId == f.PreviousFeedbackId.Value) : null;
         return new() { FeedbackId = f.FeedbackId, PayrollId = f.PayrollId, PayrollVersionNo = f.Payroll.VersionNo, PayrollPeriodId = d.Period.PayrollPeriodId,
             EmployeeId = f.EmployeeId, EmployeeName = f.Payroll.EmployeeFullNameSnapshot, PreviousFeedbackId = f.PreviousFeedbackId, RoundNo = f.RoundNo,
             ReviewStatus = expired ? "EXPIRED" : f.ReviewStatus, Status = f.Status, Description = f.Description, CreatedAt = f.CreatedAt, SentBy = f.SentBy,
@@ -485,6 +526,8 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             ResolutionNote = f.ResolutionNote, ResultNote = f.ResultNote, ClosedAt = root.ClosedAt, ClosureReason = root.ClosureReason,
             CanRespond = u.Role.RoleName == "STAFF" && f.EmployeeId == u.UserId && f.ReviewStatus == "PENDING" && f.ReviewDeadlineAt.HasValue && f.CreatedAt <= Now && !expired && root.ClosedAt == null && PayrollPreviewPolicy.Mutable(d.Period) && PayrollPreviewPolicy.Leaf(d, f)
                 && PayrollPreviewPolicy.Current(d).Any(p => p.PayrollId == f.PayrollId),
+            PreviousResolutionNote = prev?.ResolutionNote,
+            PreviousFeedbackDescription = prev?.Description,
             Corrections = d.Corrections.Where(r => r.FeedbackId == f.FeedbackId).Select(r => MapIssue(d, r)).ToList() };
     }
     private static PayrollIssueResponse Map(Issue r) => new() {

@@ -24,6 +24,7 @@ import '../staff_notifications_view.dart';
 import '../staff_profile_view.dart';
 import '../requests/staff_request_list_view.dart';
 import '../timesheet/staff_timesheet_view.dart';
+import '../payroll/payroll_home_view.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
 class HomeView extends StatefulWidget {
@@ -259,39 +260,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildPlaceholderTab(String title, IconData icon) {
-    return SafeArea(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEFF6FF),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 48, color: AppColors.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Chức năng đang được cập nhật',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -388,6 +357,8 @@ class _HomeViewState extends State<HomeView> {
                                 setState(() => _currentTabIndex = 1),
                             onNavigateToSchedule: () =>
                                 setState(() => _currentTabIndex = 2),
+                            onNavigateToPayroll: () =>
+                                setState(() => _currentTabIndex = 3),
                           ),
                           const SizedBox(height: 24),
 
@@ -396,8 +367,14 @@ class _HomeViewState extends State<HomeView> {
                             requests: _controller.recentRequests,
                             errorMessage: _controller.requestsError,
                             onRequestTap: _openRequest,
-                            onViewAll: () =>
-                                setState(() => _currentTabIndex = 3),
+                            onViewAll: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const StaffRequestListView(
+                                  showBackButton: true,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -427,8 +404,8 @@ class _HomeViewState extends State<HomeView> {
           _currentTabIndex == 2
               ? const MyShiftsView(showBackButton: false)
               : const SizedBox.shrink(),
-          // Tab 3: Requests
-          const StaffRequestListView(showBackButton: false),
+          // Tab 3: Payroll
+          const PayrollHomeView(),
           // Tab 4: Notifications
           StaffNotificationsView(),
           // Tab 5: Profile
@@ -470,9 +447,9 @@ class _HomeViewState extends State<HomeView> {
             label: 'Schedule',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.description_outlined),
-            activeIcon: Icon(Icons.description),
-            label: 'Requests',
+            icon: Icon(Icons.payments_outlined),
+            activeIcon: Icon(Icons.payments),
+            label: 'Payroll',
           ),
           BottomNavigationBarItem(
             icon: _buildNotificationIcon(Icons.notifications_outlined),
