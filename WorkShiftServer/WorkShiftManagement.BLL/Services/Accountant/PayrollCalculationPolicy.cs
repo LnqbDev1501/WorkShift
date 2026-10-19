@@ -177,6 +177,7 @@ public static class PayrollCalculationPolicy
                 ItemCode = $"PENALTY-{penalty.RewardPenaltyId}", Description = penalty.AdjustmentName,
                 Note = penalty.Reason, Amount = penalty.Amount });
         foreach (var penalty in assignments.SelectMany(a => a.Attendance!.AttendancePenaltyRecords)
+            .Where(p => string.Equals(p.Status, "APPLIED", StringComparison.OrdinalIgnoreCase))
             .OrderBy(p => p.CreatedAt).ThenBy(p => p.AttendancePenaltyId))
             Deduct(new PayrollDetail { Type = "ATTENDANCE_DEDUCTION", AttendancePenaltyId = penalty.AttendancePenaltyId,
                 ItemCode = $"ATTENDANCE-{penalty.AttendancePenaltyId}",
