@@ -10,6 +10,7 @@ public class StaffContractDetailResponse
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public decimal HourlyRate { get; set; }
+    public string EmployeeFullName { get; set; } = null!;
     public string EmployeePosition { get; set; } = null!;
     public string? ContractTerms { get; set; }
 

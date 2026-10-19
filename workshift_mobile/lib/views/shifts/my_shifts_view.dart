@@ -12,6 +12,7 @@ import 'shift_swap_list_view.dart';
 import 'components/cancel_shift_dialog.dart';
 import 'components/schedule_timeline_day.dart';
 import 'components/shift_display_format.dart';
+import '../requests/staff_request_list_view.dart';
 
 class MyShiftsView extends StatefulWidget {
   final MyShiftsController? controller;
@@ -198,6 +199,19 @@ class _MyShiftsViewState extends State<MyShiftsView>
           automaticallyImplyLeading: widget.showBackButton,
           leading: widget.showBackButton ? const BackButton() : null,
           actions: [
+            IconButton(
+              tooltip: 'Requests',
+              icon: const Icon(Icons.description_outlined),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const StaffRequestListView(showBackButton: true),
+                  ),
+                );
+                if (mounted) await _controller.refresh();
+              },
+            ),
             IconButton(
               tooltip: 'Shift swap requests',
               icon: const Icon(Icons.swap_horiz_rounded),

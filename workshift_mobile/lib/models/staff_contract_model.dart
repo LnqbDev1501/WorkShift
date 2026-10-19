@@ -9,6 +9,7 @@ class StaffContractListItemModel {
   final DateTime startDate;
   final DateTime? endDate;
   final double hourlyRate;
+  final String employeeFullName;
   final String employeePosition;
   final int branchId;
   final String branchName;
@@ -26,6 +27,7 @@ class StaffContractListItemModel {
     required this.startDate,
     this.endDate,
     required this.hourlyRate,
+    this.employeeFullName = '',
     required this.employeePosition,
     required this.branchId,
     required this.branchName,
@@ -49,6 +51,10 @@ class StaffContractListItemModel {
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
       hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
+      employeeFullName: json['employeeFullName']?.toString() ??
+          json['employeeFullNameSnapshot']?.toString() ??
+          json['employeeName']?.toString() ??
+          '',
       employeePosition: json['employeePosition']?.toString() ?? '',
       branchId: json['branchId'] as int? ?? 0,
       branchName: json['branchName']?.toString() ?? '',
@@ -77,17 +83,17 @@ class StaffContractListItemModel {
   String get statusDisplayName {
     switch (status.toUpperCase()) {
       case 'PENDING_STAFF':
-        return 'Chờ ký';
+        return 'Pending Acceptance';
       case 'ACTIVE':
-        return 'Có hiệu lực';
+        return 'Active';
       case 'SCHEDULED':
-        return 'Sắp bắt đầu';
+        return 'Scheduled (Pending Start)';
       case 'EXPIRED':
-        return 'Đã hết hạn';
+        return 'Expired';
       case 'CANCELLED':
-        return 'Đã hủy';
+        return 'Cancelled';
       case 'TERMINATED':
-        return 'Đã chấm dứt';
+        return 'Terminated';
       default:
         return status;
     }
@@ -112,12 +118,11 @@ class StaffContractListItemModel {
   }
 
   String get formattedHourlyRate {
-    // Định dạng tiền tệ VND: ví dụ 25,000 đ/giờ
     final formatted = hourlyRate.toStringAsFixed(0).replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-    return '$formatted đ/giờ';
+    return '$formatted VND/hr';
   }
 }
 
@@ -129,6 +134,7 @@ class StaffContractDetailModel {
   final DateTime startDate;
   final DateTime? endDate;
   final double hourlyRate;
+  final String employeeFullName;
   final String employeePosition;
   final String? contractTerms;
   final int branchId;
@@ -159,6 +165,7 @@ class StaffContractDetailModel {
     required this.startDate,
     this.endDate,
     required this.hourlyRate,
+    this.employeeFullName = '',
     required this.employeePosition,
     this.contractTerms,
     required this.branchId,
@@ -195,6 +202,10 @@ class StaffContractDetailModel {
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
       hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
+      employeeFullName: json['employeeFullName']?.toString() ??
+          json['employeeFullNameSnapshot']?.toString() ??
+          json['employeeName']?.toString() ??
+          '',
       employeePosition: json['employeePosition']?.toString() ?? '',
       contractTerms: json['contractTerms'] as String?,
       branchId: json['branchId'] as int? ?? 0,
@@ -240,17 +251,17 @@ class StaffContractDetailModel {
   String get statusDisplayName {
     switch (status.toUpperCase()) {
       case 'PENDING_STAFF':
-        return 'Chờ ký';
+        return 'Pending Acceptance';
       case 'ACTIVE':
-        return 'Có hiệu lực';
+        return 'Active';
       case 'SCHEDULED':
-        return 'Sắp bắt đầu';
+        return 'Scheduled (Pending Start)';
       case 'EXPIRED':
-        return 'Đã hết hạn';
+        return 'Expired';
       case 'CANCELLED':
-        return 'Đã hủy';
+        return 'Cancelled';
       case 'TERMINATED':
-        return 'Đã chấm dứt';
+        return 'Terminated';
       default:
         return status;
     }
@@ -261,7 +272,7 @@ class StaffContractDetailModel {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-    return '$formatted đ/giờ';
+    return '$formatted VND/hr';
   }
 }
 
@@ -294,17 +305,19 @@ class ContractChangeRequestItemDetailModel {
   String get fieldDisplayName {
     switch (fieldName.trim().toLowerCase()) {
       case 'startdate':
-        return 'Ngày bắt đầu';
+        return 'Contract Start Date';
       case 'enddate':
-        return 'Ngày kết thúc';
+        return 'Contract End Date';
       case 'employeeposition':
       case 'position':
-        return 'Vị trí công việc';
+        return 'Position / Title';
       case 'hourlyrate':
-        return 'Mức lương mỗi giờ';
+        return 'Base Hourly Rate';
       case 'contractterms':
       case 'terms':
-        return 'Điều khoản hợp đồng';
+        return 'Contract Terms';
+      case 'other':
+        return 'Other Details';
       default:
         return fieldName;
     }
@@ -323,6 +336,9 @@ class StaffContractChangeRequestModel {
   final DateTime? reviewedAt;
   final DateTime createdAt;
   final List<ContractChangeRequestItemDetailModel> items;
+  final String? contractNumber;
+  final String? employeePosition;
+  final String? branchName;
 
   StaffContractChangeRequestModel({
     required this.changeRequestId,
@@ -335,6 +351,9 @@ class StaffContractChangeRequestModel {
     this.reviewedAt,
     required this.createdAt,
     required this.items,
+    this.contractNumber,
+    this.employeePosition,
+    this.branchName,
   });
 
   factory StaffContractChangeRequestModel.fromJson(Map<String, dynamic> json) {
@@ -358,21 +377,58 @@ class StaffContractChangeRequestModel {
       items: list
           .map((e) => ContractChangeRequestItemDetailModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      contractNumber: json['contractNumber'] as String?,
+      employeePosition: json['employeePosition'] as String?,
+      branchName: json['branchName'] as String?,
     );
   }
 
-  bool get isSubmitted => status.toUpperCase() == 'SUBMITTED';
+  StaffContractChangeRequestModel copyWith({
+    int? changeRequestId,
+    int? contractId,
+    String? requestType,
+    String? staffComment,
+    String? status,
+    DateTime? submittedAt,
+    String? reviewComment,
+    DateTime? reviewedAt,
+    DateTime? createdAt,
+    List<ContractChangeRequestItemDetailModel>? items,
+    String? contractNumber,
+    String? employeePosition,
+    String? branchName,
+  }) {
+    return StaffContractChangeRequestModel(
+      changeRequestId: changeRequestId ?? this.changeRequestId,
+      contractId: contractId ?? this.contractId,
+      requestType: requestType ?? this.requestType,
+      staffComment: staffComment ?? this.staffComment,
+      status: status ?? this.status,
+      submittedAt: submittedAt ?? this.submittedAt,
+      reviewComment: reviewComment ?? this.reviewComment,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      createdAt: createdAt ?? this.createdAt,
+      items: items ?? this.items,
+      contractNumber: contractNumber ?? this.contractNumber,
+      employeePosition: employeePosition ?? this.employeePosition,
+      branchName: branchName ?? this.branchName,
+    );
+  }
+
+  bool get isSubmitted => status.toUpperCase() == 'SUBMITTED' || status.toUpperCase() == 'PENDING' || status.toUpperCase() == 'PENDING_APPROVAL';
   bool get isApproved => status.toUpperCase() == 'APPROVED';
   bool get isRejected => status.toUpperCase() == 'REJECTED';
 
   String get statusDisplayName {
     switch (status.toUpperCase()) {
       case 'SUBMITTED':
-        return 'Đang xem xét';
+      case 'PENDING':
+      case 'PENDING_APPROVAL':
+        return 'Pending Review';
       case 'APPROVED':
-        return 'Đã duyệt cập nhật';
+        return 'Approved';
       case 'REJECTED':
-        return 'Từ chối thay đổi';
+        return 'Rejected';
       default:
         return status;
     }
