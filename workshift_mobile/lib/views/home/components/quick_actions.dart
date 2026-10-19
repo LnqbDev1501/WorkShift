@@ -211,19 +211,17 @@ class _QuickActionsState extends State<QuickActions> {
         onTap: _handleFaceBiometrics,
       ),
       _QuickActionData(
-        title: 'Timesheet',
-        subtitle: 'Weekly hours',
-        icon: Icons.calendar_month_outlined,
-        iconColor: AppColors.actionOrderIcon,
-        iconBgColor: AppColors.actionOrderBg,
+        title: 'Submit Request',
+        subtitle: 'Leave, late, early',
+        icon: Icons.edit_note_rounded,
+        iconColor: AppColors.actionLeaveIcon,
+        iconBgColor: AppColors.actionLeaveBg,
         onTap: () {
-          if (widget.onNavigateToTimesheet != null) {
-            widget.onNavigateToTimesheet!();
-          } else {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
-          }
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const StaffRequestListView(showBackButton: true),
+            ),
+          );
         },
       ),
       _QuickActionData(
@@ -240,20 +238,16 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
-        title: 'Work Schedule',
-        subtitle: 'Your shifts and details',
-        icon: Icons.event_note_outlined,
-        iconColor: AppColors.actionRegisterIcon,
-        iconBgColor: AppColors.actionRegisterBg,
+        title: 'Shift Swap',
+        subtitle: 'Find colleague',
+        icon: Icons.swap_horiz_rounded,
+        iconColor: AppColors.actionSwapIcon,
+        iconBgColor: AppColors.actionSwapBg,
         onTap: () async {
-          if (widget.onNavigateToSchedule != null) {
-            widget.onNavigateToSchedule!();
-          } else {
-            await Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
-            if (mounted) widget.onShiftsChanged?.call();
-          }
+          await Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
+          if (mounted) widget.onShiftsChanged?.call();
         },
       ),
       _QuickActionData(
@@ -280,6 +274,7 @@ class _QuickActionsState extends State<QuickActions> {
           ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
         },
       ),
+      // --- Extended actions when expanded ---
       _QuickActionData(
         title: 'Order History',
         subtitle: 'View receipts',
@@ -293,31 +288,38 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
-        title: 'Shift Swap',
-        subtitle: 'Find colleague',
-        icon: Icons.swap_horiz_rounded,
-        iconColor: AppColors.actionSwapIcon,
-        iconBgColor: AppColors.actionSwapBg,
-        onTap: () async {
-          await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
-          if (mounted) widget.onShiftsChanged?.call();
+        title: 'Timesheet',
+        subtitle: 'Weekly hours',
+        icon: Icons.calendar_month_outlined,
+        iconColor: AppColors.actionOrderIcon,
+        iconBgColor: AppColors.actionOrderBg,
+        onTap: () {
+          if (widget.onNavigateToTimesheet != null) {
+            widget.onNavigateToTimesheet!();
+          } else {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
+          }
         },
       ),
       _QuickActionData(
-        title: 'Submit Request',
-        subtitle: 'Leave, overtime',
-        icon: Icons.edit_note_rounded,
-        iconColor: AppColors.actionLeaveIcon,
-        iconBgColor: AppColors.actionLeaveBg,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const StaffRequestListView()),
-          );
+        title: 'Work Schedule',
+        subtitle: 'Your shifts and details',
+        icon: Icons.event_note_outlined,
+        iconColor: AppColors.actionRegisterIcon,
+        iconBgColor: AppColors.actionRegisterBg,
+        onTap: () async {
+          if (widget.onNavigateToSchedule != null) {
+            widget.onNavigateToSchedule!();
+          } else {
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+            if (mounted) widget.onShiftsChanged?.call();
+          }
         },
       ),
-      // --- Extended actions when expanded ---
       _QuickActionData(
         title: 'Payslip',
         subtitle: 'View income',

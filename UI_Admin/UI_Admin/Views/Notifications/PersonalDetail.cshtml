@@ -119,8 +119,16 @@
                 </div>
                 <div class="flex-1 space-y-2">
                     <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Notification Message</h2>
+                    @{
+                        var cleanMessage = Model.Message?
+                            .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase)
+                            .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase)
+                            .Replace("chưa xác nhận chấp thuận).", "chưa xác nhận chấp thuận.", StringComparison.OrdinalIgnoreCase)
+                            .Replace("chưa xác nhận chấp thuận)", "chưa xác nhận chấp thuận", StringComparison.OrdinalIgnoreCase)
+                            .Replace("NOT_ACCEPTED_BY_START_DATE", "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận", StringComparison.OrdinalIgnoreCase);
+                    }
                     <div class="text-sm sm:text-base text-gray-800 font-normal leading-relaxed whitespace-pre-line bg-gray-50/70 p-5 rounded-2xl border border-gray-100">
-                        @Model.Message
+                        @cleanMessage
                     </div>
                 </div>
             </div>

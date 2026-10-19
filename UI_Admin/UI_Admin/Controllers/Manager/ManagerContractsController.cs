@@ -321,6 +321,50 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         }
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Terminate(int id, string? reason, DateOnly? terminationEffectiveDate, string? returnUrl = null, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+            return RedirectToAction(nameof(Index));
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "Vui lòng cung cấp lý do chấm dứt hợp đồng.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            await api.TerminateAsync(id, reason.Trim(), terminationEffectiveDate, cancellationToken);
+            TempData["SuccessMessage"] = "Hợp đồng đã được chấm dứt trước thời hạn thành công.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> PreviewPdf(int id, CancellationToken cancellationToken = default)
     {

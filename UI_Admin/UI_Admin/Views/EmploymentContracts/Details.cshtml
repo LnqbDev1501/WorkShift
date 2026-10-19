@@ -114,9 +114,9 @@
                         <div>
                             <span class="text-rose-600/80 font-medium block">Cancellation Reason:</span>
                             <span class="font-semibold text-rose-900">
-                                @if (Model.CancellationReason == "NOT_ACCEPTED_BY_START_DATE")
+                                @if (Model.CancellationReason == "NOT_ACCEPTED_BY_START_DATE" || (Model.CancellationReason?.Contains("quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase) ?? false))
                                 {
-                                    <span>NOT_ACCEPTED_BY_START_DATE (Staff did not accept before start date)</span>
+                                    <span>Quá ngày bắt đầu hợp đồng mà nhân viên chưa xác nhận chấp thuận (Hệ thống tự động hủy)</span>
                                 }
                                 else
                                 {
@@ -552,7 +552,7 @@
                                             <p class="font-bold text-rose-900">System auto-cancelled contract due to staff not accepting in time:</p>
                                             <p class="text-rose-700 mt-0.5">
                                                 The contract acceptance window has passed (exceeded start date) without staff confirmation.
-                                                The status has transitioned to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="font-mono text-rose-900">NOT_ACCEPTED_BY_START_DATE</strong> (not TERMINATED).
+                                                The status has transitioned to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="text-rose-900">Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</strong> (not TERMINATED).
                                             </p>
                                         </div>
                                     </div>
@@ -591,10 +591,13 @@
                                     <div class="mt-2.5 p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-2">
                                         <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">info</span>
                                         <div>
-                                            <span class="font-semibold">Reason:</span> @entry.Reason
-                                            @if (entry.Reason == "NOT_ACCEPTED_BY_START_DATE")
+                                            @if (entry.Reason == "NOT_ACCEPTED_BY_START_DATE" || (entry.Reason?.Contains("quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase) ?? false))
                                             {
-                                                <span class="text-amber-800 font-medium"> (Staff did not accept contract in time before/on start date)</span>
+                                                <span class="font-semibold">Reason:</span> <span>Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="font-semibold">Reason:</span> @entry.Reason
                                             }
                                         </div>
                                     </div>

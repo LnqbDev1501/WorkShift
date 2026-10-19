@@ -802,6 +802,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
     } else if (contract.status == 'CANCELLED') {
       final isAuto = contract.cancellationReason != null &&
           (contract.cancellationReason!.contains('NOT_ACCEPTED_BY_START_DATE') ||
+              contract.cancellationReason!.toLowerCase().contains('quá ngày bắt đầu') ||
               contract.cancellationReason!.toLowerCase().contains('auto-cancelled') ||
               contract.cancellationReason!.toLowerCase().contains('tự động hủy'));
       return Container(
@@ -839,7 +840,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Cancellation Reason: ${contract.cancellationReason ?? "No detailed reason provided."}',
+              'Cancellation Reason: ${isAuto ? "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận." : (contract.cancellationReason ?? "No detailed reason provided.")}',
               style: const TextStyle(fontSize: 12, color: Color(0xFF9F1239)),
             ),
             if (contract.cancelledAt != null)

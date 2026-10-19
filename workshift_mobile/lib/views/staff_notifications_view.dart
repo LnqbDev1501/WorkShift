@@ -132,9 +132,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                 'Đánh dấu tất cả đã đọc',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
         ],
       ),
@@ -197,7 +195,10 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -209,7 +210,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
               child: ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
-                  if (_controller.isLoading && _controller.notifications.isEmpty) {
+                  if (_controller.isLoading &&
+                      _controller.notifications.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
@@ -243,7 +245,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                           ElevatedButton.icon(
                             onPressed: () {
                               _controller.clearError();
-                              _controller.loadNotifications(search: _searchQuery);
+                              _controller.loadNotifications(
+                                search: _searchQuery,
+                              );
                             },
                             icon: const Icon(Icons.refresh_rounded, size: 18),
                             label: const Text('Thử lại'),
@@ -363,7 +367,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: isUnread ? 0.06 : 0.02),
+                color: AppColors.primary.withValues(
+                  alpha: isUnread ? 0.06 : 0.02,
+                ),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -375,8 +381,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _getTypeColor(notification.notificationType)
-                      .withValues(alpha: 0.1),
+                  color: _getTypeColor(
+                    notification.notificationType,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

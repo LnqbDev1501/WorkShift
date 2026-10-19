@@ -268,6 +268,16 @@
                                                 <span>Cancel</span>
                                             </button>
                                         }
+                                        else if (statusUpper == "ACTIVE")
+                                        {
+                                            <button type="button"
+                                                    onclick="openTerminateModal(@contract.ContractId, '@contract.ContractNumber', '@contract.EmployeeFullName', '@contract.StartDate.ToString("yyyy-MM-dd")')"
+                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium transition-colors cursor-pointer"
+                                                    title="Chấm dứt hợp đồng trước hạn">
+                                                <span class="material-symbols-outlined text-[16px]">gavel</span>
+                                                <span>Chấm dứt</span>
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -371,6 +381,74 @@
     </div>
 </div>
 
+<!-- Terminate Contract Modal -->
+<div id="terminate-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 animate-scale-up">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="p-2.5 bg-rose-100 text-rose-600 rounded-xl">
+                <span class="material-symbols-outlined text-[24px]">gavel</span>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-slate-900">Chấm dứt hợp đồng trước thời hạn</h3>
+                <p id="terminate-modal-number" class="text-xs text-slate-500 font-mono mt-0.5"></p>
+            </div>
+        </div>
+
+        <div class="p-3.5 mb-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-800">
+            <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
+            <span>
+                <strong>Cảnh báo:</strong> Thao tác này sẽ chuyển hợp đồng sang trạng thái <strong>TERMINATED</strong>. Nhân viên sẽ nhận thông báo hệ thống và không thể nhận thêm ca làm việc sau ngày hiệu lực.
+            </span>
+        </div>
+
+        <form id="terminate-form" method="post" asp-action="Terminate" onsubmit="disableTerminateBtn(this)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="terminate-contract-id" name="id" value="" />
+            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+
+            <div class="mb-4">
+                <label for="terminate-effective-date" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Ngày có hiệu lực chấm dứt <span class="text-rose-600">*</span>
+                </label>
+                <input type="date"
+                       id="terminate-effective-date"
+                       name="terminationEffectiveDate"
+                       value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                       required
+                       class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500" />
+                <p id="terminate-date-help" class="text-[11px] text-slate-500 mt-1">Mặc định là ngày hôm nay.</p>
+            </div>
+
+            <div class="mb-5">
+                <label for="terminate-reason-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Lý do chấm dứt hợp đồng <span class="text-rose-600">*</span>
+                </label>
+                <textarea id="terminate-reason-input"
+                          name="reason"
+                          rows="3"
+                          required
+                          maxlength="500"
+                          placeholder="Nhập lý do chấm dứt hợp đồng trước hạn (tối đa 500 ký tự)..."
+                          class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"></textarea>
+                <p class="text-[11px] text-slate-400 mt-1">Bắt buộc nhập lý do để lưu lịch sử và thông báo cho nhân viên.</p>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                <button type="button"
+                        onclick="closeTerminateModal()"
+                        class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                    Đóng
+                </button>
+                <button type="submit" id="confirm-terminate-btn"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">gavel</span>
+                    <span>Xác nhận chấm dứt</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 @section Scripts {
 <script>
     function copyContractNumber(text, btn) {
@@ -400,11 +478,46 @@
         document.getElementById('cancel-modal').classList.add('hidden');
     }
 
-    window.onclick = function(event) {
-        var modal = document.getElementById('cancel-modal');
-        if (event.target === modal) {
-            closeCancelModal();
+    function openTerminateModal(id, contractNumber, staffName, startDate) {
+        document.getElementById('terminate-contract-id').value = id;
+        document.getElementById('terminate-modal-number').textContent = contractNumber + ' • ' + staffName;
+        document.getElementById('terminate-reason-input').value = '';
+        var dateInput = document.getElementById('terminate-effective-date');
+        if (dateInput) {
+            dateInput.min = startDate;
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        var helpText = document.getElementById('terminate-date-help');
+        if (helpText && startDate) {
+            helpText.textContent = 'Mặc định là ngày hôm nay. Không được trước ngày bắt đầu (' + startDate + ').';
+        }
+        document.getElementById('terminate-modal').classList.remove('hidden');
+    }
+
+    function closeTerminateModal() {
+        document.getElementById('terminate-modal').classList.add('hidden');
+    }
+
+    function disableTerminateBtn(form) {
+        var btn = document.getElementById('confirm-terminate-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang xử lý...';
         }
     }
+
+    window.onclick = function(event) {
+        var cancelModal = document.getElementById('cancel-modal');
+        var terminateModal = document.getElementById('terminate-modal');
+        if (event.target === cancelModal) closeCancelModal();
+        if (event.target === terminateModal) closeTerminateModal();
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeCancelModal();
+            closeTerminateModal();
+        }
+    });
 </script>
 }

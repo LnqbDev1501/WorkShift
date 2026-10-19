@@ -1083,7 +1083,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
                 var oldStatus = c.Status;
                 c.Status = "CANCELLED";
-                c.CancellationReason = "NOT_ACCEPTED_BY_START_DATE";
+                c.CancellationReason = "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận";
                 c.CancelledBy = null;
                 c.CancelledAt = now;
                 c.UpdatedAt = now;
@@ -1121,7 +1121,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     {
                         fromStatus = oldStatus,
                         toStatus = "CANCELLED",
-                        reason = "NOT_ACCEPTED_BY_START_DATE",
+                        reason = "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận",
                         cancelledAt = now,
                         note = "Hệ thống tự động hủy hợp đồng do hết ngày bắt đầu mà nhân viên chưa chấp nhận."
                     }),
@@ -1133,7 +1133,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     n.TargetBranchId == c.BranchId &&
                     n.NotificationType == "SYSTEM" &&
                     n.Content.Contains(c.ContractNumber) &&
-                    n.Content.Contains("NOT_ACCEPTED_BY_START_DATE"), cancellationToken);
+                    (n.Content.Contains("tự động hủy") || n.Content.Contains("chưa xác nhận chấp thuận") || n.Content.Contains("NOT_ACCEPTED_BY_START_DATE")), cancellationToken);
 
                 if (!alreadyNotified)
                 {
@@ -1170,7 +1170,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     }
 
                     var notifTitle = $"Hợp đồng lao động {c.ContractNumber} đã bị tự động hủy";
-                    var notifContent = $"Hợp đồng lao động {c.ContractNumber} đã chuyển sang trạng thái CANCELLED do hệ thống tự động hủy. Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu {c.StartDate:yyyy-MM-dd} mà nhân viên chưa xác nhận chấp thuận).";
+                    var notifContent = $"Hợp đồng lao động {c.ContractNumber} đã chuyển sang trạng thái CANCELLED do hệ thống tự động hủy. Lý do: Quá ngày bắt đầu {c.StartDate:yyyy-MM-dd} mà nhân viên chưa xác nhận chấp thuận.";
 
                     var notif = new NotificationEntity
                     {

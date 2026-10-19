@@ -375,6 +375,20 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
                         child: Text(
                           _notification!.message.isNotEmpty
                               ? _notification!.message
+                                  .replaceAll(
+                                      'Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu',
+                                      'Lý do: Quá ngày bắt đầu')
+                                  .replaceAll(
+                                      'Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu',
+                                      'Lý do: Quá ngày bắt đầu')
+                                  .replaceAll(
+                                      'chưa xác nhận chấp thuận).',
+                                      'chưa xác nhận chấp thuận.')
+                                  .replaceAll(
+                                      'chưa xác nhận chấp thuận)',
+                                      'chưa xác nhận chấp thuận')
+                                  .replaceAll('NOT_ACCEPTED_BY_START_DATE',
+                                      'Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận')
                               : 'Không có nội dung chi tiết.',
                           style: const TextStyle(
                             fontSize: 15,
