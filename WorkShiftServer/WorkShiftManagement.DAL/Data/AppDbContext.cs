@@ -419,7 +419,9 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("attendance_penalty_records");
 
-            entity.HasIndex(e => new { e.AttendanceId, e.ViolationType }, "uq_attendance_penalty_type").IsUnique();
+            entity.HasIndex(e => new { e.AttendanceId, e.ViolationType }, "uq_attendance_penalty_type_applied")
+                .IsUnique()
+                .HasFilter("((status)::text = 'APPLIED'::text)");
 
             entity.Property(e => e.AttendancePenaltyId).HasColumnName("attendance_penalty_id");
             entity.Property(e => e.AttendanceId).HasColumnName("attendance_id");
@@ -431,6 +433,10 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("penalty_amount");
             entity.Property(e => e.PenaltyLevelId).HasColumnName("penalty_level_id");
             entity.Property(e => e.PenaltyRuleId).HasColumnName("penalty_rule_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'APPLIED'::character varying")
+                .HasColumnName("status");
             entity.Property(e => e.ViolationMinutes).HasColumnName("violation_minutes");
             entity.Property(e => e.ViolationType)
                 .HasMaxLength(20)
@@ -1724,6 +1730,8 @@ public partial class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.PayrollId, e.Status }, "ix_payroll_correction_payroll_status");
 
+            entity.HasIndex(e => e.ResponseDeadlineAt, "ix_payroll_correction_requests_open_deadline").HasFilter("((status)::text = 'OPEN'::text)");
+
             entity.HasIndex(e => e.PreviousRequestId, "payroll_correction_requests_previous_request_id_key").IsUnique();
 
             entity.Property(e => e.CorrectionRequestId)
@@ -1733,6 +1741,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
+            entity.Property(e => e.ExpiredAt).HasColumnName("expired_at");
             entity.Property(e => e.FeedbackId).HasColumnName("feedback_id");
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
             entity.Property(e => e.PreviousRequestId).HasColumnName("previous_request_id");
@@ -1744,6 +1753,7 @@ public partial class AppDbContext : DbContext
             entity.Property(e => e.ResponseAction)
                 .HasColumnType("character varying")
                 .HasColumnName("response_action");
+            entity.Property(e => e.ResponseDeadlineAt).HasColumnName("response_deadline_at");
             entity.Property(e => e.ResponseNote).HasColumnName("response_note");
             entity.Property(e => e.ReviewNote).HasColumnName("review_note");
             entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
@@ -2500,8 +2510,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReviewedBy)
                 .HasConstraintName("salary_change_requests_reviewed_by_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.SalaryChangeRequestUsers)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.SalaryChangeRequestUser)
+                .HasForeignKey<SalaryChangeRequest>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("salary_change_requests_user_id_fkey");
         });
@@ -2782,8 +2792,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_salary_increase_request_id_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.StaffSalaryHistoryUsers)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.StaffSalaryHistoryUser)
+                .HasForeignKey<StaffSalaryHistory>(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_user_id_fkey");
         });

@@ -38,6 +38,10 @@ public sealed class PeriodRecord
     public Guid CreatedBy { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? ApprovalDeadlineAt { get; set; }
+    public Guid? PublishedBy { get; set; }
+    public DateTime? PublishedAt { get; set; }
+    public DateTime? InitialFeedbackDeadlineAt { get; set; }
+    public int ReviewedTimesheetCount { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime? ClosedAt { get; set; }
     public int ExpectedEmployeeCount { get; set; }
@@ -51,6 +55,10 @@ public sealed class PeriodRecord
     public bool CanOpen { get; set; }
     public bool CanExport => Status is "PAID" or "CLOSED";
     public List<PayrollResponse> Payrolls { get; set; } = [];
+    public List<UI_Admin.Models.PayrollDocuments.PayrollIssueResponse> CorrectionRequests { get; set; } = [];
+    public List<UI_Admin.Models.PayrollDocuments.PayrollFeedbackResponse> Feedbacks { get; set; } = [];
+    public UI_Admin.Models.Accountant.PayrollSettlement.PayrollSettlementSummaryResponse? SettlementSummary { get; set; }
+    public UI_Admin.Models.PayrollDocuments.PayrollSourceImpactResponse? SourceImpact { get; set; }
 }
 public sealed class ScheduleWeekOption
 {

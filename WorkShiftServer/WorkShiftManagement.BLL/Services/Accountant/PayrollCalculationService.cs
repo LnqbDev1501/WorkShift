@@ -77,9 +77,10 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
                 Status = a.Attendance?.Status ?? "MISSING_ATTENDANCE", WorkDate = DateOnly.FromDateTime(a.Shift.ScheduledStartAt.AddHours(7)),
                 StartAt = a.Shift.ScheduledStartAt, EndAt = a.Shift.ScheduledEndAt,
                 CheckIn = a.Attendance?.CheckInTime, CheckOut = a.Attendance?.CheckOutTime, Minutes = a.Attendance?.ActualWorkingMinutes });
-            foreach (var penalty in a.Attendance?.AttendancePenaltyRecords ?? [])
+            foreach (var penalty in (a.Attendance?.AttendancePenaltyRecords ?? [])
+                .Where(p => string.Equals(p.Status, "APPLIED", StringComparison.OrdinalIgnoreCase)))
                 result.Sources.Add(new() { Type = "ATTENDANCE_DEDUCTION", SourceId = penalty.AttendancePenaltyId,
-                    Description = penalty.ViolationType, Amount = penalty.PenaltyAmount });
+                    Description = penalty.ViolationType, Amount = penalty.PenaltyAmount, Status = penalty.Status });
         }
         foreach (var salary in input.Salaries.Where(s => s.UserId == userId).OrderBy(s => s.EffectiveFrom))
             result.Sources.Add(new() { Type = "SALARY", SourceId = salary.SalaryHistoryId, Description = salary.Reason ?? "Mức lương theo giờ",

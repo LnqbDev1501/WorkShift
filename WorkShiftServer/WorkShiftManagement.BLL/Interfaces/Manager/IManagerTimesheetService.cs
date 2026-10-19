@@ -28,6 +28,12 @@ public interface IManagerTimesheetService
         int scheduleWeekId,
         CancellationToken cancellationToken = default);
 
+    Task<ManagerWeeklyTimesheetDetailResponse> ReopenStaffTimesheetAsync(
+        Guid managerId,
+        int scheduleWeekId,
+        int timesheetId,
+        CancellationToken cancellationToken = default);
+
     Task<ManagerTimesheetAdjustmentPagedResponse> GetTimesheetAdjustmentsAsync(
         Guid managerId,
         ManagerTimesheetAdjustmentListQuery query,

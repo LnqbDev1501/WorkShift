@@ -1,0 +1,171 @@
+@model UI_Admin.Models.PayrollDocuments.PayrollSourceImpactResponse
+@{
+    ViewData["Title"] = $"Source Impact Audit - Period #{Model.PayrollPeriodId}";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">sync_problem</span>
+                <span>Payroll / Source Impact Audit</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Source Impact Audit — Period #@Model.PayrollPeriodId</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Compare live attendance, adjustments, and salary records against current payroll calculation snapshots.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Details" asp-route-id="@Model.PayrollPeriodId"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Period</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Audit Status Notice -->
+    @if (Model.HasBlockingChanges)
+    {
+        <div class="bg-rose-50 border border-rose-200 text-rose-900 rounded-2xl p-5 shadow-sm flex items-start gap-3" role="alert">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0 mt-0.5">warning</span>
+            <div>
+                <strong class="font-bold text-sm">Source Discrepancies or Blocking Data Detected</strong>
+                <p class="text-xs text-rose-800 mt-0.5">
+                    Live timesheets, penalties, or compensation rates have changed since calculation for one or more employees. These discrepancies must be addressed or recalculated prior to submitting the period to Admin.
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-5 shadow-sm flex items-start gap-3">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5">verified</span>
+            <div>
+                <strong class="font-bold text-sm">All Live Sources Match Payroll Snapshots</strong>
+                <p class="text-xs text-emerald-800 mt-0.5">
+                    No unexpected source deviations detected. Calculated payroll figures remain fully consistent with underlying records.
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Comparison Table Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">compare_arrows</span>
+                <h3 class="text-sm font-bold text-slate-900">Source Audit Comparison</h3>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Employees.Count @(Model.Employees.Count == 1 ? "Employee" : "Employees")
+                </span>
+            </div>
+            <div class="text-xs text-slate-500 font-medium">
+                @Model.Employees.Count(e => e.HasChanges) employee(s) with source changes
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-6">Employee</th>
+                        <th class="py-3.5 px-6">Current Version</th>
+                        <th class="py-3.5 px-6">Source State</th>
+                        <th class="py-3.5 px-6">Discrepancy Details</th>
+                        <th class="py-3.5 px-6">Blocking Reasons</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <tr class="hover:bg-slate-50/80 transition-colors @(emp.HasChanges ? "bg-amber-50/30" : "")">
+                            <!-- Employee -->
+                            <td class="py-4 px-6">
+                                <div class="font-semibold text-slate-900">@emp.EmployeeName</div>
+                                <div class="text-[11px] font-mono text-slate-400 mt-0.5">ID: @emp.UserId</div>
+                            </td>
+
+                            <!-- Current Version -->
+                            <td class="py-4 px-6">
+                                @if (emp.CurrentPayrollId.HasValue)
+                                {
+                                    <div class="font-medium text-slate-800">Version V@(emp.VersionNo)</div>
+                                    <div class="text-xs text-slate-400">Payroll #@emp.CurrentPayrollId</div>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-slate-400">Not calculated</span>
+                                }
+                            </td>
+
+                            <!-- Source State -->
+                            <td class="py-4 px-6">
+                                @if (emp.HasChanges)
+                                {
+                                    <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                                        <span class="material-symbols-outlined text-xs">sync_problem</span>
+                                        <span>Source Changed</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                        <span class="material-symbols-outlined text-xs">check</span>
+                                        <span>Matches</span>
+                                    </span>
+                                }
+                            </td>
+
+                            <!-- Discrepancy Details -->
+                            <td class="py-4 px-6 text-xs text-slate-700 max-w-xs">
+                                @if (emp.ChangedSources.Count > 0)
+                                {
+                                    <ul class="list-disc pl-4 space-y-0.5">
+                                        @foreach (var change in emp.ChangedSources)
+                                        {
+                                            <li>@change</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400">—</span>
+                                }
+                            </td>
+
+                            <!-- Blocking Reasons -->
+                            <td class="py-4 px-6 text-xs">
+                                @if (emp.BlockingReasons.Count > 0)
+                                {
+                                    <ul class="list-disc pl-4 text-rose-700 font-medium space-y-0.5">
+                                        @foreach (var reason in emp.BlockingReasons)
+                                        {
+                                            <li>@reason</li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="text-slate-400">—</span>
+                                }
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="py-4 px-6 text-right">
+                                @if (emp.CurrentPayrollId.HasValue)
+                                {
+                                    <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@emp.CurrentPayrollId"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg @(emp.HasChanges ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-700") text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-sm">rate_review</span>
+                                        <span>Review</span>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -107,36 +107,25 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> Approve(PayrollReviewInput input, CancellationToken ct) => ReviewAsync(input, null, ct);
-
-    [HttpPost, ValidateAntiForgeryToken]
-    public Task<IActionResult> Reject(PayrollRejectInput input, CancellationToken ct) => ReviewAsync(input, input, ct);
-
-    private async Task<IActionResult> ReviewAsync(PayrollReviewInput input, PayrollRejectInput? rejection, CancellationToken ct)
+    public async Task<IActionResult> Approve(PayrollReviewInput input, CancellationToken ct)
     {
-        if (input.PeriodId < 1 || input.PageNumber < 1 || input.PageSize is < 1 or > 100) return BadRequest();
+        if (input.PeriodId < 1) return BadRequest();
         try
         {
-            if (ModelState.IsValid)
-            {
-                if (rejection == null) await payroll.ApproveAsync(input.PeriodId, ct);
-                else await payroll.RejectAsync(rejection, ct);
-                TempData["PayrollSuccess"] = rejection == null ? "Đã duyệt toàn bộ kỳ lương." : "Đã gửi phiếu lương về để chỉnh sửa. Kỳ lương cần được gửi lại trước khi duyệt.";
-                TempData["PayrollAction"] = rejection == null ? "approve" : "reject";
-                return RedirectToAction(nameof(Details), new { id = input.PeriodId, input.Search, input.PageNumber, input.PageSize });
-            }
+            await payroll.ApproveAsync(input.PeriodId, ct);
+            TempData["PayrollSuccess"] = "Đã duyệt toàn bộ kỳ lương. Hệ thống đã khóa công toàn kỳ và phát hành phiếu lương chính thức (Published Payslips).";
+            TempData["PayrollAction"] = "approve";
+            return RedirectToAction(nameof(Details), new { id = input.PeriodId, input.Search, input.PageNumber, input.PageSize });
         }
         catch (InvalidOperationException ex) { ModelState.AddModelError("", ex.Message); }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Payroll review failed for {Id}", input.PeriodId);
-            ModelState.AddModelError("", "Không xác nhận được kết quả thao tác. Hãy tải lại trang để kiểm tra trạng thái trước khi thử lại.");
+            ModelState.AddModelError("", "Không xác nhận được kết quả phê duyệt. Hãy tải lại trang để kiểm tra trạng thái trước khi thử lại.");
         }
         try
         {
             var model = await LoadDetailAsync(input.PeriodId, input, ct);
-            model.RejectedPayrollId = rejection?.PayrollId;
-            model.RejectionReason = rejection?.Reason;
             return View("Details", model);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
@@ -145,5 +134,12 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
             TempData["PayrollError"] = "Không thể tải lại kỳ lương. Vui lòng kiểm tra trạng thái trước khi thực hiện lại thao tác.";
             return RedirectToAction(nameof(List));
         }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public IActionResult Reject(PayrollRejectInput input)
+    {
+        TempData["PayrollError"] = "Admin chỉ phê duyệt toàn bộ kỳ lương đã được Submit. Các trường hợp cần chỉnh sửa phải được Accountant và Manager xử lý trước khi gửi duyệt.";
+        return RedirectToAction(nameof(Details), new { id = input.PeriodId });
     }
 }

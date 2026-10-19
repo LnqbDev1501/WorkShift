@@ -12,6 +12,7 @@ using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.BLL.Interfaces.Upload;
+using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -23,6 +24,7 @@ public class UserService : IUserService
     private const string PendingStatus = "PENDING";
     private const string ActiveStatus = "ACTIVE";
     private const string InactiveStatus = "INACTIVE";
+    private const string IdentityNoPattern = @"^(001|002|004|006|008|010|011|012|014|015|017|019|020|022|024|025|026|027|030|031|033|034|035|036|037|038|040|042|044|045|046|048|049|051|052|054|056|058|060|062|064|066|067|068|070|072|074|075|077|079|080|082|083|084|086|087|089|091|092|093|094|095|096)\d{6}(\d{3})?$";
     private static readonly TimeZoneInfo VietnamTimeZone = GetVietnamTimeZone();
 
     private readonly IUserRepo _userRepo;
@@ -33,6 +35,7 @@ public class UserService : IUserService
     private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
+    private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
 
     public UserService(
         IUserRepo userRepo,
@@ -42,7 +45,8 @@ public class UserService : IUserService
         IConfiguration configuration,
         AppDbContext dbContext,
         ICloudinaryService cloudinaryService,
-        IAdminRealtimePublisher adminRealtimePublisher)
+        IAdminRealtimePublisher adminRealtimePublisher,
+        INotificationRealtimePublisher notificationRealtimePublisher)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -54,6 +58,7 @@ public class UserService : IUserService
         _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
         _adminRealtimePublisher = adminRealtimePublisher;
+        _notificationRealtimePublisher = notificationRealtimePublisher;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -238,26 +243,10 @@ public class UserService : IUserService
         }
     }
 
-    public async Task ActivateUserAsync(Guid userId)
-    {
-        var user = await _userRepo.GetByIdAsync(userId)
-            ?? throw new KeyNotFoundException("No matching user profile was found.");
-
-        if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
-            return;
-
-        if (!user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The current account status does not allow activation.");
-
-        user.Status = ActiveStatus;
-        user.UpdatedAt = DateTime.UtcNow;
-        await _userRepo.SaveChangesAsync();
-        await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
-    }
-
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
         Guid userId,
-        UpdateAdminUserRequest request)
+        UpdateAdminUserRequest request,
+        Guid? adminUserId = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         if (userId == Guid.Empty)
@@ -271,8 +260,9 @@ public class UserService : IUserService
         if (user.DeletedAt.HasValue)
             throw new InvalidOperationException("Deleted accounts cannot be updated.");
 
-        if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Only active accounts can be updated.");
+        if (!user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase) &&
+            !user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Only active or pending accounts can be updated.");
 
         var roleName = user.Role.RoleName.Trim().ToUpperInvariant();
         var isAdmin = roleName == "ADMIN";
@@ -314,39 +304,10 @@ public class UserService : IUserService
             if (isBranchChanged || isRoleChanged)
             {
                 var branchId = user.BranchId.GetValueOrDefault();
-                if (roleName == ManagerRole && branchId > 0)
-                {
-                    var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
-                        .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-
-                    var hasEmployeeRequests = await _dbContext.EmployeeRequests
-                        .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
-
-                    var hasSwapRequests = await _dbContext.ShiftSwapRequests
-                        .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
-                        .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
-
-                    var hasContracts = await _dbContext.EmploymentContracts
-                        .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-
-                    var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
-                        .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
-
-                    var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
-                        .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
-
-                    var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
-                        .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
-
-                    if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
-                    {
-                        throw new InvalidOperationException("Cannot update Branch or Role because the Manager has pending tasks in the current branch.");
-                    }
-                }
-                else if (roleName == AccountantRole && branchId > 0)
+                if (roleName == AccountantRole && branchId > 0)
                 {
                     var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
 
                     var hasPayrolls = await _dbContext.Payrolls
                         .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
@@ -388,9 +349,39 @@ public class UserService : IUserService
         if (emailOwner is not null && emailOwner.UserId != userId)
             throw new InvalidOperationException("Email is already in use by another user.");
 
-        if (request.AvatarFile is not null)
+        var changedFields = new List<string>();
+
+        if (!string.Equals(user.FullName?.Trim(), request.FullName.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Full Name");
+
+        if (!string.Equals(user.Phone?.Trim(), request.Phone.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Phone Number");
+
+        if (!string.Equals(user.IdentityNo?.Trim(), request.IdentityNo.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Citizen ID");
+
+        if (!string.Equals(user.Gender?.Trim(), request.Gender.Trim(), StringComparison.OrdinalIgnoreCase))
+            changedFields.Add("Gender");
+
+        if (user.DateOfBirth != request.DateOfBirth)
+            changedFields.Add("Date of Birth");
+
+        if (!string.Equals(user.Address?.Trim(), request.Address.Trim(), StringComparison.Ordinal))
+            changedFields.Add("Address");
+
+        if (!string.Equals(user.Email?.Trim(), request.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            changedFields.Add("Email");
+
+        if (user.BranchId != request.BranchId)
+            changedFields.Add("Branch");
+
+        if (user.RoleId != request.RoleId)
+            changedFields.Add("Role");
+
+        if (request.AvatarFile is not null && request.AvatarFile.Length > 0)
         {
             user.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, request.AvatarFile);
+            changedFields.Add("Avatar");
         }
 
         var originalEmail = user.Email;
@@ -407,6 +398,51 @@ public class UserService : IUserService
         user.RoleId = request.RoleId;
         user.UpdatedAt = DateTime.UtcNow;
 
+        NotificationEntity? notification = null;
+        if (changedFields.Count > 0)
+        {
+            var createdBy = adminUserId.GetValueOrDefault();
+            if (createdBy == Guid.Empty)
+            {
+                createdBy = await _dbContext.Users
+                    .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null)
+                    .Select(u => u.UserId)
+                    .FirstOrDefaultAsync();
+
+                if (createdBy == Guid.Empty)
+                    createdBy = userId;
+            }
+
+            var fieldsText = string.Join(", ", changedFields);
+            var now = DateTime.UtcNow;
+            notification = new NotificationEntity
+            {
+                Title = "Profile Information Updated",
+                Content = changedFields.Count == 1
+                    ? $"Your profile has been updated by the administrator. Modified field: {fieldsText}."
+                    : $"Your profile has been updated by the administrator. Modified fields: {fieldsText}.",
+                NotificationType = "SYSTEM",
+                CreatedBy = createdBy,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                TargetBranchId = user.BranchId,
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { targetRoleName }
+            };
+
+            notification.UserNotifications.Add(new UserNotification
+            {
+                UserId = userId,
+                IsRead = false,
+                IsDeleted = false,
+                CreatedAt = now
+            });
+
+            _dbContext.Notifications.Add(notification);
+        }
+
         using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
@@ -418,6 +454,49 @@ public class UserService : IUserService
             }
 
             await transaction.CommitAsync();
+
+            if (notification is not null)
+            {
+                try
+                {
+                    await _notificationRealtimePublisher.PublishAsync(userId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish realtime notification to user {UserId}", userId);
+                }
+            }
+
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "UPDATED", userId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to publish admin data changed event for user {UserId}", userId);
+            }
+
+            if (emailChanged && user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var setupLink = await _authService.ResendSetupLinkAsync(user.UserId, request.Email);
+                    if (setupLink is not null)
+                    {
+                        await _accountSetupEmailSender.SendAsync(request.Email, setupLink);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to auto-resend setup email to new address {Email} for pending user {UserId}", request.Email, userId);
+                }
+            }
         }
         catch (DbUpdateException exception)
         {
@@ -519,39 +598,10 @@ public class UserService : IUserService
         if (user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
         {
             var branchId = user.BranchId.GetValueOrDefault();
-            if (roleName == ManagerRole && branchId > 0)
-            {
-                var hasTimesheets = await _dbContext.Timesheets.Include(t => t.PayrollPeriod)
-                    .AnyAsync(t => t.PayrollPeriod.BranchId == branchId && t.Status == "GENERATED");
-
-                var hasEmployeeRequests = await _dbContext.EmployeeRequests
-                    .AnyAsync(e => e.BranchId == branchId && e.Status == "PENDING");
-
-                var hasSwapRequests = await _dbContext.ShiftSwapRequests
-                    .Include(s => s.SourceAssignment).ThenInclude(a => a.Shift).ThenInclude(sh => sh.ScheduleWeek)
-                    .AnyAsync(s => s.SourceAssignment.Shift.ScheduleWeek.BranchId == branchId && s.Status == "PENDING");
-
-                var hasContracts = await _dbContext.EmploymentContracts
-                    .AnyAsync(c => c.BranchId == branchId && c.Status == "PENDING_MANAGER_APPROVAL");
-
-                var hasContractChanges = await _dbContext.ContractChangeRequests.Include(c => c.Contract)
-                    .AnyAsync(c => c.Contract.BranchId == branchId && c.Status == "SUBMITTED");
-
-                var hasScheduleWeeks = await _dbContext.WorkScheduleWeeks
-                    .AnyAsync(w => w.BranchId == branchId && (w.Status == "OPEN_REGISTRATION" || w.Status == "REGISTRATION_CLOSED"));
-
-                var hasWorkShifts = await _dbContext.WorkShifts.Include(w => w.ScheduleWeek)
-                    .AnyAsync(w => w.ScheduleWeek.BranchId == branchId && w.Status == "SCHEDULED");
-
-                if (hasTimesheets || hasEmployeeRequests || hasSwapRequests || hasContracts || hasContractChanges || hasScheduleWeeks || hasWorkShifts)
-                {
-                    throw new InvalidOperationException("Cannot delete because the Manager has pending tasks in the current branch.");
-                }
-            }
-            else if (roleName == AccountantRole && branchId > 0)
+            if (roleName == AccountantRole && branchId > 0)
             {
                 var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "OPEN" || p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
 
                 var hasPayrolls = await _dbContext.Payrolls
                     .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
@@ -759,8 +809,8 @@ public class UserService : IUserService
         catch (FormatException) { throw new ArgumentException("Email format is invalid."); }
         if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
-        if (!Regex.IsMatch(request.IdentityNo, @"^\d{9}$|^\d{12}$"))
-            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+        if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
             throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.BranchId.HasValue || request.BranchId.Value <= 0)
@@ -789,8 +839,8 @@ public class UserService : IUserService
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
         if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
-        if (!Regex.IsMatch(request.IdentityNo, @"^\d{9}$|^\d{12}$"))
-            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+        if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
             throw new ArgumentException("Gender must be MALE, FEMALE, or OTHER.");
         if (!request.DateOfBirth.HasValue)

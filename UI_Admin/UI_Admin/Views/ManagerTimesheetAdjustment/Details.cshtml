@@ -240,8 +240,8 @@
                 </div>
             </div>
 
-            <!-- Card 3: Manager Review Audit Trail -->
-            @if (isApproved || isRejected)
+            <!-- Card 3: Manager Review & Audit Trail -->
+            @if (isApproved || isRejected || (Model.AuditHistories != null && Model.AuditHistories.Any()))
             {
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
                     <div class="px-6 py-4 border-b border-slate-150 flex items-center justify-between bg-slate-50/60">
@@ -249,39 +249,123 @@
                             <span class="material-symbols-outlined text-indigo-600 text-xl">fact_check</span>
                             <h2 class="text-sm font-bold text-slate-900">Review Outcome & Audit Trail</h2>
                         </div>
-                        <span class="text-xs font-semibold @(isApproved ? "text-emerald-600" : "text-rose-600")">
+                        <span class="text-xs font-semibold @(isApproved ? "text-emerald-600" : (isRejected ? "text-rose-600" : "text-amber-600"))">
                             Status: @Model.Status
                         </span>
                     </div>
 
-                    <div class="p-6 space-y-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl @(isApproved ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-rose-50 text-rose-600 border border-rose-200") flex items-center justify-center shrink-0">
-                                <span class="material-symbols-outlined text-xl">
-                                    @(isApproved ? "verified" : "cancel")
-                                </span>
-                            </div>
-                            <div>
-                                <span class="text-xs text-slate-400 block">Reviewed By</span>
-                                <span class="text-sm font-bold text-slate-900">
-                                    @(Model.ReviewedByName ?? "Store Manager")
-                                </span>
-                                @if (Model.ReviewedAt.HasValue)
-                                {
-                                    <span class="text-xs text-slate-400 ml-2">
-                                        on @Model.ReviewedAt.Value.AddHours(7).ToString("dd/MM/yyyy 'at' HH:mm")
-                                    </span>
-                                }
-                            </div>
-                        </div>
-
-                        @if (isRejected && !string.IsNullOrWhiteSpace(Model.ManagerNote))
+                    <div class="p-6 space-y-5">
+                        @if (isApproved || isRejected)
                         {
-                            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-1">
-                                <span class="text-xs font-bold text-rose-800 uppercase tracking-wider block">Manager Rejection Note</span>
-                                <p class="text-xs text-rose-900 font-medium">
-                                    @Model.ManagerNote
-                                </p>
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl @(isApproved ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-rose-50 text-rose-600 border border-rose-200") flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-xl">
+                                        @(isApproved ? "verified" : "cancel")
+                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-xs text-slate-400 block">Reviewed By</span>
+                                    <span class="text-sm font-bold text-slate-900">
+                                        @(Model.ReviewedByName ?? "Store Manager")
+                                    </span>
+                                    @if (Model.ReviewedAt.HasValue)
+                                    {
+                                        <span class="text-xs text-slate-400 ml-2">
+                                            on @Model.ReviewedAt.Value.AddHours(7).ToString("dd/MM/yyyy 'at' HH:mm")
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+
+                            @if (isRejected && !string.IsNullOrWhiteSpace(Model.ManagerNote))
+                            {
+                                <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-1">
+                                    <span class="text-xs font-bold text-rose-800 uppercase tracking-wider block">Manager Rejection Note</span>
+                                    <p class="text-xs text-rose-900 font-medium">
+                                        @Model.ManagerNote
+                                    </p>
+                                </div>
+                            }
+                        }
+
+                        <!-- Before & After Audit Logs -->
+                        @if (Model.AuditHistories != null && Model.AuditHistories.Any())
+                        {
+                            <div class="pt-3 border-t border-slate-150 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span class="material-symbols-outlined text-base text-indigo-500">manage_history</span>
+                                        <span>Attendance Change History (@Model.AuditHistories.Count log@(Model.AuditHistories.Count > 1 ? "s" : ""))</span>
+                                    </span>
+                                    <span class="text-[11px] text-slate-400">Captured in attendance_adjustment_history</span>
+                                </div>
+
+                                <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-2xs">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-100/80 text-slate-600 font-semibold border-b border-slate-200">
+                                                <th class="py-2.5 px-3">Adjusted At</th>
+                                                <th class="py-2.5 px-3">Adjusted By</th>
+                                                <th class="py-2.5 px-3">Check-In (Old &rarr; New)</th>
+                                                <th class="py-2.5 px-3">Check-Out (Old &rarr; New)</th>
+                                                <th class="py-2.5 px-3">Work Duration</th>
+                                                <th class="py-2.5 px-3">Late / Early</th>
+                                                <th class="py-2.5 px-3">Reason / Note</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-150 bg-white">
+                                            @foreach (var history in Model.AuditHistories)
+                                            {
+                                                <tr class="hover:bg-slate-50/70 transition-colors">
+                                                    <td class="py-3 px-3 font-medium text-slate-800 whitespace-nowrap">
+                                                        @history.AdjustedAtDisplay
+                                                    </td>
+                                                    <td class="py-3 px-3 whitespace-nowrap">
+                                                        <span class="font-semibold text-slate-900">@(history.AdjustedByName ?? "Manager")</span>
+                                                    </td>
+                                                    <td class="py-3 px-3 whitespace-nowrap font-mono">
+                                                        <span class="text-slate-400">@history.OldCheckInDisplay</span>
+                                                        <span class="text-slate-300 mx-1">&rarr;</span>
+                                                        <span class="font-bold @(history.OldCheckInTime != history.NewCheckInTime ? "text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" : "text-slate-700")">
+                                                            @history.NewCheckInDisplay
+                                                        </span>
+                                                    </td>
+                                                    <td class="py-3 px-3 whitespace-nowrap font-mono">
+                                                        <span class="text-slate-400">@history.OldCheckOutDisplay</span>
+                                                        <span class="text-slate-300 mx-1">&rarr;</span>
+                                                        <span class="font-bold @(history.OldCheckOutTime != history.NewCheckOutTime ? "text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" : "text-slate-700")">
+                                                            @history.NewCheckOutDisplay
+                                                        </span>
+                                                    </td>
+                                                    <td class="py-3 px-3 whitespace-nowrap">
+                                                        <span class="text-slate-500 font-mono">@(history.OldActualWorkingMinutes ?? 0)m</span>
+                                                        <span class="text-slate-300 mx-1">&rarr;</span>
+                                                        <span class="font-bold text-slate-900 font-mono">@(history.NewActualWorkingMinutes ?? 0)m</span>
+                                                    </td>
+                                                    <td class="py-3 px-3 whitespace-nowrap">
+                                                        <div class="text-[11px] space-y-0.5">
+                                                            <div>
+                                                                <span class="text-slate-400">Late:</span>
+                                                                <span class="font-mono text-slate-600">@(history.OldTotalLateMinutes ?? 0)m</span>
+                                                                <span class="text-slate-300">&rarr;</span>
+                                                                <span class="font-bold font-mono @((history.NewTotalLateMinutes ?? 0) < (history.OldTotalLateMinutes ?? 0) ? "text-emerald-700" : "text-slate-700")">@(history.NewTotalLateMinutes ?? 0)m</span>
+                                                            </div>
+                                                            <div>
+                                                                <span class="text-slate-400">Early:</span>
+                                                                <span class="font-mono text-slate-600">@(history.OldTotalEarlyLeaveMinutes ?? 0)m</span>
+                                                                <span class="text-slate-300">&rarr;</span>
+                                                                <span class="font-bold font-mono @((history.NewTotalEarlyLeaveMinutes ?? 0) < (history.OldTotalEarlyLeaveMinutes ?? 0) ? "text-emerald-700" : "text-slate-700")">@(history.NewTotalEarlyLeaveMinutes ?? 0)m</span>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td class="py-3 px-3 text-slate-700 max-w-xs break-words">
+                                                        <span class="italic">"@history.Reason"</span>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         }
                     </div>

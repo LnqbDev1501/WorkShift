@@ -44,6 +44,40 @@ public sealed class ManagerTimesheetAdjustmentDto
     public string OriginalCheckOutDisplay => OriginalCheckOutTime.HasValue ? OriginalCheckOutTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
     public string RequestedCheckInDisplay => RequestedCheckInTime.HasValue ? RequestedCheckInTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
     public string RequestedCheckOutDisplay => RequestedCheckOutTime.HasValue ? RequestedCheckOutTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
+
+    // Before-and-after audit history logs
+    public List<AttendanceAdjustmentAuditHistoryDto> AuditHistories { get; set; } = new();
+}
+
+public sealed class AttendanceAdjustmentAuditHistoryDto
+{
+    public long AdjustmentHistoryId { get; set; }
+    public int AttendanceId { get; set; }
+    public Guid AdjustedBy { get; set; }
+    public string? AdjustedByName { get; set; }
+    public string AdjustmentSource { get; set; } = null!;
+    public string Reason { get; set; } = null!;
+    public DateTime? OldCheckInTime { get; set; }
+    public DateTime? NewCheckInTime { get; set; }
+    public DateTime? OldCheckOutTime { get; set; }
+    public DateTime? NewCheckOutTime { get; set; }
+    public int? OldActualWorkingMinutes { get; set; }
+    public int? NewActualWorkingMinutes { get; set; }
+    public int? OldTotalLateMinutes { get; set; }
+    public int? NewTotalLateMinutes { get; set; }
+    public int? OldChargeableLateMinutes { get; set; }
+    public int? NewChargeableLateMinutes { get; set; }
+    public int? OldTotalEarlyLeaveMinutes { get; set; }
+    public int? NewTotalEarlyLeaveMinutes { get; set; }
+    public int? OldChargeableEarlyLeaveMinutes { get; set; }
+    public int? NewChargeableEarlyLeaveMinutes { get; set; }
+    public DateTime AdjustedAt { get; set; }
+
+    public string AdjustedAtDisplay => AdjustedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm");
+    public string OldCheckInDisplay => OldCheckInTime.HasValue ? OldCheckInTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
+    public string NewCheckInDisplay => NewCheckInTime.HasValue ? NewCheckInTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
+    public string OldCheckOutDisplay => OldCheckOutTime.HasValue ? OldCheckOutTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
+    public string NewCheckOutDisplay => NewCheckOutTime.HasValue ? NewCheckOutTime.Value.AddHours(7).ToString("HH:mm") : "--:--";
 }
 
 public sealed class ManagerTimesheetAdjustmentPagedResponse

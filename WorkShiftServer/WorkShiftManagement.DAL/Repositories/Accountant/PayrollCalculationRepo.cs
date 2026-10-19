@@ -143,6 +143,26 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
             }
         }
         try { await db.SaveChangesAsync(ct); }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.ConstraintName != null
+            && pg.ConstraintName.Contains("notifications", StringComparison.OrdinalIgnoreCase))
+        {
+            // SaveChanges rolls back the failed write to its transaction savepoint.
+            // Detach added recipients BEFORE their principals: detaching an added
+            // Notification first severs required FKs on its still-tracked children.
+            var autoDetect = db.ChangeTracker.AutoDetectChangesEnabled;
+            try
+            {
+                db.ChangeTracker.AutoDetectChangesEnabled = false;
+                var notifications = db.ChangeTracker.Entries()
+                    .Where(e => e.State == EntityState.Added
+                        && e.Entity is WorkShiftManagement.DAL.Entities.UserNotification or WorkShiftManagement.DAL.Entities.Notification)
+                    .OrderBy(e => e.Entity is WorkShiftManagement.DAL.Entities.UserNotification ? 0 : 1)
+                    .ToList();
+                foreach (var entry in notifications) entry.State = EntityState.Detached;
+            }
+            finally { db.ChangeTracker.AutoDetectChangesEnabled = autoDetect; }
+            await db.SaveChangesAsync(ct);
+        }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState is "23505" or "23503")
         { throw new InvalidOperationException("Dữ liệu nguồn đã được sử dụng hoặc thay đổi. Tải lại trước khi tính lương.", ex); }
     }

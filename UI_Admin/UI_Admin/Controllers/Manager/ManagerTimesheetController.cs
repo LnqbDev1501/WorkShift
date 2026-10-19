@@ -169,7 +169,7 @@ public sealed class ManagerTimesheetController : Controller
         try
         {
             await _timesheetApiService.LockWeeklyTimesheetAsync(id, cancellationToken);
-            TempData["SuccessMessage"] = "Weekly timesheet locked successfully. Attendance hours finalized for payroll calculation.";
+            TempData["SuccessMessage"] = "Weekly timesheet reviewed successfully. Notification sent to branch accountant.";
         }
         catch (InvalidOperationException ex)
         {
@@ -177,8 +177,46 @@ public sealed class ManagerTimesheetController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to lock timesheet for week {ScheduleWeekId}", id);
-            TempData["ErrorMessage"] = $"Failed to lock timesheet: {ex.Message}";
+            _logger.LogError(ex, "Failed to review timesheet for week {ScheduleWeekId}", id);
+            TempData["ErrorMessage"] = $"Failed to review timesheet: {ex.Message}";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ReopenStaff(
+        int id,
+        int timesheetId,
+        Guid? userId = null,
+        string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (id <= 0 || timesheetId <= 0)
+        {
+            TempData["ErrorMessage"] = "Invalid schedule week or timesheet specified.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            await _timesheetApiService.ReopenStaffTimesheetAsync(id, timesheetId, cancellationToken);
+            TempData["SuccessMessage"] = "Review window reopened successfully for this staff member until end of today.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reopen timesheet {TimesheetId} for week {ScheduleWeekId}", timesheetId, id);
+            TempData["ErrorMessage"] = $"Failed to reopen staff review: {ex.Message}";
+        }
+
+        if (string.Equals(returnUrl, "StaffDetail", StringComparison.OrdinalIgnoreCase) && userId.HasValue)
+        {
+            return RedirectToAction(nameof(StaffDetail), new { scheduleWeekId = id, userId = userId.Value });
         }
 
         return RedirectToAction(nameof(Details), new { id });
@@ -223,6 +261,18 @@ public sealed class ManagerTimesheetController : Controller
                 WeekStatus = weekDetail.Status,
                 Staff = staffTimesheet
             };
+
+            if (TempData["ErrorMessage"] is string error)
+            {
+                viewModel.ErrorMessage = error;
+                TempData.Remove("ErrorMessage");
+            }
+
+            if (TempData["SuccessMessage"] is string success)
+            {
+                viewModel.SuccessMessage = success;
+                TempData.Remove("SuccessMessage");
+            }
 
             return View(viewModel);
         }

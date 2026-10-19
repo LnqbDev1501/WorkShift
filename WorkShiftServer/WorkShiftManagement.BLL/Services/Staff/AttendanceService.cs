@@ -12,9 +12,11 @@ using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.FaceRegistration.Response;
+using WorkShiftManagement.BLL.DTOs.Manager.Attendance;
 using WorkShiftManagement.BLL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
@@ -426,6 +428,179 @@ public class AttendanceService : IAttendanceService
         return results;
     }
 
+    public async Task<StaffAttendanceDetailResponse?> GetStaffAttendanceDetailAsync(
+        Guid userId, int assignmentId, CancellationToken cancellationToken = default)
+    {
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated user identity is required.");
+        }
+
+        var sa = await _attendanceRepo.GetStaffAssignmentAttendanceDetailAsync(assignmentId, userId, cancellationToken);
+        if (sa == null)
+        {
+            return null;
+        }
+
+        var shift = sa.Shift;
+        var week = shift.ScheduleWeek;
+        var att = sa.Attendance;
+
+        var approvedLeave = sa.LeaveRequestAssignments
+            ?.Select(l => l.Request)
+            ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
+
+        bool isExcusedLeave = approvedLeave != null;
+        string? leaveReason = approvedLeave?.Reason;
+
+        AttendanceRequestSummaryDto? lateReqSummary = null;
+        if (att?.LateArrivalRequest?.Request != null)
+        {
+            var req = att.LateArrivalRequest.Request;
+            lateReqSummary = new AttendanceRequestSummaryDto
+            {
+                RequestId = req.RequestId,
+                RequestType = req.RequestType,
+                Status = req.Status,
+                Reason = req.Reason,
+                RequestedTime = att.LateArrivalRequest.RequestedTime,
+                CreatedAt = req.CreatedAt
+            };
+        }
+
+        AttendanceRequestSummaryDto? earlyReqSummary = null;
+        if (att?.EarlyLeaveRequest?.Request != null)
+        {
+            var req = att.EarlyLeaveRequest.Request;
+            earlyReqSummary = new AttendanceRequestSummaryDto
+            {
+                RequestId = req.RequestId,
+                RequestType = req.RequestType,
+                Status = req.Status,
+                Reason = req.Reason,
+                RequestedTime = att.EarlyLeaveRequest.RequestedTime,
+                CreatedAt = req.CreatedAt
+            };
+        }
+
+        AttendanceRequestSummaryDto? leaveRequestSummary = null;
+        if (approvedLeave != null)
+        {
+            leaveRequestSummary = new AttendanceRequestSummaryDto
+            {
+                RequestId = approvedLeave.RequestId,
+                RequestType = approvedLeave.RequestType,
+                Status = approvedLeave.Status,
+                Reason = approvedLeave.Reason,
+                CreatedAt = approvedLeave.CreatedAt
+            };
+        }
+
+        StaffTimesheetAdjustmentSummaryDto? timesheetAdjSummary = null;
+        var adj = att?.TimesheetAdjustmentRequest;
+        if (adj != null)
+        {
+            timesheetAdjSummary = new StaffTimesheetAdjustmentSummaryDto
+            {
+                AdjustmentRequestId = adj.AdjustmentRequestId,
+                Status = adj.Status,
+                OriginalCheckInTime = adj.CurrentCheckInSnapshot,
+                OriginalCheckOutTime = adj.CurrentCheckOutSnapshot,
+                RequestedCheckInTime = adj.RequestedCheckInTime,
+                RequestedCheckOutTime = adj.RequestedCheckOutTime,
+                AdjustCheckIn = adj.AdjustCheckIn,
+                AdjustCheckOut = adj.AdjustCheckOut,
+                Reason = adj.Reason,
+                ManagerNote = adj.ManagerNote,
+                ReviewedAt = adj.ReviewedAt,
+                CreatedAt = adj.CreatedAt
+            };
+        }
+
+        var nowUtc = DateTime.UtcNow;
+        string status;
+        if (isExcusedLeave)
+        {
+            status = "LEAVE";
+        }
+        else if (att != null)
+        {
+            if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+            {
+                status = att.TotalLateMinutes > 0 ? "LATE" : "IN_PROGRESS";
+            }
+            else if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
+            {
+                status = "COMPLETED";
+            }
+            else
+            {
+                status = att.Status ?? "SCHEDULED";
+            }
+        }
+        else
+        {
+            status = nowUtc > shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
+        }
+
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int maxDistance = rule?.MaxAttendanceDistanceMeters ?? 20;
+
+        return new StaffAttendanceDetailResponse
+        {
+            AssignmentId = sa.AssignmentId,
+            ShiftId = shift.ShiftId,
+            ShiftName = shift.ShiftNameSnapshot,
+            ScheduledStartAt = shift.ScheduledStartAt,
+            ScheduledEndAt = shift.ScheduledEndAt,
+            ScheduleWeekId = week.ScheduleWeekId,
+            WeekPeriodDisplay = $"Week #{week.ScheduleWeekId} ({week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy})",
+            BranchName = week.Branch.BranchName,
+            BranchAddress = week.Branch.Address,
+            MaxAttendanceDistanceMeters = maxDistance,
+            AttendanceId = att?.AttendanceId,
+            Status = status,
+            CheckInTime = att?.CheckInTime,
+            CheckInLatitude = att?.CheckInLatitude,
+            CheckInLongitude = att?.CheckInLongitude,
+            CheckInDistanceMeters = att?.CheckInDistanceMeters,
+            CheckInAccuracyMeters = att?.CheckInAccuracyMeters,
+            CheckInFaceVerified = att?.CheckInFaceVerified,
+            CheckInFaceConfidence = att?.CheckInFaceConfidence,
+            CheckOutTime = att?.CheckOutTime,
+            CheckOutLatitude = att?.CheckOutLatitude,
+            CheckOutLongitude = att?.CheckOutLongitude,
+            CheckOutDistanceMeters = att?.CheckOutDistanceMeters,
+            CheckOutAccuracyMeters = att?.CheckOutAccuracyMeters,
+            CheckOutFaceVerified = att?.CheckOutFaceVerified,
+            CheckOutFaceConfidence = att?.CheckOutFaceConfidence,
+            ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
+            TotalLateMinutes = att?.TotalLateMinutes ?? 0,
+            ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
+            ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
+            TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
+            ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
+            ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+            IsExcusedLeave = isExcusedLeave,
+            LeaveReason = leaveReason,
+            LateArrivalRequest = lateReqSummary,
+            EarlyLeaveRequest = earlyReqSummary,
+            LeaveRequest = leaveRequestSummary,
+            TimesheetAdjustment = timesheetAdjSummary,
+            Penalties = att?.AttendancePenaltyRecords?
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new AttendancePenaltyDto
+                {
+                    AttendancePenaltyId = p.AttendancePenaltyId,
+                    ViolationType = p.ViolationType,
+                    ViolationMinutes = p.ViolationMinutes,
+                    PenaltyAmount = p.PenaltyAmount,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt
+                }).ToList() ?? new()
+        };
+    }
+
     public async Task<EligibleShiftResponse?> GetEligibleShiftAsync(Guid userId, CancellationToken cancellationToken = default)
     {
         var shifts = await GetTodayShiftsAsync(userId, cancellationToken);
@@ -734,10 +909,15 @@ public class AttendanceService : IAttendanceService
 
         decimal distanceMeters = Math.Round((decimal)dist, 2);
 
-        if (distanceMeters > rule.MaxAttendanceDistanceMeters)
+        // GPS Accuracy Compensation: Deduct accuracy (capped at 50m to prevent abuse/spoofing)
+        decimal gpsAccuracy = Math.Max(0m, request.GpsAccuracy ?? 0m);
+        decimal effectiveAccuracy = Math.Min(gpsAccuracy, 50m);
+        decimal effectiveDistance = Math.Max(0m, distanceMeters - effectiveAccuracy);
+
+        if (effectiveDistance > rule.MaxAttendanceDistanceMeters)
         {
             throw new InvalidOperationException(
-                $"You are outside the branch check-in perimeter ({distanceMeters:F1}m > {rule.MaxAttendanceDistanceMeters}m allowed). Please move closer to {branch.BranchName}.");
+                $"You are outside the branch check-in perimeter ({effectiveDistance:F1}m > {rule.MaxAttendanceDistanceMeters}m allowed [measured: {distanceMeters:F1}m, accuracy: ±{gpsAccuracy:F1}m]). Please move closer to {branch.BranchName}.");
         }
 
         // 6. Biometric Face Verification
@@ -882,6 +1062,7 @@ public class AttendanceService : IAttendanceService
                         ViolationType = "LATE",
                         ViolationMinutes = chargeableLateMinutes,
                         PenaltyAmount = matchedLevel.PenaltyAmount,
+                        Status = "APPLIED",
                         CreatedAt = nowUtc
                     });
                 }
@@ -1064,10 +1245,50 @@ public class AttendanceService : IAttendanceService
         var shift = assignment.Shift;
         var branch = shift.ScheduleWeek.Branch;
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
-            ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+        // Read snapshot from Check-in to guarantee rule immutability across the entire shift
+        AttendanceRuleSnapshotRoot? snapshot = null;
+        if (!string.IsNullOrWhiteSpace(attendance.RuleSnapshotJson))
+        {
+            try
+            {
+                snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(attendance.RuleSnapshotJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize RuleSnapshotJson for attendance {AttendanceId}. Fallback to active rules.", attendance.AttendanceId);
+            }
+        }
 
-        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+        // Active rule fallbacks if snapshot is missing
+        var fallbackRule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int checkOutAfterMinutes = snapshot?.AttendanceRule?.CheckOutAfterMinutes ?? fallbackRule?.CheckOutAfterMinutes
+            ?? throw new InvalidOperationException("No attendance rule configuration available for check-out.");
+        int checkOutGraceMinutes = snapshot?.AttendanceRule?.CheckOutGraceMinutes ?? fallbackRule?.CheckOutGraceMinutes ?? 0;
+        int maxDistanceMeters = snapshot?.AttendanceRule?.MaxAttendanceDistanceMeters ?? fallbackRule?.MaxAttendanceDistanceMeters ?? 100;
+
+        int? penaltyRuleId = snapshot?.AttendancePenaltyRule?.PenaltyRuleId;
+        List<AttendancePenaltyLevelSnapshotItem>? penaltyLevels = snapshot?.AttendancePenaltyRule?.PenaltyLevels;
+
+        // If snapshot had no penalty rule, fallback to current active penalty rule
+        if (penaltyRuleId == null || penaltyLevels == null)
+        {
+            var fallbackPenalty = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+            if (fallbackPenalty != null)
+            {
+                penaltyRuleId = fallbackPenalty.PenaltyRuleId;
+                penaltyLevels = fallbackPenalty.AttendancePenaltyLevels.Select(l => new AttendancePenaltyLevelSnapshotItem
+                {
+                    PenaltyLevelId = l.PenaltyLevelId,
+                    ViolationType = l.ViolationType,
+                    FromMinutes = l.FromMinutes,
+                    ToMinutes = l.ToMinutes,
+                    PenaltyAmount = l.PenaltyAmount
+                }).ToList();
+            }
+        }
 
         var nowUtc = DateTime.UtcNow;
 
@@ -1078,7 +1299,7 @@ public class AttendanceService : IAttendanceService
         }
 
         // Cut-off deadline validation
-        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMinutes);
         if (nowUtc > cutoffTimeUtc)
         {
             throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
@@ -1086,7 +1307,7 @@ public class AttendanceService : IAttendanceService
 
         // 3. Early Leave Calculation
         var approvedEarly = await _attendanceRepo.GetApprovedEarlyLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-        var normalGraceDeadlineUtc = shift.ScheduledEndAt.AddMinutes(-rule.CheckOutGraceMinutes);
+        var normalGraceDeadlineUtc = shift.ScheduledEndAt.AddMinutes(-checkOutGraceMinutes);
 
         bool isEarlyLeave = false;
         int totalEarlyLeaveMinutes = 0;
@@ -1095,7 +1316,7 @@ public class AttendanceService : IAttendanceService
 
         if (approvedEarly != null)
         {
-            var approvedGraceDeadlineUtc = approvedEarly.RequestedTime.AddMinutes(-rule.CheckOutGraceMinutes);
+            var approvedGraceDeadlineUtc = approvedEarly.RequestedTime.AddMinutes(-checkOutGraceMinutes);
             if (nowUtc >= approvedGraceDeadlineUtc)
             {
                 // Left within approved early departure window -> Fully excused
@@ -1137,10 +1358,15 @@ public class AttendanceService : IAttendanceService
 
         decimal distanceMeters = Math.Round((decimal)dist, 2);
 
-        if (distanceMeters > rule.MaxAttendanceDistanceMeters)
+        // GPS Accuracy Compensation: Deduct accuracy (capped at 50m to prevent abuse/spoofing)
+        decimal gpsAccuracy = Math.Max(0m, request.GpsAccuracy ?? 0m);
+        decimal effectiveAccuracy = Math.Min(gpsAccuracy, 50m);
+        decimal effectiveDistance = Math.Max(0m, distanceMeters - effectiveAccuracy);
+
+        if (effectiveDistance > maxDistanceMeters)
         {
             throw new InvalidOperationException(
-                $"You are outside the branch check-out perimeter ({distanceMeters:F1}m > {rule.MaxAttendanceDistanceMeters}m allowed). Please move closer to {branch.BranchName}.");
+                $"You are outside the branch check-out perimeter ({effectiveDistance:F1}m > {maxDistanceMeters}m allowed [measured: {distanceMeters:F1}m, accuracy: ±{gpsAccuracy:F1}m]). Please move closer to {branch.BranchName}.");
         }
 
         // 5. Biometric Face Verification
@@ -1239,9 +1465,9 @@ public class AttendanceService : IAttendanceService
             attendance.CompletedAt = nowUtc;
             attendance.UpdatedAt = nowUtc;
 
-            if (chargeableEarlyLeaveMinutes > 0 && penaltyRule != null)
+            if (chargeableEarlyLeaveMinutes > 0 && penaltyRuleId.HasValue && penaltyLevels != null)
             {
-                var matchedLevel = penaltyRule.AttendancePenaltyLevels
+                var matchedLevel = penaltyLevels
                     .FirstOrDefault(l => l.ViolationType == "EARLY_LEAVE" &&
                                          chargeableEarlyLeaveMinutes >= l.FromMinutes &&
                                          (!l.ToMinutes.HasValue || chargeableEarlyLeaveMinutes <= l.ToMinutes.Value));
@@ -1250,11 +1476,12 @@ public class AttendanceService : IAttendanceService
                 {
                     attendance.AttendancePenaltyRecords.Add(new AttendancePenaltyRecord
                     {
-                        PenaltyRuleId = penaltyRule.PenaltyRuleId,
+                        PenaltyRuleId = penaltyRuleId.Value,
                         PenaltyLevelId = matchedLevel.PenaltyLevelId,
                         ViolationType = "EARLY_LEAVE",
                         ViolationMinutes = chargeableEarlyLeaveMinutes,
                         PenaltyAmount = matchedLevel.PenaltyAmount,
+                        Status = "APPLIED",
                         CreatedAt = nowUtc
                     });
                 }

@@ -41,6 +41,10 @@ public partial class PayrollCorrectionRequest
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime ResponseDeadlineAt { get; set; }
+
+    public DateTime? ExpiredAt { get; set; }
+
     public virtual PayrollFeedbackRequest? Feedback { get; set; }
 
     public virtual PayrollCorrectionRequest? InversePreviousRequest { get; set; }

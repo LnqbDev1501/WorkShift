@@ -15,6 +15,7 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 
 public class ManagerStaffService : IManagerStaffService
 {
+    private const string IdentityNoPattern = @"^(001|002|004|006|008|010|011|012|014|015|017|019|020|022|024|025|026|027|030|031|033|034|035|036|037|038|040|042|044|045|046|048|049|051|052|054|056|058|060|062|064|066|067|068|070|072|074|075|077|079|080|082|083|084|086|087|089|091|092|093|094|095|096)\d{6}(\d{3})?$";
     private readonly IManagerStaffRepo _staffRepo;
     private readonly IAuthService _authService;
     private readonly ICloudinaryService _cloudinaryService;
@@ -357,9 +358,9 @@ public class ManagerStaffService : IManagerStaffService
         }
 
         var identityNo = request.IdentityNo?.Trim();
-        if (!Regex.IsMatch(identityNo ?? string.Empty, @"^\d{9}$|^\d{12}$"))
+        if (!Regex.IsMatch(identityNo ?? string.Empty, IdentityNoPattern))
         {
-            throw new ArgumentException("Identity number must contain either 9 or 12 digits.");
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         }
 
         var gender = request.Gender?.Trim().ToUpperInvariant();
@@ -420,9 +421,9 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, starting with 03/05/07/08/09).");
         }
 
-        if (!Regex.IsMatch(request.IdentityNo?.Trim() ?? string.Empty, @"^\d{9}$|^\d{12}$"))
+        if (!Regex.IsMatch(request.IdentityNo?.Trim() ?? string.Empty, IdentityNoPattern))
         {
-            throw new ArgumentException("Identity number must be 9 or 12 digits.");
+            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         }
 
         var gender = request.Gender?.Trim().ToUpperInvariant();

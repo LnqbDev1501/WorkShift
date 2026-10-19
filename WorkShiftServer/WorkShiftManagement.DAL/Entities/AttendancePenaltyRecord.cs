@@ -21,6 +21,8 @@ public partial class AttendancePenaltyRecord
 
     public DateTime CreatedAt { get; set; }
 
+    public string Status { get; set; } = null!;
+
     public virtual Attendance Attendance { get; set; } = null!;
 
     public virtual ICollection<PayrollDetail> PayrollDetails { get; set; } = new List<PayrollDetail>();

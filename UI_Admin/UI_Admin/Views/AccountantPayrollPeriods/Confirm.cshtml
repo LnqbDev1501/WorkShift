@@ -1,8 +1,82 @@
 @model UI_Admin.Models.Accountant.PayrollPeriods.PeriodConfirmation
-@{ ViewData["Title"] = Model.Delete ? "Delete Draft Period" : "Open Payroll Period"; }
-<div class="flex flex-col gap-unit-4 px-7 py-4"><header class="form-heading"><div class="list-eyebrow">PAYROLL · PERIOD MANAGEMENT</div><h1 class="text-display-lg font-display-lg">@ViewData["Title"]</h1></header>
-    <section class="bg-surface-container-lowest rounded-xl p-5 shadow-sm max-w-2xl"><h2 class="text-title-md font-semibold mb-2">@Model.Period.PeriodName</h2><p>@Model.Period.PeriodCode · @Model.Period.BranchName</p><p class="text-secondary mt-2">@Model.Period.StartDate.ToString("dd/MM/yyyy") – @Model.Period.EndDate.ToString("dd/MM/yyyy")</p>
-        <p class="mt-5 mb-5">@(Model.Delete ? "This deletes the draft period. The work schedule week can then be used to create a new period." : "Opening this period changes DRAFT to OPEN. You will no longer be able to edit or delete it. Opening does not calculate salaries.")</p>
-        <form method="post" asp-action="@(Model.Delete ? "Delete" : "Open")" asp-route-id="@Model.Period.PayrollPeriodId" class="flex gap-3"><button type="submit" class="px-5 py-2 rounded-xl text-white @(Model.Delete ? "bg-red-600" : "bg-primary-container")">@(Model.Delete ? "Delete Draft" : "Confirm Open")</button><a asp-action="Details" asp-route-id="@Model.Period.PayrollPeriodId" class="px-5 py-2 rounded-xl border border-surface-container-high">Back to details</a></form>
-    </section>
+@{
+    var isDelete = Model.Delete;
+    ViewData["Title"] = isDelete ? "Delete Draft Period" : "Open Payroll Period";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">calendar_month</span>
+                <span>Payroll / Period Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@ViewData["Title"]</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Please review the details below before confirming this operation.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Details" asp-route-id="@Model.Period.PayrollPeriodId"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Details</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Confirmation Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-2xl space-y-5">
+        <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
+            <div class="w-12 h-12 rounded-2xl @(isDelete ? "bg-rose-50 border border-rose-100 text-rose-600" : "bg-indigo-50 border border-indigo-100 text-indigo-600") flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">@(isDelete ? "delete_forever" : "lock_open")</span>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">@Model.Period.PeriodName</h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    @Model.Period.PeriodCode • Branch: <strong class="text-slate-700">@Model.Period.BranchName</strong>
+                </p>
+                <div class="text-xs text-slate-400 mt-0.5">
+                    @Model.Period.StartDate.ToString("dd/MM/yyyy") – @Model.Period.EndDate.ToString("dd/MM/yyyy")
+                </div>
+            </div>
+        </div>
+
+        @if (isDelete)
+        {
+            <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1">
+                <strong class="font-bold text-sm text-rose-950 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">warning</span>
+                    <span>Confirm Draft Deletion</span>
+                </strong>
+                <p class="text-rose-800">
+                    This action permanently deletes this draft period. The linked work schedule week will become available again to create another period.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs space-y-1">
+                <strong class="font-bold text-sm text-indigo-950 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-base">info</span>
+                    <span>Confirm Publishing Period (DRAFT → OPEN)</span>
+                </strong>
+                <p class="text-indigo-800">
+                    Opening this period locks its configuration and branch assignment. The period will transition to <strong class="text-indigo-950">OPEN</strong>, enabling timesheet verification and batch payroll calculation.
+                </p>
+            </div>
+        }
+
+        <form method="post" asp-action="@(isDelete ? "Delete" : "Open")" asp-route-id="@Model.Period.PayrollPeriodId" class="flex items-center gap-3 pt-2">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl @(isDelete ? "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white") text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-base">@(isDelete ? "delete" : "lock_open")</span>
+                <span>@(isDelete ? "Confirm Delete Draft" : "Confirm Open Period")</span>
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.Period.PayrollPeriodId"
+               class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                Cancel
+            </a>
+        </form>
+    </div>
 </div>

@@ -259,6 +259,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     final maxDist = widget.shift.maxAttendanceDistanceMeters;
     final distanceText = '${_controller.distanceMeters.toStringAsFixed(1)}m';
 
+    final accuracyText = _controller.currentAccuracy != null
+        ? '±${_controller.currentAccuracy!.toStringAsFixed(1)}m'
+        : 'N/A';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -353,7 +357,7 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
             ],
           ),
           const SizedBox(height: 8),
-          // Row 2: Distance & Geofence Badge
+          // Row 2: Distance, Accuracy & Geofence Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
@@ -372,17 +376,56 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    'Distance: $distanceText (Max: ${maxDist}m)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isWithin ? const Color(0xFF047857) : const Color(0xFFB91C1C),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Distance: $distanceText',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isWithin ? const Color(0xFF047857) : const Color(0xFFB91C1C),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: isWithin ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              accuracyText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: isWithin ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Effective: ${_controller.effectiveDistanceMeters.toStringAsFixed(1)}m • Max: ${maxDist}m',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w500,
+                          color: isWithin ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
                     color: isWithin ? const Color(0xFF059669) : const Color(0xFFDC2626),
                     borderRadius: BorderRadius.circular(6),

@@ -139,6 +139,8 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
             .Include(sa => sa.Attendance)
                 .ThenInclude(a => a!.CheckOutFaceSession)
             .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.AttendancePenaltyRecords)
+            .Include(sa => sa.Attendance)
                 .ThenInclude(a => a!.LateArrivalRequest)
                     .ThenInclude(r => r!.Request)
             .Include(sa => sa.Attendance)

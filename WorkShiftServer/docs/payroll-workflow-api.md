@@ -1,6 +1,6 @@
 # Payroll workflow APIs
 
-Luồng backend hiện hành: Timesheet REVIEWED → tính toàn kỳ → Accountant/Staff review Payroll Preview → sửa nguồn hoặc giải trình → Submit toàn kỳ → Admin duyệt, khóa công và phát Official Payslip → quyết toán → CLOSED.
+Luồng backend hiện hành: tạo kỳ DRAFT → Publish OPEN → Manager liên kết và review công → Timesheet REVIEWED → tính toàn kỳ → Accountant/Staff review Payroll Preview → sửa nguồn hoặc giải trình → Submit toàn kỳ → Admin duyệt, khóa công và phát Official Payslip → quyết toán → CLOSED.
 
 Các đường dẫn dưới đây có tiền tố `/api`. Accountant và Manager chỉ thao tác chi nhánh được phân công; Staff chỉ được đọc/trả lời lượt gửi cho chính mình. Backend kiểm tra lại tài khoản/role đang hoạt động.
 
@@ -73,7 +73,7 @@ CORRECT không tự cấp quyền sửa nguồn. Manager phải xử lý qua ngh
 - OPEN → RESPONDED khi Manager trả lời.
 - RESPONDED + EXPLAIN → Accountant chấp nhận: giữ Payroll, request COMPLETED; gửi Staff lượt tiếp theo nếu liên quan review Staff.
 - RESPONDED → RETURNED: giữ lịch sử và tạo request OPEN kế tiếp qua previous_request_id.
-- RESPONDED + CORRECT → Accountant Recalculate: lưu snapshot nguồn mới, Payroll cũ REPLACED, bản mới CALCULATED, request COMPLETED; gửi Staff lượt tiếp theo nếu có case Staff.
+- RESPONDED + CORRECT → Accountant Recalculate: lưu snapshot nguồn mới, Payroll cũ REPLACED, bản mới CALCULATED; request vẫn RESPONDED. Accountant kiểm tra rồi gọi complete để hoàn tất và gửi Staff lượt tiếp theo nếu có case Staff.
 - Chỉ COMPLETED có resolved_payroll_id/completed_at. Không tạo version nếu dữ liệu/kết quả không đổi.
 
 Nếu Staff đã xác nhận một case nhưng Accountant phát hiện vấn đề **mới trước hạn chung**, có thể mở case riêng; không sửa lại case đã đóng. Sau hạn không được mở case mới.
@@ -128,3 +128,16 @@ Không còn chờ cửa sổ feedback của Official Payslip. Khi kỳ APPROVED,
 `dotnet run --project WorkShiftServer/WorkShiftManagement.PayrollChecks/WorkShiftManagement.PayrollChecks.csproj`
 
 Checks dùng repository bộ nhớ có rollback và HTTP localhost với authentication giả; không kết nối Supabase. Các kiểm tra không thay thế chạy tích hợp PostgreSQL trên schema thật. Không chạy migration hoặc sửa dữ liệu production trong thay đổi này. UI cũ cần chuyển sang các route/response mới ở trên.
+
+## Bổ sung: kiểm tra và chủ động gửi bản sửa
+
+| Method | Endpoint | Actor | Ý nghĩa |
+|---|---|---|---|
+| GET | `/payrolls/{id}/correction-preview?correctionRequestId=123` | Accountant | Xem dự kiến từ nguồn mới, không lưu version |
+| POST | `/payroll-correction-requests/{id}/complete` | Accountant | Body `{ "payrollId": 123, "note": "Đã kiểm tra bản sửa" }`; hoàn tất và gửi lượt Staff tiếp theo |
+| GET | `/payroll-periods/{id}/source-impact` | Accountant | Toàn bộ Staff có nguồn lệch hoặc điều kiện chặn |
+| POST | `/payroll-correction-requests/{id}/register-related-impact` | Accountant | Đăng ký những Staff bị ảnh hưởng bởi cùng thay đổi nguồn đã được Manager xác nhận |
+
+Recalculate chỉ lưu version; không gửi Staff ngay. Response correction có `candidatePayrollId` và `awaitingAccountantCompletion`. Complete kiểm tra lại nguồn; nguồn đã đổi tiếp thì yêu cầu tính lại. Retry hoàn tất cùng Payroll không gửi trùng.
+
+Nguồn chung thay đổi được đối chiếu theo giá trị cũ/mới đã ghi nhận tại Manager CORRECT. Những Staff khác cùng kỳ bị đúng thay đổi đó có correction riêng, từng người tính lại và hoàn tất riêng. Sau hạn không mở rộng sang thay đổi không liên quan; feedback đang chờ Accountant không bị tự duyệt. Dữ liệu chứng minh và liên kết được lưu trong audit_logs, không cần thêm schema. Submit/Approve tiếp tục chặn mọi Payroll có nguồn lệch, kể cả Staff khác; response trả `sourceImpact` đầy đủ.

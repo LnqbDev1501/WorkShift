@@ -23,7 +23,9 @@ public static class PayrollPreviewPolicy
         }
         return row;
     }
+    public static DateOnly LocalVnDate(DateTime utc) => DateOnly.FromDateTime(utc.AddHours(7));
     public static bool Leaf(PayrollReviewData d, PayrollFeedbackRequest row) => !d.Reviews.Any(n => n.PreviousFeedbackId == row.FeedbackId);
+    public static bool Leaf(PayrollReviewData d, PayrollCorrectionRequest row) => !d.Corrections.Any(n => n.PreviousRequestId == row.CorrectionRequestId);
     public static List<Payroll> Current(PayrollReviewData d) => d.Payrolls.Where(p => p.Status != "REPLACED").GroupBy(p => p.UserId)
         .Select(g => g.OrderByDescending(p => p.VersionNo).ThenByDescending(p => p.PayrollId).First()).ToList();
     public static bool Changed(Payroll before, Payroll after)
@@ -34,13 +36,15 @@ public static class PayrollPreviewPolicy
     }
     public static void RequireReviewed(PayrollReviewData d)
     {
-        if (d.Corrections.Any(r => r.Status is "OPEN" or "RESPONDED")) throw new InvalidOperationException("Còn Correction Request chưa hoàn tất.");
-        if (d.Reviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING")) throw new InvalidOperationException("Còn phản hồi Staff chưa hoàn tất.");
+        var leafCorrections = d.Corrections.Where(r => Leaf(d, r)).ToList();
+        if (leafCorrections.Any(r => r.Status is "OPEN" or "RESPONDED" or "EXPIRED" or "RETURNED"))
+            throw new InvalidOperationException("Còn Correction Request chưa hoàn tất.");
+        if (d.Reviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING"))
+            throw new InvalidOperationException("Còn phản hồi Staff chưa hoàn tất.");
         foreach (var p in Current(d))
         {
             var leaf = d.Reviews.Where(f => f.EmployeeId == p.UserId && Leaf(d, f)).OrderByDescending(f => f.FeedbackId).FirstOrDefault();
-            if (leaf == null || leaf.PayrollId != p.PayrollId || leaf.ReviewStatus is not ("CONFIRMED" or "EXPIRED")
-                || Root(d, leaf).ClosedAt == null)
+            if (leaf == null || leaf.PayrollId != p.PayrollId || leaf.ReviewStatus is not ("CONFIRMED" or "EXPIRED"))
                 throw new InvalidOperationException($"{p.EmployeeFullNameSnapshot}: chưa hoàn tất review bản Payroll hiện hành.");
         }
     }

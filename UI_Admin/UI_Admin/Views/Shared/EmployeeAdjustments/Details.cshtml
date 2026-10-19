@@ -1,0 +1,92 @@
+@model UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDetailsViewModel
+@using D = UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDisplay
+@using UI_Admin.Models.EmployeeAdjustments
+@{
+    var row = Model.Item;
+    var admin = User.IsInRole("ADMIN");
+    var manager = User.IsInRole("MANAGER");
+    Layout = admin ? "_AdminLayout" : manager ? "_ManagerLayout" : "_AccountantLayout";
+    var label = EmployeeAdjustmentTypes.Label(row.AdjustmentType);
+    var canReview = admin && row.ApprovalStatus == "PENDING";
+    var labelLower = label.ToLowerInvariant();
+    ViewData["Title"] = $"Employee {label} #{row.RewardPenaltyId}";
+}
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <div class="flex flex-wrap justify-between items-center gap-3">
+        <div class="form-heading">
+            <div class="list-eyebrow">People · Compensation</div>
+            <h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1>
+            <p>@label #@row.RewardPenaltyId · @row.BranchName</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span>
+            <a asp-action="Index" class="btn btn-secondary">Back to list</a>
+        </div>
+    </div>
+    <partial name="~/Views/Shared/EmployeeAdjustments/_Messages.cshtml" />
+    <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Amount", D.Money(row.Amount), label + " value", row.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium"),
+        new("Payroll period", row.PeriodName, row.PeriodCode + " · " + row.PeriodStatus, "calendar_month"),
+        new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range"),
+        new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule")
+    })' />
+    <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
+        <h2 class="text-title-lg font-semibold">Item information</h2>
+        <dl class="grid grid-cols-1 md:grid-cols-3 gap-unit-4 text-body-md">
+            <div><dt class="text-secondary">Employee</dt><dd>@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
+            <div><dt class="text-secondary">Branch</dt><dd>@row.BranchName · #@row.BranchId</dd></div>
+            <div><dt class="text-secondary">Item name</dt><dd>@row.AdjustmentName</dd></div>
+            <div><dt class="text-secondary">Payroll period</dt><dd>@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
+            <div><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
+            <div><dt class="text-secondary">Created by</dt><dd>@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>
+        </dl>
+        <div><h3 class="text-label-md text-secondary mb-1">Reason</h3><p class="whitespace-pre-wrap break-words">@row.Reason</p></div>
+    </section>
+    @if (row.ApprovalStatus is "APPROVED" or "REJECTED")
+    {
+        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3">
+            <h2 class="text-title-lg font-semibold">Admin decision</h2>
+            <p>Reviewed: @D.Time(row.ApprovedAt ?? row.RejectedAt) (UTC+7)</p>
+            <p class="text-sm break-all text-secondary">Reviewed by: @(row.ApprovedByName ?? row.RejectedByName ?? "—")</p>
+            <p class="whitespace-pre-wrap break-words">@(row.ReviewNote ?? "No review note.")</p>
+        </section>
+    }
+    @if (canReview)
+    {
+        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
+            <h2 class="text-title-lg font-semibold">Review @labelLower</h2>
+            @if (!row.CanApprove) { <div role="alert" class="rounded-xl bg-amber-50 text-amber-800 p-unit-3">This @labelLower can no longer be approved (the payroll period is no longer DRAFT/OPEN or the item is linked to payroll).</div> }
+            @if (row.CanApprove)
+            {
+                <form asp-action="Approve" asp-route-id="@row.RewardPenaltyId" method="post" class="flex flex-col gap-unit-3">
+                    @Html.AntiForgeryToken()
+                    <div><label for="ApprovalNote" class="block text-label-md text-secondary mb-2">Approval note (optional)</label><textarea id="ApprovalNote" name="Decision.ReviewNote" rows="3" maxlength="1000" class="w-full p-3 border border-surface-container-high rounded-xl">@Model.Decision.ReviewNote</textarea></div>
+                    <div><button type="submit" class="btn btn-primary">Approve @labelLower</button></div>
+                </form>
+            }
+            @if (row.CanReject)
+            {
+                <form asp-action="Reject" asp-route-id="@row.RewardPenaltyId" method="post" class="border-t border-surface-container-low pt-4 flex flex-col gap-unit-3">
+                    @Html.AntiForgeryToken()
+                    <div><label for="RejectionNote" class="block text-label-md text-secondary mb-2">Rejection reason *</label><textarea id="RejectionNote" name="Decision.ReviewNote" rows="3" required maxlength="1000" class="w-full p-3 border border-surface-container-high rounded-xl">@Model.Decision.ReviewNote</textarea><span asp-validation-for="Decision.ReviewNote" class="text-red-700"></span></div>
+                    <div><button type="submit" class="btn btn-secondary text-red-700">Reject @labelLower</button></div>
+                </form>
+            }
+        </section>
+    }
+    @if (manager && row.CanUpdate)
+    {
+        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3">
+            <h2 class="text-title-lg font-semibold">Manage pending item</h2>
+            <p class="text-secondary">Only a pending @label.ToLowerInvariant() in your branch can be changed before Admin decides.</p>
+            <div class="flex flex-wrap gap-3">
+                <a asp-action="Edit" asp-route-id="@row.RewardPenaltyId" class="btn btn-secondary">Edit</a>
+                <form asp-action="Delete" asp-route-id="@row.RewardPenaltyId" method="post" onsubmit="return confirm('Delete this @label.ToLowerInvariant()? This cannot be undone.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-secondary text-red-700">Delete</button>
+                </form>
+            </div>
+        </section>
+    }
+</div>

@@ -24,6 +24,7 @@ import '../staff_notifications_view.dart';
 import '../staff_profile_view.dart';
 import '../requests/staff_request_list_view.dart';
 import '../timesheet/staff_timesheet_view.dart';
+import '../payroll/payroll_home_view.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
 class HomeView extends StatefulWidget {
@@ -38,7 +39,8 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
-  final NotificationController _notificationController = NotificationController();
+  final NotificationController _notificationController =
+      NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
   Timer? _autoSyncTimer;
@@ -57,7 +59,9 @@ class _HomeViewState extends State<HomeView> {
     RealtimeService.instance.connect();
 
     // 2. Lắng nghe thông báo Realtime từ Backend (khi manager duyệt đơn nghỉ, mở ca, v.v.)
-    _realtimeSubscription = RealtimeService.instance.onNotification.listen((payload) {
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((
+      payload,
+    ) {
       if (mounted) {
         _notificationController.loadUnreadCount(silent: true);
         _controller.loadHomeData(silent: true);
@@ -256,7 +260,6 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -348,6 +351,12 @@ class _HomeViewState extends State<HomeView> {
                                 _controller.loadHomeData(),
                             onShiftsChanged: () =>
                                 _controller.loadHomeData(silent: true),
+                            onNavigateToTimesheet: () =>
+                                setState(() => _currentTabIndex = 1),
+                            onNavigateToSchedule: () =>
+                                setState(() => _currentTabIndex = 2),
+                            onNavigateToPayroll: () =>
+                                setState(() => _currentTabIndex = 3),
                           ),
                           const SizedBox(height: 24),
 
@@ -356,8 +365,14 @@ class _HomeViewState extends State<HomeView> {
                             requests: _controller.recentRequests,
                             errorMessage: _controller.requestsError,
                             onRequestTap: _openRequest,
-                            onViewAll: () =>
-                                setState(() => _currentTabIndex = 3),
+                            onViewAll: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const StaffRequestListView(
+                                  showBackButton: true,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -387,8 +402,8 @@ class _HomeViewState extends State<HomeView> {
           _currentTabIndex == 2
               ? const MyShiftsView(showBackButton: false)
               : const SizedBox.shrink(),
-          // Tab 3: Requests
-          const StaffRequestListView(showBackButton: false),
+          // Tab 3: Payroll
+          const PayrollHomeView(),
           // Tab 4: Notifications
           StaffNotificationsView(),
           // Tab 5: Profile
@@ -430,9 +445,9 @@ class _HomeViewState extends State<HomeView> {
             label: 'Schedule',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.description_outlined),
-            activeIcon: Icon(Icons.description),
-            label: 'Requests',
+            icon: Icon(Icons.payments_outlined),
+            activeIcon: Icon(Icons.payments),
+            label: 'Payroll',
           ),
           BottomNavigationBarItem(
             icon: _buildNotificationIcon(Icons.notifications_outlined),

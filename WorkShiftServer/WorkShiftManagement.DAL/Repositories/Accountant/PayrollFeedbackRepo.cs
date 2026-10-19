@@ -31,9 +31,120 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
         .Where(f => f.ReviewStatus == "PENDING" && f.ReviewDeadlineAt <= now)
         .Select(f => f.Payroll.PayrollPeriodId).Distinct().ToListAsync(ct);
     public void Add(PayrollFeedbackRequest row) => db.PayrollFeedbackRequests.Add(row);
+    public Task<string?> CorrectionImpactAsync(int id, CancellationToken ct) => db.AuditLogs.AsNoTracking()
+        .Where(a => a.Action == "PAYROLL_CORRECTION_SOURCE_IMPACT" && a.TableName == "payroll_correction_requests" && a.RecordId == id.ToString())
+        .OrderByDescending(a => a.AuditLogId).Select(a => a.NewValue).FirstOrDefaultAsync(ct);
     public void Add(PayrollCorrectionRequest row) => db.PayrollCorrectionRequests.Add(row);
     public void Add(Payslip row) => db.Payslips.Add(row);
     public void Audit(Guid? actor, string action, string table, int id, object payload, DateTime now) => db.AuditLogs.Add(new AuditLog {
         UserId = actor, Action = action, TableName = table, RecordId = id.ToString(), NewValue = JsonSerializer.Serialize(payload), CreatedAt = now
     });
+    public void NotifyInApp(int periodId, int branchId, string role, Guid? user, string title, string message, DateTime now, Guid? sender = null)
+    {
+        try
+        {
+            var senderId = (sender.HasValue && sender.Value != Guid.Empty)
+                ? sender.Value
+                : (db.Users.AsNoTracking()
+                    .Where(u => u.Status == "ACTIVE" && u.DeletedAt == null && u.Role.RoleName == "ADMIN")
+                    .Select(u => (Guid?)u.UserId)
+                    .FirstOrDefault()
+                    ?? db.Users.AsNoTracking()
+                        .Where(u => u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => (Guid?)u.UserId)
+                        .FirstOrDefault() ?? Guid.Empty);
+
+            if (senderId == Guid.Empty) return;
+
+            var recipientIds = new List<Guid>();
+            if (user.HasValue && user.Value != Guid.Empty)
+            {
+                recipientIds.Add(user.Value);
+            }
+            else if (role == "MANAGER")
+            {
+                recipientIds = db.Users.AsNoTracking()
+                    .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                    .Select(u => u.UserId)
+                    .ToList();
+            }
+            else if (role == "ACCOUNTANT")
+            {
+                recipientIds = db.Users.AsNoTracking()
+                    .Where(u => (u.BranchId == branchId || u.BranchId == null) && u.Role.RoleName == "ACCOUNTANT" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                    .Select(u => u.UserId)
+                    .ToList();
+            }
+            else if (role == "ADMIN")
+            {
+                recipientIds = db.Users.AsNoTracking()
+                    .Where(u => u.Role.RoleName == "ADMIN" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                    .Select(u => u.UserId)
+                    .ToList();
+            }
+
+            if (recipientIds.Count == 0) return;
+
+            var notif = new WorkShiftManagement.DAL.Entities.Notification
+            {
+                Title = title,
+                Content = message,
+                NotificationType = "PAYROLL",
+                CreatedBy = senderId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                // Recipient links select the exact users; the audience label must
+                // also satisfy notifications.target_type's database CHECK.
+                TargetType = role switch
+                {
+                    "STAFF" => "Staff",
+                    "MANAGER" => "Manager",
+                    "ACCOUNTANT" => "Accountant",
+                    _ => "All"
+                },
+                TargetRoles = [role],
+                TargetBranchId = null,
+                TargetRegionId = null,
+                Channels = ["InApp"],
+                UserNotifications = recipientIds.Distinct().Select(id => new UserNotification
+                {
+                    UserId = id,
+                    CreatedAt = now,
+                    IsRead = false,
+                    IsDeleted = false
+                }).ToList()
+            };
+            db.Notifications.Add(notif);
+        }
+        catch
+        {
+            // Do not break the main transaction if in-app notification insertion encounters an issue
+        }
+    }
+    public Task<List<PayrollCorrectionRequest>> QueryIssuesAsync(int? branchId, int? periodId, string? status, CancellationToken ct)
+    {
+        var q = db.PayrollCorrectionRequests.AsNoTracking()
+            .Include(r => r.Payroll)
+                .ThenInclude(p => p.PayrollPeriod)
+            .AsQueryable();
+
+        if (branchId.HasValue && branchId.Value > 0)
+            q = q.Where(r => r.Payroll.PayrollPeriod.BranchId == branchId.Value);
+
+        if (periodId.HasValue && periodId.Value > 0)
+            q = q.Where(r => r.Payroll.PayrollPeriodId == periodId.Value);
+
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            var normStatus = status.Trim().ToUpperInvariant();
+            q = q.Where(r => r.Status == normStatus);
+        }
+
+        return q
+            .OrderByDescending(r => r.Status == "OPEN" || r.Status == "RETURNED")
+            .ThenByDescending(r => r.CreatedAt)
+            .ThenByDescending(r => r.CorrectionRequestId)
+            .ToListAsync(ct);
+    }
 }

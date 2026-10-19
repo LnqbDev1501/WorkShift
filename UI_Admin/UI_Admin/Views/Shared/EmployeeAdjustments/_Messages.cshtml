@@ -1,0 +1,4 @@
+@if (TempData["EmployeeAdjustmentSuccess"] is string success)
+{ <div role="status" class="rounded-xl bg-emerald-50 text-emerald-700 p-unit-4">@success</div> }
+@if (TempData["EmployeeAdjustmentError"] is string error)
+{ <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@error</div> }

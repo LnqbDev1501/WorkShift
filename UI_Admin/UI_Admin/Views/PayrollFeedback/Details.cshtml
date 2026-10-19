@@ -1,13 +1,280 @@
 @model UI_Admin.Models.PayrollDocuments.PayrollFeedbackDetailsResponse
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @using W = UI_Admin.Models.PayrollDocuments.PayrollDocumentDisplay
-@{ var f = Model.Feedback; var accountant = User.IsInRole("ACCOUNTANT"); ViewData["Title"] = "Payroll Feedback Details"; }
-@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
-<div class="payroll-page"><header class="payroll-heading"><div><h1>Payroll Feedback #@f.FeedbackId</h1><p>@f.EmployeeName · @f.PeriodCode · @f.Status · @(f.CorrectionStatus ?? "—")</p></div><a asp-action="Index" class="payroll-button">Back to feedback</a></header><partial name="_PayrollWorkflowMessages" />
-    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="font-semibold">@f.ReasonCode</h2><p class="whitespace-pre-wrap break-words mt-3">@f.Description</p><dl class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5"><div><dt class="text-xs text-secondary">Created (UTC+7)</dt><dd>@D.Time(f.CreatedAt)</dd></div><div><dt class="text-xs text-secondary">Processed (UTC+7)</dt><dd>@D.Time(f.ProcessedAt)</dd></div><div><dt class="text-xs text-secondary">Resolved (UTC+7)</dt><dd>@D.Time(f.ResolvedAt)</dd></div></dl><p class="mt-4 whitespace-pre-wrap">@f.ResolutionNote</p><a asp-controller="@(W.RolePrefix(User) + "Payslips")" asp-action="Details" asp-route-id="@f.PayslipId" class="payroll-button mt-4">Original Payslip V@(f.PayslipVersionNo)</a></section>
+@{
+    var f = Model.Feedback;
+    var accountant = User.IsInRole("ACCOUNTANT");
+    ViewData["Title"] = $"Feedback Details #{f.FeedbackId}";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">mark_email_read</span>
+                <span>Payroll / Feedback Details</span>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Feedback #@f.FeedbackId — @f.EmployeeName</h1>
+                @if (f.Status == "SUBMITTED")
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        SUBMITTED
+                    </span>
+                }
+                else if (f.Status == "APPROVED")
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        APPROVED
+                    </span>
+                }
+                else if (f.Status == "EXPLAINED")
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        EXPLAINED
+                    </span>
+                }
+                else if (f.Status == "REJECTED")
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        REJECTED
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        @f.Status
+                    </span>
+                }
+            </div>
+            <p class="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                <span>Period: @f.PeriodCode</span>
+                <span>•</span>
+                <span>Correction Status: <strong class="text-slate-800 font-medium">@(f.CorrectionStatus ?? "—")</strong></span>
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3 shrink-0">
+            <a asp-action="Index"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Feedback</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    <partial name="_PayrollWorkflowMessages" />
+
+    <!-- Feedback Details Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">comment</span>
+                <h2 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Employee Feedback Submission</h2>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Reason: @f.ReasonCode
+            </span>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Employee Remarks</span>
+            <p class="text-slate-800 whitespace-pre-wrap">@(string.IsNullOrWhiteSpace(f.Description) ? "No remarks provided" : f.Description)</p>
+        </div>
+
+        <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <dt class="text-slate-500 font-medium">Submitted (UTC+7)</dt>
+                <dd class="text-sm font-bold text-slate-900 mt-0.5">@D.Time(f.CreatedAt)</dd>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <dt class="text-slate-500 font-medium">Processed (UTC+7)</dt>
+                <dd class="text-sm font-bold text-slate-900 mt-0.5">@D.Time(f.ProcessedAt)</dd>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                <dt class="text-slate-500 font-medium">Resolved (UTC+7)</dt>
+                <dd class="text-sm font-bold text-slate-900 mt-0.5">@D.Time(f.ResolvedAt)</dd>
+            </div>
+        </dl>
+
+        @if (!string.IsNullOrEmpty(f.ResolutionNote))
+        {
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                <span class="font-semibold text-slate-500 uppercase tracking-wider block mb-1">Resolution Note</span>
+                <p class="text-slate-900 font-medium whitespace-pre-wrap">@f.ResolutionNote</p>
+            </div>
+        }
+
+        <div class="pt-2">
+            <a asp-controller="@(W.RolePrefix(User) + "Payslips")" asp-action="Details" asp-route-id="@f.PayslipId"
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                <span class="material-symbols-outlined text-sm">receipt_long</span>
+                <span>View Original Payslip V@(f.PayslipVersionNo)</span>
+            </a>
+            @if (f.CorrectionPayslipId.HasValue)
+            {
+                <a asp-controller="@(W.RolePrefix(User) + "Payslips")" asp-action="Details" asp-route-id="@f.CorrectionPayslipId"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-all ml-2">
+                    <span class="material-symbols-outlined text-sm">receipt</span>
+                    <span>View Replacement Payslip</span>
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Review Actions (Approve / Explain) for SUBMITTED Feedback -->
     @if (accountant && f.Status == "SUBMITTED")
-    { <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="font-semibold mb-3">Review Feedback</h2><form asp-action="Approve" asp-route-id="@f.FeedbackId" method="post" class="mb-5"><label for="approve-note">Resolution note (optional)</label><textarea id="approve-note" name="ResolutionNote" maxlength="2000" rows="3" class="w-full border rounded-xl p-3 mt-2"></textarea><button class="payroll-button primary mt-3" type="submit">Approve Feedback</button></form><form asp-action="Reject" asp-route-id="@f.FeedbackId" method="post"><label for="reject-note">Rejection reason (required)</label><textarea id="reject-note" name="ResolutionNote" required maxlength="2000" rows="3" class="w-full border rounded-xl p-3 mt-2"></textarea><button class="payroll-button mt-3" type="submit">Reject Feedback</button></form></section> }
-    @if (accountant && f.Status == "APPROVED" && f.CorrectionStatus != "COMPLETED" && (Model.CorrectionPayroll == null || Model.CorrectionPayroll.Status == "REJECTED")) { <a asp-controller="AccountantPayrollRevision" asp-action="CorrectFeedback" asp-route-id="@f.FeedbackId" class="payroll-button primary mb-5">Create Payroll Correction</a> }
-    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Original and Correction Payroll</strong></div><div class="payroll-table-scroll"><table><thead><tr><th>VERSION</th><th>STATUS</th><th class="money">GROSS</th><th class="money">DEDUCTION</th><th class="money">NET</th><th>ACTIONS</th></tr></thead><tbody>@foreach (var p in new[] { Model.OriginalPayroll, Model.CorrectionPayroll }.Where(p => p != null)) { <tr><td>Payroll #@p!.PayrollId · V@(p.VersionNo)</td><td>@p.Status</td><td class="money">@D.Money(p.GrossSalary)</td><td class="money">@D.Money(p.TotalDeduction)</td><td class="money">@D.Money(p.NetSalary)</td><td>@if (accountant) { <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId" class="payroll-button">Review / Submit</a> }</td></tr> }</tbody></table></div></section>
-    @if (f.CorrectionPayslipId.HasValue) { <a asp-controller="@(W.RolePrefix(User) + "Payslips")" asp-action="Details" asp-route-id="@f.CorrectionPayslipId" class="payroll-button primary">View Replacement Payslip</a> }
+    {
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">gavel</span>
+                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Accountant Review Decision</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Approve Form -->
+                <form asp-action="Approve" asp-route-id="@f.FeedbackId" method="post" class="space-y-3 p-4 rounded-xl bg-emerald-50/40 border border-emerald-200 flex flex-col justify-between">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <div class="font-bold text-emerald-950 text-sm flex items-center gap-1.5 mb-1">
+                            <span class="material-symbols-outlined text-emerald-600">check_circle</span>
+                            <span>Approve Feedback</span>
+                        </div>
+                        <p class="text-xs text-emerald-800 mb-3">
+                            Confirm that employee feedback requires source modification. A Manager Correction Request will be automatically generated.
+                        </p>
+                        <div>
+                            <label for="approve-note" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Resolution Note (Optional)</label>
+                            <textarea id="approve-note" name="ResolutionNote" maxlength="2000" rows="2"
+                                      placeholder="Enter remarks for the Manager..."
+                                      class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-emerald-500 box-border"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer mt-3">
+                        <span class="material-symbols-outlined text-sm">check</span>
+                        <span>Approve Feedback &amp; Create Correction</span>
+                    </button>
+                </form>
+
+                <!-- Explain Form (replaces old Reject) -->
+                <form asp-action="Explain" asp-route-id="@f.FeedbackId" method="post" class="space-y-3 p-4 rounded-xl bg-amber-50/40 border border-amber-200 flex flex-col justify-between">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <div class="font-bold text-amber-950 text-sm flex items-center gap-1.5 mb-1">
+                            <span class="material-symbols-outlined text-amber-600">help</span>
+                            <span>Explain Feedback (No Changes)</span>
+                        </div>
+                        <p class="text-xs text-amber-800 mb-3">
+                            Clarify the calculation rules or existing data to the employee. This does NOT alter the payroll or send the next preview automatically.
+                        </p>
+                        <div>
+                            <label for="explain-note" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Explanation Note *</label>
+                            <textarea id="explain-note" name="ResolutionNote" required maxlength="2000" rows="2"
+                                      placeholder="Enter clear explanation for the employee regarding this feedback..."
+                                      class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-amber-500 box-border"></textarea>
+                        </div>
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer mt-3">
+                        <span class="material-symbols-outlined text-sm">send</span>
+                        <span>Submit Explanation to Staff</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- Separate Resend Preview Option when Feedback is EXPLAINED -->
+    @if (accountant && f.Status == "EXPLAINED")
+    {
+        <div class="bg-white border border-indigo-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-xl">outgoing_mail</span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Resend Preview to Staff</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        Feedback has been explained. To allow the employee to review the explanation and confirm their payroll, send the next preview round below.
+                    </p>
+                </div>
+            </div>
+
+            <form asp-action="ResendPreview" method="post" class="space-y-3 max-w-xl">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="feedbackId" value="@f.FeedbackId" />
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                        Resend Justification *
+                    </label>
+                    <input name="reason" required placeholder="Enter resend reason (e.g. explained overtime calculation policy)..."
+                           class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+                </div>
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">send</span>
+                    <span>Send Next Preview Round to Employee</span>
+                </button>
+            </form>
+        </div>
+    }
+
+    <!-- Associated Payroll Records Table (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">receipt_long</span>
+                <h3 class="text-sm font-bold text-slate-900">Original &amp; Correction Payrolls</h3>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-6">Payroll Version</th>
+                        <th class="py-3.5 px-6">Status</th>
+                        <th class="py-3.5 px-6 text-right">Gross Salary</th>
+                        <th class="py-3.5 px-6 text-right">Applied Deductions</th>
+                        <th class="py-3.5 px-6 text-right">Net Salary</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    @foreach (var p in new[] { Model.OriginalPayroll, Model.CorrectionPayroll }.Where(p => p != null))
+                    {
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="py-4 px-6 font-semibold text-slate-900">
+                                Payroll #@p!.PayrollId · Version @p.VersionNo
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold @(p.Status == "CALCULATED" ? "bg-sky-50 text-sky-700 border border-sky-200" : p.Status == "APPROVED" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200")">
+                                    @p.Status
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 text-right font-medium text-slate-800">
+                                @D.Money(p.GrossSalary)
+                            </td>
+                            <td class="py-4 px-6 text-right font-medium text-slate-800">
+                                @D.Money(p.TotalDeduction)
+                            </td>
+                            <td class="py-4 px-6 text-right font-bold text-slate-900">
+                                @D.Money(p.NetSalary)
+                            </td>
+                            <td class="py-4 px-6 text-right">
+                                @if (accountant)
+                                {
+                                    <a asp-controller="AccountantPayrollRevision" asp-action="Review" asp-route-id="@p.PayrollId"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-sm">rate_review</span>
+                                        <span>Review</span>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

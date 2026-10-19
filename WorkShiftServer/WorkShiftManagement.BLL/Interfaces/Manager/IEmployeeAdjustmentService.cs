@@ -9,5 +9,6 @@ public interface IEmployeeAdjustmentService
     Task<EmployeeAdjustmentResponse> CreateAsync(Guid actor, string type, SaveEmployeeAdjustmentRequest request, CancellationToken ct);
     Task<EmployeeAdjustmentResponse> UpdateAsync(Guid actor, string type, int id, SaveEmployeeAdjustmentRequest request, CancellationToken ct);
     Task DeleteAsync(Guid actor, string type, int id, CancellationToken ct);
+    Task<List<PayrollPeriodOptionResponse>> PeriodsAsync(Guid actor, CancellationToken ct);
     Task<EmployeeAdjustmentResponse> ReviewAsync(Guid actor, string type, int id, bool approve, ReviewEmployeeAdjustmentRequest request, CancellationToken ct);
 }

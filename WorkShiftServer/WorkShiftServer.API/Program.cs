@@ -128,11 +128,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = 10,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
-    Timeout = 15,
+    Timeout = 30,
     CommandTimeout = 30
 };
 var hangfireConnection = hangfireConnBuilder.ToString();
@@ -240,11 +240,11 @@ builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
-        builder.Services.AddScoped<IOrderRepo, OrderRepo>();
-        builder.Services.AddScoped<IOrderService, OrderService>();
-        builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
-            WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
-        builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
+builder.Services.AddScoped<IOrderRepo, OrderRepo>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
+    WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
+builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
