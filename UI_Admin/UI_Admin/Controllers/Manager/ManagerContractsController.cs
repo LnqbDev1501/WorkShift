@@ -169,6 +169,26 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateContractViewModel model, CancellationToken cancellationToken)
     {
+        if (model.StaffUserId.HasValue && string.IsNullOrWhiteSpace(model.EmployeePosition))
+        {
+            try
+            {
+                var isRenewal = string.Equals(model.ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase);
+                var mode = isRenewal ? "RENEWAL" : "NEW";
+                var options = await api.GetStaffOptionsAsync(mode, cancellationToken);
+                var selected = options.FirstOrDefault(s => s.StaffUserId == model.StaffUserId.Value);
+                if (!string.IsNullOrWhiteSpace(selected?.CurrentPosition))
+                {
+                    model.EmployeePosition = selected.CurrentPosition;
+                    ModelState.Remove(nameof(model.EmployeePosition));
+                }
+            }
+            catch
+            {
+                // Fall through to regular model validation
+            }
+        }
+
         if (!ModelState.IsValid) return await ReloadAsync(model, cancellationToken);
         try
         {
@@ -587,6 +607,15 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             else
             {
                 model.NewStaffOptions = options;
+            }
+
+            if (model.StaffUserId.HasValue && string.IsNullOrWhiteSpace(model.EmployeePosition))
+            {
+                var selected = options.FirstOrDefault(s => s.StaffUserId == model.StaffUserId.Value);
+                if (!string.IsNullOrWhiteSpace(selected?.CurrentPosition))
+                {
+                    model.EmployeePosition = selected.CurrentPosition;
+                }
             }
         }
         catch (HttpRequestException ex)
