@@ -40,12 +40,22 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
                      c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")))
             .OrderBy(u => u.FullName).ThenBy(u => u.UserId)
-            .Select(u => new User { UserId = u.UserId, FullName = u.FullName })
+            .Select(u => new User
+            {
+                UserId = u.UserId,
+                FullName = u.FullName,
+                EmployeeType = u.EmployeeType != null ? new EmployeeType
+                {
+                    EmployeeTypeId = u.EmployeeType.EmployeeTypeId,
+                    TypeName = u.EmployeeType.TypeName
+                } : null
+            })
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<(User User, EmploymentContract Contract, decimal? LatestSalary)>> GetStaffForRenewalAsync(int branchId, CancellationToken cancellationToken = default)
     {
         var eligibleUsers = await _context.Users.AsNoTracking()
+            .Include(u => u.EmployeeType)
             .Where(u => u.BranchId == branchId && u.DeletedAt == null &&
                 u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING") &&
                 _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == branchId && c.Status != "CANCELLED") &&
@@ -80,6 +90,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public Task<User?> GetCreationUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
         _context.Users.AsNoTracking().Include(u => u.Role)
+            .Include(u => u.EmployeeType)
             .Include(u => u.Branch).ThenInclude(b => b!.Region).ThenInclude(r => r.RegionalMinimumWage)
             .SingleOrDefaultAsync(u => u.UserId == userId, cancellationToken);
 
