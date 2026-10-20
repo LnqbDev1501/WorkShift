@@ -42,8 +42,6 @@ public static class PayrollSettlementPolicy
         var plan = new PayrollSettlementPlan { Current = PayrollVersionPolicy.Current(data.Payrolls, period.Status) };
         var settled = period.Status is "PAID" or "CLOSED";
         if (!settled && period.Status != "APPROVED") plan.BlockingReasons.Add("Kỳ phải APPROVED trước khi quyết toán.");
-        try { if (!settled && now < PayslipPolicy.FeedbackDeadlineAt(period.EndDate)) plan.BlockingReasons.Add("Chưa hết ngày thứ Năm để Staff phản hồi."); }
-        catch (InvalidOperationException ex) { plan.BlockingReasons.Add(ex.Message); }
         if (data.UnresolvedFeedbackCount > 0) plan.BlockingReasons.Add($"Còn {data.UnresolvedFeedbackCount} feedback/correction chưa hoàn tất.");
         if (plan.Current.Count == 0 || !data.ExpectedEmployees.SetEquals(plan.Current.Select(p => p.UserId)))
             plan.BlockingReasons.Add("Chưa đủ Payroll hiện hành cho toàn bộ nhân viên cần quyết toán.");

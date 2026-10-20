@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Admin.Payroll.PayrollDetailViewModel
+﻿@model UI_Admin.Models.Admin.Payroll.PayrollDetailViewModel
 @{
     var period = Model.Period;
     var query = Model.Query;
@@ -190,15 +190,13 @@
         <div class="payroll-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
             <div class="payroll-modal-dialog">
                 <div class="payroll-modal-header">
-                    <h2 id="result-title">@(action == "reject" ? "Reject thành công" : "Duyệt thành công")</h2><button
+                    <h2 id="result-title">Duyệt thành công</h2><button
                     type="button" class="payroll-modal-close" data-modal-close aria-label="Đóng">×</button>
                 </div>
                 <div class="payroll-modal-body">
                     <div class="payroll-result-icon">✓</div>
-                    <p>@success</p>@if (action == "reject") {
-                    <p>Phiếu lương đã chuyển sang <strong>REJECTED</strong> và
-                        không thể reject lại cho đến khi Accountant gửi lại.</p>
-                    }
+                    <p>@success</p>
+                    <p class="text-sm text-gray-600">Bảng công đã được khóa (LOCKED), kỳ lương đã được phê duyệt và phiếu lương chính thức (Official Payslips) đã được phát hành cho toàn bộ nhân viên.</p>
                 </div>
                 <div class="payroll-modal-footer"><button type="button" class="payroll-button primary"
                                                               data-modal-close>Đóng</button></div>
@@ -226,6 +224,11 @@
                         }
                     </div>
                     <div class="period-header-actions">
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
+                        {
+                            <a class="payroll-button" asp-controller="AdminPayslips" asp-action="Index">View Official Payslips</a>
+                        }
+
                         @if (period.Status is "PAID" or "CLOSED")
                         {
                             <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId">Export Excel</a>
@@ -360,8 +363,16 @@
                                                                                         <div class="payroll-modal-body">
                                                                                             <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
                                                                                             <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
-                                                                                            <p>Backend sẽ kiểm tra toàn bộ phiếu lương trước khi duyệt. Đây là thao tác duyệt, không thực hiện
-                                                                                                chuyển tiền.</p><input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
+                                                                                            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin:12px 0; font-size:12px; color:#1e40af;">
+                                                                                                <strong>Hành động hệ thống (Bước 11):</strong>
+                                                                                                <ul style="list-style-type:disc; padding-left:18px; margin-top:6px;">
+                                                                                                    <li>Khóa toàn bộ Timesheet liên quan (Timesheets = LOCKED).</li>
+                                                                                                    <li>Phê duyệt toàn bộ phiếu lương (Payrolls = APPROVED, Period = APPROVED).</li>
+                                                                                                    <li>Tự động phát hành toàn bộ Phiếu lương chính thức (Official Payslips = PUBLISHED) cho nhân viên ngay lập tức.</li>
+                                                                                                </ul>
+                                                                                            </div>
+                                                                                            <p style="font-size:12px; color:#6b7280;">Lưu ý: Thao tác này không thực hiện chuyển tiền. Accountant sẽ xác nhận quyết toán ở Bước 12.</p>
+                                                                                                <input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
                                                                                                 type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
                                                                                                                                                            value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
                                                                                             </div>

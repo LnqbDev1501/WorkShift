@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/home_controller.dart';
 import '../../controllers/notification_controller.dart';
@@ -5,6 +6,7 @@ import '../../controllers/staff_request_controller.dart';
 import '../requests/staff_request_detail_view.dart';
 import '../../models/staff_request_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../auth/login_view.dart';
 import 'components/documents_section.dart';
@@ -22,6 +24,7 @@ import '../staff_notifications_view.dart';
 import '../staff_profile_view.dart';
 import '../requests/staff_request_list_view.dart';
 import '../timesheet/staff_timesheet_view.dart';
+import '../payroll/payroll_home_view.dart';
 
 /// Màn hình Trang chủ chính của ứng dụng WorkShift (Đầy đủ tất cả các khu vực theo thiết kế)
 class HomeView extends StatefulWidget {
@@ -36,23 +39,55 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeController _controller = HomeController();
   final AuthService _authService = AuthService();
-  final NotificationController _notificationController = NotificationController();
+  final NotificationController _notificationController =
+      NotificationController();
   int _currentTabIndex = 0;
   bool _hasPromptedFaceRegistration = false;
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_onControllerUpdated);
+    _notificationController.addListener(_onNotificationUpdated);
     // Tải dữ liệu từ Backend .NET
     _controller.loadHomeData();
     _notificationController.loadUnreadCount();
+
+    // 1. Kết nối SignalR Realtime Hub
+    RealtimeService.instance.connect();
+
+    // 2. Lắng nghe thông báo Realtime từ Backend (khi manager duyệt đơn nghỉ, mở ca, v.v.)
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((
+      payload,
+    ) {
+      if (mounted) {
+        _notificationController.loadUnreadCount(silent: true);
+        _controller.loadHomeData(silent: true);
+      }
+    });
+
+    // 3. Tự động sync ngầm định kỳ (mỗi 8s) để dữ liệu luôn mới nhất mà không cần tải lại trang
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 8), (_) {
+      if (mounted && !_controller.isLoading) {
+        _notificationController.loadUnreadCount(silent: true);
+        _controller.loadHomeData(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     _controller.removeListener(_onControllerUpdated);
+    _notificationController.removeListener(_onNotificationUpdated);
     super.dispose();
+  }
+
+  void _onNotificationUpdated() {
+    if (mounted) setState(() {});
   }
 
   void _onControllerUpdated() {
@@ -186,6 +221,7 @@ class _HomeViewState extends State<HomeView> {
     );
 
     if (confirm == true && mounted) {
+      await RealtimeService.instance.disconnect();
       await _authService.logout();
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -214,37 +250,13 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  Widget _buildPlaceholderTab(String title, IconData icon) {
-    return SafeArea(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFEFF6FF),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 48, color: AppColors.primary),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Chức năng đang được cập nhật',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildNotificationIcon(IconData icon) {
+    final unreadCount = _notificationController.unreadCount;
+    if (unreadCount <= 0) return Icon(icon);
+    return Badge(
+      label: Text(unreadCount > 99 ? '99+' : '$unreadCount'),
+      backgroundColor: AppColors.error,
+      child: Icon(icon),
     );
   }
 
@@ -339,6 +351,12 @@ class _HomeViewState extends State<HomeView> {
                                 _controller.loadHomeData(),
                             onShiftsChanged: () =>
                                 _controller.loadHomeData(silent: true),
+                            onNavigateToTimesheet: () =>
+                                setState(() => _currentTabIndex = 1),
+                            onNavigateToSchedule: () =>
+                                setState(() => _currentTabIndex = 2),
+                            onNavigateToPayroll: () =>
+                                setState(() => _currentTabIndex = 3),
                           ),
                           const SizedBox(height: 24),
 
@@ -347,8 +365,14 @@ class _HomeViewState extends State<HomeView> {
                             requests: _controller.recentRequests,
                             errorMessage: _controller.requestsError,
                             onRequestTap: _openRequest,
-                            onViewAll: () =>
-                                setState(() => _currentTabIndex = 3),
+                            onViewAll: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const StaffRequestListView(
+                                  showBackButton: true,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -378,8 +402,8 @@ class _HomeViewState extends State<HomeView> {
           _currentTabIndex == 2
               ? const MyShiftsView(showBackButton: false)
               : const SizedBox.shrink(),
-          // Tab 3: Requests
-          const StaffRequestListView(showBackButton: false),
+          // Tab 3: Payroll
+          const PayrollHomeView(),
           // Tab 4: Notifications
           StaffNotificationsView(),
           // Tab 5: Profile
@@ -402,34 +426,35 @@ class _HomeViewState extends State<HomeView> {
             _currentTabIndex = index;
           });
           if (returningFromSchedule) _controller.loadHomeData(silent: true);
+          _notificationController.loadUnreadCount();
         },
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home_filled),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.assignment_outlined),
             activeIcon: Icon(Icons.assignment),
             label: 'Timesheet',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),
             activeIcon: Icon(Icons.calendar_month),
             label: 'Schedule',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.description_outlined),
-            activeIcon: Icon(Icons.description),
-            label: 'Requests',
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.payments_outlined),
+            activeIcon: Icon(Icons.payments),
+            label: 'Payroll',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_outlined),
-            activeIcon: Icon(Icons.notifications),
+            icon: _buildNotificationIcon(Icons.notifications_outlined),
+            activeIcon: _buildNotificationIcon(Icons.notifications),
             label: 'Notification',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: 'Profile',

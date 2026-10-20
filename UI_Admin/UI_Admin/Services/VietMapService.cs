@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 using UI_Admin.Models.VietMap;
 
 namespace UI_Admin.Services;
@@ -8,11 +9,13 @@ public class VietMapService : IVietMapService
 {
     private readonly HttpClient _httpClient;
     private readonly string _servicesKey;
+    private readonly IMemoryCache _cache;
     private readonly ILogger<VietMapService> _logger;
 
-    public VietMapService(HttpClient httpClient, IConfiguration configuration, ILogger<VietMapService> logger)
+    public VietMapService(HttpClient httpClient, IConfiguration configuration, IMemoryCache cache, ILogger<VietMapService> logger)
     {
         _httpClient = httpClient;
+        _cache = cache;
         _logger = logger;
         _servicesKey = (configuration["VietMap:ServicesKey"] ?? string.Empty).Trim();
     }
@@ -28,13 +31,27 @@ public class VietMapService : IVietMapService
             return [];
         }
 
+        var normalizedText = text.Trim().ToLowerInvariant();
+        var cacheKey = $"vietmap:auto:{normalizedText}";
+        if (_cache.TryGetValue(cacheKey, out List<VietMapSuggestion>? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var url = $"https://maps.vietmap.vn/api/autocomplete/v4?apikey={Uri.EscapeDataString(_servicesKey)}&text={Uri.EscapeDataString(text.Trim())}";
         try
         {
             using var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("VietMap Autocomplete API returned status code {StatusCode}.", response.StatusCode);
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("VietMap Autocomplete API rate limited (HTTP 429).");
+                }
+                else
+                {
+                    _logger.LogWarning("VietMap Autocomplete API returned status code {StatusCode}.", response.StatusCode);
+                }
                 return [];
             }
 
@@ -81,6 +98,7 @@ public class VietMapService : IVietMapService
                 }
             }
 
+            _cache.Set(cacheKey, list, TimeSpan.FromHours(2));
             return list;
         }
         catch (Exception ex)
@@ -101,13 +119,27 @@ public class VietMapService : IVietMapService
             return null;
         }
 
+        var normalizedRefId = refId.Trim().ToLowerInvariant();
+        var cacheKey = $"vietmap:place:{normalizedRefId}";
+        if (_cache.TryGetValue(cacheKey, out VietMapPlaceResult? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var url = $"https://maps.vietmap.vn/api/place/v4?apikey={Uri.EscapeDataString(_servicesKey)}&refid={Uri.EscapeDataString(refId.Trim())}";
         try
         {
             using var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("VietMap Place API returned status code {StatusCode}.", response.StatusCode);
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("VietMap Place API rate limited (HTTP 429).");
+                }
+                else
+                {
+                    _logger.LogWarning("VietMap Place API returned status code {StatusCode}.", response.StatusCode);
+                }
                 return null;
             }
 
@@ -150,7 +182,7 @@ public class VietMapService : IVietMapService
             var name = GetStringProp(target, "name", "display", "title");
             var address = GetStringProp(target, "address", "formatted_address", "display_name");
 
-            return new VietMapPlaceResult
+            var result = new VietMapPlaceResult
             {
                 RefId = refId,
                 Name = name,
@@ -158,6 +190,9 @@ public class VietMapService : IVietMapService
                 Latitude = lat,
                 Longitude = lng
             };
+
+            _cache.Set(cacheKey, result, TimeSpan.FromHours(4));
+            return result;
         }
         catch (Exception ex)
         {
@@ -174,8 +209,16 @@ public class VietMapService : IVietMapService
             return null;
         }
 
-        var latStr = latitude.ToString(CultureInfo.InvariantCulture);
-        var lngStr = longitude.ToString(CultureInfo.InvariantCulture);
+        var latStr = latitude.ToString("F6", CultureInfo.InvariantCulture);
+        var lngStr = longitude.ToString("F6", CultureInfo.InvariantCulture);
+        var exactCoords = $"{latStr}, {lngStr}";
+
+        var cacheKey = $"vietmap:rev:{latStr}:{lngStr}";
+        if (_cache.TryGetValue(cacheKey, out VietMapReverseResult? cached) && cached != null)
+        {
+            return cached;
+        }
+
         var url = $"https://maps.vietmap.vn/api/reverse/v4?apikey={Uri.EscapeDataString(_servicesKey)}&lat={latStr}&lng={lngStr}";
 
         try
@@ -183,6 +226,21 @@ public class VietMapService : IVietMapService
             using var response = await _httpClient.GetAsync(url, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogWarning("VietMap Reverse API returned 429 TooManyRequests. Using coordinate fallback.");
+                    var fallback = new VietMapReverseResult
+                    {
+                        Address = exactCoords,
+                        Display = exactCoords,
+                        Latitude = latitude,
+                        Longitude = longitude
+                    };
+                    // Cache the fallback for 30s to avoid spamming the provider during rate limit
+                    _cache.Set(cacheKey, fallback, TimeSpan.FromSeconds(30));
+                    return fallback;
+                }
+
                 _logger.LogWarning("VietMap Reverse API returned status code {StatusCode}.", response.StatusCode);
                 return null;
             }
@@ -190,8 +248,12 @@ public class VietMapService : IVietMapService
             using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
             var root = doc.RootElement;
 
-            JsonElement target = root;
-            if (root.ValueKind == JsonValueKind.Object)
+            JsonElement target = default;
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+            {
+                target = root[0];
+            }
+            else if (root.ValueKind == JsonValueKind.Object)
             {
                 if (root.TryGetProperty("data", out var dataProp))
                 {
@@ -207,21 +269,38 @@ public class VietMapService : IVietMapService
                     else if (resProp.ValueKind == JsonValueKind.Array && resProp.GetArrayLength() > 0)
                         target = resProp[0];
                 }
-                else if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                else if (root.TryGetProperty("results", out var resultsProp) && resultsProp.ValueKind == JsonValueKind.Array && resultsProp.GetArrayLength() > 0)
                 {
-                    target = root[0];
+                    target = resultsProp[0];
+                }
+                else
+                {
+                    target = root;
                 }
             }
 
-            var address = GetStringProp(target, "address", "formatted_address", "display_name", "display", "name");
+            var display = GetStringProp(target, "display", "formatted_address");
+            var address = GetStringProp(target, "address");
+            var name = GetStringProp(target, "name");
 
-            return new VietMapReverseResult
+            string fullAddress = !string.IsNullOrWhiteSpace(display)
+                ? display
+                : (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(address) && !address.Contains(name)
+                    ? $"{name}, {address}"
+                    : (!string.IsNullOrWhiteSpace(name) ? name : address));
+
+            var resolvedText = string.IsNullOrWhiteSpace(fullAddress) ? exactCoords : fullAddress;
+
+            var reverseResult = new VietMapReverseResult
             {
-                Address = address,
-                Display = address,
+                Address = resolvedText,
+                Display = resolvedText,
                 Latitude = latitude,
                 Longitude = longitude
             };
+
+            _cache.Set(cacheKey, reverseResult, TimeSpan.FromHours(4));
+            return reverseResult;
         }
         catch (Exception ex)
         {

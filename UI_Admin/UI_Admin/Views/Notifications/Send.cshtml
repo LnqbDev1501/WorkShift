@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Send Notification"; }
 @section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
 <section class="notifications-page send-page">
-    <header class="notification-header"><div><span class="eyebrow">OPERATIONAL BROADCAST</span><h1>Send Notification</h1><p>Publish an announcement to active roles, optionally narrowed by region and branch.</p></div><a asp-action="List" class="btn-secondary">View history</a></header>
+    <header class="notification-header"><div><span class="eyebrow">OPERATIONAL BROADCAST</span><h1>Send Notification</h1><p>Publish an announcement to active roles, optionally narrowed by region and branch.</p></div><a asp-action="History" class="btn-secondary">View history</a></header>
     @if (TempData["NotificationSuccess"] is string successMessage) { <div class="success-toast" role="status">@successMessage</div> }
     @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
     <form method="post" class="send-form"><div asp-validation-summary="ModelOnly" class="notice-error"></div><input asp-for="Target" type="hidden" value="Custom" />

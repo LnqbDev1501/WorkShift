@@ -14,7 +14,6 @@ public sealed class PayrollCalculationApiService(HttpClient client, IConfigurati
     {
         if (!response.IsSuccessStatusCode)
         {
-            if ((int)response.StatusCode >= 500) throw new CalculationApiException(response.StatusCode, "Không xác nhận được kết quả. Hãy tải lại dữ liệu trước khi thử lại.");
             var text = await response.Content.ReadAsStringAsync(ct);
             try
             {
@@ -22,9 +21,18 @@ public sealed class PayrollCalculationApiService(HttpClient client, IConfigurati
                 var root = json.RootElement;
                 var message = root.TryGetProperty("detail", out var detail) ? detail.GetString() : root.TryGetProperty("message", out var msg) ? msg.GetString() : null;
                 var readiness = root.TryGetProperty("readiness", out var r) ? r.Deserialize<EmployeeReadiness>(new JsonSerializerOptions(JsonSerializerDefaults.Web)) : null;
-                throw new CalculationApiException(response.StatusCode, message ?? "Không thể xử lý Payroll.", readiness);
+                var defaultMsg = (int)response.StatusCode >= 500
+                    ? "Could not complete the payroll request. Please reload and try again."
+                    : "Unable to process payroll operation.";
+                throw new CalculationApiException(response.StatusCode, message ?? defaultMsg, readiness);
             }
-            catch (JsonException) { throw new CalculationApiException(response.StatusCode, "Không thể xử lý Payroll."); }
+            catch (JsonException)
+            {
+                var defaultMsg = (int)response.StatusCode >= 500
+                    ? "Could not complete the payroll request. Please reload and try again."
+                    : "Unable to process payroll operation.";
+                throw new CalculationApiException(response.StatusCode, !string.IsNullOrWhiteSpace(text) ? text : defaultMsg);
+            }
         }
         return await response.Content.ReadFromJsonAsync<T>(ct) ?? throw new JsonException("Empty calculation response.");
     }

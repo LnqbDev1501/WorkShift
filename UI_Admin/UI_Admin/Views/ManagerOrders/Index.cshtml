@@ -22,7 +22,7 @@
                 </div>
                 <select name="status" class="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
                     <option value="all">All Statuses</option>
-                    <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active</option>
+                    <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                     <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
                     <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
                 </select>
@@ -144,7 +144,7 @@
 @functions {
     string GetStatusColor(string status) => status.ToUpperInvariant() switch
     {
-        "ACTIVE" => "bg-blue-50 text-blue-700",
+        "PENDING" => "bg-blue-50 text-blue-700",
         "COMPLETED" => "bg-emerald-50 text-emerald-700",
         "CANCELLED" => "bg-red-50 text-red-700",
         _ => "bg-slate-100 text-slate-600"

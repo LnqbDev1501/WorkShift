@@ -3,6 +3,11 @@ namespace UI_Admin.Models.Admin.Payroll
     public class PayrollResponse
     {
         public int PayrollId { get; set; }
+        public int VersionNo { get; set; } = 1;
+        public int? PreviousPayrollId { get; set; }
+        public string? CorrectionReason { get; set; }
+        public decimal CarryForwardDeduction { get; set; }
+        public decimal DeferredDeductionAmount { get; set; }
 
         public Guid UserId { get; set; }
 

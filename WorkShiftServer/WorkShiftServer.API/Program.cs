@@ -128,11 +128,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = 10,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
-    Timeout = 15,
+    Timeout = 30,
     CommandTimeout = 30
 };
 var hangfireConnection = hangfireConnBuilder.ToString();
@@ -164,6 +164,9 @@ builder.Services.AddScoped<IPayslipService, PayslipService>();
 builder.Services.AddScoped<IPayrollFeedbackRepo, PayrollFeedbackRepo>();
 builder.Services.AddScoped<IPayrollFeedbackService, PayrollFeedbackService>();
 builder.Services.AddScoped<PayslipPublicationJob>();
+builder.Services.AddScoped<IPayrollSystemEventRepo, PayrollSystemEventRepo>();
+builder.Services.AddScoped<IPayrollSystemNotificationService, PayrollSystemNotificationService>();
+builder.Services.AddScoped<PayrollSystemNotificationJob>();
 builder.Services.AddScoped<IPayrollSettlementRepo, PayrollSettlementRepo>();
 builder.Services.AddScoped<IPayrollSettlementService, PayrollSettlementService>();
 builder.Services.AddScoped<IPayrollClosureNotifier, HangfirePayrollClosureNotifier>();
@@ -239,6 +242,8 @@ builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
+    WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
 builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
@@ -263,6 +268,8 @@ builder.Services.AddScoped<IManagerStaffRepo, ManagerStaffRepo>();
 builder.Services.AddScoped<IManagerStaffService, ManagerStaffService>();
 builder.Services.AddScoped<IEmployeeAdjustmentRepo, EmployeeAdjustmentRepo>();
 builder.Services.AddScoped<IEmployeeAdjustmentService, EmployeeAdjustmentService>();
+builder.Services.AddScoped<ISalaryChangeRepo, SalaryChangeRepo>();
+builder.Services.AddScoped<ISalaryChangeService, SalaryChangeService>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Manager.IManagerEmployeeRequestRepo,
     WorkShiftManagement.DAL.Repositories.Manager.ManagerEmployeeRequestRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Manager.IManagerEmployeeRequestService,
@@ -325,6 +332,29 @@ builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePubli
 
 var app = builder.Build();
 
+// Register independently: another recurring job's lock timeout must not skip salary activation.
+try
+{
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<ISalaryChangeService>("salary-change-activation",
+            service => service.ActivateDueAsync(CancellationToken.None), Cron.Minutely());
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'salary-change-activation'.");
+}
+
+foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
+{
+    jobs => jobs.AddOrUpdate<IPayrollFeedbackService>("payroll-preview-expiry", service => service.ExpireDueAsync(CancellationToken.None), Cron.Minutely()),
+    jobs => jobs.AddOrUpdate<PayrollSystemNotificationJob>("payroll-system-notifications", job => job.ExecuteAsync(CancellationToken.None), Cron.Minutely()),
+    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), Cron.Minutely()); }
+})
+{
+    try { registerPayrollJob(app.Services.GetRequiredService<IRecurringJobManager>()); }
+    catch (Exception ex) { app.Logger.LogError(ex, "Failed to register a payroll workflow recurring job."); }
+}
+
 try
 {
     app.Services.GetRequiredService<IRecurringJobManager>()
@@ -332,15 +362,6 @@ try
             "payroll-closure-notification-recovery",
             job => job.SendPendingAsync(CancellationToken.None),
             Cron.Minutely());
-    // UTC+7 Thursday 00:00 = Wednesday 17:00 UTC. Existing payslips and
-    // transaction locks make retries idempotent; there is no manual publish endpoint.
-    app.Services.GetRequiredService<IRecurringJobManager>()
-        .AddOrUpdate<PayslipPublicationJob>(
-            "initial-payslip-publication",
-            job => job.ExecuteAsync(CancellationToken.None),
-            "0 17 * * 3",
-            new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
-
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
@@ -409,5 +430,31 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 app.MapHub<PayrollNotificationHub>("/hubs/payroll-notifications");
+
+try
+{
+    using var cleanupScope = app.Services.CreateScope();
+    var dbContext = cleanupScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var notifsToClean = await dbContext.Notifications
+        .Where(n => n.Content.Contains("NOT_ACCEPTED_BY_START_DATE"))
+        .ToListAsync();
+    if (notifsToClean.Count > 0)
+    {
+        foreach (var n in notifsToClean)
+        {
+            n.Content = n.Content
+                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
+                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
+                .Replace("chưa xác nhận chấp thuận).", "chưa xác nhận chấp thuận.")
+                .Replace("chưa xác nhận chấp thuận)", "chưa xác nhận chấp thuận")
+                .Replace("NOT_ACCEPTED_BY_START_DATE", "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận");
+        }
+        await dbContext.SaveChangesAsync();
+    }
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Failed to clean up legacy notification messages.");
+}
 
 app.Run();

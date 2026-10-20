@@ -33,41 +33,40 @@ public static class PayrollCalculationPolicy
         return value;
     }
 
-    public static Payroll Build(PayrollCalculationInputs input, Guid user, Guid actor, DateTime now)
+    public static Payroll Build(PayrollCalculationInputs input, Guid user, Guid actor, DateTime now, bool refresh = false)
     {
         var period = input.Period;
-        if (period.Status is not ("OPEN" or "CALCULATED"))
+        if (period.Status is not ("OPEN" or "CALCULATED") && !(refresh && (period.Status is "REVISION_REQUIRED" or "SUBMITTED")))
             throw new InvalidOperationException("Chỉ tính lương ban đầu khi kỳ đang OPEN hoặc CALCULATED.");
         if (period.ScheduleWeekId == null || period.StartDate > period.EndDate)
             throw new InvalidOperationException("Kỳ lương chưa có tuần làm việc/ngày hợp lệ.");
-        if (period.ApprovalDeadlineAt.HasValue && now >= period.ApprovalDeadlineAt)
-            throw new InvalidOperationException("Đã hết hạn xử lý trước lịch phát phiếu của kỳ lương.");
         if (!input.EmployeeIds.Contains(user)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
         if (input.UnsettledPriorEmployees.Contains(user))
             throw new InvalidOperationException("Kỳ lương trước của nhân viên chưa quyết toán; chưa thể xác định Carry Forward chính thức.");
-        if (input.Payrolls.Any(p => p.UserId == user))
+        if (!refresh && input.Payrolls.Any(p => p.UserId == user))
             throw new InvalidOperationException("Nhân viên đã có Payroll. Payroll bị reject phải xử lý bằng luồng correction/version riêng.");
         var sheets = input.Timesheets.Where(t => t.UserId == user).ToList();
-        if (sheets.Count != 1 || sheets[0].Status != "LOCKED" || sheets[0].LockedAt == null)
-            throw new InvalidOperationException("Nhân viên phải có đúng một Timesheet LOCKED và thời điểm khóa.");
+        if (sheets.Count != 1 || sheets[0].Status != "REVIEWED" || sheets[0].ReviewedAt == null)
+            throw new InvalidOperationException("Nhân viên phải có đúng một Timesheet REVIEWED và thời điểm duyệt.");
         var sheet = sheets[0];
+        if (sheet.TimesheetAdjustmentRequests.Any(r => r.Status == "PENDING")) throw new InvalidOperationException("Còn yêu cầu chỉnh công chưa được Manager xử lý.");
         if (sheet.User.BranchId != period.BranchId || sheet.TotalWorkMinutes < 0 || sheet.IncompleteShiftCount != 0)
             throw new InvalidOperationException("Timesheet sai chi nhánh, phút công không hợp lệ hoặc còn ca chưa hoàn tất.");
         var assignments = input.Assignments.Where(a => a.UserId == user)
             .OrderBy(a => a.Shift.ScheduledStartAt).ThenBy(a => a.AssignmentId).ToList();
         if (assignments.Count != sheet.TotalAssignedShifts || assignments.Any(a => a.Attendance == null))
-            throw new InvalidOperationException("Chi tiết ca/chấm công không đầy đủ so với Timesheet đã khóa.");
+            throw new InvalidOperationException("Chi tiết ca/chấm công không đầy đủ so với Timesheet đã duyệt.");
         if (assignments.Any(a => a.Attendance!.ActualWorkingMinutes < 0
-            || a.Attendance.UpdatedAt > sheet.LockedAt || a.UpdatedAt > sheet.LockedAt
-            || a.Shift.UpdatedAt > sheet.LockedAt
-            || a.Attendance.AttendancePenaltyRecords.Any(p => p.CreatedAt > sheet.LockedAt)))
-            throw new InvalidOperationException("Dữ liệu ca/chấm công đã thay đổi sau khi khóa hoặc có phút công không hợp lệ; không thể dùng làm snapshot.");
+            || a.Attendance.UpdatedAt > sheet.ReviewedAt || a.UpdatedAt > sheet.ReviewedAt
+            || a.Shift.UpdatedAt > sheet.ReviewedAt
+            || a.Attendance.AttendancePenaltyRecords.Any(p => p.CreatedAt > sheet.ReviewedAt)))
+            throw new InvalidOperationException("Dữ liệu ca/chấm công đã thay đổi sau khi duyệt công hoặc có phút công không hợp lệ; không thể dùng làm snapshot.");
         if (assignments.Sum(a => (long)a.Attendance!.ActualWorkingMinutes) != sheet.TotalWorkMinutes
             || assignments.Sum(a => (long)a.Attendance!.TotalLateMinutes) != sheet.TotalLateMinutes
             || assignments.Sum(a => (long)a.Attendance!.ChargeableLateMinutes) != sheet.ChargeableLateMinutes
             || assignments.Sum(a => (long)a.Attendance!.TotalEarlyLeaveMinutes) != sheet.TotalEarlyLeaveMinutes
             || assignments.Sum(a => (long)a.Attendance!.ChargeableEarlyLeaveMinutes) != sheet.ChargeableEarlyLeaveMinutes)
-            throw new InvalidOperationException("Chi tiết công không khớp Timesheet LOCKED. Accountant không được tự thay đổi công.");
+            throw new InvalidOperationException("Chi tiết công không khớp Timesheet REVIEWED. Accountant không được tự thay đổi công.");
         var dated = assignments.Select(a => (Assignment: a, Date: WorkDate(a.Shift.ScheduledStartAt))).ToList();
         if (dated.Any(x => x.Date < period.StartDate || x.Date > period.EndDate))
             throw new InvalidOperationException("Ca làm việc nằm ngoài kỳ lương.");
@@ -132,7 +131,7 @@ public static class PayrollCalculationPolicy
         }
         payroll.WorkInputSnapshot = JsonSerializer.Serialize(new
         {
-            schemaVersion = 1, timesheetId = sheet.TimesheetId, lockedAt = sheet.LockedAt,
+            schemaVersion = 1, timesheetId = sheet.TimesheetId, reviewedAt = sheet.ReviewedAt,
             totalPayableMinutes = sheet.TotalWorkMinutes, workDetails = workSnapshots
         });
         var adjustments = input.Adjustments.Where(a => a.UserId == user && !a.IsDeleted && a.ApprovalStatus == "APPROVED")
@@ -178,6 +177,7 @@ public static class PayrollCalculationPolicy
                 ItemCode = $"PENALTY-{penalty.RewardPenaltyId}", Description = penalty.AdjustmentName,
                 Note = penalty.Reason, Amount = penalty.Amount });
         foreach (var penalty in assignments.SelectMany(a => a.Attendance!.AttendancePenaltyRecords)
+            .Where(p => string.Equals(p.Status, "APPLIED", StringComparison.OrdinalIgnoreCase))
             .OrderBy(p => p.CreatedAt).ThenBy(p => p.AttendancePenaltyId))
             Deduct(new PayrollDetail { Type = "ATTENDANCE_DEDUCTION", AttendancePenaltyId = penalty.AttendancePenaltyId,
                 ItemCode = $"ATTENDANCE-{penalty.AttendancePenaltyId}",

@@ -124,6 +124,32 @@ class StaffContractService {
     }
   }
 
+  /// Lấy tất cả yêu cầu thay đổi hợp đồng từ tất cả hợp đồng của nhân viên
+  Future<List<StaffContractChangeRequestModel>> getAllMyContractChangeRequests() async {
+    try {
+      final contracts = await getMyContracts();
+      if (contracts.isEmpty) return [];
+
+      final allRequests = <StaffContractChangeRequestModel>[];
+      for (final c in contracts) {
+        try {
+          final list = await getMyContractChangeRequests(c.contractId);
+          final enriched = list.map((cr) => cr.copyWith(
+            contractNumber: c.contractNumber,
+            employeePosition: c.employeePosition,
+            branchName: c.branchName,
+          ));
+          allRequests.addAll(enriched);
+        } catch (_) {}
+      }
+
+      allRequests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return allRequests;
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
   /// Lấy dữ liệu file PDF (binary bytes) để xem trước hoặc tải về
   Future<Uint8List> getPdfBytes(int contractId, {bool isDownload = false}) async {
     try {

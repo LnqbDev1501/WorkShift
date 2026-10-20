@@ -316,7 +316,18 @@ public class ManagerAttendanceService : IManagerAttendanceService
             LeaveReason = leaveReason,
             LateArrivalRequest = lateReqSummary,
             EarlyLeaveRequest = earlyReqSummary,
-            LeaveRequest = leaveRequestSummary
+            LeaveRequest = leaveRequestSummary,
+            Penalties = att?.AttendancePenaltyRecords
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new AttendancePenaltyDto
+                {
+                    AttendancePenaltyId = p.AttendancePenaltyId,
+                    ViolationType = p.ViolationType,
+                    ViolationMinutes = p.ViolationMinutes,
+                    PenaltyAmount = p.PenaltyAmount,
+                    Status = p.Status,
+                    CreatedAt = p.CreatedAt
+                }).ToList() ?? new()
         };
     }
 

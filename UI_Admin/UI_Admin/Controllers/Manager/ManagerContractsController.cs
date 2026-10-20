@@ -143,6 +143,20 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     }
 
     [HttpGet]
+    public async Task<IActionResult> BranchMinimumWage(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var wage = await api.GetBranchMinimumWageAsync(cancellationToken);
+            return Json(new { minimumWage = wage });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Create(string? contractType, CancellationToken cancellationToken)
     {
         var model = new CreateContractViewModel
@@ -303,6 +317,50 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Terminate(int id, string? reason, DateOnly? terminationEffectiveDate, string? returnUrl = null, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+            return RedirectToAction(nameof(Index));
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "Vui lòng cung cấp lý do chấm dứt hợp đồng.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            await api.TerminateAsync(id, reason.Trim(), terminationEffectiveDate, cancellationToken);
+            TempData["SuccessMessage"] = "Hợp đồng đã được chấm dứt trước thời hạn thành công.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
     }
@@ -548,6 +606,19 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         catch
         {
             model.PositionOptions = [];
+        }
+
+        try
+        {
+            model.RegionalMinimumWage = await api.GetBranchMinimumWageAsync(ct);
+            if (string.Equals(model.ContractType, "NEW", StringComparison.OrdinalIgnoreCase) && (!model.HourlyRate.HasValue || model.HourlyRate.Value <= 0) && model.RegionalMinimumWage > 0)
+            {
+                model.HourlyRate = model.RegionalMinimumWage;
+            }
+        }
+        catch
+        {
+            model.RegionalMinimumWage = 0m;
         }
 
         return View("Create", model);

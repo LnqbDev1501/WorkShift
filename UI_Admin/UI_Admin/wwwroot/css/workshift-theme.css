@@ -141,3 +141,26 @@ body.workshift-theme { margin:0; font-family:var(--ws-font); font-size:14px; lin
 }
 
 @media(max-width:600px) { .workshift-theme .list-pagination { padding:16px; } }
+
+/* Table horizontal scroll & custom scrollbar */
+html body .custom-scrollbar::-webkit-scrollbar,
+html body .workshift-theme .overflow-x-auto::-webkit-scrollbar,
+html body .overflow-x-auto::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track,
+.workshift-theme .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.workshift-theme .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.workshift-theme .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

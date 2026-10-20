@@ -171,6 +171,37 @@ public class AttendanceRepo : IAttendanceRepo
             .FirstOrDefaultAsync(a => a.AssignmentId == assignmentId, cancellationToken);
     }
 
+    public Task<ShiftAssignment?> GetStaffAssignmentAttendanceDetailAsync(
+        int assignmentId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return _context.ShiftAssignments
+            .AsNoTracking()
+            .Include(sa => sa.User)
+                .ThenInclude(u => u.Role)
+            .Include(sa => sa.Shift)
+                .ThenInclude(s => s.ScheduleWeek)
+                    .ThenInclude(w => w.Branch)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.CheckInFaceSession)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.CheckOutFaceSession)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.AttendancePenaltyRecords)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.LateArrivalRequest)
+                    .ThenInclude(r => r!.Request)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.EarlyLeaveRequest)
+                    .ThenInclude(r => r!.Request)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(a => a!.TimesheetAdjustmentRequest)
+            .Include(sa => sa.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Request)
+            .FirstOrDefaultAsync(sa => sa.AssignmentId == assignmentId && sa.UserId == userId, cancellationToken);
+    }
+
     public Task<Attendance?> GetAttendanceWithDetailsByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default)
     {
         return _context.Attendances

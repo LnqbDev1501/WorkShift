@@ -23,7 +23,7 @@ public interface IPayslipRepo
     Task<Payslip?> GetAsync(PayslipScope scope, int id, CancellationToken ct);
     Task<List<Payslip>> VersionsAsync(PayslipScope scope, Guid userId, int periodId, CancellationToken ct);
     Task<HashSet<(Guid UserId, int PeriodId)>> UnresolvedAsync(IEnumerable<Payslip> slips, CancellationToken ct);
-    Task<List<int>> DuePeriodIdsAsync(DateOnly periodEnd, CancellationToken ct);
+    Task<List<int>> DuePeriodIdsAsync(CancellationToken ct);
     Task<List<Payroll>> PublicationPayrollsAsync(int periodId, CancellationToken ct);
     Task<HashSet<Guid>> ExpectedEmployeesAsync(PayrollPeriod period, CancellationToken ct);
     void Add(Payslip slip);

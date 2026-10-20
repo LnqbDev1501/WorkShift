@@ -13,6 +13,9 @@ public sealed class EmployeeAdjustmentRepo(AppDbContext db) : IEmployeeAdjustmen
         .SingleOrDefaultAsync(u => u.UserId == id && u.BranchId == branchId, ct);
     public Task<PayrollPeriod?> PeriodAsync(int id, int? branchId, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
         .SingleOrDefaultAsync(p => p.PayrollPeriodId == id && (!branchId.HasValue || p.BranchId == branchId), ct);
+    public Task<List<PayrollPeriod>> PeriodsAsync(int branchId, IReadOnlyCollection<string> statuses, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
+        .Where(p => p.BranchId == branchId && statuses.Contains(p.Status))
+        .OrderByDescending(p => p.StartDate).ThenByDescending(p => p.PayrollPeriodId).ToListAsync(ct);
     private static IQueryable<EmployeeRewardsPenalty> Details(IQueryable<EmployeeRewardsPenalty> q) => q
         .Include(a => a.User).ThenInclude(u => u.Role).Include(a => a.PayrollPeriod).Include(a => a.PayrollDetails).Include(a => a.CreatedByNavigation)
         .Include(a => a.ApprovedByNavigation).Include(a => a.RejectedByNavigation).AsSplitQuery();

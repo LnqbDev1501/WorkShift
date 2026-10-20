@@ -151,9 +151,14 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
     private static void ValidateRegistrationWindow(WorkShift shift)
     {
         var now = DateTime.UtcNow;
-        if (shift.Status != "SCHEDULED" || shift.ScheduleWeek.Status != "OPEN_REGISTRATION" ||
-            shift.ScheduleWeek.RegistrationDeadline <= now || shift.ScheduledStartAt <= now ||
-            shift.ScheduledEndAt <= shift.ScheduledStartAt)
+        if (shift.Status != "SCHEDULED" || shift.ScheduledStartAt <= now || shift.ScheduledEndAt <= shift.ScheduledStartAt)
+            throw new InvalidOperationException("Registration is closed, the shift has already started, or the shift is no longer available.");
+
+        var weekStatus = shift.ScheduleWeek.Status;
+        bool isOpenRegistration = weekStatus == "OPEN_REGISTRATION" && shift.ScheduleWeek.RegistrationDeadline > now;
+        bool isOpenShiftPickup = weekStatus is "PUBLISHED" or "IN_PROGRESS";
+
+        if (!isOpenRegistration && !isOpenShiftPickup)
             throw new InvalidOperationException("Registration is closed, the deadline has passed, or the shift is no longer available.");
     }
 
@@ -201,6 +206,7 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
             MyRegistration = own == null ? null : MapRegistration(own),
             CanCancelRegistration = blockedReason == null,
             CancellationBlockedReason = blockedReason,
+            IsOpenShift = shift.ScheduleWeek.Status is "PUBLISHED" or "IN_PROGRESS",
             EmployeeRequirements = shift.ShiftEmployeeRequirements.OrderBy(r => r.EmployeeTypeId).Select(r =>
             {
                 var count = shift.ShiftAssignments.Count(a => a.ShiftRequirementId == r.ShiftRequirementId &&

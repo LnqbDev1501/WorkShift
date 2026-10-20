@@ -6,6 +6,9 @@ class FaceProfileStatusModel {
   final String? status;
   final DateTime? registeredAt;
   final String? registrationType;
+  final bool canRegisterOrUpdate;
+  final DateTime? nextAllowedRegistrationDate;
+  final String? message;
 
   FaceProfileStatusModel({
     required this.hasRegisteredFace,
@@ -13,6 +16,9 @@ class FaceProfileStatusModel {
     this.status,
     this.registeredAt,
     this.registrationType,
+    this.canRegisterOrUpdate = true,
+    this.nextAllowedRegistrationDate,
+    this.message,
   });
 
   factory FaceProfileStatusModel.fromJson(Map<String, dynamic> json) {
@@ -24,6 +30,11 @@ class FaceProfileStatusModel {
           ? DateTime.tryParse(json['registeredAt'].toString())
           : null,
       registrationType: json['registrationType']?.toString(),
+      canRegisterOrUpdate: json['canRegisterOrUpdate'] == true,
+      nextAllowedRegistrationDate: json['nextAllowedRegistrationDate'] != null
+          ? DateTime.tryParse(json['nextAllowedRegistrationDate'].toString())
+          : null,
+      message: json['message']?.toString(),
     );
   }
 }

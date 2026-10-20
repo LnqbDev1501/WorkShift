@@ -50,11 +50,6 @@ public sealed class PayrollCalculationController(IPayrollCalculationService serv
         => Execute(async actor => Ok(await service.GetReadinessAsync(actor, id, ct)));
 
     [Authorize(Roles = "ACCOUNTANT")]
-    [HttpPost("payroll-periods/{id:int}/employees/{userId:guid}/calculate")]
-    public Task<IActionResult> CalculateEmployee(int id, Guid userId, CancellationToken ct)
-        => Execute(async actor => Ok(await service.CalculateEmployeeAsync(actor, id, userId, ct)));
-
-    [Authorize(Roles = "ACCOUNTANT")]
     [HttpPost("payroll-periods/{id:int}/calculate")]
     public Task<IActionResult> CalculatePeriod(int id, CancellationToken ct)
         => Execute(async actor => Ok(await service.CalculatePeriodAsync(actor, id, ct)));

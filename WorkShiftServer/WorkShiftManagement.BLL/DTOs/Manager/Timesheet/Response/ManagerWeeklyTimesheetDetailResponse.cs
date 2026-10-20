@@ -23,6 +23,7 @@ public sealed class ManagerWeeklyTimesheetDetailResponse
 
     public int TotalStaff { get; set; }
     public int ConfirmedStaff { get; set; }
+    public int NoResponseStaff { get; set; }
     public string StaffReview { get; set; } = null!;
     public decimal ConfirmationRate { get; set; }
     public decimal TotalWorkHours { get; set; }
@@ -51,8 +52,11 @@ public sealed class ManagerStaffTimesheetItemDto
     public int EarlyLeaveCount { get; set; }
     public int ExcusedLeaveCount { get; set; }
     public int UnexcusedAbsentCount { get; set; }
-    public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "-"
+    public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "NO_RESPONSE", "ADJUSTMENT_PENDING", "-"
     public string Status { get; set; } = null!; // "GENERATED", "LOCKED", "NOT GENERATED"
+    public bool CanReopenReview => TimesheetId.HasValue 
+        && string.Equals(Status, "GENERATED", StringComparison.OrdinalIgnoreCase) 
+        && string.Equals(StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
     public List<ManagerStaffShiftAttendanceDto> Shifts { get; set; } = new();
 }
 
@@ -72,4 +76,11 @@ public sealed class ManagerStaffShiftAttendanceDto
     public string AssignmentStatus { get; set; } = null!;
     public bool IsExcusedLeave { get; set; }
     public string? LeaveReason { get; set; }
+    public int ExcusedLateMinutes { get; set; }
+    public int ChargeableLateMinutes { get; set; }
+    public int ExcusedEarlyLeaveMinutes { get; set; }
+    public int ChargeableEarlyLeaveMinutes { get; set; }
+    public bool HasApprovedLateArrival { get; set; }
+    public bool HasApprovedEarlyLeave { get; set; }
+    public List<WorkShiftManagement.BLL.DTOs.Manager.Attendance.AttendancePenaltyDto> Penalties { get; set; } = new();
 }

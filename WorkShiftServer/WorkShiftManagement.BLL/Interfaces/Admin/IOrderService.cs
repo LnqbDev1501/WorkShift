@@ -10,7 +10,6 @@ public interface IOrderService
     Task<OrderDetailResponse> CreateAsync(CreateOrderRequest request, Guid actorId);
     Task<OrderDetailResponse?> UpdateAsync(int id, UpdateOrderRequest request, Guid actorId);
     Task<bool> UpdateStatusAsync(int id, string status, Guid actorId);
-    Task<bool> RecordPaymentAsync(int id, RecordPaymentRequest request, Guid actorId);
     Task<OrderDetailResponse?> GetByOrderNumberAsync(string orderNumber, Guid actorId);
     Task<byte[]> GenerateInvoicePdfAsync(int id, Guid actorId);
 }

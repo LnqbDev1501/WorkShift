@@ -56,13 +56,13 @@ public sealed class PayslipRepo(AppDbContext db) : IPayslipRepo
         var periods = list.Select(s => s.Payroll.PayrollPeriodId).Distinct().ToList();
         var pairs = await db.PayrollFeedbackRequests.AsNoTracking()
             .Where(f => users.Contains(f.EmployeeId) && periods.Contains(f.Payroll.PayrollPeriodId)
-                && (f.Status == "SUBMITTED" || f.Status == "APPROVED" && f.CorrectionStatus != "COMPLETED"))
+                && (f.ReviewStatus == "PENDING" || f.ReviewStatus == "FEEDBACK_PENDING"))
             .Select(f => new { f.EmployeeId, f.Payroll.PayrollPeriodId }).Distinct().ToListAsync(ct);
         return pairs.Select(p => (p.EmployeeId, p.PayrollPeriodId)).ToHashSet();
     }
 
-    public Task<List<int>> DuePeriodIdsAsync(DateOnly periodEnd, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
-        .Where(p => p.Status == "APPROVED" && p.EndDate == periodEnd
+    public Task<List<int>> DuePeriodIdsAsync(CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
+        .Where(p => p.Status == "APPROVED"
             && (!db.Payslips.Any(s => s.Payroll.PayrollPeriodId == p.PayrollPeriodId)
                 || db.Payrolls.Any(r => r.PayrollPeriodId == p.PayrollPeriodId && r.Status == "APPROVED"
                     && !db.Payrolls.Any(n => n.PayrollPeriodId == p.PayrollPeriodId && n.UserId == r.UserId

@@ -37,6 +37,8 @@ public partial class EmployeeRequest
 
     public virtual User? ReviewedByNavigation { get; set; }
 
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequests { get; set; } = new List<SalaryChangeRequest>();
+
     public virtual SalaryIncreaseRequestDetail? SalaryIncreaseRequestDetail { get; set; }
 
     public virtual TimeAdjustmentRequestDetail? TimeAdjustmentRequestDetail { get; set; }

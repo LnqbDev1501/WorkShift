@@ -15,6 +15,13 @@
 
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
 
+    @if (reqType == "SALARY_INCREASE" && statusUpper == "APPROVED")
+    {
+        <div class="rounded-xl bg-blue-50 text-blue-700 p-unit-4 flex flex-wrap items-center justify-between gap-3">
+            <p>Manager approval does not change the salary yet. Create a proposal for Admin approval.</p>
+            <a asp-controller="ManagerSalaryChanges" asp-action="Create" asp-route-employeeRequestId="@Model.RequestId" class="btn btn-primary">Propose salary increase</a>
+        </div>
+    }
     <!-- Top Navigation Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
         <div class="flex items-center gap-3">

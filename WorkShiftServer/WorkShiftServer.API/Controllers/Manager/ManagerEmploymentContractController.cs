@@ -51,6 +51,28 @@ public class ManagerEmploymentContractController(
         }
     }
 
+    [HttpGet("branch-minimum-wage")]
+    [ProducesResponseType(typeof(decimal), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<decimal>> GetBranchMinimumWage(CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+        try
+        {
+            return Ok(await service.GetBranchMinimumWageAsync(managerId.Value, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get branch minimum wage.");
+            return Ok(0m);
+        }
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<ManagerEmploymentContractListItemResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

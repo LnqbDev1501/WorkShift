@@ -34,6 +34,11 @@ class StaffWeeklyTimesheetModel {
     return '$hour:$minute, $day/$month/$year';
   }
 
+  bool get isConfirmed => staffReviewStatus.toUpperCase() == 'CONFIRMED';
+  bool get isNoResponse => staffReviewStatus.toUpperCase() == 'NO_RESPONSE';
+  bool get isPendingReview => staffReviewStatus.toUpperCase() == 'PENDING';
+  bool get isAdjustmentPending => staffReviewStatus.toUpperCase() == 'ADJUSTMENT_PENDING';
+
   final int totalAssignedShifts;
   final int completedShifts;
   final int absentShifts;
@@ -147,7 +152,15 @@ class StaffShiftAttendanceModel {
   final DateTime? checkOutTime;
   final int actualWorkingMinutes;
   final int totalLateMinutes;
+  final int excusedLateMinutes;
+  final int chargeableLateMinutes;
   final int totalEarlyLeaveMinutes;
+  final int excusedEarlyLeaveMinutes;
+  final int chargeableEarlyLeaveMinutes;
+  final bool hasApprovedLateArrival;
+  final bool hasApprovedEarlyLeave;
+  final bool isExcusedLeave;
+  final String? leaveReason;
   final String attendanceStatus;
   final String assignmentStatus;
   final String dateDisplay;
@@ -167,6 +180,10 @@ class StaffShiftAttendanceModel {
   final String? adjustmentReason;
   final String? managerNote;
   final bool canRequestAdjustment;
+  final bool isCheckInLocked;
+  final String? checkInLockReason;
+  final bool isCheckOutLocked;
+  final String? checkOutLockReason;
 
   StaffShiftAttendanceModel({
     required this.assignmentId,
@@ -179,7 +196,15 @@ class StaffShiftAttendanceModel {
     this.checkOutTime,
     required this.actualWorkingMinutes,
     required this.totalLateMinutes,
+    this.excusedLateMinutes = 0,
+    this.chargeableLateMinutes = 0,
     required this.totalEarlyLeaveMinutes,
+    this.excusedEarlyLeaveMinutes = 0,
+    this.chargeableEarlyLeaveMinutes = 0,
+    this.hasApprovedLateArrival = false,
+    this.hasApprovedEarlyLeave = false,
+    this.isExcusedLeave = false,
+    this.leaveReason,
     required this.attendanceStatus,
     required this.assignmentStatus,
     required this.dateDisplay,
@@ -197,7 +222,41 @@ class StaffShiftAttendanceModel {
     this.adjustmentReason,
     this.managerNote,
     required this.canRequestAdjustment,
+    this.isCheckInLocked = false,
+    this.checkInLockReason,
+    this.isCheckOutLocked = false,
+    this.checkOutLockReason,
+    this.penalties = const [],
   });
+
+  bool get isLateExcused =>
+      hasApprovedLateArrival ||
+      excusedLateMinutes > 0 ||
+      (totalLateMinutes > 0 && chargeableLateMinutes == 0 && penalties.where((p) => p.isApplied && p.violationType.toUpperCase() == 'LATE').isEmpty);
+
+  bool get isEarlyLeaveExcused =>
+      hasApprovedEarlyLeave ||
+      excusedEarlyLeaveMinutes > 0 ||
+      (totalEarlyLeaveMinutes > 0 && chargeableEarlyLeaveMinutes == 0 && penalties.where((p) => p.isApplied && p.violationType.toUpperCase() == 'EARLY_LEAVE').isEmpty);
+
+  bool get isPresentExcused =>
+      attendanceStatus.toUpperCase() == 'PRESENT' && (isLateExcused || isEarlyLeaveExcused);
+
+  List<StaffShiftPenaltyModel> get activePenalties =>
+      penalties.where((p) => p.isApplied).toList();
+  List<StaffShiftPenaltyModel> get cancelledPenalties =>
+      penalties.where((p) => p.isCancelled).toList();
+  double get totalActivePenaltyAmount =>
+      activePenalties.fold(0.0, (sum, p) => sum + p.penaltyAmount);
+  String get formattedTotalActivePenaltyAmount {
+    final formatted = totalActivePenaltyAmount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$formatted đ';
+  }
+
+  final List<StaffShiftPenaltyModel> penalties;
 
   factory StaffShiftAttendanceModel.fromJson(Map<String, dynamic> json) {
     DateTime parseDateTime(dynamic v) {
@@ -210,6 +269,8 @@ class StaffShiftAttendanceModel {
       return DateTime.tryParse(v.toString());
     }
 
+    final rawPenalties = json['penalties'] as List<dynamic>? ?? [];
+
     return StaffShiftAttendanceModel(
       assignmentId: json['assignmentId'] as int? ?? 0,
       attendanceId: json['attendanceId'] as int?,
@@ -221,7 +282,15 @@ class StaffShiftAttendanceModel {
       checkOutTime: parseNullableDateTime(json['checkOutTime']),
       actualWorkingMinutes: json['actualWorkingMinutes'] as int? ?? 0,
       totalLateMinutes: json['totalLateMinutes'] as int? ?? 0,
+      excusedLateMinutes: json['excusedLateMinutes'] as int? ?? 0,
+      chargeableLateMinutes: json['chargeableLateMinutes'] as int? ?? 0,
       totalEarlyLeaveMinutes: json['totalEarlyLeaveMinutes'] as int? ?? 0,
+      excusedEarlyLeaveMinutes: json['excusedEarlyLeaveMinutes'] as int? ?? 0,
+      chargeableEarlyLeaveMinutes: json['chargeableEarlyLeaveMinutes'] as int? ?? 0,
+      hasApprovedLateArrival: json['hasApprovedLateArrival'] == true,
+      hasApprovedEarlyLeave: json['hasApprovedEarlyLeave'] == true,
+      isExcusedLeave: json['isExcusedLeave'] == true,
+      leaveReason: json['leaveReason']?.toString(),
       attendanceStatus: json['attendanceStatus']?.toString() ?? 'SCHEDULED',
       assignmentStatus: json['assignmentStatus']?.toString() ?? 'ASSIGNED',
       dateDisplay: json['dateDisplay']?.toString() ?? '',
@@ -239,6 +308,67 @@ class StaffShiftAttendanceModel {
       adjustmentReason: json['adjustmentReason']?.toString(),
       managerNote: json['managerNote']?.toString(),
       canRequestAdjustment: json['canRequestAdjustment'] == true,
+      isCheckInLocked: json['isCheckInLocked'] == true,
+      checkInLockReason: json['checkInLockReason']?.toString(),
+      isCheckOutLocked: json['isCheckOutLocked'] == true,
+      checkOutLockReason: json['checkOutLockReason']?.toString(),
+      penalties: rawPenalties
+          .map((p) => StaffShiftPenaltyModel.fromJson(p as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class StaffShiftPenaltyModel {
+  final int attendancePenaltyId;
+  final String violationType;
+  final int violationMinutes;
+  final double penaltyAmount;
+  final String status;
+  final DateTime createdAt;
+
+  StaffShiftPenaltyModel({
+    required this.attendancePenaltyId,
+    required this.violationType,
+    required this.violationMinutes,
+    required this.penaltyAmount,
+    required this.status,
+    required this.createdAt,
+  });
+
+  bool get isApplied => status.toUpperCase() == 'APPLIED';
+  bool get isCancelled => status.toUpperCase() == 'CANCELLED';
+
+  String get violationTypeDisplay {
+    switch (violationType.toUpperCase()) {
+      case 'LATE':
+        return 'Late arrival';
+      case 'EARLY_LEAVE':
+        return 'Early leave';
+      case 'UNEXCUSED_ABSENCE':
+      case 'ABSENCE':
+        return 'Unexcused absence';
+      default:
+        return violationType;
+    }
+  }
+
+  String get formattedPenaltyAmount {
+    final formatted = penaltyAmount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]},',
+        );
+    return '$formatted đ';
+  }
+
+  factory StaffShiftPenaltyModel.fromJson(Map<String, dynamic> json) {
+    return StaffShiftPenaltyModel(
+      attendancePenaltyId: json['attendancePenaltyId'] as int? ?? 0,
+      violationType: json['violationType']?.toString() ?? '',
+      violationMinutes: json['violationMinutes'] as int? ?? 0,
+      penaltyAmount: (json['penaltyAmount'] as num?)?.toDouble() ?? 0.0,
+      status: json['status']?.toString() ?? 'APPLIED',
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
     );
   }
 }

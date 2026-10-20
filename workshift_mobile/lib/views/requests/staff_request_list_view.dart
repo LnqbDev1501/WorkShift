@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../../models/staff_request_model.dart';
 import '../../theme/app_colors.dart';
-import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 import 'staff_request_detail_view.dart';
 import 'submit_request_view.dart';
 
-/// Màn hình Danh sách Yêu cầu của Staff (View, Search, Filter, Cancel Request)
+/// Màn hình Danh sách Yêu cầu của Staff (Chỉ gửi và quản lý Đơn ca làm: Nghỉ phép, Đi muộn, Về sớm)
 class StaffRequestListView extends StatefulWidget {
   final bool showBackButton;
 
@@ -64,7 +63,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
 
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
       _controller.setSearchQuery(query);
     });
   }
@@ -208,72 +207,92 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     ),
                     const Divider(height: 24, color: AppColors.borderLight),
 
-                    // Lọc theo loại yêu cầu
+                    // Lọc theo Loại yêu cầu
                     const Text(
                       'Loại yêu cầu',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        _buildFilterChoiceChip('Tất cả', tempType == 'ALL', () {
-                          setModalState(() => tempType = 'ALL');
-                        }),
-                        _buildFilterChoiceChip('Nghỉ phép', tempType == 'LEAVE', () {
-                          setModalState(() => tempType = 'LEAVE');
-                        }),
-                        _buildFilterChoiceChip('Đi trễ', tempType == 'LATE_ARRIVAL', () {
-                          setModalState(() => tempType = 'LATE_ARRIVAL');
-                        }),
-                        _buildFilterChoiceChip('Về sớm', tempType == 'EARLY_LEAVE', () {
-                          setModalState(() => tempType = 'EARLY_LEAVE');
-                        }),
+                        _buildFilterModalChip(
+                          label: 'Tất cả loại',
+                          isSelected: tempType == 'ALL',
+                          onTap: () => setModalState(() => tempType = 'ALL'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Nghỉ phép (LEAVE)',
+                          isSelected: tempType == 'LEAVE',
+                          onTap: () => setModalState(() => tempType = 'LEAVE'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Đi muộn (LATE)',
+                          isSelected: tempType == 'LATE_ARRIVAL',
+                          onTap: () => setModalState(() => tempType = 'LATE_ARRIVAL'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Về sớm (EARLY)',
+                          isSelected: tempType == 'EARLY_LEAVE',
+                          onTap: () => setModalState(() => tempType = 'EARLY_LEAVE'),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                    // Lọc theo trạng thái
+                    // Lọc theo Trạng thái
                     const Text(
-                      'Trạng thái đơn',
+                      'Trạng thái phê duyệt',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 8,
+                      runSpacing: 8,
                       children: [
-                        _buildFilterChoiceChip('Tất cả', tempStatus == 'ALL', () {
-                          setModalState(() => tempStatus = 'ALL');
-                        }),
-                        _buildFilterChoiceChip('Chờ duyệt', tempStatus == 'PENDING', () {
-                          setModalState(() => tempStatus = 'PENDING');
-                        }),
-                        _buildFilterChoiceChip('Đã duyệt', tempStatus == 'APPROVED', () {
-                          setModalState(() => tempStatus = 'APPROVED');
-                        }),
-                        _buildFilterChoiceChip('Từ chối', tempStatus == 'REJECTED', () {
-                          setModalState(() => tempStatus = 'REJECTED');
-                        }),
-                        _buildFilterChoiceChip('Đã hủy', tempStatus == 'CANCELLED', () {
-                          setModalState(() => tempStatus = 'CANCELLED');
-                        }),
+                        _buildFilterModalChip(
+                          label: 'Tất cả trạng thái',
+                          isSelected: tempStatus == 'ALL',
+                          onTap: () => setModalState(() => tempStatus = 'ALL'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Chờ duyệt',
+                          isSelected: tempStatus == 'PENDING',
+                          onTap: () => setModalState(() => tempStatus = 'PENDING'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Đã duyệt',
+                          isSelected: tempStatus == 'APPROVED',
+                          onTap: () => setModalState(() => tempStatus = 'APPROVED'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Từ chối',
+                          isSelected: tempStatus == 'REJECTED',
+                          onTap: () => setModalState(() => tempStatus = 'REJECTED'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Đã hủy',
+                          isSelected: tempStatus == 'CANCELLED',
+                          onTap: () => setModalState(() => tempStatus = 'CANCELLED'),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
-                    // Lọc theo khoảng ngày (From Date - To Date)
+                    // Lọc theo Khoảng ngày
                     const Text(
-                      'Khoảng ngày tạo',
+                      'Khoảng thời gian (Ngày gửi)',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
+                          child: InkWell(
+                            onTap: () async {
                               final picked = await showDatePicker(
-                                context: context,
+                                context: modalCtx,
                                 initialDate: tempFrom ?? DateTime.now(),
                                 firstDate: DateTime(2020),
                                 lastDate: DateTime(2100),
@@ -282,47 +301,61 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                                 setModalState(() => tempFrom = picked);
                               }
                             },
-                            icon: const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
-                            label: Text(
-                              tempFrom != null ? _formatDate(tempFrom) : 'Từ ngày',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: tempFrom != null ? AppColors.textPrimary : AppColors.textMuted,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.borderLight),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.borderLight),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    tempFrom != null ? _formatDate(tempFrom) : 'Từ ngày',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: tempFrom != null ? AppColors.textPrimary : AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
+                          child: InkWell(
+                            onTap: () async {
                               final picked = await showDatePicker(
-                                context: context,
-                                initialDate: tempTo ?? DateTime.now(),
-                                firstDate: DateTime(2020),
+                                context: modalCtx,
+                                initialDate: tempTo ?? (tempFrom ?? DateTime.now()),
+                                firstDate: tempFrom ?? DateTime(2020),
                                 lastDate: DateTime(2100),
                               );
                               if (picked != null) {
                                 setModalState(() => tempTo = picked);
                               }
                             },
-                            icon: const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
-                            label: Text(
-                              tempTo != null ? _formatDate(tempTo) : 'Đến ngày',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: tempTo != null ? AppColors.textPrimary : AppColors.textMuted,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: AppColors.borderLight),
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.borderLight),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    tempTo != null ? _formatDate(tempTo) : 'Đến ngày',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: tempTo != null ? AppColors.textPrimary : AppColors.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -330,20 +363,42 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Nút Áp dụng
-                    AppButton(
-                      text: 'Áp dụng bộ lọc',
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _controller.applyAdvancedFilters(
-                          requestType: tempType,
-                          status: tempStatus,
-                          fromDate: tempFrom,
-                          toDate: tempTo,
-                        );
-                      },
-                      width: double.infinity,
-                      height: 48,
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(modalCtx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              side: const BorderSide(color: AppColors.borderLight),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Đóng', style: TextStyle(color: AppColors.textSecondary)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(modalCtx);
+                              _controller.applyAdvancedFilters(
+                                requestType: tempType,
+                                status: tempStatus,
+                                fromDate: tempFrom,
+                                toDate: tempTo,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Áp dụng bộ lọc'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -355,212 +410,30 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
     );
   }
 
-  Widget _buildFilterChoiceChip(String label, bool isSelected, VoidCallback onTap) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      selectedColor: AppColors.primaryLight,
-      backgroundColor: Colors.white,
-      side: BorderSide(color: isSelected ? AppColors.primary : AppColors.borderLight),
-      labelStyle: TextStyle(
-        fontSize: 13,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        color: isSelected ? AppColors.primary : AppColors.textSecondary,
-      ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final requests = _controller.requests;
-    final isLoading = _controller.isLoading;
-    final hasActiveFilter = _controller.hasActiveFilters;
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Yêu cầu của tôi',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+  Widget _buildFilterModalChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primaryLight : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
           ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        leading: widget.showBackButton
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-        actions: [
-          IconButton(
-            tooltip: 'Tạo yêu cầu',
-            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary, size: 24),
-            onPressed: () async {
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SubmitRequestView(controller: _controller),
-                ),
-              );
-              if (result == true) {
-                _controller.loadRequests(refresh: true);
-              }
-            },
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? AppColors.primary : AppColors.textPrimary,
           ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // 1. Search Bar & Nút mở Bộ lọc
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _onSearchChanged,
-                      decoration: InputDecoration(
-                        hintText: 'Tìm kiếm theo lý do...',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textMuted),
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _controller.setSearchQuery('');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Nút mở modal bộ lọc với badge
-                Stack(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 22),
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFFF1F5F9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: _showFilterBottomSheet,
-                    ),
-                    if (hasActiveFilter)
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          width: 9,
-                          height: 9,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // 2. Filter chips cuộn ngang theo Trạng thái (Quick Filter)
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildQuickStatusChip('Tất cả', 'ALL'),
-                  const SizedBox(width: 8),
-                  _buildQuickStatusChip('Chờ duyệt', 'PENDING'),
-                  const SizedBox(width: 8),
-                  _buildQuickStatusChip('Đã duyệt', 'APPROVED'),
-                  const SizedBox(width: 8),
-                  _buildQuickStatusChip('Từ chối', 'REJECTED'),
-                  const SizedBox(width: 8),
-                  _buildQuickStatusChip('Đã hủy', 'CANCELLED'),
-                ],
-              ),
-            ),
-          ),
-
-          // 3. Danh sách các yêu cầu
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => _controller.loadRequests(refresh: true),
-              color: AppColors.primary,
-              child: isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
-                    )
-                  : _controller.errorMessage != null
-                      ? _buildErrorState(_controller.errorMessage!)
-                      : requests.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.builder(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          itemCount: requests.length + (_controller.isLoadingMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == requests.length) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.primary,
-                                    strokeWidth: 2.5,
-                                  ),
-                                ),
-                              );
-                            }
-                            final item = requests[index];
-                            return _buildRequestCard(item);
-                          },
-                        ),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 3,
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Tạo yêu cầu', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SubmitRequestView(controller: _controller),
-            ),
-          );
-          if (result == true) {
-            _controller.loadRequests(refresh: true);
-          }
-        },
+        ),
       ),
     );
   }
@@ -589,47 +462,27 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
   }
 
   Widget _buildErrorState(String message) {
-    var displayMsg = message;
-    if (displayMsg.startsWith('Exception: ')) {
-      displayMsg = displayMsg.substring('Exception: '.length).trim();
-    }
     return Center(
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+      child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Color(0xFFFEE2E2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Đã xảy ra lỗi khi tải dữ liệu',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              displayMsg,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: () => _controller.loadRequests(refresh: true),
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Thử lại'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
+              child: const Text('Thử lại'),
             ),
           ],
         ),
@@ -655,14 +508,14 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Không tìm thấy yêu cầu nào',
+              'Không tìm thấy đơn ca làm nào',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               _controller.hasActiveFilters
-                  ? 'Không có yêu cầu phù hợp với bộ lọc hiện tại.'
-                  : 'Bạn chưa tạo yêu cầu nào. Nhấn nút bên dưới để tạo mới.',
+                  ? 'Không có đơn ca làm phù hợp với bộ lọc hiện tại.'
+                  : 'Bạn chưa tạo đơn ca làm (nghỉ phép, đi trễ, về sớm) nào. Nhấn nút bên dưới để tạo mới.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
@@ -678,6 +531,28 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('Đặt lại bộ lọc', style: TextStyle(color: AppColors.primary)),
+              )
+            else
+              ElevatedButton.icon(
+                onPressed: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SubmitRequestView(controller: _controller),
+                    ),
+                  );
+                  if (result == true) {
+                    _controller.loadRequests(refresh: true);
+                  }
+                },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Tạo đơn ngay'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
               ),
           ],
         ),
@@ -852,5 +727,201 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
       final action = item.requestType == 'LATE_ARRIVAL' ? 'Đến lúc' : 'Về lúc';
       return '${s.primaryShiftName ?? 'Ca'} • $action ${_formatTime(s.requestedTime)} (${_formatDate(s.primaryScheduledStartAt)})';
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requests = _controller.requests;
+    final isLoading = _controller.isLoading;
+    final hasActiveFilter = _controller.hasActiveFilters;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Yêu cầu của tôi',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
+        actions: [
+          IconButton(
+            tooltip: 'Tạo yêu cầu',
+            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary, size: 24),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SubmitRequestView(controller: _controller),
+                ),
+              );
+              if (result == true) {
+                _controller.loadRequests(refresh: true);
+              }
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // 1. Search Bar & Nút mở Bộ lọc
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Tìm kiếm theo lý do, ca làm...',
+                        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textMuted),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _controller.setSearchQuery('');
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Nút mở modal bộ lọc với badge cho Tab Đơn ca làm
+                Stack(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 22),
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFFF1F5F9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _showFilterBottomSheet,
+                    ),
+                    if (hasActiveFilter)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Filter chips cuộn ngang theo Trạng thái (Quick Filter)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildQuickStatusChip('Tất cả', 'ALL'),
+                  const SizedBox(width: 8),
+                  _buildQuickStatusChip('Chờ duyệt', 'PENDING'),
+                  const SizedBox(width: 8),
+                  _buildQuickStatusChip('Đã duyệt', 'APPROVED'),
+                  const SizedBox(width: 8),
+                  _buildQuickStatusChip('Từ chối', 'REJECTED'),
+                  const SizedBox(width: 8),
+                  _buildQuickStatusChip('Đã hủy', 'CANCELLED'),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. Danh sách Đơn ca làm
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => _controller.loadRequests(refresh: true),
+              color: AppColors.primary,
+              child: isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                    )
+                  : _controller.errorMessage != null
+                      ? _buildErrorState(_controller.errorMessage!)
+                      : requests.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              itemCount: requests.length + (_controller.isLoadingMore ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (index == requests.length) {
+                                  return const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primary,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    ),
+                                  );
+                                }
+                                final item = requests[index];
+                                return _buildRequestCard(item);
+                              },
+                            ),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text(
+          'Tạo yêu cầu',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => SubmitRequestView(controller: _controller),
+            ),
+          );
+          if (result == true) {
+            _controller.loadRequests(refresh: true);
+          }
+        },
+      ),
+    );
   }
 }

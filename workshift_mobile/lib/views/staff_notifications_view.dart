@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
+import '../../services/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import 'staff_notification_detail_view.dart';
 
@@ -16,6 +18,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
   final NotificationController _controller = NotificationController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  Timer? _autoSyncTimer;
+  StreamSubscription? _realtimeSubscription;
 
   @override
   void initState() {
@@ -27,10 +31,26 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
       });
       _controller.loadNotifications(search: _searchQuery);
     });
+
+    // 1. Tự động cập nhật ngay khi có thông báo Realtime từ Backend SignalR
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted && _searchQuery.isEmpty) {
+        _controller.loadNotifications(silent: true);
+      }
+    });
+
+    // 2. Tự động sync ngầm định kỳ (mỗi 6s) để luôn cập nhật thông báo mới
+    _autoSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && !_controller.isLoading && _searchQuery.isEmpty) {
+        _controller.loadNotifications(silent: true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
+    _realtimeSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -51,6 +71,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
         return Icons.info_rounded;
       case 'alert':
         return Icons.warning_rounded;
+      case 'payroll':
+        return Icons.payments_rounded;
       default:
         return Icons.notifications_rounded;
     }
@@ -68,6 +90,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
         return AppColors.info;
       case 'alert':
         return AppColors.warning;
+      case 'payroll':
+        return AppColors.primary;
       default:
         return AppColors.textSecondary;
     }
@@ -108,9 +132,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                 'Đánh dấu tất cả đã đọc',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
         ],
       ),
@@ -173,7 +195,10 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -185,7 +210,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
               child: ListenableBuilder(
                 listenable: _controller,
                 builder: (context, _) {
-                  if (_controller.isLoading && _controller.notifications.isEmpty) {
+                  if (_controller.isLoading &&
+                      _controller.notifications.isEmpty) {
                     return const Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
@@ -219,7 +245,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                           ElevatedButton.icon(
                             onPressed: () {
                               _controller.clearError();
-                              _controller.loadNotifications(search: _searchQuery);
+                              _controller.loadNotifications(
+                                search: _searchQuery,
+                              );
                             },
                             icon: const Icon(Icons.refresh_rounded, size: 18),
                             label: const Text('Thử lại'),
@@ -283,7 +311,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                   return ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: notifications.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final notification = notifications[index];
                       return _buildNotificationItem(notification);
@@ -339,7 +367,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: isUnread ? 0.06 : 0.02),
+                color: AppColors.primary.withValues(
+                  alpha: isUnread ? 0.06 : 0.02,
+                ),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -351,8 +381,9 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _getTypeColor(notification.notificationType)
-                      .withValues(alpha: 0.1),
+                  color: _getTypeColor(
+                    notification.notificationType,
+                  ).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

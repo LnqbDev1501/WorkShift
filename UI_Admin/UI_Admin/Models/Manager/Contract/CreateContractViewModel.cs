@@ -27,10 +27,13 @@ public class CreateContractViewModel : IValidatableObject
     public string EmployeePosition { get; set; } = string.Empty;
 
     [Range(0, 100000000, ErrorMessage = "Hourly rate must be a positive number.")]
-    [Display(Name = "Hourly Rate (VNĐ/h)")]
+    [Display(Name = "Hourly Rate (VND/h)")]
     public decimal? HourlyRate { get; set; }
 
     public string? ContractTerms { get; set; }
+
+    [BindNever, ValidateNever]
+    public decimal RegionalMinimumWage { get; set; }
 
     [BindNever, ValidateNever]
     public IReadOnlyList<string> PositionOptions { get; set; } = [];

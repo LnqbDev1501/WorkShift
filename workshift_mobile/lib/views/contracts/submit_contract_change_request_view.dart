@@ -4,7 +4,8 @@ import '../../models/staff_contract_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 
-/// Màn hình Gửi yêu cầu điều chỉnh thông tin hợp đồng (Submit Employment Contract Change Request)
+/// Screen: Submit Employment Contract Change Request
+/// Allows staff to propose adjustments to their employment contract to their manager.
 class SubmitContractChangeRequestView extends StatefulWidget {
   final StaffContractDetailModel contract;
   final StaffContractController controller;
@@ -42,7 +43,6 @@ class _SubmitContractChangeRequestViewState
   late final List<_FieldOption> _availableFields;
   final Set<String> _selectedFieldKeys = {};
 
-  // Controllers cho các trường được chọn
   final Map<String, TextEditingController> _proposedControllers = {};
   final Map<String, TextEditingController> _reasonControllers = {};
 
@@ -52,37 +52,43 @@ class _SubmitContractChangeRequestViewState
     final c = widget.contract;
     _availableFields = [
       _FieldOption(
+        key: 'EmployeePosition',
+        label: 'Position / Title',
+        currentValue: c.employeePosition,
+        icon: Icons.badge_outlined,
+      ),
+      _FieldOption(
+        key: 'HourlyRate',
+        label: 'Base Hourly Rate',
+        currentValue: c.formattedHourlyRate,
+        icon: Icons.monetization_on_outlined,
+      ),
+      _FieldOption(
         key: 'StartDate',
-        label: 'Ngày bắt đầu hợp đồng',
+        label: 'Contract Start Date',
         currentValue:
             '${c.startDate.day.toString().padLeft(2, '0')}/${c.startDate.month.toString().padLeft(2, '0')}/${c.startDate.year}',
         icon: Icons.calendar_today_rounded,
       ),
       _FieldOption(
         key: 'EndDate',
-        label: 'Ngày kết thúc hợp đồng',
+        label: 'Contract End Date',
         currentValue: c.endDate != null
             ? '${c.endDate!.day.toString().padLeft(2, '0')}/${c.endDate!.month.toString().padLeft(2, '0')}/${c.endDate!.year}'
-            : 'Không thời hạn',
+            : 'Indefinite-term',
         icon: Icons.event_available_rounded,
       ),
       _FieldOption(
-        key: 'EmployeePosition',
-        label: 'Vị trí công việc',
-        currentValue: c.employeePosition,
-        icon: Icons.badge_outlined,
-      ),
-      _FieldOption(
-        key: 'HourlyRate',
-        label: 'Mức lương mỗi giờ',
-        currentValue: c.formattedHourlyRate,
-        icon: Icons.monetization_on_outlined,
-      ),
-      _FieldOption(
         key: 'ContractTerms',
-        label: 'Điều khoản hợp đồng',
-        currentValue: c.contractTerms ?? 'Theo quy định công ty',
+        label: 'Contract Terms',
+        currentValue: c.contractTerms ?? 'Standard workplace policy',
         icon: Icons.description_outlined,
+      ),
+      _FieldOption(
+        key: 'Other',
+        label: 'Other Details',
+        currentValue: 'General contract provisions',
+        icon: Icons.more_horiz_rounded,
       ),
     ];
     widget.controller.loadActivePositions();
@@ -123,7 +129,7 @@ class _SubmitContractChangeRequestViewState
     if (_selectedFieldKeys.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng chọn ít nhất một thông tin bạn muốn yêu cầu điều chỉnh.'),
+          content: Text('Please select at least one field to request adjustment.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -151,14 +157,14 @@ class _SubmitContractChangeRequestViewState
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã gửi yêu cầu điều chỉnh hợp đồng tới Quản lý thành công!'),
+            content: Text('Contract change request submitted to manager successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
       } else {
         _showErrorDialog(widget.controller.actionErrorMessage ??
-            'Không thể gửi yêu cầu điều chỉnh.');
+            'Unable to submit change request.');
       }
     }
   }
@@ -172,7 +178,7 @@ class _SubmitContractChangeRequestViewState
           children: [
             Icon(Icons.error_outline, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Lỗi gửi yêu cầu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Request Failed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(message, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
@@ -184,7 +190,7 @@ class _SubmitContractChangeRequestViewState
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Đã hiểu'),
+            child: const Text('Understood'),
           ),
         ],
       ),
@@ -199,7 +205,7 @@ class _SubmitContractChangeRequestViewState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Yêu cầu điều chỉnh hợp đồng',
+          'Submit Change Request',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -220,7 +226,7 @@ class _SubmitContractChangeRequestViewState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Thông tin hợp đồng đang điều chỉnh
+              // Contract Info Banner
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
@@ -237,7 +243,7 @@ class _SubmitContractChangeRequestViewState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hợp đồng: ${widget.contract.contractNumber}',
+                            'Contract: ${widget.contract.contractNumber}',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -246,7 +252,7 @@ class _SubmitContractChangeRequestViewState
                           ),
                           const SizedBox(height: 2),
                           const Text(
-                            'Hãy chọn các trường thông tin có sai sót để gửi Quản lý xem xét và điều chỉnh lại.',
+                            'Select the fields requiring adjustment to send to your manager for review and revision.',
                             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                           ),
                         ],
@@ -257,8 +263,8 @@ class _SubmitContractChangeRequestViewState
               ),
               const SizedBox(height: 20),
 
-              // 1. Chọn các trường cần thay đổi
-              _buildSectionTitle('1. Chọn thông tin cần điều chỉnh:'),
+              // 1. Select Fields to Change
+              _buildSectionTitle('1. Select Fields to Adjust:'),
               ..._availableFields.map((field) {
                 final isChecked = _selectedFieldKeys.contains(field.key);
                 return Container(
@@ -284,7 +290,7 @@ class _SubmitContractChangeRequestViewState
                       ),
                     ),
                     subtitle: Text(
-                      'Hiện tại: ${field.currentValue}',
+                      'Current: ${field.currentValue}',
                       style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                     ),
                     secondary: Icon(field.icon, color: isChecked ? AppColors.primary : AppColors.textMuted, size: 22),
@@ -294,23 +300,23 @@ class _SubmitContractChangeRequestViewState
               }),
               const SizedBox(height: 16),
 
-              // 2. Nhập giá trị đề xuất cho các trường đã chọn
+              // 2. Input Proposed Values for Selected Fields
               if (_selectedFieldKeys.isNotEmpty) ...[
-                _buildSectionTitle('2. Nhập thông tin đề xuất thay đổi:'),
+                _buildSectionTitle('2. Enter Proposed Adjustments:'),
                 ..._availableFields
                     .where((f) => _selectedFieldKeys.contains(f.key))
                     .map((f) => _buildFieldInputCard(f)),
                 const SizedBox(height: 16),
               ],
 
-              // 3. Ghi chú chung của nhân viên
-              _buildSectionTitle('3. Lời nhắn / Ghi chú gửi Quản lý:'),
+              // 3. Additional Note for Manager
+              _buildSectionTitle('3. Additional Note for Manager:'),
               TextFormField(
                 controller: _staffCommentController,
                 maxLines: 3,
                 maxLength: 300,
                 decoration: InputDecoration(
-                  hintText: 'Nhập ghi chú hoặc lý do tổng thể gửi Quản lý (tùy chọn)...',
+                  hintText: 'Enter additional comments or explanation for your manager (optional)...',
                   hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
                   filled: true,
                   fillColor: Colors.white,
@@ -331,9 +337,9 @@ class _SubmitContractChangeRequestViewState
               ),
               const SizedBox(height: 24),
 
-              // Nút gửi yêu cầu
+              // Submit Button
               AppButton(
-                text: 'Gửi yêu cầu điều chỉnh',
+                text: 'Submit Change Request',
                 icon: Icons.send_rounded,
                 isLoading: isSubmitting,
                 onPressed: isSubmitting ? null : _handleSubmit,
@@ -354,7 +360,7 @@ class _SubmitContractChangeRequestViewState
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
@@ -412,7 +418,7 @@ class _SubmitContractChangeRequestViewState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           SizedBox(width: 8),
-                          Text('Đang tải danh mục vị trí...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          Text('Loading active positions...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
                         ],
                       ),
                     ),
@@ -425,9 +431,9 @@ class _SubmitContractChangeRequestViewState
                 return DropdownButtonFormField<String>(
                   initialValue: dropdownValue,
                   decoration: InputDecoration(
-                    labelText: 'Vị trí công việc mong muốn *',
-                    hintText: '-- Chọn vị trí từ hệ thống --',
-                    helperText: 'Chỉ chọn các vị trí đang hoạt động trong hệ thống',
+                    labelText: 'Desired Position *',
+                    hintText: '-- Select position from system --',
+                    helperText: 'Only active system positions are selectable.',
                     helperStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                     labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
@@ -453,7 +459,7 @@ class _SubmitContractChangeRequestViewState
                   },
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Vui lòng chọn vị trí công việc từ danh sách.';
+                      return 'Please select a position from the list.';
                     }
                     return null;
                   },
@@ -464,15 +470,15 @@ class _SubmitContractChangeRequestViewState
             TextFormField(
               controller: proposedCtrl,
               decoration: InputDecoration(
-                labelText: 'Giá trị đề xuất mới *',
-                hintText: 'Nhập thông tin đúng mà bạn mong muốn',
+                labelText: 'Proposed New Value *',
+                hintText: 'Enter your proposed value',
                 labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
-                  return 'Vui lòng nhập giá trị đề xuất mới.';
+                  return 'Please enter a proposed value.';
                 }
                 return null;
               },
@@ -482,8 +488,8 @@ class _SubmitContractChangeRequestViewState
           TextFormField(
             controller: reasonCtrl,
             decoration: InputDecoration(
-              labelText: 'Lý do thay đổi',
-              hintText: 'Giải thích lý do cần sửa (tùy chọn)',
+              labelText: 'Reason for Adjustment',
+              hintText: 'Explain why this change is requested (optional)',
               labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),

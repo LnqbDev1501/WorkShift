@@ -155,8 +155,9 @@ class FaceRegistrationController extends ChangeNotifier {
 
   /// Start Face Detection Stream with Google ML Kit
   Future<void> startChallengeDetection() async {
-    if (cameraController == null || !cameraController!.value.isInitialized)
+    if (cameraController == null || !cameraController!.value.isInitialized) {
       return;
+    }
     if (_isStreaming) return;
 
     isDetecting = true;
@@ -179,8 +180,9 @@ class FaceRegistrationController extends ChangeNotifier {
 
   /// Process camera frame through Google ML Kit
   Future<void> _processCameraFrame(CameraImage image) async {
-    if (_stepCooldown || _faceDetector == null || selectedCamera == null)
+    if (_stepCooldown || _faceDetector == null || selectedCamera == null) {
       return;
+    }
     _isProcessingFrame = true;
 
     try {
@@ -278,7 +280,8 @@ class FaceRegistrationController extends ChangeNotifier {
         break;
 
       case 'TURN_LEFT':
-        if (eulerY < -10) {
+        // Turning to user's LEFT (eulerY > 10 on front camera)
+        if (eulerY > 10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the left';
@@ -286,7 +289,8 @@ class FaceRegistrationController extends ChangeNotifier {
         break;
 
       case 'TURN_RIGHT':
-        if (eulerY > 10) {
+        // Turning to user's RIGHT (eulerY < -10 on front camera)
+        if (eulerY < -10) {
           isPassed = true;
         } else {
           detectionStatus = 'Turn head to the right';

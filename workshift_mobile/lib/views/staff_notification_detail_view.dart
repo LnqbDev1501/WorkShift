@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../controllers/notification_controller.dart';
 import '../../models/notification_model.dart';
 import '../../theme/app_colors.dart';
+import 'shifts/available_shifts_view.dart';
+import 'payroll/payroll_home_view.dart';
 
 /// Màn hình chi tiết thông báo - hiển thị toàn bộ nội dung thư thông báo
 class StaffNotificationDetailView extends StatefulWidget {
@@ -60,6 +62,8 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
         return Icons.info_rounded;
       case 'alert':
         return Icons.warning_rounded;
+      case 'payroll':
+        return Icons.payments_rounded;
       default:
         return Icons.notifications_rounded;
     }
@@ -77,6 +81,8 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
         return AppColors.info;
       case 'alert':
         return AppColors.warning;
+      case 'payroll':
+        return AppColors.primary;
       default:
         return AppColors.textSecondary;
     }
@@ -369,6 +375,20 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
                         child: Text(
                           _notification!.message.isNotEmpty
                               ? _notification!.message
+                                  .replaceAll(
+                                      'Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu',
+                                      'Lý do: Quá ngày bắt đầu')
+                                  .replaceAll(
+                                      'Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu',
+                                      'Lý do: Quá ngày bắt đầu')
+                                  .replaceAll(
+                                      'chưa xác nhận chấp thuận).',
+                                      'chưa xác nhận chấp thuận.')
+                                  .replaceAll(
+                                      'chưa xác nhận chấp thuận)',
+                                      'chưa xác nhận chấp thuận')
+                                  .replaceAll('NOT_ACCEPTED_BY_START_DATE',
+                                      'Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận')
                               : 'Không có nội dung chi tiết.',
                           style: const TextStyle(
                             fontSize: 15,
@@ -377,6 +397,73 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
                           ),
                         ),
                       ),
+                      if (_notification!.notificationType.toLowerCase() == 'openshift' ||
+                          _notification!.title.contains('nhận ca') ||
+                          _notification!.message.contains('nhận ca')) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AvailableShiftsView(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.event_available_rounded, size: 20),
+                            label: const Text(
+                              'Xem danh sách & Nhận ca (Pick up)',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (_notification!.notificationType.toLowerCase() == 'payroll' ||
+                          _notification!.title.toLowerCase().contains('payroll') ||
+                          _notification!.title.toLowerCase().contains('lương') ||
+                          _notification!.message.toLowerCase().contains('payroll preview') ||
+                          _notification!.message.toLowerCase().contains('bản xem trước lương') ||
+                          _notification!.message.toLowerCase().contains('phiếu lương')) ...[
+                        const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PayrollHomeView(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.payments_rounded, size: 20),
+                            label: const Text(
+                              'Xem Bảng lương & Phản hồi',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 2,
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 32),
                     ],
                   ),

@@ -32,6 +32,13 @@ class StaffContractController extends ChangeNotifier {
   List<StaffContractChangeRequestModel> _changeRequests = [];
   bool _isLoadingChangeRequests = false;
 
+  // Tất cả yêu cầu thay đổi hợp đồng (Across all contracts)
+  final List<StaffContractChangeRequestModel> _allChangeRequests = [];
+  bool _isLoadingAllChangeRequests = false;
+  String? _allChangeRequestsError;
+  String _changeRequestStatusFilter = 'ALL';
+  String _changeRequestSearchQuery = '';
+
   // PDF
   bool _isDownloadingPdf = false;
 
@@ -66,6 +73,50 @@ class StaffContractController extends ChangeNotifier {
   List<StaffContractChangeRequestModel> get changeRequests =>
       List.unmodifiable(_changeRequests);
   bool get isLoadingChangeRequests => _isLoadingChangeRequests;
+
+  List<StaffContractChangeRequestModel> get allChangeRequests {
+    var list = _allChangeRequests;
+    if (_changeRequestStatusFilter != 'ALL') {
+      final normalized = _changeRequestStatusFilter.toUpperCase();
+      if (normalized == 'PENDING') {
+        list = list.where((cr) => cr.isSubmitted).toList();
+      } else if (normalized == 'APPROVED') {
+        list = list.where((cr) => cr.isApproved).toList();
+      } else if (normalized == 'REJECTED') {
+        list = list.where((cr) => cr.isRejected).toList();
+      } else {
+        list = list.where((cr) => cr.status.toUpperCase() == normalized).toList();
+      }
+    }
+    if (_changeRequestSearchQuery.trim().isNotEmpty) {
+      final q = _changeRequestSearchQuery.trim().toLowerCase();
+      list = list.where((cr) {
+        final comment = (cr.staffComment ?? '').toLowerCase();
+        final reviewComment = (cr.reviewComment ?? '').toLowerCase();
+        final contractNumber = (cr.contractNumber ?? '').toLowerCase();
+        final reqId = cr.changeRequestId.toString();
+        final hasItemMatch = cr.items.any((item) =>
+            item.fieldName.toLowerCase().contains(q) ||
+            item.fieldDisplayName.toLowerCase().contains(q) ||
+            item.proposedValue.toLowerCase().contains(q) ||
+            (item.reason ?? '').toLowerCase().contains(q));
+        return comment.contains(q) ||
+            reviewComment.contains(q) ||
+            contractNumber.contains(q) ||
+            reqId.contains(q) ||
+            hasItemMatch;
+      }).toList();
+    }
+    return List.unmodifiable(list);
+  }
+
+  List<StaffContractChangeRequestModel> get rawAllChangeRequests =>
+      List.unmodifiable(_allChangeRequests);
+  bool get isLoadingAllChangeRequests => _isLoadingAllChangeRequests;
+  String? get allChangeRequestsError => _allChangeRequestsError;
+  String get changeRequestStatusFilter => _changeRequestStatusFilter;
+  String get changeRequestSearchQuery => _changeRequestSearchQuery;
+
   bool get isDownloadingPdf => _isDownloadingPdf;
 
   /// Tải danh mục vị trí công việc từ DB
@@ -179,6 +230,7 @@ class StaffContractController extends ChangeNotifier {
           startDate: updated.startDate,
           endDate: updated.endDate,
           hourlyRate: updated.hourlyRate,
+          employeeFullName: updated.employeeFullName,
           employeePosition: updated.employeePosition,
           branchId: updated.branchId,
           branchName: updated.branchName,
@@ -265,6 +317,40 @@ class StaffContractController extends ChangeNotifier {
       _isDownloadingPdf = false;
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Đặt bộ lọc trạng thái cho yêu cầu thay đổi hợp đồng ('ALL', 'PENDING', 'APPROVED', 'REJECTED')
+  void setChangeRequestStatusFilter(String status) {
+    if (_changeRequestStatusFilter == status) return;
+    _changeRequestStatusFilter = status;
+    notifyListeners();
+  }
+
+  /// Đặt từ khóa tìm kiếm cho yêu cầu thay đổi hợp đồng
+  void setChangeRequestSearchQuery(String query) {
+    _changeRequestSearchQuery = query;
+    notifyListeners();
+  }
+
+  /// Nạp tất cả yêu cầu thay đổi hợp đồng của nhân viên trên toàn bộ các hợp đồng
+  Future<void> loadAllChangeRequests({bool refresh = false}) async {
+    if (!refresh) {
+      _isLoadingAllChangeRequests = true;
+      _allChangeRequestsError = null;
+      notifyListeners();
+    }
+
+    try {
+      final list = await _service.getAllMyContractChangeRequests();
+      _allChangeRequests.clear();
+      _allChangeRequests.addAll(list);
+      _allChangeRequestsError = null;
+    } catch (e) {
+      _allChangeRequestsError = e.toString();
+    } finally {
+      _isLoadingAllChangeRequests = false;
+      notifyListeners();
     }
   }
 }

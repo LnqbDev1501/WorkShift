@@ -11,6 +11,9 @@ import '../../contracts/staff_contract_list_view.dart';
 import '../../orders/staff_order_list_view.dart';
 import '../../orders/create_order_view.dart';
 import '../../timesheet/staff_timesheet_view.dart';
+import '../../payroll/payroll_home_view.dart';
+import '../../../models/face_registration_model.dart';
+import '../../../services/face_registration_service.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -35,11 +38,17 @@ class _QuickActionData {
 class QuickActions extends StatefulWidget {
   final VoidCallback? onFaceRegistrationSuccess;
   final VoidCallback? onShiftsChanged;
+  final VoidCallback? onNavigateToTimesheet;
+  final VoidCallback? onNavigateToSchedule;
+  final VoidCallback? onNavigateToPayroll;
 
   const QuickActions({
     super.key,
     this.onFaceRegistrationSuccess,
     this.onShiftsChanged,
+    this.onNavigateToTimesheet,
+    this.onNavigateToSchedule,
+    this.onNavigateToPayroll,
   });
 
   @override
@@ -49,33 +58,170 @@ class QuickActions extends StatefulWidget {
 class _QuickActionsState extends State<QuickActions> {
   bool _isExpanded = false;
 
+  Future<void> _handleFaceBiometrics() async {
+    final faceService = FaceRegistrationService();
+
+    // Show quick checking dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(strokeWidth: 2.5),
+                SizedBox(width: 16),
+                Text('Checking biometric status...', style: TextStyle(fontSize: 14)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final FaceProfileStatusModel status;
+    try {
+      status = await faceService.getStatus();
+    } catch (e) {
+      if (!mounted) return;
+      if (Navigator.canPop(context)) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to check face status: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context); // close progress dialog
+    }
+
+    // Case 1: Initial Registration (User has not registered yet)
+    if (!status.hasRegisteredFace) {
+      final success = await showFaceRegistrationModal(context: context);
+      if (success == true && mounted) {
+        widget.onFaceRegistrationSuccess?.call();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Face profile registered successfully!'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+      }
+      return;
+    }
+
+    // Case 2: Already registered, but already updated this calendar month
+    if (!status.canRegisterOrUpdate) {
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.calendar_month_rounded, color: Color(0xFFF59E0B)),
+              SizedBox(width: 8),
+              Text('Monthly Limit Reached', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            status.message ??
+                'You have already updated your biometric face profile this month. Re-registration is only allowed once per calendar month.',
+            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Got It'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Case 3: Already registered, eligible for monthly re-registration
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.face_unlock_rounded, color: Color(0xFF7C3AED)),
+            SizedBox(width: 8),
+            Text('Update Face Profile', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'You have already registered your face profile. You are eligible to update it once this month. The new face scan will replace your existing biometric profile for shift attendance.\n\nDo you want to re-register now?',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Proceed'),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted || confirmed != true) return;
+    final success = await showFaceRegistrationModal(context: context);
+    if (success == true && mounted) {
+      widget.onFaceRegistrationSuccess?.call();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric face profile updated successfully for this month!'),
+          backgroundColor: Color(0xFF10B981),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Complete quick action item list
     final List<_QuickActionData> allActions = [
       _QuickActionData(
-        title: 'Register Face',
-        subtitle: 'Biometric setup',
+        title: 'Face Biometrics',
+        subtitle: 'Setup or update',
         icon: Icons.face_retouching_natural_rounded,
         iconColor: const Color(0xFF7C3AED),
         iconBgColor: const Color(0xFFF3E8FF),
-        onTap: () async {
-          final registered = await showFaceRegistrationModal(context: context);
-          if (registered == true) {
-            widget.onFaceRegistrationSuccess?.call();
-          }
-        },
+        onTap: _handleFaceBiometrics,
       ),
       _QuickActionData(
-        title: 'Timesheet',
-        subtitle: 'Weekly hours',
-        icon: Icons.calendar_month_outlined,
-        iconColor: AppColors.actionOrderIcon,
-        iconBgColor: AppColors.actionOrderBg,
+        title: 'Submit Request',
+        subtitle: 'Leave, late, early',
+        icon: Icons.edit_note_rounded,
+        iconColor: AppColors.actionLeaveIcon,
+        iconBgColor: AppColors.actionLeaveBg,
         onTap: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const StaffRequestListView(showBackButton: true),
+            ),
+          );
         },
       ),
       _QuickActionData(
@@ -92,16 +238,28 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
-        title: 'Work Schedule',
-        subtitle: 'Your shifts and details',
-        icon: Icons.event_note_outlined,
-        iconColor: AppColors.actionRegisterIcon,
-        iconBgColor: AppColors.actionRegisterBg,
+        title: 'Shift Swap',
+        subtitle: 'Find colleague',
+        icon: Icons.swap_horiz_rounded,
+        iconColor: AppColors.actionSwapIcon,
+        iconBgColor: AppColors.actionSwapBg,
         onTap: () async {
           await Navigator.of(
             context,
-          ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
           if (mounted) widget.onShiftsChanged?.call();
+        },
+      ),
+      _QuickActionData(
+        title: 'Contracts',
+        subtitle: 'E-documents & rate',
+        icon: Icons.verified_user_rounded,
+        iconColor: AppColors.actionContractIcon,
+        iconBgColor: AppColors.actionContractBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffContractListView()),
+          );
         },
       ),
       _QuickActionData(
@@ -116,6 +274,7 @@ class _QuickActionsState extends State<QuickActions> {
           ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
         },
       ),
+      // --- Extended actions when expanded ---
       _QuickActionData(
         title: 'Order History',
         subtitle: 'View receipts',
@@ -129,31 +288,38 @@ class _QuickActionsState extends State<QuickActions> {
         },
       ),
       _QuickActionData(
-        title: 'Shift Swap',
-        subtitle: 'Find colleague',
-        icon: Icons.swap_horiz_rounded,
-        iconColor: AppColors.actionSwapIcon,
-        iconBgColor: AppColors.actionSwapBg,
-        onTap: () async {
-          await Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
-          if (mounted) widget.onShiftsChanged?.call();
+        title: 'Timesheet',
+        subtitle: 'Weekly hours',
+        icon: Icons.calendar_month_outlined,
+        iconColor: AppColors.actionOrderIcon,
+        iconBgColor: AppColors.actionOrderBg,
+        onTap: () {
+          if (widget.onNavigateToTimesheet != null) {
+            widget.onNavigateToTimesheet!();
+          } else {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
+          }
         },
       ),
       _QuickActionData(
-        title: 'Submit Request',
-        subtitle: 'Leave, overtime',
-        icon: Icons.edit_note_rounded,
-        iconColor: AppColors.actionLeaveIcon,
-        iconBgColor: AppColors.actionLeaveBg,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const StaffRequestListView()),
-          );
+        title: 'Work Schedule',
+        subtitle: 'Your shifts and details',
+        icon: Icons.event_note_outlined,
+        iconColor: AppColors.actionRegisterIcon,
+        iconBgColor: AppColors.actionRegisterBg,
+        onTap: () async {
+          if (widget.onNavigateToSchedule != null) {
+            widget.onNavigateToSchedule!();
+          } else {
+            await Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const MyShiftsView()));
+            if (mounted) widget.onShiftsChanged?.call();
+          }
         },
       ),
-      // --- Extended actions when expanded ---
       _QuickActionData(
         title: 'Payslip',
         subtitle: 'View income',
@@ -161,21 +327,13 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionSalaryIcon,
         iconBgColor: AppColors.actionSalaryBg,
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigating to Payslip')),
-          );
-        },
-      ),
-      _QuickActionData(
-        title: 'Contract',
-        subtitle: 'E-documents',
-        icon: Icons.verified_user_rounded,
-        iconColor: AppColors.actionContractIcon,
-        iconBgColor: AppColors.actionContractBg,
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const StaffContractListView()),
-          );
+          if (widget.onNavigateToPayroll != null) {
+            widget.onNavigateToPayroll!();
+          } else {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PayrollHomeView()),
+            );
+          }
         },
       ),
     ];

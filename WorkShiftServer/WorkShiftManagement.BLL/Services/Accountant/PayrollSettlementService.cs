@@ -28,7 +28,7 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
     private static PayrollSettlementSummaryResponse Summary(PayrollSettlementData data, PayrollSettlementPlan plan) => new()
     {
         PayrollPeriodId = data.Period.PayrollPeriodId, PeriodCode = data.Period.PeriodCode, BranchId = data.Period.BranchId,
-        PeriodStatus = data.Period.Status, FeedbackDeadlineAt = PayslipPolicy.FeedbackDeadlineAt(data.Period.EndDate),
+        PeriodStatus = data.Period.Status, FeedbackDeadlineAt = data.Period.InitialFeedbackDeadlineAt ?? data.Period.ApprovedAt ?? data.Period.CreatedAt,
         PaidAt = data.Period.PaidAt, ClosedAt = data.Period.ClosedAt, IsSettled = data.Period.Status is "PAID" or "CLOSED",
         CanConfirmSettlement = data.Period.Status == "APPROVED" && plan.BlockingReasons.Count == 0,
         ExpectedEmployeeCount = data.ExpectedEmployees.Count, UnresolvedFeedbackCount = data.UnresolvedFeedbackCount,
@@ -83,6 +83,8 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
                 data.Period.Status = "CLOSED"; data.Period.ClosedAt = now; data.Period.ClosedBy = actor; data.Period.UpdatedAt = now;
                 repo.Audit(null, "AUTO_CLOSE_PAYROLL_PERIOD", data.Period, now,
                     new { triggeredBy = actor, data.Period.PayrollPeriodId, data.Period.BranchId, data.Period.PaidAt, data.Period.ClosedAt, status = "CLOSED" });
+                repo.Audit(null, "PAYROLL_SYSTEM_EVENT", data.Period, now,
+                    new PayrollSystemMessage(id, data.Period.BranchId, "ADMIN", null, "Kỳ lương đã đóng", $"{data.Period.PeriodCode} đã quyết toán và CLOSED; có thể tra cứu/xuất Excel."));
                 await calculation.SaveAsync(ct);
             }
             response = Summary(data, plan);

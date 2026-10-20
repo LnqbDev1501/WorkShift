@@ -847,7 +847,7 @@ CREATE TABLE public.orders (
     total_amount numeric(18,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
     payment_status varchar(20) NOT NULL DEFAULT 'UNPAID' CHECK (payment_status IN ('UNPAID', 'PAID')),
     paid_at timestamptz,
-    status varchar(20) NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'COMPLETED', 'CANCELLED')),
+    status varchar(20) NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'COMPLETED', 'CANCELLED')),
     note varchar(500),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),

@@ -54,6 +54,19 @@ public sealed class ManagerAttendanceDetailResponse
     public AttendanceRequestSummaryDto? LateArrivalRequest { get; set; }
     public AttendanceRequestSummaryDto? EarlyLeaveRequest { get; set; }
     public AttendanceRequestSummaryDto? LeaveRequest { get; set; }
+
+    // Associated Penalties
+    public System.Collections.Generic.List<AttendancePenaltyDto> Penalties { get; set; } = new();
+}
+
+public sealed class AttendancePenaltyDto
+{
+    public int AttendancePenaltyId { get; set; }
+    public string ViolationType { get; set; } = string.Empty;
+    public int ViolationMinutes { get; set; }
+    public decimal PenaltyAmount { get; set; }
+    public string Status { get; set; } = "APPLIED";
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class AttendanceRequestSummaryDto

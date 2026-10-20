@@ -1,27 +1,314 @@
 @model UI_Admin.Models.PayrollCalculation.CalculatedPayroll
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
-@{ var accountant = User.IsInRole("ACCOUNTANT"); var preview = Model.Status == "PREVIEW"; var embedded = ViewData["EmbeddedPayrollReview"] as bool? == true; }
-<div class="@(embedded ? "" : "payroll-page")">
-    @if (!preview && !embedded) { <a asp-controller="@(accountant ? "AccountantPayrollRevision" : "AdminPayrollRevision")" asp-action="Review" asp-route-id="@Model.PayrollId" class="payroll-button mb-4">Submission / Correction & Version History</a> }
+@{
+    var accountant = User.IsInRole("ACCOUNTANT");
+    var preview = Model.Status == "PREVIEW";
+    var embedded = ViewData["EmbeddedPayrollReview"] as bool? == true;
+}
+
+<div class="@(embedded ? "space-y-5" : "px-7 py-6 max-w-[1400px] mx-auto space-y-6")">
     @if (!embedded)
     {
-    <header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · @(preview ? "CALCULATION PREVIEW" : "SAVED CALCULATION DETAILS")</div><h1>@Model.EmployeeName</h1><p>@Model.BranchName · @Model.EmployeePosition · @(preview ? "Preview · Not saved" : "Payroll #" + Model.PayrollId + " · Version " + Model.VersionNo)</p></div>@if (!preview) { <a asp-action="Index" asp-route-id="@Model.PayrollPeriodId" class="payroll-button">Back to employee payrolls</a> }</header>
+        <!-- Header Title & Action Bar -->
+        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                    <span class="material-symbols-outlined text-sm">badge</span>
+                    <span>Payroll / @(preview ? "Calculation Preview" : "Employee Details")</span>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@Model.EmployeeName</h1>
+                    @if (preview)
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            PREVIEW
+                        </span>
+                    }
+                    else if (Model.Status == "CALCULATED")
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                            CALCULATED
+                        </span>
+                    }
+                    else if (Model.Status == "REJECTED")
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            REJECTED
+                        </span>
+                    }
+                    else if (Model.Status == "APPROVED")
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            APPROVED
+                        </span>
+                    }
+                    else if (Model.Status == "PAID")
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                            PAID
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                            @Model.Status.Replace('_', ' ')
+                        </span>
+                    }
+                </div>
+                <p class="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
+                    <span class="font-medium text-slate-700">@Model.BranchName</span>
+                    <span>•</span>
+                    <span>@(Model.EmployeePosition ?? "Employee")</span>
+                    <span>•</span>
+                    <span>@(preview ? "In-Memory Preview • Not Saved" : $"Payroll #{Model.PayrollId} • Version {Model.VersionNo}")</span>
+                </p>
+            </div>
+
+            <div class="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <a asp-controller="AccountantPayrollPeriods" asp-action="Details" asp-route-id="@Model.PayrollPeriodId"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-base">calendar_month</span>
+                    <span>Period Details</span>
+                </a>
+                <a asp-controller="AccountantPayrollCalculation" asp-action="Index" asp-route-id="@Model.PayrollPeriodId"
+                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                    <span class="material-symbols-outlined text-base">calculate</span>
+                    <span>Workspace</span>
+                </a>
+                @if (!preview)
+                {
+                    <a asp-controller="@(accountant ? "AccountantPayrollRevision" : "AdminPayrollRevision")" asp-action="Review" asp-route-id="@Model.PayrollId"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all">
+                        <span class="material-symbols-outlined text-base">rate_review</span>
+                        <span>Correction &amp; Revision</span>
+                    </a>
+                }
+            </div>
+        </div>
     }
-    <div class="calculation-money-summary">
-        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] { new("Work Pay", D.Money(Model.WorkPay), Model.TotalWorkHours.ToString("0.############################") + " hours", "schedule"), new("Rewards", D.Money(Model.TotalReward), "Included rewards", "workspace_premium"), new("Applied Deduction", D.Money(Model.TotalDeduction), "Amount applied in this period", "remove_circle"), new("Net Salary", D.Money(Model.NetSalary), Model.Status, "payments") })' />
+
+    <!-- 4 KPI SUMMARY CARDS (Manager Style) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Work Pay -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Work Pay</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">schedule</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(Model.WorkPay)</div>
+                <div class="text-xs text-slate-400 mt-1">
+                    @Model.TotalWorkHours.ToString("0.##") Total Work Hours
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Total Rewards -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Total Rewards</span>
+                <span class="material-symbols-outlined text-emerald-600 text-lg">workspace_premium</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-emerald-700 tracking-tight">@D.Money(Model.TotalReward)</div>
+                <div class="text-xs text-slate-400 mt-1">
+                    Bonuses &amp; Allowances Included
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Total Deductions -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Total Deductions</span>
+                <span class="material-symbols-outlined text-rose-600 text-lg">remove_circle</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-rose-700 tracking-tight">@D.Money(Model.TotalDeduction)</div>
+                <div class="text-xs text-slate-400 mt-1">
+                    Penalties &amp; Applied Carry Forward
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Net Salary -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Net Salary</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">payments</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(Model.NetSalary)</div>
+                <div class="text-xs text-slate-400 mt-1">
+                    Gross: @D.Money(Model.GrossSalary)
+                </div>
+            </div>
+        </div>
     </div>
-    @if (!embedded && Model.RejectReason != null) { <div class="payroll-message error" role="alert"><strong>@Model.RejectionCategory</strong>: @Model.RejectReason</div> }
-    @if (!embedded && Model.CorrectionReason != null) { <p class="payroll-compliance">Correction: @Model.CorrectionReason · Previous Payroll #@Model.PreviousPayrollId</p> }
-    <section class="bg-surface-container-lowest rounded-xl p-5 mb-5"><h2 class="font-semibold mb-4">Calculation Summary</h2><dl class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><dt class="text-xs text-secondary">Hourly rate snapshot</dt><dd>@D.Money(Model.HourlyRate) / hour</dd></div><div><dt class="text-xs text-secondary">Gross salary</dt><dd>@D.Money(Model.GrossSalary)</dd></div><div><dt class="text-xs text-secondary">Old Carry Forward applied</dt><dd>@D.Money(Model.CarryForwardDeduction)</dd></div>
-        <div><dt class="text-xs text-secondary">New penalties (full amount)</dt><dd>@D.Money(Model.TotalPenalty)</dd></div><div><dt class="text-xs text-secondary">Attendance deduction (full amount)</dt><dd>@D.Money(Model.AttendanceDeduction)</dd></div><div><dt class="text-xs text-secondary">New deduction deferred to next period</dt><dd>@D.Money(Model.DeferredDeductionAmount)</dd></div>
-        <div><dt class="text-xs text-secondary">Locked timesheet source</dt><dd>#@Model.TimesheetId</dd></div><div><dt class="text-xs text-secondary">Salary history source</dt><dd>@if (accountant) { <a asp-controller="AccountantSalaryHistory" asp-action="Details" asp-route-id="@Model.SalaryHistoryId" class="text-primary">#@Model.SalaryHistoryId</a> } else { <span>#@Model.SalaryHistoryId</span> }</dd></div><div><dt class="text-xs text-secondary">Calculated at (UTC+7)</dt><dd>@D.Time(Model.CalculatedAt)</dd></div>
-        <div><dt class="text-xs text-secondary">Submitted at (UTC+7)</dt><dd>@D.Time(Model.SubmittedAt)</dd></div><div><dt class="text-xs text-secondary">Approved at (UTC+7)</dt><dd>@D.Time(Model.ApprovedAt)</dd></div><div><dt class="text-xs text-secondary">Paid at (UTC+7)</dt><dd>@D.Time(Model.PaidAt)</dd></div>
-    </dl></section>
-    <aside class="payroll-compliance"><div><strong>@(preview ? "Preview Calculation — Not Saved" : "Saved Calculation")</strong><small>Gross = work pay + rewards. Net = gross − applied deductions. Carry Forward is recorded as applied when the period is settled.</small></div></aside>
-    <section class="payroll-table-card"><div class="payroll-table-toolbar"><strong>Payroll Calculation Details</strong><span>@Model.Details.Count lines</span></div><div class="payroll-table-scroll"><table><thead><tr><th>TYPE / DESCRIPTION</th><th>WORK DATES</th><th>QUANTITY</th><th class="money">RATE</th><th>MULTIPLIER</th><th class="money">FULL AMOUNT</th><th class="money">APPLIED AMOUNT</th><th>SOURCES</th></tr></thead><tbody>
-        @foreach (var line in Model.Details.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId))
-        { <tr><td><strong>@line.Description</strong><small>@line.Type · @line.ItemCode</small>@if (line.Note != null) { <small>@line.Note</small> }</td><td>@(line.WorkFrom?.ToString("dd/MM/yyyy") ?? "—")<small>@line.WorkTo?.ToString("dd/MM/yyyy")</small></td><td>@(line.Quantity?.ToString("0.############################") ?? "—")</td><td class="money">@(line.Rate.HasValue ? D.Money(line.Rate.Value) : "—")</td><td>@line.Multiplier.ToString("0.############################")</td><td class="money">@D.Money(line.Amount)</td><td class="money">@(line.AppliedAmount.HasValue ? D.Money(line.AppliedAmount.Value) : "—")</td><td>@if (line.SalaryHistoryId.HasValue) { <small>Salary #@line.SalaryHistoryId</small> }@if (line.PublicHolidayId.HasValue) { <small>Holiday #@line.PublicHolidayId</small> }@if (line.HolidayPayRuleId.HasValue) { <small>Rule #@line.HolidayPayRuleId</small> }@if (line.RewardPenaltyId.HasValue) { <small>Reward/Penalty #@line.RewardPenaltyId</small> }@if (line.AttendancePenaltyId.HasValue) { <small>Attendance deduction #@line.AttendancePenaltyId</small> }@if (line.CarryForwardId.HasValue) { <small>Carry Forward #@line.CarryForwardId</small> }</td></tr> }
-        @if (Model.Details.Count == 0) { <tr><td colspan="8" class="payroll-empty">No calculation details recorded.</td></tr> }
-    </tbody></table></div></section>
+
+    @if (!embedded && Model.RejectReason != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0 mt-0.5">cancel</span>
+            <div>
+                <strong class="font-bold">Rejected by Admin [@Model.RejectionCategory]:</strong>
+                <p class="mt-0.5 text-rose-800">@Model.RejectReason</p>
+            </div>
+        </div>
+    }
+
+    @if (!embedded && Model.CorrectionReason != null)
+    {
+        <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-indigo-600 text-xl shrink-0 mt-0.5">sync</span>
+            <div>
+                <strong class="font-bold">Revision Notice:</strong>
+                <p class="mt-0.5 text-indigo-800">
+                    Reason: @Model.CorrectionReason • Successor of Payroll #@Model.PreviousPayrollId
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Calculation Parameters Snapshot Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
+            <span class="material-symbols-outlined text-indigo-600 text-lg">tune</span>
+            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Calculation Parameters &amp; Audit Sources</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Hourly Rate Snapshot</span>
+                <strong class="text-sm text-slate-900">@D.Money(Model.HourlyRate)/hour</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Gross Salary</span>
+                <strong class="text-sm text-slate-900">@D.Money(Model.GrossSalary)</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Carry Forward Deducted</span>
+                <strong class="text-sm text-slate-900">@D.Money(Model.CarryForwardDeduction)</strong>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Full Penalty Amount</span>
+                <strong class="text-sm text-slate-900">@D.Money(Model.TotalPenalty)</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Attendance Deductions</span>
+                <strong class="text-sm text-slate-900">@D.Money(Model.AttendanceDeduction)</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Deferred to Next Period</span>
+                <strong class="text-sm text-amber-700">@D.Money(Model.DeferredDeductionAmount)</strong>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Locked Timesheet Source</span>
+                <strong class="text-sm text-slate-900">Timesheet #@Model.TimesheetId</strong>
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Salary History Source</span>
+                @if (accountant)
+                {
+                    <a asp-controller="AccountantSalaryHistory" asp-action="Details" asp-route-id="@Model.SalaryHistoryId" class="text-indigo-600 hover:underline font-bold text-sm">
+                        Record #@Model.SalaryHistoryId
+                    </a>
+                }
+                else
+                {
+                    <strong class="text-sm text-slate-900">Record #@Model.SalaryHistoryId</strong>
+                }
+            </div>
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Calculation Timestamp (UTC+7)</span>
+                <strong class="text-sm text-slate-900">@D.Time(Model.CalculatedAt)</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Breakdown Table (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">list_alt</span>
+                <h2 class="text-sm font-bold text-slate-900">Calculation Breakdown Lines</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Details.Count @(Model.Details.Count == 1 ? "Line" : "Lines")
+                </span>
+            </div>
+        </div>
+
+        @if (Model.Details.Count == 0)
+        {
+            <div class="p-12 text-center text-slate-500 text-sm">
+                No calculation breakdown details recorded.
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Type / Description</th>
+                            <th class="py-3.5 px-6">Work Dates</th>
+                            <th class="py-3.5 px-6">Quantity</th>
+                            <th class="py-3.5 px-6 text-right">Rate</th>
+                            <th class="py-3.5 px-6 text-right">Multiplier</th>
+                            <th class="py-3.5 px-6 text-right">Full Amount</th>
+                            <th class="py-3.5 px-6 text-right">Applied Amount</th>
+                            <th class="py-3.5 px-6">Sources</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var line in Model.Details.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId))
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-900">@line.Description</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">@line.Type • @line.ItemCode</div>
+                                    @if (!string.IsNullOrEmpty(line.Note))
+                                    {
+                                        <div class="text-[11px] text-slate-500 italic mt-0.5">@line.Note</div>
+                                    }
+                                </td>
+                                <td class="py-4 px-6 text-xs text-slate-600">
+                                    @(line.WorkFrom?.ToString("dd/MM/yyyy") ?? "—")
+                                    @if (line.WorkTo.HasValue && line.WorkTo != line.WorkFrom)
+                                    {
+                                        <span class="block text-[11px] text-slate-400">to @line.WorkTo.Value.ToString("dd/MM/yyyy")</span>
+                                    }
+                                </td>
+                                <td class="py-4 px-6 font-medium text-slate-800 text-xs">
+                                    @(line.Quantity?.ToString("0.##") ?? "—")
+                                </td>
+                                <td class="py-4 px-6 text-right font-medium text-slate-800 text-xs">
+                                    @(line.Rate.HasValue ? D.Money(line.Rate.Value) : "—")
+                                </td>
+                                <td class="py-4 px-6 text-right font-medium text-slate-800 text-xs">
+                                    @line.Multiplier.ToString("0.##")x
+                                </td>
+                                <td class="py-4 px-6 text-right font-semibold text-slate-900 text-xs">
+                                    @D.Money(line.Amount)
+                                </td>
+                                <td class="py-4 px-6 text-right font-bold text-slate-900 text-xs">
+                                    @(line.AppliedAmount.HasValue ? D.Money(line.AppliedAmount.Value) : "—")
+                                </td>
+                                <td class="py-4 px-6 text-[11px] text-slate-500 space-y-0.5">
+                                    @if (line.SalaryHistoryId.HasValue) { <div>Salary #@line.SalaryHistoryId</div> }
+                                    @if (line.PublicHolidayId.HasValue) { <div>Holiday #@line.PublicHolidayId</div> }
+                                    @if (line.HolidayPayRuleId.HasValue) { <div>Rule #@line.HolidayPayRuleId</div> }
+                                    @if (line.RewardPenaltyId.HasValue) { <div>Bonus/Penalty #@line.RewardPenaltyId</div> }
+                                    @if (line.AttendancePenaltyId.HasValue) { <div>Attendance #@line.AttendancePenaltyId</div> }
+                                    @if (line.CarryForwardId.HasValue) { <div>CF #@line.CarryForwardId</div> }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
 </div>

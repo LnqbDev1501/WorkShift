@@ -47,6 +47,8 @@ public partial class Branch
 
     public virtual ICollection<RequestLimitRule> RequestLimitRules { get; set; } = new List<RequestLimitRule>();
 
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequests { get; set; } = new List<SalaryChangeRequest>();
+
     public virtual ICollection<User> UserBranches { get; set; } = new List<User>();
 
     public virtual ICollection<User> UserPreviousBranches { get; set; } = new List<User>();
