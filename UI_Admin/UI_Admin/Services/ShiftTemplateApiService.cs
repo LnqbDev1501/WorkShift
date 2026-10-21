@@ -16,7 +16,6 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
                 shiftName = model.ShiftName?.Trim(),
                 model.StartTime,
                 model.EndTime,
-                model.BreakMinutes,
                 description = model.Description?.Trim()
             }, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.OK) return (true, null, false);
@@ -83,7 +82,6 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
                 shiftName = model.ShiftName?.Trim(),
                 model.StartTime,
                 model.EndTime,
-                model.BreakMinutes,
                 description = model.Description?.Trim()
             }, cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.Created)

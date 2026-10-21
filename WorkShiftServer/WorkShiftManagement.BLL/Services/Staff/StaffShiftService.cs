@@ -62,6 +62,9 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
             ValidateStaff(lockedStaff, branchId);
             ValidateEmployeeType(lockedStaff);
             ValidateRegistrationWindow(shift);
+            // This query participates in the assignment's serializable transaction, so a stale list cannot authorize registration.
+            if (!await repo.HasRegistrationContractAsync(staffId, branchId, shiftId, DateTime.UtcNow, ct))
+                throw new InvalidOperationException("You must have an accepted, ACTIVE employment contract in this branch that is effective now and covers the entire shift. Shifts before the contract start date, after its end date, or on/after its termination date cannot be registered.");
             var requirement = shift.ShiftEmployeeRequirements.SingleOrDefault(r => r.EmployeeTypeId == lockedStaff.EmployeeTypeId)
                 ?? throw new InvalidOperationException("The shift does not require your employee type.");
             if (requirement.RequiredCount <= 0 || requirement.EmployeeType.Status != "ACTIVE")
@@ -154,12 +157,8 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
         if (shift.Status != "SCHEDULED" || shift.ScheduledStartAt <= now || shift.ScheduledEndAt <= shift.ScheduledStartAt)
             throw new InvalidOperationException("Registration is closed, the shift has already started, or the shift is no longer available.");
 
-        var weekStatus = shift.ScheduleWeek.Status;
-        bool isOpenRegistration = weekStatus == "OPEN_REGISTRATION" && shift.ScheduleWeek.RegistrationDeadline > now;
-        bool isOpenShiftPickup = weekStatus is "PUBLISHED" or "IN_PROGRESS";
-
-        if (!isOpenRegistration && !isOpenShiftPickup)
-            throw new InvalidOperationException("Registration is closed, the deadline has passed, or the shift is no longer available.");
+        if (shift.ScheduleWeek.Status != "OPEN_REGISTRATION" || shift.ScheduleWeek.RegistrationDeadline <= now)
+            throw new InvalidOperationException("Shift registration and cancellation are only allowed during OPEN_REGISTRATION and before the registration deadline.");
     }
 
     private static void ValidateShiftId(int shiftId)
@@ -206,7 +205,7 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
             MyRegistration = own == null ? null : MapRegistration(own),
             CanCancelRegistration = blockedReason == null,
             CancellationBlockedReason = blockedReason,
-            IsOpenShift = shift.ScheduleWeek.Status is "PUBLISHED" or "IN_PROGRESS",
+            IsOpenShift = false,
             EmployeeRequirements = shift.ShiftEmployeeRequirements.OrderBy(r => r.EmployeeTypeId).Select(r =>
             {
                 var count = shift.ShiftAssignments.Count(a => a.ShiftRequirementId == r.ShiftRequirementId &&

@@ -12,7 +12,6 @@ public sealed class ShiftTemplateOptionResponse
     public string Name { get; set; } = "";
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
-    public int BreakMinutes { get; set; }
 }
 public sealed class ShiftTypeOptionResponse
 {

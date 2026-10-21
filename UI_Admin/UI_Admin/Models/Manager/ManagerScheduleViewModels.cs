@@ -30,7 +30,6 @@ public sealed class ScheduleWeekShiftResponse
     public string ShiftName { get; set; } = string.Empty;
     public DateTime ScheduledStartAt { get; set; }
     public DateTime ScheduledEndAt { get; set; }
-    public int BreakMinutes { get; set; }
     public string? Note { get; set; }
     public string Status { get; set; } = string.Empty;
     public int RequiredEmployees { get; set; }

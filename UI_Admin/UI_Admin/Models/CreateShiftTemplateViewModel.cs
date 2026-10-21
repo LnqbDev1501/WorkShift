@@ -23,11 +23,6 @@ public class CreateShiftTemplateViewModel : IValidatableObject
     [Display(Name = "End Time (24h)")]
     public string? EndTime { get; set; }
 
-    [Required(ErrorMessage = "Break minutes is required.")]
-    [Range(0, int.MaxValue, ErrorMessage = "Break minutes must be a non-negative whole number.")]
-    [Display(Name = "Break Duration (Minutes)")]
-    public int? BreakMinutes { get; set; }
-
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (TimeOnly.TryParseExact(StartTime, "HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start)
@@ -35,8 +30,6 @@ public class CreateShiftTemplateViewModel : IValidatableObject
         {
             if (end <= start)
                 yield return new ValidationResult("End time must be later than start time on the same day. Overnight shifts are not supported.", [nameof(EndTime)]);
-            else if (BreakMinutes.HasValue && BreakMinutes.Value >= (end - start).TotalMinutes)
-                yield return new ValidationResult("Break duration must be shorter than the shift duration.", [nameof(BreakMinutes)]);
         }
     }
 }

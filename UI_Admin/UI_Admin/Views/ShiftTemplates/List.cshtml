@@ -15,7 +15,7 @@
 <div class="shift-page">
     <section class="shift-content" aria-labelledby="shift-heading">
         <div class="shift-heading">
-            <div><div class="list-eyebrow">Enterprise Schedule Directory</div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift hours and break durations.</p></div>
+            <div><div class="list-eyebrow">Enterprise Schedule Directory</div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift start and end times.</p></div>
             <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
         </div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
@@ -52,8 +52,8 @@ new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", 
             {
                 <div class="shift-table-wrap">
                     <table class="shift-table">
-                        <colgroup><col class="shift-name-column" /><col /><col /><col /><col /><col /><col /></colgroup>
-                        <thead><tr><th scope="col">Shift Name</th><th scope="col">Start Time</th><th scope="col">End Time</th><th scope="col">Break Minutes</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col" class="shift-actions">Actions</th></tr></thead>
+                        <colgroup><col class="shift-name-column" /><col /><col /><col /><col /><col /></colgroup>
+                        <thead><tr><th scope="col">Shift Name</th><th scope="col">Start Time</th><th scope="col">End Time</th><th scope="col">Status</th><th scope="col">Created</th><th scope="col" class="shift-actions">Actions</th></tr></thead>
                         <tbody>
                         @foreach (var item in Model.Result.Items)
                         {
@@ -61,7 +61,6 @@ new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", 
                                 <td><strong>@item.ShiftName</strong></td>
                                 <td class="shift-number">@item.StartTime.ToString("HH:mm:ss")</td>
                                 <td class="shift-number">@item.EndTime.ToString("HH:mm:ss")</td>
-                                <td class="shift-number">@item.BreakMinutes mins</td>
                                 <td><span class="shift-status @(item.IsActive ? "is-active" : "is-inactive")"><span aria-hidden="true">●</span> @(item.IsActive ? "Active" : item.Status == "INACTIVE" ? "Inactive" : item.Status)</span></td>
                                 <td class="shift-created">
                                     @if (item.CreatedAt is DateTime createdAt)

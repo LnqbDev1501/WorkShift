@@ -29,7 +29,6 @@ public sealed class ShiftTemplatesController(
                 Description = template.Description,
                 StartTime = template.StartTime.ToString("HH:mm:ss"),
                 EndTime = template.EndTime.ToString("HH:mm:ss"),
-                BreakMinutes = template.BreakMinutes,
                 Status = template.Status,
                 CreatedAt = template.CreatedAt,
                 UpdatedAt = template.UpdatedAt
@@ -137,8 +136,7 @@ public sealed class ShiftTemplatesController(
     public IActionResult Create() => View(new CreateShiftTemplateViewModel
     {
         StartTime = "08:00:00",
-        EndTime = "16:30:00",
-        BreakMinutes = 45
+        EndTime = "16:30:00"
     });
 
     [HttpPost]

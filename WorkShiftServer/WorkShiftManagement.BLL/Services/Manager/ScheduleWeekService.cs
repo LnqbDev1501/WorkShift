@@ -348,7 +348,6 @@ public sealed class ScheduleWeekService(IScheduleWeekRepo scheduleWeekRepo) : IS
             ShiftName = shift.ShiftNameSnapshot,
             ScheduledStartAt = shift.ScheduledStartAt,
             ScheduledEndAt = shift.ScheduledEndAt,
-            BreakMinutes = 0,
             Note = shift.Note,
             Status = shift.Status,
             RequiredEmployees = requirements.Sum(requirement => requirement.RequiredCount),

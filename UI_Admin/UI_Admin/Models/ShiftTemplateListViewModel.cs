@@ -46,7 +46,6 @@ public sealed class ShiftTemplateListItem
     public string ShiftName { get; set; } = string.Empty;
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
-    public int BreakMinutes { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime? CreatedAt { get; set; }
     public bool IsActive => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
