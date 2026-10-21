@@ -153,26 +153,16 @@ class AvailableShiftsController extends ChangeNotifier {
     if (shift.status != 'SCHEDULED' || !shift.scheduledStartAt.isAfter(now)) {
       return false;
     }
-    if (shift.scheduleWeekStatus == 'OPEN_REGISTRATION') {
-      return shift.registrationDeadline.isAfter(now);
-    }
-    if (shift.scheduleWeekStatus == 'PUBLISHED' ||
-        shift.scheduleWeekStatus == 'IN_PROGRESS' ||
-        shift.isOpenShift) {
-      return true;
-    }
-    return false;
+    return shift.scheduleWeekStatus == 'OPEN_REGISTRATION' &&
+        shift.registrationDeadline.isAfter(now) &&
+        shift.scheduledEndAt.isAfter(shift.scheduledStartAt);
   }
 
   bool isClosingSoon(AvailableShiftModel shift) {
     if (!isOpen(shift)) return false;
     final now = _now().toUtc();
-    if (shift.scheduleWeekStatus == 'OPEN_REGISTRATION') {
-      return shift.registrationDeadline.difference(now) <=
-          const Duration(hours: 24);
-    }
-    // Đối với Open Shift trong tuần đã phát hành, nếu ca bắt đầu trong vòng 24h thì báo sắp đóng
-    return shift.scheduledStartAt.difference(now) <= const Duration(hours: 24);
+    return shift.registrationDeadline.difference(now) <=
+        const Duration(hours: 24);
   }
 
   Future<void> _loadFirstPage({required bool clearItems, bool silent = false}) async {

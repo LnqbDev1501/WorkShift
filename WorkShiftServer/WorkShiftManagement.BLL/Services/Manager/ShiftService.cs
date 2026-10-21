@@ -18,7 +18,7 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
         return new ShiftOptionsResponse
         {
             Templates = templates.Select(x => new ShiftTemplateOptionResponse { Id = x.ShiftTemplateId, Name = x.ShiftName,
-                StartTime = x.StartTime, EndTime = x.EndTime, BreakMinutes = 0 }).ToList(),
+                StartTime = x.StartTime, EndTime = x.EndTime }).ToList(),
             EmployeeTypes = types.Select(x => new ShiftTypeOptionResponse { Id = x.EmployeeTypeId, Name = x.TypeName }).ToList(),
             Staff = staff.Select(x => new ShiftStaffOptionResponse { UserId = x.UserId, FullName = x.FullName,
                 EmployeeTypeId = x.EmployeeTypeId!.Value, EmployeeTypeName = x.EmployeeType!.TypeName }).ToList()
@@ -200,7 +200,7 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
             ShiftId = shift.ShiftId, ScheduleWeekId = shift.ScheduleWeekId,
             ShiftTemplateId = shift.ShiftTemplateId, ShiftName = shift.ShiftNameSnapshot,
             ScheduledStartAt = shift.ScheduledStartAt, ScheduledEndAt = shift.ScheduledEndAt,
-            BreakMinutes = 0, Note = shift.Note, Status = shift.Status,
+            Note = shift.Note, Status = shift.Status,
             CreatedAt = shift.CreatedAt, UpdatedAt = shift.UpdatedAt,
             EmployeeRequirements = shift.ShiftEmployeeRequirements.OrderBy(x => x.EmployeeTypeId).Select(r =>
                 new ShiftEmployeeRequirementResponse

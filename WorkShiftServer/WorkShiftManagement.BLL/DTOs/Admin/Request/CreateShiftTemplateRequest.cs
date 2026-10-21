@@ -11,8 +11,6 @@ public sealed class CreateShiftTemplateRequest : IValidatableObject
 
     public string? EndTime { get; set; }
 
-    public int? BreakMinutes { get; set; }
-
     public string? Description { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -43,16 +41,6 @@ public sealed class CreateShiftTemplateRequest : IValidatableObject
         else if (validStart && validEnd && end < start)
             yield return new ValidationResult("endTime must be later than startTime on the same day. Overnight shifts are not supported.", [nameof(EndTime)]);
 
-        if (BreakMinutes is null)
-            yield return new ValidationResult("breakMinutes is required. Provide a whole number such as 30, or 0 for no break.", [nameof(BreakMinutes)]);
-        else if (BreakMinutes < 0)
-            yield return new ValidationResult("breakMinutes must not be negative. Use 0 for no break.", [nameof(BreakMinutes)]);
-        else if (validStart && validEnd && end > start && BreakMinutes == (end - start).TotalMinutes)
-            yield return new ValidationResult("breakMinutes must not equal the entire shift duration. Reduce the break to leave working time.", [nameof(BreakMinutes)]);
-        else if (validStart && validEnd && end > start && BreakMinutes > (end - start).TotalMinutes)
-            yield return new ValidationResult(FormattableString.Invariant(
-                $"breakMinutes must be shorter than the shift duration. Enter a whole number between 0 and {Math.Ceiling((end - start).TotalMinutes) - 1:0}."), [nameof(BreakMinutes)]);
-
         if (Description?.Length > 500)
             yield return new ValidationResult("description must not exceed 500 characters. Shorten it or omit this optional field.", [nameof(Description)]);
     }
@@ -61,7 +49,6 @@ public sealed class CreateShiftTemplateRequest : IValidatableObject
     {
         "starttime" => "startTime must be a JSON string in HH:mm:ss format, for example '08:00:00'.",
         "endtime" => "endTime must be a JSON string in HH:mm:ss format, for example '16:00:00'.",
-        "breakminutes" => "breakMinutes must be a whole number between 0 and 2147483647, for example 30. Decimals, text, objects and arrays are not allowed.",
         "shiftname" => "shiftName must be a JSON string, for example 'Morning Shift'.",
         "description" => "description must be a JSON string or null.",
         _ => "The request body must be a valid JSON object. Use double quotes for property names and string values, and check commas and braces."

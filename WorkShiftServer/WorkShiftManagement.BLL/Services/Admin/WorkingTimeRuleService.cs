@@ -40,10 +40,10 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
         Map(await _workingTimeRuleRepo.UpdateDraftAsync(id, CreateValues(request), cancellationToken));
 
     public Task DeleteAsync(int id, CancellationToken cancellationToken) => _workingTimeRuleRepo.DeleteDraftAsync(id, cancellationToken);
-    public async Task<WorkingTimeRuleResponse> PublishAsync(int id, CancellationToken cancellationToken) =>
-        Map(await _workingTimeRuleRepo.PublishAsync(id, cancellationToken));
-    public async Task<WorkingTimeRuleResponse> CancelAsync(int id, CancellationToken cancellationToken) =>
-        Map(await _workingTimeRuleRepo.CancelAsync(id, cancellationToken));
+    public async Task<WorkingTimeRuleResponse> PublishAsync(int id, Guid actor, CancellationToken cancellationToken) =>
+        Map(await _workingTimeRuleRepo.PublishAsync(id, actor, cancellationToken));
+    public async Task<WorkingTimeRuleResponse> CancelAsync(int id, Guid actor, CancellationToken cancellationToken) =>
+        Map(await _workingTimeRuleRepo.CancelAsync(id, actor, cancellationToken));
     public Task ActivateDueAsync(CancellationToken cancellationToken) => _workingTimeRuleRepo.ActivateDueAsync(cancellationToken);
 
     private static WorkingTimeRule CreateValues(WorkingTimeRuleRequest request)

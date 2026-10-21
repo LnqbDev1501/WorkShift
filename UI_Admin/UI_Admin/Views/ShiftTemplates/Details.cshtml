@@ -39,10 +39,8 @@
                     <h2 id="timing-heading"><span class="material-symbols-outlined" aria-hidden="true">schedule</span> Shift Schedule &amp; Timing <small>24H FORMAT</small></h2>
                     <div class="detail-metrics">
                         <div><span>Start Time</span><strong>@Model.StartTime.ToString("HH:mm:ss")</strong><small>Shift begins</small></div>
-                        <div><span>End Time</span><strong>@Model.EndTime.ToString("HH:mm:ss")</strong><small>@(Model.EndTime < Model.StartTime ? "Next day" : "Shift ends")</small></div>
-                        <div><span>Break Duration</span><strong>@Model.BreakMinutes <small>min</small></strong><small>Scheduled rest time</small></div>
-                        <div><span>Total Elapsed Shift</span><strong>@UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.TotalMinutes)</strong><small>Including breaks</small></div>
-                        <div class="detail-net"><span>Net Working Time</span><strong>@UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.NetMinutes)</strong><small>Total shift minus break duration</small></div>
+                        <div><span>End Time</span><strong>@Model.EndTime.ToString("HH:mm:ss")</strong><small>Shift ends</small></div>
+                        <div><span>Working Duration</span><strong>@UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.TotalMinutes)</strong><small>Start to end</small></div>
                     </div>
                 </section>
                 <section class="detail-card" aria-labelledby="description-heading">
@@ -62,13 +60,11 @@
                 <section class="detail-card">
                     <p class="detail-eyebrow">Shift Composition</p><h2>Daily Timeline View</h2>
                     <div class="detail-timeline">
-                        <div class="detail-time-labels"><span>@Model.StartTime.ToString("HH:mm:ss")</span><span>@Model.EndTime.ToString("HH:mm:ss")@(Model.EndTime < Model.StartTime ? " (+1 day)" : "")</span></div>
-                        <div class="detail-bar" role="img" aria-label="Work @UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.NetMinutes), break @Model.BreakMinutes minutes"><span style="width: @(Model.WorkPercent)%"></span></div>
-                        <div class="detail-legend"><span><i></i> Working time</span><strong>@((Model.NetMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture)) hrs</strong></div>
-                        <div class="detail-legend"><span><i class="detail-break"></i> Rest / break</span><strong>@Model.BreakMinutes min</strong></div>
+                        <div class="detail-time-labels"><span>@Model.StartTime.ToString("HH:mm:ss")</span><span>@Model.EndTime.ToString("HH:mm:ss")</span></div>
+                        <div class="detail-bar" role="img" aria-label="Working duration @UI_Admin.Models.ShiftTemplateDetailViewModel.Duration(Model.TotalMinutes)"><span style="width: 100%"></span></div>
+                        <div class="detail-legend"><span><i></i> Working time</span><strong>@((Model.TotalMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture)) hrs</strong></div>
                     </div>
-                    <p class="detail-help">The bar shows the proportion of work and break time. The template does not specify when the break starts.</p>
-                    <div class="detail-summary"><div><span>Total Shift</span><strong>@((Model.TotalMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture))h</strong></div><div><span>Break</span><strong>@Model.BreakMinutes m</strong></div><div><span>Net Work</span><strong>@((Model.NetMinutes / 60).ToString("0.##", CultureInfo.InvariantCulture))h</strong></div></div>
+                    <p class="detail-help">Working duration is the time between the start and end of the shift.</p>
                 </section>
                 <section class="detail-card detail-utilities"><h2><span class="material-symbols-outlined" aria-hidden="true">print</span> Administrative Utilities</h2><p class="detail-help">Print a copy of this shift template for reference.</p><button type="button" id="print-template" class="detail-button"><span class="material-symbols-outlined" aria-hidden="true">print</span> Print Sheet</button></section>
             </aside>

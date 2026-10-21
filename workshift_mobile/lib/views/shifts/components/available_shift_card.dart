@@ -51,9 +51,7 @@ class AvailableShiftCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              if (shift.isOpenShift && isOpen)
-                StatusBadge.warning(text: 'Cần người thay')
-              else if (isOpen)
+              if (isOpen)
                 StatusBadge.success(text: 'Open')
               else
                 StatusBadge.neutral(text: 'Closed'),
@@ -190,22 +188,20 @@ class AvailableShiftCard extends StatelessWidget {
               Icon(
                 Icons.schedule_rounded,
                 size: 15,
-                color: isClosingSoon || shift.isOpenShift
+                color: isClosingSoon
                     ? AppColors.warning
                     : AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  shift.isOpenShift
-                      ? 'Ca mở cần người làm thay · Nhận trước ${ShiftDisplayFormat.deadline(shift.scheduledStartAt)}'
-                      : '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
+                  '${isClosingSoon ? 'Closing soon · ' : 'Register by '}${ShiftDisplayFormat.deadline(shift.registrationDeadline)}',
                   style: TextStyle(
                     fontSize: 11,
-                    fontWeight: isClosingSoon || shift.isOpenShift
+                    fontWeight: isClosingSoon
                         ? FontWeight.w600
                         : FontWeight.normal,
-                    color: isClosingSoon || shift.isOpenShift
+                    color: isClosingSoon
                         ? AppColors.warning
                         : AppColors.textSecondary,
                   ),
@@ -218,7 +214,7 @@ class AvailableShiftCard extends StatelessWidget {
             builder: (context, constraints) {
               final register = AppButton(
                 text: isOpen
-                    ? (shift.isOpenShift ? 'Nhận ca (Pick up)' : 'Register for shift')
+                    ? 'Register for shift'
                     : 'Registration closed',
                 height: 46,
                 borderRadius: 10,

@@ -29,9 +29,9 @@ public sealed class StaffShiftRepo(AppDbContext context) : IStaffShiftRepo
         var query = context.WorkShifts.Where(s => s.ScheduleWeek.Status != "DRAFT");
         if (availableOnly)
         {
+            query = StaffShiftContractPolicy.EligibleShifts(query, context.EmploymentContracts, staffId, branchId, now);
             query = query.Where(s => s.ScheduleWeek.BranchId == branchId && s.Status == "SCHEDULED" &&
-                ((s.ScheduleWeek.Status == "OPEN_REGISTRATION" && s.ScheduleWeek.RegistrationDeadline > now) ||
-                 (s.ScheduleWeek.Status == "PUBLISHED" || s.ScheduleWeek.Status == "IN_PROGRESS")) &&
+                s.ScheduleWeek.Status == "OPEN_REGISTRATION" && s.ScheduleWeek.RegistrationDeadline > now &&
                 s.ScheduledStartAt > now && s.ScheduledEndAt > s.ScheduledStartAt &&
                 !s.ShiftAssignments.Any(a => a.UserId == staffId && a.Status != "CANCELLED") &&
                 s.ShiftEmployeeRequirements.Any(r => r.EmployeeTypeId == employeeTypeId &&
@@ -52,6 +52,11 @@ public sealed class StaffShiftRepo(AppDbContext context) : IStaffShiftRepo
             .Skip((pageNumber - 1) * pageSize).Take(pageSize), staffId).ToListAsync(ct);
         return (items, total);
     }
+
+    public Task<bool> HasRegistrationContractAsync(Guid staffId, int branchId, int shiftId, DateTime now,
+        CancellationToken ct) => StaffShiftContractPolicy.EligibleShifts(
+            context.WorkShifts.Where(s => s.ShiftId == shiftId), context.EmploymentContracts,
+            staffId, branchId, now).AnyAsync(ct);
 
     public Task<WorkShift?> GetDetailAsync(int shiftId, Guid staffId, int branchId, CancellationToken ct) =>
         WithDetails(context.WorkShifts.Where(s => s.ShiftId == shiftId && s.ScheduleWeek.Status != "DRAFT" &&

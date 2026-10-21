@@ -202,7 +202,6 @@ public sealed class ShiftTemplateService(IShiftTemplateRepo repository) : IShift
         var shiftName = request.ShiftName!.Trim();
         var startTime = TimeOnly.ParseExact(request.StartTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
         var endTime = TimeOnly.ParseExact(request.EndTime!, "HH:mm:ss", CultureInfo.InvariantCulture);
-        var breakMinutes = request.BreakMinutes!.Value;
 
         if (await repository.Query().AnyAsync(x => x.ShiftName == shiftName, cancellationToken))
             return null;

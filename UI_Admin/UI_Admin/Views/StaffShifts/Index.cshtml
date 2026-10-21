@@ -181,7 +181,7 @@
 
                             <!-- Action button -->
                             <div class="pt-3 border-t border-gray-100">
-                                @if (isRegistered)
+                                @if (isRegistered && shift.CanCancel)
                                 {
                                     <button type="button" onclick="openCancelModal(@shift.ShiftId, '@shift.ShiftName', '@shift.DateDisplay @shift.TimeDisplay')"
                                             class="w-full py-2.5 px-3 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer">
@@ -189,10 +189,10 @@
                                         Hủy đăng ký ca này
                                     </button>
                                 }
-                                else if (isOverdue)
+                                else if (isRegistered || isOverdue)
                                 {
                                     <button type="button" disabled class="w-full py-2.5 px-3 rounded-xl bg-gray-100 text-gray-400 text-xs font-semibold cursor-not-allowed">
-                                        Đã quá hạn đăng ký
+                                        @(isRegistered ? "Không thể hủy đăng ký" : "Đăng ký đã đóng")
                                     </button>
                                 }
                                 else
@@ -287,12 +287,19 @@
                                             </a>
 
                                             <!-- Cancel button -->
+                                            @if (shift.CanCancel)
+                                            {
                                             <button type="button" onclick="openCancelModal(@shift.ShiftId, '@shift.ShiftName', '@shift.DateDisplay @shift.TimeDisplay')"
                                                     class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 font-semibold text-[11px] transition-colors cursor-pointer"
                                                     title="Hủy đăng ký ca này">
                                                 <span class="material-symbols-outlined text-[14px]">cancel</span>
                                                 Hủy ca
                                             </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-[11px] text-gray-500" title="@shift.CancellationBlockedReason">Không thể hủy đăng ký</span>
+                                            }
                                         </div>
                                     </td>
                                 </tr>
