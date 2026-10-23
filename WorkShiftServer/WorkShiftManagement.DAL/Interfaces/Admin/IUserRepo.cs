@@ -46,5 +46,19 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
         void Create(User user);
 
         Task SaveChangesAsync();
+
+        Task<Role?> GetRoleByIdAsync(int roleId);
+
+        Task<bool> HasPendingPayrollAsync(int branchId);
+
+        Task<bool> IsRoleOccupiedInBranchAsync(int branchId, int roleId, Guid excludeUserId);
+
+        Task<Guid> GetFirstActiveAdminIdAsync();
+
+        void AddNotification(WorkShiftManagement.DAL.Entities.Notification notification);
+
+        Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync();
+
+        Task LoadRoleAndBranchAsync(User user);
     }
 }

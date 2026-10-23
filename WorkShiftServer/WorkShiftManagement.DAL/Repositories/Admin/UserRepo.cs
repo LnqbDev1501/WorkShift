@@ -206,5 +206,60 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
                 .AsNoTracking()
                 .AnyAsync(u => u.Phone == normalized && u.UserId != excludeUserId && u.DeletedAt == null);
         }
+
+        public async Task<Role?> GetRoleByIdAsync(int roleId)
+        {
+            return await _context.Roles.FindAsync(roleId);
+        }
+
+        public async Task<bool> HasPendingPayrollAsync(int branchId)
+        {
+            var hasPayrollPeriods = await _context.PayrollPeriods
+                .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
+
+            var hasPayrolls = await _context.Payrolls
+                .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
+
+            return hasPayrollPeriods || hasPayrolls;
+        }
+
+        public async Task<bool> IsRoleOccupiedInBranchAsync(int branchId, int roleId, Guid excludeUserId)
+        {
+            return await _context.Users
+                .AsNoTracking()
+                .AnyAsync(u => u.UserId != excludeUserId
+                            && u.BranchId == branchId
+                            && u.RoleId == roleId
+                            && u.Status != "INACTIVE"
+                            && u.DeletedAt == null);
+        }
+
+        public async Task<Guid> GetFirstActiveAdminIdAsync()
+        {
+            return await _context.Users
+                .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null)
+                .Select(u => u.UserId)
+                .FirstOrDefaultAsync();
+        }
+
+        public void AddNotification(WorkShiftManagement.DAL.Entities.Notification notification)
+        {
+            _context.Notifications.Add(notification);
+        }
+
+        public async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync()
+        {
+            return await _context.Database.BeginTransactionAsync();
+        }
+
+        public async Task LoadRoleAndBranchAsync(User user)
+        {
+            await _context.Entry(user).Reference(u => u.Role).LoadAsync();
+            if (user.BranchId.HasValue)
+            {
+                await _context.Entry(user).Reference(u => u.Branch).LoadAsync();
+            }
+        }
     }
 }
+

@@ -7,6 +7,7 @@ using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
 using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftServer.API.Services;
 
 namespace WorkShiftServer.API.Controllers.Auth;
@@ -20,17 +21,20 @@ public class AuthController : ControllerBase
     private readonly StaffSetupTokenService _tokenService;
     private readonly ILogger<AuthController> _logger;
     private readonly AppDbContext _context;
+    private readonly IUserRepo _userRepo;
 
     public AuthController(
         IAuthService authService,
         StaffSetupTokenService tokenService,
         ILogger<AuthController> logger,
-        AppDbContext context)
+        AppDbContext context,
+        IUserRepo userRepo)
     {
         _authService = authService;
         _tokenService = tokenService;
         _logger = logger;
         _context = context;
+        _userRepo = userRepo;
     }
 
     [HttpPost("login")]
@@ -114,14 +118,14 @@ public class AuthController : ControllerBase
             if (!Guid.TryParse(userId, out var guid))
                 throw new UnauthorizedAccessException("Your session has expired. Please sign in again.");
             var result = await _authService.SetPasswordAsync(guid, request.CurrentPassword, request.Password);
-            var user = await _context.Users.SingleOrDefaultAsync(item => item.UserId == guid)
+            var user = await _userRepo.GetByIdWithTrackingAsync(guid)
                 ?? throw new KeyNotFoundException("No matching user profile was found.");
             user.HasPassword = true;
             if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
             {
                 user.Status = "ACTIVE";
                 user.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                await _userRepo.SaveChangesAsync();
             }
             else if (!user.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
             {
@@ -130,7 +134,7 @@ public class AuthController : ControllerBase
             else
             {
                 user.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                await _userRepo.SaveChangesAsync();
             }
             return NoContent();
         }
