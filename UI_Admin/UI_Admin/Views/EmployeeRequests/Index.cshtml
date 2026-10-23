@@ -8,27 +8,136 @@
     var totalPages = Model.TotalPages;
     var hasFilters = Model.HasActiveFilters;
     var currentUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
+
+    // Statistics calculated for Image 1 executive stats bar
+    var totalCount = Model.TotalItems;
+    var pendingCount = Model.Items.Count(x => string.Equals(x.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+    var approvedCount = Model.Items.Count(x => string.Equals(x.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
+    var rejectedCount = Model.Items.Count(x => string.Equals(x.Status, "REJECTED", StringComparison.OrdinalIgnoreCase));
 }
 
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+<div class="flex flex-col w-full gap-5 px-4 sm:px-7 py-4">
 
     <partial name="_NotificationModal" />
 
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+    <!-- Top Workflow Engine Header (Referencing Image 1) -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex flex-col">
-            <div class="list-eyebrow text-xs uppercase tracking-wider text-secondary font-semibold">Operations &amp; HR</div>
-            <div class="flex items-center gap-unit-3 mt-0.5">
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight font-bold">Employee Requests</h1>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 border border-purple-200 shadow-xs">
+                    <span class="material-symbols-outlined text-[15px]">account_tree</span>
+                    <span>Roster Workflow Engine</span>
+                </span>
             </div>
-            <p class="font-body-md text-body-md text-secondary mt-1">
-                Monitor and review all leave, late arrival, and early leave requests submitted by staff members across all branches.
+            <div class="flex items-center gap-3 mt-1.5">
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Employee Requests</h1>
+            </div>
+            <p class="text-sm text-secondary mt-1 max-w-3xl leading-relaxed">
+                Review and manage staff leave, shift exchange, and schedule adjustment submissions across branches.
             </p>
+        </div>
+
+        <!-- Top Right Actions (Image 1) -->
+        <div class="flex items-center gap-2.5 shrink-0">
+            <button type="button" onclick="window.print()" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-2 border border-surface-container-high transition-all shadow-sm">
+                <span class="material-symbols-outlined text-[18px] text-secondary">download</span>
+                <span>Export Log</span>
+            </button>
+            <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="PENDING"
+               class="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-indigo-200">
+                <span class="material-symbols-outlined text-[18px]">rule</span>
+                <span>Batch Process (@pendingCount)</span>
+            </a>
         </div>
     </div>
 
-    <!-- Search & Filters Container -->
-    <div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container-high/60 my-2">
+    <!-- 4 High-End Executive Metric Cards (Referencing Image 1) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Total Submissions -->
+        <div class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Total Submissions</span>
+                <div class="w-9 h-9 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary border border-surface-container-high/60">
+                    <span class="material-symbols-outlined text-[20px]">content_paste</span>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@totalCount</span>
+                <span class="text-xs text-secondary font-medium">this month</span>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-purple-700 font-semibold">
+                <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                <span>+14% vs previous 30d</span>
+            </div>
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-purple-50 pointer-events-none -z-0"></div>
+        </div>
+
+        <!-- 2. Pending Review -->
+        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="PENDING"
+           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-purple-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-800">Pending Review</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">Action Required</span>
+                    <div class="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-indigo-700 border border-purple-200">
+                        <span class="material-symbols-outlined text-[20px]">pending_actions</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-indigo-700 tracking-tight">@pendingCount</span>
+                <span class="text-xs text-secondary font-medium">unresolved</span>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-purple-100 flex items-center gap-1.5 text-xs text-amber-700 font-semibold">
+                <span class="material-symbols-outlined text-[16px] text-amber-600">hourglass_top</span>
+                <span>Oldest: Active queue</span>
+            </div>
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-purple-100/50 pointer-events-none -z-0"></div>
+        </a>
+
+        <!-- 3. Approved -->
+        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="APPROVED"
+           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Approved</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200">
+                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@approvedCount</span>
+                <span class="text-xs text-secondary font-medium">processed</span>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-secondary font-medium">
+                <span class="material-symbols-outlined text-[16px] text-secondary">event_available</span>
+                <span>Schedules auto-updated</span>
+            </div>
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-emerald-50 pointer-events-none -z-0"></div>
+        </a>
+
+        <!-- 4. Rejected -->
+        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="REJECTED"
+           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Rejected</span>
+                <div class="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-200">
+                    <span class="material-symbols-outlined text-[20px]">cancel</span>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@rejectedCount</span>
+                <span class="text-xs text-secondary font-medium">archived</span>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-secondary font-medium">
+                <span class="material-symbols-outlined text-[16px] text-secondary">notes</span>
+                <span>Includes manager notes</span>
+            </div>
+            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-rose-50 pointer-events-none -z-0"></div>
+        </a>
+    </div>
+
+    <!-- Search & Filters Container (Image 2 style) -->
+    <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-surface-container-high/60">
         <form method="get" asp-controller="EmployeeRequests" asp-action="Index" class="flex flex-col gap-3">
             <input type="hidden" name="pageNumber" value="1" />
             <input type="hidden" name="pageSize" value="@Model.PageSize" />
@@ -42,37 +151,37 @@
                            id="filter-search"
                            name="search"
                            value="@Model.Search"
-                           placeholder="Search by staff name, reason..."
-                           class="w-full h-10 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                           placeholder="Search by employee name, reason..."
+                           class="w-full h-10 pl-10 pr-4 bg-surface-container-low rounded-xl text-on-surface placeholder:text-secondary/70 font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
                 </div>
 
                 <!-- Request Type Filter -->
                 <div>
                     <select id="filter-request-type" name="requestType"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
                         <option value="ALL" selected="@(string.IsNullOrEmpty(Model.RequestType) || Model.RequestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Request Types</option>
-                        <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave (LEAVE)</option>
-                        <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival (LATE)</option>
-                        <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave (EARLY)</option>
+                        <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave</option>
+                        <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival</option>
+                        <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave</option>
                     </select>
                 </div>
 
                 <!-- Status Filter -->
                 <div>
                     <select id="filter-status" name="status"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
                         <option value="ALL" selected="@(string.IsNullOrEmpty(Model.Status) || Model.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
-                        <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending (PENDING)</option>
-                        <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved (APPROVED)</option>
-                        <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected (REJECTED)</option>
-                        <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled (CANCELLED)</option>
+                        <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending</option>
+                        <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved</option>
+                        <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected</option>
+                        <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled</option>
                     </select>
                 </div>
 
                 <!-- Branch Filter -->
                 <div>
                     <select id="filter-branch" name="branchId"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
+                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
                         <option value="">All Branches</option>
                         @foreach (var branch in Model.Branches)
                         {
@@ -84,14 +193,14 @@
                 <!-- Action Buttons -->
                 <div class="flex items-center gap-2">
                     <button type="submit" id="btn-filter"
-                            class="h-10 px-4 rounded-lg bg-primary hover:bg-primary-container text-white font-body-md-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full shadow-sm">
+                            class="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full shadow-sm">
                         <span class="material-symbols-outlined text-[18px]">filter_alt</span>
                         <span>Filter</span>
                     </button>
                     @if (hasFilters)
                     {
                         <a asp-controller="EmployeeRequests" asp-action="Index" id="btn-clear-filters"
-                           class="h-10 px-3 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container font-body-md-medium text-xs flex items-center justify-center gap-1 transition-colors shrink-0"
+                           class="h-10 px-3 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container font-medium text-xs flex items-center justify-center gap-1 transition-colors shrink-0"
                            title="Clear all filters">
                             <span class="material-symbols-outlined text-[18px]">close</span>
                             <span>Clear</span>
@@ -101,7 +210,7 @@
             </div>
 
             <!-- Date Range Filter Row -->
-            <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-surface-container-high/40">
+            <div class="flex flex-wrap items-center gap-3 pt-2.5 border-t border-surface-container-high/40">
                 <span class="text-xs text-secondary font-medium flex items-center gap-1">
                     <span class="material-symbols-outlined text-[16px]">calendar_today</span>
                     <span>Submission Date (VN Time):</span>
@@ -109,12 +218,12 @@
                 <div class="flex items-center gap-2">
                     <label for="filter-from-date" class="text-xs text-secondary">From:</label>
                     <input type="date" id="filter-from-date" name="fromDate" value="@Model.FromDate"
-                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
                 </div>
                 <div class="flex items-center gap-2">
                     <label for="filter-to-date" class="text-xs text-secondary">To:</label>
                     <input type="date" id="filter-to-date" name="toDate" value="@Model.ToDate"
-                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
+                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
                 </div>
                 <div class="ml-auto text-xs text-secondary/80">
                     Display Timezone: <strong class="text-secondary font-semibold">Vietnam (UTC+7)</strong>
@@ -125,45 +234,47 @@
 
     <!-- Results Summary Count -->
     <div class="flex items-center justify-between px-1">
-        <p class="text-xs text-secondary">
+        <p class="text-xs text-secondary font-medium">
             @if (Model.TotalItems == 0)
             {
-                <span>No employee requests found.</span>
+                <span>No matching requests found.</span>
             }
             else
             {
                 var first = (currentPage - 1) * Model.PageSize + 1;
                 var last = Math.Min(currentPage * Model.PageSize, Model.TotalItems);
-                <span>Showing <strong class="text-on-surface font-semibold">@first–@last</strong> of <strong class="text-on-surface font-semibold">@Model.TotalItems</strong> request(s)</span>
+                <span>Showing <strong class="text-on-surface font-bold">@first–@last</strong> of <strong class="text-on-surface font-bold">@Model.TotalItems</strong> employee requests</span>
             }
         </p>
     </div>
 
-    <!-- Main Data Table -->
-    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-surface-container-high/60">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
+    <!-- Main Data Table (With Sticky Action Column so Details is ALWAYS visible) -->
+    <div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-surface-container-high/60">
+        <div class="overflow-x-auto relative">
+            <table class="w-full text-left border-collapse">
                 <thead>
-                    <tr class="h-[44px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
-                        <th class="px-unit-4 py-2.5" scope="col">Request ID</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Employee</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Branch</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Type</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Shift / Applicable Date</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Reason</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Status</th>
-                        <th class="px-unit-4 py-2.5" scope="col">Submitted Date</th>
-                        <th class="px-unit-4 py-2.5 text-right" scope="col">Action</th>
+                    <tr class="h-[44px] bg-surface-container-low text-secondary text-xs uppercase tracking-wider font-semibold border-b border-surface-container-high/60">
+                        <th class="px-4 py-2.5 w-16 text-center" scope="col">Request ID</th>
+                        <th class="px-4 py-2.5 min-w-[200px]" scope="col">Employee</th>
+                        <th class="px-3 py-2.5 min-w-[120px]" scope="col">Request Type</th>
+                        <th class="px-4 py-2.5 min-w-[220px]" scope="col">Shift / Applicable Date</th>
+                        <th class="px-4 py-2.5 min-w-[160px]" scope="col">Reason</th>
+                        <th class="px-3 py-2.5 min-w-[110px]" scope="col">Status</th>
+                        <th class="px-4 py-2.5 min-w-[140px]" scope="col">Submission Date</th>
+                        <!-- Sticky Actions Column to guarantee 100% visibility -->
+                        <th class="px-4 py-2.5 w-28 text-center sticky right-0 bg-surface-container-low z-10 shadow-[-4px_0_6px_rgba(0,0,0,0.04)]" scope="col">
+                            Actions
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-surface-container-high/40">
                     @if (!items.Any())
                     {
                         <tr>
-                            <td colspan="9" class="px-6 py-16 text-center">
+                            <td colspan="8" class="px-6 py-16 text-center">
                                 <div class="flex flex-col items-center gap-3 text-secondary">
                                     <span class="material-symbols-outlined text-[48px] text-secondary/40">assignment_late</span>
-                                    <p class="font-body-md text-sm">No employee requests match your filters.</p>
+                                    <p class="font-body-md text-sm">No employee requests match the selected filters.</p>
                                     @if (hasFilters)
                                     {
                                         <a asp-controller="EmployeeRequests" asp-action="Index"
@@ -179,15 +290,18 @@
                         {
                             var reqType = request.RequestType?.ToUpperInvariant() ?? "";
                             var statusUpper = request.Status?.ToUpperInvariant() ?? "";
-                            <tr class="hover:bg-surface-container-low/50 transition-colors duration-100 group">
+                            var detailsUrl = Url.Action("Details", "EmployeeRequests", new { id = request.RequestId, returnUrl = currentUrl });
+
+                            <tr onclick="window.location='@detailsUrl'"
+                                class="hover:bg-purple-50/40 transition-colors duration-100 group cursor-pointer">
 
                                 <!-- Request ID -->
-                                <td class="px-unit-4 py-3.5">
+                                <td class="px-4 py-3.5 text-center">
                                     <span class="font-mono text-xs font-bold text-on-surface">#@request.RequestId</span>
                                 </td>
 
                                 <!-- Employee Info -->
-                                <td class="px-unit-4 py-3.5">
+                                <td class="px-4 py-3.5">
                                     <div class="flex items-center gap-3">
                                         @if (!string.IsNullOrWhiteSpace(request.EmployeeAvatarUrl))
                                         {
@@ -195,27 +309,19 @@
                                         }
                                         else
                                         {
-                                            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0 border border-primary/20">
+                                            <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-xs shrink-0 border border-purple-200">
                                                 @(string.IsNullOrWhiteSpace(request.EmployeeFullName) ? "U" : request.EmployeeFullName.Trim()[0].ToString().ToUpper())
                                             </div>
                                         }
                                         <div class="flex flex-col min-w-0">
-                                            <span class="font-body-md text-sm text-on-surface font-semibold truncate">@request.EmployeeFullName</span>
+                                            <span class="font-semibold text-sm text-on-surface truncate group-hover:text-primary transition-colors">@request.EmployeeFullName</span>
                                             <span class="text-[11px] text-secondary truncate">@request.EmployeeEmail</span>
                                         </div>
                                     </div>
                                 </td>
 
-                                <!-- Branch -->
-                                <td class="px-unit-4 py-3.5">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm text-on-surface font-medium">@request.BranchName</span>
-                                        <span class="text-[11px] text-secondary font-mono">@request.BranchCode</span>
-                                    </div>
-                                </td>
-
                                 <!-- Request Type Badge -->
-                                <td class="px-unit-4 py-3.5">
+                                <td class="px-3 py-3.5">
                                     @switch (reqType)
                                     {
                                         case "LEAVE":
@@ -241,8 +347,8 @@
                                     }
                                 </td>
 
-                                <!-- Shift / Applicable Date -->
-                                <td class="px-unit-4 py-3.5 min-w-[230px]">
+                                <!-- Applied Shift / Date -->
+                                <td class="px-4 py-3.5">
                                     @if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
                                     {
                                         var summary = request.ShiftSummary;
@@ -251,26 +357,23 @@
 
                                         if (reqType == "LEAVE")
                                         {
-                                            <div class="flex flex-col gap-1">
+                                            <div class="flex flex-col gap-0.5">
                                                 <div class="flex items-center gap-1.5 flex-wrap">
                                                     <span class="font-semibold text-xs text-on-surface">@shiftName</span>
                                                     @if (summary.TotalShifts > 1)
                                                     {
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800" title="Request covers @summary.TotalShifts shifts">
-                                                            +@(summary.TotalShifts - 1) other shift(s) (Total @summary.TotalShifts)
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800" title="Request covers @summary.TotalShifts shifts in total">
+                                                            +@(summary.TotalShifts - 1) other shifts (Total @summary.TotalShifts shifts)
                                                         </span>
                                                     }
                                                 </div>
                                                 <span class="text-xs text-secondary tabular-nums">@timeRange</span>
                                                 @if (summary.TotalShifts > 1)
                                                 {
-                                                    <a asp-controller="EmployeeRequests" asp-action="Details"
-                                                       asp-route-id="@request.RequestId"
-                                                       asp-route-returnUrl="@currentUrl"
-                                                       class="text-[11px] text-primary hover:underline font-medium inline-flex items-center gap-0.5 mt-0.5">
-                                                        <span>View all shifts</span>
+                                                    <span class="text-[11px] text-primary font-medium inline-flex items-center gap-0.5 mt-0.5">
+                                                        <span>View all shift details</span>
                                                         <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
-                                                    </a>
+                                                    </span>
                                                 }
                                             </div>
                                         }
@@ -281,13 +384,9 @@
                                                 <div class="text-[11px] text-secondary tabular-nums">Original: @timeRange</div>
                                                 @if (summary.RequestedTime.HasValue)
                                                 {
-                                                    <div class="text-xs font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1 inline-block tabular-nums">
-                                                        Proposed Arrival: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    <div class="text-xs font-semibold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-0.5 inline-block tabular-nums">
+                                                        Requested Arrival: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
                                                     </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="text-[11px] text-secondary italic">Proposed Arrival: No data</div>
                                                 }
                                             </div>
                                         }
@@ -298,13 +397,9 @@
                                                 <div class="text-[11px] text-secondary tabular-nums">Original: @timeRange</div>
                                                 @if (summary.RequestedTime.HasValue)
                                                 {
-                                                    <div class="text-xs font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 mt-1 inline-block tabular-nums">
-                                                        Proposed Departure: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
+                                                    <div class="text-xs font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 mt-0.5 inline-block tabular-nums">
+                                                        Requested Departure: @summary.RequestedTime.ToVnTimeString() (@summary.RequestedTime.ToVnDateString())
                                                     </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="text-[11px] text-secondary italic">Proposed Departure: No data</div>
                                                 }
                                             </div>
                                         }
@@ -315,39 +410,39 @@
                                     }
                                 </td>
 
-                                <!-- Reason (Razor encoded) -->
-                                <td class="px-unit-4 py-3.5 max-w-[200px]">
-                                    <span class="text-sm text-on-surface-variant line-clamp-2" title="@request.Reason">
+                                <!-- Reason -->
+                                <td class="px-4 py-3.5 max-w-[180px]">
+                                    <span class="text-xs text-on-surface-variant line-clamp-2" title="@request.Reason">
                                         @(string.IsNullOrWhiteSpace(request.Reason) ? "—" : request.Reason)
                                     </span>
                                 </td>
 
                                 <!-- Status Badge -->
-                                <td class="px-unit-4 py-3.5">
+                                <td class="px-3 py-3.5">
                                     @switch (statusUpper)
                                     {
                                         case "PENDING":
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending
                                             </span>
                                             break;
                                         case "APPROVED":
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Approved
                                             </span>
                                             break;
                                         case "REJECTED":
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
                                             </span>
                                             break;
                                         case "CANCELLED":
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
                                             </span>
                                             break;
                                         default:
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                                                 @request.Status
                                             </span>
                                             break;
@@ -355,19 +450,17 @@
                                 </td>
 
                                 <!-- CreatedAt in VN Time -->
-                                <td class="px-unit-4 py-3.5">
-                                    <span class="text-sm text-on-surface tabular-nums font-medium">@request.CreatedAt.ToVnDateTimeString()</span>
+                                <td class="px-4 py-3.5 whitespace-nowrap">
+                                    <span class="text-xs text-on-surface tabular-nums font-medium">@request.CreatedAt.ToVnDateTimeString()</span>
                                 </td>
 
-                                <!-- Action -->
-                                <td class="px-unit-4 py-3.5 text-right">
-                                    <a asp-controller="EmployeeRequests" asp-action="Details"
-                                       asp-route-id="@request.RequestId"
-                                       asp-route-returnUrl="@currentUrl"
-                                       class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-primary hover:text-white text-on-surface text-xs font-medium transition-all shadow-sm group-hover:bg-primary group-hover:text-white"
-                                       title="View request details">
-                                        <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                        <span>View</span>
+                                <!-- Sticky Actions Column (Guaranteed Visible) -->
+                                <td class="px-4 py-3.5 text-center sticky right-0 bg-surface-container-lowest group-hover:bg-[#FAF8FE] z-10 shadow-[-4px_0_6px_rgba(0,0,0,0.04)]" onclick="event.stopPropagation();">
+                                    <a href="@detailsUrl"
+                                       class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-all shadow-sm shadow-purple-200 hover:shadow-md"
+                                       title="View full request details">
+                                        <span>Details</span>
+                                        <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                                     </a>
                                 </td>
                             </tr>
@@ -377,7 +470,7 @@
             </table>
         </div>
         <div class="px-4 py-2.5 bg-surface-container-low/50 border-t border-surface-container-high/40 text-[11px] text-secondary">
-            * Note: All shift and submission times are converted and displayed in Vietnam Time (UTC+7). Overnight shifts clearly state start and end dates.
+            * Note: All shift times and submission dates are converted and displayed in Vietnam time (UTC+7). Overnight shifts are indicated with clear start and end dates.
         </div>
     </div>
 
@@ -394,31 +487,36 @@
                    asp-route-requestType="@Model.RequestType"
                    asp-route-status="@Model.Status"
                    asp-route-branchId="@Model.BranchId"
-                   asp-route-userId="@Model.UserId"
                    asp-route-fromDate="@Model.FromDate"
                    asp-route-toDate="@Model.ToDate"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors"
-                   title="Previous page">
-                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                   class="h-9 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium flex items-center gap-1 transition-colors">
+                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
+                    <span>Previous</span>
                 </a>
             }
 
-            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
-            {
-                <a asp-controller="EmployeeRequests" asp-action="Index"
-                   asp-route-pageNumber="@p"
-                   asp-route-pageSize="@Model.PageSize"
-                   asp-route-search="@Model.Search"
-                   asp-route-requestType="@Model.RequestType"
-                   asp-route-status="@Model.Status"
-                   asp-route-branchId="@Model.BranchId"
-                   asp-route-userId="@Model.UserId"
-                   asp-route-fromDate="@Model.FromDate"
-                   asp-route-toDate="@Model.ToDate"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-semibold transition-colors @(p == currentPage ? "bg-primary text-white shadow-sm" : "bg-surface-container hover:bg-surface-container-high text-on-surface")">
-                    @p
-                </a>
-            }
+            <div class="flex items-center gap-1">
+                @for (var p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
+                {
+                    if (p == currentPage)
+                    {
+                        <span class="w-9 h-9 rounded-lg bg-primary text-white font-bold text-xs flex items-center justify-center shadow-sm">@p</span>
+                    }
+                    else
+                    {
+                        <a asp-controller="EmployeeRequests" asp-action="Index"
+                           asp-route-pageNumber="@p"
+                           asp-route-pageSize="@Model.PageSize"
+                           asp-route-search="@Model.Search"
+                           asp-route-requestType="@Model.RequestType"
+                           asp-route-status="@Model.Status"
+                           asp-route-branchId="@Model.BranchId"
+                           asp-route-fromDate="@Model.FromDate"
+                           asp-route-toDate="@Model.ToDate"
+                           class="w-9 h-9 rounded-lg hover:bg-surface-container text-on-surface text-xs font-medium flex items-center justify-center transition-colors">@p</a>
+                    }
+                }
+            </div>
 
             @if (currentPage < totalPages)
             {
@@ -429,16 +527,14 @@
                    asp-route-requestType="@Model.RequestType"
                    asp-route-status="@Model.Status"
                    asp-route-branchId="@Model.BranchId"
-                   asp-route-userId="@Model.UserId"
                    asp-route-fromDate="@Model.FromDate"
                    asp-route-toDate="@Model.ToDate"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors"
-                   title="Next page">
-                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                   class="h-9 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium flex items-center gap-1 transition-colors">
+                    <span>Next</span>
+                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
                 </a>
             }
         </div>
-        <p class="text-center text-xs text-secondary pb-1">Page @currentPage of @totalPages (Total @Model.TotalItems request(s))</p>
     }
 
 </div>

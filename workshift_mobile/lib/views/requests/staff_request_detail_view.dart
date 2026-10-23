@@ -76,19 +76,19 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
             Icon(Icons.cancel_outlined, color: AppColors.error, size: 24),
             SizedBox(width: 8),
             Text(
-              'Hủy yêu cầu',
+              'Cancel Request',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: Text(
-          'Bạn có chắc chắn muốn hủy yêu cầu #${detail.requestId} (${detail.typeDisplayName}) không? Thao tác này không thể hoàn tác.',
+          'Are you sure you want to cancel request #${detail.requestId} (${detail.typeDisplayName})? This action cannot be undone.',
           style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Đóng', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Close', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -97,7 +97,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Xác nhận hủy'),
+            child: const Text('Confirm Cancel'),
           ),
         ],
       ),
@@ -109,14 +109,14 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Đã hủy yêu cầu thành công'),
+              content: Text('Request cancelled successfully'),
               backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(widget.controller.actionErrorMessage ?? 'Hủy yêu cầu thất bại'),
+              content: Text(widget.controller.actionErrorMessage ?? 'Failed to cancel request'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -134,7 +134,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          'Chi tiết yêu cầu #${widget.requestId}',
+          'Request Details #${widget.requestId}',
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -165,13 +165,13 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                         const Icon(Icons.error_outline, size: 48, color: AppColors.error),
                         const SizedBox(height: 12),
                         Text(
-                          widget.controller.actionErrorMessage ?? 'Không tìm thấy thông tin yêu cầu.',
+                          widget.controller.actionErrorMessage ?? 'Request details not found.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: AppColors.textSecondary),
                         ),
                         const SizedBox(height: 16),
                         AppButton(
-                          text: 'Thử lại',
+                          text: 'Retry',
                           onPressed: () => widget.controller.loadRequestDetail(widget.requestId),
                           width: 140,
                           height: 40,
@@ -242,7 +242,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Mã đơn: #${detail.requestId}',
+                                    'Request ID: #${detail.requestId}',
                                     style: const TextStyle(
                                       fontSize: 13,
                                       color: AppColors.textMuted,
@@ -258,7 +258,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                       const SizedBox(height: 16),
 
                       // 2. Thông tin chung
-                      _buildSectionTitle('Thông tin yêu cầu'),
+                      _buildSectionTitle('Request Information'),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -268,13 +268,13 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow('Chi nhánh', detail.branchName, Icons.storefront_rounded),
+                            _buildInfoRow('Branch', detail.branchName, Icons.storefront_rounded),
                             const Divider(height: 20, color: AppColors.borderLight),
-                            _buildInfoRow('Thời gian gửi', _formatDateTime(detail.createdAt), Icons.access_time_rounded),
+                            _buildInfoRow('Submitted on', _formatDateTime(detail.createdAt), Icons.access_time_rounded),
                             const Divider(height: 20, color: AppColors.borderLight),
                             _buildInfoRow(
-                              'Lý do',
-                              detail.reason?.isNotEmpty == true ? detail.reason! : 'Không ghi lý do',
+                              'Reason',
+                              detail.reason?.isNotEmpty == true ? detail.reason! : 'No reason provided',
                               Icons.description_outlined,
                             ),
                           ],
@@ -283,7 +283,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                       const SizedBox(height: 16),
 
                       // 3. Chi tiết ca làm việc liên quan
-                      _buildSectionTitle('Ca làm việc áp dụng'),
+                      _buildSectionTitle('Applicable Shifts'),
                       if (detail.requestType == 'LEAVE' && detail.leaveAssignments != null)
                         ...detail.leaveAssignments!.map((shift) => _buildLeaveShiftCard(shift))
                       else if ((detail.requestType == 'LATE_ARRIVAL' || detail.requestType == 'EARLY_LEAVE') &&
@@ -298,7 +298,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                             border: Border.all(color: AppColors.borderLight),
                           ),
                           child: const Text(
-                            'Không có thông tin ca làm việc.',
+                            'No shift information available.',
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
@@ -306,7 +306,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
 
                       // 4. Kết quả duyệt từ Quản lý (nếu có)
                       if (!detail.isPending) ...[
-                        _buildSectionTitle('Phản hồi từ Quản lý'),
+                        _buildSectionTitle('Manager Feedback'),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -328,20 +328,20 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _buildInfoRow(
-                                'Người duyệt',
-                                detail.reviewerFullName ?? 'Quản lý chi nhánh',
+                                'Reviewed by',
+                                detail.reviewerFullName ?? 'Branch Manager',
                                 Icons.person_outline_rounded,
                               ),
                               const Divider(height: 20, color: AppColors.borderLight),
                               _buildInfoRow(
-                                'Thời gian duyệt',
+                                'Reviewed at',
                                 _formatDateTime(detail.reviewedAt),
                                 Icons.event_available_rounded,
                               ),
                               if (detail.reviewNote != null && detail.reviewNote!.isNotEmpty) ...[
                                 const Divider(height: 20, color: AppColors.borderLight),
                                 _buildInfoRow(
-                                  'Ghi chú của Quản lý',
+                                  'Manager Notes',
                                   detail.reviewNote!,
                                   Icons.chat_bubble_outline_rounded,
                                 ),
@@ -354,7 +354,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
 
                       // 5. Quy định áp dụng (nếu có)
                       if (detail.appliedRule != null) ...[
-                        _buildSectionTitle('Quy định áp dụng'),
+                        _buildSectionTitle('Applied Policy'),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
@@ -368,7 +368,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Quy định: Tối đa ${detail.appliedRule!.maxRequestsPerMonth} lần gửi đơn loại này trong tháng.',
+                                  'Policy: Maximum ${detail.appliedRule!.maxRequestsPerMonth} requests of this type per month.',
                                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                                 ),
                               ),
@@ -398,7 +398,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                                   )
                                 : const Icon(Icons.cancel_outlined, color: AppColors.error, size: 20),
                             label: Text(
-                              widget.controller.isCancelling ? 'Đang hủy...' : 'Hủy yêu cầu này',
+                              widget.controller.isCancelling ? 'Cancelling...' : 'Cancel this request',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -581,7 +581,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  isLate ? 'Giờ dự kiến đến:' : 'Giờ dự kiến về:',
+                  isLate ? 'Expected arrival:' : 'Expected departure:',
                   style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
                 const Spacer(),
