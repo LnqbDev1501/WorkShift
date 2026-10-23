@@ -92,8 +92,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
       context: context,
       initialTime: initial,
       helpText: _selectedRequestType == 'LATE_ARRIVAL'
-          ? 'CHỌN GIỜ DỰ KIẾN ĐẾN'
-          : 'CHỌN GIỜ DỰ KIẾN VỀ',
+          ? 'SELECT EXPECTED ARRIVAL TIME'
+          : 'SELECT EXPECTED DEPARTURE TIME',
     );
 
     if (picked != null) {
@@ -133,12 +133,12 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   String? _getAdjustmentTimeValidationError() {
     if (_selectedRequestType == 'LEAVE') return null;
     if (_selectedShift == null) {
-      return 'Vui lòng chọn ca làm việc áp dụng trước.';
+      return 'Please select an applicable shift first.';
     }
     if (_selectedAdjustmentTime == null) {
       return _selectedRequestType == 'LATE_ARRIVAL'
-          ? 'Vui lòng chọn giờ dự kiến đến làm.'
-          : 'Vui lòng chọn giờ dự kiến về sớm.';
+          ? 'Please select your expected arrival time.'
+          : 'Please select your expected departure time.';
     }
 
     final reqTime = _calculateRequestedDateTime();
@@ -151,8 +151,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
     if (!reqTime.isAfter(shiftStart) || !reqTime.isBefore(shiftEnd)) {
       final isLate = _selectedRequestType == 'LATE_ARRIVAL';
       return isLate
-          ? 'Giờ đến (${_formatTime(reqTime)}) không hợp lệ! Phải sau giờ bắt đầu (${_formatTime(shiftStart)}) và trước giờ kết thúc (${_formatTime(shiftEnd)}).'
-          : 'Giờ về (${_formatTime(reqTime)}) không hợp lệ! Phải sau giờ bắt đầu (${_formatTime(shiftStart)}) và trước giờ kết thúc (${_formatTime(shiftEnd)}).';
+          ? 'Arrival time (${_formatTime(reqTime)}) is invalid! It must be after shift start (${_formatTime(shiftStart)}) and before shift end (${_formatTime(shiftEnd)}).'
+          : 'Departure time (${_formatTime(reqTime)}) is invalid! It must be after shift start (${_formatTime(shiftStart)}) and before shift end (${_formatTime(shiftEnd)}).';
     }
 
     return null;
@@ -165,7 +165,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
       if (_selectedLeaveAssignmentIds.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Vui lòng chọn ít nhất 1 ca làm việc để xin nghỉ.'),
+            content: Text('Please select at least one shift to request leave.'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -180,26 +180,26 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
       if (mounted && res != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Gửi đơn xin nghỉ phép thành công!'),
+            content: Text('Leave request submitted successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
       } else if (mounted) {
-        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Gửi đơn nghỉ phép thất bại');
+        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit leave request');
       }
     } else {
       // LATE_ARRIVAL hoặc EARLY_LEAVE
       if (_selectedTimeAdjustmentAssignmentId == null || _selectedShift == null) {
-        _showErrorDialog('Vui lòng chọn ca làm việc áp dụng trước khi gửi đơn.');
+        _showErrorDialog('Please select an applicable shift before submitting.');
         return;
       }
 
       if (_selectedAdjustmentTime == null) {
         _showErrorDialog(
           _selectedRequestType == 'LATE_ARRIVAL'
-              ? 'Vui lòng chọn giờ dự kiến đến làm.'
-              : 'Vui lòng chọn giờ dự kiến về sớm.',
+              ? 'Please select your expected arrival time.'
+              : 'Please select your expected departure time.',
         );
         return;
       }
@@ -232,15 +232,15 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
           SnackBar(
             content: Text(
               _selectedRequestType == 'LATE_ARRIVAL'
-                  ? 'Gửi đơn xin đi trễ thành công!'
-                  : 'Gửi đơn xin về sớm thành công!',
+                  ? 'Late arrival request submitted successfully!'
+                  : 'Early departure request submitted successfully!',
             ),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
       } else if (mounted) {
-        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Gửi đơn thất bại');
+        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit request');
       }
     }
   }
@@ -258,7 +258,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
           children: [
             Icon(Icons.error_outline, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Không thể gửi yêu cầu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Cannot Submit Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(displayMsg, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
@@ -270,7 +270,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Đã hiểu'),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -287,7 +287,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Tạo yêu cầu mới',
+          'New Request',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -309,7 +309,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Selector chọn Loại yêu cầu
-              _buildSectionTitle('1. Chọn loại yêu cầu'),
+              _buildSectionTitle('1. Select Request Type'),
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
@@ -318,9 +318,9 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 padding: const EdgeInsets.all(4),
                 child: Row(
                   children: [
-                    _buildTypeTab('LEAVE', 'Nghỉ phép', Icons.event_busy_rounded),
-                    _buildTypeTab('LATE_ARRIVAL', 'Đi trễ', Icons.more_time_rounded),
-                    _buildTypeTab('EARLY_LEAVE', 'Về sớm', Icons.timer_off_rounded),
+                    _buildTypeTab('LEAVE', 'Leave', Icons.event_busy_rounded),
+                    _buildTypeTab('LATE_ARRIVAL', 'Late Arrival', Icons.more_time_rounded),
+                    _buildTypeTab('EARLY_LEAVE', 'Early Departure', Icons.timer_off_rounded),
                   ],
                 ),
               ),
@@ -329,8 +329,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
               // 2. Danh sách ca làm việc đủ điều kiện
               _buildSectionTitle(
                 _selectedRequestType == 'LEAVE'
-                    ? '2. Chọn ca muốn nghỉ (có thể chọn nhiều ca)'
-                    : '2. Chọn ca làm việc áp dụng',
+                    ? '2. Select shifts to take leave (multiple choices allowed)'
+                    : '2. Select applicable shift',
               ),
               if (isLoadingShifts)
                 const Center(
@@ -352,14 +352,14 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                       const Icon(Icons.calendar_month_outlined, size: 36, color: AppColors.textMuted),
                       const SizedBox(height: 8),
                       const Text(
-                        'Không có ca làm việc nào đủ điều kiện',
+                        'No eligible shifts found',
                         style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _selectedRequestType == 'LEAVE'
-                            ? 'Bạn chỉ có thể xin nghỉ các ca làm việc trong tương lai chưa bắt đầu.'
-                            : 'Không tìm thấy ca làm việc phù hợp cho yêu cầu này.',
+                            ? 'You can only request leave for upcoming shifts that have not started yet.'
+                            : 'No eligible shifts found for this request.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                       ),
@@ -382,8 +382,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
               if (_selectedRequestType != 'LEAVE') ...[
                 _buildSectionTitle(
                   _selectedRequestType == 'LATE_ARRIVAL'
-                      ? '3. Giờ dự kiến đến làm'
-                      : '3. Giờ dự kiến về sớm',
+                      ? '3. Expected arrival time'
+                      : '3. Expected departure time',
                 ),
                 if (_selectedShift != null) ...[
                   Container(
@@ -404,7 +404,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Ca: ${_selectedShift!.shiftName} (${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} - ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}, ${_formatDate(_selectedShift!.scheduledStartAt.toLocal())})',
+                                'Shift: ${_selectedShift!.shiftName} (${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} - ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}, ${_formatDate(_selectedShift!.scheduledStartAt.toLocal())})',
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
@@ -414,8 +414,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                               const SizedBox(height: 3),
                               Text(
                                 _selectedRequestType == 'LATE_ARRIVAL'
-                                    ? 'Thời gian đến phải lớn hơn ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} và nhỏ hơn ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.'
-                                    : 'Thời gian về phải lớn hơn ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} và nhỏ hơn ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.',
+                                    ? 'Arrival time must be after ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} and before ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.'
+                                    : 'Departure time must be after ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} and before ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.',
                                 style: const TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
                               ),
                             ],
@@ -439,7 +439,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Vui lòng tích chọn một ca làm việc ở mục 2 phía trên trước.',
+                            'Please select an applicable shift in step 2 above first.',
                             style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
                           ),
                         ),
@@ -485,7 +485,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                                 Text(
                                   _selectedAdjustmentTime != null
                                       ? _selectedAdjustmentTime!.format(context)
-                                      : 'Nhấn để chọn thời gian',
+                                      : 'Tap to select time',
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: _selectedAdjustmentTime != null
@@ -544,14 +544,14 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
               // 4. Nhập lý do
               _buildSectionTitle(
-                _selectedRequestType == 'LEAVE' ? '3. Lý do xin nghỉ' : '4. Lý do',
+                _selectedRequestType == 'LEAVE' ? '3. Reason for leave' : '4. Reason',
               ),
               TextFormField(
                 controller: _reasonController,
                 maxLines: 4,
                 maxLength: 500,
                 decoration: InputDecoration(
-                  hintText: 'Nhập chi tiết lý do gửi yêu cầu (bắt buộc)...',
+                  hintText: 'Enter detailed reason for the request (required)...',
                   hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
                   filled: true,
                   fillColor: Colors.white,
@@ -575,10 +575,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
-                    return 'Vui lòng nhập lý do gửi yêu cầu.';
+                    return 'Please enter a reason for the request.';
                   }
                   if (val.trim().length > 500) {
-                    return 'Lý do không được vượt quá 500 ký tự.';
+                    return 'Reason cannot exceed 500 characters.';
                   }
                   return null;
                 },
@@ -587,7 +587,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
               // 5. Nút gửi
               AppButton(
-                text: 'Gửi yêu cầu',
+                text: 'Submit Request',
                 isLoading: isSubmitting,
                 onPressed: isSubmitting ? null : _handleSubmit,
                 icon: Icons.send_rounded,
