@@ -96,9 +96,9 @@
             {
                 <button type="button" onclick="openReopenModal()"
                         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-all shadow-xs cursor-pointer"
-                        title="Mở lại hạn rà soát bảng công cho nhân viên này">
+                        title="Reopen timesheet review deadline for this staff member">
                     <span class="material-symbols-outlined text-sm">replay</span>
-                    <span>Mở lại rà soát</span>
+                    <span>Reopen Review</span>
                 </button>
             }
             <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId"
@@ -468,24 +468,24 @@
                         <span class="material-symbols-outlined text-2xl">replay</span>
                     </div>
                     <div>
-                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Mở Lại Hạn Rà Soát Bảng Công</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Reopen timesheet review deadline for staff</p>
+                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Reopen Timesheet Review</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Extend timesheet review deadline for staff</p>
                     </div>
                 </div>
                 
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    Bạn có chắc chắn muốn mở lại quyền rà soát bảng công cho nhân viên <strong class="text-slate-900">@staff.FullName</strong> không?
+                    Are you sure you want to reopen the timesheet review window for <strong class="text-slate-900">@staff.FullName</strong>? The review deadline will be extended for <strong>24 hours</strong>.
                 </p>
 
                 <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
                     <p class="font-semibold flex items-center gap-1.5 text-amber-950">
                         <span class="material-symbols-outlined text-sm text-amber-600">info</span>
-                        <span>Thông tin hiệu lực</span>
+                        <span>Policy &amp; Effects</span>
                     </p>
                     <ul class="list-disc list-inside space-y-1 text-amber-800">
-                        <li>Trạng thái rà soát của nhân viên sẽ chuyển từ <strong>NO RESPONSE</strong> về <strong>PENDING</strong>.</li>
-                        <li>Thời hạn phản hồi sẽ được gia hạn đến <strong>23:59:59 hôm nay (giờ VN)</strong>.</li>
-                        <li>Hệ thống sẽ gửi thông báo và mở khoá cho nhân viên xác nhận hoặc gửi khiếu nại trên ứng dụng di động.</li>
+                        <li>Staff review status will reset from <strong>NO RESPONSE</strong> to <strong>PENDING</strong>.</li>
+                        <li>The review window will be reopened for <strong>24 hours</strong> from now.</li>
+                        <li>An English notification will be sent, unlocking the timesheet on the mobile app for confirmation or disputes.</li>
                     </ul>
                 </div>
             </div>
@@ -493,12 +493,12 @@
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
                 <button type="button" onclick="closeReopenModal()"
                         class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
-                    Hủy bỏ
+                    Cancel
                 </button>
                 <button type="button" id="btnConfirmReopen" onclick="confirmReopenModal()"
                         class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
                     <span class="material-symbols-outlined text-sm">check_circle</span>
-                    <span id="btnConfirmReopenText">Xác nhận mở lại</span>
+                    <span id="btnConfirmReopenText">Confirm Reopen</span>
                 </button>
             </div>
         </div>
@@ -518,7 +518,7 @@
         function confirmReopenModal() {
             const btn = document.getElementById('btnConfirmReopen');
             btn.disabled = true;
-            document.getElementById('btnConfirmReopenText').textContent = 'Đang xử lý...';
+            document.getElementById('btnConfirmReopenText').textContent = 'Processing...';
             document.getElementById('formReopenStaff').submit();
         }
 

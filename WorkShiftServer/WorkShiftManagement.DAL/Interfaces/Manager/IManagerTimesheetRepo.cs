@@ -26,6 +26,7 @@ public interface IManagerTimesheetRepo
         int scheduleWeekId,
         int branchId,
         Guid managerId,
+        DateTime? reviewDeadline = null,
         CancellationToken cancellationToken = default);
 
     Task<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, List<Guid> AccountantUserIds, int NotificationId, int AccountantNotificationId, string NotificationContent, string AccountantNotificationContent)> LockWeeklyTimesheetAsync(

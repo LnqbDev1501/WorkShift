@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -36,6 +36,8 @@ public partial class Timesheet
     public string Status { get; set; } = null!;
 
     public DateTime? GeneratedAt { get; set; }
+
+    public DateTime? ReviewDeadline { get; set; }
 
     public Guid? ReviewedBy { get; set; }
 

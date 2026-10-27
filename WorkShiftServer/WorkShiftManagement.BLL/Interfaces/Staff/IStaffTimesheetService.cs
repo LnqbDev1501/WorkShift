@@ -22,4 +22,9 @@ public interface IStaffTimesheetService
         Guid staffId,
         SubmitTimesheetAdjustmentRequest request,
         CancellationToken cancellationToken = default);
+
+    Task<StaffWeeklyTimesheetResponse> CancelAdjustmentRequestAsync(
+        Guid staffId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default);
 }

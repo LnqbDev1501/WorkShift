@@ -91,4 +91,27 @@ class StaffTimesheetService {
       rethrow;
     }
   }
+
+  /// Cancels a pending timesheet adjustment request: POST /api/staff/timesheets/adjustments/{id}/cancel
+  Future<StaffWeeklyTimesheetModel> cancelAdjustment({
+    required int adjustmentRequestId,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/staff/timesheets/adjustments/$adjustmentRequestId/cancel',
+      );
+
+      if (response.statusCode == 200 && response.data != null) {
+        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+      }
+      throw 'Failed to cancel timesheet adjustment';
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Cancellation failed';
+      log('StaffTimesheetService cancel error: $msg');
+      throw msg;
+    } catch (e) {
+      log('StaffTimesheetService cancel error: $e');
+      rethrow;
+    }
+  }
 }

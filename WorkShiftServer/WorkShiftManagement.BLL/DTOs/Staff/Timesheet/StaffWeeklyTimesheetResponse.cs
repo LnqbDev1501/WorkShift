@@ -76,6 +76,7 @@ public sealed class StaffShiftAttendanceDto
     public string? AdjustmentReason { get; set; }
     public string? ManagerNote { get; set; }
     public bool CanRequestAdjustment { get; set; }
+    public bool CanCancelAdjustment { get; set; }
 
     // Granular Lock Status for Check-In and Check-Out
     public bool IsCheckInLocked { get; set; }

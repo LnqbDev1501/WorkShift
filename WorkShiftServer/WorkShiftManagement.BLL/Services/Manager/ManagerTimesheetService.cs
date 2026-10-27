@@ -295,6 +295,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     UnexcusedAbsentCount = unexcusedAbsentCount,
                     StaffReviewStatus = t.StaffReviewStatus ?? "PENDING",
                     Status = t.Status ?? status,
+                    ReviewDeadline = t.ReviewDeadline,
                     Shifts = userShifts
                 });
             }
@@ -369,19 +370,25 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 .Where(t => string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-            var latestGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Max(t => t.GeneratedAt)
-                ?? week.PayrollPeriod?.CreatedAt
-                ?? now;
+            reviewDeadline = timesheets
+                .Where(t => t.ReviewDeadline.HasValue)
+                .Select(t => t.ReviewDeadline)
+                .DefaultIfEmpty()
+                .Max();
 
-            var generatedAtVn = latestGeneratedAt + vnOffset;
-            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            reviewDeadline = endOfDayVn - vnOffset;
+            if (!reviewDeadline.HasValue)
+            {
+                var latestGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Max(t => t.GeneratedAt)
+                    ?? week.PayrollPeriod?.CreatedAt
+                    ?? now;
+                var generatedAtVn = latestGeneratedAt + vnOffset;
+                var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+                reviewDeadline = endOfDayVn - vnOffset;
+            }
 
             bool hasActivePendingReview = pendingStaffList.Any(t =>
             {
-                var tGenAt = t.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? now;
-                var tGenAtVn = tGenAt + vnOffset;
-                var tDeadlineUtc = tGenAtVn.Date.AddDays(1).AddTicks(-1) - vnOffset;
+                var tDeadlineUtc = t.ReviewDeadline ?? (t.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? now).AddHours(24);
                 return now < tDeadlineUtc;
             });
 
@@ -455,6 +462,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
     public async Task<ManagerWeeklyTimesheetDetailResponse> GenerateWeeklyTimesheetAsync(
         Guid managerId,
         int scheduleWeekId,
+        GenerateWeeklyTimesheetRequestDto? request = null,
         CancellationToken cancellationToken = default)
     {
         if (managerId == Guid.Empty)
@@ -474,7 +482,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
         var (_, _, staffUserIds, notificationId, notificationContent) =
-            await _timesheetRepo.GenerateWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, cancellationToken);
+            await _timesheetRepo.GenerateWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, request?.ReviewDeadline, cancellationToken);
 
         if (notificationId > 0 && staffUserIds.Any())
         {

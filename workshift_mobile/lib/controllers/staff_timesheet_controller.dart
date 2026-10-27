@@ -8,6 +8,7 @@ class StaffTimesheetController extends ChangeNotifier {
   bool _isLoading = false;
   bool _isConfirming = false;
   bool _isSubmittingAdjustment = false;
+  bool _isCancellingAdjustment = false;
   String? _errorMessage;
   StaffWeeklyTimesheetModel? _timesheet;
   int? _selectedWeekId;
@@ -15,6 +16,7 @@ class StaffTimesheetController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isConfirming => _isConfirming;
   bool get isSubmittingAdjustment => _isSubmittingAdjustment;
+  bool get isCancellingAdjustment => _isCancellingAdjustment;
   String? get errorMessage => _errorMessage;
   StaffWeeklyTimesheetModel? get timesheet => _timesheet;
   int? get selectedWeekId => _selectedWeekId;
@@ -126,6 +128,30 @@ class StaffTimesheetController extends ChangeNotifier {
       return _errorMessage;
     } finally {
       _isSubmittingAdjustment = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cancels a pending timesheet adjustment request
+  Future<String?> cancelAdjustment({
+    required int adjustmentRequestId,
+  }) async {
+    _isCancellingAdjustment = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final updated = await _service.cancelAdjustment(
+        adjustmentRequestId: adjustmentRequestId,
+      );
+      _timesheet = updated;
+      _selectedWeekId = updated.scheduleWeekId;
+      return null;
+    } catch (e) {
+      _errorMessage = e.toString();
+      return _errorMessage;
+    } finally {
+      _isCancellingAdjustment = false;
       notifyListeners();
     }
   }

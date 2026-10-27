@@ -82,11 +82,7 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
 
         if (timesheet != null && string.Equals(timesheet.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
         {
-            var firstGeneratedAt = timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt;
-            var vnOffset = TimeSpan.FromHours(7);
-            var generatedAtVn = firstGeneratedAt + vnOffset;
-            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            var reviewDeadlineUtc = endOfDayVn - vnOffset;
+            var reviewDeadlineUtc = timesheet.ReviewDeadline ?? (timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt).AddHours(24);
 
             if (DateTime.UtcNow >= reviewDeadlineUtc)
             {
@@ -124,6 +120,15 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
 
         if (string.Equals(timesheet.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Cannot confirm: The review deadline has expired and this timesheet is marked as NO_RESPONSE.");
+
+        var reviewDeadlineUtc = timesheet.ReviewDeadline ?? (timesheet.GeneratedAt ?? timesheet.CreatedAt).AddHours(24);
+        if (DateTime.UtcNow >= reviewDeadlineUtc)
+        {
+            timesheet.StaffReviewStatus = "NO_RESPONSE";
+            timesheet.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync(cancellationToken);
+            throw new InvalidOperationException("Cannot confirm: The review deadline has expired and this timesheet is marked as NO_RESPONSE.");
+        }
 
         var now = DateTime.UtcNow;
         timesheet.StaffReviewStatus = "CONFIRMED";
@@ -220,11 +225,7 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
         }
 
         // Deadline check
-        var firstGeneratedAt = timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt;
-        var vnOffset = TimeSpan.FromHours(7);
-        var generatedAtVn = firstGeneratedAt + vnOffset;
-        var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-        var reviewDeadline = endOfDayVn - vnOffset;
+        var reviewDeadline = timesheet.ReviewDeadline ?? (timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt).AddHours(24);
 
         if (DateTime.UtcNow >= reviewDeadline)
         {
@@ -508,6 +509,112 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
 
         await _context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<(TimesheetAdjustmentRequest Request, int ScheduleWeekId)> CancelAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        Guid staffId,
+        CancellationToken cancellationToken = default)
+    {
+        var request = await _context.TimesheetAdjustmentRequests
+            .Include(r => r.User)
+            .Include(r => r.Timesheet)
+                .ThenInclude(t => t.PayrollPeriod)
+                    .ThenInclude(p => p.ScheduleWeek)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.Assignment)
+                    .ThenInclude(ass => ass.Shift)
+            .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.UserId == staffId, cancellationToken);
+
+        if (request == null)
+        {
+            throw new KeyNotFoundException($"Timesheet adjustment request #{adjustmentRequestId} was not found or does not belong to you.");
+        }
+
+        if (!string.Equals(request.Status, "PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Only PENDING adjustment requests can be cancelled. Current status is '{request.Status}'.");
+        }
+
+        var timesheet = request.Timesheet;
+        var week = timesheet?.PayrollPeriod?.ScheduleWeek;
+        var now = DateTime.UtcNow;
+
+        if (timesheet != null)
+        {
+            var reviewDeadlineUtc = timesheet.ReviewDeadline ?? (timesheet.GeneratedAt ?? timesheet.CreatedAt).AddHours(24);
+            if (now >= reviewDeadlineUtc)
+            {
+                throw new InvalidOperationException("The review deadline has expired. You can no longer cancel this adjustment request.");
+            }
+
+            if (string.Equals(timesheet.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("This timesheet has already been reviewed or locked.");
+            }
+        }
+
+        request.Status = "CANCELLED";
+        request.UpdatedAt = now;
+
+        if (timesheet != null)
+        {
+            bool hasOtherPending = await _context.TimesheetAdjustmentRequests
+                .AnyAsync(r => r.TimesheetId == timesheet.TimesheetId && r.AdjustmentRequestId != adjustmentRequestId && r.Status == "PENDING", cancellationToken);
+
+            if (!hasOtherPending)
+            {
+                timesheet.StaffReviewStatus = "PENDING";
+                timesheet.UpdatedAt = now;
+            }
+        }
+
+        var staffName = request.User?.FullName ?? "Staff member";
+        var shiftName = request.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
+        var shiftDate = request.Attendance?.ShiftStartAtSnapshot ?? DateTime.UtcNow;
+        var scheduleWeekId = week?.ScheduleWeekId ?? 0;
+        var branchId = week?.BranchId ?? request.User?.BranchId ?? 0;
+
+        var managerIds = await _context.Users
+            .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE")
+            .Select(u => u.UserId)
+            .ToListAsync(cancellationToken);
+
+        string notificationContent = $"Staff {staffName} has cancelled their adjustment request for shift '{shiftName}' on {shiftDate:dd/MM/yyyy}.";
+
+        if (managerIds.Any())
+        {
+            var notif = new WorkShiftManagement.DAL.Entities.Notification
+            {
+                Title = "Adjustment Request Cancelled",
+                Content = notificationContent,
+                NotificationType = "TIMESHEET",
+                CreatedBy = staffId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                IsDeleted = false,
+                TargetType = "Custom",
+                Channels = new List<string> { "InApp" },
+                TargetRoles = new List<string> { "MANAGER" }
+            };
+
+            foreach (var mId in managerIds)
+            {
+                notif.UserNotifications.Add(new UserNotification
+                {
+                    UserId = mId,
+                    IsRead = false,
+                    CreatedAt = now
+                });
+            }
+
+            _context.Notifications.Add(notif);
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return (request, scheduleWeekId);
     }
 
     public async Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default)

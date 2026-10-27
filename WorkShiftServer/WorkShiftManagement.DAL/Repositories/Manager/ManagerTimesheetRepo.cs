@@ -189,6 +189,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         int scheduleWeekId,
         int branchId,
         Guid managerId,
+        DateTime? reviewDeadline = null,
         CancellationToken cancellationToken = default)
     {
         var week = await _context.WorkScheduleWeeks
@@ -234,6 +235,29 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var staffGroups = activeAssignments.GroupBy(x => x.Assignment.UserId).ToList();
         var generatedTimesheets = new List<Timesheet>();
         var now = DateTime.UtcNow;
+        var vnOffset = TimeSpan.FromHours(7);
+
+        DateTime reviewDeadlineUtc;
+        if (reviewDeadline.HasValue)
+        {
+            var reqUtc = reviewDeadline.Value.Kind == DateTimeKind.Utc 
+                ? reviewDeadline.Value 
+                : DateTime.SpecifyKind(reviewDeadline.Value, DateTimeKind.Utc);
+
+            if (reqUtc < now.AddHours(23).AddMinutes(50))
+            {
+                throw new ArgumentException("Review deadline must be at least 24 hours from the generation time.");
+            }
+            if (reqUtc > now.AddHours(72).AddMinutes(10))
+            {
+                throw new ArgumentException("Review deadline cannot exceed 3 days (72 hours) from the generation time.");
+            }
+            reviewDeadlineUtc = reqUtc;
+        }
+        else
+        {
+            reviewDeadlineUtc = now.AddHours(24);
+        }
 
         foreach (var group in staffGroups)
         {
@@ -307,6 +331,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 Status = "GENERATED",
                 StaffReviewStatus = "PENDING",
                 GeneratedAt = now,
+                ReviewDeadline = reviewDeadlineUtc,
                 CreatedAt = now,
                 UpdatedAt = now
             };
@@ -315,16 +340,13 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             generatedTimesheets.Add(timesheet);
         }
 
-        var vnOffset = TimeSpan.FromHours(7);
-        var generatedAtVn = now + vnOffset;
-        var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-        var reviewDeadlineUtc = endOfDayVn - vnOffset;
         week.PayrollPeriod.ApprovalDeadlineAt = reviewDeadlineUtc;
         week.PayrollPeriod.UpdatedAt = now;
 
         var staffUserIds = staffGroups.Select(g => g.Key).ToList();
         int notificationId = 0;
-        string notificationContent = $"Timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has been generated. Please review your logged hours and submit confirmations or revision requests before the deadline.";
+        var deadlineVn = reviewDeadlineUtc + vnOffset;
+        string notificationContent = $"Your timesheet for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} is ready. Please review and confirm before {deadlineVn:dd/MM/yyyy HH:mm} (UTC+7).";
 
         if (staffUserIds.Count > 0)
         {
@@ -415,9 +437,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         // Auto-expire any pending timesheets whose individual deadline has passed
         foreach (var timesheet in timesheets.Where(t => string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase)))
         {
-            var tGenAt = timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt;
-            var tGenAtVn = tGenAt + vnOffset;
-            var tDeadlineUtc = tGenAtVn.Date.AddDays(1).AddTicks(-1) - vnOffset;
+            var tDeadlineUtc = timesheet.ReviewDeadline ?? (timesheet.GeneratedAt ?? week.PayrollPeriod.CreatedAt).AddHours(24);
             if (now >= tDeadlineUtc)
             {
                 timesheet.StaffReviewStatus = "NO_RESPONSE";
@@ -435,16 +455,15 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         {
             var latestPendingDeadline = timesheets
                 .Where(t => string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
-                .Select(t => (t.GeneratedAt ?? week.PayrollPeriod.CreatedAt) + vnOffset)
-                .Select(d => d.Date.AddDays(1).AddTicks(-1))
+                .Select(t => t.ReviewDeadline ?? (t.GeneratedAt ?? week.PayrollPeriod.CreatedAt).AddHours(24))
                 .DefaultIfEmpty()
                 .Max();
 
             var deadlineVnDisplay = latestPendingDeadline != default
-                ? latestPendingDeadline.ToString("HH:mm dd/MM/yyyy")
-                : "end of day";
+                ? (latestPendingDeadline + vnOffset).ToString("HH:mm, dd/MM/yyyy")
+                : "the review deadline";
 
-            throw new InvalidOperationException($"Cannot review timesheet: Requires all staff confirmation or waiting until active review windows expire ({deadlineVnDisplay}).");
+            throw new InvalidOperationException($"Cannot review timesheet: All staff must confirm their timesheet or you must wait until the review window expires ({deadlineVnDisplay}).");
         }
 
         foreach (var timesheet in timesheets)
@@ -1035,9 +1054,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
             if (!otherPendingAdjustments)
             {
-                timesheet.StaffReviewStatus = "CONFIRMED";
-                timesheet.StaffReviewedAt = now;
-                timesheet.StaffReviewNote = "Confirmed after timesheet adjustment was approved by manager.";
+                timesheet.StaffReviewStatus = "PENDING";
+                timesheet.StaffReviewedAt = null;
+                timesheet.StaffReviewNote = null;
                 timesheet.UpdatedAt = now;
             }
         }
@@ -1048,7 +1067,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var notif = new WorkShiftManagement.DAL.Entities.Notification
         {
             Title = "Timesheet Adjustment Approved",
-            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} has been approved by the manager. Actual attendance hours have been updated.",
+            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} has been approved by the manager. Actual attendance hours have been updated. Please review your timesheet and confirm.",
             NotificationType = "TIMESHEET",
             CreatedBy = managerId,
             CreatedAt = now,
@@ -1110,9 +1129,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
             if (!otherPendingAdjustments)
             {
-                timesheet.StaffReviewStatus = "CONFIRMED";
-                timesheet.StaffReviewedAt = now;
-                timesheet.StaffReviewNote = $"Finalized after timesheet adjustment was rejected by manager: {managerNote.Trim()}";
+                timesheet.StaffReviewStatus = "PENDING";
+                timesheet.StaffReviewedAt = null;
+                timesheet.StaffReviewNote = null;
                 timesheet.UpdatedAt = now;
             }
         }
@@ -1120,10 +1139,10 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         // Create In-App Notification in DB for Staff
         var shiftName = request.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
         var shiftDate = request.Attendance?.ShiftStartAtSnapshot.ToString("dd/MM/yyyy") ?? "";
-        var notif = new WorkShiftManagement.DAL.Entities.Notification
+        var rejectNotif = new WorkShiftManagement.DAL.Entities.Notification
         {
             Title = "Timesheet Adjustment Rejected",
-            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} has been rejected by the manager. Reason: \"{managerNote.Trim()}\".",
+            Content = $"Your adjustment request for shift '{shiftName}' on {shiftDate} was rejected by the manager (Reason: {managerNote.Trim()}). Please review your timesheet and confirm.",
             NotificationType = "TIMESHEET",
             CreatedBy = managerId,
             CreatedAt = now,
@@ -1134,14 +1153,14 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             TargetRoles = new List<string> { "STAFF" }
         };
 
-        notif.UserNotifications.Add(new UserNotification
+        rejectNotif.UserNotifications.Add(new UserNotification
         {
             UserId = request.UserId,
             IsRead = false,
             CreatedAt = now
         });
 
-        _context.Notifications.Add(notif);
+        _context.Notifications.Add(rejectNotif);
         await _context.SaveChangesAsync(cancellationToken);
 
         return request;
@@ -1150,7 +1169,6 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
     public async Task<List<(WorkScheduleWeek Week, List<Timesheet> LockedTimesheets, List<Guid> StaffUserIds, int NotificationId, string NotificationContent)>> AutoLockExpiredTimesheetsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var vnOffset = TimeSpan.FromHours(7);
 
         // Find candidate schedule weeks with GENERATED timesheets
         var candidateWeeks = await _context.WorkScheduleWeeks
@@ -1169,58 +1187,67 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
             if (!timesheets.Any()) continue;
 
-            int pendingAdjustmentsCount = timesheets
-                .SelectMany(t => t.TimesheetAdjustmentRequests ?? Enumerable.Empty<TimesheetAdjustmentRequest>())
-                .Count(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
+            // Find timesheets whose review deadline has passed and staff is still PENDING
+            var expiredStaffTimesheets = timesheets
+                .Where(t => t.Status == "GENERATED" &&
+                            string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
+                            (t.ReviewDeadline.HasValue ? now >= t.ReviewDeadline.Value : now >= (t.GeneratedAt ?? week.PayrollPeriod!.CreatedAt).AddHours(24)))
+                .ToList();
 
-            // If there are still pending adjustment requests awaiting manager review, do not lock yet
-            if (pendingAdjustmentsCount > 0)
+            if (!expiredStaffTimesheets.Any())
                 continue;
 
-            // If any staff timesheet is still PENDING with an active review deadline, do not auto-lock yet
-            bool hasActivePendingReview = timesheets.Any(t =>
-                string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase) &&
-                now < (((t.GeneratedAt ?? week.PayrollPeriod!.CreatedAt) + vnOffset).Date.AddDays(1).AddTicks(-1) - vnOffset));
-
-            if (hasActivePendingReview)
-                continue;
-
-            var firstGeneratedAt = timesheets.Where(t => t.GeneratedAt.HasValue).Min(t => t.GeneratedAt)
-                ?? week.PayrollPeriod!.CreatedAt;
-            var generatedAtVn = firstGeneratedAt + vnOffset;
-            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            var reviewDeadlineUtc = endOfDayVn - vnOffset;
-
-            if (now >= reviewDeadlineUtc)
+            // Mark expired staff as NO_RESPONSE (Keep Status as GENERATED for manager review)
+            foreach (var t in expiredStaffTimesheets)
             {
-                var targetTimesheets = timesheets.Where(t => t.Status == "GENERATED").ToList();
-                if (!targetTimesheets.Any()) continue;
+                t.StaffReviewStatus = "NO_RESPONSE";
+                t.UpdatedAt = now;
+            }
 
+            var staffUserIds = expiredStaffTimesheets.Select(t => t.UserId).Distinct().ToList();
+            int notificationId = 0;
+            string notificationContent = $"The review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has expired. Your timesheet has been marked as No Response.";
+
+            if (staffUserIds.Count > 0)
+            {
                 var creatorId = week.PayrollPeriod!.CreatedBy;
-                foreach (var t in targetTimesheets)
+                var notification = new WorkShiftManagement.DAL.Entities.Notification
                 {
-                    if (string.Equals(t.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
+                    Title = "Timesheet Review Window Expired",
+                    Content = notificationContent,
+                    NotificationType = "TIMESHEET",
+                    CreatedBy = creatorId,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false,
+                    TargetType = "Custom",
+                    Channels = new List<string> { "InApp" },
+                    TargetRoles = new List<string> { "STAFF" }
+                };
+
+                foreach (var sId in staffUserIds)
+                {
+                    notification.UserNotifications.Add(new UserNotification
                     {
-                        t.StaffReviewStatus = "NO_RESPONSE";
-                    }
-                    t.Status = "REVIEWED";
-                    t.ReviewedAt = now;
-                    t.ReviewedBy = creatorId;
-                    t.LockedAt = null;
-                    t.LockedBy = null;
-                    t.UpdatedAt = now;
+                        UserId = sId,
+                        IsRead = false,
+                        CreatedAt = now
+                    });
                 }
 
-                var staffUserIds = targetTimesheets.Select(t => t.UserId).Distinct().ToList();
-                int notificationId = 0;
-                string notificationContent = $"Timesheet review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has passed. Timesheets have been finalized and reviewed.";
+                // Also notify Branch Managers that the deadline has passed
+                var branchId = week.BranchId;
+                var managerIds = await _context.Users
+                    .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE")
+                    .Select(u => u.UserId)
+                    .ToListAsync(cancellationToken);
 
-                if (staffUserIds.Count > 0)
+                if (managerIds.Any())
                 {
-                    var notification = new WorkShiftManagement.DAL.Entities.Notification
+                    var managerNotif = new WorkShiftManagement.DAL.Entities.Notification
                     {
-                        Title = "Weekly Timesheet Reviewed",
-                        Content = notificationContent,
+                        Title = "Timesheet Review Window Expired",
+                        Content = $"Review deadline for week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy} has ended. Timesheets are ready for manager review.",
                         NotificationType = "TIMESHEET",
                         CreatedBy = creatorId,
                         CreatedAt = now,
@@ -1228,30 +1255,31 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                         IsDeleted = false,
                         TargetType = "Custom",
                         Channels = new List<string> { "InApp" },
-                        TargetRoles = new List<string> { "STAFF" }
+                        TargetRoles = new List<string> { "MANAGER" }
                     };
 
-                    foreach (var sId in staffUserIds)
+                    foreach (var mId in managerIds)
                     {
-                        notification.UserNotifications.Add(new UserNotification
+                        managerNotif.UserNotifications.Add(new UserNotification
                         {
-                            UserId = sId,
+                            UserId = mId,
                             IsRead = false,
                             CreatedAt = now
                         });
                     }
-
-                    _context.Notifications.Add(notification);
-                    await _context.SaveChangesAsync(cancellationToken);
-                    notificationId = notification.NotificationId;
-                }
-                else
-                {
-                    await _context.SaveChangesAsync(cancellationToken);
+                    _context.Notifications.Add(managerNotif);
                 }
 
-                results.Add((week, targetTimesheets, staffUserIds, notificationId, notificationContent));
+                _context.Notifications.Add(notification);
+                await _context.SaveChangesAsync(cancellationToken);
+                notificationId = notification.NotificationId;
             }
+            else
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+
+            results.Add((week, expiredStaffTimesheets, staffUserIds, notificationId, notificationContent));
         }
 
         return results;
@@ -1266,8 +1294,8 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var timesheet = await _context.Timesheets
             .Include(t => t.User)
             .Include(t => t.PayrollPeriod)
-                .ThenInclude(p => p.ScheduleWeek)
-                    .ThenInclude(w => w.Branch)
+                .ThenInclude(p => p!.ScheduleWeek)
+                    .ThenInclude(w => w!.Branch)
             .FirstOrDefaultAsync(t => t.TimesheetId == timesheetId, cancellationToken);
 
         if (timesheet == null)
@@ -1283,8 +1311,10 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         if (string.Equals(timesheet.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(timesheet.Status, "LOCKED", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(week.PayrollPeriod?.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(week.PayrollPeriod?.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+            string.Equals(week.PayrollPeriod?.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(week.PayrollPeriod?.Status, "APPROVED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(week.PayrollPeriod?.Status, "PAID", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(week.PayrollPeriod?.Status, "CLOSED", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Cannot reopen review: The weekly timesheet has already been reviewed or locked.");
         }
@@ -1301,16 +1331,15 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
 
         if (!string.Equals(timesheet.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException($"Cannot reopen review: Timesheet has review status '{timesheet.StaffReviewStatus}'. Only 'NO_RESPONSE' timesheets can be reopened.");
+            throw new InvalidOperationException($"Cannot reopen review: Only timesheets with 'NO_RESPONSE' status can be reopened (current: '{timesheet.StaffReviewStatus}').");
         }
 
         var now = DateTime.UtcNow;
         var vnOffset = TimeSpan.FromHours(7);
-        var endOfDayVn = (now + vnOffset).Date.AddDays(1).AddTicks(-1);
-        var newDeadlineUtc = endOfDayVn - vnOffset;
+        var newDeadlineUtc = now.AddHours(24);
 
         timesheet.StaffReviewStatus = "PENDING";
-        timesheet.GeneratedAt = now;
+        timesheet.ReviewDeadline = newDeadlineUtc;
         timesheet.StaffReviewedAt = null;
         timesheet.StaffReviewNote = null;
         timesheet.UpdatedAt = now;
@@ -1321,7 +1350,8 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             week.PayrollPeriod.UpdatedAt = now;
         }
 
-        string notificationContent = $"The review window for your timesheet (week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy}) has been reopened by your manager. Please review and confirm or submit adjustments before the end of the day.";
+        var deadlineVn = newDeadlineUtc + vnOffset;
+        string notificationContent = $"The review window for your timesheet (week {week.WeekStartDate:dd/MM/yyyy} – {week.WeekEndDate:dd/MM/yyyy}) has been reopened by your manager. New deadline is {deadlineVn:dd/MM/yyyy HH:mm} (UTC+7). Please review and confirm.";
 
         var notification = new WorkShiftManagement.DAL.Entities.Notification
         {
@@ -1333,8 +1363,6 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             UpdatedAt = now,
             IsDeleted = false,
             TargetType = "Custom",
-            TargetBranchId = null,
-            TargetRegionId = null,
             Channels = new List<string> { "InApp" },
             TargetRoles = new List<string> { "STAFF" }
         };

@@ -54,6 +54,7 @@ public sealed class ManagerStaffTimesheetItemDto
     public int UnexcusedAbsentCount { get; set; }
     public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "NO_RESPONSE", "ADJUSTMENT_PENDING", "-"
     public string Status { get; set; } = null!; // "GENERATED", "LOCKED", "NOT GENERATED"
+    public DateTime? ReviewDeadline { get; set; }
     public bool CanReopenReview => TimesheetId.HasValue 
         && string.Equals(Status, "GENERATED", StringComparison.OrdinalIgnoreCase) 
         && string.Equals(StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);

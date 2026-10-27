@@ -24,6 +24,11 @@ public interface IStaffTimesheetRepo
         List<StaffAdjustmentSubmissionItem> items,
         CancellationToken cancellationToken = default);
 
+    Task<(TimesheetAdjustmentRequest Request, int ScheduleWeekId)> CancelAdjustmentRequestAsync(
+        int adjustmentRequestId,
+        Guid staffId,
+        CancellationToken cancellationToken = default);
+
     Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default);
 }
 

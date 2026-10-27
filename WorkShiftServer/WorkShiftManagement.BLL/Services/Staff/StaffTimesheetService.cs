@@ -107,11 +107,15 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             totalEarlyLeaveMinutes = staffTimesheet.TotalEarlyLeaveMinutes;
             isLocked = string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
 
-            var firstGeneratedAt = staffTimesheet.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? DateTime.UtcNow;
-            var vnOffset = TimeSpan.FromHours(7);
-            var generatedAtVn = firstGeneratedAt + vnOffset;
-            var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
-            reviewDeadline = endOfDayVn - vnOffset;
+            reviewDeadline = staffTimesheet.ReviewDeadline;
+            if (!reviewDeadline.HasValue)
+            {
+                var firstGeneratedAt = staffTimesheet.GeneratedAt ?? week.PayrollPeriod?.CreatedAt ?? DateTime.UtcNow;
+                var vnOffset = TimeSpan.FromHours(7);
+                var generatedAtVn = firstGeneratedAt + vnOffset;
+                var endOfDayVn = generatedAtVn.Date.AddDays(1).AddTicks(-1);
+                reviewDeadline = endOfDayVn - vnOffset;
+            }
             isPastDeadline = DateTime.UtcNow >= reviewDeadline.Value;
 
             pendingAdjustmentCount = staffTimesheet.TimesheetAdjustmentRequests?
@@ -160,11 +164,11 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
             bool hasPending = reqList.Any(r => string.Equals(r.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
 
-            var checkInReq = reqList.FirstOrDefault(r => r.AdjustCheckIn);
+            var checkInReq = reqList.FirstOrDefault(r => r.AdjustCheckIn && !string.Equals(r.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase));
             bool isCheckInLocked = checkInReq != null;
             string? checkInLockReason = checkInReq?.Status;
 
-            var checkOutReq = reqList.FirstOrDefault(r => r.AdjustCheckOut);
+            var checkOutReq = reqList.FirstOrDefault(r => r.AdjustCheckOut && !string.Equals(r.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase));
             bool isCheckOutLocked = checkOutReq != null;
             string? checkOutLockReason = checkOutReq?.Status;
 
@@ -174,6 +178,8 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
                                  !string.Equals(staffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase) &&
                                  !hasPending &&
                                  (!isCheckInLocked || !isCheckOutLocked);
+
+            bool canCancelAdj = hasPending && !isLocked && !isPastDeadline;
 
             var approvedLeave = x.Assignment.LeaveRequestAssignments
                 ?.Select(l => l.Request)
@@ -214,6 +220,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
                 AdjustmentReason = adj?.Reason,
                 ManagerNote = adj?.ManagerNote,
                 CanRequestAdjustment = canRequestAdj,
+                CanCancelAdjustment = canCancelAdj,
                 IsCheckInLocked = isCheckInLocked,
                 CheckInLockReason = checkInLockReason,
                 IsCheckOutLocked = isCheckOutLocked,
@@ -361,5 +368,27 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var updated = await GetMyWeeklyTimesheetAsync(staffId, request.ScheduleWeekId, cancellationToken);
         return updated ?? throw new InvalidOperationException("Failed to retrieve updated timesheet after submitting adjustments.");
+    }
+
+    public async Task<StaffWeeklyTimesheetResponse> CancelAdjustmentRequestAsync(
+        Guid staffId,
+        int adjustmentRequestId,
+        CancellationToken cancellationToken = default)
+    {
+        if (staffId == Guid.Empty)
+        {
+            throw new ArgumentException("Authenticated staff identity is required.");
+        }
+
+        if (adjustmentRequestId <= 0)
+        {
+            throw new ArgumentException("Valid adjustment request ID is required.");
+        }
+
+        var (_, scheduleWeekId) =
+            await _repo.CancelAdjustmentRequestAsync(adjustmentRequestId, staffId, cancellationToken);
+
+        var updated = await GetMyWeeklyTimesheetAsync(staffId, scheduleWeekId, cancellationToken);
+        return updated ?? throw new InvalidOperationException("Failed to retrieve updated timesheet after cancelling adjustment.");
     }
 }

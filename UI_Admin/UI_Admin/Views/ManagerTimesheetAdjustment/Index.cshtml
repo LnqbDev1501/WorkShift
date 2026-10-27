@@ -136,6 +136,7 @@
                         <option value="PENDING" selected="@(Model.Status == "PENDING")">Pending Review (@Model.PendingCount)</option>
                         <option value="APPROVED" selected="@(Model.Status == "APPROVED")">Approved (@Model.ApprovedCount)</option>
                         <option value="REJECTED" selected="@(Model.Status == "REJECTED")">Rejected (@Model.RejectedCount)</option>
+                        <option value="CANCELLED" selected="@(Model.Status == "CANCELLED")">Cancelled</option>
                     </select>
                     <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">expand_more</span>
                 </div>
@@ -205,6 +206,7 @@
                             var isPending = status == "PENDING";
                             var isApproved = status == "APPROVED";
                             var isRejected = status == "REJECTED";
+                            var isCancelled = status == "CANCELLED";
 
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <!-- ID -->
@@ -257,6 +259,13 @@
                                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                             <span>REJECTED</span>
+                                        </span>
+                                    }
+                                    else if (isCancelled)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            <span>CANCELLED</span>
                                         </span>
                                     }
                                 </td>

@@ -79,6 +79,7 @@ public sealed class ManagerStaffTimesheetItemViewModel
     public int TotalEarlyLeaveMinutes { get; set; }
     public string StaffReviewStatus { get; set; } = null!;
     public string Status { get; set; } = null!;
+    public DateTime? ReviewDeadline { get; set; }
     public bool CanReopenReview => TimesheetId.HasValue 
         && string.Equals(Status, "GENERATED", StringComparison.OrdinalIgnoreCase) 
         && string.Equals(StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);

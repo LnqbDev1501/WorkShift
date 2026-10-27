@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -2856,6 +2856,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
+            entity.Property(e => e.ReviewDeadline).HasColumnName("review_deadline");
             entity.Property(e => e.IncompleteShiftCount)
                 .HasDefaultValue(0)
                 .HasColumnName("incomplete_shift_count");
