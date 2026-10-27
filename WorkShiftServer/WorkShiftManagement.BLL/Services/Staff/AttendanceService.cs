@@ -77,6 +77,10 @@ public class AttendanceService : IAttendanceService
         var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
+        var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
+        var approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+        var approvedLeaves = await _attendanceRepo.GetApprovedLeavesForAssignmentsAsync(assignmentIds, cancellationToken);
+
         int checkInBeforeMins = rule.CheckInBeforeMinutes;
         int checkInGraceMins = rule.CheckInGraceMinutes;
         int maxDistanceMeters = rule.MaxAttendanceDistanceMeters;
@@ -95,8 +99,8 @@ public class AttendanceService : IAttendanceService
             int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
             var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
 
-            var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-            var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+            var approvedLate = approvedLates.GetValueOrDefault(assignment.AssignmentId);
+            var approvedLeave = approvedLeaves.GetValueOrDefault(assignment.AssignmentId);
 
             if (approvedLate != null)
             {
@@ -264,6 +268,11 @@ public class AttendanceService : IAttendanceService
 
         var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+
+        var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
+        var approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+        var approvedLeaves = await _attendanceRepo.GetApprovedLeavesForAssignmentsAsync(assignmentIds, cancellationToken);
+
         int checkOutAfterMinutes = rule.CheckOutAfterMinutes;
         int checkInBeforeMinutes = rule.CheckInBeforeMinutes;
         int checkInGraceMinutes = rule.CheckInGraceMinutes;
@@ -348,7 +357,7 @@ public class AttendanceService : IAttendanceService
                 }
                 else
                 {
-                    var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+                    var approvedLeave = approvedLeaves.GetValueOrDefault(assignment.AssignmentId);
                     if (approvedLeave != null)
                     {
                         canCheckIn = false;
@@ -357,7 +366,7 @@ public class AttendanceService : IAttendanceService
                     }
                     else
                     {
-                        var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
+                        var approvedLate = approvedLates.GetValueOrDefault(assignment.AssignmentId);
                         var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMinutes);
                         int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
                         int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);

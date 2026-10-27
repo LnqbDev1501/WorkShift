@@ -23,7 +23,9 @@ public interface IAttendanceRepo
     Task<Attendance?> GetAttendanceWithDetailsByAssignmentIdAsync(int assignmentId, CancellationToken cancellationToken = default);
 
     Task<LeaveRequestAssignment?> GetApprovedLeaveForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default);
+    Task<Dictionary<int, LeaveRequestAssignment>> GetApprovedLeavesForAssignmentsAsync(IEnumerable<int> assignmentIds, CancellationToken cancellationToken = default);
     Task<TimeAdjustmentRequestDetail?> GetApprovedLateArrivalForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default);
+    Task<Dictionary<int, TimeAdjustmentRequestDetail>> GetApprovedLateArrivalsForAssignmentsAsync(IEnumerable<int> assignmentIds, CancellationToken cancellationToken = default);
     Task<TimeAdjustmentRequestDetail?> GetApprovedEarlyLeaveForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default);
 
     Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default);

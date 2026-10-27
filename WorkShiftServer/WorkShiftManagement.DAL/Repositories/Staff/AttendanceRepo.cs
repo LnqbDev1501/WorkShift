@@ -227,6 +227,24 @@ public class AttendanceRepo : IAttendanceRepo
                 cancellationToken);
     }
 
+    public async Task<Dictionary<int, LeaveRequestAssignment>> GetApprovedLeavesForAssignmentsAsync(IEnumerable<int> assignmentIds, CancellationToken cancellationToken = default)
+    {
+        var ids = assignmentIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, LeaveRequestAssignment>();
+
+        var list = await _context.LeaveRequestAssignments
+            .AsNoTracking()
+            .Include(l => l.Request)
+            .Where(l => ids.Contains(l.AssignmentId) &&
+                        l.Request.RequestType == "LEAVE" &&
+                        l.Request.Status == "APPROVED")
+            .ToListAsync(cancellationToken);
+
+        return list
+            .GroupBy(l => l.AssignmentId)
+            .ToDictionary(g => g.Key, g => g.First());
+    }
+
     public Task<TimeAdjustmentRequestDetail?> GetApprovedLateArrivalForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default)
     {
         return _context.TimeAdjustmentRequestDetails
@@ -237,6 +255,24 @@ public class AttendanceRepo : IAttendanceRepo
                 t.Request.RequestType == "LATE_ARRIVAL" &&
                 t.Request.Status == "APPROVED",
                 cancellationToken);
+    }
+
+    public async Task<Dictionary<int, TimeAdjustmentRequestDetail>> GetApprovedLateArrivalsForAssignmentsAsync(IEnumerable<int> assignmentIds, CancellationToken cancellationToken = default)
+    {
+        var ids = assignmentIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, TimeAdjustmentRequestDetail>();
+
+        var list = await _context.TimeAdjustmentRequestDetails
+            .AsNoTracking()
+            .Include(t => t.Request)
+            .Where(t => ids.Contains(t.AssignmentId) &&
+                        t.Request.RequestType == "LATE_ARRIVAL" &&
+                        t.Request.Status == "APPROVED")
+            .ToListAsync(cancellationToken);
+
+        return list
+            .GroupBy(t => t.AssignmentId)
+            .ToDictionary(g => g.Key, g => g.First());
     }
 
     public Task<TimeAdjustmentRequestDetail?> GetApprovedEarlyLeaveForAssignmentAsync(int assignmentId, CancellationToken cancellationToken = default)
