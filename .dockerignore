@@ -27,6 +27,4 @@ UI_Admin/
 appsettings.Development.json
 appsettings.Local.json
 
-# Docker files
-Dockerfile
-.dockerignore
+
