@@ -200,12 +200,14 @@ class _ShiftSwapDetailViewState extends State<ShiftSwapDetailView>
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                ShiftSwapStatusBadge(status: request.status),
+                                ShiftSwapStatusBadge(
+                                  status: _controller.effectiveStatus!,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              _statusMessage(request.status),
+                              _statusMessage(_controller.effectiveStatus!),
                               style: const TextStyle(
                                 fontSize: 13,
                                 height: 1.5,
@@ -261,6 +263,13 @@ class _ShiftSwapDetailViewState extends State<ShiftSwapDetailView>
                               label: 'Reason',
                               value: request.reason ?? 'No reason provided.',
                             ),
+                            AppInfoRow(
+                              icon: Icons.timer_outlined,
+                              label: 'Expires at',
+                              value: ShiftDisplayFormat.deadline(
+                                request.expiresAt,
+                              ),
+                            ),
                             if (request.respondedAt != null)
                               AppInfoRow(
                                 icon: Icons.update_rounded,
@@ -313,6 +322,8 @@ class _ShiftSwapDetailViewState extends State<ShiftSwapDetailView>
       'This request was rejected. The original assignments were kept.',
     'CANCELLED' =>
       'This request was cancelled. The original assignments were kept.',
+    'EXPIRED' =>
+      'This request expired when the earlier shift started. The original assignments were kept.',
     _ => 'This request cannot be changed.',
   };
 }

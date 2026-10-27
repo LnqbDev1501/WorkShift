@@ -144,6 +144,10 @@ class _ShiftSwapListViewState extends State<ShiftSwapListView>
                             value: 'CANCELLED',
                             child: Text('Cancelled'),
                           ),
+                          DropdownMenuItem(
+                            value: 'EXPIRED',
+                            child: Text('Expired'),
+                          ),
                         ],
                         onChanged: (status) => _controller.setFilters(
                           direction: _controller.direction,
@@ -239,7 +243,9 @@ class _ShiftSwapListViewState extends State<ShiftSwapListView>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    ShiftSwapStatusBadge(status: request.status),
+                    ShiftSwapStatusBadge(
+                      status: request.statusAt(DateTime.now()),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -228,7 +228,7 @@ CREATE TABLE public.shift_swap_requests (
     responded_at timestamptz,
     response_note varchar(500),
     status varchar(20) NOT NULL DEFAULT 'PENDING'
-        CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED')),
+        CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED')),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT ck_swap_different_users CHECK (requester_id <> target_user_id),

@@ -6,6 +6,8 @@
 @targetAssignmentId = 2
 
 ### List own sent/received requests (Direction: ALL, SENT, RECEIVED)
+# Status supports PENDING, ACCEPTED, REJECTED, CANCELLED, EXPIRED.
+# Due PENDING requests are persisted as EXPIRED before filtering and paging.
 GET {{baseUrl}}/api/staff/shift-swap-requests?PageNumber=1&PageSize=20&Direction=ALL&Status=PENDING
 Authorization: Bearer {{requesterToken}}
 
@@ -32,6 +34,8 @@ Content-Type: application/json
 { "note": "No longer need to swap" }
 
 ### Accept (target only, no request body; exchanges assignments atomically)
+# Accept/reject/cancel return 409 when now >= min(source start, target start).
+# Expiry is persisted and assignments remain unchanged even when the action returns 409.
 POST {{baseUrl}}/api/staff/shift-swap-requests/{{requestId}}/accept
 Authorization: Bearer {{targetToken}}
 

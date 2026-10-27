@@ -332,6 +332,17 @@ builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePubli
 
 var app = builder.Build();
 
+try
+{
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IStaffShiftSwapService>("shift-swap-expiry",
+            service => service.ExpireDueAsync(CancellationToken.None), Cron.Minutely());
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'shift-swap-expiry'.");
+}
+
 // Register independently: another recurring job's lock timeout must not skip salary activation.
 try
 {

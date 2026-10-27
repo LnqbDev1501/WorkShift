@@ -13,6 +13,7 @@ class ShiftSwapStatusBadge extends StatelessWidget {
     'ACCEPTED' => StatusBadge.success(text: 'Accepted'),
     'REJECTED' => StatusBadge.rejected(text: 'Rejected'),
     'CANCELLED' => StatusBadge.neutral(text: 'Cancelled'),
+    'EXPIRED' => StatusBadge.neutral(text: 'Expired'),
     _ => StatusBadge.neutral(text: status),
   };
 }
