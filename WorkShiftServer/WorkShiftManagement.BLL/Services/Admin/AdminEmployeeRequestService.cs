@@ -21,7 +21,8 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
     {
         "LEAVE",
         "LATE_ARRIVAL",
-        "EARLY_LEAVE"
+        "EARLY_LEAVE",
+        "SALARY_INCREASE"
     };
 
     private static readonly HashSet<string> AllowedStatuses = new(StringComparer.OrdinalIgnoreCase)
@@ -57,7 +58,7 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
             var trimmedType = query.RequestType.Trim().ToUpperInvariant();
             if (!SupportedRequestTypes.Contains(trimmedType))
             {
-                throw new ArgumentException("Invalid requestType. Allowed values are LEAVE, LATE_ARRIVAL, EARLY_LEAVE.");
+                throw new ArgumentException("Invalid requestType. Allowed values are LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE.");
             }
             normalizedRequestType = trimmedType;
         }
@@ -153,6 +154,13 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
                 BranchId = r.BranchId,
                 BranchName = r.Branch.BranchName,
                 BranchCode = r.Branch.BranchCode,
+                SalaryIncreaseDetail = r.SalaryIncreaseRequestDetail == null ? null : new AdminSalaryIncreaseDetailResponse
+                {
+                    CurrentContractId = r.SalaryIncreaseRequestDetail.CurrentContractId,
+                    ContractNumber = r.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber,
+                    CurrentHourlyRate = r.SalaryIncreaseRequestDetail.CurrentHourlyRate,
+                    ProposedHourlyRate = r.SalaryIncreaseRequestDetail.ProposedHourlyRate
+                },
                 RequestType = r.RequestType,
                 Reason = r.Reason,
                 Status = r.Status,
@@ -198,6 +206,13 @@ public class AdminEmployeeRequestService : IAdminEmployeeRequestService
             BranchId = request.BranchId,
             BranchName = request.Branch.BranchName,
             BranchCode = request.Branch.BranchCode,
+            SalaryIncreaseDetail = request.SalaryIncreaseRequestDetail == null ? null : new AdminSalaryIncreaseDetailResponse
+            {
+                CurrentContractId = request.SalaryIncreaseRequestDetail.CurrentContractId,
+                ContractNumber = request.SalaryIncreaseRequestDetail.CurrentContract?.ContractNumber,
+                CurrentHourlyRate = request.SalaryIncreaseRequestDetail.CurrentHourlyRate,
+                ProposedHourlyRate = request.SalaryIncreaseRequestDetail.ProposedHourlyRate
+            },
             RequestType = request.RequestType,
             Reason = request.Reason,
             Status = request.Status,

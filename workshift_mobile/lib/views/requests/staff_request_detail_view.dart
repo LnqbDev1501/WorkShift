@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../../models/staff_request_model.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 
@@ -206,24 +207,12 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: detail.requestType == 'LEAVE'
-                                    ? const Color(0xFFD1FAE5)
-                                    : detail.requestType == 'LATE_ARRIVAL'
-                                        ? const Color(0xFFFFEDD5)
-                                        : const Color(0xFFF3E8FF),
+                                color: detail.typeColor.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
-                                detail.requestType == 'LEAVE'
-                                    ? Icons.event_busy_rounded
-                                    : detail.requestType == 'LATE_ARRIVAL'
-                                        ? Icons.more_time_rounded
-                                        : Icons.timer_off_rounded,
-                                color: detail.requestType == 'LEAVE'
-                                    ? const Color(0xFF059669)
-                                    : detail.requestType == 'LATE_ARRIVAL'
-                                        ? const Color(0xFFEA580C)
-                                        : const Color(0xFF7C3AED),
+                                detail.typeIcon,
+                                color: detail.typeColor,
                                 size: 24,
                               ),
                             ),
@@ -282,9 +271,15 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 3. Chi tiết ca làm việc liên quan
-                      _buildSectionTitle('Applicable Shifts'),
-                      if (detail.requestType == 'LEAVE' && detail.leaveAssignments != null)
+                      // 3. Chi tiết ca làm việc liên quan hoặc thông tin tăng lương
+                      _buildSectionTitle(
+                        detail.requestType == 'SALARY_INCREASE'
+                            ? 'Salary Adjustment Details'
+                            : 'Applicable Shifts',
+                      ),
+                      if (detail.requestType == 'SALARY_INCREASE' && detail.salaryIncreaseDetail != null)
+                        _buildSalaryIncreaseCard(detail.salaryIncreaseDetail!)
+                      else if (detail.requestType == 'LEAVE' && detail.leaveAssignments != null)
                         ...detail.leaveAssignments!.map((shift) => _buildLeaveShiftCard(shift))
                       else if ((detail.requestType == 'LATE_ARRIVAL' || detail.requestType == 'EARLY_LEAVE') &&
                           detail.timeAdjustmentDetail != null)
@@ -298,7 +293,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                             border: Border.all(color: AppColors.borderLight),
                           ),
                           child: const Text(
-                            'No shift information available.',
+                            'No shift or salary information available.',
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
                         ),
@@ -600,4 +595,139 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
       ),
     );
   }
+
+  Widget _buildSalaryIncreaseCard(StaffSalaryIncreaseDetailModel detail) {
+    final curRate = detail.currentHourlyRate;
+    final propRate = detail.proposedHourlyRate;
+    final diff = propRate - curRate;
+    final hasCurrentRate = curRate > 0;
+    final percent = hasCurrentRate ? ((diff / curRate) * 100).toStringAsFixed(1) : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.payments_rounded,
+                  color: Color(0xFF2563EB),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Hourly Rate Increase Request',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail.contractNumber != null
+                          ? 'Contract: ${detail.contractNumber}'
+                          : 'Active Employment Contract',
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24, color: AppColors.borderLight),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Current Rate',
+                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      hasCurrentRate ? formatCurrency(curRate) : 'Not specified',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_rounded, color: AppColors.textMuted, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'Proposed Rate',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF2563EB), fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formatCurrency(propRate),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2563EB),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (hasCurrentRate && diff > 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.trending_up_rounded, size: 16, color: Color(0xFF2563EB)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Increase of +${formatCurrency(diff)} ($percent%)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2563EB),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
+

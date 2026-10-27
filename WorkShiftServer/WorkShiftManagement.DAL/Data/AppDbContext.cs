@@ -1149,8 +1149,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
-                .HasForeignKey<EmploymentContract>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.EmploymentContracts)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_user_id_fkey");
         });

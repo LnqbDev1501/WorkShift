@@ -122,9 +122,9 @@
                     <button type="button"
                             onclick="openTerminateModal()"
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
-                            title="Chấm dứt hợp đồng trước hạn">
+                            title="Terminate Contract Early">
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Chấm dứt HĐ</span>
+                        <span>Terminate</span>
                     </button>
                 }
             }
@@ -151,7 +151,7 @@
                         <span class="font-semibold text-rose-900">
                             @if (isAutoCancel)
                             {
-                                <span>Quá ngày bắt đầu hợp đồng mà nhân viên chưa xác nhận chấp thuận (Hệ thống tự động hủy)</span>
+                                <span>Past contract start date without staff acceptance (System auto-cancelled)</span>
                             }
                             else
                             {
@@ -204,26 +204,26 @@
             </div>
             <div class="flex-1">
                 <div class="flex items-center gap-2 flex-wrap mb-2">
-                    <h3 class="font-bold text-rose-900 text-sm">Hợp đồng đã chấm dứt trước thời hạn</h3>
+                    <h3 class="font-bold text-rose-900 text-sm">Contract has been terminated early</h3>
                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-300">
                         <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>TERMINATED
                     </span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
                     <div>
-                        <span class="text-rose-600/80 font-medium block">Lý do chấm dứt:</span>
+                        <span class="text-rose-600/80 font-medium block">Termination Reason:</span>
                         <span class="font-semibold text-rose-900">
-                            @(string.IsNullOrWhiteSpace(Model.TerminationReason) ? "Đã chấm dứt bởi quản lý" : Model.TerminationReason)
+                            @(string.IsNullOrWhiteSpace(Model.TerminationReason) ? "Terminated by manager" : Model.TerminationReason)
                         </span>
                     </div>
                     <div>
-                        <span class="text-rose-600/80 font-medium block">Ngày có hiệu lực:</span>
+                        <span class="text-rose-600/80 font-medium block">Effective Date:</span>
                         <span class="font-semibold text-rose-900 tabular-nums">
                             @(Model.TerminationEffectiveAt.HasValue ? Model.TerminationEffectiveAt.Value.ToString("dd/MM/yyyy") : "—")
                         </span>
                     </div>
                     <div>
-                        <span class="text-rose-600/80 font-medium block">Thời điểm thực hiện:</span>
+                        <span class="text-rose-600/80 font-medium block">Action Timestamp:</span>
                         <span class="font-semibold text-rose-900 tabular-nums">
                             @(Model.TerminatedAt.HasValue ? Model.TerminatedAt.Value.ToString("dd/MM/yyyy HH:mm:ss") : "—")
                         </span>
@@ -440,7 +440,7 @@
                                 @if (!string.IsNullOrWhiteSpace(Model.CancellationReason))
                                 {
                                     var displayReason = isAutoCancel || Model.CancellationReason.Contains("NOT_ACCEPTED_BY_START_DATE", StringComparison.OrdinalIgnoreCase)
-                                        ? "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận"
+                                        ? "Past start date without staff acceptance"
                                         : Model.CancellationReason;
                                     <p class="text-[11px] text-rose-600 mt-0.5 italic">"@displayReason"</p>
                                 }
@@ -579,7 +579,7 @@
                                             <p class="font-bold text-rose-900">System auto-cancelled contract due to staff not accepting on time:</p>
                                             <p class="text-rose-700 mt-0.5">
                                                 The contract expired for staff acceptance (past effective start date).
-                                                Status changed to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="text-rose-900">Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</strong> (not TERMINATED).
+                                                Status changed to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="text-rose-900">Past start date without staff acceptance</strong> (not TERMINATED).
                                             </p>
                                         </div>
                                     </div>
@@ -620,7 +620,7 @@
                                         <div>
                                             @if (entry.Reason == "NOT_ACCEPTED_BY_START_DATE" || (entry.Reason?.Contains("quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase) ?? false))
                                             {
-                                                <span class="font-semibold">Reason:</span> <span>Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</span>
+                                                <span class="font-semibold">Reason:</span> <span>Past start date without staff acceptance</span>
                                             }
                                             else
                                             {
@@ -881,7 +881,7 @@
                     <span class="material-symbols-outlined text-[24px]">gavel</span>
                 </div>
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900">Chấm dứt hợp đồng trước thời hạn</h3>
+                    <h3 class="text-lg font-bold text-slate-900">Terminate Contract Early</h3>
                     <p class="text-xs text-slate-500 font-mono mt-0.5">@Model.ContractNumber &bull; @Model.EmployeeFullName</p>
                 </div>
             </div>
@@ -889,7 +889,7 @@
             <div class="p-3.5 mb-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-800">
                 <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">warning</span>
                 <span>
-                    <strong>Cảnh báo:</strong> Thao tác này sẽ chấm dứt hợp đồng đang có hiệu lực. Trạng thái sẽ chuyển sang <strong>TERMINATED</strong>, nhân viên sẽ nhận thông báo hệ thống và không được phân ca làm việc sau ngày hiệu lực.
+                    <strong>Warning:</strong> This action will terminate an active contract. The status will transition to <strong>TERMINATED</strong>, the employee will receive a system notification, and cannot be assigned shifts after the effective date.
                 </span>
             </div>
 
@@ -899,7 +899,7 @@
 
                 <div class="mb-4">
                     <label for="termination-effective-date" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Ngày có hiệu lực chấm dứt <span class="text-rose-600">*</span>
+                        Termination Effective Date <span class="text-rose-600">*</span>
                     </label>
                     <input type="date"
                            id="termination-effective-date"
@@ -909,34 +909,34 @@
                            required
                            class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500" />
                     <p class="text-[11px] text-slate-500 mt-1">
-                        Mặc định là ngày hôm nay. Không được chọn ngày trước ngày bắt đầu hợp đồng (@Model.StartDate.ToString("dd/MM/yyyy")).
+                        Default is today. Cannot select a date before contract start date (@Model.StartDate.ToString("dd/MM/yyyy")).
                     </p>
                 </div>
 
                 <div class="mb-5">
                     <label for="terminate-reason" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Lý do chấm dứt hợp đồng <span class="text-rose-600">*</span>
+                        Termination Reason <span class="text-rose-600">*</span>
                     </label>
                     <textarea id="terminate-reason"
                               name="reason"
                               rows="3"
                               required
                               maxlength="500"
-                              placeholder="Nhập lý do chấm dứt hợp đồng trước hạn (tối đa 500 ký tự)..."
+                              placeholder="Enter reason for early contract termination (max 500 characters)..."
                               class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"></textarea>
-                    <p class="text-[11px] text-slate-400 mt-1">Bắt buộc nhập lý do để lưu lịch sử và thông báo cho nhân viên.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Reason is required for audit history and staff notification.</p>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
                     <button type="button"
                             onclick="closeTerminateModal()"
                             class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors cursor-pointer">
-                        Đóng
+                        Close
                     </button>
                     <button type="submit" id="confirm-terminate-btn"
                             class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Xác nhận chấm dứt</span>
+                        <span>Confirm Termination</span>
                     </button>
                 </div>
             </form>
@@ -988,7 +988,7 @@
         var btn = document.getElementById('confirm-terminate-btn');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang xử lý...';
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Processing...';
         }
     }
 

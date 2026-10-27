@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../../models/staff_request_model.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 import '../../widgets/status_badge.dart';
 import 'staff_request_detail_view.dart';
 import 'submit_request_view.dart';
@@ -236,6 +237,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                           label: 'Early Departure',
                           isSelected: tempType == 'EARLY_LEAVE',
                           onTap: () => setModalState(() => tempType = 'EARLY_LEAVE'),
+                        ),
+                        _buildFilterModalChip(
+                          label: 'Salary Increase',
+                          isSelected: tempType == 'SALARY_INCREASE',
+                          onTap: () => setModalState(() => tempType = 'SALARY_INCREASE'),
                         ),
                       ],
                     ),
@@ -628,8 +634,32 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
             const Divider(height: 20, color: AppColors.borderLight),
 
-            // Tóm tắt ca làm việc (Shift summary)
-            if (item.shiftSummary != null) ...[
+            // Chi tiết tăng lương (SALARY_INCREASE) hoặc Tóm tắt ca làm việc (Shift summary)
+            if (item.requestType == 'SALARY_INCREASE' && item.salaryIncreaseDetail != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payments_outlined, size: 16, color: Color(0xFF2563EB)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Proposed Rate: ${formatCurrency(item.salaryIncreaseDetail!.proposedHourlyRate)}/h (Current: ${formatCurrency(item.salaryIncreaseDetail!.currentHourlyRate)}/h)',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ] else if (item.shiftSummary != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(

@@ -39,11 +39,13 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
                 .ThenInclude(lra => lra.Assignment)
                     .ThenInclude(a => a.Shift)
                         .ThenInclude(s => s.ShiftTemplate)
+            .Include(r => r.SalaryIncreaseRequestDetail)
+                .ThenInclude(sird => sird!.CurrentContract)
             .Include(r => r.TimeAdjustmentRequestDetail)
                 .ThenInclude(tard => tard!.Assignment)
                     .ThenInclude(a => a.Shift)
                         .ThenInclude(s => s.ShiftTemplate)
-            .Where(r => r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE");
+            .Where(r => r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE");
 
         if (!string.IsNullOrWhiteSpace(requestType))
         {
@@ -102,6 +104,8 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
             .Include(r => r.Branch)
             .Include(r => r.ReviewedByNavigation)
             .Include(r => r.AppliedRequestLimitRule)
+            .Include(r => r.SalaryIncreaseRequestDetail)
+                .ThenInclude(sird => sird!.CurrentContract)
             .Include(r => r.LeaveRequestAssignments)
                 .ThenInclude(lra => lra.Assignment)
                     .ThenInclude(a => a.Shift)
@@ -129,7 +133,7 @@ public class AdminEmployeeRequestRepo : IAdminEmployeeRequestRepo
     {
         var exists = await _context.EmployeeRequests.AsNoTracking()
             .AnyAsync(r => r.RequestId == requestId &&
-                           (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE"),
+                           (r.RequestType == "LEAVE" || r.RequestType == "LATE_ARRIVAL" || r.RequestType == "EARLY_LEAVE" || r.RequestType == "SALARY_INCREASE"),
                       cancellationToken);
 
         if (!exists)

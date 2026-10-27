@@ -21,6 +21,7 @@ public class ManagerEmployeeRequestListItemViewModel
     public string? ReviewerFullName { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? ReviewNote { get; set; }
+    public ManagerSalaryIncreaseDetailViewModel? SalaryIncreaseDetail { get; set; }
     public ManagerRequestShiftSummaryViewModel? ShiftSummary { get; set; }
 }
 

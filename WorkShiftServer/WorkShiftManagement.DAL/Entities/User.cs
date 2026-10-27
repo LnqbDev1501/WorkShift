@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -95,7 +95,14 @@ public partial class User
 
     public virtual ICollection<EmploymentContract> EmploymentContractTerminatedByNavigations { get; set; } = new List<EmploymentContract>();
 
-    public virtual EmploymentContract? EmploymentContractUser { get; set; }
+    public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    public virtual ICollection<EmploymentContract> EmploymentContractUsers => EmploymentContracts;
+
+    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+    [Obsolete("Use EmploymentContracts collection instead.")]
+    public virtual EmploymentContract? EmploymentContractUser => EmploymentContracts.FirstOrDefault(c => c.Status == "ACTIVE") ?? EmploymentContracts.FirstOrDefault();
 
     public virtual FaceProfile? FaceProfile { get; set; }
 
