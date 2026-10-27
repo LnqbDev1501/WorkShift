@@ -105,17 +105,17 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
           children: [
             Icon(Icons.cancel_outlined, color: AppColors.error, size: 24),
             SizedBox(width: 8),
-            Text('Hủy yêu cầu', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Cancel Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Text(
-          'Bạn có chắc chắn muốn hủy yêu cầu #${item.requestId} (${item.typeDisplayName}) không?',
+          'Are you sure you want to cancel request #${item.requestId} (${item.typeDisplayName})?',
           style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Đóng', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Close', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -124,7 +124,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Xác nhận hủy'),
+            child: const Text('Confirm Cancel'),
           ),
         ],
       ),
@@ -136,14 +136,14 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Đã hủy yêu cầu thành công'),
+              content: Text('Request cancelled successfully'),
               backgroundColor: AppColors.success,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_controller.actionErrorMessage ?? 'Hủy yêu cầu thất bại'),
+              content: Text(_controller.actionErrorMessage ?? 'Failed to cancel request'),
               backgroundColor: AppColors.error,
             ),
           );
@@ -185,7 +185,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Bộ lọc nâng cao',
+                          'Advanced Filters',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -201,7 +201,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               tempTo = null;
                             });
                           },
-                          child: const Text('Đặt lại', style: TextStyle(color: AppColors.primary)),
+                          child: const Text('Reset', style: TextStyle(color: AppColors.primary)),
                         ),
                       ],
                     ),
@@ -209,7 +209,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
 
                     // Lọc theo Loại yêu cầu
                     const Text(
-                      'Loại yêu cầu',
+                      'Request Type',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 10),
@@ -218,22 +218,22 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       runSpacing: 8,
                       children: [
                         _buildFilterModalChip(
-                          label: 'Tất cả loại',
+                          label: 'All Types',
                           isSelected: tempType == 'ALL',
                           onTap: () => setModalState(() => tempType = 'ALL'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Nghỉ phép (LEAVE)',
+                          label: 'Leave',
                           isSelected: tempType == 'LEAVE',
                           onTap: () => setModalState(() => tempType = 'LEAVE'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Đi muộn (LATE)',
+                          label: 'Late Arrival',
                           isSelected: tempType == 'LATE_ARRIVAL',
                           onTap: () => setModalState(() => tempType = 'LATE_ARRIVAL'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Về sớm (EARLY)',
+                          label: 'Early Departure',
                           isSelected: tempType == 'EARLY_LEAVE',
                           onTap: () => setModalState(() => tempType = 'EARLY_LEAVE'),
                         ),
@@ -243,7 +243,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
 
                     // Lọc theo Trạng thái
                     const Text(
-                      'Trạng thái phê duyệt',
+                      'Approval Status',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 10),
@@ -252,27 +252,27 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       runSpacing: 8,
                       children: [
                         _buildFilterModalChip(
-                          label: 'Tất cả trạng thái',
+                          label: 'All Statuses',
                           isSelected: tempStatus == 'ALL',
                           onTap: () => setModalState(() => tempStatus = 'ALL'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Chờ duyệt',
+                          label: 'Pending',
                           isSelected: tempStatus == 'PENDING',
                           onTap: () => setModalState(() => tempStatus = 'PENDING'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Đã duyệt',
+                          label: 'Approved',
                           isSelected: tempStatus == 'APPROVED',
                           onTap: () => setModalState(() => tempStatus = 'APPROVED'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Từ chối',
+                          label: 'Rejected',
                           isSelected: tempStatus == 'REJECTED',
                           onTap: () => setModalState(() => tempStatus = 'REJECTED'),
                         ),
                         _buildFilterModalChip(
-                          label: 'Đã hủy',
+                          label: 'Cancelled',
                           isSelected: tempStatus == 'CANCELLED',
                           onTap: () => setModalState(() => tempStatus = 'CANCELLED'),
                         ),
@@ -282,7 +282,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
 
                     // Lọc theo Khoảng ngày
                     const Text(
-                      'Khoảng thời gian (Ngày gửi)',
+                      'Date Range (Submitted Date)',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 10),
@@ -312,7 +312,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                                   const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
                                   const SizedBox(width: 8),
                                   Text(
-                                    tempFrom != null ? _formatDate(tempFrom) : 'Từ ngày',
+                                    tempFrom != null ? _formatDate(tempFrom) : 'From date',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: tempFrom != null ? AppColors.textPrimary : AppColors.textMuted,
@@ -348,7 +348,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                                   const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
                                   const SizedBox(width: 8),
                                   Text(
-                                    tempTo != null ? _formatDate(tempTo) : 'Đến ngày',
+                                    tempTo != null ? _formatDate(tempTo) : 'To date',
                                     style: TextStyle(
                                       fontSize: 13,
                                       color: tempTo != null ? AppColors.textPrimary : AppColors.textMuted,
@@ -374,7 +374,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               side: const BorderSide(color: AppColors.borderLight),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
-                            child: const Text('Đóng', style: TextStyle(color: AppColors.textSecondary)),
+                            child: const Text('Close', style: TextStyle(color: AppColors.textSecondary)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -395,7 +395,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
-                            child: const Text('Áp dụng bộ lọc'),
+                            child: const Text('Apply Filters'),
                           ),
                         ),
                       ],
@@ -482,7 +482,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Thử lại'),
+              child: const Text('Retry'),
             ),
           ],
         ),
@@ -508,14 +508,14 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Không tìm thấy đơn ca làm nào',
+              'No requests found',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               _controller.hasActiveFilters
-                  ? 'Không có đơn ca làm phù hợp với bộ lọc hiện tại.'
-                  : 'Bạn chưa tạo đơn ca làm (nghỉ phép, đi trễ, về sớm) nào. Nhấn nút bên dưới để tạo mới.',
+                  ? 'No requests match your current filters.'
+                  : 'You have not submitted any requests yet. Tap the button below to create one.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
@@ -530,7 +530,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   side: const BorderSide(color: AppColors.primary),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Đặt lại bộ lọc', style: TextStyle(color: AppColors.primary)),
+                child: const Text('Reset Filters', style: TextStyle(color: AppColors.primary)),
               )
             else
               ElevatedButton.icon(
@@ -546,7 +546,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   }
                 },
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Tạo đơn ngay'),
+                label: const Text('Create Request'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -617,7 +617,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '#${item.requestId} • Gửi ngày ${_formatDateTime(item.createdAt)}',
+                        '#${item.requestId} • Submitted on ${_formatDateTime(item.createdAt)}',
                         style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ],
@@ -661,7 +661,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Lý do: ',
+                    'Reason: ',
                     style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
                   ),
                   Expanded(
@@ -692,7 +692,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     onPressed: () => _handleCancelRequest(item),
                     icon: const Icon(Icons.close_rounded, size: 15, color: AppColors.error),
                     label: const Text(
-                      'Hủy đơn',
+                      'Cancel request',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.error),
                     ),
                     style: TextButton.styleFrom(
@@ -702,7 +702,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   ),
                 ] else ...[
                   const Text(
-                    'Xem chi tiết',
+                    'View details',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
                   ),
                   const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
@@ -719,13 +719,13 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
     final s = item.shiftSummary!;
     if (item.requestType == 'LEAVE') {
       if (s.totalShifts > 1) {
-        return '${s.totalShifts} ca làm việc (${s.primaryShiftName ?? 'Ca'}...)';
+        return '${s.totalShifts} shifts (${s.primaryShiftName ?? 'Shift'}...)';
       }
-      return '${s.primaryShiftName ?? 'Ca'} • ${_formatDate(s.primaryScheduledStartAt)} (${_formatTime(s.primaryScheduledStartAt)} - ${_formatTime(s.primaryScheduledEndAt)})';
+      return '${s.primaryShiftName ?? 'Shift'} • ${_formatDate(s.primaryScheduledStartAt)} (${_formatTime(s.primaryScheduledStartAt)} - ${_formatTime(s.primaryScheduledEndAt)})';
     } else {
       // LATE_ARRIVAL hoặc EARLY_LEAVE
-      final action = item.requestType == 'LATE_ARRIVAL' ? 'Đến lúc' : 'Về lúc';
-      return '${s.primaryShiftName ?? 'Ca'} • $action ${_formatTime(s.requestedTime)} (${_formatDate(s.primaryScheduledStartAt)})';
+      final action = item.requestType == 'LATE_ARRIVAL' ? 'Arriving at' : 'Leaving at';
+      return '${s.primaryShiftName ?? 'Shift'} • $action ${_formatTime(s.requestedTime)} (${_formatDate(s.primaryScheduledStartAt)})';
     }
   }
 
@@ -739,7 +739,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Yêu cầu của tôi',
+          'My Requests',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -756,7 +756,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             : null,
         actions: [
           IconButton(
-            tooltip: 'Tạo yêu cầu',
+            tooltip: 'Create Request',
             icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary, size: 24),
             onPressed: () async {
               final result = await Navigator.push(
@@ -791,7 +791,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       controller: _searchController,
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
-                        hintText: 'Tìm kiếm theo lý do, ca làm...',
+                        hintText: 'Search by reason, shift...',
                         hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
                         prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
                         suffixIcon: _searchController.text.isNotEmpty
@@ -849,15 +849,15 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  _buildQuickStatusChip('Tất cả', 'ALL'),
+                  _buildQuickStatusChip('All', 'ALL'),
                   const SizedBox(width: 8),
-                  _buildQuickStatusChip('Chờ duyệt', 'PENDING'),
+                  _buildQuickStatusChip('Pending', 'PENDING'),
                   const SizedBox(width: 8),
-                  _buildQuickStatusChip('Đã duyệt', 'APPROVED'),
+                  _buildQuickStatusChip('Approved', 'APPROVED'),
                   const SizedBox(width: 8),
-                  _buildQuickStatusChip('Từ chối', 'REJECTED'),
+                  _buildQuickStatusChip('Rejected', 'REJECTED'),
                   const SizedBox(width: 8),
-                  _buildQuickStatusChip('Đã hủy', 'CANCELLED'),
+                  _buildQuickStatusChip('Cancelled', 'CANCELLED'),
                 ],
               ),
             ),
@@ -907,7 +907,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         elevation: 3,
         icon: const Icon(Icons.add_rounded),
         label: const Text(
-          'Tạo yêu cầu',
+          'New Request',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         onPressed: () async {

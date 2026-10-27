@@ -63,7 +63,7 @@ class StaffRequestService {
         totalPages: 0,
       );
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải danh sách yêu cầu');
+      throw _extractErrorMessage(e, 'Failed to load requests');
     } catch (e) {
       throw e.toString();
     }
@@ -80,9 +80,9 @@ class StaffRequestService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không tìm thấy dữ liệu chi tiết yêu cầu.';
+      throw 'Request details not found.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải chi tiết yêu cầu');
+      throw _extractErrorMessage(e, 'Failed to load request details');
     } catch (e) {
       throw e.toString();
     }
@@ -110,7 +110,7 @@ class StaffRequestService {
     } on DioException catch (e) {
       throw _extractErrorMessage(
         e,
-        'Không thể lấy danh sách ca làm việc đủ điều kiện',
+        'Failed to load eligible shifts',
       );
     } catch (e) {
       throw e.toString();
@@ -133,9 +133,9 @@ class StaffRequestService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
+      throw 'No response received from server.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Gửi đơn nghỉ phép thất bại');
+      throw _extractErrorMessage(e, 'Failed to submit leave request');
     } catch (e) {
       throw e.toString();
     }
@@ -162,9 +162,9 @@ class StaffRequestService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
+      throw 'No response received from server.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Gửi đơn đi trễ thất bại');
+      throw _extractErrorMessage(e, 'Failed to submit late arrival request');
     } catch (e) {
       throw e.toString();
     }
@@ -191,9 +191,9 @@ class StaffRequestService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không nhận được dữ liệu phản hồi từ máy chủ.';
+      throw 'No response received from server.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Gửi đơn về sớm thất bại');
+      throw _extractErrorMessage(e, 'Failed to submit early departure request');
     } catch (e) {
       throw e.toString();
     }
@@ -211,9 +211,9 @@ class StaffRequestService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Hủy đơn thất bại. Vui lòng thử lại sau.';
+      throw 'Failed to cancel request. Please try again.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Hủy yêu cầu thất bại');
+      throw _extractErrorMessage(e, 'Failed to cancel request');
     } catch (e) {
       throw e.toString();
     }
@@ -260,7 +260,7 @@ class StaffRequestService {
       final startStr = (timeMatch.group(3) ?? '').replaceAll(' UTC', '').trim();
       final endStr = (timeMatch.group(4) ?? '').replaceAll(' UTC', '').trim();
 
-      String formatUtcToVn(String str) {
+      String formatUtcToLocal(String str) {
         try {
           final dt = DateTime.parse(str).toLocal();
           final h = dt.hour.toString().padLeft(2, '0');
@@ -274,11 +274,11 @@ class StaffRequestService {
         }
       }
 
-      final reqVn = formatUtcToVn(reqStr);
-      final startVn = formatUtcToVn(startStr);
-      final endVn = formatUtcToVn(endStr);
-      final action = isLate ? 'xin đi trễ' : 'xin về sớm';
-      return 'Thời gian $action ($reqVn) không hợp lệ! Phải nằm trong khung giờ của ca làm việc: từ $startVn đến $endVn.';
+      final reqLocal = formatUtcToLocal(reqStr);
+      final startLocal = formatUtcToLocal(startStr);
+      final endLocal = formatUtcToLocal(endStr);
+      final action = isLate ? 'late arrival' : 'early departure';
+      return 'The requested $action time ($reqLocal) is invalid! It must be within the shift schedule: from $startLocal to $endLocal.';
     }
 
     final advanceRegex = RegExp(
@@ -288,20 +288,20 @@ class StaffRequestService {
     final advanceMatch = advanceRegex.firstMatch(msg);
     if (advanceMatch != null) {
       final days = advanceMatch.group(1);
-      return 'Đơn yêu cầu phải được gửi trước ít nhất $days ngày theo quy định chi nhánh.';
+      return 'Requests must be submitted at least $days day(s) in advance according to branch policy.';
     }
 
     if (msg.toLowerCase().contains('monthly limit') ||
         msg.toLowerCase().contains('limit of')) {
-      return 'Bạn đã đạt giới hạn tối đa số đơn được gửi cho loại yêu cầu này trong tháng.';
+      return 'You have reached the maximum monthly limit for this request type.';
     }
 
     if (msg.toLowerCase().contains('has already started or ended')) {
-      return 'Ca làm việc này đã bắt đầu hoặc đã kết thúc, không thể gửi yêu cầu.';
+      return 'This shift has already started or ended. Request cannot be submitted.';
     }
 
     if (msg.toLowerCase().contains('already exists for assignment')) {
-      return 'Bạn đã có một đơn yêu cầu khác đang chờ duyệt hoặc đã duyệt cho ca làm này.';
+      return 'You already have an existing request for this shift assignment.';
     }
 
     return msg;
