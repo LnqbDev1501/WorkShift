@@ -199,6 +199,33 @@ class StaffRequestService {
     }
   }
 
+  /// Gửi đơn xin tăng lương (SALARY_INCREASE)
+  Future<StaffEmployeeRequestDetailModel> submitSalaryIncreaseRequest({
+    required double proposedHourlyRate,
+    required String reason,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        '/api/staff/requests/salary-increase',
+        data: {
+          'proposedHourlyRate': proposedHourlyRate,
+          'reason': reason.trim(),
+        },
+      );
+
+      if (response.data != null && response.data is Map<String, dynamic>) {
+        return StaffEmployeeRequestDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+      }
+      throw 'No response received from server.';
+    } on DioException catch (e) {
+      throw _extractErrorMessage(e, 'Failed to submit salary increase request');
+    } catch (e) {
+      throw e.toString();
+    }
+  }
+
   /// Hủy yêu cầu (Cancel Employee Request)
   Future<StaffEmployeeRequestDetailModel> cancelRequest(int requestId) async {
     try {

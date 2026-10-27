@@ -46,6 +46,8 @@ public class AdminEmployeeRequestDetailViewModel
     public AdminAppliedRequestLimitRuleViewModel? AppliedRule { get; set; }
 
     // Type-specific details
+    public AdminSalaryIncreaseDetailViewModel? SalaryIncreaseDetail { get; set; }
+
     public List<AdminLeaveRequestAssignmentViewModel>? LeaveAssignments { get; set; }
 
     public AdminTimeAdjustmentDetailViewModel? TimeAdjustmentDetail { get; set; }
@@ -135,3 +137,12 @@ public class AdminTimeAdjustmentDetailViewModel
 
     public string? BranchName { get; set; }
 }
+
+public class AdminSalaryIncreaseDetailViewModel
+{
+    public int CurrentContractId { get; set; }
+    public string? ContractNumber { get; set; }
+    public decimal CurrentHourlyRate { get; set; }
+    public decimal ProposedHourlyRate { get; set; }
+}
+

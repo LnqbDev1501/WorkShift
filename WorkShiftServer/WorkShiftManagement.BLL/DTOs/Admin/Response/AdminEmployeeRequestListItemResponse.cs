@@ -4,6 +4,8 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.Response;
 
 public class AdminEmployeeRequestListItemResponse
 {
+    public AdminSalaryIncreaseDetailResponse? SalaryIncreaseDetail { get; set; }
+
     public int RequestId { get; set; }
 
     public Guid UserId { get; set; }

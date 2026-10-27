@@ -39,16 +39,16 @@ public class EmploymentContractActivationWorker : BackgroundService
                 using var scope = _scopeFactory.CreateScope();
                 var contractService = scope.ServiceProvider.GetRequiredService<IStaffEmploymentContractService>();
 
-                var activatedCount = await contractService.ActivateDueScheduledContractsAsync(stoppingToken);
-                if (activatedCount > 0)
-                {
-                    _logger.LogInformation("Employment Contract Activation Worker activated {Count} due scheduled contract(s).", activatedCount);
-                }
-
                 var expiredCount = await contractService.ExpireDueContractsAsync(stoppingToken);
                 if (expiredCount > 0)
                 {
                     _logger.LogInformation("Employment Contract Activation Worker expired {Count} contract(s) past end date.", expiredCount);
+                }
+
+                var activatedCount = await contractService.ActivateDueScheduledContractsAsync(stoppingToken);
+                if (activatedCount > 0)
+                {
+                    _logger.LogInformation("Employment Contract Activation Worker activated {Count} due scheduled contract(s).", activatedCount);
                 }
             }
             catch (Exception exception)

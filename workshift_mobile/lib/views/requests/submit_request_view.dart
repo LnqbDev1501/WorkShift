@@ -20,9 +20,10 @@ class SubmitRequestView extends StatefulWidget {
 }
 
 class _SubmitRequestViewState extends State<SubmitRequestView> {
-  late String _selectedRequestType; // LEAVE, LATE_ARRIVAL, EARLY_LEAVE
+  late String _selectedRequestType; // LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
+  final _proposedRateController = TextEditingController();
 
   // Với LEAVE: Danh sách ca đã chọn (nhiều ca)
   final Set<int> _selectedLeaveAssignmentIds = {};
@@ -44,6 +45,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   void dispose() {
     widget.controller.removeListener(_onControllerUpdate);
     _reasonController.dispose();
+    _proposedRateController.dispose();
     super.dispose();
   }
 
@@ -56,7 +58,9 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
     _selectedTimeAdjustmentAssignmentId = null;
     _selectedShift = null;
     _selectedAdjustmentTime = null;
-    widget.controller.loadEligibleShifts(_selectedRequestType);
+    if (_selectedRequestType != 'SALARY_INCREASE') {
+      widget.controller.loadEligibleShifts(_selectedRequestType);
+    }
   }
 
   void _onTypeChanged(String newType) {
@@ -131,7 +135,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   }
 
   String? _getAdjustmentTimeValidationError() {
-    if (_selectedRequestType == 'LEAVE') return null;
+    if (_selectedRequestType == 'LEAVE' || _selectedRequestType == 'SALARY_INCREASE') return null;
     if (_selectedShift == null) {
       return 'Please select an applicable shift first.';
     }
@@ -160,6 +164,37 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedRequestType == 'SALARY_INCREASE') {
+      final raw = _proposedRateController.text
+          .replaceAll(',', '')
+          .replaceAll('.', '')
+          .replaceAll(' ', '')
+          .trim();
+      final rate = double.tryParse(raw);
+      if (rate == null || rate <= 0) {
+        _showErrorDialog('Please enter a valid positive proposed hourly rate.');
+        return;
+      }
+
+      final res = await widget.controller.submitSalaryIncreaseRequest(
+        proposedHourlyRate: rate,
+        reason: _reasonController.text,
+      );
+
+      if (mounted && res != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Salary increase request submitted successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        Navigator.pop(context, true);
+      } else if (mounted) {
+        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit salary increase request');
+      }
+      return;
+    }
 
     if (_selectedRequestType == 'LEAVE') {
       if (_selectedLeaveAssignmentIds.isEmpty) {
@@ -316,70 +351,159 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 padding: const EdgeInsets.all(4),
-                child: Row(
+                child: Column(
                   children: [
-                    _buildTypeTab('LEAVE', 'Leave', Icons.event_busy_rounded),
-                    _buildTypeTab('LATE_ARRIVAL', 'Late Arrival', Icons.more_time_rounded),
-                    _buildTypeTab('EARLY_LEAVE', 'Early Departure', Icons.timer_off_rounded),
+                    Row(
+                      children: [
+                        _buildTypeTab('LEAVE', 'Leave', Icons.event_busy_rounded),
+                        const SizedBox(width: 4),
+                        _buildTypeTab('LATE_ARRIVAL', 'Late Arrival', Icons.more_time_rounded),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        _buildTypeTab('EARLY_LEAVE', 'Early Departure', Icons.timer_off_rounded),
+                        const SizedBox(width: 4),
+                        _buildTypeTab('SALARY_INCREASE', 'Salary Increase', Icons.payments_rounded),
+                      ],
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
 
-              // 2. Danh sách ca làm việc đủ điều kiện
-              _buildSectionTitle(
-                _selectedRequestType == 'LEAVE'
-                    ? '2. Select shifts to take leave (multiple choices allowed)'
-                    : '2. Select applicable shift',
-              ),
-              if (isLoadingShifts)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
-                  ),
-                )
-              else if (eligibleShifts.isEmpty)
+              // 2. Nội dung theo loại yêu cầu
+              if (_selectedRequestType == 'SALARY_INCREASE') ...[
+                _buildSectionTitle('2. Proposed Hourly Rate (VNĐ/hour)'),
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.borderLight),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.calendar_month_outlined, size: 36, color: AppColors.textMuted),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'No eligible shifts found',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      TextFormField(
+                        controller: _proposedRateController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. 35000 or 40000',
+                          prefixIcon: const Icon(Icons.monetization_on_outlined, color: AppColors.primary),
+                          suffixText: 'VNĐ / hour',
+                          suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.borderLight),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.borderLight),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        ),
+                        validator: (val) {
+                          if (val == null || val.trim().isEmpty) {
+                            return 'Please enter your proposed hourly rate.';
+                          }
+                          final cleaned = val.replaceAll(',', '').replaceAll('.', '').replaceAll(' ', '').trim();
+                          final num = double.tryParse(cleaned);
+                          if (num == null || num <= 0) {
+                            return 'Please enter a valid positive salary amount.';
+                          }
+                          return null;
+                        },
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _selectedRequestType == 'LEAVE'
-                            ? 'You can only request leave for upcoming shifts that have not started yet.'
-                            : 'No eligible shifts found for this request.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: const Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Your proposed base hourly rate will be submitted for branch manager and corporate review.',
+                                style: TextStyle(fontSize: 12, color: Color(0xFF1E40AF), height: 1.3),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                )
-              else
-                ...eligibleShifts.map((shift) {
-                  if (_selectedRequestType == 'LEAVE') {
-                    final isChecked = _selectedLeaveAssignmentIds.contains(shift.assignmentId);
-                    return _buildShiftCheckboxItem(shift, isChecked);
-                  } else {
-                    final isSelected = _selectedTimeAdjustmentAssignmentId == shift.assignmentId;
-                    return _buildShiftRadioItem(shift, isSelected);
-                  }
-                }),
-              const SizedBox(height: 20),
+                ),
+                const SizedBox(height: 20),
+              ] else ...[
+                // 2. Danh sách ca làm việc đủ điều kiện (LEAVE, LATE_ARRIVAL, EARLY_LEAVE)
+                _buildSectionTitle(
+                  _selectedRequestType == 'LEAVE'
+                      ? '2. Select shifts to take leave (multiple choices allowed)'
+                      : '2. Select applicable shift',
+                ),
+                if (isLoadingShifts)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                    ),
+                  )
+                else if (eligibleShifts.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.borderLight),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.calendar_month_outlined, size: 36, color: AppColors.textMuted),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'No eligible shifts found',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _selectedRequestType == 'LEAVE'
+                              ? 'You can only request leave for upcoming shifts that have not started yet.'
+                              : 'No eligible shifts found for this request.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...eligibleShifts.map((shift) {
+                    if (_selectedRequestType == 'LEAVE') {
+                      final isChecked = _selectedLeaveAssignmentIds.contains(shift.assignmentId);
+                      return _buildShiftCheckboxItem(shift, isChecked);
+                    } else {
+                      final isSelected = _selectedTimeAdjustmentAssignmentId == shift.assignmentId;
+                      return _buildShiftRadioItem(shift, isSelected);
+                    }
+                  }),
+                const SizedBox(height: 20),
+              ],
 
               // 3. Chọn giờ nếu là Đi trễ / Về sớm
-              if (_selectedRequestType != 'LEAVE') ...[
+              if (_selectedRequestType == 'LATE_ARRIVAL' || _selectedRequestType == 'EARLY_LEAVE') ...[
                 _buildSectionTitle(
                   _selectedRequestType == 'LATE_ARRIVAL'
                       ? '3. Expected arrival time'
@@ -544,7 +668,11 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
               // 4. Nhập lý do
               _buildSectionTitle(
-                _selectedRequestType == 'LEAVE' ? '3. Reason for leave' : '4. Reason',
+                _selectedRequestType == 'LEAVE'
+                    ? '3. Reason for leave'
+                    : (_selectedRequestType == 'SALARY_INCREASE'
+                        ? '3. Reason for salary increase'
+                        : '4. Reason'),
               ),
               TextFormField(
                 controller: _reasonController,

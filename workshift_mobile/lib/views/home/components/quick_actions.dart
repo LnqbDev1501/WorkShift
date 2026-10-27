@@ -212,7 +212,7 @@ class _QuickActionsState extends State<QuickActions> {
       ),
       _QuickActionData(
         title: 'Submit Request',
-        subtitle: 'Leave, late, early',
+        subtitle: 'Leave, late, salary',
         icon: Icons.edit_note_rounded,
         iconColor: AppColors.actionLeaveIcon,
         iconBgColor: AppColors.actionLeaveBg,
