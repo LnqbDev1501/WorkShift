@@ -491,9 +491,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 100)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 100.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom
@@ -551,9 +551,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 100)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 100.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom

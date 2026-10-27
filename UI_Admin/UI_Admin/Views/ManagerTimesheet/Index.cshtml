@@ -198,7 +198,7 @@
                         {
                             var isReviewed = string.Equals(item.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
                             var isLocked = string.Equals(item.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
-                            var isGenerated = string.Equals(item.Status, "GENERATED", StringComparison.OrdinalIgnoreCase);
+                            var isGenerated = string.Equals(item.Status, "GENERATED", StringComparison.OrdinalIgnoreCase) || string.Equals(item.Status, "OPEN", StringComparison.OrdinalIgnoreCase);
                             var isNotGenerated = string.Equals(item.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
                             var isAllConfirmed = item.TotalStaff > 0 && item.ConfirmedStaff == item.TotalStaff;
 

@@ -26,7 +26,7 @@ public static class TimesheetExcelExporter
         worksheet.PageSetup.PageOrientation = XLPageOrientation.Landscape;
         worksheet.PageSetup.PaperSize = XLPaperSize.A4Paper;
 
-        const int totalCols = 21;
+        const int totalCols = 22;
 
         // 1. Title & Header (Rows 1 to 6)
         worksheet.Cell(1, 1).Value = "WORKSHIFT MANAGEMENT SYSTEM";
@@ -55,11 +55,30 @@ public static class TimesheetExcelExporter
 
         worksheet.Range(5, 1, 5, totalCols).Merge();
         bool isLocked = string.Equals(data.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
-        string statusText = isLocked ? "[OFFICIAL - FINALIZED TIMESHEET]" : "[DRAFT - REVIEW PERIOD TIMESHEET]";
+        bool isReviewed = string.Equals(data.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
+
+        string statusText;
+        XLColor statusColor;
+        if (isLocked)
+        {
+            statusText = "[OFFICIAL - FINALIZED TIMESHEET]";
+            statusColor = XLColor.FromHtml("#15803D");
+        }
+        else if (isReviewed)
+        {
+            statusText = "[REVIEWED - REVIEWED TIMESHEET]";
+            statusColor = XLColor.FromHtml("#1E40AF");
+        }
+        else
+        {
+            statusText = "[DRAFT - REVIEW PERIOD TIMESHEET]";
+            statusColor = XLColor.FromHtml("#B45309");
+        }
+
         worksheet.Cell(5, 1).Value = statusText;
         worksheet.Cell(5, 1).Style.Font.Bold = true;
         worksheet.Cell(5, 1).Style.Font.FontSize = 11;
-        worksheet.Cell(5, 1).Style.Font.FontColor = isLocked ? XLColor.FromHtml("#15803D") : XLColor.FromHtml("#B45309");
+        worksheet.Cell(5, 1).Style.Font.FontColor = statusColor;
         worksheet.Cell(5, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
         worksheet.Range(6, 1, 6, totalCols).Merge();
@@ -81,20 +100,21 @@ public static class TimesheetExcelExporter
             worksheet.Range(7, 5 + i, 8, 5 + i).Merge().Value = $"{dayNames[i]}\n{dayDate:dd/MM}";
         }
 
-        // Summary columns: 12 to 20
-        worksheet.Range(7, 12, 7, 20).Merge().Value = "WEEKLY SUMMARY";
+        // Summary columns: 12 to 21
+        worksheet.Range(7, 12, 7, 21).Merge().Value = "WEEKLY SUMMARY";
         worksheet.Cell(8, 12).Value = "ASSIGNED";
         worksheet.Cell(8, 13).Value = "COMPLETED";
-        worksheet.Cell(8, 14).Value = "WORK (H)";
-        worksheet.Cell(8, 15).Value = "LATE\n(TIMES)";
-        worksheet.Cell(8, 16).Value = "LATE\n(MIN)";
-        worksheet.Cell(8, 17).Value = "EARLY\n(TIMES)";
-        worksheet.Cell(8, 18).Value = "EARLY\n(MIN)";
-        worksheet.Cell(8, 19).Value = "LEAVE\n(EXCUSED)";
-        worksheet.Cell(8, 20).Value = "ABSENT\n(UNEXCUSED)";
+        worksheet.Cell(8, 14).Value = "INCOMPLETE";
+        worksheet.Cell(8, 15).Value = "WORK (H)";
+        worksheet.Cell(8, 16).Value = "LATE\n(TIMES)";
+        worksheet.Cell(8, 17).Value = "LATE\n(MIN)";
+        worksheet.Cell(8, 18).Value = "EARLY\n(TIMES)";
+        worksheet.Cell(8, 19).Value = "EARLY\n(MIN)";
+        worksheet.Cell(8, 20).Value = "LEAVE\n(EXCUSED)";
+        worksheet.Cell(8, 21).Value = "ABSENT\n(UNEXCUSED)";
 
-        // Column 21: Staff Review
-        worksheet.Range(7, 21, 8, 21).Merge().Value = "STAFF\nREVIEW";
+        // Column 22: Staff Review
+        worksheet.Range(7, 22, 8, 22).Merge().Value = "STAFF\nREVIEW";
 
         // Style Headers
         var headerRange = worksheet.Range(7, 1, 8, totalCols);
@@ -105,7 +125,7 @@ public static class TimesheetExcelExporter
         headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         headerRange.Style.Alignment.WrapText = true;
 
-        var subSummaryRange = worksheet.Range(8, 12, 8, 20);
+        var subSummaryRange = worksheet.Range(8, 12, 8, 21);
         subSummaryRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E40AF");
         subSummaryRange.Style.Font.FontSize = 9;
 
@@ -165,7 +185,7 @@ public static class TimesheetExcelExporter
             }
 
             SetSummaryColumns(worksheet, row, staff.TotalAssignedShifts, staff.CompletedShifts,
-                staff.TotalWorkHours, staff.LateCount, staff.TotalLateMinutes,
+                staff.IncompleteCount, staff.TotalWorkHours, staff.LateCount, staff.TotalLateMinutes,
                 staff.EarlyLeaveCount, staff.TotalEarlyLeaveMinutes, staff.ExcusedLeaveCount,
                 staff.UnexcusedAbsentCount, staff.StaffReviewStatus, isBold: false);
 
@@ -178,7 +198,7 @@ public static class TimesheetExcelExporter
         // 4. Grand Total / Summary Row
         int totalRow = currentRow;
         worksheet.Range(totalRow, 1, totalRow, 11).Merge();
-        worksheet.Cell(totalRow, 1).Value = "GRAND TOTAL / TỔNG TOÀN BỘ";
+        worksheet.Cell(totalRow, 1).Value = "GRAND TOTAL";
         worksheet.Cell(totalRow, 1).Style.Font.Bold = true;
         worksheet.Cell(totalRow, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
         worksheet.Cell(totalRow, 1).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
@@ -190,6 +210,7 @@ public static class TimesheetExcelExporter
         SetSummaryColumns(worksheet, totalRow,
             data.StaffTimesheets.Sum(s => s.TotalAssignedShifts),
             data.StaffTimesheets.Sum(s => s.CompletedShifts),
+            data.StaffTimesheets.Sum(s => s.IncompleteCount),
             data.StaffTimesheets.Sum(s => s.TotalWorkHours),
             data.StaffTimesheets.Sum(s => s.LateCount),
             data.StaffTimesheets.Sum(s => s.TotalLateMinutes),
@@ -206,10 +227,10 @@ public static class TimesheetExcelExporter
         tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Medium;
         tableRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#64748B");
 
-        // 5. Signatures Block (Removed CHECKED BY ACCOUNTANT as requested)
+        // 5. Signatures Block
         int sigRow = totalRow + 3;
 
-        // Prepared by (Branch Manager - Left side)
+        // Prepared by (Left side)
         worksheet.Range(sigRow, 2, sigRow, 5).Merge();
         worksheet.Cell(sigRow, 2).Value = "PREPARED BY";
         worksheet.Cell(sigRow, 2).Style.Font.Bold = true;
@@ -227,18 +248,42 @@ public static class TimesheetExcelExporter
         worksheet.Cell(sigRow + 5, 2).Style.Font.Bold = true;
         worksheet.Cell(sigRow + 5, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-        // Approved by (Director - Right side)
-        worksheet.Range(sigRow, 17, sigRow, 20).Merge();
-        worksheet.Cell(sigRow, 17).Value = "APPROVED BY (DIRECTOR)";
-        worksheet.Cell(sigRow, 17).Style.Font.Bold = true;
-        worksheet.Cell(sigRow, 17).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        // Reviewed by (Branch Manager - Center)
+        worksheet.Range(sigRow, 10, sigRow, 14).Merge();
+        worksheet.Cell(sigRow, 10).Value = "REVIEWED BY (MANAGER)";
+        worksheet.Cell(sigRow, 10).Style.Font.Bold = true;
+        worksheet.Cell(sigRow, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-        worksheet.Range(sigRow + 1, 17, sigRow + 1, 20).Merge();
-        worksheet.Cell(sigRow + 1, 17).Value = "(Signature & Full Name)";
-        worksheet.Cell(sigRow + 1, 17).Style.Font.Italic = true;
-        worksheet.Cell(sigRow + 1, 17).Style.Font.FontSize = 9;
-        worksheet.Cell(sigRow + 1, 17).Style.Font.FontColor = XLColor.FromHtml("#64748B");
-        worksheet.Cell(sigRow + 1, 17).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        worksheet.Range(sigRow + 1, 10, sigRow + 1, 14).Merge();
+        worksheet.Cell(sigRow + 1, 10).Value = "(Signature & Full Name)";
+        worksheet.Cell(sigRow + 1, 10).Style.Font.Italic = true;
+        worksheet.Cell(sigRow + 1, 10).Style.Font.FontSize = 9;
+        worksheet.Cell(sigRow + 1, 10).Style.Font.FontColor = XLColor.FromHtml("#64748B");
+        worksheet.Cell(sigRow + 1, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+        if (isReviewed || isLocked)
+        {
+            worksheet.Range(sigRow + 5, 10, sigRow + 5, 14).Merge();
+            worksheet.Cell(sigRow + 5, 10).Value = exportedBy;
+            worksheet.Cell(sigRow + 5, 10).Style.Font.Bold = true;
+            worksheet.Cell(sigRow + 5, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
+
+        // Approved by (Director - Right side) - ONLY FOR LOCKED
+        if (isLocked)
+        {
+            worksheet.Range(sigRow, 18, sigRow, 22).Merge();
+            worksheet.Cell(sigRow, 18).Value = "APPROVED BY (DIRECTOR)";
+            worksheet.Cell(sigRow, 18).Style.Font.Bold = true;
+            worksheet.Cell(sigRow, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            worksheet.Range(sigRow + 1, 18, sigRow + 1, 22).Merge();
+            worksheet.Cell(sigRow + 1, 18).Value = "(Signature & Full Name)";
+            worksheet.Cell(sigRow + 1, 18).Style.Font.Italic = true;
+            worksheet.Cell(sigRow + 1, 18).Style.Font.FontSize = 9;
+            worksheet.Cell(sigRow + 1, 18).Style.Font.FontColor = XLColor.FromHtml("#64748B");
+            worksheet.Cell(sigRow + 1, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        }
 
         // 6. Set Column Widths
         worksheet.Column(1).Width = 6;   // No.
@@ -251,14 +296,15 @@ public static class TimesheetExcelExporter
         }
         worksheet.Column(12).Width = 12; // Assigned
         worksheet.Column(13).Width = 13; // Completed
-        worksheet.Column(14).Width = 14; // Work (H)
-        worksheet.Column(15).Width = 12; // Late (Times)
-        worksheet.Column(16).Width = 12; // Late (Min)
-        worksheet.Column(17).Width = 12; // Early (Times)
-        worksheet.Column(18).Width = 12; // Early (Min)
-        worksheet.Column(19).Width = 14; // Leave (Excused)
-        worksheet.Column(20).Width = 15; // Absent (Unexcused)
-        worksheet.Column(21).Width = 15; // Staff Review
+        worksheet.Column(14).Width = 13; // Incomplete
+        worksheet.Column(15).Width = 14; // Work (H)
+        worksheet.Column(16).Width = 12; // Late (Times)
+        worksheet.Column(17).Width = 12; // Late (Min)
+        worksheet.Column(18).Width = 12; // Early (Times)
+        worksheet.Column(19).Width = 12; // Early (Min)
+        worksheet.Column(20).Width = 14; // Leave (Excused)
+        worksheet.Column(21).Width = 15; // Absent (Unexcused)
+        worksheet.Column(22).Width = 15; // Staff Review
 
         // File name
         string cleanBranch = string.Concat(data.BranchName.Split(Path.GetInvalidFileNameChars())).Replace(" ", "_");
@@ -334,7 +380,7 @@ public static class TimesheetExcelExporter
     }
 
     private static void SetSummaryColumns(IXLWorksheet ws, int row, int assigned, int completed,
-        decimal workH, int lateTimes, int lateMin, int earlyTimes, int earlyMin,
+        int incomplete, decimal workH, int lateTimes, int lateMin, int earlyTimes, int earlyMin,
         int excusedLeave, int unexcusedAbsent, string reviewStatus, bool isBold)
     {
         ws.Cell(row, 12).Value = assigned;
@@ -347,74 +393,80 @@ public static class TimesheetExcelExporter
         ws.Cell(row, 13).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 13).Style.Font.Bold = isBold;
 
-        ws.Cell(row, 14).Value = workH;
-        ws.Cell(row, 14).Style.NumberFormat.Format = "#,##0.00";
+        ws.Cell(row, 14).Value = incomplete;
         ws.Cell(row, 14).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 14).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 14).Style.Font.Bold = isBold;
+        if (incomplete > 0) ws.Cell(row, 14).Style.Font.FontColor = XLColor.FromHtml("#E11D48");
 
-        ws.Cell(row, 15).Value = lateTimes;
+        ws.Cell(row, 15).Value = workH;
+        ws.Cell(row, 15).Style.NumberFormat.Format = "#,##0.00";
         ws.Cell(row, 15).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 15).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 15).Style.Font.Bold = isBold;
-        if (lateTimes > 0) ws.Cell(row, 15).Style.Font.FontColor = XLColor.FromHtml("#D97706");
 
-        ws.Cell(row, 16).Value = lateMin;
+        ws.Cell(row, 16).Value = lateTimes;
         ws.Cell(row, 16).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 16).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 16).Style.Font.Bold = isBold;
-        if (lateMin > 0) ws.Cell(row, 16).Style.Font.FontColor = XLColor.FromHtml("#D97706");
+        if (lateTimes > 0) ws.Cell(row, 16).Style.Font.FontColor = XLColor.FromHtml("#D97706");
 
-        ws.Cell(row, 17).Value = earlyTimes;
+        ws.Cell(row, 17).Value = lateMin;
         ws.Cell(row, 17).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 17).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 17).Style.Font.Bold = isBold;
-        if (earlyTimes > 0) ws.Cell(row, 17).Style.Font.FontColor = XLColor.FromHtml("#EA580C");
+        if (lateMin > 0) ws.Cell(row, 17).Style.Font.FontColor = XLColor.FromHtml("#D97706");
 
-        ws.Cell(row, 18).Value = earlyMin;
+        ws.Cell(row, 18).Value = earlyTimes;
         ws.Cell(row, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 18).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 18).Style.Font.Bold = isBold;
-        if (earlyMin > 0) ws.Cell(row, 18).Style.Font.FontColor = XLColor.FromHtml("#EA580C");
+        if (earlyTimes > 0) ws.Cell(row, 18).Style.Font.FontColor = XLColor.FromHtml("#EA580C");
 
-        ws.Cell(row, 19).Value = excusedLeave;
+        ws.Cell(row, 19).Value = earlyMin;
         ws.Cell(row, 19).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 19).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 19).Style.Font.Bold = isBold;
-        if (excusedLeave > 0) ws.Cell(row, 19).Style.Font.FontColor = XLColor.FromHtml("#2563EB");
+        if (earlyMin > 0) ws.Cell(row, 19).Style.Font.FontColor = XLColor.FromHtml("#EA580C");
 
-        ws.Cell(row, 20).Value = unexcusedAbsent;
+        ws.Cell(row, 20).Value = excusedLeave;
         ws.Cell(row, 20).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Cell(row, 20).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         ws.Cell(row, 20).Style.Font.Bold = isBold;
-        if (unexcusedAbsent > 0) ws.Cell(row, 20).Style.Font.FontColor = XLColor.FromHtml("#DC2626");
+        if (excusedLeave > 0) ws.Cell(row, 20).Style.Font.FontColor = XLColor.FromHtml("#2563EB");
+
+        ws.Cell(row, 21).Value = unexcusedAbsent;
+        ws.Cell(row, 21).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Cell(row, 21).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        ws.Cell(row, 21).Style.Font.Bold = isBold;
+        if (unexcusedAbsent > 0) ws.Cell(row, 21).Style.Font.FontColor = XLColor.FromHtml("#DC2626");
 
         string displayStatus = reviewStatus;
         if (string.Equals(reviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase))
         {
             displayStatus = "CONFIRMED";
-            ws.Cell(row, 21).Style.Font.FontColor = XLColor.FromHtml("#16A34A");
+            ws.Cell(row, 22).Style.Font.FontColor = XLColor.FromHtml("#16A34A");
         }
         else if (string.Equals(reviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase))
         {
             displayStatus = "DISPUTED";
-            ws.Cell(row, 21).Style.Font.FontColor = XLColor.FromHtml("#7C3AED");
+            ws.Cell(row, 22).Style.Font.FontColor = XLColor.FromHtml("#7C3AED");
         }
         else if (string.Equals(reviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
         {
             displayStatus = "PENDING";
-            ws.Cell(row, 21).Style.Font.FontColor = XLColor.FromHtml("#D97706");
+            ws.Cell(row, 22).Style.Font.FontColor = XLColor.FromHtml("#D97706");
         }
         else if (string.Equals(reviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase))
         {
             displayStatus = "NO RESPONSE";
-            ws.Cell(row, 21).Style.Font.FontColor = XLColor.FromHtml("#DC2626");
+            ws.Cell(row, 22).Style.Font.FontColor = XLColor.FromHtml("#DC2626");
         }
 
-        ws.Cell(row, 21).Value = displayStatus;
-        ws.Cell(row, 21).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        ws.Cell(row, 21).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        ws.Cell(row, 21).Style.Font.Bold = isBold;
+        ws.Cell(row, 22).Value = displayStatus;
+        ws.Cell(row, 22).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        ws.Cell(row, 22).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        ws.Cell(row, 22).Style.Font.Bold = isBold;
     }
 
     private static bool IsShiftOnDate(ManagerStaffShiftAttendanceDto s, DateOnly targetDate, DateOnly weekStartDate, DateOnly weekEndDate)

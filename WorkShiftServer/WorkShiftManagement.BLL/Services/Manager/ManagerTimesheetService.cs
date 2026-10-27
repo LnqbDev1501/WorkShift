@@ -274,6 +274,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
                 int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+                int incompleteCount = t.IncompleteShiftCount > 0 
+                    ? t.IncompleteShiftCount 
+                    : userShifts.Count(s => s.AttendanceStatus == "INCOMPLETE" || (s.CheckInTime != null && s.CheckOutTime == null && DateTime.UtcNow > s.ScheduledEndAt));
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -293,6 +296,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     EarlyLeaveCount = earlyLeaveCount,
                     ExcusedLeaveCount = excusedLeaveCount,
                     UnexcusedAbsentCount = unexcusedAbsentCount,
+                    IncompleteCount = incompleteCount,
                     StaffReviewStatus = t.StaffReviewStatus ?? "PENDING",
                     Status = t.Status ?? status,
                     ReviewDeadline = t.ReviewDeadline,
@@ -314,6 +318,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                 int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
                 int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+                int incompleteCount = userShifts.Count(s => s.AttendanceStatus == "INCOMPLETE" || (s.CheckInTime != null && s.CheckOutTime == null && DateTime.UtcNow > s.ScheduledEndAt));
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -333,6 +338,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     EarlyLeaveCount = earlyLeaveCount,
                     ExcusedLeaveCount = excusedLeaveCount,
                     UnexcusedAbsentCount = unexcusedAbsentCount,
+                    IncompleteCount = incompleteCount,
                     StaffReviewStatus = "-",
                     Status = "NOT GENERATED",
                     Shifts = userShifts

@@ -233,6 +233,11 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .ToList();
 
         var staffGroups = activeAssignments.GroupBy(x => x.Assignment.UserId).ToList();
+        if (staffGroups.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot generate timesheet: No active shifts or assigned staff members were found for this schedule week. Please verify the work schedule before generating timesheets.");
+        }
+
         var generatedTimesheets = new List<Timesheet>();
         var now = DateTime.UtcNow;
         var vnOffset = TimeSpan.FromHours(7);
@@ -242,7 +247,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         {
             var reqUtc = reviewDeadline.Value.Kind == DateTimeKind.Utc 
                 ? reviewDeadline.Value 
-                : DateTime.SpecifyKind(reviewDeadline.Value, DateTimeKind.Utc);
+                : DateTime.SpecifyKind(reviewDeadline.Value - vnOffset, DateTimeKind.Utc);
 
             if (reqUtc < now.AddHours(23).AddMinutes(50))
             {

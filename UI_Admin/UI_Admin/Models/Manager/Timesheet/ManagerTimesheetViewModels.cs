@@ -77,6 +77,7 @@ public sealed class ManagerStaffTimesheetItemViewModel
     public int TotalWorkMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
+    public int IncompleteCount { get; set; }
     public string StaffReviewStatus { get; set; } = null!;
     public string Status { get; set; } = null!;
     public DateTime? ReviewDeadline { get; set; }
@@ -88,6 +89,10 @@ public sealed class ManagerStaffTimesheetItemViewModel
     public string TotalWorkTimeDisplay => $"{TotalWorkMinutes / 60}h {TotalWorkMinutes % 60}m";
     public string TotalLateDisplay => $"{TotalLateMinutes / 60}h {TotalLateMinutes % 60}m";
     public string TotalEarlyLeaveDisplay => $"{TotalEarlyLeaveMinutes / 60}h {TotalEarlyLeaveMinutes % 60}m";
+    public string ReviewDeadlineDisplay => ReviewDeadline.HasValue
+        ? ScheduleDisplay.Vietnam(ReviewDeadline.Value).ToString("HH:mm dd/MM/yyyy")
+        : "-";
+    public bool IsPastDeadline => ReviewDeadline.HasValue && DateTime.UtcNow >= ReviewDeadline.Value;
 }
 
 public sealed class ManagerStaffShiftAttendanceViewModel

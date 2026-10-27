@@ -124,8 +124,8 @@ public class ManagerAttendanceService : IManagerAttendanceService
         var summary = new ManagerDailyAttendanceSummaryDto
         {
             TotalScheduled = allItems.Count,
-            PresentCount = allItems.Count(i => i.AttendanceStatus is "IN_PROGRESS" or "COMPLETED" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE"),
-            InProgressCount = allItems.Count(i => i.AttendanceStatus == "IN_PROGRESS" || (i.CheckInTime.HasValue && !i.CheckOutTime.HasValue)),
+            PresentCount = allItems.Count(i => i.AttendanceStatus is "IN_PROGRESS" or "COMPLETED" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE" or "INCOMPLETE"),
+            InProgressCount = allItems.Count(i => i.AttendanceStatus == "IN_PROGRESS"),
             CompletedCount = allItems.Count(i => i.AttendanceStatus == "COMPLETED"),
             LateCount = allItems.Count(i => i.TotalLateMinutes > 0),
             EarlyLeaveCount = allItems.Count(i => i.TotalEarlyLeaveMinutes > 0),
@@ -139,7 +139,11 @@ public class ManagerAttendanceService : IManagerAttendanceService
             var filterStatus = query.Status.Trim().ToUpperInvariant();
             if (filterStatus is "WORKING" or "IN_PROGRESS")
             {
-                allItems = allItems.Where(i => i.AttendanceStatus == "IN_PROGRESS" || (i.CheckInTime.HasValue && !i.CheckOutTime.HasValue)).ToList();
+                allItems = allItems.Where(i => i.AttendanceStatus == "IN_PROGRESS").ToList();
+            }
+            else if (filterStatus == "INCOMPLETE")
+            {
+                allItems = allItems.Where(i => i.AttendanceStatus == "INCOMPLETE").ToList();
             }
             else if (filterStatus == "COMPLETED")
             {
@@ -347,6 +351,10 @@ public class ManagerAttendanceService : IManagerAttendanceService
         {
             if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
             {
+                if (att.Status == "INCOMPLETE" || nowUtc > shiftEndAt)
+                {
+                    return "INCOMPLETE";
+                }
                 return att.TotalLateMinutes > 0 ? "LATE" : "IN_PROGRESS";
             }
 

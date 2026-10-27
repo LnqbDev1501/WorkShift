@@ -52,6 +52,7 @@ public sealed class ManagerStaffTimesheetItemDto
     public int EarlyLeaveCount { get; set; }
     public int ExcusedLeaveCount { get; set; }
     public int UnexcusedAbsentCount { get; set; }
+    public int IncompleteCount { get; set; }
     public string StaffReviewStatus { get; set; } = null!; // "CONFIRMED", "PENDING", "NO_RESPONSE", "ADJUSTMENT_PENDING", "-"
     public string Status { get; set; } = null!; // "GENERATED", "LOCKED", "NOT GENERATED"
     public DateTime? ReviewDeadline { get; set; }

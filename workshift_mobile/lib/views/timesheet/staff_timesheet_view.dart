@@ -1022,14 +1022,23 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   ],
                 ),
                 if (shift.canCancelAdjustment && shift.adjustmentRequestId != null)
-                  TextButton.icon(
-                    onPressed: () => _handleCancelAdjustment(shift),
-                    icon: const Icon(Icons.close_rounded, size: 14),
-                    label: const Text('Cancel Request'),
-                    style: TextButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                      foregroundColor: AppColors.error,
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  Tooltip(
+                    message: 'Cancel Request',
+                    child: InkWell(
+                      onTap: () => _handleCancelAdjustment(shift),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFEE2E2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close_rounded,
+                          size: 15,
+                          color: AppColors.error,
+                        ),
+                      ),
                     ),
                   ),
               ],

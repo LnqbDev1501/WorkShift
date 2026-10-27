@@ -86,8 +86,20 @@
                     </span>
                 }
             </div>
-            <p class="text-xs text-slate-500 mt-1">
-                Week @Model.Period (@Model.WeekStartDate.ToString("dd/MM/yyyy") – @Model.WeekEndDate.ToString("dd/MM/yyyy")) • @Model.BranchName
+            <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                <span>Week @Model.Period (@Model.WeekStartDate.ToString("dd/MM/yyyy") – @Model.WeekEndDate.ToString("dd/MM/yyyy")) • @Model.BranchName</span>
+                @if (staff.ReviewDeadline.HasValue)
+                {
+                    <span>•</span>
+                    <span class="inline-flex items-center gap-1 font-medium @(staff.IsPastDeadline ? "text-amber-700" : "text-slate-600")">
+                        <span class="material-symbols-outlined text-xs">schedule</span>
+                        <span>Review Deadline: <strong>@staff.ReviewDeadlineDisplay</strong></span>
+                        @if (staff.IsPastDeadline)
+                        {
+                            <span class="text-[10px] uppercase font-bold text-amber-600 px-1.5 py-0.5 rounded bg-amber-100 border border-amber-200">Expired</span>
+                        }
+                    </span>
+                }
             </p>
         </div>
 
@@ -108,6 +120,77 @@
             </a>
         </div>
     </div>
+
+    @if (staff.ReviewDeadline.HasValue && !string.Equals(Model.WeekStatus, "LOCKED", StringComparison.OrdinalIgnoreCase) && !string.Equals(Model.WeekStatus, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+    {
+        var isPast = staff.IsPastDeadline;
+        <!-- Review Window & Deadline Status Card -->
+        <div class="p-4 rounded-2xl @(isPast ? "bg-amber-50/80 border border-amber-200 text-amber-950" : "bg-sky-50/80 border border-sky-200 text-sky-950") text-sm flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl @(isPast ? "bg-amber-100 text-amber-700" : "bg-sky-100 text-sky-700") flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-xl">
+                        @(isPast ? "timer_off" : "schedule")
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-slate-900">
+                            @(isPast ? "Review Window Expired" : "Review Window in Progress")
+                        </p>
+                        @if (isConfirmed)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Confirmed by Staff
+                            </span>
+                        }
+                        else if (isAdjustmentPending)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                Disputed (Adjustment Pending)
+                            </span>
+                        }
+                        else if (isNoResponse)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-800 border border-slate-300">
+                                No Response
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                Awaiting Confirmation
+                            </span>
+                        }
+                    </div>
+                    <p class="text-xs @(isPast ? "text-amber-800" : "text-sky-800") mt-1">
+                        @if (isConfirmed)
+                        {
+                            <span>This staff member has confirmed their timesheet for this week.</span>
+                        }
+                        else if (isAdjustmentPending)
+                        {
+                            <span>This staff member submitted adjustment request(s). Please review the request(s) in the attendance table below.</span>
+                        }
+                        else if (isNoResponse)
+                        {
+                            <span>Review deadline has expired with no response from this staff. You can click <strong>Reopen Review</strong> to grant another 24 hours.</span>
+                        }
+                        else
+                        {
+                            <span>Waiting for staff confirmation or until review deadline expires (@staff.ReviewDeadlineDisplay).</span>
+                        }
+                    </p>
+                </div>
+            </div>
+            <div class="md:text-right shrink-0 bg-white/60 md:bg-transparent p-3 md:p-0 rounded-xl border md:border-0 border-slate-200/60">
+                <span class="text-[11px] font-semibold uppercase tracking-wider block text-slate-500">Review Deadline</span>
+                <span class="text-xs font-bold text-slate-800">@staff.ReviewDeadlineDisplay</span>
+                <span class="text-[11px] block mt-0.5 @(isPast ? "text-amber-700 font-semibold" : "text-slate-500")">
+                    @(isPast ? "(Expired at end of day)" : "(Until end of day)")
+                </span>
+            </div>
+        </div>
+    }
 
     <!-- KPI Summary Grid (4 Cards) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

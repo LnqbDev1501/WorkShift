@@ -377,10 +377,20 @@
                                     }
                                     else if (item.CheckInTime.HasValue)
                                     {
-                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                            <span>WORKING</span>
-                                        </span>
+                                        if (status == "INCOMPLETE" || DateTime.UtcNow > item.ScheduledEndAt)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
+                                                <span class="material-symbols-outlined text-[12px]">schedule</span>
+                                                <span>MISSED OUT</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span>WORKING</span>
+                                            </span>
+                                        }
                                     }
                                     else
                                     {
@@ -421,6 +431,13 @@
                                         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             <span class="material-symbols-outlined text-sm">check_circle</span>
                                             <span>COMPLETED</span>
+                                        </span>
+                                    }
+                                    else if (status == "INCOMPLETE")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
+                                            <span class="material-symbols-outlined text-sm">schedule</span>
+                                            <span>INCOMPLETE</span>
                                         </span>
                                     }
                                     else if (status == "IN_PROGRESS")

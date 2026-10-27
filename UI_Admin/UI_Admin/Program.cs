@@ -54,7 +54,7 @@ builder.Services.AddHttpClient<ManagerDashboardApiService>(client => client.Time
 builder.Services.AddHttpClient<ManagerScheduleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ManagerShiftApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ManagerRequestLimitRuleApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
-builder.Services.AddHttpClient<ManagerTimesheetApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient<ManagerTimesheetApiService>(client => client.Timeout = TimeSpan.FromSeconds(60)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ManagerTimesheetAdjustmentApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<ManagerAttendanceApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();
 builder.Services.AddHttpClient<AccountantDashboardApiService>(client => client.Timeout = TimeSpan.FromSeconds(15)).AddHttpMessageHandler<ApiBearerTokenHandler>();

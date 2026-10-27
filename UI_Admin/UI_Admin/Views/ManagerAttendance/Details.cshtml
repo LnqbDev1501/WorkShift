@@ -45,6 +45,13 @@
                         <span>COMPLETED</span>
                     </span>
                 }
+                else if (status == "INCOMPLETE")
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span>INCOMPLETE</span>
+                    </span>
+                }
                 else if (status == "IN_PROGRESS")
                 {
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -408,9 +415,18 @@
                 }
                 else if (Model.CheckInTime.HasValue)
                 {
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        IN PROGRESS
-                    </span>
+                    if (status == "INCOMPLETE" || DateTime.UtcNow > Model.ScheduledEndAt)
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
+                            MISSED CHECK-OUT
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            IN PROGRESS
+                        </span>
+                    }
                 }
                 else
                 {
@@ -513,10 +529,29 @@
             }
             else if (Model.CheckInTime.HasValue)
             {
-                <div class="py-8 text-center text-amber-600 text-xs">
-                    <span class="material-symbols-outlined text-3xl mb-1 block animate-spin">progress_activity</span>
-                    Shift is currently in progress. Staff has not checked out yet.
-                </div>
+                if (status == "INCOMPLETE" || DateTime.UtcNow > Model.ScheduledEndAt)
+                {
+                    <div class="py-6 px-4 text-center rounded-xl bg-amber-50/70 border border-amber-200/80 my-2">
+                        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-2.5">
+                            <span class="material-symbols-outlined text-xl">schedule</span>
+                        </div>
+                        <h4 class="font-bold text-amber-900 text-sm">Missed Clock-Out</h4>
+                        <p class="text-amber-700/90 text-xs mt-1 max-w-sm mx-auto leading-relaxed">
+                            Shift ended at <span class="font-semibold font-mono">@Model.ScheduledEndAt.AddHours(7).ToString("HH:mm")</span>. Staff did not record clock-out before the shift window closed.
+                        </p>
+                        <div class="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-md bg-white border border-amber-200 text-[11px] font-medium text-amber-800 shadow-2xs">
+                            <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                            <span>Awaiting timesheet adjustment request from staff or manager resolution</span>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="py-8 text-center text-amber-600 text-xs">
+                        <span class="material-symbols-outlined text-3xl mb-1 block animate-spin">progress_activity</span>
+                        Shift is currently in progress. Staff has not checked out yet.
+                    </div>
+                }
             }
             else
             {
