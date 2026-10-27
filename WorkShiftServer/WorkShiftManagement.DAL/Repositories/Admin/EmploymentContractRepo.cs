@@ -1192,7 +1192,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                         TargetBranchId = c.BranchId,
                         TargetType = "Branch",
                         Channels = new() { "InApp", "Email" },
-                        TargetRoles = new() { "STAFF", "MANAGER" },
+                        TargetRoles = new(),
                         CreatedAt = now,
                         UpdatedAt = now,
                         IsDeleted = false

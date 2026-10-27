@@ -442,7 +442,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                         UpdatedAt = nowUtc,
                         IsDeleted = false,
                         TargetType = "Custom",
-                        TargetBranchId = r.BranchId,
+                        TargetBranchId = null,
                         TargetRoles = new List<string> { "STAFF" },
                         Channels = new List<string> { "InApp" }
                     };
@@ -511,7 +511,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                 IsDeleted = false,
                 TargetType = "Branch",
                 TargetBranchId = createdRequest.BranchId,
-                TargetRoles = new List<string> { "MANAGER" },
+                TargetRoles = new(),
                 Channels = new List<string> { "InApp" }
             };
 
@@ -574,7 +574,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                 IsDeleted = false,
                 TargetType = "Branch",
                 TargetBranchId = cancelledRequest.BranchId,
-                TargetRoles = new List<string> { "MANAGER" },
+                TargetRoles = new(),
                 Channels = new List<string> { "InApp" }
             };
 

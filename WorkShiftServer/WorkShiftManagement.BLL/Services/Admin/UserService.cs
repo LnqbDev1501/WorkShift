@@ -409,7 +409,7 @@ public class UserService : IUserService
                 UpdatedAt = now,
                 IsDeleted = false,
                 TargetType = "Custom",
-                TargetBranchId = user.BranchId,
+                TargetBranchId = null,
                 Channels = new List<string> { "InApp" },
                 TargetRoles = new List<string> { targetRoleName }
             };

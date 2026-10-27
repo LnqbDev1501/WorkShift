@@ -540,7 +540,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 UpdatedAt = now,
                 IsDeleted = false,
                 TargetType = "Custom",
-                TargetBranchId = branchId,
+                TargetBranchId = null,
                 TargetRegionId = null,
                 Channels = new List<string> { "InApp" },
                 TargetRoles = new List<string> { "ACCOUNTANT" }

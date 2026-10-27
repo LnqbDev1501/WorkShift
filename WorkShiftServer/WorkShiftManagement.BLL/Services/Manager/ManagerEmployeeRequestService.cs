@@ -391,7 +391,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 UpdatedAt = now,
                 IsDeleted = false,
                 TargetType = "Custom",
-                TargetBranchId = request.BranchId,
+                TargetBranchId = null,
                 TargetRoles = new List<string> { "STAFF" },
                 Channels = new List<string> { "InApp" }
             };
@@ -616,7 +616,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                     UpdatedAt = now,
                     IsDeleted = false,
                     TargetType = "Custom",
-                    TargetBranchId = request.BranchId,
+                    TargetBranchId = null,
                     TargetRoles = new List<string> { "STAFF" },
                     Channels = new List<string> { "InApp" }
                 };
