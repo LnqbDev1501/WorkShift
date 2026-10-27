@@ -9,7 +9,7 @@
 }
 <div class="accountant-dashboard">
     <header class="ad-heading">
-        <div><span class="ad-eyebrow">WORKSPACE / ACCOUNTANT</span><h1>Accountant Dashboard</h1><p>Monitor payroll and payment progress across all branches.</p></div>
+        <div><span class="ad-eyebrow">WORKSPACE / ACCOUNTANT</span><h1>Accountant Dashboard</h1><p>Monitor payroll and payment progress within your assigned branch.</p></div>
         <a class="ad-refresh" asp-action="Index"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a>
     </header>
     @if (Model.ErrorMessage is not null)
@@ -18,7 +18,7 @@
     }
     @if (data is not null)
     {
-        <div class="ad-scope"><span class="material-symbols-outlined" aria-hidden="true">public</span>All branches · All-time totals<span>As of @data.Date.ToString("dd/MM/yyyy") · UTC+7</span></div>
+        <div class="ad-scope"><span class="material-symbols-outlined" aria-hidden="true">business</span>Assigned branch · All-time totals<span>As of @data.Date.ToString("dd/MM/yyyy") · UTC+7</span></div>
         <section class="ad-stats" aria-label="Payroll status overview">
             @foreach (var card in new[] {
                 (Label: "Ready for Submission", Count: data.CalculatedPayrolls, Icon: "calculate", Tone: "accent", Note: "Calculated payrolls"),

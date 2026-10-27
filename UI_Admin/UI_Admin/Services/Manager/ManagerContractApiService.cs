@@ -145,6 +145,18 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
             ?? throw new InvalidOperationException("Failed to read contract cancellation result. Please try again.");
     }
 
+    public async Task<ManagerContractDetailViewModel> TerminateAsync(int id, string reason, DateOnly? effectiveDate, CancellationToken ct)
+    {
+        using var response = await client.PostAsJsonAsync($"{baseUrl}/api/manager/contracts/{id}/terminate", new
+        {
+            reason = reason.Trim(),
+            terminationEffectiveDate = effectiveDate
+        }, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<ManagerContractDetailViewModel>(cancellationToken: ct)
+            ?? throw new InvalidOperationException("Failed to read contract termination result. Please try again.");
+    }
+
     public async Task<(byte[] Bytes, string ContentType)> GetPdfPreviewAsync(int id, CancellationToken ct)
     {
         using var response = await client.GetAsync($"{baseUrl}/api/manager/contracts/{id}/pdf/preview", ct);

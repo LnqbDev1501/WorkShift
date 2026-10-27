@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Services.Accountant;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,6 +49,8 @@ namespace WorkShiftServer.API.Controllers.Accountant
             { return StatusCode(403, new { message = ex.Message }); }
             catch (ArgumentException ex)
             { return BadRequest(new { message = ex.Message }); }
+            catch (PayrollSourceChangedException ex)
+            { return Conflict(new { message = ex.Message, sourceImpact = ex.SourceImpact }); }
             catch (InvalidOperationException ex)
             {
                 return Conflict(new { message = ex.Message });
@@ -98,6 +101,8 @@ namespace WorkShiftServer.API.Controllers.Accountant
                     message = ex.Message
                 });
             }
+            catch (PayrollSourceChangedException ex)
+            { return Conflict(new { message = ex.Message, sourceImpact = ex.SourceImpact }); }
             catch (InvalidOperationException ex)
             {
                 return Conflict(new

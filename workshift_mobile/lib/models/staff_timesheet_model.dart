@@ -180,6 +180,7 @@ class StaffShiftAttendanceModel {
   final String? adjustmentReason;
   final String? managerNote;
   final bool canRequestAdjustment;
+  final bool canCancelAdjustment;
   final bool isCheckInLocked;
   final String? checkInLockReason;
   final bool isCheckOutLocked;
@@ -222,6 +223,7 @@ class StaffShiftAttendanceModel {
     this.adjustmentReason,
     this.managerNote,
     required this.canRequestAdjustment,
+    this.canCancelAdjustment = false,
     this.isCheckInLocked = false,
     this.checkInLockReason,
     this.isCheckOutLocked = false,
@@ -308,6 +310,7 @@ class StaffShiftAttendanceModel {
       adjustmentReason: json['adjustmentReason']?.toString(),
       managerNote: json['managerNote']?.toString(),
       canRequestAdjustment: json['canRequestAdjustment'] == true,
+      canCancelAdjustment: json['canCancelAdjustment'] == true,
       isCheckInLocked: json['isCheckInLocked'] == true,
       checkInLockReason: json['checkInLockReason']?.toString(),
       isCheckOutLocked: json['isCheckOutLocked'] == true,

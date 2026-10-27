@@ -497,7 +497,7 @@ public class AttendanceService : IAttendanceService
         }
 
         StaffTimesheetAdjustmentSummaryDto? timesheetAdjSummary = null;
-        var adj = att?.TimesheetAdjustmentRequests?.OrderByDescending(r => r.CreatedAt).FirstOrDefault();
+        var adj = att?.TimesheetAdjustmentRequest;
         if (adj != null)
         {
             timesheetAdjSummary = new StaffTimesheetAdjustmentSummaryDto

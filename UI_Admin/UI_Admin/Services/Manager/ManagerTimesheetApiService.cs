@@ -83,10 +83,12 @@ public sealed class ManagerTimesheetApiService
 
     public async Task<ManagerWeeklyTimesheetDetailViewModel> GenerateWeeklyTimesheetAsync(
         int scheduleWeekId,
+        DateTime? reviewDeadline = null,
         CancellationToken cancellationToken = default)
     {
         var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/generate";
-        var response = await _httpClient.PostAsync(url, null, cancellationToken);
+        var payload = reviewDeadline.HasValue ? new { reviewDeadline = reviewDeadline.Value } : null;
+        var response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             var errorMessage = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);

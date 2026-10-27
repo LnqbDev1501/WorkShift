@@ -108,11 +108,11 @@ class StaffEmployeeRequestListItemModel {
   String get typeDisplayName {
     switch (requestType.toUpperCase()) {
       case 'LEAVE':
-        return 'Nghỉ phép';
+        return 'Leave';
       case 'LATE_ARRIVAL':
-        return 'Đi trễ';
+        return 'Late Arrival';
       case 'EARLY_LEAVE':
-        return 'Về sớm';
+        return 'Early Departure';
       default:
         return requestType;
     }
@@ -121,13 +121,13 @@ class StaffEmployeeRequestListItemModel {
   String get statusDisplayName {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return 'Chờ duyệt';
+        return 'Pending';
       case 'APPROVED':
-        return 'Đã duyệt';
+        return 'Approved';
       case 'REJECTED':
-        return 'Từ chối';
+        return 'Rejected';
       case 'CANCELLED':
-        return 'Đã hủy';
+        return 'Cancelled';
       default:
         return status;
     }
@@ -368,11 +368,11 @@ class StaffEmployeeRequestDetailModel {
   String get typeDisplayName {
     switch (requestType.toUpperCase()) {
       case 'LEAVE':
-        return 'Nghỉ phép';
+        return 'Leave';
       case 'LATE_ARRIVAL':
-        return 'Đi trễ';
+        return 'Late Arrival';
       case 'EARLY_LEAVE':
-        return 'Về sớm';
+        return 'Early Departure';
       default:
         return requestType;
     }
@@ -381,13 +381,13 @@ class StaffEmployeeRequestDetailModel {
   String get statusDisplayName {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return 'Chờ duyệt';
+        return 'Pending';
       case 'APPROVED':
-        return 'Đã duyệt';
+        return 'Approved';
       case 'REJECTED':
-        return 'Từ chối';
+        return 'Rejected';
       case 'CANCELLED':
-        return 'Đã hủy';
+        return 'Cancelled';
       default:
         return status;
     }

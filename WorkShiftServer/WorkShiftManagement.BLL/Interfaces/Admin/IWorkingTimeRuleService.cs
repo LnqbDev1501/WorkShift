@@ -10,7 +10,7 @@ public interface IWorkingTimeRuleService
     Task<WorkingTimeRuleResponse> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<WorkingTimeRuleResponse> UpdateAsync(int id, WorkingTimeRuleRequest request, CancellationToken cancellationToken);
     Task DeleteAsync(int id, CancellationToken cancellationToken);
-    Task<WorkingTimeRuleResponse> PublishAsync(int id, CancellationToken cancellationToken);
-    Task<WorkingTimeRuleResponse> CancelAsync(int id, CancellationToken cancellationToken);
+    Task<WorkingTimeRuleResponse> PublishAsync(int id, Guid actor, CancellationToken cancellationToken);
+    Task<WorkingTimeRuleResponse> CancelAsync(int id, Guid actor, CancellationToken cancellationToken);
     Task ActivateDueAsync(CancellationToken cancellationToken);
 }

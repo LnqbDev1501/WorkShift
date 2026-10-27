@@ -8,7 +8,6 @@ public sealed class ShiftDetailResponse
     public string ShiftName { get; set; } = "";
     public DateTime ScheduledStartAt { get; set; }
     public DateTime ScheduledEndAt { get; set; }
-    public int BreakMinutes { get; set; }
     public string? Note { get; set; }
     public string Status { get; set; } = "";
     public DateTime CreatedAt { get; set; }

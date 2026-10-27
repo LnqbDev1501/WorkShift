@@ -181,6 +181,7 @@ public sealed class ManagerTimesheetController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<ManagerWeeklyTimesheetDetailResponse>> GenerateWeeklyTimesheet(
         int id,
+        [FromBody] GenerateWeeklyTimesheetRequestDto? dto,
         CancellationToken cancellationToken)
     {
         var managerId = GetCurrentUserId();
@@ -191,7 +192,7 @@ public sealed class ManagerTimesheetController : ControllerBase
 
         try
         {
-            var result = await _timesheetService.GenerateWeeklyTimesheetAsync(managerId, id, cancellationToken);
+            var result = await _timesheetService.GenerateWeeklyTimesheetAsync(managerId, id, dto, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)

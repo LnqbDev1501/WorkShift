@@ -63,12 +63,21 @@ public class AdminWorkingTimeRuleController : ControllerBase
     [HttpPost("{id:int}/publish")]
     [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
     public Task<IActionResult> Publish(int id, CancellationToken cancellationToken) =>
-        ExecuteAsync(async () => Ok(await _workingTimeRuleService.PublishAsync(id, cancellationToken)));
+        ExecuteWithActorAsync(actor => _workingTimeRuleService.PublishAsync(id, actor, cancellationToken));
 
     [HttpPost("{id:int}/cancel")]
     [ProducesResponseType(typeof(WorkingTimeRuleResponse), StatusCodes.Status200OK)]
     public Task<IActionResult> Cancel(int id, CancellationToken cancellationToken) =>
-        ExecuteAsync(async () => Ok(await _workingTimeRuleService.CancelAsync(id, cancellationToken)));
+        ExecuteWithActorAsync(actor => _workingTimeRuleService.CancelAsync(id, actor, cancellationToken));
+
+    private Task<IActionResult> ExecuteWithActorAsync(Func<Guid, Task<WorkingTimeRuleResponse>> action)
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
+        if (!Guid.TryParse(claim, out var actor) || actor == Guid.Empty)
+            return Task.FromResult<IActionResult>(Unauthorized());
+        return ExecuteAsync(async () => Ok(await action(actor)));
+    }
 
     private async Task<IActionResult> ExecuteAsync(Func<Task<IActionResult>> action)
     {

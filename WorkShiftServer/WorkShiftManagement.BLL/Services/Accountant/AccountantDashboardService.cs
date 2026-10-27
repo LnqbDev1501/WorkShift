@@ -12,15 +12,21 @@ public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : 
         CancellationToken ct = default
         )
     {
-        if (accountantId == Guid.Empty 
-        || !await repo.IsActiveAccountantAsync(accountantId, ct))
-            throw new UnauthorizedAccessException("An active Accountant account and role are required.");
+        var branchId = accountantId == Guid.Empty
+            ? null
+            : await repo.GetActiveAccountantBranchIdAsync(accountantId, ct);
+        if (branchId is null or <= 0)
+            throw new UnauthorizedAccessException("An active Accountant assigned to a branch is required.");
+
+        // Resolve the assigned branch from the current account, never from request filters or stale claims.
+        var scopedPeriods = repo.PayrollPeriods(branchId.Value);
+        var scopedPayrolls = repo.CurrentPayrolls(branchId.Value);
 
         // Queries share one scoped DbContext and must execute sequentially.
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var yearStart = new DateOnly(today.Year, 1, 1);
         var yearEnd = yearStart.AddYears(1);
-        var monthlySalaries = await repo.CurrentPayrolls
+        var monthlySalaries = await scopedPayrolls
             .Where(x => x.PayrollPeriod.EndDate >= yearStart && x.PayrollPeriod.EndDate < yearEnd)
             .GroupBy(x => x.PayrollPeriod.EndDate.Month)
             .Select(g => new AccountantDashboardMonthlySalaryResponse
@@ -28,24 +34,24 @@ public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : 
                 Month = g.Key, PayrollCount = g.Count(), GrossSalary = g.Sum(x => x.GrossSalary),
                 TotalDeduction = g.Sum(x => x.TotalDeduction), NetSalary = g.Sum(x => x.NetSalary)
             }).OrderBy(x => x.Month).ToListAsync(ct);
-        var periods = await repo.PayrollPeriods.GroupBy(x => x.Status)
+        var periods = await scopedPeriods.GroupBy(x => x.Status)
             .Select(g => new AccountantDashboardPeriodStatusResponse { Status = g.Key, Count = g.Count() })
             .OrderBy(x => x.Status).ToListAsync(ct);
-        var payrolls = await repo.CurrentPayrolls.GroupBy(x => x.Status)
+        var payrolls = await scopedPayrolls.GroupBy(x => x.Status)
             .Select(g => new AccountantDashboardPayrollStatusResponse
             {
                 Status = g.Key, Count = g.Count(), GrossSalary = g.Sum(x => x.GrossSalary),
                 TotalDeduction = g.Sum(x => x.TotalDeduction), NetSalary = g.Sum(x => x.NetSalary)
             }).OrderBy(x => x.Status).ToListAsync(ct);
-        var recent = await repo.PayrollPeriods.Where(x => x.Status != "CANCELLED")
+        var recent = await scopedPeriods.Where(x => x.Status != "CANCELLED")
             .OrderByDescending(x => x.EndDate).ThenByDescending(x => x.PayrollPeriodId).Take(5)
             .Select(x => new AccountantDashboardRecentPeriodResponse
             {
                 PayrollPeriodId = x.PayrollPeriodId, BranchId = x.BranchId, BranchName = x.BranchNameSnapshot,
                 PeriodCode = x.PeriodCode, PeriodName = x.PeriodName, StartDate = x.StartDate, EndDate = x.EndDate,
                 Status = x.Status,
-                TotalPayrolls = x.Payrolls.Count(p => p.ReplacedAt == null && p.InversePreviousPayroll == null),
-                TotalNetSalary = x.Payrolls.Where(p => p.ReplacedAt == null && p.InversePreviousPayroll == null)
+                TotalPayrolls = x.Payrolls.Count(p => p.BranchId == branchId.Value && p.ReplacedAt == null && p.InversePreviousPayroll == null),
+                TotalNetSalary = x.Payrolls.Where(p => p.BranchId == branchId.Value && p.ReplacedAt == null && p.InversePreviousPayroll == null)
                     .Sum(p => (decimal?)p.NetSalary) ?? 0m
             }).ToListAsync(ct);
 

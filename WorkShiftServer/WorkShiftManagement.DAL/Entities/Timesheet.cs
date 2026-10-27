@@ -37,6 +37,8 @@ public partial class Timesheet
 
     public DateTime? GeneratedAt { get; set; }
 
+    public DateTime? ReviewDeadline { get; set; }
+
     public Guid? ReviewedBy { get; set; }
 
     public DateTime? ReviewedAt { get; set; }
@@ -56,6 +58,8 @@ public partial class Timesheet
     public int IncompleteShiftCount { get; set; }
 
     public Guid? LockedBy { get; set; }
+
+    public string? ReviewNote { get; set; }
 
     public virtual User? LockedByNavigation { get; set; }
 

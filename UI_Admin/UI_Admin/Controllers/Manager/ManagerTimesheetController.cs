@@ -130,7 +130,7 @@ public sealed class ManagerTimesheetController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Generate(int id, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Generate(int id, DateTime? reviewDeadline = null, CancellationToken cancellationToken = default)
     {
         if (id <= 0)
         {
@@ -140,7 +140,7 @@ public sealed class ManagerTimesheetController : Controller
 
         try
         {
-            await _timesheetApiService.GenerateWeeklyTimesheetAsync(id, cancellationToken);
+            await _timesheetApiService.GenerateWeeklyTimesheetAsync(id, reviewDeadline, cancellationToken);
             TempData["SuccessMessage"] = "Weekly timesheet generated successfully. Staff members have been notified.";
         }
         catch (InvalidOperationException ex)
@@ -202,7 +202,7 @@ public sealed class ManagerTimesheetController : Controller
         try
         {
             await _timesheetApiService.ReopenStaffTimesheetAsync(id, timesheetId, cancellationToken);
-            TempData["SuccessMessage"] = "Review window reopened successfully for this staff member until end of today.";
+            TempData["SuccessMessage"] = "Review window reopened successfully for this staff member for 24 hours.";
         }
         catch (InvalidOperationException ex)
         {

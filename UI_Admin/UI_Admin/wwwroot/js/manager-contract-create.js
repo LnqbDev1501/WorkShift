@@ -339,7 +339,8 @@
                     const posSuffix = opt.currentPosition ? ' - ' + opt.currentPosition : '';
                     el.textContent = `${badgePrefix}${opt.fullName} (${opt.currentContractNumber}${posSuffix})`;
                 } else {
-                    el.textContent = opt.fullName;
+                    const posSuffix = opt.currentPosition ? ` (${opt.currentPosition})` : '';
+                    el.textContent = `${opt.fullName}${posSuffix}`;
                 }
 
                 staffSelect.appendChild(el);
@@ -368,11 +369,14 @@
         const isRenewal = Boolean(radioRenewal && radioRenewal.checked);
 
         if (opt && opt.value) {
+            // Auto-fill position from selected staff
+            const staffPos = opt.dataset.position || '';
+            if (position) {
+                position.value = staffPos;
+            }
+
             if (isRenewal && replacesContractInput) {
                 replacesContractInput.value = opt.dataset.contractId || '';
-                if (position && !position.value && opt.dataset.position) {
-                    position.value = opt.dataset.position;
-                }
                 updateGuidanceCard(opt);
                 applyRenewalContractWage(opt);
             } else {
@@ -382,6 +386,9 @@
                 applyNewContractWage();
             }
         } else {
+            if (position) {
+                position.value = '';
+            }
             if (replacesContractInput) replacesContractInput.value = '';
             if (renewalGuidanceCard) renewalGuidanceCard.classList.add('hidden');
             clearStartDateGuidance();
@@ -411,18 +418,22 @@
 
         if (snapshotContractNumber) snapshotContractNumber.textContent = contractNum;
         if (snapshotPosition) snapshotPosition.textContent = pos;
-        if (pos && position && position.tagName === 'SELECT') {
-            let matched = false;
-            for (let i = 0; i < position.options.length; i++) {
-                if (position.options[i].value.toLowerCase() === pos.toLowerCase()) {
-                    position.selectedIndex = i;
-                    matched = true;
-                    break;
+        if (pos && position) {
+            if (position.tagName === 'INPUT') {
+                position.value = pos;
+            } else if (position.tagName === 'SELECT') {
+                let matched = false;
+                for (let i = 0; i < position.options.length; i++) {
+                    if (position.options[i].value.toLowerCase() === pos.toLowerCase()) {
+                        position.selectedIndex = i;
+                        matched = true;
+                        break;
+                    }
                 }
-            }
-            if (!matched && pos) {
-                const opt = new Option(`${pos} (Current)`, pos, true, true);
-                position.add(opt);
+                if (!matched && pos) {
+                    const opt = new Option(`${pos} (Current)`, pos, true, true);
+                    position.add(opt);
+                }
             }
         }
         if (snapshotHourlyRate) snapshotHourlyRate.textContent = wage;

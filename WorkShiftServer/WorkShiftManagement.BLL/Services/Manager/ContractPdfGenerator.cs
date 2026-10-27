@@ -84,7 +84,10 @@ public class ContractPdfGenerator : IContractPdfGenerator
                     cols.RelativeColumn();
                 });
 
-                AddTableRow(table, "Họ và tên:", contract.EmployeeFullNameSnapshot);
+                var empDisplayName = !string.IsNullOrWhiteSpace(contract.EmployeeFullNameSnapshot)
+                    ? contract.EmployeeFullNameSnapshot
+                    : (!string.IsNullOrWhiteSpace(contract.User?.FullName) ? contract.User.FullName : "—");
+                AddTableRow(table, "Họ và tên:", empDisplayName);
                 AddTableRow(table, "Số điện thoại:", string.IsNullOrWhiteSpace(contract.EmployeePhoneSnapshot) ? "—" : contract.EmployeePhoneSnapshot);
                 AddTableRow(table, "Số CMND / CCCD:", string.IsNullOrWhiteSpace(contract.EmployeeIdentityNoSnapshot) ? "—" : contract.EmployeeIdentityNoSnapshot);
                 AddTableRow(table, "Địa chỉ thường trú:", string.IsNullOrWhiteSpace(contract.EmployeeAddressSnapshot) ? "—" : contract.EmployeeAddressSnapshot);
@@ -124,6 +127,10 @@ public class ContractPdfGenerator : IContractPdfGenerator
                     empCol.Item().Text("(Ký và ghi rõ họ tên)").FontSize(8.5f).Italic().FontColor(Colors.Grey.Darken1).AlignCenter();
                     empCol.Item().PaddingTop(8);
 
+                    var empFullName = !string.IsNullOrWhiteSpace(contract.EmployeeFullNameSnapshot)
+                        ? contract.EmployeeFullNameSnapshot
+                        : (!string.IsNullOrWhiteSpace(contract.User?.FullName) ? contract.User.FullName : "Người lao động");
+
                     var isSigned = contract.StaffAcceptedAt.HasValue || contract.Status == "ACTIVE";
                     if (isSigned)
                     {
@@ -131,7 +138,7 @@ public class ContractPdfGenerator : IContractPdfGenerator
                         empCol.Item().Border(1.5f).BorderColor(Colors.Blue.Darken2).Background(Colors.Blue.Lighten5).Padding(8).Column(box =>
                         {
                             box.Item().Text("✓ ĐÃ KÝ ĐIỆN TỬ").Bold().FontSize(10.5f).FontColor(Colors.Blue.Darken3).AlignCenter();
-                            box.Item().PaddingTop(4).Text(contract.EmployeeFullNameSnapshot).Bold().FontSize(11).FontColor(Colors.Blue.Darken4).AlignCenter();
+                            box.Item().PaddingTop(4).Text(empFullName).Bold().FontSize(11).FontColor(Colors.Blue.Darken4).AlignCenter();
                             box.Item().PaddingTop(2).Text($"CCCD: {contract.EmployeeIdentityNoSnapshot}").FontSize(8).FontColor(Colors.Grey.Darken3).AlignCenter();
                             box.Item().PaddingTop(2).Text($"Thời gian ký: {signTime:dd/MM/yyyy HH:mm:ss}").FontSize(8).FontColor(Colors.Grey.Darken3).AlignCenter();
                             box.Item().PaddingTop(2).Text("Xác thực bảo mật qua tài khoản Staff").FontSize(7.5f).Italic().FontColor(Colors.Blue.Darken2).AlignCenter();
@@ -142,7 +149,7 @@ public class ContractPdfGenerator : IContractPdfGenerator
                         empCol.Item().Border(1).BorderColor(Colors.Grey.Medium).Padding(12).Column(box =>
                         {
                             box.Item().PaddingVertical(14).Text("(Chờ người lao động xác nhận điện tử)").FontSize(8.5f).Italic().FontColor(Colors.Grey.Darken1).AlignCenter();
-                            box.Item().Text(contract.EmployeeFullNameSnapshot).Bold().FontSize(10).FontColor(Colors.Grey.Darken3).AlignCenter();
+                            box.Item().Text(empFullName).Bold().FontSize(10).FontColor(Colors.Grey.Darken3).AlignCenter();
                         });
                     }
                 });

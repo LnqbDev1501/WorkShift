@@ -1,11 +1,5 @@
 @model UI_Admin.Models.PayrollCalculation.CalculatedPayroll
-@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
-@{ ViewData["Title"] = "Payroll Calculation Details"; var accountant = ViewContext.RouteData.Values["controller"]?.ToString() == "AccountantPayrollCalculation"; }
-@section Styles {
-    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
-    <style>
-        .calculation-money-summary .list-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); }
-        .calculation-money-summary .list-metric-value { font-size: 20px; }
-    </style>
+@{
+    ViewData["Title"] = $"Payroll #{Model.PayrollId} — {Model.EmployeeName}";
 }
 <partial name="~/Views/PayrollCalculation/_CalculationDetail.cshtml" model="Model" />

@@ -121,7 +121,7 @@ internal sealed class ShiftTemplateValidationAttribute : ActionFilterAttribute
         else if (field.StartsWith('$') || modelError.Exception is not null)
             message = CreateShiftTemplateRequest.GetBodyError(field.TrimStart('$', '.'));
         else if (string.IsNullOrEmpty(field) || field == "request")
-            message = "The request body is required. Send a JSON object containing shiftName, startTime, endTime and breakMinutes.";
+            message = "The request body is required. Send a JSON object containing shiftName, startTime and endTime.";
         else
             message = modelError.ErrorMessage;
 

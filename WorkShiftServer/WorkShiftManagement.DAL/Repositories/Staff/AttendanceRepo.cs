@@ -196,7 +196,7 @@ public class AttendanceRepo : IAttendanceRepo
                 .ThenInclude(a => a!.EarlyLeaveRequest)
                     .ThenInclude(r => r!.Request)
             .Include(sa => sa.Attendance)
-                .ThenInclude(a => a!.TimesheetAdjustmentRequests)
+                .ThenInclude(a => a!.TimesheetAdjustmentRequest)
             .Include(sa => sa.LeaveRequestAssignments)
                 .ThenInclude(lra => lra.Request)
             .FirstOrDefaultAsync(sa => sa.AssignmentId == assignmentId && sa.UserId == userId, cancellationToken);

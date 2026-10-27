@@ -169,6 +169,26 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateContractViewModel model, CancellationToken cancellationToken)
     {
+        if (model.StaffUserId.HasValue && string.IsNullOrWhiteSpace(model.EmployeePosition))
+        {
+            try
+            {
+                var isRenewal = string.Equals(model.ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase);
+                var mode = isRenewal ? "RENEWAL" : "NEW";
+                var options = await api.GetStaffOptionsAsync(mode, cancellationToken);
+                var selected = options.FirstOrDefault(s => s.StaffUserId == model.StaffUserId.Value);
+                if (!string.IsNullOrWhiteSpace(selected?.CurrentPosition))
+                {
+                    model.EmployeePosition = selected.CurrentPosition;
+                    ModelState.Remove(nameof(model.EmployeePosition));
+                }
+            }
+            catch
+            {
+                // Fall through to regular model validation
+            }
+        }
+
         if (!ModelState.IsValid) return await ReloadAsync(model, cancellationToken);
         try
         {
@@ -317,6 +337,50 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Terminate(int id, string? reason, DateOnly? terminationEffectiveDate, string? returnUrl = null, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+            return RedirectToAction(nameof(Index));
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            TempData["ErrorMessage"] = "Vui lòng cung cấp lý do chấm dứt hợp đồng.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            await api.TerminateAsync(id, reason.Trim(), terminationEffectiveDate, cancellationToken);
+            TempData["SuccessMessage"] = "Hợp đồng đã được chấm dứt trước thời hạn thành công.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
     }
@@ -543,6 +607,15 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             else
             {
                 model.NewStaffOptions = options;
+            }
+
+            if (model.StaffUserId.HasValue && string.IsNullOrWhiteSpace(model.EmployeePosition))
+            {
+                var selected = options.FirstOrDefault(s => s.StaffUserId == model.StaffUserId.Value);
+                if (!string.IsNullOrWhiteSpace(selected?.CurrentPosition))
+                {
+                    model.EmployeePosition = selected.CurrentPosition;
+                }
             }
         }
         catch (HttpRequestException ex)

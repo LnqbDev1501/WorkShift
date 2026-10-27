@@ -105,7 +105,7 @@
                 }
                 else
                 {
-                    display = opt.FullName;
+                    display = string.IsNullOrEmpty(opt.CurrentPosition) ? opt.FullName : $"{opt.FullName} ({opt.CurrentPosition})";
                 }
                 <option value="@opt.StaffUserId"
                         data-contract-id="@(opt.CurrentContractId?.ToString() ?? "")"
@@ -213,17 +213,26 @@
     <div class="grid sm:grid-cols-2 gap-5">
         <div>
             <div class="flex items-center justify-between mb-1.5">
-                <label asp-for="EmployeePosition" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">Position / Title <span class="text-rose-600">*</span></label>
-                <span class="text-[11px] text-slate-400">Retrieved from Employee Types</span>
+                <label asp-for="EmployeePosition" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Position / Title <span class="text-rose-600">*</span>
+                </label>
+                <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[14px]">lock</span>
+                    Auto-retrieved from User
+                </span>
             </div>
-            <select asp-for="EmployeePosition" id="EmployeePosition" required class="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white cursor-pointer">
-                <option value="">-- Select Position from System --</option>
-                @foreach (var pos in Model.PositionOptions)
-                {
-                    <option value="@pos" selected="@(string.Equals(Model.EmployeePosition, pos, StringComparison.OrdinalIgnoreCase))">@pos</option>
-                }
-            </select>
+            <div class="relative">
+                <input asp-for="EmployeePosition" id="EmployeePosition" type="text" readonly required
+                       placeholder="Auto-filled when staff is selected..."
+                       class="w-full h-11 px-3.5 pr-10 rounded-xl border border-slate-200 bg-slate-50 text-slate-800 text-sm font-semibold focus:outline-none cursor-not-allowed select-none transition-colors" />
+                <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                    <span class="material-symbols-outlined text-[20px]">badge</span>
+                </span>
+            </div>
             <span asp-validation-for="EmployeePosition" class="text-xs text-rose-600 mt-1 block"></span>
+            <p id="position-guidance-note" class="text-[11px] text-slate-500 mt-1">
+                Position is retrieved automatically from the employee's assigned position when user was created.
+            </p>
         </div>
         <div>
             <div class="flex items-center justify-between mb-1.5">

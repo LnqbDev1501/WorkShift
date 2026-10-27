@@ -7,6 +7,7 @@
     var isPending = status == "PENDING";
     var isApproved = status == "APPROVED";
     var isRejected = status == "REJECTED";
+    var isCancelled = status == "CANCELLED";
 }
 
 <div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
@@ -46,6 +47,13 @@
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                         <span class="material-symbols-outlined text-sm">cancel</span>
                         <span>REJECTED</span>
+                    </span>
+                }
+                else if (isCancelled)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        <span class="material-symbols-outlined text-sm">block</span>
+                        <span>CANCELLED</span>
                     </span>
                 }
             </div>
@@ -489,6 +497,16 @@
                             <div class="text-xs font-bold text-rose-900">Request Rejected</div>
                             <p class="text-[11px] text-rose-700">
                                 This claim was dismissed by the store manager.
+                            </p>
+                        </div>
+                    }
+                    else if (isCancelled)
+                    {
+                        <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 text-center space-y-2">
+                            <span class="material-symbols-outlined text-slate-500 text-2xl">cancel</span>
+                            <div class="text-xs font-bold text-slate-800">Request Cancelled</div>
+                            <p class="text-[11px] text-slate-500">
+                                This adjustment claim was cancelled by the staff member.
                             </p>
                         </div>
                     }

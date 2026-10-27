@@ -1,11 +1,213 @@
 @model UI_Admin.Models.PayrollDocuments.FeedbackListViewModel
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @using W = UI_Admin.Models.PayrollDocuments.PayrollDocumentDisplay
-@{ ViewData["Title"] = User.IsInRole("STAFF") ? "My Payroll Feedback" : "Payroll Feedback"; }
-@section Styles { <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" /> }
-<div class="payroll-page"><header class="payroll-heading"><div><div class="list-eyebrow">PAYROLL · FEEDBACK</div><h1>@ViewData["Title"]</h1><p>Track submitted feedback and its correction result.</p></div></header><partial name="_PayrollWorkflowMessages" />
-    @if (Model.Error != null) { <div role="alert" class="bg-red-50 text-red-700 p-4 mb-4 rounded-xl">@Model.Error</div> }
-    <section class="payroll-filters"><form method="get" asp-action="Index"><div asp-validation-summary="All" class="text-red-700 w-full"></div><label class="search-field">Search<input name="Keyword" value="@Model.Query.Keyword" maxlength="200" /></label><label>Status<select name="Status"><option value="">All</option>@foreach (var s in new[] { "SUBMITTED", "APPROVED", "REJECTED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></label><label>Correction<select name="CorrectionStatus"><option value="">All</option>@foreach (var s in new[] { "PENDING", "IN_PROGRESS", "COMPLETED" }) { <option value="@s" selected="@(Model.Query.CorrectionStatus == s)">@s</option> }</select></label><label>Reason<select name="ReasonCode"><option value="">All</option>@foreach (var s in W.Reasons) { <option value="@s" selected="@(Model.Query.ReasonCode == s)">@s</option> }</select></label><label>Created from<input type="date" name="CreatedFrom" value="@Model.Query.CreatedFrom?.ToString("yyyy-MM-dd")" /></label><label>Created to<input type="date" name="CreatedTo" value="@Model.Query.CreatedTo?.ToString("yyyy-MM-dd")" /></label>
-    @if (User.IsInRole("ACCOUNTANT")) { <label>Staff ID<input name="UserId" value="@Model.Query.UserId" /></label> }<label>Period ID<input type="number" min="1" name="PayrollPeriodId" value="@Model.Query.PayrollPeriodId" /></label><label>Payslip ID<input type="number" min="1" name="PayslipId" value="@Model.Query.PayslipId" /></label><partial name="_ListFilterActions" model='"Index"' /></form></section>
-    <section class="payroll-table-card"><div class="payroll-table-scroll"><table><thead><tr><th>EMPLOYEE / PERIOD</th><th>PAYSLIP</th><th>REASON</th><th>STATUS</th><th>CORRECTION</th><th>CREATED (UTC+7)</th><th>ACTIONS</th></tr></thead><tbody>@foreach (var f in Model.Data.Items) { <tr><td><strong>@f.EmployeeName</strong><small>@f.PeriodCode · @f.BranchName</small></td><td>#@f.PayslipId · V@(f.PayslipVersionNo)</td><td>@f.ReasonCode</td><td>@f.Status</td><td>@(f.CorrectionStatus ?? "—")</td><td>@D.Time(f.CreatedAt)</td><td><a asp-action="Details" asp-route-id="@f.FeedbackId" class="payroll-button">View Feedback</a></td></tr> }@if (Model.Data.Items.Count == 0) { <tr><td colspan="7" class="payroll-empty">No feedback matches the filters.</td></tr> }</tbody></table></div>@if (Model.Error == null && ViewData.ModelState.IsValid) { <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "feedback requests" })' /> }</section>
+@{
+    ViewData["Title"] = User.IsInRole("STAFF") ? "My Payroll Feedback" : "Payroll Feedback";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">mark_email_read</span>
+                <span>Payroll / Staff Feedback</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@ViewData["Title"]</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Track employee feedback requests, review submissions, and manage resolution workflows.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Index"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">refresh</span>
+                <span>Refresh</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    <partial name="_PayrollWorkflowMessages" />
+    @if (Model.Error != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+            <span class="font-medium">@Model.Error</span>
+        </div>
+    }
+
+    <!-- Search & Filter Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <form method="get" asp-action="Index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <!-- Keyword Input -->
+            <div class="md:col-span-4">
+                <label for="keyword" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Search</label>
+                <div class="relative flex items-center">
+                    <span class="material-symbols-outlined absolute left-3.5 pointer-events-none text-slate-400 text-lg">search</span>
+                    <input type="text" id="keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employee name or remarks..."
+                           class="w-full h-11 pl-10 pr-4 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="md:col-span-2">
+                <label for="status" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Status</label>
+                <select id="status" name="Status"
+                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
+                    @foreach (var s in new[] { "SUBMITTED", "APPROVED", "EXPLAINED", "REJECTED" })
+                    {
+                        <option value="@s" selected="@(Model.Query.Status == s)">@s</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Correction Status Filter -->
+            <div class="md:col-span-2">
+                <label for="corrStatus" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Correction</label>
+                <select id="corrStatus" name="CorrectionStatus"
+                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.Query.CorrectionStatus))">All</option>
+                    @foreach (var s in new[] { "PENDING", "IN_PROGRESS", "COMPLETED" })
+                    {
+                        <option value="@s" selected="@(Model.Query.CorrectionStatus == s)">@s.Replace('_', ' ')</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Reason Filter -->
+            <div class="md:col-span-2">
+                <label for="reasonCode" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Reason</label>
+                <select id="reasonCode" name="ReasonCode"
+                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.Query.ReasonCode))">All Reasons</option>
+                    @foreach (var s in W.Reasons)
+                    {
+                        <option value="@s" selected="@(Model.Query.ReasonCode == s)">@s</option>
+                    }
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="md:col-span-2 flex items-center gap-2">
+                <button type="submit" class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer box-border">
+                    <span class="material-symbols-outlined text-base">filter_alt</span>
+                    <span>Filter</span>
+                </button>
+                <a asp-action="Index" class="h-11 w-11 shrink-0 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl text-sm transition-all box-border" title="Reset Filters">
+                    <span class="material-symbols-outlined text-base">restart_alt</span>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">reviews</span>
+                <h2 class="text-sm font-bold text-slate-900">Feedback Requests</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Data.TotalItems @(Model.Data.TotalItems == 1 ? "Record" : "Records")
+                </span>
+            </div>
+        </div>
+
+        @if (Model.Data.Items.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">task_alt</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">No Feedback Requests Found</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">No feedback requests match your current filters.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Employee</th>
+                            <th class="py-3.5 px-6">Period &amp; Payslip</th>
+                            <th class="py-3.5 px-6">Reason Code</th>
+                            <th class="py-3.5 px-6">Status</th>
+                            <th class="py-3.5 px-6">Correction</th>
+                            <th class="py-3.5 px-6">Created (UTC+7)</th>
+                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var f in Model.Data.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-4 px-6 font-semibold text-slate-900">
+                                    @f.EmployeeName
+                                </td>
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-slate-800">@f.PeriodCode • @f.BranchName</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">Payslip #@f.PayslipId · V@(f.PayslipVersionNo)</div>
+                                </td>
+                                <td class="py-4 px-6 text-xs font-semibold text-slate-700">
+                                    @f.ReasonCode
+                                </td>
+                                <td class="py-4 px-6">
+                                    @if (f.Status == "SUBMITTED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            SUBMITTED
+                                        </span>
+                                    }
+                                    else if (f.Status == "APPROVED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            APPROVED
+                                        </span>
+                                    }
+                                    else if (f.Status == "EXPLAINED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            EXPLAINED
+                                        </span>
+                                    }
+                                    else if (f.Status == "REJECTED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            REJECTED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            @f.Status
+                                        </span>
+                                    }
+                                </td>
+                                <td class="py-4 px-6 text-xs font-medium text-slate-600">
+                                    @(string.IsNullOrEmpty(f.CorrectionStatus) ? "—" : f.CorrectionStatus.Replace('_', ' '))
+                                </td>
+                                <td class="py-4 px-6 text-xs text-slate-600">
+                                    @D.Time(f.CreatedAt)
+                                </td>
+                                <td class="py-4 px-6 text-right">
+                                    <a asp-action="Details" asp-route-id="@f.FeedbackId"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-sm">visibility</span>
+                                        <span>Details</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.Error == null && ViewData.ModelState.IsValid && Model.Data.TotalItems > Model.Data.PageSize)
+        {
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+                <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "feedback requests" })' />
+            </div>
+        }
+    </div>
 </div>

@@ -196,6 +196,64 @@ public sealed class StaffTimesheetController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Cancels a pending timesheet adjustment request for the authenticated staff member.
+    /// </summary>
+    /// <param name="id">Adjustment request ID to cancel.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    [HttpPost("adjustments/{id:int}/cancel")]
+    [ProducesResponseType(typeof(StaffWeeklyTimesheetResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StaffWeeklyTimesheetResponse>> CancelAdjustment(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var staffId = GetCurrentUserId();
+        if (staffId == Guid.Empty)
+        {
+            return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
+        }
+
+        if (id <= 0)
+        {
+            return BadRequest(new { message = "Valid adjustment request ID is required." });
+        }
+
+        try
+        {
+            var result = await _timesheetService.CancelAdjustmentRequestAsync(staffId, id, cancellationToken);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling timesheet adjustment #{AdjustmentRequestId} for staff {StaffId}", id, staffId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "Failed to cancel timesheet adjustment request.",
+                detail = ex.InnerException?.Message ?? ex.Message
+            });
+        }
+    }
+
     private Guid GetCurrentUserId()
     {
         var subject = User.FindFirstValue("sub")

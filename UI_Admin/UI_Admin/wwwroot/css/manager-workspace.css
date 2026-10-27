@@ -1,4 +1,8 @@
-.manager-page { max-width: 1440px; margin: 0 auto; padding: 32px; }
+.manager-page { max-width: 1440px; margin: 0 auto; padding: 24px 28px; }
+html body .custom-scrollbar::-webkit-scrollbar { display: block; height: 6px; width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 .manager-dashboard .dashboard-heading { margin-bottom: 24px; gap: 20px; flex-wrap: wrap; }
 .manager-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 10px; background: #4f46e5; color: white; font-size: 14px; font-weight: 600; white-space: nowrap; }
 .manager-primary:hover { background: #4338ca; }

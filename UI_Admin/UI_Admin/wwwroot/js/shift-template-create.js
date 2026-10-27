@@ -4,7 +4,7 @@
     const form = get('template-form');
     if (!form) return;
     const name = get('ShiftName'), description = get('Description');
-    const start = get('StartTime'), end = get('EndTime'), rest = get('BreakMinutes');
+    const start = get('StartTime'), end = get('EndTime');
     const submit = get('create-submit');
     const submitLabel = submit.textContent;
     const parseTime = value => {
@@ -25,33 +25,20 @@
         const a = parseTime(start.value), b = parseTime(end.value);
         const validTimes = a !== null && b !== null;
         const sameDay = validTimes && b > a;
-        const breakValue = Number(rest.value);
-        const validBreak = /^[0-9]+$/.test(rest.value) && Number.isSafeInteger(breakValue) && breakValue <= 2147483647;
-        const fits = sameDay && validBreak && breakValue * 60 < b - a;
         start.setCustomValidity(a === null ? 'Use 24-hour HH:mm:ss format.' : '');
         end.setCustomValidity(b === null ? 'Use 24-hour HH:mm:ss format.' : validTimes && !sameDay ? 'End time must be later than start time on the same day.' : '');
-        rest.setCustomValidity(!validBreak ? 'Enter a non-negative whole number.' : sameDay && !fits ? 'Break duration must be shorter than the shift.' : '');
-        const valid = sameDay && fits;
+        const valid = sameDay;
         const total = sameDay ? b - a : 0;
-        const net = valid ? total - breakValue * 60 : 0;
-        const ratio = valid ? net / total * 100 : 0;
         get('total-duration').textContent = sameDay ? duration(total) : '—';
         get('total-minutes').textContent = sameDay ? `${minutes(total)} total` : 'Invalid interval';
-        get('break-duration').textContent = validBreak ? `${breakValue}m` : '—';
-        get('net-duration').textContent = valid ? duration(net) : '—';
-        get('net-minutes').textContent = valid ? `${minutes(net)} working` : 'Calculation paused';
-        get('ratio').textContent = valid ? `${ratio.toFixed(1)}% Work / ${(100 - ratio).toFixed(1)}% Rest` : 'Invalid configuration';
-        get('density').textContent = valid ? `${ratio.toFixed(1)}%` : '—';
-        get('density-ring').style.setProperty('--density', `${ratio}%`);
-        get('work-bar').style.width = `${ratio}%`;
-        get('break-bar').style.width = valid ? `${100 - ratio}%` : '0%';
+        get('ratio').textContent = valid ? duration(total) : 'Invalid configuration';
+        get('work-bar').style.width = valid ? '100%' : '0%';
         get('preview-status').textContent = valid ? '● Valid Timing' : '● Check Timing';
         get('preview-status').className = `shift-status ${valid ? 'is-active' : 'is-inactive'}`;
         rule('rule-time', validTimes, 'Valid 24-hour times (HH:mm:ss)');
         rule('rule-day', sameDay, 'End time later than start; no overnight shifts');
-        rule('rule-break', fits, 'Whole-number break shorter than the shift');
         get('timing-error').hidden = valid;
-        get('timing-error').textContent = !validTimes ? 'Enter start and end times in HH:mm:ss format.' : !sameDay ? 'End time must be later than start time on the same day. Overnight shifts are not supported.' : !validBreak ? 'Break minutes must be a non-negative whole number.' : !fits ? 'Break duration must be shorter than the shift window.' : '';
+        get('timing-error').textContent = !validTimes ? 'Enter start and end times in HH:mm:ss format.' : !sameDay ? 'End time must be later than start time on the same day. Overnight shifts are not supported.' : '';
     }
     form.addEventListener('input', update);
     form.addEventListener('submit', event => {

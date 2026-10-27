@@ -35,10 +35,16 @@ public class StaffShiftListItemViewModel
     public DateTime RegistrationDeadline { get; set; }
     public string? Note { get; set; }
     public StaffShiftRegistrationViewModel? MyRegistration { get; set; }
+    public bool CanCancelRegistration { get; set; }
+    public string? CancellationBlockedReason { get; set; }
     public List<StaffShiftRequirementViewModel> EmployeeRequirements { get; set; } = [];
 
     public bool IsRegistered => MyRegistration != null && MyRegistration.Status == "ASSIGNED";
-    public bool IsRegistrationClosed => DateTime.UtcNow > RegistrationDeadline;
+    public bool IsRegistrationClosed => ScheduleWeekStatus != "OPEN_REGISTRATION" ||
+        DateTime.UtcNow >= RegistrationDeadline || ScheduledStartAt <= DateTime.UtcNow ||
+        Status != "SCHEDULED" || ScheduledEndAt <= ScheduledStartAt;
+    public bool CanCancel => CanCancelRegistration && !IsRegistrationClosed && IsRegistered &&
+        MyRegistration!.AssignmentSource == "SELF_REGISTRATION";
 
     public string DateDisplay => ScheduledStartAt.AddHours(7).ToString("dd/MM/yyyy (ddd)");
     public string TimeDisplay => $"{ScheduledStartAt.AddHours(7):HH:mm} - {ScheduledEndAt.AddHours(7):HH:mm}";

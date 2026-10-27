@@ -6,7 +6,6 @@ public sealed class ShiftTemplateResponse
     public string ShiftName { get; set; } = null!;
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
-    public int BreakMinutes { get; set; }
     public string? Description { get; set; }
     public string Status { get; set; } = null!;
     public DateTime CreatedAt { get; set; }

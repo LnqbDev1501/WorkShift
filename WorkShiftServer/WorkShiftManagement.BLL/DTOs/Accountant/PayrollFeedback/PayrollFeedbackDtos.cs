@@ -17,6 +17,14 @@ public sealed class ReviewPayrollIssueRequest
     [Required] public string Decision { get; set; } = "";
     [Required, StringLength(2000)] public string Note { get; set; } = "";
 }
+public sealed class ResendPayrollIssueRequest
+{
+    [Required, StringLength(2000)] public string Reason { get; set; } = "";
+}
+public sealed class ResendPayrollPreviewRequest
+{
+    [Required, StringLength(2000)] public string Reason { get; set; } = "";
+}
 public sealed class PayrollFeedbackListRequest
 {
     public string? Keyword { get; set; }
@@ -51,7 +59,15 @@ public sealed class PayrollFeedbackResponse
     public DateTime? ClosedAt { get; set; }
     public string? ClosureReason { get; set; }
     public bool CanRespond { get; set; }
+    public bool CanConfirm => CanRespond;
+    public bool CanSubmitFeedback => CanRespond;
+    public string? PreviousResolutionNote { get; set; }
+    public string? PreviousFeedbackDescription { get; set; }
     public List<PayrollIssueResponse> Corrections { get; set; } = [];
+}
+public sealed class ExplainPayrollFeedbackRequest
+{
+    public required string ResolutionNote { get; set; }
 }
 public sealed class PayrollFeedbackDetailsResponse
 {
@@ -78,6 +94,50 @@ public sealed class PayrollIssueResponse
     public string? ReviewNote { get; set; }
     public int? ResolvedPayrollId { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public int? CandidatePayrollId { get; set; }
+    public bool AwaitingAccountantCompletion { get; set; }
+    public int PayrollPeriodId { get; set; }
+    public string PeriodCode { get; set; } = "";
+    public int? ScheduleWeekId { get; set; }
+    public string EmployeeName { get; set; } = "";
+    public DateTime ResponseDeadlineAt { get; set; }
+    public DateTime? ExpiredAt { get; set; }
+    public bool CanResend { get; set; }
+    public bool CanRespond { get; set; }
+}
+
+public sealed class CompletePayrollCorrectionRequest
+{
+    [Range(1, int.MaxValue)] public int PayrollId { get; set; }
+    [Required, StringLength(2000)] public string Note { get; set; } = "";
+}
+public sealed class PayrollCorrectionPreviewResponse
+{
+    public int CorrectionRequestId { get; set; }
+    public required PayrollCalculationResponse CurrentPayroll { get; set; }
+    public required PayrollCalculationResponse Preview { get; set; }
+    public bool HasChanges { get; set; }
+    public bool CreatesVersion => false;
+}
+public sealed class PayrollSourceImpactResponse
+{
+    public int PayrollPeriodId { get; set; }
+    public bool HasBlockingChanges => Employees.Any(e => e.HasChanges || e.BlockingReasons.Count > 0);
+    public List<PayrollSourceImpactEmployee> Employees { get; set; } = [];
+}
+public sealed class PayrollSourceImpactEmployee
+{
+    public Guid UserId { get; set; }
+    public string EmployeeName { get; set; } = "";
+    public int? PayrollId { get; set; }
+    public int? VersionNo { get; set; }
+    public bool HasChanges { get; set; }
+    public List<string> ChangedSources { get; set; } = [];
+    public List<string> SharedChangeKeys { get; set; } = [];
+    public List<string> BlockingReasons { get; set; } = [];
+    public int? CorrectionRequestId { get; set; }
+    public bool RelatedToSelectedCorrection { get; set; }
+    public bool RegisteredNow { get; set; }
 }
 
 public sealed class PendingPayrollAdjustment

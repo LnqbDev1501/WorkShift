@@ -110,7 +110,7 @@ var myCnn = builder.Configuration.GetConnectionString("MyCnn")
 // and Hangfire workers so background jobs cannot starve web requests or hit EMAXCONNSESSION.
 var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
 {
-    MaxPoolSize = 5,
+    MaxPoolSize = 8,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
@@ -128,7 +128,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 10,
+    MaxPoolSize = 3,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
@@ -240,11 +240,11 @@ builder.Services.AddScoped<ICategoryRepo, CategoryRepo>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
-        builder.Services.AddScoped<IOrderRepo, OrderRepo>();
-        builder.Services.AddScoped<IOrderService, OrderService>();
-        builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
-            WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
-        builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
+builder.Services.AddScoped<IOrderRepo, OrderRepo>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
+    WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
+builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
@@ -346,9 +346,9 @@ catch (Exception ex)
 
 foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
 {
-    jobs => jobs.AddOrUpdate<IPayrollFeedbackService>("payroll-preview-expiry", service => service.ExpireDueAsync(CancellationToken.None), Cron.Minutely()),
-    jobs => jobs.AddOrUpdate<PayrollSystemNotificationJob>("payroll-system-notifications", job => job.ExecuteAsync(CancellationToken.None), Cron.Minutely()),
-    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), Cron.Minutely()); }
+    jobs => jobs.AddOrUpdate<IPayrollFeedbackService>("payroll-preview-expiry", service => service.ExpireDueAsync(CancellationToken.None), "*/5 * * * *"),
+    jobs => jobs.AddOrUpdate<PayrollSystemNotificationJob>("payroll-system-notifications", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"),
+    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"); }
 })
 {
     try { registerPayrollJob(app.Services.GetRequiredService<IRecurringJobManager>()); }
@@ -361,56 +361,61 @@ try
         .AddOrUpdate<PayrollClosureNotificationJob>(
             "payroll-closure-notification-recovery",
             job => job.SendPendingAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/5 * * * *");
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/30 * * * *");
 
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendanceRuleService>(
             "attendance-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/30 * * * *");
 
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendancePenaltyRuleService>(
             "attendance-penalty-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/30 * * * *");
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
             "scheduled-contracts-activation",
             service => service.ActivateDueScheduledContractsAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/15 * * * *");
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
             "expired-contracts-worker",
             service => service.ExpireDueContractsAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/15 * * * *");
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
             "overdue-contracts-cancellation",
             service => service.CancelOverduePendingContractsAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/15 * * * *");
+
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Manager.IManagerTimesheetService>(
             "timesheet-deadline-autolock",
             service => service.AutoLockExpiredTimesheetsAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/5 * * * *");
 
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmployeeRequestService>(
             "overdue-requests-cancellation",
             service => service.CancelOverduePendingRequestsAsync(CancellationToken.None),
-            Cron.Minutely());
+            "*/5 * * * *");
 }
 
 catch (Exception ex)
 {
     // A Hangfire distributed-lock timeout (e.g. Supabase pooler) must not kill API startup.
-    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'working-time-rules-activation'.");
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring jobs.");
 }
 
 if (app.Environment.IsDevelopment())
@@ -430,5 +435,31 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 app.MapHub<PayrollNotificationHub>("/hubs/payroll-notifications");
+
+try
+{
+    using var cleanupScope = app.Services.CreateScope();
+    var dbContext = cleanupScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var notifsToClean = await dbContext.Notifications
+        .Where(n => n.Content.Contains("NOT_ACCEPTED_BY_START_DATE"))
+        .ToListAsync();
+    if (notifsToClean.Count > 0)
+    {
+        foreach (var n in notifsToClean)
+        {
+            n.Content = n.Content
+                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
+                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
+                .Replace("chưa xác nhận chấp thuận).", "chưa xác nhận chấp thuận.")
+                .Replace("chưa xác nhận chấp thuận)", "chưa xác nhận chấp thuận")
+                .Replace("NOT_ACCEPTED_BY_START_DATE", "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận");
+        }
+        await dbContext.SaveChangesAsync();
+    }
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Failed to clean up legacy notification messages.");
+}
 
 app.Run();

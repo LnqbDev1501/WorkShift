@@ -36,10 +36,6 @@ public class PayrollApiService(HttpClient client, IConfiguration configuration)
     public Task ApproveAsync(int id, CancellationToken ct) =>
         SendReviewAsync($"/api/admin/payroll-periods/{id}/approve", null, ct);
 
-    public Task RejectAsync(PayrollRejectInput input, CancellationToken ct) =>
-        SendReviewAsync($"/api/admin/payroll-periods/{input.PeriodId}/payrolls/{input.PayrollId}/reject",
-            new { Reason = input.Reason.Trim(), RejectionCategory = input.RejectionCategory }, ct);
-
     private async Task SendReviewAsync(string path, object? body, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, BaseUrl + path);

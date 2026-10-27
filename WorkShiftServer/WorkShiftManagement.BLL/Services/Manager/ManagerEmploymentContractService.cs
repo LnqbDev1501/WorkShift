@@ -64,8 +64,6 @@ public class ManagerEmploymentContractService(
             throw new ArgumentException("StaffUserId is required.");
         if (request.StartDate == default || (request.EndDate != null && request.EndDate <= request.StartDate))
             throw new ArgumentException("StartDate is required and EndDate must be later than StartDate.");
-        if (string.IsNullOrWhiteSpace(request.EmployeePosition) || request.EmployeePosition.Length > 100)
-            throw new ArgumentException("EmployeePosition is required and must not exceed 100 characters.");
 
         var todayVn = GetTodayVn();
         if (request.StartDate < todayVn)
@@ -74,6 +72,14 @@ public class ManagerEmploymentContractService(
         var staff = await repository.GetCreationUserAsync(request.StaffUserId, cancellationToken);
         if (staff == null || staff.DeletedAt != null)
             throw new KeyNotFoundException("Staff does not exist.");
+
+        var position = (string.IsNullOrWhiteSpace(request.EmployeePosition)
+            ? staff.EmployeeType?.TypeName
+            : request.EmployeePosition)?.Trim();
+
+        if (string.IsNullOrWhiteSpace(position) || position.Length > 100)
+            throw new ArgumentException("EmployeePosition is required and must not exceed 100 characters.");
+
         if (!string.Equals(staff.Role?.RoleName, "STAFF", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The selected user must have the STAFF role.");
         if (staff.Status != "PENDING" && staff.Status != "ACTIVE")
@@ -142,7 +148,7 @@ public class ManagerEmploymentContractService(
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             HourlyRate = finalHourlyRate,
-            EmployeePositionSnapshot = request.EmployeePosition.Trim(),
+            EmployeePositionSnapshot = position,
             BranchId = manager.BranchId!.Value,
             RegionId = region!.RegionId,
             EmployeeFullNameSnapshot = staff.FullName,
@@ -211,7 +217,7 @@ public class ManagerEmploymentContractService(
                         x.User.FullName,
                         contract.ContractId,
                         contract.ContractNumber,
-                        contract.EmployeePositionSnapshot,
+                        contract.EmployeePositionSnapshot ?? x.User.EmployeeType?.TypeName,
                         contract.StartDate,
                         contract.EndDate,
                         x.LatestSalary ?? contract.HourlyRate,
@@ -239,6 +245,7 @@ public class ManagerEmploymentContractService(
         return staff.Select(u => new ContractStaffOptionResponse(
             u.UserId,
             u.FullName,
+            CurrentPosition: u.EmployeeType?.TypeName,
             CurrentHourlyRate: regionalMinWage
         )).ToList();
     }

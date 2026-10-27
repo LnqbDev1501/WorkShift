@@ -10,7 +10,6 @@ using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
-using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
@@ -32,7 +31,6 @@ public class UserService : IUserService
     private readonly IAccountSetupEmailSender _accountSetupEmailSender;
     private readonly ILogger<UserService> _logger;
     private readonly string _defaultAvatarUrl;
-    private readonly AppDbContext _dbContext;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
@@ -43,7 +41,6 @@ public class UserService : IUserService
         IAccountSetupEmailSender accountSetupEmailSender,
         ILogger<UserService> logger,
         IConfiguration configuration,
-        AppDbContext dbContext,
         ICloudinaryService cloudinaryService,
         IAdminRealtimePublisher adminRealtimePublisher,
         INotificationRealtimePublisher notificationRealtimePublisher)
@@ -55,7 +52,6 @@ public class UserService : IUserService
         _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
             ?? throw new InvalidOperationException(
                 "Cloudinary:DefaultAvatarUrl is not configured.");
-        _dbContext = dbContext;
         _cloudinaryService = cloudinaryService;
         _adminRealtimePublisher = adminRealtimePublisher;
         _notificationRealtimePublisher = notificationRealtimePublisher;
@@ -254,7 +250,7 @@ public class UserService : IUserService
 
         NormalizeAndValidateUpdateRequest(request);
 
-        var user = await _dbContext.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.UserId == userId)
+        var user = await _userRepo.GetByIdAsync(userId)
             ?? throw new KeyNotFoundException("No matching user profile was found.");
 
         if (user.DeletedAt.HasValue)
@@ -274,7 +270,7 @@ public class UserService : IUserService
             throw new ArgumentException("BranchId is required for Manager and Accountant accounts.");
         }
 
-        var targetRole = await _dbContext.Roles.FindAsync(request.RoleId)
+        var targetRole = await _userRepo.GetRoleByIdAsync(request.RoleId)
             ?? throw new ArgumentException("The specified role does not exist.");
         var targetRoleName = targetRole.RoleName.Trim().ToUpperInvariant();
 
@@ -306,26 +302,15 @@ public class UserService : IUserService
                 var branchId = user.BranchId.GetValueOrDefault();
                 if (roleName == AccountantRole && branchId > 0)
                 {
-                    var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
-
-                    var hasPayrolls = await _dbContext.Payrolls
-                        .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
-
-                    if (hasPayrollPeriods || hasPayrolls)
+                    var hasPendingPayroll = await _userRepo.HasPendingPayrollAsync(branchId);
+                    if (hasPendingPayroll)
                     {
                         throw new InvalidOperationException("Cannot update Branch or Role because the Accountant has pending payroll processing in the current branch.");
                     }
                 }
 
                 // Check if another active or pending user already occupies the target role in the target branch
-                var isRoleOccupied = await _dbContext.Users
-                    .AsNoTracking()
-                    .AnyAsync(u => u.UserId != userId
-                                && u.BranchId == targetBranchId.Value
-                                && u.RoleId == request.RoleId
-                                && u.Status != InactiveStatus
-                                && u.DeletedAt == null);
+                var isRoleOccupied = await _userRepo.IsRoleOccupiedInBranchAsync(targetBranchId.Value, request.RoleId, userId);
 
                 if (isRoleOccupied)
                 {
@@ -345,7 +330,7 @@ public class UserService : IUserService
         if (identityOwner is not null && identityOwner.UserId != userId)
             ThrowIdentityConflict(identityOwner, "Identity number");
 
-        var emailOwner = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == request.Email.ToLower());
+        var emailOwner = await _userRepo.GetByEmailAsync(request.Email);
         if (emailOwner is not null && emailOwner.UserId != userId)
             throw new InvalidOperationException("Email is already in use by another user.");
 
@@ -404,10 +389,7 @@ public class UserService : IUserService
             var createdBy = adminUserId.GetValueOrDefault();
             if (createdBy == Guid.Empty)
             {
-                createdBy = await _dbContext.Users
-                    .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null)
-                    .Select(u => u.UserId)
-                    .FirstOrDefaultAsync();
+                createdBy = await _userRepo.GetFirstActiveAdminIdAsync();
 
                 if (createdBy == Guid.Empty)
                     createdBy = userId;
@@ -427,7 +409,7 @@ public class UserService : IUserService
                 UpdatedAt = now,
                 IsDeleted = false,
                 TargetType = "Custom",
-                TargetBranchId = user.BranchId,
+                TargetBranchId = null,
                 Channels = new List<string> { "InApp" },
                 TargetRoles = new List<string> { targetRoleName }
             };
@@ -440,13 +422,13 @@ public class UserService : IUserService
                 CreatedAt = now
             });
 
-            _dbContext.Notifications.Add(notification);
+            _userRepo.AddNotification(notification);
         }
 
-        using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        using var transaction = await _userRepo.BeginTransactionAsync();
         try
         {
-            await _dbContext.SaveChangesAsync();
+            await _userRepo.SaveChangesAsync();
 
             if (emailChanged)
             {
@@ -531,11 +513,7 @@ public class UserService : IUserService
         }
 
         // Reload the user with Role and Branch included to get RoleName and BranchName
-        await _dbContext.Entry(user).Reference(u => u.Role).LoadAsync();
-        if (user.BranchId.HasValue)
-        {
-            await _dbContext.Entry(user).Reference(u => u.Branch).LoadAsync();
-        }
+        await _userRepo.LoadRoleAndBranchAsync(user);
 
         return new UpdateAdminUserResponse
         {
@@ -600,13 +578,8 @@ public class UserService : IUserService
             var branchId = user.BranchId.GetValueOrDefault();
             if (roleName == AccountantRole && branchId > 0)
             {
-                var hasPayrollPeriods = await _dbContext.PayrollPeriods
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REVISION_REQUIRED"));
-
-                var hasPayrolls = await _dbContext.Payrolls
-                    .AnyAsync(p => p.BranchId == branchId && (p.Status == "CALCULATED" || p.Status == "SUBMITTED" || p.Status == "REJECTED"));
-
-                if (hasPayrollPeriods || hasPayrolls)
+                var hasPendingPayroll = await _userRepo.HasPendingPayrollAsync(branchId);
+                if (hasPendingPayroll)
                 {
                     throw new InvalidOperationException("Cannot delete because the Accountant has pending payroll processing in the current branch.");
                 }

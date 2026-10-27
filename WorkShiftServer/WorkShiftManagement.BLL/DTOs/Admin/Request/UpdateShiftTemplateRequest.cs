@@ -7,7 +7,6 @@ public sealed class UpdateShiftTemplateRequest : IValidatableObject
     public string? ShiftName { get; set; }
     public string? StartTime { get; set; }
     public string? EndTime { get; set; }
-    public int? BreakMinutes { get; set; }
     public string? Description { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
@@ -18,7 +17,6 @@ public sealed class UpdateShiftTemplateRequest : IValidatableObject
             ShiftName = ShiftName,
             StartTime = StartTime,
             EndTime = EndTime,
-            BreakMinutes = BreakMinutes,
             Description = Description
         };
         return request.Validate(new ValidationContext(request));

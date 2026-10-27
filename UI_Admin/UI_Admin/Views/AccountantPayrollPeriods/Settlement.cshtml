@@ -1,0 +1,230 @@
+@model UI_Admin.Models.Accountant.PayrollSettlement.PayrollSettlementSummaryResponse
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = $"Settlement - {Model.PeriodCode}";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+                <span>Payroll / Settlement &amp; Closure</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Period Settlement — @Model.PeriodCode</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Confirm external disbursement, execute Carry Forward deductions, and finalize period closure.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Details" asp-route-id="@Model.PayrollPeriodId"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Period</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (TempData["PeriodError"] is string error)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+            <span class="font-medium">@error</span>
+        </div>
+    }
+    @if (TempData["PeriodSuccess"] is string success)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+            <span class="font-medium">@success</span>
+        </div>
+    }
+
+    <!-- 4 Stat Metric Cards (Manager Style) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Period Status</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">verified</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-slate-900 tracking-tight">@Model.PeriodStatus.Replace('_', ' ')</div>
+                <div class="text-xs text-slate-400 mt-1">@(Model.IsSettled ? "Settlement finalized" : "Ready for settlement")</div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Total Net Disbursement</span>
+                <span class="material-symbols-outlined text-emerald-600 text-lg">payments</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-emerald-700 tracking-tight">@D.Money(Model.TotalNetSalary)</div>
+                <div class="text-xs text-slate-400 mt-1">@Model.Employees.Count Employees</div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>Carry Forward Deducted</span>
+                <span class="material-symbols-outlined text-amber-600 text-lg">trending_down</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-amber-700 tracking-tight">@D.Money(Model.TotalCarryForwardApplied)</div>
+                <div class="text-xs text-slate-400 mt-1">Previous balance recovered</div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                <span>New Deferred Balance</span>
+                <span class="material-symbols-outlined text-indigo-600 text-lg">forward</span>
+            </div>
+            <div>
+                <div class="text-2xl font-bold text-indigo-700 tracking-tight">@D.Money(Model.TotalNewCarryForward)</div>
+                <div class="text-xs text-slate-400 mt-1">Deferred to next period</div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.BlockingReasons.Count > 0)
+    {
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-5 shadow-sm" role="alert">
+            <div class="font-bold mb-2 flex items-center gap-2 text-rose-950 text-sm">
+                <span class="material-symbols-outlined text-rose-600">block</span>
+                <span>Settlement Blocked</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-1 text-xs">
+                @foreach (var reason in Model.BlockingReasons)
+                {
+                    <li>@reason</li>
+                }
+            </ul>
+        </div>
+    }
+    else if (!Model.IsSettled && Model.CanConfirmSettlement)
+    {
+        <div class="bg-white border border-amber-200 rounded-2xl p-6 shadow-sm space-y-4 bg-amber-50/20">
+            <div class="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                <span class="material-symbols-outlined text-amber-600">info</span>
+                <span>Confirm External Settlement &amp; Close Period</span>
+            </div>
+            <p class="text-xs text-slate-600">
+                Confirming settlement will mark all current payrolls as <strong class="text-slate-800">PAID</strong>, record applied Carry Forward deductions, defer remaining balances, and finalize period closure (<strong class="text-slate-800">PAID → CLOSED</strong>).
+            </p>
+
+            <form asp-action="ConfirmSettlement" asp-route-id="@Model.PayrollPeriodId" method="post" class="space-y-4 max-w-xl">
+                @Html.AntiForgeryToken()
+                <label class="flex items-start gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 hover:bg-amber-50 cursor-pointer transition-colors">
+                    <input type="checkbox" id="confirmedExternalSettlement" name="ConfirmedExternalSettlement" value="true" required class="mt-0.5 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                    <span class="text-xs font-semibold text-amber-950">
+                        I confirm that all net salary amounts totaling @D.Money(Model.TotalNetSalary) have been paid externally to employees via bank transfer or cash.
+                    </span>
+                </label>
+
+                <div>
+                    <label for="paymentReference" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Payment Reference Code (Optional)</label>
+                    <input type="text" id="paymentReference" name="PaymentReference" maxlength="100" placeholder="e.g. BANK-TX-20261018-01"
+                           class="w-full h-11 px-3.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 box-border" />
+                </div>
+
+                <div>
+                    <label for="paymentNote" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Settlement Notes (Optional)</label>
+                    <textarea id="paymentNote" name="PaymentNote" maxlength="2000" rows="2" placeholder="Additional details regarding disbursement batch..."
+                              class="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 box-border"></textarea>
+                </div>
+
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span>Confirm Settlement &amp; Close Period</span>
+                </button>
+            </form>
+        </div>
+    }
+    else if (Model.IsSettled)
+    {
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl p-5 shadow-sm flex items-start gap-3">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5">verified</span>
+            <div>
+                <strong class="font-bold text-sm">Period Settled and Closed</strong>
+                <p class="text-xs text-emerald-800 mt-0.5">
+                    Paid at: @(Model.PaidAt.HasValue ? D.Time(Model.PaidAt) : "—") • 
+                    Closed at: @(Model.ClosedAt.HasValue ? D.Time(Model.ClosedAt) : "—")
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Employee Settlement Table (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">group</span>
+                <h3 class="text-sm font-bold text-slate-900">Settled Employees</h3>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Employees.Count @(Model.Employees.Count == 1 ? "Employee" : "Employees")
+                </span>
+            </div>
+            <div class="text-xs font-bold text-slate-900">
+                Total Net: @D.Money(Model.TotalNetSalary)
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3.5 px-6">Employee</th>
+                        <th class="py-3.5 px-6">Version</th>
+                        <th class="py-3.5 px-6">Status</th>
+                        <th class="py-3.5 px-6 text-right">Net Salary</th>
+                        <th class="py-3.5 px-6 text-right">CF Deducted</th>
+                        <th class="py-3.5 px-6 text-right">New CF Deferred</th>
+                        <th class="py-3.5 px-6 text-right">Payslip</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <tr class="hover:bg-slate-50/80 transition-colors">
+                            <td class="py-4 px-6 font-semibold text-slate-900">
+                                @emp.EmployeeName
+                            </td>
+                            <td class="py-4 px-6 font-medium text-slate-700">
+                                V@(emp.VersionNo)
+                            </td>
+                            <td class="py-4 px-6">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold @(emp.Status == "PAID" ? "bg-teal-50 text-teal-700 border border-teal-200" : "bg-slate-100 text-slate-700 border border-slate-200")">
+                                    @emp.Status
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 text-right font-bold text-slate-900">
+                                @D.Money(emp.NetSalary)
+                            </td>
+                            <td class="py-4 px-6 text-right text-xs font-medium text-amber-700">
+                                @(emp.CarryForwardDeduction > 0 ? "-" + D.Money(emp.CarryForwardDeduction) : "—")
+                            </td>
+                            <td class="py-4 px-6 text-right text-xs font-medium text-indigo-700">
+                                @(emp.DeferredDeductionAmount > 0 ? "+" + D.Money(emp.DeferredDeductionAmount) : "—")
+                            </td>
+                            <td class="py-4 px-6 text-right">
+                                @if (emp.PayslipId.HasValue)
+                                {
+                                    <a asp-controller="AccountantPayslips" asp-action="Details" asp-route-id="@emp.PayslipId"
+                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-sm">receipt_long</span>
+                                        <span>Payslip #@emp.PayslipId</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-xs text-slate-400">Not issued</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

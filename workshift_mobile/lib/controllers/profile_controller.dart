@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
 import '../services/api_client.dart';
 
 /// Bộ não điều khiển màn hình Profile (thông tin cá nhân & đổi mật khẩu)
 class ProfileController extends ChangeNotifier {
-  final AuthService _authService = AuthService();
   final ApiClient _apiClient = ApiClient();
 
   UserModel? _user;
@@ -104,7 +102,7 @@ class ProfileController extends ChangeNotifier {
 
     try {
       final formData = FormData.fromMap({
-        'avatarFile': await MultipartFile.fromBytes(
+        'avatarFile': MultipartFile.fromBytes(
           imageBytes,
           filename: fileName,
         ),

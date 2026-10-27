@@ -63,9 +63,7 @@ class AvailableShiftModel {
             ),
       canCancelRegistration: json['canCancelRegistration'] == true,
       cancellationBlockedReason: json['cancellationBlockedReason'] as String?,
-      isOpenShift: json['isOpenShift'] == true ||
-          weekStatus == 'PUBLISHED' ||
-          weekStatus == 'IN_PROGRESS',
+      isOpenShift: json['isOpenShift'] == true,
       employeeRequirements: List.unmodifiable(
         (json['employeeRequirements'] as List).map(
           (item) =>

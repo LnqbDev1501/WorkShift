@@ -73,6 +73,9 @@ public class StaffEmploymentContractService(
             StartDate = c.StartDate,
             EndDate = c.EndDate,
             HourlyRate = c.HourlyRate,
+            EmployeeFullName = !string.IsNullOrWhiteSpace(c.EmployeeFullNameSnapshot)
+                ? c.EmployeeFullNameSnapshot
+                : (!string.IsNullOrWhiteSpace(c.User?.FullName) ? c.User.FullName : string.Empty),
             EmployeePosition = !string.IsNullOrWhiteSpace(c.EmployeePositionSnapshot) ? c.EmployeePositionSnapshot : string.Empty,
             BranchId = c.BranchId,
             BranchName = !string.IsNullOrWhiteSpace(c.BranchNameSnapshot) ? c.BranchNameSnapshot : (c.Branch?.BranchName ?? string.Empty),
@@ -126,6 +129,9 @@ public class StaffEmploymentContractService(
             StartDate = contract.StartDate,
             EndDate = contract.EndDate,
             HourlyRate = contract.HourlyRate,
+            EmployeeFullName = !string.IsNullOrWhiteSpace(contract.EmployeeFullNameSnapshot)
+                ? contract.EmployeeFullNameSnapshot
+                : (!string.IsNullOrWhiteSpace(contract.User?.FullName) ? contract.User.FullName : string.Empty),
             EmployeePosition = !string.IsNullOrWhiteSpace(contract.EmployeePositionSnapshot) ? contract.EmployeePositionSnapshot : string.Empty,
             ContractTerms = contract.ContractTerms,
             BranchId = contract.BranchId,

@@ -21,6 +21,7 @@ public interface IManagerTimesheetService
     Task<ManagerWeeklyTimesheetDetailResponse> GenerateWeeklyTimesheetAsync(
         Guid managerId,
         int scheduleWeekId,
+        GenerateWeeklyTimesheetRequestDto? request = null,
         CancellationToken cancellationToken = default);
 
     Task<ManagerWeeklyTimesheetDetailResponse> LockWeeklyTimesheetAsync(

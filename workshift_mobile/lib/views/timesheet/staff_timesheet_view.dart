@@ -194,6 +194,67 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     }
   }
 
+  Future<void> _handleCancelAdjustment(StaffShiftAttendanceModel shift) async {
+    if (shift.adjustmentRequestId == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+            SizedBox(width: 8),
+            Text('Cancel Adjustment?'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to cancel your adjustment request for ${shift.shiftName} on ${shift.dateDisplay}? This will immediately release the lock on this shift.',
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Request', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel Request'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final error = await _controller.cancelAdjustment(
+        adjustmentRequestId: shift.adjustmentRequestId!,
+      );
+
+      if (mounted) {
+        if (error == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Adjustment request cancelled successfully.'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to cancel adjustment: $error'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -947,14 +1008,30 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFFD97706)),
-                SizedBox(width: 6),
-                Text(
-                  'Adjustment Pending Review',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                const Row(
+                  children: [
+                    Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFFD97706)),
+                    SizedBox(width: 6),
+                    Text(
+                      'Adjustment Pending Review',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                    ),
+                  ],
                 ),
+                if (shift.canCancelAdjustment && shift.adjustmentRequestId != null)
+                  TextButton.icon(
+                    onPressed: () => _handleCancelAdjustment(shift),
+                    icon: const Icon(Icons.close_rounded, size: 14),
+                    label: const Text('Cancel Request'),
+                    style: TextButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      foregroundColor: AppColors.error,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    ),
+                  ),
               ],
             ),
             if (shift.adjustmentReason != null && shift.adjustmentReason!.isNotEmpty) ...[
@@ -964,6 +1041,27 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 style: const TextStyle(fontSize: 11, color: Color(0xFF92400E)),
               ),
             ],
+          ],
+        ),
+      );
+    }
+
+    if (status == 'CANCELLED') {
+      return Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.cancel_outlined, size: 16, color: AppColors.textMuted),
+            SizedBox(width: 6),
+            Text(
+              'Adjustment Request Cancelled',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+            ),
           ],
         ),
       );
