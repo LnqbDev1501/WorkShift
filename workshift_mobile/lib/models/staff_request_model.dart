@@ -34,6 +34,30 @@ class StaffRequestShiftSummaryModel {
   }
 }
 
+/// Model chi tiết yêu cầu tăng lương (SALARY_INCREASE)
+class StaffSalaryIncreaseDetailModel {
+  final int currentContractId;
+  final String? contractNumber;
+  final double currentHourlyRate;
+  final double proposedHourlyRate;
+
+  StaffSalaryIncreaseDetailModel({
+    required this.currentContractId,
+    this.contractNumber,
+    required this.currentHourlyRate,
+    required this.proposedHourlyRate,
+  });
+
+  factory StaffSalaryIncreaseDetailModel.fromJson(Map<String, dynamic> json) {
+    return StaffSalaryIncreaseDetailModel(
+      currentContractId: json['currentContractId'] as int? ?? 0,
+      contractNumber: json['contractNumber'] as String?,
+      currentHourlyRate: (json['currentHourlyRate'] as num?)?.toDouble() ?? 0.0,
+      proposedHourlyRate: (json['proposedHourlyRate'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+}
+
 /// Model cho từng dòng trong danh sách yêu cầu của nhân viên (GET /api/staff/requests)
 class StaffEmployeeRequestListItemModel {
   final int requestId;
@@ -51,6 +75,7 @@ class StaffEmployeeRequestListItemModel {
   final DateTime? reviewedAt;
   final String? reviewNote;
   final StaffRequestShiftSummaryModel? shiftSummary;
+  final StaffSalaryIncreaseDetailModel? salaryIncreaseDetail;
 
   StaffEmployeeRequestListItemModel({
     required this.requestId,
@@ -68,6 +93,7 @@ class StaffEmployeeRequestListItemModel {
     this.reviewedAt,
     this.reviewNote,
     this.shiftSummary,
+    this.salaryIncreaseDetail,
   });
 
   factory StaffEmployeeRequestListItemModel.fromJson(
@@ -97,6 +123,11 @@ class StaffEmployeeRequestListItemModel {
               json['shiftSummary'] as Map<String, dynamic>,
             )
           : null,
+      salaryIncreaseDetail: json['salaryIncreaseDetail'] != null
+          ? StaffSalaryIncreaseDetailModel.fromJson(
+              json['salaryIncreaseDetail'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 
@@ -113,6 +144,8 @@ class StaffEmployeeRequestListItemModel {
         return 'Late Arrival';
       case 'EARLY_LEAVE':
         return 'Early Departure';
+      case 'SALARY_INCREASE':
+        return 'Salary Increase';
       default:
         return requestType;
     }
@@ -141,6 +174,8 @@ class StaffEmployeeRequestListItemModel {
         return Icons.more_time_rounded;
       case 'EARLY_LEAVE':
         return Icons.timer_off_rounded;
+      case 'SALARY_INCREASE':
+        return Icons.payments_rounded;
       default:
         return Icons.description_rounded;
     }
@@ -154,6 +189,8 @@ class StaffEmployeeRequestListItemModel {
         return const Color(0xFFEA580C); // Cam
       case 'EARLY_LEAVE':
         return const Color(0xFF7C3AED); // Tím
+      case 'SALARY_INCREASE':
+        return const Color(0xFF2563EB); // Xanh dương
       default:
         return AppColors.primary;
     }
@@ -295,6 +332,7 @@ class StaffEmployeeRequestDetailModel {
   final StaffAppliedRequestLimitRuleModel? appliedRule;
   final List<StaffLeaveRequestAssignmentModel>? leaveAssignments;
   final StaffTimeAdjustmentDetailModel? timeAdjustmentDetail;
+  final StaffSalaryIncreaseDetailModel? salaryIncreaseDetail;
 
   StaffEmployeeRequestDetailModel({
     required this.requestId,
@@ -314,6 +352,7 @@ class StaffEmployeeRequestDetailModel {
     this.appliedRule,
     this.leaveAssignments,
     this.timeAdjustmentDetail,
+    this.salaryIncreaseDetail,
   });
 
   factory StaffEmployeeRequestDetailModel.fromJson(Map<String, dynamic> json) {
@@ -357,6 +396,11 @@ class StaffEmployeeRequestDetailModel {
               json['timeAdjustmentDetail'] as Map<String, dynamic>,
             )
           : null,
+      salaryIncreaseDetail: json['salaryIncreaseDetail'] != null
+          ? StaffSalaryIncreaseDetailModel.fromJson(
+              json['salaryIncreaseDetail'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 
@@ -373,8 +417,40 @@ class StaffEmployeeRequestDetailModel {
         return 'Late Arrival';
       case 'EARLY_LEAVE':
         return 'Early Departure';
+      case 'SALARY_INCREASE':
+        return 'Salary Increase';
       default:
         return requestType;
+    }
+  }
+
+  IconData get typeIcon {
+    switch (requestType.toUpperCase()) {
+      case 'LEAVE':
+        return Icons.event_busy_rounded;
+      case 'LATE_ARRIVAL':
+        return Icons.more_time_rounded;
+      case 'EARLY_LEAVE':
+        return Icons.timer_off_rounded;
+      case 'SALARY_INCREASE':
+        return Icons.payments_rounded;
+      default:
+        return Icons.description_rounded;
+    }
+  }
+
+  Color get typeColor {
+    switch (requestType.toUpperCase()) {
+      case 'LEAVE':
+        return const Color(0xFF059669);
+      case 'LATE_ARRIVAL':
+        return const Color(0xFFEA580C);
+      case 'EARLY_LEAVE':
+        return const Color(0xFF7C3AED);
+      case 'SALARY_INCREASE':
+        return const Color(0xFF2563EB);
+      default:
+        return AppColors.primary;
     }
   }
 

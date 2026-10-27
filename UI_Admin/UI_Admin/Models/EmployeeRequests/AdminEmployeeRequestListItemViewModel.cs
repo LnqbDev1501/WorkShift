@@ -33,6 +33,7 @@ public class AdminEmployeeRequestListItemViewModel
     public DateTime? ReviewedAt { get; set; }
 
     public string? ReviewerFullName { get; set; }
+    public AdminSalaryIncreaseDetailViewModel? SalaryIncreaseDetail { get; set; }
 
     public AdminRequestShiftSummaryViewModel? ShiftSummary { get; set; }
 }

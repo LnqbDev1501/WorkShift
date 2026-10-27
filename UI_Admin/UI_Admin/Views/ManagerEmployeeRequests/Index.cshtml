@@ -172,6 +172,7 @@
                         <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave</option>
                         <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival</option>
                         <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave</option>
+                        <option value="SALARY_INCREASE" selected="@(Model.RequestType?.Equals("SALARY_INCREASE", StringComparison.OrdinalIgnoreCase) == true)">Salary Increase</option>
                     </select>
                 </div>
 
@@ -348,6 +349,11 @@
                                                 <span class="w-1.5 h-1.5 rounded-full bg-purple-600"></span>Early Leave
                                             </span>
                                             break;
+                                        case "SALARY_INCREASE":
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>Salary Increase
+                                            </span>
+                                            break;
                                         default:
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
                                                 @request.RequestType
@@ -356,9 +362,25 @@
                                     }
                                 </td>
 
-                                <!-- Applied Shift / Date -->
+                                <!-- Applied Shift / Date / Rate -->
                                 <td class="px-4 py-3.5">
-                                    @if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
+                                    @if (reqType == "SALARY_INCREASE" && request.SalaryIncreaseDetail != null)
+                                    {
+                                        var sid = request.SalaryIncreaseDetail;
+                                        <div class="flex flex-col gap-0.5">
+                                            <div class="flex items-center gap-1 text-xs font-bold text-blue-700">
+                                                <span class="material-symbols-outlined text-[15px]">trending_up</span>
+                                                <span>@string.Format("{0:N0} VNĐ/hr", sid.ProposedHourlyRate)</span>
+                                            </div>
+                                            @if (sid.CurrentHourlyRate > 0)
+                                            {
+                                                <div class="text-[11px] text-secondary">
+                                                    Current: @string.Format("{0:N0} VNĐ/hr", sid.CurrentHourlyRate)
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                    else if (request.ShiftSummary != null && request.ShiftSummary.TotalShifts > 0)
                                     {
                                         var summary = request.ShiftSummary;
                                         var shiftName = string.IsNullOrWhiteSpace(summary.PrimaryShiftName) ? "Shift" : summary.PrimaryShiftName;

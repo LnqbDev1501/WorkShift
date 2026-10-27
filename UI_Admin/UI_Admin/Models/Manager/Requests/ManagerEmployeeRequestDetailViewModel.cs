@@ -25,6 +25,7 @@ public class ManagerEmployeeRequestDetailViewModel
     public string? ReviewNote { get; set; }
 
     public ManagerAppliedRequestLimitRuleViewModel? AppliedRule { get; set; }
+    public ManagerSalaryIncreaseDetailViewModel? SalaryIncreaseDetail { get; set; }
     public IReadOnlyList<ManagerLeaveRequestAssignmentViewModel> LeaveAssignments { get; set; } = new List<ManagerLeaveRequestAssignmentViewModel>();
     public ManagerTimeAdjustmentDetailViewModel? TimeAdjustmentDetail { get; set; }
     public IReadOnlyList<ManagerEmployeeRequestHistoryViewModel> History { get; set; } = new List<ManagerEmployeeRequestHistoryViewModel>();
@@ -86,4 +87,12 @@ public class ManagerEmployeeRequestHistoryViewModel
     public string? Note => ReviewNote;
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
+}
+
+public class ManagerSalaryIncreaseDetailViewModel
+{
+    public int CurrentContractId { get; set; }
+    public string? ContractNumber { get; set; }
+    public decimal CurrentHourlyRate { get; set; }
+    public decimal ProposedHourlyRate { get; set; }
 }

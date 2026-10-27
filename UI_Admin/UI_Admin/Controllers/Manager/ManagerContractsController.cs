@@ -349,7 +349,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng cung cấp lý do chấm dứt hợp đồng.";
+            TempData["ErrorMessage"] = "Please provide a reason for terminating the contract.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
@@ -358,7 +358,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             await api.TerminateAsync(id, reason.Trim(), terminationEffectiveDate, cancellationToken);
-            TempData["SuccessMessage"] = "Hợp đồng đã được chấm dứt trước thời hạn thành công.";
+            TempData["SuccessMessage"] = "Contract has been terminated successfully.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });

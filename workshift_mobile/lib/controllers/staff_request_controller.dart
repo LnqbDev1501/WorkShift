@@ -240,6 +240,14 @@ class StaffRequestController extends ChangeNotifier {
 
   /// Nạp danh sách ca làm việc đủ điều kiện tạo đơn
   Future<void> loadEligibleShifts(String requestType) async {
+    if (requestType == 'SALARY_INCREASE') {
+      _isLoadingEligibleShifts = false;
+      _eligibleShifts = [];
+      _actionErrorMessage = null;
+      notifyListeners();
+      return;
+    }
+
     _isLoadingEligibleShifts = true;
     _eligibleShifts = [];
     _actionErrorMessage = null;
@@ -322,6 +330,31 @@ class StaffRequestController extends ChangeNotifier {
       final result = await _service.submitEarlyLeaveRequest(
         assignmentId: assignmentId,
         requestedTime: requestedTime,
+        reason: reason,
+      );
+      _isSubmitting = false;
+      await loadRequests(refresh: true);
+      return result;
+    } catch (e) {
+      _actionErrorMessage = _cleanErrorMessage(e);
+      _isSubmitting = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Gửi đơn xin tăng lương (SALARY_INCREASE)
+  Future<StaffEmployeeRequestDetailModel?> submitSalaryIncreaseRequest({
+    required double proposedHourlyRate,
+    required String reason,
+  }) async {
+    _isSubmitting = true;
+    _actionErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final result = await _service.submitSalaryIncreaseRequest(
+        proposedHourlyRate: proposedHourlyRate,
         reason: reason,
       );
       _isSubmitting = false;
