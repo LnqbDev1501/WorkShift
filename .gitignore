@@ -1,23 +1,23 @@
-# .NET
+# .NET build output
 bin/
 obj/
+artifacts/
 
-# Visual Studio
+# IDE and user settings
 .vs/
-
-# User settings
+.idea/
 *.user
 *.suo
 
-# Secrets / Environment
+# Local configuration and secrets
 .env
-appsettings.Development.json
+.env.*
+!.env.example
 appsettings.json
+appsettings.Development.json
 
-artifacts/
-**/artifacts/
-bin/
-obj/
-
-# Test project (excluded from version control)
-WorkShiftServer/WorkShiftManagement.Tests/
+# OS and temporary files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp

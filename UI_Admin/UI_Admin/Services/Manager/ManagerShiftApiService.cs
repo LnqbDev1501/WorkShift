@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using UI_Admin.Models.Manager;
+
 namespace UI_Admin.Services.Manager;
 public sealed class ManagerShiftApiService(HttpClient client, IConfiguration configuration)
 {

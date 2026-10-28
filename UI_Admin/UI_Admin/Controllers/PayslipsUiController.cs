@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
+
 namespace UI_Admin.Controllers;
 
 public abstract class PayslipsUiController(PayrollDocumentsApiService api, ILogger logger) : PayrollDocumentsUiController(logger)

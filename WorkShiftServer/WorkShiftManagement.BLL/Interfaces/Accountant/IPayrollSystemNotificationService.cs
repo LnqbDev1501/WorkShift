@@ -1,4 +1,5 @@
 using WorkShiftManagement.DAL.Interfaces.Accountant;
+
 namespace WorkShiftManagement.BLL.Interfaces.Accountant;
 public interface IPayrollSystemNotificationService
 {

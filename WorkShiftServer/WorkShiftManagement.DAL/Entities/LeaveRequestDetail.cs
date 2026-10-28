@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.DAL.Entities;
 
 public partial class LeaveRequestDetail

@@ -3,11 +3,11 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
 using WorkShiftManagement.BLL.Interfaces.Staff;
-using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
-using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
+using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 

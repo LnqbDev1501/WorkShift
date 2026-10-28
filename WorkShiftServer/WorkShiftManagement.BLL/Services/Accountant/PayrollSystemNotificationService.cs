@@ -1,5 +1,6 @@
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
+
 namespace WorkShiftManagement.BLL.Services.Accountant;
 public sealed class PayrollSystemNotificationService(IPayrollSystemEventRepo events, IPayrollFeedbackRepo reviews,
     IPayrollCalculationRepo calculation, TimeProvider clock) : IPayrollSystemNotificationService

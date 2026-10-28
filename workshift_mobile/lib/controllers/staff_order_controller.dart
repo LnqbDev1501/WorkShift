@@ -17,25 +17,29 @@ class StaffOrderController extends ChangeNotifier {
   OrderPagedResponse? get ordersResponse => _ordersResponse;
   List<OrderModel> get orders => _ordersResponse?.items ?? [];
   OrderModel? get selectedOrder => _selectedOrder;
-  bool get hasMore => _ordersResponse != null && 
-      _ordersResponse!.pageNumber * _ordersResponse!.pageSize < _ordersResponse!.totalItems;
+  bool get hasMore =>
+      _ordersResponse != null &&
+      _ordersResponse!.pageNumber * _ordersResponse!.pageSize <
+          _ordersResponse!.totalItems;
 
   /// Load orders with optional query
   Future<void> loadOrders({OrderListQuery? query, bool refresh = false}) async {
     if (refresh) {
       _ordersResponse = null;
     }
-    
+
     if (_isLoading) return;
-    
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final queryToUse = query ?? OrderListQuery(pageNumber: (_ordersResponse?.pageNumber ?? 0) + 1);
+      final queryToUse =
+          query ??
+          OrderListQuery(pageNumber: (_ordersResponse?.pageNumber ?? 0) + 1);
       final response = await _orderService.getMyOrders(queryToUse);
-      
+
       if (refresh || _ordersResponse == null) {
         _ordersResponse = response;
       } else {
@@ -47,7 +51,7 @@ class StaffOrderController extends ChangeNotifier {
           totalItems: response.totalItems,
         );
       }
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {

@@ -37,7 +37,3 @@ public interface IAttendancePenaltyRuleService
         int id,
         CancellationToken cancellationToken);
 }
-
-
-
-

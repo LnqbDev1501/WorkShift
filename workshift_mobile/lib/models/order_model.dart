@@ -93,19 +93,27 @@ class OrderModel {
       branchName: json['branchName']?.toString() ?? '',
       createdBy: json['createdBy']?.toString() ?? '',
       createdByName: json['createdByName']?.toString() ?? '',
-      orderDate: DateTime.tryParse(json['orderDate']?.toString() ?? '') ?? DateTime.now(),
+      orderDate:
+          DateTime.tryParse(json['orderDate']?.toString() ?? '') ??
+          DateTime.now(),
       subtotal: (json['subtotal'] as num?)?.toDouble() ?? 0.0,
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
       paymentStatus: json['paymentStatus']?.toString() ?? '',
-      paidAt: json['paidAt'] != null ? DateTime.tryParse(json['paidAt'].toString()) : null,
+      paidAt: json['paidAt'] != null
+          ? DateTime.tryParse(json['paidAt'].toString())
+          : null,
       status: json['status']?.toString() ?? '',
       note: json['note']?.toString(),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
-      items: (json['items'] as List<dynamic>?)
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
-      payments: (json['payments'] as List<dynamic>?)
+      payments:
+          (json['payments'] as List<dynamic>?)
               ?.map((e) => PaymentModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -147,7 +155,9 @@ class PaymentModel {
       note: json['note']?.toString(),
       recordedBy: json['recordedBy']?.toString() ?? '',
       recordedByName: json['recordedByName']?.toString() ?? '',
-      recordedAt: DateTime.tryParse(json['recordedAt']?.toString() ?? '') ?? DateTime.now(),
+      recordedAt:
+          DateTime.tryParse(json['recordedAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -282,7 +292,9 @@ class OrderListQuery {
     if (search != null && search!.isNotEmpty) params['search'] = search;
     if (branchId != null) params['branchId'] = branchId;
     if (status != null && status!.isNotEmpty) params['status'] = status;
-    if (paymentStatus != null && paymentStatus!.isNotEmpty) params['paymentStatus'] = paymentStatus;
+    if (paymentStatus != null && paymentStatus!.isNotEmpty) {
+      params['paymentStatus'] = paymentStatus;
+    }
     if (dateFrom != null) params['dateFrom'] = dateFrom!.toIso8601String();
     if (dateTo != null) params['dateTo'] = dateTo!.toIso8601String();
     params['pageNumber'] = pageNumber;
@@ -307,7 +319,8 @@ class OrderPagedResponse {
 
   factory OrderPagedResponse.fromJson(Map<String, dynamic> json) {
     return OrderPagedResponse(
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],

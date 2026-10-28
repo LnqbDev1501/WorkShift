@@ -14,4 +14,3 @@ public interface IAttendanceRuleService
     Task<List<AttendanceRuleResponse>> GetAllAsync(CancellationToken cancellationToken);
     Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken);
 }
-

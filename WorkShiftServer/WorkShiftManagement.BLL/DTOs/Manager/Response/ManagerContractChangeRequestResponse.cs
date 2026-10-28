@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
 
 namespace WorkShiftManagement.BLL.DTOs.Manager.Response;

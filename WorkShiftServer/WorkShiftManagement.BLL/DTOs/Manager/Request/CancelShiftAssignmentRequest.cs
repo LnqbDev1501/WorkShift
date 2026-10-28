@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
 
 public sealed class CancelShiftAssignmentRequest

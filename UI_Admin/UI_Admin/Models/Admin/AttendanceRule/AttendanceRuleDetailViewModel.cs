@@ -1,4 +1,4 @@
-namespace UI_Admin.Models.AttendanceRule;
+namespace UI_Admin.Models.Admin.AttendanceRule;
 
 public sealed class AttendanceRuleDetailViewModel
 {

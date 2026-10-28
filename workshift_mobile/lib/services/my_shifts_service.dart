@@ -1,3 +1,4 @@
+import '../utils/api_date_format.dart';
 import '../models/available_shift_model.dart';
 import 'api_client.dart';
 
@@ -16,8 +17,8 @@ class MyShiftsService {
       queryParameters: {
         'PageNumber': pageNumber,
         'PageSize': 20,
-        'FromDate': _calendarDate(fromDate),
-        if (toDate != null) 'ToDate': _calendarDate(toDate),
+        'FromDate': formatApiDate(fromDate),
+        if (toDate != null) 'ToDate': formatApiDate(toDate),
       },
     );
     return AvailableShiftPage.fromJson(response.data as Map<String, dynamic>);
@@ -27,7 +28,4 @@ class MyShiftsService {
     final response = await _apiClient.get('/api/staff/shifts/$shiftId');
     return AvailableShiftModel.fromJson(response.data as Map<String, dynamic>);
   }
-
-  String _calendarDate(DateTime date) =>
-      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

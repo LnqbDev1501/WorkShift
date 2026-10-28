@@ -1,13 +1,13 @@
 using System.Data;
-using Microsoft.EntityFrameworkCore;
-using WorkShiftManagement.DAL.Repositories.Admin;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WorkShiftManagement.BLL.DTOs.Admin.PublicHoliday.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.PublicHoliday.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Repositories.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -307,7 +307,3 @@ public sealed class PublicHolidayService : IPublicHolidayService
         }, ct);
     }
 }
-
-
-
-

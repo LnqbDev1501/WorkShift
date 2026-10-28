@@ -1,5 +1,6 @@
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
+
 namespace WorkShiftManagement.BLL.Interfaces.Manager;
 
 public interface IShiftAssignmentService

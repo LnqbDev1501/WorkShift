@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
+
 namespace WorkShiftManagement.DAL.Repositories.Accountant;
 public sealed class PayrollSystemEventRepo(AppDbContext db) : IPayrollSystemEventRepo
 {

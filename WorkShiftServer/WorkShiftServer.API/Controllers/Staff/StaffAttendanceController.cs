@@ -1,11 +1,6 @@
-using System;
 using System.Security.Claims;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Response;
 using WorkShiftManagement.BLL.Interfaces.Staff;

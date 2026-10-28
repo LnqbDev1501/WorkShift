@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
 using UI_Admin.Models.Branches;
 using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 public class BranchesController : Controller
 {

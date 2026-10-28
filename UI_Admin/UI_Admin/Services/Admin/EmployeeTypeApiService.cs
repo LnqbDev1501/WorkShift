@@ -1,9 +1,9 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.EmployeeTypes;
+using UI_Admin.Models.Admin.EmployeeTypes;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public class EmployeeTypeApiService
 {
@@ -115,4 +115,3 @@ public class EmployeeTypeApiService
         };
     }
 }
-

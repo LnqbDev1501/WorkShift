@@ -14,7 +14,8 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMixin {
+class _LoginViewState extends State<LoginView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -38,10 +39,13 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -75,9 +79,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeView(
-            userName: _authController.currentUser?.fullName,
-          ),
+          builder: (_) =>
+              HomeView(userName: _authController.currentUser?.fullName),
         ),
       );
     }
@@ -87,13 +90,20 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const ForgotPasswordView(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ForgotPasswordView(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOutCubic,
+                  ),
+                ),
             child: FadeTransition(opacity: animation, child: child),
           );
         },
@@ -134,7 +144,10 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 20,
+                ),
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
@@ -164,20 +177,27 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                 height: 88,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(26),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.35),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       blurRadius: 30,
                                       offset: const Offset(0, 12),
                                       spreadRadius: -4,
                                     ),
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       blurRadius: 60,
                                       offset: const Offset(0, 24),
                                       spreadRadius: -8,
@@ -198,7 +218,10 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           Center(
                             child: ShaderMask(
                               shaderCallback: (bounds) => LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryDark,
+                                ],
                               ).createShader(bounds),
                               child: const Text(
                                 'WorkShift',
@@ -216,7 +239,9 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                             'Welcome back! Sign in to continue',
                             style: TextStyle(
                               fontSize: 16,
-                              color: AppColors.textSecondary.withValues(alpha: 0.9),
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
                               fontWeight: FontWeight.w400,
                               height: 1.4,
                             ),
@@ -237,14 +262,22 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                       gradient: LinearGradient(
                                         colors: [
                                           AppColors.errorBg,
-                                          AppColors.errorBg.withValues(alpha: 0.8),
+                                          AppColors.errorBg.withValues(
+                                            alpha: 0.8,
+                                          ),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                                      border: Border.all(
+                                        color: AppColors.error.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.error.withValues(alpha: 0.1),
+                                          color: AppColors.error.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -255,8 +288,12 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: AppColors.error.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
+                                            color: AppColors.error.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.error_outline_rounded,
@@ -281,7 +318,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                   )
                                 : const SizedBox.shrink(),
                           ),
-                          if (_authController.errorMessage != null) const SizedBox(height: 24),
+                          if (_authController.errorMessage != null)
+                            const SizedBox(height: 24),
 
                           // Email input
                           _AnimatedTextField(
@@ -337,9 +375,12 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                               child: TextButton(
                                 onPressed: _goToForgotPassword,
                                 style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   foregroundColor: AppColors.primary,
                                 ),
                                 child: const Text(
@@ -374,7 +415,9 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                               'WorkShift Management System v1.0',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.textMuted.withValues(alpha: 0.5),
+                                color: AppColors.textMuted.withValues(
+                                  alpha: 0.5,
+                                ),
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -416,9 +459,10 @@ class _AnimatedTextFieldState extends State<_AnimatedTextField>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _fade = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _slide = Tween<Offset>(
       begin: const Offset(0, 0.2),
       end: Offset.zero,

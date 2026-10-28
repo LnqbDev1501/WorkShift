@@ -1,5 +1,3 @@
-using System;
-
 namespace UI_Admin.Models.Manager.Attendance;
 
 public sealed class ManagerAttendanceDetailViewModel

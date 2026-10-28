@@ -277,5 +277,3 @@ public class AdminAttendancePenaltyRuleController : ControllerBase
         return Guid.TryParse(claim, out var userId) ? userId : Guid.Empty;
     }
 }
-
-

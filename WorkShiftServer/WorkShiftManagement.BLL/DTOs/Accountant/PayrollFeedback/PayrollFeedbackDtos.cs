@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
+
 namespace WorkShiftManagement.BLL.DTOs.Accountant.PayrollFeedback;
 public sealed class SubmitPayrollFeedbackRequest
 { [Required, StringLength(2000)] public string Description { get; set; } = ""; }
@@ -65,10 +66,7 @@ public sealed class PayrollFeedbackResponse
     public string? PreviousFeedbackDescription { get; set; }
     public List<PayrollIssueResponse> Corrections { get; set; } = [];
 }
-public sealed class ExplainPayrollFeedbackRequest
-{
-    public required string ResolutionNote { get; set; }
-}
+
 public sealed class PayrollFeedbackDetailsResponse
 {
     public required PayrollFeedbackResponse Feedback { get; set; }

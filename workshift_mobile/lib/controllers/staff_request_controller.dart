@@ -8,7 +8,7 @@ class StaffRequestController extends ChangeNotifier {
   final StaffRequestService _service;
 
   StaffRequestController({StaffRequestService? service})
-      : _service = service ?? StaffRequestService();
+    : _service = service ?? StaffRequestService();
 
   // State danh sách
   final List<StaffEmployeeRequestListItemModel> _requests = [];
@@ -40,7 +40,8 @@ class StaffRequestController extends ChangeNotifier {
   bool _isLoadingEligibleShifts = false;
 
   // Getters
-  List<StaffEmployeeRequestListItemModel> get requests => List.unmodifiable(_requests);
+  List<StaffEmployeeRequestListItemModel> get requests =>
+      List.unmodifiable(_requests);
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   String? get errorMessage => _errorMessage;
@@ -67,7 +68,8 @@ class StaffRequestController extends ChangeNotifier {
   bool get isSubmitting => _isSubmitting;
   String? get actionErrorMessage => _actionErrorMessage;
 
-  List<StaffEligibleShiftModel> get eligibleShifts => List.unmodifiable(_eligibleShifts);
+  List<StaffEligibleShiftModel> get eligibleShifts =>
+      List.unmodifiable(_eligibleShifts);
   bool get isLoadingEligibleShifts => _isLoadingEligibleShifts;
 
   /// Nạp trang đầu danh sách yêu cầu
@@ -83,7 +85,9 @@ class StaffRequestController extends ChangeNotifier {
     try {
       final result = await _service.getRequests(
         reason: _searchQuery.isEmpty ? null : _searchQuery,
-        requestType: _selectedRequestType == 'ALL' ? null : _selectedRequestType,
+        requestType: _selectedRequestType == 'ALL'
+            ? null
+            : _selectedRequestType,
         status: _selectedStatus == 'ALL' ? null : _selectedStatus,
         fromDate: _fromDate,
         toDate: _toDate,
@@ -116,7 +120,9 @@ class StaffRequestController extends ChangeNotifier {
     try {
       final result = await _service.getRequests(
         reason: _searchQuery.isEmpty ? null : _searchQuery,
-        requestType: _selectedRequestType == 'ALL' ? null : _selectedRequestType,
+        requestType: _selectedRequestType == 'ALL'
+            ? null
+            : _selectedRequestType,
         status: _selectedStatus == 'ALL' ? null : _selectedStatus,
         fromDate: _fromDate,
         toDate: _toDate,

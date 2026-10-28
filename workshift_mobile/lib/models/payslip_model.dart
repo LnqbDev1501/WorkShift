@@ -206,11 +206,11 @@ class PayslipWorkDetailItem {
       shiftName: json['shiftName']?.toString() ?? 'Ca làm việc',
       scheduledStartAt: json['scheduledStartAt'] != null
           ? DateTime.tryParse(json['scheduledStartAt'].toString()) ??
-              DateTime.now()
+                DateTime.now()
           : DateTime.now(),
       scheduledEndAt: json['scheduledEndAt'] != null
           ? DateTime.tryParse(json['scheduledEndAt'].toString()) ??
-              DateTime.now()
+                DateTime.now()
           : DateTime.now(),
       breakMinutes: json['breakMinutes'] as int? ?? 0,
       checkInTime: json['checkInTime'] != null
@@ -250,14 +250,16 @@ class PayslipDetailModel {
       payslip: PayslipSummaryItem.fromJson(
         json['payslip'] as Map<String, dynamic>,
       ),
-      workDetails: (json['workDetails'] as List<dynamic>?)
+      workDetails:
+          (json['workDetails'] as List<dynamic>?)
               ?.map(
                 (w) =>
                     PayslipWorkDetailItem.fromJson(w as Map<String, dynamic>),
               )
               .toList() ??
           const [],
-      calculationDetails: (json['calculationDetails'] as List<dynamic>?)
+      calculationDetails:
+          (json['calculationDetails'] as List<dynamic>?)
               ?.map(
                 (c) => PayrollCalculationDetailItem.fromJson(
                   c as Map<String, dynamic>,

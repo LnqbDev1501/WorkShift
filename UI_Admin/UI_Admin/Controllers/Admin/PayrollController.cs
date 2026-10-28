@@ -1,11 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using UI_Admin.Services;
+using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
 using UI_Admin.Models.Admin.Payroll;
+using UI_Admin.Services;
 using UI_Admin.Services.Admin;
-
-
 
 namespace UI_Admin.Controllers.Admin;
 

@@ -1,6 +1,3 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using WorkShiftManagement.BLL.DTOs.Manager.Attendance;
 
 namespace WorkShiftManagement.BLL.Interfaces.Manager;

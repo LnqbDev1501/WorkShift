@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 namespace UI_Admin.Models.Manager;
 public sealed class ManagerShiftEditViewModel
 {

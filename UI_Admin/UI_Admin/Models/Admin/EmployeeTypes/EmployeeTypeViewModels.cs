@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models.EmployeeTypes;
+namespace UI_Admin.Models.Admin.EmployeeTypes;
 
 public class EmployeeTypeListItemViewModel
 {

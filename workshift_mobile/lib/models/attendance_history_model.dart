@@ -55,24 +55,41 @@ class StaffAttendanceHistoryModel {
       assignmentId: json['assignmentId'] as int? ?? 0,
       shiftId: json['shiftId'] as int? ?? 0,
       shiftName: json['shiftName']?.toString() ?? 'Ca làm việc',
-      scheduledStartAt: DateTime.tryParse(json['scheduledStartAt']?.toString() ?? '') ?? DateTime.now(),
-      scheduledEndAt: DateTime.tryParse(json['scheduledEndAt']?.toString() ?? '') ?? DateTime.now(),
+      scheduledStartAt:
+          DateTime.tryParse(json['scheduledStartAt']?.toString() ?? '') ??
+          DateTime.now(),
+      scheduledEndAt:
+          DateTime.tryParse(json['scheduledEndAt']?.toString() ?? '') ??
+          DateTime.now(),
       branchName: json['branchName']?.toString() ?? '',
       branchAddress: json['branchAddress']?.toString() ?? '',
-      checkInTime: json['checkInTime'] != null ? DateTime.tryParse(json['checkInTime'].toString()) : null,
-      checkOutTime: json['checkOutTime'] != null ? DateTime.tryParse(json['checkOutTime'].toString()) : null,
+      checkInTime: json['checkInTime'] != null
+          ? DateTime.tryParse(json['checkInTime'].toString())
+          : null,
+      checkOutTime: json['checkOutTime'] != null
+          ? DateTime.tryParse(json['checkOutTime'].toString())
+          : null,
       actualWorkingMinutes: json['actualWorkingMinutes'] as int? ?? 0,
       status: json['status']?.toString() ?? 'UNKNOWN',
       totalLateMinutes: json['totalLateMinutes'] as int? ?? 0,
       totalEarlyLeaveMinutes: json['totalEarlyLeaveMinutes'] as int? ?? 0,
       canCheckInNow: json['canCheckInNow'] == true,
-      cannotCheckInReason: json['canNotCheckInReason']?.toString() ?? json['cannotCheckInReason']?.toString(),
+      cannotCheckInReason:
+          json['canNotCheckInReason']?.toString() ??
+          json['cannotCheckInReason']?.toString(),
       canCheckOutNow: json['canCheckOutNow'] == true,
       cannotCheckOutReason: json['cannotCheckOutReason']?.toString(),
-      checkOutCutoffAt: json['checkOutCutoffAt'] != null ? DateTime.tryParse(json['checkOutCutoffAt'].toString()) : null,
-      maxAttendanceDistanceMeters: json['maxAttendanceDistanceMeters'] as int? ?? 20,
-      branchLatitude: json['branchLatitude'] != null ? double.tryParse(json['branchLatitude'].toString()) : null,
-      branchLongitude: json['branchLongitude'] != null ? double.tryParse(json['branchLongitude'].toString()) : null,
+      checkOutCutoffAt: json['checkOutCutoffAt'] != null
+          ? DateTime.tryParse(json['checkOutCutoffAt'].toString())
+          : null,
+      maxAttendanceDistanceMeters:
+          json['maxAttendanceDistanceMeters'] as int? ?? 20,
+      branchLatitude: json['branchLatitude'] != null
+          ? double.tryParse(json['branchLatitude'].toString())
+          : null,
+      branchLongitude: json['branchLongitude'] != null
+          ? double.tryParse(json['branchLongitude'].toString())
+          : null,
     );
   }
 }
@@ -204,7 +221,8 @@ class StaffAttendanceDetailModel {
       weekPeriodDisplay: json['weekPeriodDisplay']?.toString() ?? '',
       branchName: json['branchName']?.toString() ?? '',
       branchAddress: json['branchAddress']?.toString(),
-      maxAttendanceDistanceMeters: json['maxAttendanceDistanceMeters'] as int? ?? 20,
+      maxAttendanceDistanceMeters:
+          json['maxAttendanceDistanceMeters'] as int? ?? 20,
       attendanceId: json['attendanceId'] as int?,
       status: json['status']?.toString() ?? 'SCHEDULED',
       checkInTime: parseNullableDateTime(json['checkInTime']),
@@ -227,23 +245,34 @@ class StaffAttendanceDetailModel {
       chargeableLateMinutes: json['chargeableLateMinutes'] as int? ?? 0,
       totalEarlyLeaveMinutes: json['totalEarlyLeaveMinutes'] as int? ?? 0,
       excusedEarlyLeaveMinutes: json['excusedEarlyLeaveMinutes'] as int? ?? 0,
-      chargeableEarlyLeaveMinutes: json['chargeableEarlyLeaveMinutes'] as int? ?? 0,
+      chargeableEarlyLeaveMinutes:
+          json['chargeableEarlyLeaveMinutes'] as int? ?? 0,
       isExcusedLeave: json['isExcusedLeave'] == true,
       leaveReason: json['leaveReason']?.toString(),
       lateArrivalRequest: json['lateArrivalRequest'] != null
-          ? AttendanceRequestSummaryModel.fromJson(json['lateArrivalRequest'] as Map<String, dynamic>)
+          ? AttendanceRequestSummaryModel.fromJson(
+              json['lateArrivalRequest'] as Map<String, dynamic>,
+            )
           : null,
       earlyLeaveRequest: json['earlyLeaveRequest'] != null
-          ? AttendanceRequestSummaryModel.fromJson(json['earlyLeaveRequest'] as Map<String, dynamic>)
+          ? AttendanceRequestSummaryModel.fromJson(
+              json['earlyLeaveRequest'] as Map<String, dynamic>,
+            )
           : null,
       leaveRequest: json['leaveRequest'] != null
-          ? AttendanceRequestSummaryModel.fromJson(json['leaveRequest'] as Map<String, dynamic>)
+          ? AttendanceRequestSummaryModel.fromJson(
+              json['leaveRequest'] as Map<String, dynamic>,
+            )
           : null,
       timesheetAdjustment: json['timesheetAdjustment'] != null
-          ? StaffTimesheetAdjustmentModel.fromJson(json['timesheetAdjustment'] as Map<String, dynamic>)
+          ? StaffTimesheetAdjustmentModel.fromJson(
+              json['timesheetAdjustment'] as Map<String, dynamic>,
+            )
           : null,
       penalties: rawPenalties
-          .map((p) => StaffShiftPenaltyModel.fromJson(p as Map<String, dynamic>))
+          .map(
+            (p) => StaffShiftPenaltyModel.fromJson(p as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -275,7 +304,9 @@ class AttendanceRequestSummaryModel {
       requestedTime: json['requestedTime'] != null
           ? DateTime.tryParse(json['requestedTime'].toString())
           : null,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -325,14 +356,17 @@ class StaffTimesheetAdjustmentModel {
       originalCheckInTime: parseNullableDateTime(json['originalCheckInTime']),
       originalCheckOutTime: parseNullableDateTime(json['originalCheckOutTime']),
       requestedCheckInTime: parseNullableDateTime(json['requestedCheckInTime']),
-      requestedCheckOutTime: parseNullableDateTime(json['requestedCheckOutTime']),
+      requestedCheckOutTime: parseNullableDateTime(
+        json['requestedCheckOutTime'],
+      ),
       adjustCheckIn: json['adjustCheckIn'] == true,
       adjustCheckOut: json['adjustCheckOut'] == true,
       reason: json['reason']?.toString() ?? '',
       managerNote: json['managerNote']?.toString(),
       reviewedAt: parseNullableDateTime(json['reviewedAt']),
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
-

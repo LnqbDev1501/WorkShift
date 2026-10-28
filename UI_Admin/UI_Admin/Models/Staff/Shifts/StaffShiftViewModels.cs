@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace UI_Admin.Models.Staff.Shifts;
@@ -72,13 +70,4 @@ public class StaffShiftRegistrationViewModel
     public DateTime AssignedAt { get; set; }
     public DateTime? CancelledAt { get; set; }
     public string? CancelReason { get; set; }
-}
-
-public class CancelShiftRegistrationInputModel
-{
-    public int ShiftId { get; set; }
-
-    [Required(ErrorMessage = "Vui lòng nhập lý do hủy đăng ký ca làm.")]
-    [StringLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự.")]
-    public string Reason { get; set; } = string.Empty;
 }

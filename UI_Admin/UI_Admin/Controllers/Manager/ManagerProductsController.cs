@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.Manager;
 using UI_Admin.Services.Manager;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Manager;
 
 [Authorize(Roles = "MANAGER")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -26,7 +26,7 @@ public class ManagerProductsController(ManagerProductApiService api) : Controlle
             PageSize = 10,
             Search = search,
             CategoryId = categoryId,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try
@@ -92,7 +92,7 @@ public class ManagerProductsController(ManagerProductApiService api) : Controlle
                 Categories = await api.GetActiveCategoriesAsync(cancellationToken)
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Categories could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));
@@ -150,7 +150,7 @@ public class ManagerProductsController(ManagerProductApiService api) : Controlle
                 Categories = categories
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Product could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));

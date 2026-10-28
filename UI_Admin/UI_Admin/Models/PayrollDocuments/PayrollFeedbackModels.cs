@@ -166,8 +166,6 @@ public sealed class ResendPayrollPreviewRequest
     public string Reason { get; set; } = "";
 }
 
-public class PayrollCorrectionRequestRecord : PayrollIssueResponse { }
-
 public sealed class PayrollCorrectionPreviewResponse
 {
     public int CorrectionRequestId { get; set; }

@@ -94,7 +94,8 @@ class EligibleShiftModel {
       branchAddress: branchAddress ?? this.branchAddress,
       branchLatitude: branchLatitude ?? this.branchLatitude,
       branchLongitude: branchLongitude ?? this.branchLongitude,
-      maxAttendanceDistanceMeters: maxAttendanceDistanceMeters ?? this.maxAttendanceDistanceMeters,
+      maxAttendanceDistanceMeters:
+          maxAttendanceDistanceMeters ?? this.maxAttendanceDistanceMeters,
       canCheckInNow: canCheckInNow ?? this.canCheckInNow,
       canNotCheckInReason: canNotCheckInReason ?? this.canNotCheckInReason,
       hasApprovedLeave: hasApprovedLeave ?? this.hasApprovedLeave,
@@ -108,7 +109,8 @@ class EligibleShiftModel {
       checkInWindowOpensAt: checkInWindowOpensAt ?? this.checkInWindowOpensAt,
       checkOutCutoffAt: checkOutCutoffAt ?? this.checkOutCutoffAt,
       attendanceStatus: attendanceStatus ?? this.attendanceStatus,
-      unfinishedPreviousShift: unfinishedPreviousShift ?? this.unfinishedPreviousShift,
+      unfinishedPreviousShift:
+          unfinishedPreviousShift ?? this.unfinishedPreviousShift,
     );
   }
 
@@ -117,14 +119,19 @@ class EligibleShiftModel {
       assignmentId: (json['assignmentId'] as num?)?.toInt() ?? 0,
       shiftId: (json['shiftId'] as num?)?.toInt() ?? 0,
       shiftName: json['shiftName']?.toString() ?? 'Work Shift',
-      scheduledStartAt: DateTime.tryParse(json['scheduledStartAt']?.toString() ?? '') ?? DateTime.now(),
-      scheduledEndAt: DateTime.tryParse(json['scheduledEndAt']?.toString() ?? '') ?? DateTime.now(),
+      scheduledStartAt:
+          DateTime.tryParse(json['scheduledStartAt']?.toString() ?? '') ??
+          DateTime.now(),
+      scheduledEndAt:
+          DateTime.tryParse(json['scheduledEndAt']?.toString() ?? '') ??
+          DateTime.now(),
       branchId: (json['branchId'] as num?)?.toInt() ?? 0,
       branchName: json['branchName']?.toString() ?? '',
       branchAddress: json['branchAddress']?.toString() ?? '',
       branchLatitude: (json['branchLatitude'] as num?)?.toDouble(),
       branchLongitude: (json['branchLongitude'] as num?)?.toDouble(),
-      maxAttendanceDistanceMeters: (json['maxAttendanceDistanceMeters'] as num?)?.toInt() ?? 100,
+      maxAttendanceDistanceMeters:
+          (json['maxAttendanceDistanceMeters'] as num?)?.toInt() ?? 100,
       canCheckInNow: json['canCheckInNow'] == true,
       canNotCheckInReason: json['canNotCheckInReason']?.toString(),
       hasApprovedLeave: json['hasApprovedLeave'] == true,
@@ -134,12 +141,20 @@ class EligibleShiftModel {
       checkOutTime: DateTime.tryParse(json['checkOutTime']?.toString() ?? ''),
       canCheckOutNow: json['canCheckOutNow'] == true,
       canNotCheckOutReason: json['canNotCheckOutReason']?.toString(),
-      checkInCutoffAt: DateTime.tryParse(json['checkInCutoffAt']?.toString() ?? ''),
-      checkInWindowOpensAt: DateTime.tryParse(json['checkInWindowOpensAt']?.toString() ?? ''),
-      checkOutCutoffAt: DateTime.tryParse(json['checkOutCutoffAt']?.toString() ?? ''),
+      checkInCutoffAt: DateTime.tryParse(
+        json['checkInCutoffAt']?.toString() ?? '',
+      ),
+      checkInWindowOpensAt: DateTime.tryParse(
+        json['checkInWindowOpensAt']?.toString() ?? '',
+      ),
+      checkOutCutoffAt: DateTime.tryParse(
+        json['checkOutCutoffAt']?.toString() ?? '',
+      ),
       attendanceStatus: json['attendanceStatus']?.toString(),
       unfinishedPreviousShift: json['unfinishedPreviousShift'] != null
-          ? EligibleShiftModel.fromJson(json['unfinishedPreviousShift'] as Map<String, dynamic>)
+          ? EligibleShiftModel.fromJson(
+              json['unfinishedPreviousShift'] as Map<String, dynamic>,
+            )
           : null,
     );
   }
@@ -157,14 +172,20 @@ class EligibleShiftModel {
     if (checkOutCutoffAt != null) {
       return DateTime.now().isAfter(checkOutCutoffAt!.toLocal());
     }
-    return DateTime.now().isAfter(scheduledEndAt.toLocal().add(const Duration(minutes: 15)));
+    return DateTime.now().isAfter(
+      scheduledEndAt.toLocal().add(const Duration(minutes: 15)),
+    );
   }
 
   /// Ca đã qua giờ checkout mà có check-in nhưng không check-out
-  bool get isIncomplete => (hasCheckedIn && !hasCheckedOut && isCheckoutExpired) || attendanceStatus?.toUpperCase() == 'INCOMPLETE';
+  bool get isIncomplete =>
+      (hasCheckedIn && !hasCheckedOut && isCheckoutExpired) ||
+      attendanceStatus?.toUpperCase() == 'INCOMPLETE';
 
   /// Ca đã qua giờ checkout mà không check-in lẫn check-out
-  bool get isAbsent => (!hasCheckedIn && isCheckoutExpired) || attendanceStatus?.toUpperCase() == 'ABSENT';
+  bool get isAbsent =>
+      (!hasCheckedIn && isCheckoutExpired) ||
+      attendanceStatus?.toUpperCase() == 'ABSENT';
 
   // Format shift time range (e.g., 08:00 – 16:00 in device local time)
   String get formattedTimeRange {

@@ -1,10 +1,6 @@
-using System;
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using UI_Admin.Models.Manager.Attendance;
 using UI_Admin.Services.Manager;
 

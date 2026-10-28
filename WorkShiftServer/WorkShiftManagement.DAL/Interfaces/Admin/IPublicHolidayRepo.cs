@@ -37,5 +37,3 @@ public interface IPublicHolidayRepo
     Task WriteAuditAsync(Guid actorId, string action, int recordId,
         string? oldValueJson, string? newValueJson, CancellationToken ct = default);
 }
-
-

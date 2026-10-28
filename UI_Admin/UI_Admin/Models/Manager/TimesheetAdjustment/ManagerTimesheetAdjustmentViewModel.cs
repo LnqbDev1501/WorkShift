@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace UI_Admin.Models.Manager.TimesheetAdjustment;
 
 public class ManagerTimesheetAdjustmentItemModel

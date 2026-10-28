@@ -1,5 +1,6 @@
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
+
 namespace WorkShiftManagement.BLL.Interfaces.Manager;
 
 public interface IEmployeeAdjustmentService

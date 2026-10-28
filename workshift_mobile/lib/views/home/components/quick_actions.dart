@@ -74,7 +74,10 @@ class _QuickActionsState extends State<QuickActions> {
               children: [
                 CircularProgressIndicator(strokeWidth: 2.5),
                 SizedBox(width: 16),
-                Text('Checking biometric status...', style: TextStyle(fontSize: 14)),
+                Text(
+                  'Checking biometric status...',
+                  style: TextStyle(fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -122,18 +125,27 @@ class _QuickActionsState extends State<QuickActions> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.calendar_month_rounded, color: Color(0xFFF59E0B)),
               SizedBox(width: 8),
-              Text('Monthly Limit Reached', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(
+                'Monthly Limit Reached',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           content: Text(
             status.message ??
                 'You have already updated your biometric face profile this month. Re-registration is only allowed once per calendar month.',
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           actions: [
             ElevatedButton(
@@ -141,7 +153,9 @@ class _QuickActionsState extends State<QuickActions> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: const Text('Got It'),
             ),
@@ -160,24 +174,36 @@ class _QuickActionsState extends State<QuickActions> {
           children: [
             Icon(Icons.face_unlock_rounded, color: Color(0xFF7C3AED)),
             SizedBox(width: 8),
-            Text('Update Face Profile', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Text(
+              'Update Face Profile',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: const Text(
           'You have already registered your face profile. You are eligible to update it once this month. The new face scan will replace your existing biometric profile for shift attendance.\n\nDo you want to re-register now?',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7C3AED),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Proceed'),
           ),
@@ -191,7 +217,9 @@ class _QuickActionsState extends State<QuickActions> {
       widget.onFaceRegistrationSuccess?.call();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Biometric face profile updated successfully for this month!'),
+          content: Text(
+            'Biometric face profile updated successfully for this month!',
+          ),
           backgroundColor: Color(0xFF10B981),
         ),
       );
@@ -297,9 +325,9 @@ class _QuickActionsState extends State<QuickActions> {
           if (widget.onNavigateToTimesheet != null) {
             widget.onNavigateToTimesheet!();
           } else {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StaffTimesheetView()),
+            );
           }
         },
       ),
@@ -330,9 +358,9 @@ class _QuickActionsState extends State<QuickActions> {
           if (widget.onNavigateToPayroll != null) {
             widget.onNavigateToPayroll!();
           } else {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PayrollHomeView()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const PayrollHomeView()));
           }
         },
       ),

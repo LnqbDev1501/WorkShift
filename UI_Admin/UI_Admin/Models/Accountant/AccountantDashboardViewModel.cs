@@ -1,4 +1,5 @@
 using System.Globalization;
+
 namespace UI_Admin.Models.Accountant;
 
 public sealed class AccountantDashboardData

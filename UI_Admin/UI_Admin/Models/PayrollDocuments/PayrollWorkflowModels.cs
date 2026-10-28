@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using UI_Admin.Models.PayrollCalculation;
+
 namespace UI_Admin.Models.PayrollDocuments;
 
 public sealed class PayrollVersions
@@ -89,12 +90,7 @@ public sealed class FeedbackReviewInput
 {
     [StringLength(2000)] public string? ResolutionNote { get; set; }
 }
-public sealed class PayrollRejectionDecision
-{
-    [Required, StringLength(1000)] public string Reason { get; set; } = "";
-    [Required, RegularExpression("^(CALCULATION|RATE|REWARD|DEDUCTION|OTHER)$")]
-    public string RejectionCategory { get; set; } = "";
-}
+
 public static class PayrollDocumentDisplay
 {
     public static readonly string[] Reasons = ["CALCULATION", "RATE", "REWARD", "DEDUCTION", "OTHER"];

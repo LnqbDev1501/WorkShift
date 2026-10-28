@@ -2,6 +2,7 @@ using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 using WorkShiftManagement.DAL.Version.Payroll;
+
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public sealed record CarryForwardAllocation(Payroll Payroll, PayrollCarryForwardDeduction Carry, decimal Amount);

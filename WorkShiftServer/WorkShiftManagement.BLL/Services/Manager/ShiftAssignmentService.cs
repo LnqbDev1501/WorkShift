@@ -1,14 +1,15 @@
-using System.Text.Json;
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
-using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
+
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo,

@@ -2,6 +2,7 @@ using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
 public partial class StaffEmployeeRequestRepo

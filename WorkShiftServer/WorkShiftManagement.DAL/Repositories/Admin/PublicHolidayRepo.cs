@@ -131,5 +131,3 @@ public sealed class PublicHolidayRepo : IPublicHolidayRepo
                 CAST({oldValueJson} AS jsonb), CAST({newValueJson} AS jsonb))", ct);
     }
 }
-
-

@@ -19,10 +19,7 @@ class AuthController extends ChangeNotifier {
 
   /// Hàm thực hiện đăng nhập
   /// Trả về `true` nếu thành công, `false` nếu thất bại
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
     _errorMessage = null;
     _successMessage = null;
@@ -44,9 +41,7 @@ class AuthController extends ChangeNotifier {
 
   /// Hàm thực hiện quên mật khẩu
   /// Trả về `true` nếu thành công, `false` nếu thất bại
-  Future<bool> forgotPassword({
-    required String email,
-  }) async {
+  Future<bool> forgotPassword({required String email}) async {
     _isLoading = true;
     _errorMessage = null;
     _successMessage = null;

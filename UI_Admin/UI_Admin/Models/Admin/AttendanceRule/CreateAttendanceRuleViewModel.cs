@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models.AttendanceRule;
+namespace UI_Admin.Models.Admin.AttendanceRule;
 
 public sealed class CreateAttendanceRuleViewModel
 {

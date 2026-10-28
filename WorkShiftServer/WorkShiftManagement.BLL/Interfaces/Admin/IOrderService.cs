@@ -13,9 +13,3 @@ public interface IOrderService
     Task<OrderDetailResponse?> GetByOrderNumberAsync(string orderNumber, Guid actorId);
     Task<byte[]> GenerateInvoicePdfAsync(int id, Guid actorId);
 }
-
-public interface IPaymentService
-{
-    Task<PaymentResponse> RecordPaymentAsync(int orderId, RecordPaymentRequest request, Guid actorId);
-    Task<List<PaymentResponse>> GetByOrderIdAsync(int orderId, Guid actorId);
-}

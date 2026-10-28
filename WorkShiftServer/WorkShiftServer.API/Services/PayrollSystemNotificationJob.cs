@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 using WorkShiftServer.API.Hubs;
+
 namespace WorkShiftServer.API.Services;
 public sealed class PayrollSystemNotificationJob(IPayrollSystemNotificationService reminders, IPayrollSystemEventRepo events,
     IPayrollCalculationRepo calculation, IHubContext<PayrollNotificationHub> hub, TimeProvider clock)

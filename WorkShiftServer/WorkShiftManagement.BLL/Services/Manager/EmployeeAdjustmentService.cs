@@ -4,6 +4,7 @@ using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IEmployeeAdjustmentService

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
+
 namespace WorkShiftServer.API.Controllers.Manager;
 
 [ApiController]

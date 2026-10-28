@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.DAL.Models.Admin;
 
 public class CancelOverdueContractsResult

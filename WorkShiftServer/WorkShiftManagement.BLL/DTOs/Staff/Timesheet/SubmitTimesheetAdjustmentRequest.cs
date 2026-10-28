@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.BLL.DTOs.Staff.Timesheet;
 
 public sealed class SubmitTimesheetAdjustmentRequest

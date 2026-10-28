@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
-namespace UI_Admin.Models.Manager;
+namespace UI_Admin.Models.Manager.Contract;
 
 public class EditContractViewModel : IValidatableObject
 {

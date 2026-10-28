@@ -1,4 +1,4 @@
-namespace UI_Admin.Models.Manager;
+namespace UI_Admin.Models.Manager.Contract;
 
 public class ManagerContractDetailViewModel
 {

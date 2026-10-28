@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.DAL.Interfaces.Manager;
 
 public sealed record EmployeeAdjustmentFilter(string? Keyword, Guid? UserId, int? PeriodId, int? BranchId,

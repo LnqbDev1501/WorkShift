@@ -5,8 +5,8 @@ using Npgsql;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
-using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 

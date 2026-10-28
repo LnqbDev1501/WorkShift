@@ -138,6 +138,3 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken) =>
         _context.SaveChangesAsync(cancellationToken);
 }
-
-
-

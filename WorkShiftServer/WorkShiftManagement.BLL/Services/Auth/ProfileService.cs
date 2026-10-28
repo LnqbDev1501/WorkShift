@@ -195,7 +195,7 @@ public sealed class ProfileService : IProfileService
             AvatarUrl = u.AvatarUrl,
             Address = u.Address,
             RoleId = u.RoleId,
-            RoleName = u.Role?.RoleName,
+            RoleName = u.Role?.RoleName ?? string.Empty,
             BranchId = u.BranchId,
             BranchCode = u.Branch?.BranchCode,
             BranchName = u.Branch?.BranchName,

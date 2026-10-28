@@ -28,11 +28,15 @@ class RealtimeNotificationPayload {
 
   factory RealtimeNotificationPayload.fromMap(Map<String, dynamic> map) {
     return RealtimeNotificationPayload(
-      notificationId: (map['notificationId'] ?? map['NotificationId'] ?? 0) as int,
+      notificationId:
+          (map['notificationId'] ?? map['NotificationId'] ?? 0) as int,
       title: (map['title'] ?? map['Title'] ?? '') as String,
       message: (map['message'] ?? map['Message'] ?? '') as String,
       createdAt: map['createdAt'] != null || map['CreatedAt'] != null
-          ? DateTime.tryParse((map['createdAt'] ?? map['CreatedAt']).toString()) ?? DateTime.now()
+          ? DateTime.tryParse(
+                  (map['createdAt'] ?? map['CreatedAt']).toString(),
+                ) ??
+                DateTime.now()
           : DateTime.now(),
     );
   }
@@ -50,7 +54,8 @@ class RealtimeService {
   String? _registeredUserId;
   String? get registeredUserId => _registeredUserId;
 
-  final StreamController<RealtimeNotificationPayload> _notificationStreamController =
+  final StreamController<RealtimeNotificationPayload>
+  _notificationStreamController =
       StreamController<RealtimeNotificationPayload>.broadcast();
 
   Stream<RealtimeNotificationPayload> get onNotification =>
@@ -157,7 +162,8 @@ class RealtimeService {
     final messenger = rootScaffoldMessengerKey.currentState;
     if (messenger == null) return;
 
-    final isSpecialShift = payload.title.contains('Ca làm việc') ||
+    final isSpecialShift =
+        payload.title.contains('Ca làm việc') ||
         payload.message.contains('nhận ca') ||
         payload.message.contains('Barista') ||
         payload.message.contains('làm thay');
@@ -168,11 +174,15 @@ class RealtimeService {
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        backgroundColor: isSpecialShift ? const Color(0xFF1E1B4B) : const Color(0xFF1F2937),
+        backgroundColor: isSpecialShift
+            ? const Color(0xFF1E1B4B)
+            : const Color(0xFF1F2937),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
           side: BorderSide(
-            color: isSpecialShift ? const Color(0xFF6366F1) : const Color(0xFF4B5563),
+            color: isSpecialShift
+                ? const Color(0xFF6366F1)
+                : const Color(0xFF4B5563),
             width: 1.2,
           ),
         ),

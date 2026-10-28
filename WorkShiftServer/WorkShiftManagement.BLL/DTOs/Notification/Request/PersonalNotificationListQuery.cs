@@ -19,7 +19,3 @@ public sealed class PersonalNotificationListQuery
 
     public string? Search { get; set; }
 }
-
-public sealed class MarkNotificationReadRequest
-{
-}

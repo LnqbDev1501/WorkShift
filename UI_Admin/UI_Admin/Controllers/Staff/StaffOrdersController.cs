@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -65,7 +64,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
                 Products = products
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Products could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));

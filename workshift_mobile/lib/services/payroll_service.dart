@@ -38,10 +38,7 @@ class PayrollService {
     String? keyword,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
@@ -77,7 +74,10 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải danh sách xem trước lương');
+      final msg = _extractErrorMessage(
+        e,
+        'Không thể tải danh sách xem trước lương',
+      );
       log('PayrollService.getPayrollPreviews error: $msg');
       throw msg;
     } catch (e) {
@@ -89,7 +89,9 @@ class PayrollService {
   /// 2. Lấy chi tiết một lượt xem trước lương (GET /api/payroll-previews/{id})
   Future<PayrollPreviewDetail> getPayrollPreviewDetail(int feedbackId) async {
     try {
-      final response = await _apiClient.get('/api/payroll-previews/$feedbackId');
+      final response = await _apiClient.get(
+        '/api/payroll-previews/$feedbackId',
+      );
 
       if (response.statusCode == 200 && response.data != null) {
         return PayrollPreviewDetail.fromJson(
@@ -98,7 +100,10 @@ class PayrollService {
       }
       throw 'Không tìm thấy thông tin lượt xem trước lương.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải chi tiết xem trước lương');
+      final msg = _extractErrorMessage(
+        e,
+        'Không thể tải chi tiết xem trước lương',
+      );
       log('PayrollService.getPayrollPreviewDetail error: $msg');
       throw msg;
     } catch (e) {
@@ -121,7 +126,10 @@ class PayrollService {
       }
       throw 'Không thể xác nhận bảng lương.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Xác nhận bảng lương không thành công');
+      final msg = _extractErrorMessage(
+        e,
+        'Xác nhận bảng lương không thành công',
+      );
       log('PayrollService.confirmPayrollPreview error: $msg');
       throw msg;
     } catch (e) {
@@ -165,10 +173,7 @@ class PayrollService {
     String? keyword,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
@@ -229,10 +234,7 @@ class PayrollService {
     String? status,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (keyword != null && keyword.trim().isNotEmpty) {
         queryParams['keyword'] = keyword.trim();
       }
@@ -262,7 +264,10 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải danh sách phiếu lương');
+      final msg = _extractErrorMessage(
+        e,
+        'Không thể tải danh sách phiếu lương',
+      );
       log('PayrollService.getPayslips error: $msg');
       throw msg;
     } catch (e) {

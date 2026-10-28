@@ -1,5 +1,6 @@
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
+
 namespace WorkShiftManagement.BLL.Interfaces.Accountant;
 
 public interface IPayrollCalculationService

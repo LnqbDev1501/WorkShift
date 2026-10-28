@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.Accountant;
 using UI_Admin.Services.Accountant;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Accountant;
 
 [Authorize(Roles = "ACCOUNTANT,ADMIN")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -28,7 +28,7 @@ public class AccountantProductsController(AccountantProductApiService api) : Con
             Search = search,
             BranchId = branchId,
             CategoryId = categoryId,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try

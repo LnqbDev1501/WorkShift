@@ -3,10 +3,11 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
-using UI_Admin.Models.EmployeeTypes;
+using UI_Admin.Models.Admin.EmployeeTypes;
 using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 [Authorize(Roles = "ADMIN")]
 public class EmployeeTypesController : Controller

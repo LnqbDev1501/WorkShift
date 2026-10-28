@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.Manager;
-using UI_Admin.Services.Manager;
+using UI_Admin.Models.Catalog;
+using UI_Admin.Services;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Manager;
 
 [Authorize(Roles = "MANAGER")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class ManagerCategoriesController(ManagerCategoryApiService api) : Controller
+public class ManagerCategoriesController(CategoryApiService api) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -19,12 +19,12 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
         int page = 1,
         CancellationToken cancellationToken = default)
     {
-        var model = new ManagerCategoryListViewModel
+        var model = new CategoryListPagedViewModel
         {
             PageNumber = page < 1 ? 1 : page,
             PageSize = 10,
             Search = search,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try
@@ -80,11 +80,11 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new ManagerCreateCategoryViewModel());
+    public IActionResult Create() => View(new CreateCategoryViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(ManagerCreateCategoryViewModel model, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Create(CreateCategoryViewModel model, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
             return View(model);
@@ -114,7 +114,7 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
                 return RedirectToAction(nameof(Index));
             }
 
-            return View(new ManagerEditCategoryViewModel
+            return View(new EditCategoryViewModel
             {
                 CategoryId = detail.CategoryId,
                 CategoryName = detail.CategoryName,
@@ -123,7 +123,7 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
                 ProductCount = detail.ProductCount
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Category could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));
@@ -132,7 +132,7 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ManagerEditCategoryViewModel model, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Edit(int id, EditCategoryViewModel model, CancellationToken cancellationToken = default)
     {
         if (id != model.CategoryId) return BadRequest();
 

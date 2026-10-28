@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.Interfaces.Manager;
+
 namespace WorkShiftServer.API.Controllers.Manager;
 
 [Route("api/employee-rewards")]

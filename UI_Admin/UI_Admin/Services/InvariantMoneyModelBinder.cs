@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+
 namespace UI_Admin.Services;
 public sealed class InvariantMoneyModelBinder : IModelBinder
 {

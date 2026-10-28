@@ -12,7 +12,8 @@ class NotificationController extends ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
 
-  List<NotificationModel> get notifications => List.unmodifiable(_notifications);
+  List<NotificationModel> get notifications =>
+      List.unmodifiable(_notifications);
   int get unreadCount => _unreadCount;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;

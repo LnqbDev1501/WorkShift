@@ -68,5 +68,3 @@ public sealed class BranchOptionViewModel
             ? $"{Name} — [Manager: {ManagerCount}/1, Accountant: {AccountantCount}/1]"
             : $"{Name} ({BranchCode}) — [Manager: {ManagerCount}/1, Accountant: {AccountantCount}/1]";
 }
-
-

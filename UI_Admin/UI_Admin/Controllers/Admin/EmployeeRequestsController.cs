@@ -1,13 +1,10 @@
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using UI_Admin.Models.EmployeeRequests;
 using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 [Authorize(Roles = "ADMIN")]
 public class EmployeeRequestsController : Controller

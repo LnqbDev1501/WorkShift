@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.BLL.DTOs.Admin.Response;
 
 public class AdminEmployeeRequestDetailResponse

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.DAL.Version.Payroll;
 public static class PayrollInputFreezePolicy
 {

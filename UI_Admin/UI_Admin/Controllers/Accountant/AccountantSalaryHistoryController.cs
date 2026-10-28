@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.Accountant.SalaryHistory;
 using UI_Admin.Services.Accountant;
+
 namespace UI_Admin.Controllers.Accountant;
 
 [Authorize(Roles = "ACCOUNTANT")]

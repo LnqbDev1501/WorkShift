@@ -10,10 +10,7 @@ import 'attendance_detail_view.dart';
 class AttendanceHistoryView extends StatefulWidget {
   final HomeController homeController;
 
-  const AttendanceHistoryView({
-    super.key,
-    required this.homeController,
-  });
+  const AttendanceHistoryView({super.key, required this.homeController});
 
   @override
   State<AttendanceHistoryView> createState() => _AttendanceHistoryViewState();
@@ -95,7 +92,7 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       'Thursday',
       'Friday',
       'Saturday',
-      'Sunday'
+      'Sunday',
     ];
     final dayOfWeek = weekdays[local.weekday - 1];
     final day = local.day.toString().padLeft(2, '0');
@@ -117,13 +114,32 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
   int _getCategoryCount(String category) {
     switch (category) {
       case 'IN_PROGRESS':
-        return _history.where((s) => s.status.toUpperCase() == 'IN_PROGRESS' || s.canCheckInNow).length;
+        return _history
+            .where(
+              (s) => s.status.toUpperCase() == 'IN_PROGRESS' || s.canCheckInNow,
+            )
+            .length;
       case 'COMPLETED':
-        return _history.where((s) => s.status.toUpperCase() == 'COMPLETED').length;
+        return _history
+            .where((s) => s.status.toUpperCase() == 'COMPLETED')
+            .length;
       case 'VIOLATION':
-        return _history.where((s) => s.totalLateMinutes > 0 || s.totalEarlyLeaveMinutes > 0 || s.status.toUpperCase() == 'INCOMPLETE').length;
+        return _history
+            .where(
+              (s) =>
+                  s.totalLateMinutes > 0 ||
+                  s.totalEarlyLeaveMinutes > 0 ||
+                  s.status.toUpperCase() == 'INCOMPLETE',
+            )
+            .length;
       case 'ABSENT':
-        return _history.where((s) => s.status.toUpperCase() == 'ABSENT' || s.status.toUpperCase() == 'ON_LEAVE').length;
+        return _history
+            .where(
+              (s) =>
+                  s.status.toUpperCase() == 'ABSENT' ||
+                  s.status.toUpperCase() == 'ON_LEAVE',
+            )
+            .length;
       case 'ALL':
       default:
         return _history.length;
@@ -137,18 +153,21 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       bool matchesCategory = true;
       switch (_selectedFilter) {
         case 'IN_PROGRESS':
-          matchesCategory = item.status.toUpperCase() == 'IN_PROGRESS' || item.canCheckInNow;
+          matchesCategory =
+              item.status.toUpperCase() == 'IN_PROGRESS' || item.canCheckInNow;
           break;
         case 'COMPLETED':
           matchesCategory = item.status.toUpperCase() == 'COMPLETED';
           break;
         case 'VIOLATION':
-          matchesCategory = item.totalLateMinutes > 0 ||
+          matchesCategory =
+              item.totalLateMinutes > 0 ||
               item.totalEarlyLeaveMinutes > 0 ||
               item.status.toUpperCase() == 'INCOMPLETE';
           break;
         case 'ABSENT':
-          matchesCategory = item.status.toUpperCase() == 'ABSENT' ||
+          matchesCategory =
+              item.status.toUpperCase() == 'ABSENT' ||
               item.status.toUpperCase() == 'ON_LEAVE';
           break;
         case 'ALL':
@@ -165,7 +184,9 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
       final shiftName = item.shiftName.toLowerCase();
       final branchName = item.branchName.toLowerCase();
       final dateStr = _formatDate(item.scheduledStartAt).toLowerCase();
-      final fullDateStr = _formatDateWithDay(item.scheduledStartAt).toLowerCase();
+      final fullDateStr = _formatDateWithDay(
+        item.scheduledStartAt,
+      ).toLowerCase();
 
       return shiftName.contains(query) ||
           branchName.contains(query) ||
@@ -217,21 +238,26 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary, size: 22),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+              size: 22,
+            ),
             tooltip: 'Refresh',
             onPressed: _loadHistory,
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadHistory,
-        child: _buildBody(),
-      ),
+      body: RefreshIndicator(onRefresh: _loadHistory, child: _buildBody()),
     );
   }
 
@@ -247,7 +273,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
@@ -272,7 +302,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.history_toggle_off_rounded, size: 56, color: AppColors.textMuted),
+              Icon(
+                Icons.history_toggle_off_rounded,
+                size: 56,
+                color: AppColors.textMuted,
+              ),
               SizedBox(height: 14),
               Text(
                 'No Attendance Records',
@@ -345,7 +379,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.search_off_rounded, size: 52, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.search_off_rounded,
+                          size: 52,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(height: 12),
                         const Text(
                           'No matching shifts found',
@@ -359,7 +397,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         const Text(
                           'Try adjusting your search terms or clearing filters.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+                          style: TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 14),
                         OutlinedButton(
@@ -404,21 +445,38 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
             ),
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search by shift, branch, date...',
-                hintStyle: const TextStyle(fontSize: 13.5, color: AppColors.textMuted),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                hintStyle: const TextStyle(
+                  fontSize: 13.5,
+                  color: AppColors.textMuted,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.cancel_rounded, color: AppColors.textMuted, size: 18),
+                        icon: const Icon(
+                          Icons.cancel_rounded,
+                          color: AppColors.textMuted,
+                          size: 18,
+                        ),
                         onPressed: () {
                           _searchController.clear();
                         },
                       )
                     : null,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
@@ -598,8 +656,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
   }
 
   Widget _buildHistoryCard(StaffAttendanceHistoryModel item) {
-    final hasPenalties = item.totalLateMinutes > 0 || item.totalEarlyLeaveMinutes > 0;
-    final isSpecialStatus = item.status.toUpperCase() == 'IN_PROGRESS' || item.canCheckInNow;
+    final hasPenalties =
+        item.totalLateMinutes > 0 || item.totalEarlyLeaveMinutes > 0;
+    final isSpecialStatus =
+        item.status.toUpperCase() == 'IN_PROGRESS' || item.canCheckInNow;
 
     return Container(
       decoration: BoxDecoration(
@@ -626,9 +686,8 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => AttendanceDetailView(
-                  assignmentId: item.assignmentId,
-                ),
+                builder: (_) =>
+                    AttendanceDetailView(assignmentId: item.assignmentId),
               ),
             );
           },
@@ -643,7 +702,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFEFF6FF),
                         borderRadius: BorderRadius.circular(8),
@@ -651,7 +713,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.calendar_today_rounded, size: 12, color: AppColors.primary),
+                          const Icon(
+                            Icons.calendar_today_rounded,
+                            size: 12,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 5),
                           Text(
                             _formatDateWithDay(item.scheduledStartAt),
@@ -684,7 +750,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                 // Branch & Scheduled Hours Row
                 Row(
                   children: [
-                    const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.access_time_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       '${_formatTime(item.scheduledStartAt)} – ${_formatTime(item.scheduledEndAt)}',
@@ -695,14 +765,21 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         item.branchName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ),
                   ],
@@ -711,7 +788,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
 
                 // 3. Mini Check-in / Check-out Grid
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(12),
@@ -746,7 +826,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                               children: [
                                 const Text(
                                   'Check-In',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                                 Text(
                                   _formatTime(item.checkInTime),
@@ -790,7 +873,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                               children: [
                                 const Text(
                                   'Check-Out',
-                                  style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                                 Text(
                                   _formatTime(item.checkOutTime),
@@ -814,7 +900,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         children: [
                           const Text(
                             'Duration',
-                            style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                           Text(
                             item.actualWorkingMinutes > 0
@@ -833,7 +922,8 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                 ),
 
                 // 4. Violation notice tags
-                if (hasPenalties || item.status.toUpperCase() == 'INCOMPLETE') ...[
+                if (hasPenalties ||
+                    item.status.toUpperCase() == 'INCOMPLETE') ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -841,7 +931,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                     children: [
                       if (item.totalLateMinutes > 0)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEF3C7),
                             borderRadius: BorderRadius.circular(6),
@@ -849,7 +942,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.alarm_off_rounded, size: 12, color: Color(0xFFB45309)),
+                              const Icon(
+                                Icons.alarm_off_rounded,
+                                size: 12,
+                                color: Color(0xFFB45309),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Late: ${item.totalLateMinutes}m',
@@ -864,7 +961,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         ),
                       if (item.totalEarlyLeaveMinutes > 0)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFFF7ED),
                             borderRadius: BorderRadius.circular(6),
@@ -872,7 +972,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.directions_run_rounded, size: 12, color: Color(0xFFEA580C)),
+                              const Icon(
+                                Icons.directions_run_rounded,
+                                size: 12,
+                                color: Color(0xFFEA580C),
+                              ),
                               const SizedBox(width: 4),
                               Text(
                                 'Early Leave: ${item.totalEarlyLeaveMinutes}m',
@@ -887,7 +991,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         ),
                       if (item.status.toUpperCase() == 'INCOMPLETE')
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFEE2E2),
                             borderRadius: BorderRadius.circular(6),
@@ -895,7 +1002,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.warning_amber_rounded, size: 12, color: Color(0xFFB91C1C)),
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 12,
+                                color: Color(0xFFB91C1C),
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Incomplete Shift',
@@ -930,7 +1041,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       icon: const Icon(Icons.login_rounded, size: 16),
                       label: const Text(
                         'Check In Now',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                       onPressed: () async {
                         await AttendanceFlowHandler.handleCheckIn(
@@ -961,7 +1075,10 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       icon: const Icon(Icons.logout_rounded, size: 16),
                       label: const Text(
                         'Check Out Now',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                       onPressed: () async {
                         await AttendanceFlowHandler.handleCheckOut(
@@ -989,7 +1106,11 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                       ),
                     ),
                     SizedBox(width: 4),
-                    Icon(Icons.arrow_forward_ios_rounded, size: 11, color: AppColors.primary),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 11,
+                      color: AppColors.primary,
+                    ),
                   ],
                 ),
               ],

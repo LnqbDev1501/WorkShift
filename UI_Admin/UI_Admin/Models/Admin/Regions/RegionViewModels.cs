@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace UI_Admin.Models.Regions;
+namespace UI_Admin.Models.Admin.Regions;
 
 public class RegionalMinimumWageViewModel
 {

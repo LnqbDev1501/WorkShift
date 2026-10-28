@@ -8,8 +8,9 @@ using Microsoft.Extensions.Caching.Memory;
 using UI_Admin.Models.Manager;
 using UI_Admin.Models.Manager.Contract;
 using UI_Admin.Services;
+using UI_Admin.Services.Manager;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Manager;
 
 [Authorize(Roles = "MANAGER")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

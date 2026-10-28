@@ -1,5 +1,3 @@
-using System;
-
 namespace WorkShiftManagement.BLL.DTOs.Manager.Attendance;
 
 public sealed class ManagerAttendanceDetailResponse

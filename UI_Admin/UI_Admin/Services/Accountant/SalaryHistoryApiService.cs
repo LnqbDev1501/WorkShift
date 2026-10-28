@@ -1,9 +1,9 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using UI_Admin.Models;
 using UI_Admin.Models.Accountant.SalaryHistory;
+
 namespace UI_Admin.Services.Accountant;
 
 public sealed class SalaryHistoryApiException(HttpStatusCode status, string message) : Exception(message)

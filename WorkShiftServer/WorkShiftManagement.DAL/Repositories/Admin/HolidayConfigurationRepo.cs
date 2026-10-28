@@ -69,4 +69,3 @@ public sealed class HolidayConfigurationRepo(AppDbContext db) : WorkShiftManagem
         return error;
     }
 }
-

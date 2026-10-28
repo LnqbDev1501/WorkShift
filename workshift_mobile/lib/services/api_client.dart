@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:flutter/foundation.dart'; // nếu muốn chạy ngork thì comment dòng này
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,19 +12,16 @@ class ApiClient {
   late final Dio dio;
   static const String tokenKey = 'access_token';
 
-  // comment đoạn này nếu muốn chạy web
-  static String get defaultBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5267';
-    }
-    return 'http://10.0.2.2:5267';
-  }
+  static const String _configuredBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+  );
 
-  // mở comment đoạn này nếu muốn chạy ngork
-  // static String get defaultBaseUrl {
-  //   // Dán link ngrok của bạn vào đây:
-  //   return 'https://linguini-unselect-science.ngrok-free.dev'.trim();
-  // }
+  static String get defaultBaseUrl {
+    if (_configuredBaseUrl.trim().isNotEmpty) {
+      return _configuredBaseUrl.trim();
+    }
+    return kIsWeb ? 'http://localhost:5267' : 'http://10.0.2.2:5267';
+  }
 
   ApiClient._internal() {
     dio = Dio(

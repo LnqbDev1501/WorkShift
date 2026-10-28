@@ -1,8 +1,7 @@
-using System.Net.Http.Json;
 using System.Text;
-using UI_Admin.Models.EmploymentContracts;
+using UI_Admin.Models.Admin.EmploymentContracts;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public class EmploymentContractApiService
 {

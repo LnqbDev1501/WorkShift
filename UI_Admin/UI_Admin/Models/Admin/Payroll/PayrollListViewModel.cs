@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-using UI_Admin.Models.Regions;
+using UI_Admin.Models.Admin.Regions;
 
 namespace UI_Admin.Models.Admin.Payroll;
 

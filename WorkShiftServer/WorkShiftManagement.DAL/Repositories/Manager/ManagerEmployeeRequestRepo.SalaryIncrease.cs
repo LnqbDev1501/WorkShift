@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Repositories.Staff;
+
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public partial class ManagerEmployeeRequestRepo

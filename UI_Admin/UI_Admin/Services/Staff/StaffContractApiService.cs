@@ -1,8 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http.Json;
 using System.Text.Encodings.Web;
-using Microsoft.Extensions.Configuration;
 using UI_Admin.Models.Staff.Contract;
 
 namespace UI_Admin.Services.Staff;

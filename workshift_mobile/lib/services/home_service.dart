@@ -1,3 +1,4 @@
+import '../utils/api_date_format.dart';
 import 'package:dio/dio.dart';
 import '../models/attendance_history_model.dart';
 import '../models/attendance_shift_model.dart';
@@ -91,10 +92,10 @@ class HomeService {
     try {
       final queryParams = <String, dynamic>{};
       if (fromDate != null) {
-        queryParams['fromDate'] = fromDate.toIso8601String().split('T').first;
+        queryParams['fromDate'] = formatApiDate(fromDate);
       }
       if (toDate != null) {
-        queryParams['toDate'] = toDate.toIso8601String().split('T').first;
+        queryParams['toDate'] = formatApiDate(toDate);
       }
 
       final response = await _apiClient.get(
@@ -121,9 +122,13 @@ class HomeService {
   }
 
   /// Lấy chi tiết chấm công ca làm việc: GET /api/staff/attendance/history/{assignmentId}
-  Future<StaffAttendanceDetailModel?> getStaffAttendanceDetail(int assignmentId) async {
+  Future<StaffAttendanceDetailModel?> getStaffAttendanceDetail(
+    int assignmentId,
+  ) async {
     try {
-      final response = await _apiClient.get('/api/staff/attendance/history/$assignmentId');
+      final response = await _apiClient.get(
+        '/api/staff/attendance/history/$assignmentId',
+      );
       if (response.statusCode == 200 &&
           response.data != null &&
           response.data is Map<String, dynamic>) {

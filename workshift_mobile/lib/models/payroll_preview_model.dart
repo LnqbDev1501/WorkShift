@@ -176,12 +176,11 @@ class PayrollPreviewItem {
       canSubmitFeedback:
           json['canSubmitFeedback'] == true || json['canRespond'] == true,
       previousResolutionNote: json['previousResolutionNote']?.toString(),
-      previousFeedbackDescription:
-          json['previousFeedbackDescription']?.toString(),
-      corrections: (json['corrections'] as List<dynamic>?)
-              ?.map(
-                (c) => PayrollIssueItem.fromJson(c as Map<String, dynamic>),
-              )
+      previousFeedbackDescription: json['previousFeedbackDescription']
+          ?.toString(),
+      corrections:
+          (json['corrections'] as List<dynamic>?)
+              ?.map((c) => PayrollIssueItem.fromJson(c as Map<String, dynamic>))
               .toList() ??
           const [],
     );
@@ -363,7 +362,8 @@ class ShiftWorkDetailItem {
       workDate: json['workDate'] != null
           ? DateTime.tryParse(json['workDate'].toString())
           : null,
-      shiftName: json['shiftNameSnapshot']?.toString() ??
+      shiftName:
+          json['shiftNameSnapshot']?.toString() ??
           json['shiftName']?.toString() ??
           'Ca làm việc',
       scheduledStartAt: json['scheduledStartAt'] != null
@@ -378,7 +378,8 @@ class ShiftWorkDetailItem {
       checkOutTime: json['checkOutTime'] != null
           ? DateTime.tryParse(json['checkOutTime'].toString())
           : null,
-      attendanceStatus: json['attendanceStatusSnapshot']?.toString() ??
+      attendanceStatus:
+          json['attendanceStatusSnapshot']?.toString() ??
           json['attendanceStatus']?.toString() ??
           '',
       actualWorkingMinutes: json['actualWorkingMinutes'] as int? ?? 0,
@@ -464,7 +465,8 @@ class PayrollCalculationItem {
       } catch (_) {}
     }
 
-    final parsedDetails = (json['details'] as List<dynamic>?)
+    final parsedDetails =
+        (json['details'] as List<dynamic>?)
             ?.map(
               (d) => PayrollCalculationDetailItem.fromJson(
                 d as Map<String, dynamic>,
@@ -552,13 +554,13 @@ class PayrollPreviewDetail {
       ),
       pendingSourceAdjustments:
           (json['pendingSourceAdjustments'] as List<dynamic>?)
-                  ?.map(
-                    (a) => PendingPayrollAdjustmentItem.fromJson(
-                      a as Map<String, dynamic>,
-                    ),
-                  )
-                  .toList() ??
-              const [],
+              ?.map(
+                (a) => PendingPayrollAdjustmentItem.fromJson(
+                  a as Map<String, dynamic>,
+                ),
+              )
+              .toList() ??
+          const [],
     );
   }
 }

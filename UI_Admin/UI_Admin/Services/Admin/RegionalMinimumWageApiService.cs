@@ -1,8 +1,7 @@
 using System.Net;
-using System.Net.Http.Json;
-using UI_Admin.Models.RegionalMinimumWages;
+using UI_Admin.Models.Admin.RegionalMinimumWages;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Admin;
 
 public class RegionalMinimumWageApiService
 {

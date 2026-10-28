@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.DAL.Models;
 
 public sealed class AttendanceRuleSnapshotRoot

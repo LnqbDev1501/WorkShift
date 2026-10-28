@@ -1,5 +1,3 @@
-using System;
-
 namespace UI_Admin.Models.EmployeeRequests;
 
 public class AdminEmployeeRequestListItemViewModel

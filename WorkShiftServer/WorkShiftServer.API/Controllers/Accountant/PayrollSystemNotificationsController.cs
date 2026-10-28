@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
+
 namespace WorkShiftServer.API.Controllers.Accountant;
 [ApiController, Authorize(Roles = "ADMIN,ACCOUNTANT,STAFF,MANAGER"), Route("api/payroll-system-notifications")]
 public sealed class PayrollSystemNotificationsController(IPayrollSystemNotificationService service) : ControllerBase

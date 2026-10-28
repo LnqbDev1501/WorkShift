@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class EmployeeAdjustmentRepo(AppDbContext db) : IEmployeeAdjustmentRepo

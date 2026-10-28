@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace WorkShiftManagement.BLL.DTOs.Staff.Request;
 
 public sealed class SubmitSalaryIncreaseRequestRequest

@@ -5,8 +5,9 @@ using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
-using WorkShiftManagement.DAL.Version.Rules;
 using WorkShiftManagement.DAL.Notifications;
+using WorkShiftManagement.DAL.Version.Rules;
+
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class ShiftAssignmentRepo(AppDbContext context) : IShiftAssignmentRepo

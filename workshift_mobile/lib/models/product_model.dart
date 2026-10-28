@@ -57,7 +57,8 @@ class ProductPagedResponse {
 
   factory ProductPagedResponse.fromJson(Map<String, dynamic> json) {
     return ProductPagedResponse(
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => ProductModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],

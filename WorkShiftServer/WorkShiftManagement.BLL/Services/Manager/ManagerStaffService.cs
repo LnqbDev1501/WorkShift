@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
+using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Interfaces.Upload;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
-using WorkShiftManagement.BLL.Interfaces.Auth;
-using WorkShiftManagement.BLL.Interfaces.Upload;
-using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
@@ -139,7 +139,7 @@ public class ManagerStaffService : IManagerStaffService
             Phone = request.Phone.Trim(),
             IdentityNo = request.IdentityNo.Trim(),
             Gender = request.Gender.Trim().ToUpperInvariant(),
-            DateOfBirth = request.DateOfBirth.Value,
+            DateOfBirth = request.DateOfBirth ?? throw new ArgumentException("Date of birth is required."),
             AvatarUrl = _defaultAvatarUrl,
             Address = request.Address?.Trim() ?? string.Empty,
             EmployeeTypeId = request.EmployeeTypeId,
@@ -351,14 +351,14 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Full name must be between 1 and 150 characters.");
         }
 
-        var phone = request.Phone?.Trim();
-        if (!Regex.IsMatch(phone ?? string.Empty, @"^0[35789]\d{8}$"))
+        var phone = request.Phone?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(phone, @"^0[35789]\d{8}$"))
         {
             throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, starting with 03/05/07/08/09).");
         }
 
-        var identityNo = request.IdentityNo?.Trim();
-        if (!Regex.IsMatch(identityNo ?? string.Empty, IdentityNoPattern))
+        var identityNo = request.IdentityNo?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(identityNo, IdentityNoPattern))
         {
             throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         }
@@ -382,7 +382,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
 
-        return (request.FullName.Trim(), phone, identityNo, gender, request.DateOfBirth.Value, address);
+        return (fullName, phone, identityNo, gender, request.DateOfBirth.Value, address);
     }
 
     private async Task ValidateStaffFieldsAsync(CreateStaffAccountRequest request, int branchId)
@@ -415,8 +415,8 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Full name must be between 1 and 150 characters.");
         }
 
-        var phone = request.Phone?.Trim();
-        if (!Regex.IsMatch(phone ?? string.Empty, @"^0[35789]\d{8}$"))
+        var phone = request.Phone?.Trim() ?? string.Empty;
+        if (!Regex.IsMatch(phone, @"^0[35789]\d{8}$"))
         {
             throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, starting with 03/05/07/08/09).");
         }

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.DAL.Interfaces.Staff;

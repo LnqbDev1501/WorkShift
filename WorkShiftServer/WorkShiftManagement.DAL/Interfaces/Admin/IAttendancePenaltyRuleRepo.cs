@@ -27,7 +27,3 @@ public interface IAttendancePenaltyRuleRepo
     Task<List<AttendancePenaltyRule>> GetActiveRulesAsync(CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
-
-
-
-

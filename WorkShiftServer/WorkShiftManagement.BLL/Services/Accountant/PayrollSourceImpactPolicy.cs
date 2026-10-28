@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public static class PayrollSourceImpactPolicy

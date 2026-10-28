@@ -1,3 +1,4 @@
+import '../utils/api_date_format.dart';
 import 'package:dio/dio.dart';
 import '../models/staff_request_model.dart';
 import 'api_client.dart';
@@ -36,12 +37,10 @@ class StaffRequestService {
         queryParams['status'] = status.trim();
       }
       if (fromDate != null) {
-        queryParams['fromDate'] =
-            '${fromDate.year.toString().padLeft(4, '0')}-${fromDate.month.toString().padLeft(2, '0')}-${fromDate.day.toString().padLeft(2, '0')}';
+        queryParams['fromDate'] = formatApiDate(fromDate);
       }
       if (toDate != null) {
-        queryParams['toDate'] =
-            '${toDate.year.toString().padLeft(4, '0')}-${toDate.month.toString().padLeft(2, '0')}-${toDate.day.toString().padLeft(2, '0')}';
+        queryParams['toDate'] = formatApiDate(toDate);
       }
 
       final response = await _apiClient.get(
@@ -108,10 +107,7 @@ class StaffRequestService {
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(
-        e,
-        'Failed to load eligible shifts',
-      );
+      throw _extractErrorMessage(e, 'Failed to load eligible shifts');
     } catch (e) {
       throw e.toString();
     }

@@ -1,8 +1,7 @@
-using System.Net.Http.Json;
 using UI_Admin.Models;
 using UI_Admin.Models.Catalog;
 
-namespace UI_Admin.Services;
+namespace UI_Admin.Services.Manager;
 
 public sealed class ManagerStaffApiService
 {
@@ -41,7 +40,7 @@ public sealed class ManagerStaffApiService
 
         var paged = result ?? new StaffAccountPagedViewModel();
         paged.Search = search;
-        paged.StatusFilter = status;
+        paged.StatusFilter = status ?? "all";
         return paged;
     }
 

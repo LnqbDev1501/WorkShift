@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http.Json;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using UI_Admin.Models.Manager.Timesheet;
 
 namespace UI_Admin.Services.Manager;
@@ -154,4 +148,3 @@ public sealed class ManagerTimesheetApiService
         return (fileBytes, fileName, contentType);
     }
 }
-

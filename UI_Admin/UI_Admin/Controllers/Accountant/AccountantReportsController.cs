@@ -6,8 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.Accountant;
 using UI_Admin.Services;
 using UI_Admin.Services.Accountant;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Accountant;
 
 [Authorize(Roles = "ACCOUNTANT,ADMIN")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]

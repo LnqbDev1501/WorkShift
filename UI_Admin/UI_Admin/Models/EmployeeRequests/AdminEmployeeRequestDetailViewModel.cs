@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 namespace UI_Admin.Models.EmployeeRequests;
 
 public class AdminEmployeeRequestDetailViewModel
@@ -145,4 +142,3 @@ public class AdminSalaryIncreaseDetailViewModel
     public decimal CurrentHourlyRate { get; set; }
     public decimal ProposedHourlyRate { get; set; }
 }
-

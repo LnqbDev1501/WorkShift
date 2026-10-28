@@ -153,4 +153,3 @@ public sealed class HolidayPayRuleService(HolidayConfigurationRepo repo)
         }
     }
 }
-

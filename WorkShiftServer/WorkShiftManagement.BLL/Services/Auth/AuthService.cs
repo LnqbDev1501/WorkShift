@@ -1,11 +1,11 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
+using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.DAL.Data;
 
 namespace WorkShiftManagement.BLL.Services.Auth;

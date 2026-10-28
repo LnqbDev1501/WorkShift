@@ -37,7 +37,8 @@ class StaffWeeklyTimesheetModel {
   bool get isConfirmed => staffReviewStatus.toUpperCase() == 'CONFIRMED';
   bool get isNoResponse => staffReviewStatus.toUpperCase() == 'NO_RESPONSE';
   bool get isPendingReview => staffReviewStatus.toUpperCase() == 'PENDING';
-  bool get isAdjustmentPending => staffReviewStatus.toUpperCase() == 'ADJUSTMENT_PENDING';
+  bool get isAdjustmentPending =>
+      staffReviewStatus.toUpperCase() == 'ADJUSTMENT_PENDING';
 
   final int totalAssignedShifts;
   final int completedShifts;
@@ -124,14 +125,23 @@ class StaffWeeklyTimesheetModel {
         totalWorkMinutes: json['totalWorkMinutes'] as int? ?? 0,
         totalLateMinutes: json['totalLateMinutes'] as int? ?? 0,
         totalEarlyLeaveMinutes: json['totalEarlyLeaveMinutes'] as int? ?? 0,
-        totalWorkTimeDisplay: json['totalWorkTimeDisplay']?.toString() ?? '0h 0m',
+        totalWorkTimeDisplay:
+            json['totalWorkTimeDisplay']?.toString() ?? '0h 0m',
         totalLateDisplay: json['totalLateDisplay']?.toString() ?? '0h 0m',
-        totalEarlyLeaveDisplay: json['totalEarlyLeaveDisplay']?.toString() ?? '0h 0m',
+        totalEarlyLeaveDisplay:
+            json['totalEarlyLeaveDisplay']?.toString() ?? '0h 0m',
         shifts: rawShifts
-            .map((s) => StaffShiftAttendanceModel.fromJson(s as Map<String, dynamic>))
+            .map(
+              (s) =>
+                  StaffShiftAttendanceModel.fromJson(s as Map<String, dynamic>),
+            )
             .toList(),
         availableWeeks: rawWeeks
-            .map((w) => StaffTimesheetWeekOptionModel.fromJson(w as Map<String, dynamic>))
+            .map(
+              (w) => StaffTimesheetWeekOptionModel.fromJson(
+                w as Map<String, dynamic>,
+              ),
+            )
             .toList(),
       );
     } catch (e, stack) {
@@ -234,15 +244,30 @@ class StaffShiftAttendanceModel {
   bool get isLateExcused =>
       hasApprovedLateArrival ||
       excusedLateMinutes > 0 ||
-      (totalLateMinutes > 0 && chargeableLateMinutes == 0 && penalties.where((p) => p.isApplied && p.violationType.toUpperCase() == 'LATE').isEmpty);
+      (totalLateMinutes > 0 &&
+          chargeableLateMinutes == 0 &&
+          penalties
+              .where(
+                (p) => p.isApplied && p.violationType.toUpperCase() == 'LATE',
+              )
+              .isEmpty);
 
   bool get isEarlyLeaveExcused =>
       hasApprovedEarlyLeave ||
       excusedEarlyLeaveMinutes > 0 ||
-      (totalEarlyLeaveMinutes > 0 && chargeableEarlyLeaveMinutes == 0 && penalties.where((p) => p.isApplied && p.violationType.toUpperCase() == 'EARLY_LEAVE').isEmpty);
+      (totalEarlyLeaveMinutes > 0 &&
+          chargeableEarlyLeaveMinutes == 0 &&
+          penalties
+              .where(
+                (p) =>
+                    p.isApplied &&
+                    p.violationType.toUpperCase() == 'EARLY_LEAVE',
+              )
+              .isEmpty);
 
   bool get isPresentExcused =>
-      attendanceStatus.toUpperCase() == 'PRESENT' && (isLateExcused || isEarlyLeaveExcused);
+      attendanceStatus.toUpperCase() == 'PRESENT' &&
+      (isLateExcused || isEarlyLeaveExcused);
 
   List<StaffShiftPenaltyModel> get activePenalties =>
       penalties.where((p) => p.isApplied).toList();
@@ -251,7 +276,9 @@ class StaffShiftAttendanceModel {
   double get totalActivePenaltyAmount =>
       activePenalties.fold(0.0, (sum, p) => sum + p.penaltyAmount);
   String get formattedTotalActivePenaltyAmount {
-    final formatted = totalActivePenaltyAmount.toStringAsFixed(0).replaceAllMapped(
+    final formatted = totalActivePenaltyAmount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -288,7 +315,8 @@ class StaffShiftAttendanceModel {
       chargeableLateMinutes: json['chargeableLateMinutes'] as int? ?? 0,
       totalEarlyLeaveMinutes: json['totalEarlyLeaveMinutes'] as int? ?? 0,
       excusedEarlyLeaveMinutes: json['excusedEarlyLeaveMinutes'] as int? ?? 0,
-      chargeableEarlyLeaveMinutes: json['chargeableEarlyLeaveMinutes'] as int? ?? 0,
+      chargeableEarlyLeaveMinutes:
+          json['chargeableEarlyLeaveMinutes'] as int? ?? 0,
       hasApprovedLateArrival: json['hasApprovedLateArrival'] == true,
       hasApprovedEarlyLeave: json['hasApprovedEarlyLeave'] == true,
       isExcusedLeave: json['isExcusedLeave'] == true,
@@ -306,7 +334,9 @@ class StaffShiftAttendanceModel {
       adjustmentRequestId: json['adjustmentRequestId'] as int?,
       adjustmentStatus: json['adjustmentStatus']?.toString(),
       requestedCheckInTime: parseNullableDateTime(json['requestedCheckInTime']),
-      requestedCheckOutTime: parseNullableDateTime(json['requestedCheckOutTime']),
+      requestedCheckOutTime: parseNullableDateTime(
+        json['requestedCheckOutTime'],
+      ),
       adjustmentReason: json['adjustmentReason']?.toString(),
       managerNote: json['managerNote']?.toString(),
       canRequestAdjustment: json['canRequestAdjustment'] == true,
@@ -316,7 +346,9 @@ class StaffShiftAttendanceModel {
       isCheckOutLocked: json['isCheckOutLocked'] == true,
       checkOutLockReason: json['checkOutLockReason']?.toString(),
       penalties: rawPenalties
-          .map((p) => StaffShiftPenaltyModel.fromJson(p as Map<String, dynamic>))
+          .map(
+            (p) => StaffShiftPenaltyModel.fromJson(p as Map<String, dynamic>),
+          )
           .toList(),
     );
   }
@@ -357,7 +389,9 @@ class StaffShiftPenaltyModel {
   }
 
   String get formattedPenaltyAmount {
-    final formatted = penaltyAmount.toStringAsFixed(0).replaceAllMapped(
+    final formatted = penaltyAmount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -371,7 +405,9 @@ class StaffShiftPenaltyModel {
       violationMinutes: json['violationMinutes'] as int? ?? 0,
       penaltyAmount: (json['penaltyAmount'] as num?)?.toDouble() ?? 0.0,
       status: json['status']?.toString() ?? 'APPLIED',
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }
@@ -428,9 +464,11 @@ class ShiftAdjustmentItemInput {
     'assignmentId': assignmentId,
     if (attendanceId != null) 'attendanceId': attendanceId,
     'adjustCheckIn': adjustCheckIn,
-    if (requestedCheckInTime != null) 'requestedCheckInTime': requestedCheckInTime!.toIso8601String(),
+    if (requestedCheckInTime != null)
+      'requestedCheckInTime': requestedCheckInTime!.toIso8601String(),
     'adjustCheckOut': adjustCheckOut,
-    if (requestedCheckOutTime != null) 'requestedCheckOutTime': requestedCheckOutTime!.toIso8601String(),
+    if (requestedCheckOutTime != null)
+      'requestedCheckOutTime': requestedCheckOutTime!.toIso8601String(),
     'reason': reason,
   };
 }

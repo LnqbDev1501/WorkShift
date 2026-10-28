@@ -768,4 +768,3 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         UpdatedAt = level.UpdatedAt
     };
 }
-

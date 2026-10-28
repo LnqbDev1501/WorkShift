@@ -12,10 +12,7 @@ import 'submit_request_view.dart';
 class StaffRequestListView extends StatefulWidget {
   final bool showBackButton;
 
-  const StaffRequestListView({
-    super.key,
-    this.showBackButton = true,
-  });
+  const StaffRequestListView({super.key, this.showBackButton = true});
 
   @override
   State<StaffRequestListView> createState() => _StaffRequestListViewState();
@@ -97,7 +94,9 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
     return '$d/$m/$y';
   }
 
-  Future<void> _handleCancelRequest(StaffEmployeeRequestListItemModel item) async {
+  Future<void> _handleCancelRequest(
+    StaffEmployeeRequestListItemModel item,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -106,7 +105,10 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
           children: [
             Icon(Icons.cancel_outlined, color: AppColors.error, size: 24),
             SizedBox(width: 8),
-            Text('Cancel Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Cancel Request',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: Text(
@@ -116,14 +118,19 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Close', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Close',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Confirm Cancel'),
           ),
@@ -144,7 +151,9 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_controller.actionErrorMessage ?? 'Failed to cancel request'),
+              content: Text(
+                _controller.actionErrorMessage ?? 'Failed to cancel request',
+              ),
               backgroundColor: AppColors.error,
             ),
           );
@@ -202,7 +211,10 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               tempTo = null;
                             });
                           },
-                          child: const Text('Reset', style: TextStyle(color: AppColors.primary)),
+                          child: const Text(
+                            'Reset',
+                            style: TextStyle(color: AppColors.primary),
+                          ),
                         ),
                       ],
                     ),
@@ -211,7 +223,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     // Lọc theo Loại yêu cầu
                     const Text(
                       'Request Type',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -231,17 +247,20 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                         _buildFilterModalChip(
                           label: 'Late Arrival',
                           isSelected: tempType == 'LATE_ARRIVAL',
-                          onTap: () => setModalState(() => tempType = 'LATE_ARRIVAL'),
+                          onTap: () =>
+                              setModalState(() => tempType = 'LATE_ARRIVAL'),
                         ),
                         _buildFilterModalChip(
                           label: 'Early Departure',
                           isSelected: tempType == 'EARLY_LEAVE',
-                          onTap: () => setModalState(() => tempType = 'EARLY_LEAVE'),
+                          onTap: () =>
+                              setModalState(() => tempType = 'EARLY_LEAVE'),
                         ),
                         _buildFilterModalChip(
                           label: 'Salary Increase',
                           isSelected: tempType == 'SALARY_INCREASE',
-                          onTap: () => setModalState(() => tempType = 'SALARY_INCREASE'),
+                          onTap: () =>
+                              setModalState(() => tempType = 'SALARY_INCREASE'),
                         ),
                       ],
                     ),
@@ -250,7 +269,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     // Lọc theo Trạng thái
                     const Text(
                       'Approval Status',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -265,22 +288,26 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                         _buildFilterModalChip(
                           label: 'Pending',
                           isSelected: tempStatus == 'PENDING',
-                          onTap: () => setModalState(() => tempStatus = 'PENDING'),
+                          onTap: () =>
+                              setModalState(() => tempStatus = 'PENDING'),
                         ),
                         _buildFilterModalChip(
                           label: 'Approved',
                           isSelected: tempStatus == 'APPROVED',
-                          onTap: () => setModalState(() => tempStatus = 'APPROVED'),
+                          onTap: () =>
+                              setModalState(() => tempStatus = 'APPROVED'),
                         ),
                         _buildFilterModalChip(
                           label: 'Rejected',
                           isSelected: tempStatus == 'REJECTED',
-                          onTap: () => setModalState(() => tempStatus = 'REJECTED'),
+                          onTap: () =>
+                              setModalState(() => tempStatus = 'REJECTED'),
                         ),
                         _buildFilterModalChip(
                           label: 'Cancelled',
                           isSelected: tempStatus == 'CANCELLED',
-                          onTap: () => setModalState(() => tempStatus = 'CANCELLED'),
+                          onTap: () =>
+                              setModalState(() => tempStatus = 'CANCELLED'),
                         ),
                       ],
                     ),
@@ -289,7 +316,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     // Lọc theo Khoảng ngày
                     const Text(
                       'Date Range (Submitted Date)',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -308,20 +339,33 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.borderLight),
+                                border: Border.all(
+                                  color: AppColors.borderLight,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
+                                  const Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 16,
+                                    color: AppColors.textMuted,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    tempFrom != null ? _formatDate(tempFrom) : 'From date',
+                                    tempFrom != null
+                                        ? _formatDate(tempFrom)
+                                        : 'From date',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: tempFrom != null ? AppColors.textPrimary : AppColors.textMuted,
+                                      color: tempFrom != null
+                                          ? AppColors.textPrimary
+                                          : AppColors.textMuted,
                                     ),
                                   ),
                                 ],
@@ -335,7 +379,8 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                             onTap: () async {
                               final picked = await showDatePicker(
                                 context: modalCtx,
-                                initialDate: tempTo ?? (tempFrom ?? DateTime.now()),
+                                initialDate:
+                                    tempTo ?? (tempFrom ?? DateTime.now()),
                                 firstDate: tempFrom ?? DateTime(2020),
                                 lastDate: DateTime(2100),
                               );
@@ -344,20 +389,33 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               }
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               decoration: BoxDecoration(
-                                border: Border.all(color: AppColors.borderLight),
+                                border: Border.all(
+                                  color: AppColors.borderLight,
+                                ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textMuted),
+                                  const Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 16,
+                                    color: AppColors.textMuted,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    tempTo != null ? _formatDate(tempTo) : 'To date',
+                                    tempTo != null
+                                        ? _formatDate(tempTo)
+                                        : 'To date',
                                     style: TextStyle(
                                       fontSize: 13,
-                                      color: tempTo != null ? AppColors.textPrimary : AppColors.textMuted,
+                                      color: tempTo != null
+                                          ? AppColors.textPrimary
+                                          : AppColors.textMuted,
                                     ),
                                   ),
                                 ],
@@ -377,10 +435,17 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                             onPressed: () => Navigator.pop(modalCtx),
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              side: const BorderSide(color: AppColors.borderLight),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: const BorderSide(
+                                color: AppColors.borderLight,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
-                            child: const Text('Close', style: TextStyle(color: AppColors.textSecondary)),
+                            child: const Text(
+                              'Close',
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -399,7 +464,9 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                             ),
                             child: const Text('Apply Filters'),
                           ),
@@ -474,7 +541,11 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: AppColors.error,
+            ),
             const SizedBox(height: 12),
             Text(
               message,
@@ -510,12 +581,20 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 color: Color(0xFFEFF6FF),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.assignment_late_outlined, size: 48, color: AppColors.primary),
+              child: const Icon(
+                Icons.assignment_late_outlined,
+                size: 48,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 16),
             const Text(
               'No requests found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -523,7 +602,10 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   ? 'No requests match your current filters.'
                   : 'You have not submitted any requests yet. Tap the button below to create one.',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 20),
             if (_controller.hasActiveFilters)
@@ -534,9 +616,14 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.primary),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                child: const Text('Reset Filters', style: TextStyle(color: AppColors.primary)),
+                child: const Text(
+                  'Reset Filters',
+                  style: TextStyle(color: AppColors.primary),
+                ),
               )
             else
               ElevatedButton.icon(
@@ -544,7 +631,8 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => SubmitRequestView(controller: _controller),
+                      builder: (_) =>
+                          SubmitRequestView(controller: _controller),
                     ),
                   );
                   if (result == true) {
@@ -556,8 +644,13 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
           ],
@@ -624,7 +717,10 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       const SizedBox(height: 2),
                       Text(
                         '#${item.requestId} • Submitted on ${_formatDateTime(item.createdAt)}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -635,9 +731,13 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             const Divider(height: 20, color: AppColors.borderLight),
 
             // Chi tiết tăng lương (SALARY_INCREASE) hoặc Tóm tắt ca làm việc (Shift summary)
-            if (item.requestType == 'SALARY_INCREASE' && item.salaryIncreaseDetail != null) ...[
+            if (item.requestType == 'SALARY_INCREASE' &&
+                item.salaryIncreaseDetail != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(10),
@@ -645,12 +745,20 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.payments_outlined, size: 16, color: Color(0xFF2563EB)),
+                    const Icon(
+                      Icons.payments_outlined,
+                      size: 16,
+                      color: Color(0xFF2563EB),
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Proposed Rate: ${formatCurrency(item.salaryIncreaseDetail!.proposedHourlyRate)}/h (Current: ${formatCurrency(item.salaryIncreaseDetail!.currentHourlyRate)}/h)',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E40AF)),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1E40AF),
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -661,7 +769,10 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               const SizedBox(height: 10),
             ] else if (item.shiftSummary != null) ...[
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
@@ -669,12 +780,19 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.event_note_rounded, size: 16, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.event_note_rounded,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _buildShiftSummaryText(item),
-                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -692,12 +810,19 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 children: [
                   const Text(
                     'Reason: ',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Expanded(
                     child: Text(
                       item.reason!,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -710,32 +835,58 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             // Bottom row: Chi nhánh & Nút Hủy (nếu pending)
             Row(
               children: [
-                const Icon(Icons.storefront_outlined, size: 15, color: AppColors.textMuted),
+                const Icon(
+                  Icons.storefront_outlined,
+                  size: 15,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   item.branchName,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 const Spacer(),
                 if (item.isPending) ...[
                   TextButton.icon(
                     onPressed: () => _handleCancelRequest(item),
-                    icon: const Icon(Icons.close_rounded, size: 15, color: AppColors.error),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 15,
+                      color: AppColors.error,
+                    ),
                     label: const Text(
                       'Cancel request',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.error),
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.error,
+                      ),
                     ),
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
                 ] else ...[
                   const Text(
                     'View details',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                 ],
               ],
             ),
@@ -754,7 +905,9 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
       return '${s.primaryShiftName ?? 'Shift'} • ${_formatDate(s.primaryScheduledStartAt)} (${_formatTime(s.primaryScheduledStartAt)} - ${_formatTime(s.primaryScheduledEndAt)})';
     } else {
       // LATE_ARRIVAL hoặc EARLY_LEAVE
-      final action = item.requestType == 'LATE_ARRIVAL' ? 'Arriving at' : 'Leaving at';
+      final action = item.requestType == 'LATE_ARRIVAL'
+          ? 'Arriving at'
+          : 'Leaving at';
       return '${s.primaryShiftName ?? 'Shift'} • $action ${_formatTime(s.requestedTime)} (${_formatDate(s.primaryScheduledStartAt)})';
     }
   }
@@ -780,14 +933,22 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         elevation: 0.5,
         leading: widget.showBackButton
             ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
         actions: [
           IconButton(
             tooltip: 'Create Request',
-            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary, size: 24),
+            icon: const Icon(
+              Icons.add_circle_outline_rounded,
+              color: AppColors.primary,
+              size: 24,
+            ),
             onPressed: () async {
               final result = await Navigator.push(
                 context,
@@ -822,11 +983,22 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         hintText: 'Search by reason, shift...',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: AppColors.textMuted,
+                        ),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textMuted),
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   _controller.setSearchQuery('');
@@ -834,7 +1006,9 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
                       ),
                       style: const TextStyle(fontSize: 14),
                     ),
@@ -845,10 +1019,16 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                 Stack(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 22),
+                      icon: const Icon(
+                        Icons.tune_rounded,
+                        color: AppColors.textPrimary,
+                        size: 22,
+                      ),
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFFF1F5F9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: _showFilterBottomSheet,
                     ),
@@ -900,33 +1080,40 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               color: AppColors.primary,
               child: isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.5,
+                      ),
                     )
                   : _controller.errorMessage != null
-                      ? _buildErrorState(_controller.errorMessage!)
-                      : requests.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.builder(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              itemCount: requests.length + (_controller.isLoadingMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == requests.length) {
-                                  return const Center(
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(vertical: 16),
-                                      child: CircularProgressIndicator(
-                                        color: AppColors.primary,
-                                        strokeWidth: 2.5,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                final item = requests[index];
-                                return _buildRequestCard(item);
-                              },
+                  ? _buildErrorState(_controller.errorMessage!)
+                  : requests.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      itemCount:
+                          requests.length + (_controller.isLoadingMore ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index == requests.length) {
+                          return const Center(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: CircularProgressIndicator(
+                                color: AppColors.primary,
+                                strokeWidth: 2.5,
+                              ),
                             ),
+                          );
+                        }
+                        final item = requests[index];
+                        return _buildRequestCard(item);
+                      },
+                    ),
             ),
           ),
         ],

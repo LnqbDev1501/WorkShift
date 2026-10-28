@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using UI_Admin.Models.Admin.Payroll;
+
 namespace UI_Admin.Models.Accountant.PayrollPeriods;
 
 public sealed class PeriodQuery

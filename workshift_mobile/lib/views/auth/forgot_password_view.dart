@@ -12,7 +12,8 @@ class ForgotPasswordView extends StatefulWidget {
   State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
-class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTickerProviderStateMixin {
+class _ForgotPasswordViewState extends State<ForgotPasswordView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _authController = AuthController();
@@ -35,10 +36,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -107,7 +111,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 20,
+                ),
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
@@ -153,20 +160,27 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                 height: 88,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryDark,
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(26),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.35),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.35,
+                                      ),
                                       blurRadius: 30,
                                       offset: const Offset(0, 12),
                                       spreadRadius: -4,
                                     ),
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       blurRadius: 60,
                                       offset: const Offset(0, 24),
                                       spreadRadius: -8,
@@ -187,7 +201,10 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                           Center(
                             child: ShaderMask(
                               shaderCallback: (bounds) => LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryDark,
+                                ],
                               ).createShader(bounds),
                               child: const Text(
                                 'WorkShift',
@@ -226,14 +243,22 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                       gradient: LinearGradient(
                                         colors: [
                                           AppColors.errorBg,
-                                          AppColors.errorBg.withValues(alpha: 0.8),
+                                          AppColors.errorBg.withValues(
+                                            alpha: 0.8,
+                                          ),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                                      border: Border.all(
+                                        color: AppColors.error.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.error.withValues(alpha: 0.1),
+                                          color: AppColors.error.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -244,8 +269,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: AppColors.error.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
+                                            color: AppColors.error.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.error_outline_rounded,
@@ -270,7 +299,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                   )
                                 : const SizedBox.shrink(),
                           ),
-                          if (_authController.errorMessage != null) const SizedBox(height: 20),
+                          if (_authController.errorMessage != null)
+                            const SizedBox(height: 20),
 
                           // Success notification banner
                           AnimatedSwitcher(
@@ -285,14 +315,22 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                       gradient: LinearGradient(
                                         colors: [
                                           AppColors.successBg,
-                                          AppColors.successBg.withValues(alpha: 0.8),
+                                          AppColors.successBg.withValues(
+                                            alpha: 0.8,
+                                          ),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                                      border: Border.all(
+                                        color: AppColors.success.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.success.withValues(alpha: 0.1),
+                                          color: AppColors.success.withValues(
+                                            alpha: 0.1,
+                                          ),
                                           blurRadius: 12,
                                           offset: const Offset(0, 4),
                                         ),
@@ -303,8 +341,12 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: AppColors.success.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
+                                            color: AppColors.success.withValues(
+                                              alpha: 0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.check_circle_outline_rounded,
@@ -329,7 +371,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                   )
                                 : const SizedBox.shrink(),
                           ),
-                          if (_authController.successMessage != null) const SizedBox(height: 20),
+                          if (_authController.successMessage != null)
+                            const SizedBox(height: 20),
 
                           // Instruction text
                           _AnimatedTextField(
@@ -339,7 +382,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.1),
@@ -354,7 +399,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                   Container(
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.2),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
@@ -366,7 +413,8 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                   const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Check your inbox',
@@ -381,7 +429,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                           'We\'ll send a password reset link to your email. If you don\'t see it, check your spam folder.',
                                           style: TextStyle(
                                             fontSize: 13,
-                                            color: Colors.white.withValues(alpha: 0.8),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.8,
+                                            ),
                                             height: 1.5,
                                           ),
                                         ),
@@ -449,9 +499,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                 TextButton(
                                   onPressed: _goBackToLogin,
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 8,
+                                    ),
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                     foregroundColor: Colors.white,
                                   ),
                                   child: const Text(
@@ -515,9 +569,10 @@ class _AnimatedTextFieldState extends State<_AnimatedTextField>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
+    _fade = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _slide = Tween<Offset>(
       begin: const Offset(0, 0.2),
       end: Offset.zero,

@@ -18,10 +18,7 @@ class AttendanceController extends ChangeNotifier {
   final EligibleShiftModel shift;
   final bool isCheckIn;
 
-  AttendanceController({
-    required this.shift,
-    this.isCheckIn = true,
-  });
+  AttendanceController({required this.shift, this.isCheckIn = true});
 
   bool isSubmitting = false;
   String? errorMessage;
@@ -99,7 +96,8 @@ class AttendanceController extends ChangeNotifier {
   }
 
   double get effectiveAccuracy => math.min(currentAccuracy ?? 0.0, 50.0);
-  double get effectiveDistanceMeters => math.max(0.0, distanceMeters - effectiveAccuracy);
+  double get effectiveDistanceMeters =>
+      math.max(0.0, distanceMeters - effectiveAccuracy);
 
   bool get isWithinGeofence {
     return effectiveDistanceMeters <= shift.maxAttendanceDistanceMeters;
@@ -144,10 +142,7 @@ class AttendanceController extends ChangeNotifier {
     // 3. Setup ML Kit & Hardware safely (skipped on Web)
     if (!kIsWeb) {
       _initFaceDetector();
-      await Future.wait([
-        determinePosition(),
-        initCamera(),
-      ]);
+      await Future.wait([determinePosition(), initCamera()]);
     } else {
       _useBranchFallback();
       detectionStatus = 'Web Test Mode: Sẵn sàng điểm danh 1 chạm';
@@ -156,7 +151,10 @@ class AttendanceController extends ChangeNotifier {
     isInitializing = false;
 
     // 5. Start real-time face detection stream if camera is ready and session active
-    if (!kIsWeb && isCameraInitialized && !isSessionExpired && !isShiftWindowClosed) {
+    if (!kIsWeb &&
+        isCameraInitialized &&
+        !isSessionExpired &&
+        !isShiftWindowClosed) {
       await startChallengeDetection();
     } else {
       notifyListeners();
@@ -207,12 +205,15 @@ class AttendanceController extends ChangeNotifier {
         cameraController = null;
       }
 
-      final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+      final isAndroid =
+          !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
       final controller = CameraController(
         targetCam,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
+        imageFormatGroup: isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
 
       await controller.initialize();
@@ -228,12 +229,15 @@ class AttendanceController extends ChangeNotifier {
   /// Start Face Detection Stream with Google ML Kit
   Future<void> startChallengeDetection() async {
     if (isSessionExpired || isShiftWindowClosed || !hasSession) return;
-    if (cameraController == null || !cameraController!.value.isInitialized) return;
+    if (cameraController == null || !cameraController!.value.isInitialized) {
+      return;
+    }
     if (_isStreaming) return;
 
     isDetecting = true;
     currentChallengeIndex = 0;
-    detectionStatus = currentChallenge?.instruction ?? 'Align face in the frame...';
+    detectionStatus =
+        currentChallenge?.instruction ?? 'Align face in the frame...';
     notifyListeners();
 
     try {
@@ -251,11 +255,16 @@ class AttendanceController extends ChangeNotifier {
   /// Process camera frame through Google ML Kit
   Future<void> _processCameraFrame(CameraImage image) async {
     // Guard 1: Immediate lock if session expired or shift closed
-    if (isSessionExpired || isShiftWindowClosed || remainingSeconds <= 0 || !hasSession) {
+    if (isSessionExpired ||
+        isShiftWindowClosed ||
+        remainingSeconds <= 0 ||
+        !hasSession) {
       _stopStream();
       return;
     }
-    if (_stepCooldown || _faceDetector == null || selectedCamera == null) return;
+    if (_stepCooldown || _faceDetector == null || selectedCamera == null) {
+      return;
+    }
     _isProcessingFrame = true;
 
     try {
@@ -273,7 +282,8 @@ class AttendanceController extends ChangeNotifier {
       final face = faces.first;
       final rawWidth = inputImage.metadata?.size.width ?? 1.0;
       final rawHeight = inputImage.metadata?.size.height ?? 1.0;
-      final isRotated = inputImage.metadata?.rotation == InputImageRotation.rotation90deg ||
+      final isRotated =
+          inputImage.metadata?.rotation == InputImageRotation.rotation90deg ||
           inputImage.metadata?.rotation == InputImageRotation.rotation270deg;
       final actualWidth = isRotated ? rawHeight : rawWidth;
       final actualHeight = isRotated ? rawWidth : rawHeight;
@@ -298,7 +308,10 @@ class AttendanceController extends ChangeNotifier {
       }
 
       // 2. Validate Face Centering (Natural, comfortable range)
-      if (centerXRatio < 0.15 || centerXRatio > 0.85 || centerYRatio < 0.15 || centerYRatio > 0.85) {
+      if (centerXRatio < 0.15 ||
+          centerXRatio > 0.85 ||
+          centerYRatio < 0.15 ||
+          centerYRatio > 0.85) {
         isFaceFramedProperly = false;
         detectionStatus = 'Please align your face inside the oval frame';
         notifyListeners();
@@ -317,7 +330,12 @@ class AttendanceController extends ChangeNotifier {
 
   /// Evaluate user's action against current challenge
   void _evaluateChallenge(Face face) {
-    if (isSessionExpired || isShiftWindowClosed || remainingSeconds <= 0 || !hasSession) return;
+    if (isSessionExpired ||
+        isShiftWindowClosed ||
+        remainingSeconds <= 0 ||
+        !hasSession) {
+      return;
+    }
     final challenge = currentChallenge;
     if (challenge == null) return;
 
@@ -334,7 +352,9 @@ class AttendanceController extends ChangeNotifier {
     switch (action) {
       case 'BLINK':
         // Blink detected when eyes are closed or squinted (< 0.35)
-        if (leftEye != null && rightEye != null && (leftEye < 0.35 || rightEye < 0.35)) {
+        if (leftEye != null &&
+            rightEye != null &&
+            (leftEye < 0.35 || rightEye < 0.35)) {
           isPassed = true;
         } else {
           detectionStatus = 'Please blink your eyes';
@@ -398,7 +418,9 @@ class AttendanceController extends ChangeNotifier {
 
       _challengeHoldStartTime ??= DateTime.now();
 
-      final elapsedMs = DateTime.now().difference(_challengeHoldStartTime!).inMilliseconds;
+      final elapsedMs = DateTime.now()
+          .difference(_challengeHoldStartTime!)
+          .inMilliseconds;
       const targetHoldMs = 2000;
 
       challengeHoldProgress = (elapsedMs / targetHoldMs).clamp(0.0, 1.0);
@@ -411,7 +433,8 @@ class AttendanceController extends ChangeNotifier {
         remainingHoldSeconds = 0.0;
         _handleChallengePassed(challenge.action);
       } else {
-        detectionStatus = '✓ Position held! Keep steady: ${remainingSec.toStringAsFixed(1)}s remaining...';
+        detectionStatus =
+            '✓ Position held! Keep steady: ${remainingSec.toStringAsFixed(1)}s remaining...';
         notifyListeners();
       }
     } else {
@@ -426,7 +449,12 @@ class AttendanceController extends ChangeNotifier {
 
   /// Advance to next challenge or finish verification
   void _handleChallengePassed(String action) {
-    if (isSessionExpired || isShiftWindowClosed || remainingSeconds <= 0 || !hasSession) return;
+    if (isSessionExpired ||
+        isShiftWindowClosed ||
+        remainingSeconds <= 0 ||
+        !hasSession) {
+      return;
+    }
     if (_stepCooldown) return;
     _stepCooldown = true;
 
@@ -439,7 +467,12 @@ class AttendanceController extends ChangeNotifier {
 
     Timer(const Duration(milliseconds: 500), () async {
       _stepCooldown = false;
-      if (isSessionExpired || isShiftWindowClosed || remainingSeconds <= 0 || !hasSession) return;
+      if (isSessionExpired ||
+          isShiftWindowClosed ||
+          remainingSeconds <= 0 ||
+          !hasSession) {
+        return;
+      }
       challengeHoldProgress = 0.0;
       remainingHoldSeconds = 2.0;
 
@@ -476,12 +509,14 @@ class AttendanceController extends ChangeNotifier {
     InputImageRotation? rotation;
 
     if (Platform.isAndroid) {
-      var rotationCompensation = _orientations[cameraController!.value.deviceOrientation];
+      var rotationCompensation =
+          _orientations[cameraController!.value.deviceOrientation];
       if (rotationCompensation == null) return null;
       if (selectedCamera!.lensDirection == CameraLensDirection.front) {
         rotationCompensation = (sensorOrientation + rotationCompensation) % 360;
       } else {
-        rotationCompensation = (sensorOrientation - rotationCompensation + 360) % 360;
+        rotationCompensation =
+            (sensorOrientation - rotationCompensation + 360) % 360;
       }
       rotation = InputImageRotationValue.fromRawValue(rotationCompensation);
     } else {
@@ -530,20 +565,28 @@ class AttendanceController extends ChangeNotifier {
     try {
       int serverTtl = 90;
       if (isCheckIn) {
-        checkInSession = await _service.createCheckInSession(assignmentId: shift.assignmentId);
+        checkInSession = await _service.createCheckInSession(
+          assignmentId: shift.assignmentId,
+        );
         serverTtl = checkInSession!.expiresInSeconds;
       } else {
-        checkOutSession = await _service.createCheckOutSession(shift.assignmentId);
+        checkOutSession = await _service.createCheckOutSession(
+          shift.assignmentId,
+        );
         serverTtl = checkOutSession!.expiresInSeconds;
       }
 
       // Guard 2: Compute cutoff time and dynamic TTL
       final cutoff = isCheckIn
           ? (shift.checkInCutoffAt ?? shift.scheduledEndAt)
-          : (shift.checkOutCutoffAt ?? shift.scheduledEndAt.add(const Duration(minutes: 15)));
+          : (shift.checkOutCutoffAt ??
+                shift.scheduledEndAt.add(const Duration(minutes: 15)));
 
       int effectiveTtl = serverTtl;
-      final secondsUntilCutoff = cutoff.toLocal().difference(DateTime.now()).inSeconds;
+      final secondsUntilCutoff = cutoff
+          .toLocal()
+          .difference(DateTime.now())
+          .inSeconds;
       if (secondsUntilCutoff <= 0) {
         isShiftWindowClosed = true;
         isSessionExpired = true;
@@ -563,10 +606,14 @@ class AttendanceController extends ChangeNotifier {
     } catch (e) {
       final str = e.toString();
       final lower = str.toLowerCase();
-      if (lower.contains('face profile') || lower.contains('register your face')) {
+      if (lower.contains('face profile') ||
+          lower.contains('register your face')) {
         isFaceProfileRequired = true;
-        errorMessage = 'You must register your face profile before performing attendance verification.';
-      } else if (lower.contains('cut-off') || lower.contains('closed') || lower.contains('window')) {
+        errorMessage =
+            'You must register your face profile before performing attendance verification.';
+      } else if (lower.contains('cut-off') ||
+          lower.contains('closed') ||
+          lower.contains('window')) {
         isShiftWindowClosed = true;
         errorMessage = str.replaceAll('Exception:', '').trim();
       } else {
@@ -616,7 +663,8 @@ class AttendanceController extends ChangeNotifier {
           : 'Check-out cut-off deadline reached. Attendance window is closed.';
     } else {
       detectionStatus = 'Verification session expired.';
-      errorMessage = 'Verification session expired (90s timeout). Please try again.';
+      errorMessage =
+          'Verification session expired (90s timeout). Please try again.';
     }
     notifyListeners();
   }
@@ -640,7 +688,6 @@ class AttendanceController extends ChangeNotifier {
     capturedImageName = null;
     await initialize();
   }
-
 
   /// Determine GPS Location: Requests runtime permission and reads real GPS
   Future<void> determinePosition({bool requestNewPermission = true}) async {
@@ -671,7 +718,8 @@ class AttendanceController extends ChangeNotifier {
         permission = await Geolocator.requestPermission();
       }
 
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
         locationMessage = 'GPS permission denied. Using fallback location';
         _useBranchFallback();
         isLocating = false;
@@ -710,23 +758,22 @@ class AttendanceController extends ChangeNotifier {
       accuracy: LocationAccuracy.high,
       distanceFilter: 1, // trigger update every 1 meter moved
     );
-    _positionStreamSubscription = Geolocator.getPositionStream(
-      locationSettings: locationSettings,
-    ).listen(
-      (Position position) {
-        if (isTestGpsMode) return;
-        currentLat = position.latitude;
-        currentLng = position.longitude;
-        currentAccuracy = position.accuracy;
-        _calculateDistance();
-        locationMessage =
-            'Real GPS: ${distanceMeters.toStringAsFixed(1)}m (±${currentAccuracy?.toStringAsFixed(1) ?? "0"}m)';
-        notifyListeners();
-      },
-      onError: (e) {
-        // Stream connection error handled gracefully
-      },
-    );
+    _positionStreamSubscription =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (Position position) {
+            if (isTestGpsMode) return;
+            currentLat = position.latitude;
+            currentLng = position.longitude;
+            currentAccuracy = position.accuracy;
+            _calculateDistance();
+            locationMessage =
+                'Real GPS: ${distanceMeters.toStringAsFixed(1)}m (±${currentAccuracy?.toStringAsFixed(1) ?? "0"}m)';
+            notifyListeners();
+          },
+          onError: (e) {
+            // Stream connection error handled gracefully
+          },
+        );
   }
 
   void _stopPositionStream() {
@@ -783,8 +830,12 @@ class AttendanceController extends ChangeNotifier {
     final rLat1 = lat1 * (math.pi / 180.0);
     final rLat2 = lat2 * (math.pi / 180.0);
 
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-        math.cos(rLat1) * math.cos(rLat2) * math.sin(dLon / 2) * math.sin(dLon / 2);
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(rLat1) *
+            math.cos(rLat2) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return double.parse((earthRadius * c).toStringAsFixed(1));
   }
@@ -812,7 +863,8 @@ class AttendanceController extends ChangeNotifier {
 
       // 1. Capture frame directly from live camera
       if (cameraController == null || !cameraController!.value.isInitialized) {
-        errorMessage = 'Camera is not available. Please restart the app and try again.';
+        errorMessage =
+            'Camera is not available. Please restart the app and try again.';
         isSubmitting = false;
         notifyListeners();
         return false;

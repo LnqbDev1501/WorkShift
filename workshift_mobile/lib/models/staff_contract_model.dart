@@ -51,7 +51,8 @@ class StaffContractListItemModel {
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
       hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
-      employeeFullName: json['employeeFullName']?.toString() ??
+      employeeFullName:
+          json['employeeFullName']?.toString() ??
           json['employeeFullNameSnapshot']?.toString() ??
           json['employeeName']?.toString() ??
           '',
@@ -118,7 +119,9 @@ class StaffContractListItemModel {
   }
 
   String get formattedHourlyRate {
-    final formatted = hourlyRate.toStringAsFixed(0).replaceAllMapped(
+    final formatted = hourlyRate
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -202,7 +205,8 @@ class StaffContractDetailModel {
           ? DateTime.tryParse(json['endDate'].toString())
           : null,
       hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0.0,
-      employeeFullName: json['employeeFullName']?.toString() ??
+      employeeFullName:
+          json['employeeFullName']?.toString() ??
           json['employeeFullNameSnapshot']?.toString() ??
           json['employeeName']?.toString() ??
           '',
@@ -227,7 +231,8 @@ class StaffContractDetailModel {
       canAccept: json['canAccept'] as bool? ?? false,
       cannotAcceptReason: json['cannotAcceptReason'] as String?,
       canSubmitChangeRequest: json['canSubmitChangeRequest'] as bool? ?? false,
-      cannotSubmitChangeRequestReason: json['cannotSubmitChangeRequestReason'] as String?,
+      cannotSubmitChangeRequestReason:
+          json['cannotSubmitChangeRequestReason'] as String?,
       openChangeRequestId: json['openChangeRequestId'] as int?,
       openChangeRequestStatus: json['openChangeRequestStatus'] as String?,
       terminationReason: json['terminationReason'] as String?,
@@ -268,7 +273,9 @@ class StaffContractDetailModel {
   }
 
   String get formattedHourlyRate {
-    final formatted = hourlyRate.toStringAsFixed(0).replaceAllMapped(
+    final formatted = hourlyRate
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -292,7 +299,9 @@ class ContractChangeRequestItemDetailModel {
     this.reason,
   });
 
-  factory ContractChangeRequestItemDetailModel.fromJson(Map<String, dynamic> json) {
+  factory ContractChangeRequestItemDetailModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
     return ContractChangeRequestItemDetailModel(
       changeRequestItemId: json['changeRequestItemId'] as int? ?? 0,
       fieldName: json['fieldName']?.toString() ?? '',
@@ -375,7 +384,11 @@ class StaffContractChangeRequestModel {
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       items: list
-          .map((e) => ContractChangeRequestItemDetailModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => ContractChangeRequestItemDetailModel.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
           .toList(),
       contractNumber: json['contractNumber'] as String?,
       employeePosition: json['employeePosition'] as String?,
@@ -415,7 +428,10 @@ class StaffContractChangeRequestModel {
     );
   }
 
-  bool get isSubmitted => status.toUpperCase() == 'SUBMITTED' || status.toUpperCase() == 'PENDING' || status.toUpperCase() == 'PENDING_APPROVAL';
+  bool get isSubmitted =>
+      status.toUpperCase() == 'SUBMITTED' ||
+      status.toUpperCase() == 'PENDING' ||
+      status.toUpperCase() == 'PENDING_APPROVAL';
   bool get isApproved => status.toUpperCase() == 'APPROVED';
   bool get isRejected => status.toUpperCase() == 'REJECTED';
 

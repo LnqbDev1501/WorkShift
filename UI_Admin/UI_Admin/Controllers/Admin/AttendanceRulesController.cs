@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.AttendanceRule;
+using UI_Admin.Models.Admin.AttendanceRule;
 using UI_Admin.Services.Admin;
 
 namespace UI_Admin.Controllers.Admin;

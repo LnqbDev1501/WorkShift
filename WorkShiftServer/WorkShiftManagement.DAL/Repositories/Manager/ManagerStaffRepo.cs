@@ -131,7 +131,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         staff.IdentityNo = identityNo.Trim();
         staff.Gender = gender.Trim().ToUpperInvariant();
         staff.DateOfBirth = dateOfBirth ?? default;
-        staff.Address = address?.Trim();
+        staff.Address = address?.Trim() ?? string.Empty;
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

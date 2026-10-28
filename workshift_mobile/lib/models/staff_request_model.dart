@@ -53,7 +53,8 @@ class StaffSalaryIncreaseDetailModel {
       currentContractId: json['currentContractId'] as int? ?? 0,
       contractNumber: json['contractNumber'] as String?,
       currentHourlyRate: (json['currentHourlyRate'] as num?)?.toDouble() ?? 0.0,
-      proposedHourlyRate: (json['proposedHourlyRate'] as num?)?.toDouble() ?? 0.0,
+      proposedHourlyRate:
+          (json['proposedHourlyRate'] as num?)?.toDouble() ?? 0.0,
     );
   }
 }

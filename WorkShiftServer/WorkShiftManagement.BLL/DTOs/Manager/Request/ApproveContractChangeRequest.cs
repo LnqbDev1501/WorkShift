@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
 
 public class ApproveContractChangeRequest

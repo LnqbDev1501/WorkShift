@@ -1,4 +1,5 @@
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollSettlement;
+
 namespace WorkShiftManagement.BLL.Interfaces.Accountant;
 public interface IPayrollSettlementService
 {

@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.RegionalMinimumWages;
+using UI_Admin.Models.Admin.RegionalMinimumWages;
 using UI_Admin.Services;
+using UI_Admin.Services.Admin;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Admin;
 
 [Authorize(Roles = "ADMIN")]
 public class RegionalMinimumWagesController : Controller

@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.DAL.Entities;

@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
-using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftServer.API.Services;
 
 namespace WorkShiftServer.API.Controllers.Manager;

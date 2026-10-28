@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
+
 namespace UI_Admin.Controllers.Admin;
 [Authorize(Roles = "ADMIN"), ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public sealed class AdminPayslipsController(PayrollDocumentsApiService api, ILogger<AdminPayslipsController> logger) : PayslipsUiController(api, logger)

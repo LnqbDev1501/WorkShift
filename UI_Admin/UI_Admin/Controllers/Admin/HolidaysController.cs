@@ -291,6 +291,3 @@ public sealed class HolidaysController(HolidayApiService service, ILogger<Holida
         exception is HttpRequestException or JsonException or InvalidOperationException
         || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested;
 }
-
-
-

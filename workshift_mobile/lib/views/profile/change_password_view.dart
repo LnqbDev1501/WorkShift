@@ -114,7 +114,10 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -218,8 +221,11 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline_rounded,
-                              size: 18, color: AppColors.error),
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            size: 18,
+                            color: AppColors.error,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -248,8 +254,11 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_rounded,
-                              size: 18, color: AppColors.success),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 18,
+                            color: AppColors.success,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(

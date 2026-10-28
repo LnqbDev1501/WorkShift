@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
 using UI_Admin.Models.Catalog;
 using UI_Admin.Services;
+using UI_Admin.Services.Manager;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Manager;
 
 [Authorize(Roles = "MANAGER")]
 public class ManagerStaffController : Controller
@@ -123,7 +124,7 @@ public class ManagerStaffController : Controller
             IdentityNo = detail.IdentityNo,
             Gender = detail.Gender,
             DateOfBirth = detail.DateOfBirth,
-            Address = detail.Address,
+            Address = detail.Address ?? string.Empty,
             Status = detail.Status,
             Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
         });

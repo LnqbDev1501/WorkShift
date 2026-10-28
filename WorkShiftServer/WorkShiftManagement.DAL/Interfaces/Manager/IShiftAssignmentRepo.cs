@@ -1,4 +1,5 @@
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.DAL.Interfaces.Manager;
 
 public interface IShiftAssignmentRepo

@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
-using WorkShiftManagement.DAL.Version.Rules;
 using WorkShiftManagement.DAL.Notifications;
+using WorkShiftManagement.DAL.Version.Rules;
 
 namespace WorkShiftManagement.DAL.Repositories.Admin;
 

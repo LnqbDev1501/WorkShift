@@ -1,5 +1,3 @@
-using System;
-
 namespace WorkShiftManagement.BLL.DTOs.Staff.Response;
 
 public class StaffEligibleShiftResponse

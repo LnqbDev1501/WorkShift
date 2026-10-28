@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using UI_Admin.Models.Admin.Holidays;
 
@@ -158,5 +157,3 @@ public sealed class HolidayApiService(HttpClient httpClient, IConfiguration conf
         public string? Detail { get; set; }
     }
 }
-
-

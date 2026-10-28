@@ -143,7 +143,10 @@ class AvailableShiftsController extends ChangeNotifier {
     await _loadFirstPage(clearItems: true);
   }
 
-  Future<void> refresh({bool resetRegisteredShifts = false, bool silent = false}) {
+  Future<void> refresh({
+    bool resetRegisteredShifts = false,
+    bool silent = false,
+  }) {
     if (resetRegisteredShifts) _registeredShiftIds.clear();
     return _loadFirstPage(clearItems: false, silent: silent);
   }
@@ -165,7 +168,10 @@ class AvailableShiftsController extends ChangeNotifier {
         const Duration(hours: 24);
   }
 
-  Future<void> _loadFirstPage({required bool clearItems, bool silent = false}) async {
+  Future<void> _loadFirstPage({
+    required bool clearItems,
+    bool silent = false,
+  }) async {
     if (_disposed) return;
     final generation = ++_generation;
     if (!silent) {

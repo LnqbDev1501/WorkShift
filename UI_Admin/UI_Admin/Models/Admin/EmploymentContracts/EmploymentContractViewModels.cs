@@ -1,4 +1,4 @@
-namespace UI_Admin.Models.EmploymentContracts;
+namespace UI_Admin.Models.Admin.EmploymentContracts;
 
 /// <summary>
 /// Maps to AdminEmploymentContractListItemResponse from the API.

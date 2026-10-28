@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace WorkShiftManagement.BLL.DTOs.Accountant.PayrollSettlement;
 
 public sealed class ConfirmPayrollSettlementRequest

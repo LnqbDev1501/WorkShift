@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Version.Payroll;
+
 namespace WorkShiftManagement.DAL.Data;
 
 public partial class AppDbContext

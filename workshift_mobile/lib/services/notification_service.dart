@@ -56,7 +56,9 @@ class NotificationService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return NotificationModel.fromJson(response.data as Map<String, dynamic>);
+        return NotificationModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       return null;
     } on DioException catch (e) {

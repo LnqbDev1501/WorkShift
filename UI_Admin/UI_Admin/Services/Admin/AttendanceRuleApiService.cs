@@ -1,6 +1,5 @@
-using System.Net.Http.Json;
 using System.Text.Json;
-using UI_Admin.Models.AttendanceRule;
+using UI_Admin.Models.Admin.AttendanceRule;
 
 namespace UI_Admin.Services.Admin;
 

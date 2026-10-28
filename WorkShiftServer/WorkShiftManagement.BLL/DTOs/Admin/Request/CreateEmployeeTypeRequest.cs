@@ -22,4 +22,3 @@ public class CreateEmployeeTypeRequest
         set => _description = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 }
-

@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace UI_Admin.Models.EmployeeTypes;
+namespace UI_Admin.Models.Admin.EmployeeTypes;
 
 public sealed class EmployeeTypeApiResult
 {

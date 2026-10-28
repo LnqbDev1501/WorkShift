@@ -1,4 +1,5 @@
 using WorkShiftManagement.DAL.Entities;
+
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
 // Pure validation of the existing request/detail tables; no salary history writes.

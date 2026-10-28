@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using UI_Admin.Models.Accountant;
-using UI_Admin.Services.Accountant;
+using UI_Admin.Models.Catalog;
+using UI_Admin.Services;
 
-namespace UI_Admin.Controllers;
+namespace UI_Admin.Controllers.Accountant;
 
 [Authorize(Roles = "ACCOUNTANT,ADMIN")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class AccountantCategoriesController(AccountantCategoryApiService api) : Controller
+public class AccountantCategoriesController(CategoryApiService api) : Controller
 {
     [HttpGet]
     public async Task<IActionResult> Index(
@@ -19,12 +19,12 @@ public class AccountantCategoriesController(AccountantCategoryApiService api) : 
         int page = 1,
         CancellationToken cancellationToken = default)
     {
-        var model = new AccountantCategoryListViewModel
+        var model = new CategoryListPagedViewModel
         {
             PageNumber = page < 1 ? 1 : page,
             PageSize = 10,
             Search = search,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try

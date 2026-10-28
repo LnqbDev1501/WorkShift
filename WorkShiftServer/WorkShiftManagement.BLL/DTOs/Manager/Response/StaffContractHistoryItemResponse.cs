@@ -1,5 +1,3 @@
-using System;
-
 namespace WorkShiftManagement.BLL.DTOs.Manager.Response;
 
 public class StaffContractHistoryItemResponse

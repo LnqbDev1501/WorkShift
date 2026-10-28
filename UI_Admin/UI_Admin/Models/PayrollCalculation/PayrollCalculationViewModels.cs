@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace UI_Admin.Models.PayrollCalculation;
 
 public sealed class CalculationQuery

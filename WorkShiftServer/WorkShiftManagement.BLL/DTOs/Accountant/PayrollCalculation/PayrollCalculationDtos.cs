@@ -1,4 +1,5 @@
 using System.Text.Json;
+
 namespace WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 
 public sealed class PayrollCalculationListRequest

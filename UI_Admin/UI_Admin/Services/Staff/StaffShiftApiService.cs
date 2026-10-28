@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Net.Http.Json;
-using Microsoft.Extensions.Configuration;
 using UI_Admin.Models.Staff.Shifts;
 
 namespace UI_Admin.Services.Staff;

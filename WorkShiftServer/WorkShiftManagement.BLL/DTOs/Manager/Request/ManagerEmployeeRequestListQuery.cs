@@ -1,5 +1,3 @@
-using System;
-
 namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
 
 public class ManagerEmployeeRequestListQuery
