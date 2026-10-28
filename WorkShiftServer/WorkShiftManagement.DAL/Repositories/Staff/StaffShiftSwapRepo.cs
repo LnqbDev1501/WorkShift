@@ -11,12 +11,23 @@ namespace WorkShiftManagement.DAL.Repositories.Staff;
 
 public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRepo
 {
+    public Task<int> ExpirePendingAsync(Guid? actor, DateTime now, CancellationToken ct)
+    {
+        var query = context.ShiftSwapRequests.AsQueryable();
+        if (actor.HasValue) query = query.Where(r => r.RequesterId == actor.Value || r.TargetUserId == actor.Value);
+        // Conditional SQL update makes retries idempotent and never overwrites a completed response.
+        return ShiftSwapExpiryPolicy.Due(query, now).ExecuteUpdateAsync(setters => setters
+            .SetProperty(r => r.Status, "EXPIRED")
+            .SetProperty(r => r.UpdatedAt, now), ct);
+    }
+
     public Task<ShiftAssignment?> FindAssignmentAsync(int assignmentId, CancellationToken ct) =>
         AssignmentDetails().AsNoTracking().SingleOrDefaultAsync(a => a.AssignmentId == assignmentId, ct);
 
     public Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId, CancellationToken ct)
     {
-        var earliestStart = DateTime.UtcNow.AddHours(24);
+        var now = DateTime.UtcNow;
+        var earliestStart = now.AddHours(24);
         return AssignmentDetails().AsNoTracking()
             .Where(a => a.UserId != actor && a.User.BranchId == branchId && a.User.EmployeeTypeId == employeeTypeId &&
                 a.Status == "ASSIGNED" &&
@@ -24,6 +35,7 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
                 a.Shift.ScheduleWeek.BranchId == branchId &&
                 (a.Shift.ScheduleWeek.Status == "OPEN_REGISTRATION" || a.Shift.ScheduleWeek.Status == "REGISTRATION_CLOSED") &&
                 !context.ShiftSwapRequests.Any(r => r.Status == "PENDING" &&
+                    r.SourceAssignment.Shift.ScheduledStartAt > now && r.TargetAssignment.Shift.ScheduledStartAt > now &&
                     (r.SourceAssignmentId == a.AssignmentId || r.TargetAssignmentId == a.AssignmentId)))
             .OrderBy(a => a.Shift.ScheduledStartAt).ThenBy(a => a.AssignmentId).ToListAsync(ct);
     }
@@ -51,10 +63,14 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
         Details(context.ShiftSwapRequests.AsNoTracking().Where(r => r.SwapRequestId == requestId &&
             (r.RequesterId == actor || r.TargetUserId == actor))).SingleOrDefaultAsync(ct);
 
-    public Task<bool> HasPendingAsync(int sourceId, int targetId, CancellationToken ct) =>
-        context.ShiftSwapRequests.AnyAsync(r => r.Status == "PENDING" &&
+    public Task<bool> HasPendingAsync(int sourceId, int targetId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        return context.ShiftSwapRequests.AnyAsync(r => r.Status == "PENDING" &&
+            r.SourceAssignment.Shift.ScheduledStartAt > now && r.TargetAssignment.Shift.ScheduledStartAt > now &&
             (r.SourceAssignmentId == sourceId || r.SourceAssignmentId == targetId ||
              r.TargetAssignmentId == sourceId || r.TargetAssignmentId == targetId), ct);
+    }
 
     public void Add(ShiftSwapRequest request) => context.ShiftSwapRequests.Add(request);
 
@@ -127,8 +143,9 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
                 await context.SaveChangesAsync(ct);
             }
             // IDs are generated above; keep the inbox entries in the same transaction.
-            context.Notifications.Add(ScheduleNotificationFactory.SwapChanged(result,
-                isNew ? result.RequesterId : result.RespondedBy!.Value, result.UpdatedAt));
+            if (result.Status != "EXPIRED")
+                context.Notifications.Add(ScheduleNotificationFactory.SwapChanged(result,
+                    isNew ? result.RequesterId : result.RespondedBy!.Value, result.UpdatedAt));
             if (result.Status == "ACCEPTED")
             {
                 // Swaps currently require both staff to be in the same branch.

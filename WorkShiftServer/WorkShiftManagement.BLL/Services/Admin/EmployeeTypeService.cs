@@ -3,6 +3,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
@@ -51,25 +52,11 @@ public class EmployeeTypeService : IEmployeeTypeService
         return Map(entity);
     }
 
-    public async Task<bool> DeleteAsync(int id)
-    {
-        var entity = await _employeeTypeRepo.GetByIdAsync(id);
-        if (entity == null) return false;
-        entity.Status = "INACTIVE";
-        entity.UpdatedAt = DateTime.UtcNow;
-        await _employeeTypeRepo.UpdateAsync(entity);
-        return true;
-    }
+    public Task<EmployeeTypeStatusChangeResult> DeleteAsync(int id) =>
+        _employeeTypeRepo.ChangeStatusAsync(id, restore: false);
 
-    public async Task<bool> RestoreAsync(int id)
-    {
-        var entity = await _employeeTypeRepo.GetByIdAsync(id);
-        if (entity == null) return false;
-        entity.Status = "ACTIVE";
-        entity.UpdatedAt = DateTime.UtcNow;
-        await _employeeTypeRepo.UpdateAsync(entity);
-        return true;
-    }
+    public Task<EmployeeTypeStatusChangeResult> RestoreAsync(int id) =>
+        _employeeTypeRepo.ChangeStatusAsync(id, restore: true);
 
     private async Task ValidateAsync(string typeName, string? description, int id)
     {

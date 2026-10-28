@@ -1,7 +1,10 @@
 @model UI_Admin.Models.EmployeeTypes.EmployeeTypeListPagedViewModel
 @{ ViewData["Title"] = "Employee Types"; }
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <partial name="_NotificationModal" />
+    @if (Model.IsLoaded)
+    {
+        <partial name="_NotificationModal" />
+    }
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
         <div>
             <div class="list-eyebrow">Workforce Directory</div>
@@ -12,12 +15,15 @@
             <span class="material-symbols-outlined text-[20px]">add</span><span>Create Employee Type</span>
         </a>
     </div>
-    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+    @if (Model.IsLoaded)
+    {
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
         new("Matching Types", Model.TotalItems.ToString("N0"), "Matching current filters", "badge"),
         new("Active Types", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
         new("Inactive Types", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
         new("Current Page", Model.PageNumber.ToString("N0"), $"Of {Math.Max(1, Model.TotalPages)} pages", "auto_stories")
     })' />
+    }
     <form method="get" asp-action="Index" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
         <div class="flex flex-1 flex-col sm:flex-row gap-unit-3 max-w-2xl">
@@ -38,6 +44,18 @@
         </div>
         <partial name="_ListFilterActions" model='"Index"' />
     </form>
+    @if (!Model.IsLoaded)
+    {
+        <section role="alert" class="flex flex-col items-center gap-unit-4 p-unit-6 bg-surface-container-lowest rounded-xl shadow-sm text-center">
+            <span class="material-symbols-outlined text-error text-[32px]" aria-hidden="true">error_outline</span>
+            <p class="font-body-md text-body-md text-on-surface">@Model.ErrorMessage</p>
+            <a asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.StatusFilter" asp-route-page="@Model.PageNumber" asp-route-pageSize="@Model.PageSize" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium transition-colors">
+                <span class="material-symbols-outlined text-[20px]" aria-hidden="true">refresh</span>Try again
+            </a>
+        </section>
+    }
+    else
+    {
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left">
@@ -61,7 +79,7 @@
                         <td class="px-unit-5 py-2 text-right whitespace-nowrap"><div class="inline-flex items-center justify-end gap-2">
                             <a asp-action="Details" asp-route-id="@item.EmployeeTypeId" title="View details" aria-label="View details for @item.TypeName" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-secondary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span></a>
                             <a asp-action="Edit" asp-route-id="@item.EmployeeTypeId" title="Edit employee type" aria-label="Edit @item.TypeName" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">edit</span></a>
-                            <button type="button" title="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore")" aria-label="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore") @item.TypeName" data-employee-type-action="@(item.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@item.EmployeeTypeId" data-name="@item.TypeName" class="inline-flex items-center justify-center w-8 h-8 rounded-lg @(item.Status == "ACTIVE" ? "text-error hover:bg-error-container" : "text-primary hover:bg-surface-container") transition-colors cursor-pointer">
+                            <button type="button" title="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore")" aria-label="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore") @item.TypeName" data-employee-type-action="@(item.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@item.EmployeeTypeId" data-confirmation-url="@Url.Action("StatusConfirmation", new { id = item.EmployeeTypeId, operation = item.Status == "ACTIVE" ? "deactivate" : "restore" })" class="inline-flex items-center justify-center w-8 h-8 rounded-lg @(item.Status == "ACTIVE" ? "text-error hover:bg-error-container" : "text-primary hover:bg-surface-container") transition-colors cursor-pointer">
                                 <span class="material-symbols-outlined text-[19px]" aria-hidden="true">@(item.Status == "ACTIVE" ? "block" : "restore")</span>
                             </button>
                         </div></td>
@@ -79,5 +97,6 @@
         })" />
     </div>
     <partial name="_StatusDialogs" />
+    }
 </div>
 @section Scripts { <script src="~/js/employee-types.js" asp-append-version="true"></script> }

@@ -31,6 +31,18 @@ class ShiftSwapAssignmentModel {
 }
 
 class ShiftSwapModel {
+  DateTime get expiresAt =>
+      sourceAssignment.scheduledStartAt.isBefore(
+        targetAssignment.scheduledStartAt,
+      )
+      ? sourceAssignment.scheduledStartAt
+      : targetAssignment.scheduledStartAt;
+
+  String statusAt(DateTime now) =>
+      status == 'PENDING' && !expiresAt.isAfter(now.toUtc())
+      ? 'EXPIRED'
+      : status;
+
   final int swapRequestId;
   final String requesterId;
   final String requesterName;
