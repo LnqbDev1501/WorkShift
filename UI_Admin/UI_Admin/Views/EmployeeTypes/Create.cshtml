@@ -9,7 +9,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8">
             <div class="mb-7"><span class="text-label-sm uppercase tracking-widest text-primary font-bold">Employee Classification</span><h2 class="text-title-lg font-title-lg text-on-surface mt-1">Employee Type Information</h2><p class="text-body-sm text-secondary mt-1">Enter the name and description. New employee types are automatically Active.</p></div>
-            <form asp-action="Create" method="post" class="flex flex-col gap-6">
+            <form asp-action="Create" method="post" data-employee-type-form class="flex flex-col gap-6">
                 <partial name="_FormFields" model="Model" />
                 <div class="flex items-center justify-end gap-3 pt-5 border-t border-surface-container-high">
                     <a asp-action="Index" class="h-10 px-5 inline-flex items-center rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium">Cancel</a>
@@ -22,4 +22,7 @@
         </aside>
     </div>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/employee-type-form.js" asp-append-version="true"></script>
+}

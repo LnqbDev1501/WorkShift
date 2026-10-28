@@ -1,3 +1,7 @@
+<div data-employee-type-feedback role="alert" tabindex="-1" hidden class="p-unit-4 rounded-xl bg-error-container text-on-error-container">
+    <p data-error-text></p>
+    <button type="button" data-refresh-employee-types class="mt-unit-2 underline font-body-md-medium">Refresh page</button>
+</div>
 @foreach (var action in new[] { "Deactivate", "Restore" })
 {
     var deactivate = action == "Deactivate";
@@ -9,6 +13,7 @@
                 <button type="button" data-close-dialog aria-label="Close dialog" class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container"><span class="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <p class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary">@(deactivate ? "Existing employee records and their assignments will be preserved. This type can be restored later." : "This employee type will return to Active status. Existing employee records will be preserved.")</p>
+            <p class="text-body-sm text-secondary">Current status: <strong data-target-status class="text-on-surface"></strong></p>
             <form method="post" asp-action="@action" class="flex items-center justify-end gap-unit-3 pt-unit-2">
                 <input type="hidden" name="id" />
                 <button type="button" data-close-dialog class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium">Cancel</button>

@@ -8,7 +8,7 @@
             <div><div class="list-eyebrow">Employee Type Details</div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words">@Model.TypeName</h1></div>
         </div>
         <div class="flex gap-unit-3">
-            <button type="button" data-employee-type-action="@(Model.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@Model.EmployeeTypeId" data-name="@Model.TypeName" class="h-10 px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high @(Model.Status == "ACTIVE" ? "text-error" : "text-primary") font-body-md-medium">@(Model.Status == "ACTIVE" ? "Deactivate" : "Restore")</button>
+            <button type="button" data-employee-type-action="@(Model.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@Model.EmployeeTypeId" data-confirmation-url="@Url.Action("StatusConfirmation", new { id = Model.EmployeeTypeId, operation = Model.Status == "ACTIVE" ? "deactivate" : "restore" })" class="h-10 px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high @(Model.Status == "ACTIVE" ? "text-error" : "text-primary") font-body-md-medium">@(Model.Status == "ACTIVE" ? "Deactivate" : "Restore")</button>
             <a asp-action="Edit" asp-route-id="@Model.EmployeeTypeId" class="inline-flex items-center gap-unit-2 h-10 px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium shadow-sm"><span class="material-symbols-outlined text-[18px]">edit</span>Edit Employee Type</a>
         </div>
     </div>

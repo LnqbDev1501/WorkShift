@@ -12,6 +12,8 @@ public class EmployeeTypeListItemViewModel
 
 public class EmployeeTypeListPagedViewModel
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsLoaded { get; set; }
     public List<EmployeeTypeListItemViewModel> Items { get; set; } = [];
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = ListPaginationViewModel.DefaultPageSize;
@@ -25,13 +27,24 @@ public class EmployeeTypeListPagedViewModel
 
 public class EmployeeTypeFormViewModel
 {
+    private string _typeName = string.Empty;
+    private string? _description;
+
     [Display(Name = "Employee Type Name")]
     [Required(ErrorMessage = "Employee type name is required.")]
     [StringLength(100, ErrorMessage = "Employee type name cannot exceed 100 characters.")]
-    public string TypeName { get; set; } = string.Empty;
+    public string TypeName
+    {
+        get => _typeName;
+        set => _typeName = value?.Trim() ?? string.Empty;
+    }
 
     [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
-    public string? Description { get; set; }
+    public string? Description
+    {
+        get => _description;
+        set => _description = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 }
 
 public class EditEmployeeTypeViewModel : EmployeeTypeFormViewModel

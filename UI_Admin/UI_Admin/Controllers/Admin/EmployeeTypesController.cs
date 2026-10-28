@@ -1,3 +1,5 @@
+using System.Net;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models;
@@ -31,11 +33,17 @@ public class EmployeeTypesController : Controller
         try
         {
             model = await _employeeTypeApiService.GetPagedAsync(search, status, model.PageNumber, model.PageSize, cancellationToken);
+            model.IsLoaded = true;
             if (model.PageNumber > Math.Max(1, model.TotalPages))
                 return RedirectToAction(nameof(Index), new { search, status, page = Math.Max(1, model.TotalPages), pageSize = model.PageSize });
         }
-        catch (HttpRequestException exception) { model.ErrorMessage = GetErrorMessage(exception); }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) { model.ErrorMessage = "The server took too long to respond. Please try again."; }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException ||
+            exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Unable to load employee types.");
+            model.ErrorMessage = "Unable to load employee types. Please try again.";
+            Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+        }
         return View(model);
     }
 
@@ -51,10 +59,10 @@ public class EmployeeTypesController : Controller
     public async Task<IActionResult> Create(EmployeeTypeFormViewModel model, CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid) return View(model);
-        var (success, errorMessage) = await RunMutationAsync(() => _employeeTypeApiService.CreateAsync(model, cancellationToken), cancellationToken);
-        if (!success)
+        var result = await RunMutationAsync(() => _employeeTypeApiService.CreateAsync(model, cancellationToken), cancellationToken);
+        if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to create employee type.");
+            AddMutationErrors(result, "Failed to create employee type.");
             return View(model);
         }
         TempData["SuccessMessage"] = $"Employee type '{model.TypeName.Trim()}' created successfully.";
@@ -84,10 +92,15 @@ public class EmployeeTypesController : Controller
         if (detail == null) return RedirectToAction(nameof(Index));
         model.Status = detail.Status;
         if (!ModelState.IsValid) return View(model);
-        var (success, errorMessage) = await RunMutationAsync(() => _employeeTypeApiService.UpdateAsync(id, model, cancellationToken), cancellationToken);
-        if (!success)
+        var result = await RunMutationAsync(() => _employeeTypeApiService.UpdateAsync(id, model, cancellationToken), cancellationToken);
+        if (result.StatusCode == HttpStatusCode.NotFound)
         {
-            ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to update employee type.");
+            TempData["ErrorMessage"] = "Employee type not found.";
+            return RedirectToAction(nameof(Index));
+        }
+        if (!result.Success)
+        {
+            AddMutationErrors(result, "Failed to update employee type.");
             return View(model);
         }
         TempData["SuccessMessage"] = $"Employee type '{model.TypeName.Trim()}' updated successfully.";
@@ -101,13 +114,48 @@ public class EmployeeTypesController : Controller
         return model == null ? RedirectToAction(nameof(Index)) : View(model);
     }
 
+    [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> StatusConfirmation(int id, string? operation, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0 || operation is not ("deactivate" or "restore"))
+            return BadRequest(new { message = "Invalid employee type action." });
+
+        try
+        {
+            var detail = await _employeeTypeApiService.GetByIdAsync(id, cancellationToken);
+            if (detail is null) return NotFound(new { message = "Employee type not found." });
+            if (detail.EmployeeTypeId != id || string.IsNullOrWhiteSpace(detail.TypeName) ||
+                detail.Status is not ("ACTIVE" or "INACTIVE"))
+                throw new JsonException("The server returned invalid employee type details.");
+
+            if (operation == "deactivate" && detail.Status == "INACTIVE")
+                return Conflict(new { message = "The employee type is already inactive." });
+            if (operation == "restore" && detail.Status == "ACTIVE")
+                return Conflict(new { message = "The employee type is already active." });
+
+            return Json(new { employeeTypeId = detail.EmployeeTypeId, typeName = detail.TypeName, status = detail.Status });
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or NotSupportedException ||
+            exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Unable to load employee type {Id} for status confirmation.", id);
+            if (exception is HttpRequestException { StatusCode: System.Net.HttpStatusCode.Unauthorized })
+                return Unauthorized(new { message = "Your session has expired. Please sign in again." });
+            if (exception is HttpRequestException { StatusCode: System.Net.HttpStatusCode.Forbidden })
+                return StatusCode(403, new { message = "You do not have permission to change employee type status." });
+            return StatusCode(503, new { message = "Unable to load employee type details. Please try again." });
+        }
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0) return BadRequest();
-        var (success, errorMessage) = await RunMutationAsync(() => _employeeTypeApiService.DeactivateAsync(id, cancellationToken), cancellationToken);
-        TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Employee type deactivated successfully." : errorMessage;
+        var result = await RunMutationAsync(() => _employeeTypeApiService.DeactivateAsync(id, cancellationToken), cancellationToken);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Success ? "Employee type deactivated successfully."
+            : result.ErrorMessage ?? "Unable to deactivate employee type. Please try again.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -116,8 +164,9 @@ public class EmployeeTypesController : Controller
     public async Task<IActionResult> Restore(int id, CancellationToken cancellationToken = default)
     {
         if (id <= 0) return BadRequest();
-        var (success, errorMessage) = await RunMutationAsync(() => _employeeTypeApiService.RestoreAsync(id, cancellationToken), cancellationToken);
-        TempData[success ? "SuccessMessage" : "ErrorMessage"] = success ? "Employee type restored successfully." : errorMessage;
+        var result = await RunMutationAsync(() => _employeeTypeApiService.RestoreAsync(id, cancellationToken), cancellationToken);
+        TempData[result.Success ? "SuccessMessage" : "ErrorMessage"] = result.Success ? "Employee type restored successfully."
+            : result.ErrorMessage ?? "Unable to restore employee type. Please try again.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -134,13 +183,44 @@ public class EmployeeTypesController : Controller
         return null;
     }
 
-    private async Task<(bool Success, string? ErrorMessage)> RunMutationAsync(Func<Task<(bool Success, string? ErrorMessage)>> action, CancellationToken cancellationToken)
+    private void AddMutationErrors(EmployeeTypeApiResult result, string fallbackMessage)
+    {
+        var added = false;
+        foreach (var (field, messages) in result.FieldErrors)
+        {
+            // API validation may use CLR names, JSON names or paths such as $.typeName.
+            var leaf = field.Split('.').Last();
+            var key = leaf.Equals(nameof(EmployeeTypeFormViewModel.TypeName), StringComparison.OrdinalIgnoreCase)
+                ? nameof(EmployeeTypeFormViewModel.TypeName)
+                : leaf.Equals(nameof(EmployeeTypeFormViewModel.Description), StringComparison.OrdinalIgnoreCase)
+                    ? nameof(EmployeeTypeFormViewModel.Description) : string.Empty;
+            foreach (var message in messages ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(message)) continue;
+                ModelState.AddModelError(key, message);
+                added = true;
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+        {
+            var key = result.StatusCode == HttpStatusCode.Conflict && result.ErrorMessage == "Employee type name already exists."
+                ? nameof(EmployeeTypeFormViewModel.TypeName) : string.Empty;
+            ModelState.AddModelError(key, result.ErrorMessage);
+            added = true;
+        }
+        if (!added) ModelState.AddModelError(string.Empty, fallbackMessage);
+    }
+
+    private async Task<EmployeeTypeApiResult> RunMutationAsync(Func<Task<EmployeeTypeApiResult>> action, CancellationToken cancellationToken)
     {
         try { return await action(); }
-        catch (HttpRequestException exception) { return (false, GetErrorMessage(exception)); }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (HttpRequestException exception)
         {
-            return (false, "The server took too long to respond. Check the employee type list before trying again.");
+            return new EmployeeTypeApiResult { StatusCode = exception.StatusCode, ErrorMessage = GetErrorMessage(exception) };
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new EmployeeTypeApiResult { ErrorMessage = "The server took too long to respond. Check the employee type list before trying again." };
         }
     }
 

@@ -27,6 +27,7 @@ public class EmployeeTypeApiService
         await EnsureSuccessAsync(response, cancellationToken);
         var model = await response.Content.ReadFromJsonAsync<EmployeeTypeListPagedViewModel>(cancellationToken: cancellationToken)
             ?? throw new HttpRequestException("The server returned an invalid response.");
+        if (model.Items is null) throw new JsonException("The employee type list returned invalid items.");
         model.Search = search;
         model.StatusFilter = statusFilter;
         return model;
@@ -40,25 +41,25 @@ public class EmployeeTypeApiService
         return await response.Content.ReadFromJsonAsync<EmployeeTypeDetailViewModel>(cancellationToken: cancellationToken);
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> CreateAsync(EmployeeTypeFormViewModel model, CancellationToken cancellationToken = default)
+    public async Task<EmployeeTypeApiResult> CreateAsync(EmployeeTypeFormViewModel model, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync(_apiBaseUrl, CreatePayload(model), cancellationToken);
         return await ReadResultAsync(response, cancellationToken);
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> UpdateAsync(int id, EditEmployeeTypeViewModel model, CancellationToken cancellationToken = default)
+    public async Task<EmployeeTypeApiResult> UpdateAsync(int id, EditEmployeeTypeViewModel model, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PutAsJsonAsync($"{_apiBaseUrl}/{id}", CreatePayload(model), cancellationToken);
         return await ReadResultAsync(response, cancellationToken);
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> DeactivateAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<EmployeeTypeApiResult> DeactivateAsync(int id, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.DeleteAsync($"{_apiBaseUrl}/{id}", cancellationToken);
         return await ReadResultAsync(response, cancellationToken);
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> RestoreAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<EmployeeTypeApiResult> RestoreAsync(int id, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsync($"{_apiBaseUrl}/{id}/restore", null, cancellationToken);
         return await ReadResultAsync(response, cancellationToken);
@@ -74,28 +75,44 @@ public class EmployeeTypeApiService
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (!response.IsSuccessStatusCode)
-            throw new HttpRequestException(await ReadErrorMessageAsync(response, cancellationToken), null, response.StatusCode);
+        {
+            var result = await ReadResultAsync(response, cancellationToken);
+            throw new HttpRequestException(result.ErrorMessage ?? "Unable to complete the request. Please try again.", null, result.StatusCode);
+        }
     }
 
-    private static async Task<(bool Success, string? ErrorMessage)> ReadResultAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private static async Task<EmployeeTypeApiResult> ReadResultAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
-        return response.IsSuccessStatusCode ? (true, null) : (false, await ReadErrorMessageAsync(response, cancellationToken));
-    }
+        if (response.IsSuccessStatusCode)
+            return new EmployeeTypeApiResult { Success = true, StatusCode = response.StatusCode };
 
-    private static async Task<string> ReadErrorMessageAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
         if ((int)response.StatusCode < 500)
         {
             try
             {
                 var problem = await response.Content.ReadFromJsonAsync<ValidationProblemDetails>(cancellationToken: cancellationToken);
-                if (!string.IsNullOrWhiteSpace(problem?.Detail)) return problem.Detail;
-                if (problem?.Errors.Count > 0) return string.Join(" ", problem.Errors.Values.SelectMany(x => x));
+                if (problem is not null)
+                {
+                    var errors = problem.Errors is null
+                        ? new Dictionary<string, string[]>()
+                        : new Dictionary<string, string[]>(problem.Errors);
+                    return new EmployeeTypeApiResult
+                    {
+                        StatusCode = response.StatusCode,
+                        ErrorMessage = !string.IsNullOrWhiteSpace(problem.Detail) ? problem.Detail
+                            : errors.Count == 0 ? "Unable to complete the request. Please try again." : null,
+                        FieldErrors = errors
+                    };
+                }
             }
             catch (JsonException) { }
             catch (NotSupportedException) { }
         }
-        return "Unable to complete the request. Please try again.";
+        return new EmployeeTypeApiResult
+        {
+            StatusCode = response.StatusCode,
+            ErrorMessage = "Unable to complete the request. Please try again."
+        };
     }
 }
 
