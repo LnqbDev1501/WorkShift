@@ -161,9 +161,9 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "The setup link is invalid or has expired." });
         }
 
-        // Verify user exists and is active
+        // Verify user exists and is active or pending
         var user = await _context.Users.AsNoTracking()
-            .Where(u => u.UserId == userId.Value && u.Status == "ACTIVE" && u.DeletedAt == null)
+            .Where(u => u.UserId == userId.Value && (u.Status == "ACTIVE" || u.Status == "PENDING") && u.DeletedAt == null)
             .Select(u => new { u.UserId, u.Email, u.FullName })
             .SingleOrDefaultAsync();
 
