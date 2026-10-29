@@ -306,7 +306,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> Cancel(int id, string? reason, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> Cancel(int id, string? reason, string? returnUrl = null, CancellationToken cancellationToken = default)
     {
         if (id <= 0)
             return RedirectToAction(nameof(Index));
@@ -314,13 +314,17 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         if (string.IsNullOrWhiteSpace(reason))
         {
             TempData["ErrorMessage"] = "Please provide a reason for cancelling the contract.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
 
         try
         {
             await api.CancelAsync(id, reason.Trim(), cancellationToken);
-            TempData["SuccessMessage"] = "Draft contract cancelled successfully.";
+            TempData["SuccessMessage"] = "Contract has been cancelled successfully.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (HttpRequestException ex)
@@ -332,11 +336,15 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 return RedirectToAction(nameof(Index));
             }
             TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception ex)
         {
             TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
         }
     }
