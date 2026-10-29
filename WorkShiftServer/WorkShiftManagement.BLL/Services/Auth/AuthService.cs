@@ -213,6 +213,59 @@ public class AuthService : IAuthService
         return userId;
     }
 
+    public async Task<Guid> SetPasswordWithTokenAsync(string accessToken, string password)
+    {
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new ArgumentException("Access token is required.", nameof(accessToken));
+
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password is required.", nameof(password));
+
+        using var userRequest = new HttpRequestMessage(HttpMethod.Get, "auth/v1/user");
+        userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var userResponse = await _httpClient.SendAsync(userRequest);
+        var userBody = await userResponse.Content.ReadAsStringAsync();
+        if (!userResponse.IsSuccessStatusCode)
+        {
+            throw new UnauthorizedAccessException("The password setup link is invalid or has expired.");
+        }
+
+        using var doc = JsonDocument.Parse(userBody);
+        var root = doc.RootElement;
+        if (!root.TryGetProperty("id", out var idElement) || !Guid.TryParse(idElement.GetString(), out var userId))
+        {
+            throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
+        }
+
+        using var updateResponse = await _httpClient.PutAsJsonAsync(
+            $"auth/v1/admin/users/{userId}",
+            new { password = password.Trim(), email_confirm = true });
+
+        var updateBody = await updateResponse.Content.ReadAsStringAsync();
+        if (!updateResponse.IsSuccessStatusCode)
+        {
+            throw new HttpRequestException(
+                $"Unable to set password in Supabase Auth: {GetErrorMessage(updateBody)}",
+                null,
+                updateResponse.StatusCode);
+        }
+
+        var user = await _userRepo.GetByIdWithTrackingAsync(userId);
+        if (user != null)
+        {
+            user.HasPassword = true;
+            if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+            {
+                user.Status = "ACTIVE";
+            }
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepo.SaveChangesAsync();
+        }
+
+        return userId;
+    }
+
     private async Task<string> GetEmailFromTokenAsync(string accessToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, "auth/v1/user");

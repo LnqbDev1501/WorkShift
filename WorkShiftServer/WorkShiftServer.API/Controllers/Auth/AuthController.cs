@@ -110,10 +110,7 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var userId = User.FindFirstValue("sub") ?? User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userId, out var guid))
-                throw new UnauthorizedAccessException("Your session has expired. Please sign in again.");
-            await _authService.SetPasswordAsync(guid, request.CurrentPassword, request.Password);
+            await _authService.SetPasswordWithTokenAsync(request.AccessToken, request.Password);
             return NoContent();
         }
         catch (ArgumentException exception)
