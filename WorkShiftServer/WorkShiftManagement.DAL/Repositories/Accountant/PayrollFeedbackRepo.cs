@@ -1,11 +1,18 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
+
 namespace WorkShiftManagement.DAL.Repositories.Accountant;
-public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
+
+public sealed class PayrollFeedbackRepo(AppDbContext db, ILogger<PayrollFeedbackRepo> logger) : IPayrollFeedbackRepo
 {
+    private readonly List<PendingRealtimeNotification> _pendingNotifications = new();
+    public IReadOnlyList<PendingRealtimeNotification> PendingNotifications => _pendingNotifications;
+    public void ClearPendingNotifications() => _pendingNotifications.Clear();
+
     public async Task<PayrollReviewData?> LoadAsync(int periodId, CancellationToken ct)
     {
         var period = await db.PayrollPeriods.SingleOrDefaultAsync(p => p.PayrollPeriodId == periodId, ct);
@@ -27,9 +34,21 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
     public Task<List<int>> ReviewPeriodIdsAsync(int? branch, Guid? employee, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
         .Where(p => (!branch.HasValue || p.BranchId == branch) && (!employee.HasValue || p.Payrolls.Any(w => w.UserId == employee && w.PayrollFeedbackRequests.Any())))
         .OrderByDescending(p => p.StartDate).Select(p => p.PayrollPeriodId).ToListAsync(ct);
-    public Task<List<int>> DueReviewPeriodsAsync(DateTime now, CancellationToken ct) => db.PayrollFeedbackRequests.AsNoTracking()
-        .Where(f => f.ReviewStatus == "PENDING" && f.ReviewDeadlineAt <= now)
-        .Select(f => f.Payroll.PayrollPeriodId).Distinct().ToListAsync(ct);
+    public async Task<List<int>> DueReviewPeriodsAsync(DateTime now, CancellationToken ct)
+    {
+        var feedbackPeriodIds = await db.PayrollFeedbackRequests.AsNoTracking()
+            .Where(f => f.ReviewStatus == "PENDING" && f.ReviewDeadlineAt <= now)
+            .Select(f => f.Payroll.PayrollPeriodId)
+            .ToListAsync(ct);
+
+        var correctionPeriodIds = await db.PayrollCorrectionRequests.AsNoTracking()
+            .Where(r => r.Status == "OPEN" && r.ResponseDeadlineAt <= now)
+            .Select(r => r.Payroll.PayrollPeriodId)
+            .ToListAsync(ct);
+
+        return feedbackPeriodIds.Union(correctionPeriodIds).Distinct().ToList();
+    }
+
     public void Add(PayrollFeedbackRequest row) => db.PayrollFeedbackRequests.Add(row);
     public Task<string?> CorrectionImpactAsync(int id, CancellationToken ct) => db.AuditLogs.AsNoTracking()
         .Where(a => a.Action == "PAYROLL_CORRECTION_SOURCE_IMPACT" && a.TableName == "payroll_correction_requests" && a.RecordId == id.ToString())
@@ -39,6 +58,7 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
     public void Audit(Guid? actor, string action, string table, int id, object payload, DateTime now) => db.AuditLogs.Add(new AuditLog {
         UserId = actor, Action = action, TableName = table, RecordId = id.ToString(), NewValue = JsonSerializer.Serialize(payload), CreatedAt = now
     });
+
     public void NotifyInApp(int periodId, int branchId, string role, Guid? user, string title, string message, DateTime now, Guid? sender = null)
     {
         try
@@ -54,26 +74,70 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
                         .Select(u => (Guid?)u.UserId)
                         .FirstOrDefault() ?? Guid.Empty);
 
-            if (senderId == Guid.Empty) return;
+            if (senderId == Guid.Empty)
+            {
+                logger.LogWarning("Cannot send payroll notification: no active admin or fallback sender found.");
+                return;
+            }
 
             var recipientIds = new List<Guid>();
-            if (user.HasValue && user.Value != Guid.Empty)
+            if (role == "STAFF")
             {
-                recipientIds.Add(user.Value);
+                if (user.HasValue && user.Value != Guid.Empty)
+                {
+                    var validStaff = db.Users.AsNoTracking()
+                        .Where(u => u.UserId == user.Value && u.Role.RoleName == "STAFF" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => u.UserId)
+                        .FirstOrDefault();
+                    if (validStaff != Guid.Empty)
+                    {
+                        recipientIds.Add(validStaff);
+                    }
+                }
             }
             else if (role == "MANAGER")
             {
-                recipientIds = db.Users.AsNoTracking()
-                    .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE" && u.DeletedAt == null)
-                    .Select(u => u.UserId)
-                    .ToList();
+                if (user.HasValue && user.Value != Guid.Empty)
+                {
+                    var validManager = db.Users.AsNoTracking()
+                        .Where(u => u.UserId == user.Value && u.Role.RoleName == "MANAGER" && u.BranchId == branchId && u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => u.UserId)
+                        .FirstOrDefault();
+                    if (validManager != Guid.Empty)
+                    {
+                        recipientIds.Add(validManager);
+                    }
+                }
+
+                if (recipientIds.Count == 0)
+                {
+                    recipientIds = db.Users.AsNoTracking()
+                        .Where(u => u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => u.UserId)
+                        .ToList();
+                }
             }
             else if (role == "ACCOUNTANT")
             {
-                recipientIds = db.Users.AsNoTracking()
-                    .Where(u => (u.BranchId == branchId || u.BranchId == null) && u.Role.RoleName == "ACCOUNTANT" && u.Status == "ACTIVE" && u.DeletedAt == null)
-                    .Select(u => u.UserId)
-                    .ToList();
+                if (user.HasValue && user.Value != Guid.Empty)
+                {
+                    var targetAccountant = db.Users.AsNoTracking()
+                        .Where(u => u.UserId == user.Value && (u.Role.RoleName == "ACCOUNTANT" || u.Role.RoleName == "ADMIN") && u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => u.UserId)
+                        .FirstOrDefault();
+                    if (targetAccountant != Guid.Empty)
+                    {
+                        recipientIds.Add(targetAccountant);
+                    }
+                }
+
+                if (recipientIds.Count == 0)
+                {
+                    recipientIds = db.Users.AsNoTracking()
+                        .Where(u => (u.BranchId == branchId || u.BranchId == null) && u.Role.RoleName == "ACCOUNTANT" && u.Status == "ACTIVE" && u.DeletedAt == null)
+                        .Select(u => u.UserId)
+                        .ToList();
+                }
             }
             else if (role == "ADMIN")
             {
@@ -83,7 +147,19 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
                     .ToList();
             }
 
-            if (recipientIds.Count == 0) return;
+            if (recipientIds.Count == 0)
+            {
+                logger.LogWarning("No active recipients found for payroll notification: Role={Role}, TargetUser={User}, BranchId={BranchId}, PeriodId={PeriodId}", role, user, branchId, periodId);
+                return;
+            }
+
+            var targetType = role switch
+            {
+                "STAFF" => "Staff",
+                "MANAGER" => "Manager",
+                "ACCOUNTANT" => "Accountant",
+                _ => "All"
+            };
 
             var notif = new WorkShiftManagement.DAL.Entities.Notification
             {
@@ -94,16 +170,8 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                // Recipient links select the exact users; the audience label must
-                // also satisfy notifications.target_type's database CHECK.
-                TargetType = role switch
-                {
-                    "STAFF" => "Staff",
-                    "MANAGER" => "Manager",
-                    "ACCOUNTANT" => "Accountant",
-                    _ => "All"
-                },
-                TargetRoles = [role],
+                TargetType = targetType,
+                TargetRoles = [], // Empty array required by PostgreSQL constraint ck_notifications_target_scope
                 TargetBranchId = null,
                 TargetRegionId = null,
                 Channels = ["InApp"],
@@ -115,13 +183,17 @@ public sealed class PayrollFeedbackRepo(AppDbContext db) : IPayrollFeedbackRepo
                     IsDeleted = false
                 }).ToList()
             };
+
             db.Notifications.Add(notif);
+            _pendingNotifications.Add(new PendingRealtimeNotification(notif, recipientIds.Distinct().ToList()));
         }
-        catch
+        catch (Exception ex)
         {
-            // Do not break the main transaction if in-app notification insertion encounters an issue
+            logger.LogError(ex, "Failed to enqueue in-app payroll notification: PeriodId={PeriodId}, Role={Role}, TargetUser={User}", periodId, role, user);
+            throw;
         }
     }
+
     public Task<List<PayrollCorrectionRequest>> QueryIssuesAsync(int? branchId, int? periodId, string? status, CancellationToken ct)
     {
         var q = db.PayrollCorrectionRequests.AsNoTracking()

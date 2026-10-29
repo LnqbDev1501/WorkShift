@@ -4,9 +4,9 @@ document.querySelectorAll('[data-feedback-deadline]').forEach(container => {
     const check = () => {
         if (Date.now() < deadline) return;
         container.querySelectorAll('[data-feedback-submit]').forEach(button => button.disabled = true);
-        container.querySelectorAll('[data-feedback-link]').forEach(link => { link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true'); link.textContent = 'Đã hết hạn phản hồi'; });
+        container.querySelectorAll('[data-feedback-link]').forEach(link => { link.removeAttribute('href'); link.setAttribute('aria-disabled', 'true'); link.textContent = 'Feedback deadline expired'; });
         if (!container.querySelector('[data-expiry-message]')) {
-            const message = document.createElement('p'); message.dataset.expiryMessage = ''; message.setAttribute('role', 'status'); message.textContent = 'Đã hết thời gian gửi phản hồi mới.'; container.appendChild(message);
+            const message = document.createElement('p'); message.dataset.expiryMessage = ''; message.setAttribute('role', 'status'); message.textContent = 'Feedback submission window has closed.'; container.appendChild(message);
         }
     };
     let timer;

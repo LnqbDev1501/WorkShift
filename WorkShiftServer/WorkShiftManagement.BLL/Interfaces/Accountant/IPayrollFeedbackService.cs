@@ -4,7 +4,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 namespace WorkShiftManagement.BLL.Interfaces.Accountant;
 public interface IPayrollFeedbackService
 {
-    Task<List<PayrollFeedbackResponse>> SendPreviewsAsync(Guid actor, int periodId, CancellationToken ct);
+    Task<List<PayrollFeedbackResponse>> SendPreviewsAsync(Guid actor, int periodId, SendPayrollPreviewsRequest? request, CancellationToken ct);
     Task<PayrollFeedbackResponse> ConfirmAsync(Guid actor, int id, CancellationToken ct);
     Task<PayrollFeedbackResponse> SubmitAsync(Guid actor, int id, SubmitPayrollFeedbackRequest request, CancellationToken ct);
     Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest query, CancellationToken ct);

@@ -369,6 +369,8 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             if (isApproved)
             {
                 content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã được Quản lý phê duyệt.";
+                if (request.RequestType == "SALARY_INCREASE")
+                    content += " Đây là bước Manager chấp nhận đơn; mức lương chưa thay đổi. Đề xuất tăng lương cần Admin phê duyệt và đến ngày áp dụng.";
                 if (!string.IsNullOrWhiteSpace(reviewNote))
                 {
                     content += $" Ghi chú: {reviewNote.Trim()}";
@@ -390,7 +392,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                TargetType = "Custom",
+                TargetType = "Staff",
                 TargetBranchId = null,
                 TargetRoles = new List<string> { "STAFF" },
                 Channels = new List<string> { "InApp" }

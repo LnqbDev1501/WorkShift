@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
@@ -11,15 +11,15 @@ public sealed class StaffPayrollFeedbackController(PayrollDocumentsApiService ap
     [HttpGet] public Task<IActionResult> Create(int id, CancellationToken ct) => id <= 0 ? Task.FromResult<IActionResult>(NotFound()) : Read(async () =>
     {
         var slip = (await Api.Payslip(id, ct)).Payslip;
-        if (!slip.CanSubmitFeedback) { TempData["WorkflowError"] = slip.FeedbackBlockedReason ?? "Phiếu không nhận phản hồi mới."; return RedirectToAction("Details", "StaffPayslips", new { id }); }
+        if (!slip.CanSubmitFeedback) { TempData["WorkflowError"] = slip.FeedbackBlockedReason ?? "Payslip is not currently accepting feedback."; return RedirectToAction("Details", "StaffPayslips", new { id }); }
         return View("~/Views/PayrollFeedback/Create.cshtml", new FeedbackSubmitForm { Payslip = slip });
     }, ct);
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> Create(int id, [Bind("ReasonCode,Description")] SubmitPayrollFeedbackRequest input, CancellationToken ct) => id <= 0 ? Task.FromResult<IActionResult>(NotFound()) : Read(async () =>
     {
         var slip = (await Api.Payslip(id, ct)).Payslip;
-        if (!slip.CanSubmitFeedback) { TempData["WorkflowError"] = slip.FeedbackBlockedReason ?? "Phiếu không nhận phản hồi mới."; return RedirectToAction("Details", "StaffPayslips", new { id }); }
-        if (!PayrollDocumentDisplay.Reasons.Contains(input.ReasonCode)) ModelState.AddModelError("ReasonCode", "Loại phản hồi không hợp lệ.");
+        if (!slip.CanSubmitFeedback) { TempData["WorkflowError"] = slip.FeedbackBlockedReason ?? "Payslip is not currently accepting feedback."; return RedirectToAction("Details", "StaffPayslips", new { id }); }
+        if (!PayrollDocumentDisplay.Reasons.Contains(input.ReasonCode)) ModelState.AddModelError("ReasonCode", "Invalid feedback reason code.");
         if (ModelState.IsValid)
             try
             {

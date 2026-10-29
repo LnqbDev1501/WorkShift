@@ -153,6 +153,14 @@
             <span class="material-symbols-outlined text-emerald-600 text-[22px] mt-0.5 shrink-0">check_circle</span>
             <div class="w-full">
                 <p class="font-bold text-emerald-900 text-sm">Request has been approved</p>
+                @if (reqType == "SALARY_INCREASE")
+                {
+                    <p class="text-emerald-800 text-sm mt-2">Manager acceptance does not change the salary. Create a proposal for Admin approval and a future effective date.</p>
+                    <a asp-controller="ManagerSalaryChanges" asp-action="Create" asp-route-employeeRequestId="@Model.RequestId"
+                       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-emerald-700 text-white font-semibold text-sm">
+                        <span class="material-symbols-outlined text-[18px]">trending_up</span>Create proposal for Admin
+                    </a>
+                }
                 <p class="text-emerald-700 text-xs mt-0.5">
                     Approved by <strong class="font-semibold">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Branch Manager" : Model.ReviewerFullName)</strong>
                     @if (Model.ReviewedAt.HasValue)

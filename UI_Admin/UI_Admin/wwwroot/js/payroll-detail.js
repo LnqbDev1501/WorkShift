@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
     let modalTrigger = null;
     const closeModal = modal => {
         modal.hidden = true;
@@ -55,7 +55,7 @@
             const reason = form.querySelector('textarea[name="Reason"]');
             if (reason && !reason.value.trim()) {
                 event.preventDefault();
-                reason.setCustomValidity('Vui lòng nhập lý do yêu cầu chỉnh sửa.');
+                reason.setCustomValidity('Please provide a reason for the revision request.');
                 reason.reportValidity();
                 reason.addEventListener('input', () => reason.setCustomValidity(''), { once: true });
                 return;
@@ -64,7 +64,7 @@
             form.dataset.submitting = 'true';
             form.querySelectorAll('button[type="submit"]').forEach(button => {
                 button.disabled = true;
-                button.textContent = 'Đang xử lý…';
+                button.textContent = 'Processing...';
             });
         });
     });

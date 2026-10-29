@@ -6,9 +6,9 @@ namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public static class PayrollPreviewPolicy
 {
-    // Store the exclusive midnight boundary; UI may describe this as through 23:59 of the preceding day.
-    public static DateTime EndOfLocalDay(DateTime utc) => new DateTimeOffset(
-        DateOnly.FromDateTime(utc.AddHours(7)).AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).UtcDateTime;
+    // Standard 24-hour review/response window from actual UTC send timestamp.
+    public static DateTime StandardDeadline(DateTime utc) => utc.AddHours(24);
+
     public static bool Mutable(PayrollPeriod p) => p.Status is "CALCULATED" or "REVISION_REQUIRED";
     public static PayrollFeedbackRequest Root(PayrollReviewData d, PayrollFeedbackRequest row)
     {

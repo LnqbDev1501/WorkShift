@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using UI_Admin.Services;
 using UI_Admin.Models;
@@ -17,11 +17,11 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     {
         filter.PageSize = ListPaginationViewModel.DefaultPageSize;
         ModelState.Remove(nameof(filter.PageSize));
-        if (filter.StartDateFrom > filter.StartDateTo) ModelState.AddModelError("StartDateTo", "Khoảng ngày bắt đầu kỳ không hợp lệ.");
+        if (filter.StartDateFrom > filter.StartDateTo) ModelState.AddModelError("StartDateTo", "Invalid period start date range.");
         var model = new PayrollListViewModel { Filter = filter };
         if (!ModelState.IsValid)
         {
-            model.Error = "Bộ lọc không hợp lệ. Hãy đặt lại bộ lọc và thử lại.";
+            model.Error = "Invalid filter parameters. Please reset filters and try again.";
             return View(model);
         }
         try
@@ -45,7 +45,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Could not load payroll periods");
-            model.Error = "Không thể tải dữ liệu kỳ lương. Vui lòng kiểm tra kết nối API và thử lại.";
+            model.Error = "Invalid filter parameters. Please reset filters and try again.";
         }
         try
         {
@@ -64,7 +64,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Could not load payroll filters");
-            model.LookupError = "Không thể tải đầy đủ bộ lọc khu vực/chi nhánh.";
+            model.LookupError = "Could not load region/branch filters.";
         }
         return View(model);
     }
@@ -85,7 +85,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Could not load payroll period {Id}", id);
-            TempData["PayrollError"] = "Không thể tải chi tiết kỳ lương. Vui lòng thử lại.";
+            TempData["PayrollError"] = "Could not load payroll period details. Please try again.";
             return RedirectToAction(nameof(List));
         }
     }
@@ -103,7 +103,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden) { return Forbid(); }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) { return NotFound(); }
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or InvalidOperationException)
-        { logger.LogWarning(ex, "Payroll export failed {Id}", id); TempData["PayrollError"] = ex is HttpRequestException http && http.StatusCode == System.Net.HttpStatusCode.Conflict ? http.Message : "Không thể xuất báo cáo. Vui lòng thử lại."; return RedirectToAction(nameof(Details), new { id }); }
+        { logger.LogWarning(ex, "Payroll export failed {Id}", id); TempData["PayrollError"] = ex is HttpRequestException http && http.StatusCode == System.Net.HttpStatusCode.Conflict ? http.Message : "Could not export report. Please try again."; return RedirectToAction(nameof(Details), new { id }); }
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -113,7 +113,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         try
         {
             await payroll.ApproveAsync(input.PeriodId, ct);
-            TempData["PayrollSuccess"] = "Đã duyệt toàn bộ kỳ lương. Hệ thống đã khóa công toàn kỳ và phát hành phiếu lương chính thức (Published Payslips).";
+            TempData["PayrollSuccess"] = "Payroll period approved successfully. Timesheets have been locked and official payslips published.";
             TempData["PayrollAction"] = "approve";
             return RedirectToAction(nameof(Details), new { id = input.PeriodId, input.Search, input.PageNumber, input.PageSize });
         }
@@ -121,7 +121,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Payroll review failed for {Id}", input.PeriodId);
-            ModelState.AddModelError("", "Không xác nhận được kết quả phê duyệt. Hãy tải lại trang để kiểm tra trạng thái trước khi thử lại.");
+            ModelState.AddModelError("", "Unable to confirm approval result. Please refresh the page to check status before retrying.");
         }
         try
         {
@@ -131,7 +131,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
         {
             logger.LogWarning(ex, "Could not refresh payroll review");
-            TempData["PayrollError"] = "Không thể tải lại kỳ lương. Vui lòng kiểm tra trạng thái trước khi thực hiện lại thao tác.";
+            TempData["PayrollError"] = "Could not reload payroll period. Please check status before retrying.";
             return RedirectToAction(nameof(List));
         }
     }
@@ -139,7 +139,7 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     [HttpPost, ValidateAntiForgeryToken]
     public IActionResult Reject(PayrollRejectInput input)
     {
-        TempData["PayrollError"] = "Admin chỉ phê duyệt toàn bộ kỳ lương đã được Submit. Các trường hợp cần chỉnh sửa phải được Accountant và Manager xử lý trước khi gửi duyệt.";
+        TempData["PayrollError"] = "Admin only approves submitted payroll periods. Any adjustments must be resolved prior to submission.";
         return RedirectToAction(nameof(Details), new { id = input.PeriodId });
     }
 }
