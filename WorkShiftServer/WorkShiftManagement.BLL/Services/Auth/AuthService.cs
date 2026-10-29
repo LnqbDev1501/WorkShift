@@ -6,22 +6,22 @@ using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
-using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Interfaces.Admin;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
 public class AuthService : IAuthService
 {
     private readonly HttpClient _httpClient;
-    private readonly AppDbContext _context;
+    private readonly IUserRepo _userRepo;
     private readonly string _inviteRedirectUrl;
     private readonly string _passwordRecoveryRedirectUrl;
     private readonly string _staffSetupRedirectUrl;
 
-    public AuthService(HttpClient httpClient, AppDbContext context, string inviteRedirectUrl, string passwordRecoveryRedirectUrl, string staffSetupRedirectUrl)
+    public AuthService(HttpClient httpClient, IUserRepo userRepo, string inviteRedirectUrl, string passwordRecoveryRedirectUrl, string staffSetupRedirectUrl)
     {
         _httpClient = httpClient;
-        _context = context;
+        _userRepo = userRepo;
         _inviteRedirectUrl = string.IsNullOrWhiteSpace(inviteRedirectUrl)
             ? throw new ArgumentException("Password setup URL is required.", nameof(inviteRedirectUrl))
             : inviteRedirectUrl;
@@ -164,12 +164,10 @@ public class AuthService : IAuthService
         if (string.Equals(currentPassword, password, StringComparison.Ordinal))
             throw new ArgumentException("The new password must not be the same as the old password.");
 
-        // Get email from local database to verify current password via Supabase
-        var email = await _context.Users
-            .Where(u => u.UserId == userId)
-            .Select(u => u.Email)
-            .FirstOrDefaultAsync() ?? string.Empty;
+        var user = await _userRepo.GetByIdWithTrackingAsync(userId)
+            ?? throw new KeyNotFoundException("No matching user profile was found.");
 
+        var email = user.Email;
         if (string.IsNullOrWhiteSpace(email))
             throw new KeyNotFoundException("User profile not found.");
 
@@ -193,6 +191,23 @@ public class AuthService : IAuthService
         {
             throw new HttpRequestException(
                 $"Unable to set password: {GetErrorMessage(body)}", null, response.StatusCode);
+        }
+
+        user.HasPassword = true;
+        if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+        {
+            user.Status = "ACTIVE";
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepo.SaveChangesAsync();
+        }
+        else if (!user.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("The current account status does not allow activation.");
+        }
+        else
+        {
+            user.UpdatedAt = DateTime.UtcNow;
+            await _userRepo.SaveChangesAsync();
         }
 
         return userId;

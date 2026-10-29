@@ -193,8 +193,8 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
     var staffSetupUrl = builder.Configuration["AdminUi:StaffSetupUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:StaffSetupUrl configuration.");
-    var context = sp.GetRequiredService<AppDbContext>();
-    return new AuthService(client, context, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
+    var userRepo = sp.GetRequiredService<IUserRepo>();
+    return new AuthService(client, userRepo, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
