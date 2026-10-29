@@ -16,10 +16,17 @@
             </div>
         </div>
         <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2 md:ml-auto">
+            @{
+                var isInactive = Model.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase);
+                var isPending = !isInactive && (!Model.HasPassword || Model.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase));
+                var isActive = !isInactive && !isPending && Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+            }
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium
-                @(Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-100 text-gray-600 border-gray-200") border">
-                <span class="w-2 h-2 rounded-full @(Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) ? "bg-emerald-500" : "bg-gray-400")"></span>
-                @Model.Status
+                @(isPending ? "bg-amber-50 text-amber-700 border-amber-200" :
+                  isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                  "bg-gray-100 text-gray-600 border-gray-200") border">
+                <span class="w-2 h-2 rounded-full @(isPending ? "bg-amber-500" : isActive ? "bg-emerald-500" : "bg-gray-400")"></span>
+                @(isPending ? "PENDING" : Model.Status)
             </span>
         </div>
     </div>
@@ -53,10 +60,16 @@
                         </div>
                     }
 
-                    @if (Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                    @if (isActive)
                     {
                         <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm" title="Active">
                             <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+                        </span>
+                    }
+                    else if (isPending)
+                    {
+                        <span class="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-white flex items-center justify-center shadow-sm" title="Pending Setup">
+                            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
                         </span>
                     }
                     else
@@ -125,17 +138,28 @@
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Status</p>
                 <p>
                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border
-                        @(Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                          Model.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase) ? "bg-gray-100 text-gray-600 border-gray-200" :
-                          "bg-amber-50 text-amber-700 border-amber-200")">
-                        @Model.Status
+                        @(isPending ? "bg-amber-50 text-amber-700 border-amber-200" :
+                          isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                          "bg-gray-100 text-gray-600 border-gray-200")">
+                        @(isPending ? "PENDING" : Model.Status)
                     </span>
                 </p>
             </div>
         </div>
 
         <div class="flex items-center gap-3 pt-2 border-t border-gray-200">
-            @if (Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+            @if (!Model.HasPassword)
+            {
+                <form asp-controller="ManagerStaff" asp-action="ResendSetupLink" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.UserId" />
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-on-primary hover:bg-primary-container text-sm font-medium transition-colors shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">mail</span>
+                        <span>Resend Setup Link</span>
+                    </button>
+                </form>
+            }
+            @if (isActive || isPending)
             {
                 <form asp-controller="ManagerStaff" asp-action="Deactivate" method="post">
                     @Html.AntiForgeryToken()

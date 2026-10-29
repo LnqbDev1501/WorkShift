@@ -55,9 +55,9 @@ public class ManagerStaffService : IManagerStaffService
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             status = query.Status.Trim().ToUpperInvariant();
-            if (status != "ACTIVE" && status != "INACTIVE")
+            if (status != "ACTIVE" && status != "INACTIVE" && status != "PENDING")
             {
-                throw new ArgumentException("Status filter only accepts 'ACTIVE' or 'INACTIVE'.");
+                throw new ArgumentException("Status filter only accepts 'ACTIVE', 'PENDING', or 'INACTIVE'.");
             }
         }
 
@@ -143,7 +143,7 @@ public class ManagerStaffService : IManagerStaffService
             AvatarUrl = _defaultAvatarUrl,
             Address = request.Address?.Trim() ?? string.Empty,
             EmployeeTypeId = request.EmployeeTypeId,
-            Status = "ACTIVE",
+            Status = "PENDING",
             HasPassword = false,
             CreatedAt = now,
             UpdatedAt = now
@@ -183,7 +183,7 @@ public class ManagerStaffService : IManagerStaffService
             return null;
         }
 
-        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        if (staff.DeletedAt != null || (!staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) && !staff.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException("Deactivated staff cannot be edited. Restore the account first.");
         }
@@ -218,7 +218,7 @@ public class ManagerStaffService : IManagerStaffService
             return false;
         }
 
-        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        if (staff.DeletedAt != null || (!staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) && !staff.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException("Staff is already inactive.");
         }
