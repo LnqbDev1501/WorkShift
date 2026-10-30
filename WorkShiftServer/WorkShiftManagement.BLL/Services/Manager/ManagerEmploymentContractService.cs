@@ -82,8 +82,12 @@ public class ManagerEmploymentContractService(
 
         if (!string.Equals(staff.Role?.RoleName, "STAFF", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The selected user must have the STAFF role.");
-        if (staff.Status != "PENDING" && staff.Status != "ACTIVE")
-            throw new ArgumentException("Staff must be PENDING or ACTIVE.");
+        if (staff.Status != "ACTIVE")
+            throw new ArgumentException("Staff must be ACTIVE.");
+        if (staff.BranchId == null)
+            throw new ArgumentException("Staff must have an assigned branch.");
+        if (staff.BranchId != manager.BranchId)
+            throw new UnauthorizedAccessException("Staff does not belong to the Manager's branch.");
 
         bool isRenewal = string.Equals(request.ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase) ||
                          (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0);
@@ -91,8 +95,8 @@ public class ManagerEmploymentContractService(
         int? replacesContractId = null;
         if (isRenewal)
         {
-            if (staff.BranchId != manager.BranchId)
-                throw new UnauthorizedAccessException("Staff does not belong to the Manager's branch.");
+
+
 
             EmploymentContract? oldContract;
             if (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0)
@@ -973,8 +977,12 @@ public class ManagerEmploymentContractService(
             HasPdf = !string.IsNullOrWhiteSpace(contract.ContractFilePath)
         };
 
-    private static ManagerEmploymentContractDetailResponse MapToDetailResponse(EmploymentContract contract) =>
-        new()
+    private static ManagerEmploymentContractDetailResponse MapToDetailResponse(EmploymentContract contract)
+    {
+        var isCrPending = contract.ContractChangeRequest != null &&
+                          string.Equals(contract.ContractChangeRequest.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase);
+
+        return new()
         {
             ContractId = contract.ContractId,
             ContractNumber = contract.ContractNumber,
@@ -1011,9 +1019,10 @@ public class ManagerEmploymentContractService(
             ManagerRejectionComment = contract.ManagerRejectionComment,
             HasPdf = !string.IsNullOrWhiteSpace(contract.ContractFilePath),
             ContractTemplateVersion = contract.ContractTemplateVersion,
-            OpenChangeRequestId = contract.ContractChangeRequest?.ChangeRequestId,
-            OpenChangeRequestStatus = contract.ContractChangeRequest?.Status
+            OpenChangeRequestId = isCrPending ? contract.ContractChangeRequest!.ChangeRequestId : null,
+            OpenChangeRequestStatus = isCrPending ? contract.ContractChangeRequest!.Status : null
         };
+    }
 
     private static ManagerContractChangeRequestResponse MapToManagerChangeRequestResponse(ContractChangeRequest cr)
     {

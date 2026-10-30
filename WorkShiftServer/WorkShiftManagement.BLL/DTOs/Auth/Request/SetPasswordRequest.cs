@@ -10,9 +10,8 @@ public class SetPasswordRequest
     [Required(ErrorMessage = "Access token is required.")]
     public string AccessToken { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Current password is required.")]
     [DataType(DataType.Password)]
-    public string CurrentPassword
+    public string? CurrentPassword
     {
         get => _currentPassword;
         set => _currentPassword = value?.Trim() ?? string.Empty;

@@ -291,6 +291,7 @@ namespace UI_Admin.Services
             try
             {
                 using var document = JsonDocument.Parse(body);
+                var root = document.RootElement;
 
                 foreach (var key in new[]
                          {
@@ -300,11 +301,29 @@ namespace UI_Admin.Services
                              "error"
                          })
                 {
-                    if (document.RootElement.TryGetProperty(key, out var value))
+                    if (root.TryGetProperty(key, out var value) && value.ValueKind == JsonValueKind.String)
                     {
                         return value.GetString()
                             ?? "The password could not be set.";
                     }
+                }
+
+                if (root.TryGetProperty("errors", out var errorsElement) && errorsElement.ValueKind == JsonValueKind.Object)
+                {
+                    foreach (var prop in errorsElement.EnumerateObject())
+                    {
+                        if (prop.Value.ValueKind == JsonValueKind.Array && prop.Value.GetArrayLength() > 0)
+                        {
+                            var firstError = prop.Value[0].GetString();
+                            if (!string.IsNullOrWhiteSpace(firstError))
+                                return firstError;
+                        }
+                    }
+                }
+
+                if (root.TryGetProperty("title", out var titleElement) && titleElement.ValueKind == JsonValueKind.String)
+                {
+                    return titleElement.GetString() ?? "The password could not be set.";
                 }
             }
             catch (JsonException)

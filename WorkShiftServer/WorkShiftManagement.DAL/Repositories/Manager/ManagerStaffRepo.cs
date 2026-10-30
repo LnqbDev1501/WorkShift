@@ -42,6 +42,8 @@ public class ManagerStaffRepo : IManagerStaffRepo
             var normalizedStatus = status.Trim().ToUpperInvariant();
             if (normalizedStatus == "ACTIVE")
                 query = query.Where(u => u.Status == "ACTIVE" && u.DeletedAt == null);
+            else if (normalizedStatus == "PENDING")
+                query = query.Where(u => u.Status == "PENDING" && u.DeletedAt == null);
             else
                 query = query.Where(u => u.Status == normalizedStatus);
         }
@@ -145,7 +147,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
                 u.UserId == staffId &&
                 (u.BranchId == managerBranchId || _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE")) &&
                 u.Role.RoleName == "STAFF" &&
-                u.Status == "ACTIVE" &&
+                (u.Status == "ACTIVE" || u.Status == "PENDING") &&
                 u.DeletedAt == null);
 
         if (staff == null)

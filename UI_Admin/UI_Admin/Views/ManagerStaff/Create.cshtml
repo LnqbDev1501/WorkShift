@@ -72,8 +72,8 @@
             </div>
 
             <div class="flex flex-col gap-unit-2">
-                <label asp-for="Address" class="font-label-md text-label-md text-on-surface">Address</label>
-                <textarea asp-for="Address" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="Optional address..."></textarea>
+                <label asp-for="Address" class="font-label-md text-label-md text-on-surface">Address <span class="text-error">*</span></label>
+                <textarea asp-for="Address" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 123 Nguyen Hue, Quan 1, TP.HCM"></textarea>
                 <span asp-validation-for="Address" class="text-error font-body-sm text-body-sm"></span>
             </div>
 

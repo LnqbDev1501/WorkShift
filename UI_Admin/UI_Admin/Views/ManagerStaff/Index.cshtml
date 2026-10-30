@@ -36,8 +36,8 @@
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
 new("Total Staff", Model.TotalItems.ToString("N0"), "Total staff in your branch", "groups"),
 new("Active Staff", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Active staff", "check_circle"),
-new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "Inactive staff", "pause_circle"),
-new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month && x.CreatedAt.Year == DateTime.Now.Year).ToString("N0"), "New hires this month", "event_note")
+new("Pending Setup", Model.Items.Count(x => x.Status == "PENDING" || !x.HasPassword).ToString("N0"), "Pending first-time setup", "pending_actions"),
+new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "Inactive staff", "pause_circle")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="ManagerStaff" asp-action="Index" id="filter-form" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
@@ -60,6 +60,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                         onchange="this.form.submit()">
                     <option value="all" selected="@(Model.StatusFilter == "all")">All Status</option>
                     <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
+                    <option value="pending" selected="@(Model.StatusFilter == "pending")">Pending Setup</option>
                     <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
                 </select>
                 <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
@@ -95,8 +96,10 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                     {
                         @foreach (var item in Model.Items)
                         {
-                            var isActive = item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
-                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isActive ? "bg-surface-container-lowest/70" : "")">
+                            var isInactive = item.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase);
+                            var isPending = !isInactive && (!item.HasPassword || item.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase));
+                            var isActive = !isInactive && !isPending && item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(isInactive ? "bg-surface-container-lowest/70" : "")">
                                 <td class="px-unit-5 py-2">
                                     <div class="w-10 h-10 rounded-full bg-[#5146e5] text-white text-sm font-bold flex items-center justify-center border-2 border-surface-container shadow-sm">
                                         @item.FullName.Split(' ').TakeLast(2).Select(w => char.ToUpperInvariant(w[0])).Select(c => c.ToString()).Aggregate((a, b) => a + b)
@@ -108,7 +111,14 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary break-all">@item.Email</td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">@item.Phone</td>
                                 <td class="px-unit-4 py-2 whitespace-nowrap">
-                                    @if (isActive)
+                                    @if (isPending)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-amber-50 text-amber-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                            Pending
+                                        </span>
+                                    }
+                                    else if (isActive)
                                     {
                                         <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
@@ -137,7 +147,7 @@ new("This Month", Model.Items.Count(x => x.CreatedAt.Month == DateTime.Now.Month
                                             </form>
                                         }
                                         <a asp-controller="ManagerStaff" asp-action="Details" asp-route-id="@item.UserId" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">Details</a>
-                                        @if (isActive)
+                                        @if (isActive || isPending)
                                         {
                                             <button type="button"
                                                     class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn cursor-pointer"
