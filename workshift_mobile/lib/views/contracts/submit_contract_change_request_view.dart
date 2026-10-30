@@ -126,6 +126,15 @@ class _SubmitContractChangeRequestViewState
   }
 
   Future<void> _handleSubmit() async {
+    if (!widget.contract.isPendingStaff) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực không thể yêu cầu thay đổi.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     if (_selectedFieldKeys.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

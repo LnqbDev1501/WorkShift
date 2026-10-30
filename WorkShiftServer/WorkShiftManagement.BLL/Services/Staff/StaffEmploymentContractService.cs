@@ -109,7 +109,7 @@ public class StaffEmploymentContractService(
         }
 
         var openCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
-        bool isContractChangeable = isPending || string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        bool isContractChangeable = isPending;
         bool canSubmitChangeRequest = isContractChangeable && openCr == null;
         string? cannotSubmitChangeRequestReason = null;
         if (openCr != null)
@@ -118,7 +118,7 @@ public class StaffEmploymentContractService(
         }
         else if (!isContractChangeable)
         {
-            cannotSubmitChangeRequestReason = "Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF) hoặc đang có hiệu lực (ACTIVE).";
+            cannotSubmitChangeRequestReason = "Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực (ACTIVE) không thể yêu cầu thay đổi.";
         }
 
         return new StaffContractDetailResponse
@@ -225,9 +225,9 @@ public class StaffEmploymentContractService(
         if (contract == null)
             throw new KeyNotFoundException("Hợp đồng lao động không tồn tại hoặc không thuộc quyền sở hữu của bạn.");
 
-        var allowedStatuses = new[] { "PENDING_STAFF", "ACTIVE" };
+        var allowedStatuses = new[] { "PENDING_STAFF" };
         if (!allowedStatuses.Contains(contract.Status, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Không thể gửi yêu cầu thay đổi cho hợp đồng ở trạng thái {contract.Status}.");
+            throw new InvalidOperationException($"Không thể gửi yêu cầu thay đổi cho hợp đồng ở trạng thái {contract.Status}. Chỉ hợp đồng ở trạng thái chờ ký (PENDING_STAFF) mới có thể yêu cầu thay đổi.");
 
         var existingCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
         if (existingCr != null)

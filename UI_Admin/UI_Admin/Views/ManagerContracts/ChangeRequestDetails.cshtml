@@ -13,9 +13,9 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-2 text-xs text-slate-500 mb-1.5">
-                <a asp-action="ChangeRequests" class="hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium">
+                <a asp-action="Details" asp-route-id="@Model.ContractId" class="hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium">
                     <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                    <span>Contract Change Requests</span>
+                    <span>Contract Details</span>
                 </a>
                 <span>/</span>
                 <span class="text-slate-800 font-semibold">Request #@Model.ChangeRequestId</span>

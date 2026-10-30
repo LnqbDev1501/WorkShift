@@ -428,6 +428,8 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
       final success = await widget.controller.acceptContract(contract.contractId);
       if (mounted) {
         if (success) {
+          await widget.controller.loadContractDetail(widget.contractId);
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Contract confirmed & digitally signed successfully!'),
@@ -711,8 +713,10 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                       const SizedBox(height: 20),
 
                       // 8. Contract Change Requests History
-                      _buildChangeRequestsSection(contract, changeRequests),
-                      const SizedBox(height: 24),
+                      if (contract.isPendingStaff || changeRequests.isNotEmpty)
+                        _buildChangeRequestsSection(contract, changeRequests),
+                      if (contract.isPendingStaff || changeRequests.isNotEmpty)
+                        const SizedBox(height: 24),
                     ],
                   ),
                 ),
@@ -1785,7 +1789,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                 ],
               ),
             ),
-            if (contract.canSubmitChangeRequest)
+            if (contract.isPendingStaff && contract.canSubmitChangeRequest)
               OutlinedButton.icon(
                 onPressed: () async {
                   final res = await Navigator.push(
