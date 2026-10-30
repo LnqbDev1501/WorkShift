@@ -92,6 +92,6 @@ public class ManagerTimesheetAdjustmentListViewModel
     public string Status { get; set; } = "ALL";
     public int? ScheduleWeekId { get; set; }
     public int PageIndex { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = 20;
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling((double)TotalCount / PageSize) : 0;
 }

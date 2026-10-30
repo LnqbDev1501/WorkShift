@@ -119,7 +119,13 @@
 
     <!-- Search & Filter Bar (Dropdown Filter) -->
     <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-        <form method="get" asp-action="Index" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <form method="get" asp-action="Index" id="adjustmentFilterForm" class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            @if (Model.ScheduleWeekId.HasValue)
+            {
+                <input type="hidden" name="scheduleWeekId" value="@Model.ScheduleWeekId.Value" />
+            }
+            <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
             <!-- Search Input -->
             <div class="relative flex-1 max-w-md">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
@@ -164,7 +170,7 @@
                 <span class="material-symbols-outlined text-indigo-600 text-xl">rule</span>
                 <h2 class="text-sm font-bold text-slate-900">Adjustment Requests Log</h2>
                 <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    @Model.Items.Count Claims Shown
+                    @Model.TotalCount Claims
                 </span>
             </div>
             <span class="text-xs text-slate-500 font-medium">Timezone: Vietnam (UTC+7)</span>
@@ -285,36 +291,14 @@
             </table>
         </div>
 
-        <!-- Pagination Controls -->
-        @if (Model.TotalPages > 1)
+        <!-- Pagination / Footer Bar -->
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
         {
-            <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between bg-slate-50/50">
-                <span class="text-xs text-slate-500 font-medium">
-                    Showing page @Model.PageIndex of @Model.TotalPages (@Model.TotalCount total items)
-                </span>
-                <div class="flex items-center gap-2">
-                    @if (Model.PageIndex > 1)
-                    {
-                        <a asp-action="Index"
-                           asp-route-pageIndex="@(Model.PageIndex - 1)"
-                           asp-route-status="@Model.Status"
-                           asp-route-search="@Model.Search"
-                           class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700">
-                            Previous
-                        </a>
-                    }
-                    @if (Model.PageIndex < Model.TotalPages)
-                    {
-                        <a asp-action="Index"
-                           asp-route-pageIndex="@(Model.PageIndex + 1)"
-                           asp-route-status="@Model.Status"
-                           asp-route-search="@Model.Search"
-                           class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700">
-                            Next
-                        </a>
-                    }
-                </div>
-            </div>
-        }
+            PageNumber = Model.PageIndex,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalCount,
+            PageParameter = "pageIndex",
+            ItemLabel = "claims",
+        })" />
     </div>
 </div>

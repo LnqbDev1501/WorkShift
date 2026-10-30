@@ -32,11 +32,22 @@ public sealed class ManagerTimesheetController : Controller
         [FromQuery] int? year,
         [FromQuery] string? status = "ALL",
         [FromQuery] int pageIndex = 1,
-        [FromQuery] int pageSize = 10,
+        [FromQuery] int? pageNumber = null,
+        [FromQuery] int? page = null,
+        [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
+        if (Request.Query.ContainsKey("page") && page.HasValue)
+        {
+            pageIndex = page.Value;
+        }
+        else if (Request.Query.ContainsKey("pageNumber") && pageNumber.HasValue)
+        {
+            pageIndex = pageNumber.Value;
+        }
+
         pageIndex = Math.Max(1, pageIndex);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pageSize = pageSize > 0 ? Math.Clamp(pageSize, 1, 100) : 20;
 
         var viewModel = new ManagerTimesheetListViewModel
         {
