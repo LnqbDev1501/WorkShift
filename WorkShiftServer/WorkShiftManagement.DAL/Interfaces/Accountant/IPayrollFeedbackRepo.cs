@@ -7,6 +7,7 @@ public sealed class PayrollReviewData
     public List<PayrollFeedbackRequest> Reviews { get; init; } = [];
     public List<PayrollCorrectionRequest> Corrections { get; init; } = [];
 }
+public sealed record PendingRealtimeNotification(WorkShiftManagement.DAL.Entities.Notification Notification, List<Guid> RecipientUserIds);
 public interface IPayrollFeedbackRepo
 {
     Task<PayrollReviewData?> LoadAsync(int periodId, CancellationToken ct);
@@ -21,5 +22,7 @@ public interface IPayrollFeedbackRepo
     void Add(Payslip row);
     void Audit(Guid? actor, string action, string table, int id, object payload, DateTime now);
     void NotifyInApp(int periodId, int branchId, string role, Guid? user, string title, string message, DateTime now, Guid? sender = null);
+    IReadOnlyList<PendingRealtimeNotification> PendingNotifications { get; }
+    void ClearPendingNotifications();
     Task<List<PayrollCorrectionRequest>> QueryIssuesAsync(int? branchId, int? periodId, string? status, CancellationToken ct);
 }

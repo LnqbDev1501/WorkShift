@@ -35,7 +35,7 @@ public sealed class AccountantPayrollPeriodsController(
     {
         logger.LogWarning(ex, "Payroll period UI request failed.");
         return ex is PayrollPeriodApiException || ex is HttpRequestException { StatusCode: HttpStatusCode.BadRequest or HttpStatusCode.Conflict }
-            ? ex.Message : "Không xác nhận được kết quả thao tác. Hãy tải lại kỳ lương để kiểm tra trước khi thử lại.";
+            ? ex.Message : "Unable to confirm operation result. Please refresh the payroll period to verify before retrying.";
     }
 
     [HttpGet]
@@ -43,9 +43,9 @@ public sealed class AccountantPayrollPeriodsController(
     {
         query.Status = query.Status?.Trim().ToUpperInvariant();
         if (!string.IsNullOrEmpty(query.Status) && !PeriodDisplay.Statuses.Contains(query.Status))
-            ModelState.AddModelError("Status", "Trạng thái không hợp lệ.");
+            ModelState.AddModelError("Status", "Invalid status.");
         if (query.StartDateFrom > query.StartDateTo)
-            ModelState.AddModelError("StartDateTo", "Ngày kết thúc bộ lọc phải sau hoặc bằng ngày bắt đầu.");
+            ModelState.AddModelError("StartDateTo", "Filter end date must be on or after start date.");
 
         var model = new PeriodListViewModel { Query = query };
         if (ModelState.IsValid)
@@ -120,7 +120,7 @@ public sealed class AccountantPayrollPeriodsController(
                 BranchId = current.BranchId,
                 WeekStartDate = current.StartDate,
                 WeekEndDate = current.EndDate,
-                Status = "Tuần hiện tại"
+                Status = "Current week"
             });
         }
         form.WeeksLoaded = true;
@@ -149,7 +149,7 @@ public sealed class AccountantPayrollPeriodsController(
             var current = await api.DetailAsync(id, ct);
             if (!current.CanUpdate)
             {
-                TempData["PeriodError"] = "Kỳ này không còn được sửa bản nháp.";
+                TempData["PeriodError"] = "This draft period can no longer be edited.";
                 return RedirectToAction(nameof(Details), new { id });
             }
             var form = new PeriodForm { Id = id, PeriodName = current.PeriodName, ScheduleWeekId = current.ScheduleWeekId ?? 0 };
@@ -185,14 +185,14 @@ public sealed class AccountantPayrollPeriodsController(
                 current = await api.DetailAsync(form.Id, ct);
                 if (!current.CanUpdate)
                 {
-                    TempData["PeriodError"] = "Bản nháp không còn được sửa.";
+                    TempData["PeriodError"] = "Draft period can no longer be edited.";
                     return RedirectToAction(nameof(Details), new { id = form.Id });
                 }
             }
             if (ModelState.IsValid)
             {
                 var id = await api.SaveAsync(form, ct);
-                TempData["PeriodSuccess"] = form.Id == 0 ? "Đã tạo kỳ lương DRAFT." : "Đã cập nhật bản nháp.";
+                TempData["PeriodSuccess"] = form.Id == 0 ? "Draft payroll period created successfully." : "Draft period updated successfully.";
                 return RedirectToAction(nameof(Details), new { id });
             }
         }
@@ -223,7 +223,7 @@ public sealed class AccountantPayrollPeriodsController(
             var p = await api.DetailAsync(id, ct);
             if (!(delete ? p.CanDelete : p.CanOpen))
             {
-                TempData["PeriodError"] = "Kỳ lương không còn đủ điều kiện thực hiện thao tác.";
+                TempData["PeriodError"] = "Payroll period is no longer eligible for this operation.";
                 return RedirectToAction(nameof(Details), new { id });
             }
             return View("Confirm", new PeriodConfirmation(p, delete));
@@ -247,10 +247,10 @@ public sealed class AccountantPayrollPeriodsController(
         {
             var p = await api.DetailAsync(id, ct);
             if (!(delete ? p.CanDelete : p.CanOpen))
-                throw new PayrollPeriodApiException(HttpStatusCode.Conflict, "Kỳ đã thay đổi; thao tác không còn được phép.");
+                throw new PayrollPeriodApiException(HttpStatusCode.Conflict, "Period status has changed; operation is no longer permitted.");
             if (delete) await api.DeleteAsync(id, ct);
             else await api.OpenAsync(id, ct);
-            TempData["PeriodSuccess"] = delete ? "Đã xóa bản nháp." : "Đã mở/publish kỳ lương (OPEN). Kỳ đã sẵn sàng để tính lương.";
+            TempData["PeriodSuccess"] = delete ? "Draft period deleted successfully." : "Payroll period opened successfully (OPEN). Ready for calculation.";
             return delete ? RedirectToAction(nameof(Index)) : RedirectToAction(nameof(Details), new { id });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -262,15 +262,23 @@ public sealed class AccountantPayrollPeriodsController(
         }
     }
 
-    // Step 7: Send Previews to Staff
+    // Send Previews to Staff
     [HttpPost, ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendPreviews(int id, CancellationToken ct)
+    public async Task<IActionResult> SendPreviews(int id, DateTime? initialFeedbackDeadlineAt, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         try
         {
-            await api.SendPreviewsAsync(id, ct);
-            TempData["PeriodSuccess"] = "Đã gửi bản xem trước (Payroll Preview) đến toàn bộ nhân viên. Hạn phản hồi ban đầu đã được thiết lập.";
+            DateTimeOffset? deadlineUtc = null;
+            if (initialFeedbackDeadlineAt.HasValue)
+            {
+                // Browser datetime-local submits local Vietnam time (UTC+7)
+                var vnTime = initialFeedbackDeadlineAt.Value;
+                var offset = new DateTimeOffset(vnTime, TimeSpan.FromHours(7));
+                deadlineUtc = offset.ToUniversalTime();
+            }
+            await api.SendPreviewsAsync(id, deadlineUtc, ct);
+            TempData["PeriodSuccess"] = "Payroll previews have been sent to all eligible employees. Review deadline has been set.";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -282,7 +290,7 @@ public sealed class AccountantPayrollPeriodsController(
         }
     }
 
-    // Step 10: Submit Period to Admin
+    // Submit Period to Admin
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitPeriod(int id, CancellationToken ct)
     {
@@ -290,7 +298,7 @@ public sealed class AccountantPayrollPeriodsController(
         try
         {
             await api.SubmitPeriodAsync(id, ct);
-            TempData["PeriodSuccess"] = "Đã gửi toàn bộ kỳ lương cho Admin phê duyệt.";
+            TempData["PeriodSuccess"] = "Payroll period submitted to Admin for approval successfully.";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
@@ -302,7 +310,7 @@ public sealed class AccountantPayrollPeriodsController(
         }
     }
 
-    // Step 12: View Settlement Summary
+    // View Settlement Summary
     [HttpGet]
     public async Task<IActionResult> Settlement(int id, CancellationToken ct)
     {
@@ -321,20 +329,20 @@ public sealed class AccountantPayrollPeriodsController(
         }
     }
 
-    // Step 12: Confirm Settlement
+    // Confirm Settlement
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> ConfirmSettlement(int id, ConfirmPayrollSettlementRequest request, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         if (!request.ConfirmedExternalSettlement)
         {
-            TempData["PeriodError"] = "Cần đánh dấu xác nhận toàn bộ chi trả bên ngoài đã hoàn tất.";
+            TempData["PeriodError"] = "Please confirm that all external net salary payments have been completed.";
             return RedirectToAction(nameof(Settlement), new { id });
         }
         try
         {
             await api.ConfirmSettlementAsync(id, request, ct);
-            TempData["PeriodSuccess"] = "Đã xác nhận quyết toán toàn kỳ, áp dụng Carry Forward và đóng kỳ lương thành công (PAID -> CLOSED).";
+            TempData["PeriodSuccess"] = "Settlement confirmed successfully. Applied Carry Forward deductions and closed the period (PAID -> CLOSED).";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }

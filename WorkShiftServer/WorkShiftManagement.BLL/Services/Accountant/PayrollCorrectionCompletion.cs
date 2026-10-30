@@ -94,7 +94,9 @@ public sealed partial class PayrollFeedbackService
         await RegisterRelated(d, r, actor, ct);
         Complete(d, r, candidate, actor, note);
         Audit(actor, "COMPLETE_AND_SEND_PAYROLL_CORRECTION", d, new { id, candidate.PayrollId, note });
-        await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return MapIssue(d, r);
+        await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return MapIssue(d, r);
     }
     private PayrollSourceImpactResponse AssessSources(PayrollReviewData d, PayrollCalculationInputs input, Guid actor, bool includePending = true)
     {
@@ -137,7 +139,9 @@ public sealed partial class PayrollFeedbackService
         var r = d.Corrections.Single(r => r.CorrectionRequestId == correctionRequestId);
         if (r.Status != "RESPONDED" || r.ResponseAction != "CORRECT") throw new InvalidOperationException("Chỉ mở rộng phạm vi từ yêu cầu Manager đã CORRECT.");
         var result = await RegisterRelated(d, r, actor, ct);
-        await calculation.SaveAsync(ct); await tx.CommitAsync(ct); return result;
+        await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return result;
     }
     private async Task<PayrollSourceImpactResponse> RegisterRelated(PayrollReviewData d, Issue parent, Guid actor, CancellationToken ct)
     {
@@ -166,11 +170,11 @@ public sealed partial class PayrollFeedbackService
             {
                 feedback = new PayrollFeedbackRequest { Payroll = p, PayrollId = p.PayrollId, EmployeeId = p.UserId,
                     RoundNo = 1, SentBy = actor, CreatedAt = Now, UpdatedAt = Now, ReviewStatus = "SUPERSEDED",
-                    ReviewDeadlineAt = d.Period.InitialFeedbackDeadlineAt, ResultNote = $"Bị ảnh hưởng cùng nguồn của Correction Request #{parent.CorrectionRequestId}." };
+                    ReviewDeadlineAt = d.Period.InitialFeedbackDeadlineAt, ResultNote = $"Affected by shared source from Correction Request #{parent.CorrectionRequestId}." };
                 repo.Add(feedback); d.Reviews.Add(feedback); await calculation.SaveAsync(ct);
             }
             else if (feedback != null) { feedback.ReviewStatus = "SUPERSEDED"; feedback.UpdatedAt = Now; }
-            var related = NewIssue(d, p, actor, $"Ảnh hưởng cùng nguồn của yêu cầu #{parent.CorrectionRequestId}: {parent.Reason}", feedback);
+            var related = NewIssue(d, p, actor, $"Shared source impact from request #{parent.CorrectionRequestId}: {parent.Reason}", feedback);
             // Manager's verified shared-source correction applies to this same change too.
             related.Status = "RESPONDED"; related.ResponseAction = "CORRECT"; related.ResponseNote = parent.ResponseNote;
             related.RespondedBy = parent.RespondedBy; related.RespondedAt = Now; related.UpdatedAt = Now;

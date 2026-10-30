@@ -26,7 +26,7 @@
                 }
             </div>
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">My Notifications</h1>
-            <p class="text-sm text-gray-500 mt-0.5">Track shift updates, employment contract notices, and messages from management.</p>
+            <p class="text-sm text-gray-500 mt-0.5">Track payroll reviews, correction requests, shift updates, and system notices.</p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
             <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
@@ -154,7 +154,7 @@
                     }
                     else
                     {
-                        <span>You have not received any notifications yet. Contract and shift schedule updates will appear here.</span>
+                        <span>You have not received any notifications yet. Payroll, contract, and shift updates will appear here.</span>
                     }
                 </p>
                 @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Filter != "all")
@@ -180,12 +180,22 @@
                                     || (item.Title?.Contains("đơn", StringComparison.OrdinalIgnoreCase) ?? false)
                                     || (item.Title?.Contains("request", StringComparison.OrdinalIgnoreCase) ?? false)
                                     || (item.NotificationType?.Contains("Request", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isPayrollRelated = (item.NotificationType?.Equals("PAYROLL", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("payroll", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("lương", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isSalaryChangeRelated = (item.NotificationType?.Equals("SalaryChange", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Increase", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Rate", StringComparison.OrdinalIgnoreCase) ?? false);
 
-                var iconName = isContractRelated ? "description" :
+                var iconName = isSalaryChangeRelated ? "trending_up" :
+                               isPayrollRelated ? "payments" :
+                               isContractRelated ? "description" :
                                isRequestRelated ? "pending_actions" :
                                isShiftRelated ? "schedule" :
                                (item.NotificationType == "Broadcast" ? "campaign" : "notifications");
-                var iconBg = isContractRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                var iconBg = isSalaryChangeRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isPayrollRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isContractRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                              isRequestRelated ? "bg-violet-50 text-violet-600 border-violet-100" :
                              isShiftRelated ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
                              (item.NotificationType == "Broadcast" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-blue-50 text-blue-600 border-blue-100");
@@ -221,8 +231,10 @@
                                     @(item.NotificationType switch
                                     {
                                         "SYSTEM" => "System",
+                                        "PAYROLL" => "Payroll",
                                         "ShiftAssignment" => "Shift Assignment",
-                                        "EmployeeRequest" => "Yêu cầu",
+                                        "EmployeeRequest" => "Request",
+                                        "SalaryChange" => "Salary Proposal",
                                         "Broadcast" => "Broadcast",
                                         _ => item.NotificationType
                                     })
@@ -260,6 +272,37 @@
 
                     <!-- Actions -->
                     <div class="flex items-center gap-2 self-end sm:self-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 w-full sm:w-auto justify-end">
+                        @if (isPayrollRelated)
+                        {
+                            if (User.IsInRole("ACCOUNTANT"))
+                            {
+                                <a asp-controller="AccountantPayrollFeedback" asp-action="Index"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                   title="Go to Payroll Feedback">
+                                    <span class="material-symbols-outlined text-[14px]">feedback</span>
+                                    <span>Feedback</span>
+                                </a>
+                            }
+                            else if (User.IsInRole("MANAGER"))
+                            {
+                                <a asp-controller="ManagerPayrollCorrection" asp-action="Index"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                   title="Go to Payroll Corrections">
+                                    <span class="material-symbols-outlined text-[14px]">gavel</span>
+                                    <span>Corrections</span>
+                                </a>
+                            }
+                            else if (User.IsInRole("ADMIN"))
+                            {
+                                <a asp-controller="Payroll" asp-action="List"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                   title="Go to Payroll Approvals">
+                                    <span class="material-symbols-outlined text-[14px]">payments</span>
+                                    <span>Approvals</span>
+                                </a>
+                            }
+                        }
+
                         @if (isContractRelated)
                         {
                             var contractController = User.IsInRole("MANAGER")
@@ -317,8 +360,7 @@
             // Optional AJAX mark as read handler
             document.querySelectorAll('.mark-read-form').forEach(function (form) {
                 form.addEventListener('submit', function (e) {
-                    // Let regular form submit handle it cleanly with returnUrl,
-                    // or enhance with seamless feel
+                    // Let regular form submit handle it cleanly with returnUrl
                 });
             });
         });

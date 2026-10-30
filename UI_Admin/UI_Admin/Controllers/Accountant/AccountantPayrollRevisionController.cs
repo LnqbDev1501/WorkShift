@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UI_Admin.Models.Accountant.PayrollPeriods;
 using UI_Admin.Models.PayrollCalculation;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
@@ -184,8 +185,8 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
 
         try
         {
-            await api.ResendCorrectionAsync(requestId, reason.Trim(), ct);
-            TempData["SuccessMessage"] = "Correction request resent to Manager successfully with a new 23:59:59 deadline.";
+            var result = await api.ResendCorrectionAsync(requestId, reason.Trim(), ct);
+            TempData["SuccessMessage"] = $"Correction request resent to Manager successfully (Response deadline: {PeriodDisplay.Time(result.ResponseDeadlineAt)} UTC+7).";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))
@@ -209,8 +210,8 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
 
         try
         {
-            await api.ResendPreviewAsync(feedbackId, reason.Trim(), ct);
-            TempData["SuccessMessage"] = "Payroll preview resent to employee successfully with a new 23:59:59 deadline.";
+            var result = await api.ResendPreviewAsync(feedbackId, reason.Trim(), ct);
+            TempData["SuccessMessage"] = $"Payroll preview resent to employee successfully (Review deadline: {PeriodDisplay.Time(result.ReviewDeadlineAt)} UTC+7).";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))

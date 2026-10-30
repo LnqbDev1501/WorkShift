@@ -11,14 +11,23 @@ public partial class ManagerEmployeeRequestRepo
         string? reviewNote, CancellationToken cancellationToken)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        // Keep the salary/contract source stable throughout approval. Manager acceptance
+        // must not validate a stale snapshot while an Admin changes the current rate.
+        await _context.Database.ExecuteSqlRawAsync(
+            "LOCK TABLE public.staff_salary_history, public.employment_contracts IN SHARE MODE", cancellationToken);
         var lockedId = await _context.EmployeeRequests
             .FromSqlInterpolated($"SELECT * FROM public.employee_requests WHERE request_id = {requestId} AND branch_id = {branchId} FOR UPDATE")
             .Select(r => (int?)r.RequestId).SingleOrDefaultAsync(cancellationToken);
         if (!lockedId.HasValue) throw new KeyNotFoundException("Request not found in this branch.");
-        var request = await _context.EmployeeRequests.Include(r => r.User).ThenInclude(u => u.Role).Include(r => r.Branch)
+        var request = await _context.EmployeeRequests.Include(r => r.User).ThenInclude(u => u.Role)
+            .Include(r => r.User).ThenInclude(u => u.Branch).Include(r => r.Branch)
             .Include(r => r.SalaryIncreaseRequestDetail).ThenInclude(d => d!.CurrentContract)
             .SingleAsync(r => r.RequestId == requestId, cancellationToken);
-        SalaryIncreaseRequestPolicy.ValidateManagerApproval(request, DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)));
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var salaries = await _context.StaffSalaryHistories.AsNoTracking().Include(s => s.Contract)
+            .Where(s => s.UserId == request.UserId && s.EffectiveFrom <= today
+                && (!s.EffectiveTo.HasValue || s.EffectiveTo >= today)).ToListAsync(cancellationToken);
+        SalaryIncreaseRequestPolicy.ValidateManagerApproval(request, today, salaries);
         var oldValue = JsonSerializer.Serialize(new { request.Status, request.ReviewedBy, request.ReviewedAt, request.ReviewNote });
         var now = DateTime.UtcNow;
         request.Status = "APPROVED"; request.ReviewedBy = managerId; request.ReviewedAt = now;

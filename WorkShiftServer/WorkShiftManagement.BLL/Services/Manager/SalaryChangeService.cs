@@ -2,16 +2,56 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.SalaryChanges;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
-public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clock, ILogger<SalaryChangeService> logger)
+public sealed class SalaryChangeService(
+    ISalaryChangeRepo repo,
+    TimeProvider clock,
+    ILogger<SalaryChangeService> logger,
+    INotificationRealtimePublisher? realtimePublisher = null)
     : ISalaryChangeService
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
+
+    private async Task DispatchRealtimeNotificationsAsync()
+    {
+        if (realtimePublisher == null)
+        {
+            repo.ClearPendingNotifications();
+            return;
+        }
+
+        var pending = repo.PendingNotifications.ToList();
+        repo.ClearPendingNotifications();
+        foreach (var item in pending)
+        {
+            var realtime = new RealtimeNotificationResponse
+            {
+                NotificationId = item.Notification.NotificationId,
+                Title = item.Notification.Title,
+                Message = item.Notification.Content,
+                CreatedAt = item.Notification.CreatedAt
+            };
+
+            foreach (var userId in item.RecipientUserIds)
+            {
+                try
+                {
+                    await realtimePublisher.PublishAsync(userId, realtime);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to publish realtime salary change notification to user {UserId}", userId);
+                }
+            }
+        }
+    }
+
     private async Task<User> Actor(Guid id, string? role, CancellationToken ct)
     {
         var actor = id == Guid.Empty ? null : await repo.ActorAsync(id, ct);
@@ -152,9 +192,22 @@ public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clo
         };
         repo.Add(item); await repo.SaveAsync(ct);
         repo.Audit(id, "CREATE", "salary_change_requests", item.SalaryChangeRequestId.ToString(), null, Snapshot(item), now);
+
+        var adminIds = await repo.GetAdminUserIdsAsync(ct);
+        if (adminIds.Count > 0)
+        {
+            repo.EnqueueNotification(
+                senderId: id,
+                title: $"New Salary Increase Proposal: {staff.FullName}",
+                message: $"Manager {actor.FullName} submitted a salary increase proposal for staff {staff.FullName} proposing {r.ProposedHourlyRate:N0} VND/h, effective from {r.ProposedEffectiveFrom:dd/MM/yyyy}. Reason: {reason}",
+                targetType: "All",
+                recipientIds: adminIds,
+                now: now);
+        }
         await repo.SaveAsync(ct);
         var result = await Response(actor, item.SalaryChangeRequestId, now, ct);
         await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
         return result;
     }
     public async Task<SalaryChangeResponse> CancelAsync(Guid id, int requestId, CancelSalaryChangeRequest r, CancellationToken ct)
@@ -169,8 +222,23 @@ public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clo
         item.Status = "CANCELLED"; item.CancelledBy = id; item.CancelledAt = now;
         item.CancellationReason = reason; item.UpdatedAt = now;
         repo.Audit(id, "CANCEL", "salary_change_requests", requestId.ToString(), old, Snapshot(item), now);
+
+        var adminIds = await repo.GetAdminUserIdsAsync(ct);
+        if (adminIds.Count > 0)
+        {
+            repo.EnqueueNotification(
+                senderId: id,
+                title: $"Salary Increase Proposal #{requestId} Cancelled",
+                message: $"Manager {actor.FullName} has cancelled the pending salary increase proposal #{requestId} for staff {item.User.FullName}. Reason: {reason}",
+                targetType: "All",
+                recipientIds: adminIds,
+                now: now);
+        }
         await repo.SaveAsync(ct);
-        var result = await Response(actor, requestId, now, ct); await tx.CommitAsync(ct); return result;
+        var result = await Response(actor, requestId, now, ct);
+        await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return result;
     }
     public async Task<SalaryChangeResponse> RejectAsync(Guid id, int requestId, RejectSalaryChangeRequest r, CancellationToken ct)
     {
@@ -181,8 +249,30 @@ public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clo
         Pending(item); var old = Snapshot(item); var now = Now;
         item.Status = "REJECTED"; item.ReviewedBy = id; item.ReviewedAt = now; item.ReviewNote = note; item.UpdatedAt = now;
         repo.Audit(id, "REJECT", "salary_change_requests", requestId.ToString(), old, Snapshot(item), now);
+
+        // 1. Notify Manager who requested
+        repo.EnqueueNotification(
+            senderId: id,
+            title: $"Salary Increase Proposal #{requestId} Rejected",
+            message: $"Admin has rejected salary increase proposal #{requestId} for staff {item.User.FullName}. Rejection reason: {note}",
+            targetType: "Manager",
+            recipientIds: [item.RequestedBy],
+            now: now);
+
+        // 2. Notify Staff
+        repo.EnqueueNotification(
+            senderId: id,
+            title: "Salary Increase Proposal Update",
+            message: $"The salary increase proposal for your account was not approved by Admin. Your current salary remains unchanged. Reason: {note}",
+            targetType: "Staff",
+            recipientIds: [item.UserId],
+            now: now);
+
         await repo.SaveAsync(ct);
-        var result = await Response(actor, requestId, now, ct); await tx.CommitAsync(ct); return result;
+        var result = await Response(actor, requestId, now, ct);
+        await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return result;
     }
     public async Task<SalaryChangeResponse> ApproveAsync(Guid id, int requestId, ApproveSalaryChangeRequest r, CancellationToken ct)
     {
@@ -219,8 +309,30 @@ public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clo
         repo.Audit(id, "CLOSE_SALARY_INTERVAL", "staff_salary_history", source.SalaryHistoryId.ToString(), oldSalary, SalarySnapshot(source), now);
         await repo.SaveAsync(ct);
         repo.Audit(id, "CREATE_SCHEDULED_SALARY", "staff_salary_history", next.SalaryHistoryId.ToString(), null, SalarySnapshot(next), now);
+
+        // 1. Notify Manager who requested
+        repo.EnqueueNotification(
+            senderId: id,
+            title: $"Salary Increase Proposal #{requestId} Approved",
+            message: $"Admin has approved salary increase proposal #{requestId} for staff {item.User.FullName} with rate {item.ProposedHourlyRate:N0} VND/h. Approved effective date: {date:dd/MM/yyyy}. The new rate is currently SCHEDULED and will take effect on {date:dd/MM/yyyy}." + (SalaryChangePolicy.Text(r.ReviewNote) != null ? $" Note: {r.ReviewNote.Trim()}" : ""),
+            targetType: "Manager",
+            recipientIds: [item.RequestedBy],
+            now: now);
+
+        // 2. Notify Staff
+        repo.EnqueueNotification(
+            senderId: id,
+            title: "Salary Increase Proposal Approved",
+            message: $"Your salary increase proposal has been approved with a new hourly rate of {item.ProposedHourlyRate:N0} VND/h. Please note: This rate is SCHEDULED and will officially take effect on {date:dd/MM/yyyy}. Until then, your current rate remains active.",
+            targetType: "Staff",
+            recipientIds: [item.UserId],
+            now: now);
+
         await repo.SaveAsync(ct);
-        var result = await Response(actor, requestId, now, ct); await tx.CommitAsync(ct); return result;
+        var result = await Response(actor, requestId, now, ct);
+        await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return result;
     }
 
     public async Task<int> ActivateDueAsync(CancellationToken ct)
@@ -257,7 +369,32 @@ public sealed class SalaryChangeService(ISalaryChangeRepo repo, TimeProvider clo
             var before = SalarySnapshot(salary); salary.Status = "ACTIVE";
             repo.Audit(null, "ACTIVATE_SALARY", "staff_salary_history", salary.SalaryHistoryId.ToString(), before, SalarySnapshot(salary), now);
             await repo.SaveAsync(ct); count++;
+
+            var senderId = salary.SalaryChangeRequest?.ReviewedBy ?? salary.CreatedBy;
+            // Notify Staff
+            repo.EnqueueNotification(
+                senderId: senderId,
+                title: "Salary Rate Activated",
+                message: $"Your new hourly rate of {salary.HourlyRate:N0} VND/h is now officially ACTIVE effective from {salary.EffectiveFrom:dd/MM/yyyy}.",
+                targetType: "Staff",
+                recipientIds: [salary.UserId],
+                now: now);
+
+            // Notify Manager who requested if applicable
+            if (salary.SalaryChangeRequest != null && salary.SalaryChangeRequest.RequestedBy != Guid.Empty)
+            {
+                repo.EnqueueNotification(
+                    senderId: senderId,
+                    title: "Staff Salary Rate Activated",
+                    message: $"New hourly rate of {salary.HourlyRate:N0} VND/h for staff {salary.User.FullName} is now officially ACTIVE effective from {salary.EffectiveFrom:dd/MM/yyyy}.",
+                    targetType: "Manager",
+                    recipientIds: [salary.SalaryChangeRequest.RequestedBy],
+                    now: now);
+            }
+            await repo.SaveAsync(ct);
         }
-        await tx.CommitAsync(ct); return count;
+        await tx.CommitAsync(ct);
+        await DispatchRealtimeNotificationsAsync();
+        return count;
     }
 }

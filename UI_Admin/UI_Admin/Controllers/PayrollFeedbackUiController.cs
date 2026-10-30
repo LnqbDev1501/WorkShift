@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
 namespace UI_Admin.Controllers;
@@ -8,7 +8,7 @@ public abstract class PayrollFeedbackUiController(PayrollDocumentsApiService api
     protected Task<IActionResult> List(PayrollFeedbackListRequest query, CancellationToken ct)
     {
         query.PageSize = 20;
-        if (query.Page < 1 || query.Page > int.MaxValue / 100 || query.Keyword?.Length > 200 || query.CreatedFrom > query.CreatedTo) ModelState.AddModelError("", "Bộ lọc phản hồi không hợp lệ.");
+        if (query.Page < 1 || query.Page > int.MaxValue / 100 || query.Keyword?.Length > 200 || query.CreatedFrom > query.CreatedTo) ModelState.AddModelError("", "Invalid filter parameters.");
         return Read(async () =>
         {
             var model = new FeedbackListViewModel { Query = query };

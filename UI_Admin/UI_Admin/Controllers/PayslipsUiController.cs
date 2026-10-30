@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollDocuments;
 using UI_Admin.Services;
 namespace UI_Admin.Controllers;
@@ -10,8 +10,8 @@ public abstract class PayslipsUiController(PayrollDocumentsApiService api, ILogg
         query.PageSize = 20;
         query.Status = query.Status?.Trim().ToUpperInvariant();
         if (query.Status == "REPLACED") query.IncludeHistory = true;
-        if (query.Page < 1 || query.Page > int.MaxValue / 100 || query.Keyword?.Length > 200 || query.PeriodFrom > query.PeriodTo) ModelState.AddModelError("", "Bộ lọc phiếu lương không hợp lệ.");
-        if (query.Status != null && query.Status is not ("PUBLISHED" or "REPLACED" or "")) ModelState.AddModelError("Status", "Trạng thái phiếu lương không hợp lệ.");
+        if (query.Page < 1 || query.Page > int.MaxValue / 100 || query.Keyword?.Length > 200 || query.PeriodFrom > query.PeriodTo) ModelState.AddModelError("", "Invalid filter parameters.");
+        if (query.Status != null && query.Status is not ("PUBLISHED" or "REPLACED" or "")) ModelState.AddModelError("Status", "Invalid status.");
         return Read(async () =>
         {
             var model = new PayslipListViewModel { Query = query };

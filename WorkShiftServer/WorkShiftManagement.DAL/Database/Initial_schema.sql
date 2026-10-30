@@ -718,7 +718,7 @@ CREATE TABLE public.payrolls (
     updated_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT uq_payroll_user_period UNIQUE (user_id, payroll_period_id),
     CONSTRAINT ck_payroll_gross CHECK (gross_salary = work_pay + total_reward),
-    CONSTRAINT ck_payroll_deduction CHECK (total_deduction = total_penalty + attendance_deduction),
+    CONSTRAINT ck_payroll_deduction CHECK (total_deduction = total_penalty + attendance_deduction + carry_forward_deduction - deferred_deduction_amount),
     CONSTRAINT ck_payroll_net CHECK (net_salary = gross_salary - total_deduction)
 );
 

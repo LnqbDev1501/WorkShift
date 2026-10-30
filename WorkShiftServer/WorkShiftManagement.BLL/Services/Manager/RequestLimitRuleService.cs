@@ -84,6 +84,8 @@ public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimit
             if (rule.Status != "DRAFT") throw new InvalidOperationException("Only DRAFT rules can be published.");
             if (rule.SubmissionDeadlineDayOfWeek.HasValue && rule.RequestType != "SALARY_INCREASE")
                 throw new InvalidOperationException("The staff request module does not yet support SubmissionDeadlineDayOfWeek. Clear this field before publishing.");
+            if (rule.RequestType == "SALARY_INCREASE" && rule.MinimumAdvanceDays != 0)
+                throw new InvalidOperationException("Salary increase requests do not select an effective date. Set MinimumAdvanceDays to 0 before publishing.");
             if (rule.EffectiveFrom < Today) throw new ArgumentException("EffectiveFrom cannot be in the past. Update the draft before publishing.");
             if (rules.Any(x => x.RequestType == rule.RequestType && x.Status == "SCHEDULED"))
                 throw new InvalidOperationException("A rule for this request type is already scheduled.");
