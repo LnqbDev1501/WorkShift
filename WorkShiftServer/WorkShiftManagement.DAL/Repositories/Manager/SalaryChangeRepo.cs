@@ -68,9 +68,12 @@ public sealed class SalaryChangeRepo(AppDbContext db) : ISalaryChangeRepo
         {
             db.ChangeTracker.Clear();
             // Same financial lock prefix as calculation; then serialize proposals and history writers.
+            if (db.Database.IsRelational())
+            {
             await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_periods, public.payrolls IN SHARE ROW EXCLUSIVE MODE", ct);
             await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.employment_contracts, public.staff_salary_history, public.salary_change_requests IN SHARE ROW EXCLUSIVE MODE", ct);
             await db.Database.ExecuteSqlRawAsync("LOCK TABLE public.employee_requests, public.salary_increase_request_details, public.users, public.roles, public.branches IN SHARE MODE", ct);
+            }
             return tx;
         }
         catch { await tx.DisposeAsync(); throw; }
