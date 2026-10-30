@@ -27,8 +27,8 @@ public sealed class ManagerTimesheetApiService
         int? month,
         int? year,
         string? status,
-        int pageIndex,
-        int pageSize,
+        int pageIndex = 1,
+        int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var parameters = new List<string>
