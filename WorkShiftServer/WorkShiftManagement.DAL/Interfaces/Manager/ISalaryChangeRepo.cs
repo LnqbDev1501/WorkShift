@@ -7,6 +7,8 @@ public sealed record SalaryChangeFilter(string? Keyword, Guid? UserId, int? Bran
     DateTime? CreatedFrom, DateTime? CreatedToExclusive, DateOnly? EffectiveFrom, DateOnly? EffectiveTo,
     int Page, int PageSize);
 
+public sealed record PendingSalaryChangeRealtimeNotification(WorkShiftManagement.DAL.Entities.Notification Notification, List<Guid> RecipientUserIds);
+
 public interface ISalaryChangeRepo
 {
     Task<User?> ActorAsync(Guid id, CancellationToken ct);
@@ -19,6 +21,11 @@ public interface ISalaryChangeRepo
     Task<bool> HasFinalPayrollAsync(Guid user, DateOnly from, CancellationToken ct);
     Task<IDbContextTransaction> BeginChangeAsync(CancellationToken ct);
     Task<List<StaffSalaryHistory>> DueAsync(DateOnly today, CancellationToken ct);
+    Task<List<Guid>> GetAdminUserIdsAsync(CancellationToken ct);
+    Task<List<Guid>> GetBranchManagerUserIdsAsync(int branchId, CancellationToken ct);
+    void EnqueueNotification(Guid senderId, string title, string message, string targetType, IReadOnlyCollection<Guid> recipientIds, DateTime now);
+    IReadOnlyList<PendingSalaryChangeRealtimeNotification> PendingNotifications { get; }
+    void ClearPendingNotifications();
     void Add(SalaryChangeRequest item);
     void Add(StaffSalaryHistory item);
     void Audit(Guid? actor, string action, string table, string recordId, string? oldValue, string newValue, DateTime now);

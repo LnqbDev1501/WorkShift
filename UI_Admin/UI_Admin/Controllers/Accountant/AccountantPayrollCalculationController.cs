@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollCalculation;
 using UI_Admin.Services;
@@ -13,8 +13,8 @@ public sealed class AccountantPayrollCalculationController(PayrollCalculationApi
     {
         var model = new UI_Admin.Models.Accountant.PayrollPeriods.PeriodListViewModel { Query = query };
         query.Status = query.Status?.Trim().ToUpperInvariant();
-        if (!string.IsNullOrEmpty(query.Status) && !UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay.Statuses.Contains(query.Status)) ModelState.AddModelError("Status", "Trạng thái kỳ không hợp lệ.");
-        if (query.StartDateFrom > query.StartDateTo) ModelState.AddModelError("StartDateTo", "Khoảng ngày không hợp lệ.");
+        if (!string.IsNullOrEmpty(query.Status) && !UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay.Statuses.Contains(query.Status)) ModelState.AddModelError("Status", "Invalid period status.");
+        if (query.StartDateFrom > query.StartDateTo) ModelState.AddModelError("StartDateTo", "Invalid date range.");
         if (ModelState.IsValid)
         {
             try { model.Page = await periods.ListAsync(query, ct); }
@@ -106,7 +106,7 @@ public sealed class AccountantPayrollCalculationController(PayrollCalculationApi
         var model = Model(id, query, true);
         if (status == "NOT_CALCULATED") model.Query.Status = status;
         query.CalculationState = query.CalculationState?.Trim().ToUpperInvariant();
-        if (!string.IsNullOrEmpty(query.CalculationState) && query.CalculationState is not ("READY" or "BLOCKED")) ModelState.AddModelError("CalculationState", "Điều kiện tính không hợp lệ.");
+        if (!string.IsNullOrEmpty(query.CalculationState) && query.CalculationState is not ("READY" or "BLOCKED")) ModelState.AddModelError("CalculationState", "Invalid calculation state.");
         return Screen(model, ct);
     }
     [HttpGet] public Task<IActionResult> Details(int id, CancellationToken ct) => ReadDetail(id, ct);
@@ -120,7 +120,7 @@ public sealed class AccountantPayrollCalculationController(PayrollCalculationApi
         try
         {
             model.Batch = await actions.PeriodAsync(id, ct);
-            TempData["WorkflowSuccess"] = "Tính lương toàn kỳ thành công! Tất cả nhân viên đã có Payroll V1 (CALCULATED).";
+            TempData["WorkflowSuccess"] = "Batch calculation completed successfully! All employees have received Payroll V1 (CALCULATED).";
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))

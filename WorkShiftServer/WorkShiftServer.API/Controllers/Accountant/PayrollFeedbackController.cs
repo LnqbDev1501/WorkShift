@@ -22,7 +22,7 @@ public sealed class PayrollFeedbackController(IPayrollFeedbackService service) :
         }
     }
     [HttpPost("payroll-periods/{id:int}/send-previews"), Authorize(Roles = "ACCOUNTANT")]
-    public Task<IActionResult> SendPreviews(int id, CancellationToken ct) => Execute(async a => await service.SendPreviewsAsync(a, id, ct));
+    public Task<IActionResult> SendPreviews(int id, [FromBody] SendPayrollPreviewsRequest? request, CancellationToken ct) => Execute(async a => await service.SendPreviewsAsync(a, id, request, ct));
     [HttpGet("payroll-previews"), HttpGet("payroll-feedback-requests"), Authorize(Roles = "ACCOUNTANT,STAFF")]
     public Task<IActionResult> List([FromQuery] PayrollFeedbackListRequest query, CancellationToken ct) => Execute(async a => await service.ListAsync(a, query, ct));
     [HttpGet("payroll-previews/{id:int}"), HttpGet("payroll-feedback-requests/{id:int}"), Authorize(Roles = "ACCOUNTANT,STAFF")]

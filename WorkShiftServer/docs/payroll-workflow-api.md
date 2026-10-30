@@ -47,9 +47,9 @@ Approve/Reject body: `{ "resolutionNote": "Kết quả kiểm tra / lý do" }`. 
 
 ### Deadline và trạng thái
 
-- Khi gửi Preview lần đầu, kỳ có `initial_feedback_deadline_at` là **00:00 đầu ngày kế tiếp theo UTC+7**, tương đương cho phản hồi đến hết ngày gửi. Không dùng approval_deadline_at cho việc tự kết thúc case.
+- Khi gửi Preview lần đầu, kỳ có `initial_feedback_deadline_at` mặc định là **24 giờ kể từ thời điểm gửi thực tế** (Now + 24h, lưu UTC, hiển thị UTC+7), hoặc theo deadline hợp lệ do Accountant chỉ định (> Now). Không dùng approval_deadline_at cho việc tự kết thúc case.
 - Sau hạn này không cho Accountant mở vấn đề mới, không cho Staff trả lời lượt đầu quá hạn.
-- Feedback đã gửi hợp lệ vẫn được xử lý sau hạn. Khi gửi kết quả/bản sửa, case đó có lượt mới với hạn hết ngày gửi lại. Staff có thể tiếp tục phản hồi trong lượt mới cho đến khi case hoàn tất.
+- Feedback đã gửi hợp lệ vẫn được xử lý sau hạn. Khi gửi kết quả/bản sửa qua Resend Preview: nếu gửi trong hạn thì giữ deadline cũ, nếu gửi sau hạn thì cấp chu kỳ 24 giờ mới từ lúc gửi lại. Staff có thể tiếp tục phản hồi trong lượt mới cho đến khi case hoàn tất.
 - Một lượt chỉ được Confirm hoặc Feedback một lần; không sửa/rút feedback.
 - Hết hạn không phản hồi: EXPIRED; không ghi CONFIRMED thay Staff. Job mỗi phút cập nhật; API vẫn chặn theo timestamp ngay cả trước khi job chạy.
 - `round_no` tăng theo lượt review trong một case. Nó khác `payroll.version_no`: giải trình/từ chối có thể tạo lượt review mới nhưng giữ Payroll V1; sửa nguồn tạo Payroll V2.

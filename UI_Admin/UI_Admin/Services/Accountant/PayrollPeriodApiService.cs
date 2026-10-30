@@ -89,9 +89,12 @@ public sealed class PayrollPeriodApiService(HttpClient client, IConfiguration co
     }
 
     // Step 7: Send Previews to Staff
-    public async Task SendPreviewsAsync(int id, CancellationToken ct)
+    public async Task SendPreviewsAsync(int id, DateTimeOffset? initialFeedbackDeadlineAt, CancellationToken ct)
     {
-        using var response = await Send(HttpMethod.Post, $"/api/payroll-periods/{id}/send-previews", null, ct);
+        object? body = initialFeedbackDeadlineAt.HasValue
+            ? new { initialFeedbackDeadlineAt = initialFeedbackDeadlineAt.Value }
+            : null;
+        using var response = await Send(HttpMethod.Post, $"/api/payroll-periods/{id}/send-previews", body, ct);
     }
 
     // Step 10: Submit Period to Admin

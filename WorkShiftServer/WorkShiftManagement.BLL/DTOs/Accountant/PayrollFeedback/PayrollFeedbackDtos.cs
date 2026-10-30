@@ -1,6 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 namespace WorkShiftManagement.BLL.DTOs.Accountant.PayrollFeedback;
+public sealed class SendPayrollPreviewsRequest
+{
+    public DateTimeOffset? InitialFeedbackDeadlineAt { get; set; }
+}
+
 public sealed class SubmitPayrollFeedbackRequest
 { [Required, StringLength(2000)] public string Description { get; set; } = ""; }
 public sealed class ReviewPayrollFeedbackRequest

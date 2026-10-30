@@ -19,11 +19,7 @@ public partial class StaffEmployeeRequestRepo
             ?? throw new UnauthorizedAccessException("Tài khoản Staff không hoạt động.");
         var rule = await GetActiveRuleAsync(branchId, "SALARY_INCREASE", todayVn, cancellationToken)
             ?? throw new InvalidOperationException("Chi nhánh chưa có Request Limit Rule SALARY_INCREASE đang ACTIVE và có hiệu lực.");
-        // Retain the existing fail-closed deadline rule. Staff requests have no effective date yet;
-        // the future salary effective date belongs to the later Manager/Admin proposal workflow.
-        ValidateRuleSupported(rule);
-        if (rule.MinimumAdvanceDays != 0 || rule.MaxRequestsPerMonth <= 0)
-            throw new InvalidOperationException("Bước Staff xin tăng lương chưa chọn ngày áp dụng; rule cần MinimumAdvanceDays = 0 và giới hạn tháng lớn hơn 0.");
+        SalaryIncreaseRequestPolicy.ValidateSubmissionRule(rule, todayVn);
         await ValidateMonthlyLimitAsync(staffId, "SALARY_INCREASE", rule.MaxRequestsPerMonth, todayVn, cancellationToken);
         if (await _context.EmployeeRequests.AnyAsync(r => r.UserId == staffId && r.RequestType == "SALARY_INCREASE" && r.Status == "PENDING", cancellationToken))
             throw new InvalidOperationException("Bạn đang có yêu cầu tăng lương PENDING; chờ Manager xử lý hoặc hủy trước khi gửi yêu cầu mới.");

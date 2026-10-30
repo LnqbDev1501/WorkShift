@@ -190,20 +190,21 @@
         <div class="payroll-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
             <div class="payroll-modal-dialog">
                 <div class="payroll-modal-header">
-                    <h2 id="result-title">Duyệt thành công</h2><button
-                    type="button" class="payroll-modal-close" data-modal-close aria-label="Đóng">×</button>
+                    <h2 id="result-title">Approval Successful</h2>
+                    <button type="button" class="payroll-modal-close" data-modal-close aria-label="Close">×</button>
                 </div>
                 <div class="payroll-modal-body">
                     <div class="payroll-result-icon">✓</div>
                     <p>@success</p>
-                    <p class="text-sm text-gray-600">Bảng công đã được khóa (LOCKED), kỳ lương đã được phê duyệt và phiếu lương chính thức (Official Payslips) đã được phát hành cho toàn bộ nhân viên.</p>
+                    <p class="text-sm text-gray-600">Timesheets have been locked, the payroll period has been approved, and official payslips have been published to all employees.</p>
                 </div>
-                <div class="payroll-modal-footer"><button type="button" class="payroll-button primary"
-                                                              data-modal-close>Đóng</button></div>
+                <div class="payroll-modal-footer">
+                    <button type="button" class="payroll-button primary" data-modal-close>Close</button>
                 </div>
             </div>
-        }
-        <section class="period-header">
+        </div>
+    }
+    <section class="period-header">
             <div>
                 <div class="period-title">
                     <h1>Payroll Period: @period.PeriodName</h1><span
@@ -241,45 +242,45 @@
 
                         <button type="button" class="payroll-button primary" disabled="@(!canApprove)"
                                 data-modal-open="approve-period">
-                            ✓ Approve Entire Period
+                            ✓ Approve Payroll Period
                         </button>
 
                     </div>
                 </section>
                 <div asp-validation-summary="All" class="alert alert-danger review-errors" role="alert"></div>
                 @if (period.Status == "REVISION_REQUIRED")
-                {
-                    <div class="revision-notice">Kỳ lương đang chờ chỉnh sửa. Accountant
-                        cần sửa và gửi lại các phiếu bị từ chối trước khi admin có thể duyệt kỳ lương.</div>
-                    }
-                    <section class="payroll-stats detail-stats" aria-label="Period totals">
-                        <article>
-                            <div>TOTAL NET PAYOUT <span>▣</span></div>
-                            <p><strong>@Money(period.Summary.TotalNetSalary)</strong></p><small>Tổng thực nhận của kỳ lương</small>
-                        </article>
-                        <article>
-                            <div>WORK PAY <span>◷</span></div>
-                            <p><strong>@Money(period.Summary.TotalWorkPay)</strong></p><small>Lương theo giờ làm việc</small>
-                        </article>
-                        <article>
-                            <div>TOTAL REWARDS <span>⊕</span></div>
-                            <p><strong class="reward">@Money(period.Summary.TotalReward)</strong></p><small>Các khoản thưởng</small>
-                        </article>
-                        <article>
-                            <div>TOTAL DEDUCTIONS <span>⊖</span></div>
-                            <p><strong class="red">@Money(period.Summary.TotalPenalty +
-                                                                                                                    period.Summary.TotalAttendanceDeduction)</strong></p><small>Phạt:
-                                @Money(period.Summary.TotalPenalty)</small><small>Chấm công:
-                                @Money(period.Summary.TotalAttendanceDeduction)</small>
-                            </article>
-                            <article>
-                                <div>EMPLOYEE PAYROLLS <span>♙</span></div>
-                                <p><strong>@period.Summary.TotalPayrolls <em>Staff</em></strong></p><small
-                                class="@(period.Summary.RejectedPayrollCount > 0 ? "red" : "reward")">@period.Summary.RejectedPayrollCount
-                                phiếu cần chỉnh sửa</small>
-                            </article>
-                        </section>
-                        <section class="payroll-table-card">
+    {
+        <div class="revision-notice">This payroll period requires revision. The accountant must resolve and resubmit rejected payrolls before admin approval.</div>
+    }
+    <section class="payroll-stats detail-stats" aria-label="Period totals">
+        <article>
+            <div>TOTAL NET PAYOUT <span>▣</span></div>
+            <p><strong>@Money(period.Summary.TotalNetSalary)</strong></p>
+            <small>Total period net payout</small>
+        </article>
+        <article>
+            <div>WORK PAY <span>◷</span></div>
+            <p><strong>@Money(period.Summary.TotalWorkPay)</strong></p>
+            <small>Base hourly work pay</small>
+        </article>
+        <article>
+            <div>TOTAL REWARDS <span>⊕</span></div>
+            <p><strong class="reward">@Money(period.Summary.TotalReward)</strong></p>
+            <small>Rewards and bonuses</small>
+        </article>
+        <article>
+            <div>TOTAL DEDUCTIONS <span>⊖</span></div>
+            <p><strong class="red">@Money(period.Summary.TotalPenalty + period.Summary.TotalAttendanceDeduction)</strong></p>
+            <small>Penalties: @Money(period.Summary.TotalPenalty)</small>
+            <small>Attendance: @Money(period.Summary.TotalAttendanceDeduction)</small>
+        </article>
+        <article>
+            <div>EMPLOYEE PAYROLLS <span>♙</span></div>
+            <p><strong>@period.Summary.TotalPayrolls <em>Staff</em></strong></p>
+            <small class="@(period.Summary.RejectedPayrollCount > 0 ? "red" : "reward")">@period.Summary.RejectedPayrollCount payrolls requiring revision</small>
+        </article>
+    </section>
+    <section class="payroll-table-card">
                             <form method="get" asp-action="Details" class="detail-filter">
                                 <input type="hidden" name="id" value="@period.PayrollPeriodId" />
                                 <label class="employee-search"><span class="visually-hidden">Employee name</span><input name="Search"
@@ -354,32 +355,42 @@
                                                                         @if (canApprove)
                                                                         {
                                                                             <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
-                                                                                <div class="payroll-modal-dialog">
-                                                                                    <form asp-action="Approve" method="post">
-                                                                                        <div class="payroll-modal-header">
-                                                                                            <h2 id="approve-title">Approve Entire Period</h2><button type="button" class="payroll-modal-close"
-                                                                                                                                                     data-modal-close aria-label="Close">×</button>
-                                                                                        </div>
-                                                                                        <div class="payroll-modal-body">
-                                                                                            <p>Duyệt kỳ lương <strong>@period.PeriodCode</strong> gồm @period.Summary.TotalPayrolls phiếu lương?</p>
-                                                                                            <p>Tổng thực nhận: <strong>@Money(period.Summary.TotalNetSalary)</strong></p>
-                                                                                            <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; margin:12px 0; font-size:12px; color:#1e40af;">
-                                                                                                <strong>Hành động hệ thống (Bước 11):</strong>
-                                                                                                <ul style="list-style-type:disc; padding-left:18px; margin-top:6px;">
-                                                                                                    <li>Khóa toàn bộ Timesheet liên quan (Timesheets = LOCKED).</li>
-                                                                                                    <li>Phê duyệt toàn bộ phiếu lương (Payrolls = APPROVED, Period = APPROVED).</li>
-                                                                                                    <li>Tự động phát hành toàn bộ Phiếu lương chính thức (Official Payslips = PUBLISHED) cho nhân viên ngay lập tức.</li>
-                                                                                                </ul>
-                                                                                            </div>
-                                                                                            <p style="font-size:12px; color:#6b7280;">Lưu ý: Thao tác này không thực hiện chuyển tiền. Accountant sẽ xác nhận quyết toán ở Bước 12.</p>
-                                                                                                <input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" /><input
-                                                                                                type="hidden" name="Search" value="@query.Search" /><input type="hidden" name="PageNumber"
-                                                                                                                                                           value="@query.PageNumber" /><input type="hidden" name="PageSize" value="@query.PageSize" />
-                                                                                            </div>
-                                                                                            <div class="payroll-modal-footer"><button type="button" class="payroll-button"
-                                                                                                                                          data-modal-close>Cancel</button><button type="submit" class="payroll-button primary">Confirm
-                                                                                                Approval</button></div>
-                                                                                            </form>
+        <div class="payroll-modal-dialog">
+            <form asp-action="Approve" method="post">
+                <div class="payroll-modal-header">
+                    <h2 id="approve-title">Approve Payroll Period</h2>
+                    <button type="button" class="payroll-modal-close" data-modal-close aria-label="Close">×</button>
+                </div>
+                <div class="payroll-modal-body">
+                    <p style="font-size:14px; font-weight:600; color:#1e293b; margin-bottom:12px;">Approve payroll period <strong>@period.PeriodCode</strong>?</p>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.025em; color:#64748b; display:block; margin-bottom:2px;">Payroll Count</span>
+                            <strong style="font-size:14px; color:#0f172a;">@period.Summary.TotalPayrolls Staff</strong>
+                        </div>
+                        <div>
+                            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.025em; color:#64748b; display:block; margin-bottom:2px;">Total Net Salary</span>
+                            <strong style="font-size:14px; color:#059669;">@Money(period.Summary.TotalNetSalary)</strong>
+                        </div>
+                    </div>
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 14px; font-size:12px; color:#1e40af;">
+                        <ul style="list-style-type:disc; padding-left:18px; margin:0; line-height:1.6;">
+                            <li>Related timesheets will be locked.</li>
+                            <li>Current payrolls will be approved.</li>
+                            <li>Official payslips will be published to employees.</li>
+                        </ul>
+                    </div>
+                    <p style="font-size:11px; color:#64748b; margin-top:10px;">This action does not confirm salary payment.</p>
+                    <input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" />
+                    <input type="hidden" name="Search" value="@query.Search" />
+                    <input type="hidden" name="PageNumber" value="@query.PageNumber" />
+                    <input type="hidden" name="PageSize" value="@query.PageSize" />
+                </div>
+                <div class="payroll-modal-footer">
+                    <button type="button" class="payroll-button" data-modal-close>Cancel</button>
+                    <button type="submit" class="payroll-button primary">Confirm Approval</button>
+                </div>
+            </form>
                                                                                         </div>
                                                                                     </div>
                                                                                 }

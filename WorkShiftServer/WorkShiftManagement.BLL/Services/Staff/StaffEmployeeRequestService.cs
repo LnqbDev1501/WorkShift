@@ -390,7 +390,7 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             request.Reason.Trim(), DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)), cancellationToken);
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "SALARY_INCREASE",
-            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin tăng lương với mức lương đề xuất {request.ProposedHourlyRate:N0} đ/giờ. Lý do: {request.Reason.Trim()}");
+            $"Staff member {staff.FullName} submitted a salary increase request proposing {request.ProposedHourlyRate:N0} VND/h. Reason: {request.Reason.Trim()}");
 
         return MapToDetailResponse(await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken) ?? created);
     }
@@ -497,7 +497,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             }
 
             var typeVietnamese = TranslateRequestType(requestType);
-            var title = $"Yêu cầu {typeVietnamese} mới từ {staff.FullName}";
+            var title = requestType == "SALARY_INCREASE"
+                ? $"New Salary Increase Request from {staff.FullName}"
+                : $"New {requestType} Request from {staff.FullName}";
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity
@@ -559,8 +561,10 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             if (branchManagers == null || branchManagers.Count == 0) return;
 
             var typeVietnamese = TranslateRequestType(cancelledRequest.RequestType);
-            var title = $"Nhân viên đã hủy yêu cầu #{cancelledRequest.RequestId}";
-            var content = $"Nhân viên {staff.FullName} đã hủy yêu cầu {typeVietnamese} #{cancelledRequest.RequestId}.";
+            var title = cancelledRequest.RequestType == "SALARY_INCREASE"
+                ? $"Salary Increase Request #{cancelledRequest.RequestId} Cancelled by Staff"
+                : $"Request #{cancelledRequest.RequestId} Cancelled by Staff";
+            var content = $"Staff member {staff.FullName} has cancelled request #{cancelledRequest.RequestId} ({cancelledRequest.RequestType}).";
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using UI_Admin.Models.PayrollCalculation;
@@ -10,12 +10,12 @@ public abstract class PayrollCalculationUiController(PayrollCalculationApiServic
     protected const string ListView = "~/Views/PayrollCalculation/Index.cshtml", DetailView = "~/Views/PayrollCalculation/Details.cshtml";
     protected static bool Handled(Exception ex) => ex is CalculationApiException or HttpRequestException or JsonException or InvalidOperationException or OperationCanceledException;
     protected IActionResult? Access(Exception ex) => (ex as CalculationApiException)?.Status switch { HttpStatusCode.Unauthorized => Challenge(), HttpStatusCode.Forbidden => Forbid(), HttpStatusCode.NotFound => NotFound(), _ => null };
-    protected string Error(Exception ex) { logger.LogWarning(ex, "Payroll calculation UI failed."); return ex is CalculationApiException ? ex.Message : "Không xác nhận được kết quả. Hãy tải lại dữ liệu Payroll trước khi thử lại."; }
+    protected string Error(Exception ex) { logger.LogWarning(ex, "Payroll calculation UI failed."); return ex is CalculationApiException ? ex.Message : "Unable to confirm operation result. Please refresh the data before retrying."; }
     protected CalculationViewModel Model(int id, CalculationQuery query, bool accountant)
     {
         query.Status = query.Status?.Trim().ToUpperInvariant();
-        if (query.UserId == Guid.Empty) ModelState.AddModelError("UserId", "Staff ID không hợp lệ.");
-        if (!string.IsNullOrEmpty(query.Status) && query.Status is not ("CALCULATED" or "SUBMITTED" or "REJECTED" or "APPROVED" or "PAID" or "REPLACED")) ModelState.AddModelError("Status", "Trạng thái Payroll không hợp lệ.");
+        if (query.UserId == Guid.Empty) ModelState.AddModelError("UserId", "Invalid employee ID.");
+        if (!string.IsNullOrEmpty(query.Status) && query.Status is not ("CALCULATED" or "SUBMITTED" or "REJECTED" or "APPROVED" or "PAID" or "REPLACED")) ModelState.AddModelError("Status", "Invalid status.");
         return new() { PeriodId = id, Query = query, Accountant = accountant };
     }
     protected async Task Load(CalculationViewModel model, CancellationToken ct)

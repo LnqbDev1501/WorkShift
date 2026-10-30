@@ -4,6 +4,19 @@ namespace WorkShiftManagement.DAL.Repositories.Staff;
 // Pure validation of the existing request/detail tables; no salary history writes.
 public static class SalaryIncreaseRequestPolicy
 {
+    public static void ValidateSubmissionRule(RequestLimitRule rule, DateOnly today)
+    {
+        if (rule.RequestType != "SALARY_INCREASE" || rule.MinimumAdvanceDays != 0 || rule.MaxRequestsPerMonth <= 0)
+            throw new InvalidOperationException("Rule xin tăng lương cần MinimumAdvanceDays = 0 và giới hạn tháng lớn hơn 0; ngày áp dụng do Manager/Admin đề xuất sau.");
+        if (rule.SubmissionDeadlineDayOfWeek is < 1 or > 7)
+            throw new InvalidOperationException("Ngày chốt nhận đơn phải từ 1 (thứ Hai) đến 7 (Chủ nhật).");
+        // A configured cutoff limits submission within the current VN calendar week;
+        // it is unrelated to the later proposal's salary effective date.
+        var weekday = ((int)today.DayOfWeek + 6) % 7 + 1;
+        if (rule.SubmissionDeadlineDayOfWeek is { } cutoff && weekday > cutoff)
+            throw new InvalidOperationException("Đã qua ngày chốt nhận đơn tăng lương của tuần hiện tại. Vui lòng gửi từ tuần tiếp theo.");
+    }
+
     public static void ValidateRate(decimal current, decimal proposed)
     {
         if (current <= 0 || proposed <= current || proposed > 9999999999999999.99m
@@ -25,7 +38,8 @@ public static class SalaryIncreaseRequestPolicy
             throw new InvalidOperationException("Cần mức lương và hợp đồng đã duyệt, được Staff chấp nhận, đang có hiệu lực để xin tăng lương.");
         ValidateRate(salary.HourlyRate, proposed);
     }
-    public static void ValidateManagerApproval(EmployeeRequest request, DateOnly today)
+    public static void ValidateManagerApproval(EmployeeRequest request, DateOnly today,
+        IReadOnlyCollection<StaffSalaryHistory> salaries)
     {
         if (request.RequestType != "SALARY_INCREASE" || request.Status != "PENDING")
             throw new InvalidOperationException("Chỉ duyệt yêu cầu tăng lương đang PENDING.");
@@ -39,5 +53,13 @@ public static class SalaryIncreaseRequestPolicy
             || request.User.Role.Status != "ACTIVE" || request.User.BranchId != request.BranchId || request.Branch.Status != "ACTIVE")
             throw new InvalidOperationException("Nguồn hợp đồng/nhân viên hoặc chi tiết yêu cầu tăng lương không hợp lệ.");
         ValidateRate(d.CurrentHourlyRate, d.ProposedHourlyRate);
+        var current = salaries.Where(s => s.UserId == request.UserId
+            && s.Status is "ACTIVE" or "INACTIVE" or "SCHEDULED"
+            && s.EffectiveFrom <= today && (!s.EffectiveTo.HasValue || s.EffectiveTo >= today)).ToList();
+        if (current.Count != 1)
+            throw new InvalidOperationException("Cần đúng một mức lương hiện hành trước khi duyệt yêu cầu tăng lương.");
+        if (current[0].ContractId != d.CurrentContractId || current[0].HourlyRate != d.CurrentHourlyRate)
+            throw new InvalidOperationException("Hợp đồng hoặc mức lương đã thay đổi sau khi Staff gửi đơn. Không thể duyệt theo mức nguồn cũ; Staff cần gửi lại yêu cầu mới.");
+        ValidateSource(request.User, request.BranchId, current[0], d.ProposedHourlyRate, today);
     }
 }

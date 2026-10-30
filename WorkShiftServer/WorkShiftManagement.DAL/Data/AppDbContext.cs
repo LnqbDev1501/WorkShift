@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -2510,8 +2510,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReviewedBy)
                 .HasConstraintName("salary_change_requests_reviewed_by_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.SalaryChangeRequestUser)
-                .HasForeignKey<SalaryChangeRequest>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.SalaryChangeRequests)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("salary_change_requests_user_id_fkey");
         });
@@ -2792,8 +2792,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_salary_increase_request_id_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.StaffSalaryHistoryUser)
-                .HasForeignKey<StaffSalaryHistory>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.StaffSalaryHistories)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_user_id_fkey");
         });

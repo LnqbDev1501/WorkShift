@@ -49,6 +49,7 @@ public sealed class ManagerSalaryChangesController(SalaryChangeApiService api, M
                 var request = await requests.GetByIdAsync(employeeRequestId.Value, ct);
                 if (request == null || request.RequestType != "SALARY_INCREASE" || request.Status != "APPROVED") return BadRequest("An approved salary increase request is required.");
                 model.UserId = request.UserId; model.Reason = request.Reason ?? "";
+                model.ProposedHourlyRate = request.SalaryIncreaseDetail?.ProposedHourlyRate;
             }
             if (previousRequestId.HasValue)
             {
