@@ -21,7 +21,7 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
         var model = new AccountantOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
-            PageSize = 10,
+            PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
             BranchId = branchId,
             StatusFilter = status,

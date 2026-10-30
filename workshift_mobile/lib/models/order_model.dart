@@ -274,7 +274,7 @@ class OrderListQuery {
     this.dateFrom,
     this.dateTo,
     this.pageNumber = 1,
-    this.pageSize = 10,
+    this.pageSize = 20,
   });
 
   Map<String, dynamic> toQueryParameters() {
@@ -312,7 +312,7 @@ class OrderPagedResponse {
               .toList() ??
           [],
       pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
-      pageSize: (json['pageSize'] as num?)?.toInt() ?? 10,
+      pageSize: (json['pageSize'] as num?)?.toInt() ?? 20,
       totalItems: (json['totalItems'] as num?)?.toInt() ?? 0,
     );
   }

@@ -22,7 +22,7 @@ public class AccountantCategoriesController(AccountantCategoryApiService api) : 
         var model = new AccountantCategoryListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
-            PageSize = 10,
+            PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
             StatusFilter = status
         };

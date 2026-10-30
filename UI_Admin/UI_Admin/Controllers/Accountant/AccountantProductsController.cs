@@ -24,7 +24,7 @@ public class AccountantProductsController(AccountantProductApiService api) : Con
         var model = new AccountantProductListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
-            PageSize = 10,
+            PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
             BranchId = branchId,
             CategoryId = categoryId,

@@ -23,7 +23,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
         var model = new StaffOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
-            PageSize = 10,
+            PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
             StatusFilter = status,
             DateFrom = dateFrom,

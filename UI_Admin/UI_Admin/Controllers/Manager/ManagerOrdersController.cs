@@ -21,7 +21,7 @@ public class ManagerOrdersController(ManagerOrderApiService api) : Controller
         var model = new ManagerOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
-            PageSize = 10,
+            PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
             StatusFilter = status,
             PaymentStatusFilter = paymentStatus,
