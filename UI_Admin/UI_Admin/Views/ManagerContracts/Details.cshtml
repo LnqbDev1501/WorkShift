@@ -271,7 +271,12 @@
         </div>
     }
 
-    @if (statusUpper == "PENDING_MANAGER_APPROVAL" || Model.OpenChangeRequestId.HasValue)
+    @{
+        var isCrPending = Model.OpenChangeRequestId.HasValue &&
+            string.Equals(Model.OpenChangeRequestStatus, "SUBMITTED", StringComparison.OrdinalIgnoreCase);
+        var showPendingCrBanner = statusUpper == "PENDING_MANAGER_APPROVAL" || isCrPending;
+    }
+    @if (showPendingCrBanner)
     {
         <div class="p-5 rounded-2xl bg-amber-50 border border-amber-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-start gap-3.5">
@@ -516,7 +521,8 @@
 
     </div>
 
-    <!-- Complete Contract Audit History S    <div id="contract-history-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <!-- Complete Contract Audit History Section -->
+    <div id="contract-history-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
             <div class="flex items-center gap-3">
                 <div class="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">

@@ -25,17 +25,17 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public async Task<IReadOnlyList<User>> GetEligibleStaffAsync(int branchId, CancellationToken cancellationToken = default) =>
         await _context.Users.AsNoTracking()
-            .Where(u => u.BranchId == branchId && u.DeletedAt == null &&
-                u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING"))
+            .Where(u => u.BranchId != null && u.BranchId == branchId && u.DeletedAt == null &&
+                u.Role.RoleName.ToUpper() == "STAFF" && u.Status == "ACTIVE")
             .OrderBy(u => u.FullName).ThenBy(u => u.UserId)
             .Select(u => new User { UserId = u.UserId, FullName = u.FullName })
             .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<User>> GetStaffWithoutContractAsync(int? branchId = null, CancellationToken cancellationToken = default) =>
         await _context.Users.AsNoTracking()
-            .Where(u => (branchId == null || u.BranchId == null || u.BranchId == branchId.Value) &&
+            .Where(u => u.BranchId != null && (branchId == null || u.BranchId == branchId.Value) &&
                 u.DeletedAt == null &&
-                u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING") &&
+                u.Role.RoleName.ToUpper() == "STAFF" && u.Status == "ACTIVE" &&
                 !_context.EmploymentContracts.Any(c => c.UserId == u.UserId &&
                     (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
                      c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")))
@@ -56,8 +56,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         var eligibleUsers = await _context.Users.AsNoTracking()
             .Include(u => u.EmployeeType)
-            .Where(u => u.BranchId == branchId && u.DeletedAt == null &&
-                u.Role.RoleName.ToUpper() == "STAFF" && (u.Status == "ACTIVE" || u.Status == "PENDING") &&
+            .Where(u => u.BranchId != null && u.BranchId == branchId && u.DeletedAt == null &&
+                u.Role.RoleName.ToUpper() == "STAFF" && u.Status == "ACTIVE" &&
                 _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == branchId && c.Status != "CANCELLED") &&
                 !_context.EmploymentContracts.Any(c => c.UserId == u.UserId &&
                     (c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")))
@@ -739,6 +739,17 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             existing.Status = newStatus;
             existing.StaffAcceptedAt = acceptedAtUtc;
             existing.UpdatedAt = acceptedAtUtc;
+
+            // Cancel any open change request since staff has accepted the contract
+            var openChangeRequests = await _context.ContractChangeRequests
+                .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED"))
+                .ToListAsync(cancellationToken);
+            foreach (var cr in openChangeRequests)
+            {
+                cr.Status = "CANCELLED";
+                cr.ReviewComment = "Tự động hủy do nhân viên đã chấp thuận ký hợp đồng.";
+                cr.UpdatedAt = acceptedAtUtc;
+            }
 
             var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == staffUserId, cancellationToken);
             if (staffUser != null)

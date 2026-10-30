@@ -243,11 +243,26 @@ class StaffContractController extends ChangeNotifier {
         );
       }
 
+      await loadChangeRequests(contractId);
+      await loadContracts(refresh: true);
+
+
+
+      // Nạp lại danh sách yêu cầu thay đổi và hợp đồng
+      await loadChangeRequests(contractId);
+      await loadContracts(refresh: true);
+
       _isAccepting = false;
       notifyListeners();
       return true;
     } catch (e) {
       _actionErrorMessage = e.toString();
+
+
+      // Nạp lại danh sách yêu cầu thay đổi và hợp đồng
+      await loadChangeRequests(contractId);
+      await loadContracts(refresh: true);
+
       _isAccepting = false;
       notifyListeners();
       return false;
