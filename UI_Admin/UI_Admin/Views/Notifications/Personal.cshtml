@@ -183,13 +183,18 @@
                 var isPayrollRelated = (item.NotificationType?.Equals("PAYROLL", StringComparison.OrdinalIgnoreCase) ?? false)
                                     || (item.Title?.Contains("payroll", StringComparison.OrdinalIgnoreCase) ?? false)
                                     || (item.Title?.Contains("lương", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isSalaryChangeRelated = (item.NotificationType?.Equals("SalaryChange", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Increase", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Rate", StringComparison.OrdinalIgnoreCase) ?? false);
 
-                var iconName = isPayrollRelated ? "payments" :
+                var iconName = isSalaryChangeRelated ? "trending_up" :
+                               isPayrollRelated ? "payments" :
                                isContractRelated ? "description" :
                                isRequestRelated ? "pending_actions" :
                                isShiftRelated ? "schedule" :
                                (item.NotificationType == "Broadcast" ? "campaign" : "notifications");
-                var iconBg = isPayrollRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                var iconBg = isSalaryChangeRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isPayrollRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                              isContractRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
                              isRequestRelated ? "bg-violet-50 text-violet-600 border-violet-100" :
                              isShiftRelated ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
@@ -229,6 +234,7 @@
                                         "PAYROLL" => "Payroll",
                                         "ShiftAssignment" => "Shift Assignment",
                                         "EmployeeRequest" => "Request",
+                                        "SalaryChange" => "Salary Proposal",
                                         "Broadcast" => "Broadcast",
                                         _ => item.NotificationType
                                     })

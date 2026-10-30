@@ -360,27 +360,30 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         try
         {
-            var typeVietnamese = TranslateRequestType(request.RequestType);
-            var title = isApproved
-                ? $"Yêu cầu #{request.RequestId} đã được phê duyệt"
-                : $"Yêu cầu #{request.RequestId} đã bị từ chối";
-
+            string title;
             string content;
-            if (isApproved)
+            if (request.RequestType == "SALARY_INCREASE")
             {
-                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã được Quản lý phê duyệt.";
-                if (request.RequestType == "SALARY_INCREASE")
-                    content += " Đây là bước Manager chấp nhận đơn; mức lương chưa thay đổi. Đề xuất tăng lương cần Admin phê duyệt và đến ngày áp dụng.";
-                if (!string.IsNullOrWhiteSpace(reviewNote))
+                if (isApproved)
                 {
-                    content += $" Ghi chú: {reviewNote.Trim()}";
+                    title = $"Salary Increase Request #{request.RequestId} Approved";
+                    content = $"Your salary increase request #{request.RequestId} has been approved by the Manager. Please note that this approval accepts your request; your current salary remains unchanged until an Admin approves the proposal and the effective date arrives.";
+                    if (!string.IsNullOrWhiteSpace(reviewNote)) content += $" Review note: {reviewNote.Trim()}";
+                }
+                else
+                {
+                    title = $"Salary Increase Request #{request.RequestId} Rejected";
+                    content = $"Your salary increase request #{request.RequestId} has been rejected by the Manager.";
+                    if (!string.IsNullOrWhiteSpace(reviewNote)) content += $" Reason: {reviewNote.Trim()}";
                 }
             }
             else
             {
-                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã bị Quản lý từ chối. Lý do: {reviewNote?.Trim()}";
+                title = isApproved ? $"Request #{request.RequestId} Approved" : $"Request #{request.RequestId} Rejected";
+                content = isApproved
+                    ? $"Your {request.RequestType} request #{request.RequestId} has been approved by your Manager." + (!string.IsNullOrWhiteSpace(reviewNote) ? $" Review note: {reviewNote.Trim()}" : "")
+                    : $"Your {request.RequestType} request #{request.RequestId} has been rejected by your Manager." + (!string.IsNullOrWhiteSpace(reviewNote) ? $" Reason: {reviewNote.Trim()}" : "");
             }
-
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity
@@ -394,7 +397,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 IsDeleted = false,
                 TargetType = "Staff",
                 TargetBranchId = null,
-                TargetRoles = new List<string> { "STAFF" },
+                TargetRoles = new List<string>(),
                 Channels = new List<string> { "InApp" }
             };
 
@@ -619,7 +622,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                     IsDeleted = false,
                     TargetType = "Custom",
                     TargetBranchId = null,
-                    TargetRoles = new List<string> { "STAFF" },
+                    TargetRoles = new List<string>(),
                     Channels = new List<string> { "InApp" }
                 };
 

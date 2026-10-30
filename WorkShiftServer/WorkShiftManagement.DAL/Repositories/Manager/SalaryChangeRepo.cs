@@ -8,6 +8,10 @@ namespace WorkShiftManagement.DAL.Repositories.Manager;
 
 public sealed class SalaryChangeRepo(AppDbContext db) : ISalaryChangeRepo
 {
+    private readonly List<PendingSalaryChangeRealtimeNotification> _pendingNotifications = new();
+    public IReadOnlyList<PendingSalaryChangeRealtimeNotification> PendingNotifications => _pendingNotifications;
+    public void ClearPendingNotifications() => _pendingNotifications.Clear();
+
     public Task<User?> ActorAsync(Guid id, CancellationToken ct) => db.Users.AsNoTracking()
         .Include(u => u.Role).Include(u => u.Branch).SingleOrDefaultAsync(u => u.UserId == id, ct);
     public Task<User?> StaffAsync(Guid id, int branchId, CancellationToken ct) => db.Users.AsNoTracking()
@@ -76,6 +80,47 @@ public sealed class SalaryChangeRepo(AppDbContext db) : ISalaryChangeRepo
         .Include(s => s.SalaryChangeRequest)
         .Where(s => s.Status == "SCHEDULED" && s.ChangeType == "INCREASE" && s.SalaryChangeRequestId != null && s.EffectiveFrom <= today)
         .OrderBy(s => s.EffectiveFrom).ThenBy(s => s.SalaryHistoryId).ToListAsync(ct);
+
+    public Task<List<Guid>> GetAdminUserIdsAsync(CancellationToken ct) => db.Users.AsNoTracking()
+        .Where(u => u.Status == "ACTIVE" && u.DeletedAt == null && u.Role.RoleName == "ADMIN" && u.Role.Status == "ACTIVE")
+        .Select(u => u.UserId).ToListAsync(ct);
+
+    public Task<List<Guid>> GetBranchManagerUserIdsAsync(int branchId, CancellationToken ct) => db.Users.AsNoTracking()
+        .Where(u => u.Status == "ACTIVE" && u.DeletedAt == null && u.BranchId == branchId && u.Role.RoleName == "MANAGER" && u.Role.Status == "ACTIVE")
+        .Select(u => u.UserId).ToListAsync(ct);
+
+    public void EnqueueNotification(Guid senderId, string title, string message, string targetType, IReadOnlyCollection<Guid> recipientIds, DateTime now)
+    {
+        var distinctRecipients = recipientIds.Distinct().ToList();
+        if (distinctRecipients.Count == 0) return;
+
+        var notif = new WorkShiftManagement.DAL.Entities.Notification
+        {
+            Title = title,
+            Content = message,
+            NotificationType = "SalaryChange",
+            CreatedBy = senderId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsDeleted = false,
+            TargetType = targetType,
+            TargetRoles = [], // Empty array required by PostgreSQL constraint ck_notifications_target_scope
+            TargetBranchId = null,
+            TargetRegionId = null,
+            Channels = ["InApp"],
+            UserNotifications = distinctRecipients.Select(id => new UserNotification
+            {
+                UserId = id,
+                CreatedAt = now,
+                IsRead = false,
+                IsDeleted = false
+            }).ToList()
+        };
+
+        db.Notifications.Add(notif);
+        _pendingNotifications.Add(new PendingSalaryChangeRealtimeNotification(notif, distinctRecipients));
+    }
+
     public void Add(SalaryChangeRequest item) => db.SalaryChangeRequests.Add(item);
     public void Add(StaffSalaryHistory item) => db.StaffSalaryHistories.Add(item);
     public void Audit(Guid? actor, string action, string table, string recordId, string? oldValue, string newValue, DateTime now)
