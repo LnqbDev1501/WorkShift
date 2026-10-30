@@ -7,6 +7,7 @@
         {
             if (!query.Key.Equals("page", StringComparison.OrdinalIgnoreCase) &&
                 !query.Key.Equals("pageNumber", StringComparison.OrdinalIgnoreCase) &&
+                !query.Key.Equals("pageIndex", StringComparison.OrdinalIgnoreCase) &&
                 !query.Key.Equals("pageSize", StringComparison.OrdinalIgnoreCase))
             {
                 routes[query.Key] = query.Value.ToString();

@@ -52,7 +52,7 @@ public sealed class ManagerTimesheetListViewModel
     public int? Year { get; set; }
     public string? Status { get; set; }
     public int PageIndex { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = 20;
 
     public List<ManagerWeeklyTimesheetItemModel> Items { get; set; } = new();
     public List<ManagerTimesheetPeriodOptionModel> AvailablePeriods { get; set; } = new();

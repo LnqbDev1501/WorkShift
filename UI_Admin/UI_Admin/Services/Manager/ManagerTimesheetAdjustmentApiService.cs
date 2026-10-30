@@ -25,8 +25,8 @@ public sealed class ManagerTimesheetAdjustmentApiService
         string? search,
         string? status,
         int? scheduleWeekId,
-        int pageIndex,
-        int pageSize,
+        int pageIndex = 1,
+        int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var parameters = new List<string>

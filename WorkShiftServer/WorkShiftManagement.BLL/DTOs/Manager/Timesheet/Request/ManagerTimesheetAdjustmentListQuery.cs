@@ -9,5 +9,5 @@ public sealed class ManagerTimesheetAdjustmentListQuery
     public int? ScheduleWeekId { get; set; }
     public Guid? StaffId { get; set; }
     public int PageIndex { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = 20;
 }
