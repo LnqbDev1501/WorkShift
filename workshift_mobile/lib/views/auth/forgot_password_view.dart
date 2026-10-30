@@ -36,7 +36,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, 0.15),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
 
@@ -77,416 +77,515 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      body: Stack(
-        children: [
-          // Full-screen background image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/ForgotPassword.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Dark gradient overlay for text readability
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.5),
-                    Colors.black.withValues(alpha: 0.7),
+      backgroundColor: AppColors.background,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Stack(
+          children: [
+            // 1. Ambient Brand Hero Header (Pure Flutter vector & gradients - NO images)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 290 + topPadding,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [AppColors.homeHeroStart, AppColors.homeHeroEnd],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(36),
+                    bottomRight: Radius.circular(36),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -40,
+                      right: -30,
+                      child: Container(
+                        width: 190,
+                        height: 190,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 30,
+                      left: -40,
+                      child: Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.homeAccent.withValues(alpha: 0.12),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          // Content
-          SafeArea(
-            child: Center(
+
+            // 2. Main Scrollable Content
+            SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                physics: const BouncingScrollPhysics(),
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: SlideTransition(
                     position: _slideAnimation,
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 10),
-
-                          // Back button
-                          _AnimatedTextField(
-                            delay: 0,
-                            child: IconButton(
-                              icon: const Icon(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Back Button
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: InkWell(
+                            onTap: _goBackToLogin,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
                                 Icons.arrow_back_rounded,
                                 color: Colors.white,
-                                size: 28,
+                                size: 22,
                               ),
-                              onPressed: _goBackToLogin,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                        ),
 
-                          // Logo with animated entrance
-                          Center(
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 1000),
-                              curve: Curves.elasticOut,
-                              builder: (_, value, child) {
-                                return Transform.scale(
-                                  scale: value,
-                                  child: child,
-                                );
-                              },
-                              child: Container(
-                                width: 88,
-                                height: 88,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                        const SizedBox(height: 10),
+
+                        // Header Icon & Title
+                        Center(
+                          child: Column(
+                            children: [
+                              TweenAnimationBuilder<double>(
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 900),
+                                curve: Curves.elasticOut,
+                                builder: (_, value, child) {
+                                  return Transform.scale(
+                                    scale: value,
+                                    child: child,
+                                  );
+                                },
+                                child: Container(
+                                  width: 76,
+                                  height: 76,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(22),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.16),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
                                   ),
-                                  borderRadius: BorderRadius.circular(26),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.35),
-                                      blurRadius: 30,
-                                      offset: const Offset(0, 12),
-                                      spreadRadius: -4,
+                                  child: Center(
+                                    child: Container(
+                                      width: 56,
+                                      height: 56,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [AppColors.homeHeroStart, AppColors.homeHeroEnd],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: const Icon(
+                                        Icons.lock_reset_rounded,
+                                        color: Colors.white,
+                                        size: 32,
+                                      ),
                                     ),
-                                    BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.15),
-                                      blurRadius: 60,
-                                      offset: const Offset(0, 24),
-                                      spreadRadius: -8,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              const Text(
+                                'WorkShift',
+                                style: TextStyle(
+                                  fontSize: 30,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: -0.6,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.25),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.homeAccent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'PASSWORD RECOVERY',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.8,
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.lock_reset_rounded,
-                                  color: Colors.white,
-                                  size: 48,
-                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(height: 28),
+                        ),
 
-                          // Title with gradient text
-                          Center(
-                            child: ShaderMask(
-                              shaderCallback: (bounds) => LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
-                              ).createShader(bounds),
-                              child: const Text(
-                                'WorkShift',
-                                style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: -1.0,
-                                ),
+                        const SizedBox(height: 26),
+
+                        // Form Card
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: AppColors.borderLight, width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.homeHeroStart.withValues(alpha: 0.08),
+                                blurRadius: 28,
+                                offset: const Offset(0, 12),
+                                spreadRadius: -4,
                               ),
-                            ),
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Reset your password',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontWeight: FontWeight.w400,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 48),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const Text(
+                                  'Reset Password',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Enter your registered email address to receive password reset instructions.',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: AppColors.textSecondary,
+                                    height: 1.4,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
 
-                          // Error notification banner
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: _authController.errorMessage != null
-                                ? Container(
-                                    key: const ValueKey('error'),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.errorBg,
-                                          AppColors.errorBg.withValues(alpha: 0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.error.withValues(alpha: 0.1),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
+                                // Error notification banner
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  switchInCurve: Curves.easeOutCubic,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  child: _authController.errorMessage != null
+                                      ? Container(
+                                          key: const ValueKey('error'),
+                                          margin: const EdgeInsets.only(bottom: 18),
+                                          padding: const EdgeInsets.all(14),
                                           decoration: BoxDecoration(
-                                            color: AppColors.error.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: const Icon(
-                                            Icons.error_outline_rounded,
-                                            color: AppColors.error,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            _authController.errorMessage!,
-                                            style: const TextStyle(
-                                              color: AppColors.error,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.3,
+                                            color: AppColors.errorBg,
+                                            borderRadius: BorderRadius.circular(14),
+                                            border: Border.all(
+                                              color: AppColors.error.withValues(alpha: 0.35),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          if (_authController.errorMessage != null) const SizedBox(height: 20),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.error.withValues(alpha: 0.15),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.error_outline_rounded,
+                                                  color: AppColors.error,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  _authController.errorMessage!,
+                                                  style: const TextStyle(
+                                                    color: AppColors.error,
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 1.35,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
 
-                          // Success notification banner
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: _authController.successMessage != null
-                                ? Container(
-                                    key: const ValueKey('success'),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.successBg,
-                                          AppColors.successBg.withValues(alpha: 0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.success.withValues(alpha: 0.1),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
+                                // Success notification banner
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  switchInCurve: Curves.easeOutCubic,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  child: _authController.successMessage != null
+                                      ? Container(
+                                          key: const ValueKey('success'),
+                                          margin: const EdgeInsets.only(bottom: 18),
+                                          padding: const EdgeInsets.all(14),
                                           decoration: BoxDecoration(
-                                            color: AppColors.success.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: const Icon(
-                                            Icons.check_circle_outline_rounded,
-                                            color: AppColors.success,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            _authController.successMessage!,
-                                            style: const TextStyle(
-                                              color: AppColors.success,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.3,
+                                            color: AppColors.successBg,
+                                            borderRadius: BorderRadius.circular(14),
+                                            border: Border.all(
+                                              color: AppColors.success.withValues(alpha: 0.35),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          if (_authController.successMessage != null) const SizedBox(height: 20),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.success.withValues(alpha: 0.15),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_circle_outline_rounded,
+                                                  color: AppColors.success,
+                                                  size: 18,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Expanded(
+                                                child: Text(
+                                                  _authController.successMessage!,
+                                                  style: const TextStyle(
+                                                    color: AppColors.success,
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 1.35,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ),
 
-                          // Instruction text
-                          _AnimatedTextField(
-                            delay: 100,
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
+                                // Info tip card
+                                _AnimatedTextField(
+                                  delay: 100,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(12),
+                                      color: AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(
+                                        color: AppColors.primary.withValues(alpha: 0.15),
+                                      ),
                                     ),
-                                    child: Icon(
-                                      Icons.mail_outline_rounded,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
+                                    child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          'Check your inbox',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
+                                        const Icon(
+                                          Icons.info_outline_rounded,
+                                          color: AppColors.primary,
+                                          size: 20,
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'We\'ll send a password reset link to your email. If you don\'t see it, check your spam folder.',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white.withValues(alpha: 0.8),
-                                            height: 1.5,
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            'A reset link will be sent to your inbox. Please check spam if not found.',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: AppColors.primaryDark.withValues(alpha: 0.9),
+                                              height: 1.35,
+                                            ),
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
+                                ),
+                                const SizedBox(height: 18),
 
-                          // Email input
-                          _AnimatedTextField(
-                            delay: 200,
-                            child: AppTextField(
-                              label: 'Email Address',
-                              hintText: 'you@company.com',
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              prefixIcon: Icons.email_outlined,
-                              onChanged: (_) {
-                                _authController.clearError();
-                                _authController.clearSuccess();
-                              },
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!val.contains('@') || !val.contains('.')) {
-                                  return 'Please enter a valid email address';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-
-                          // Send Reset Link button
-                          _AnimatedTextField(
-                            delay: 300,
-                            child: AppButton(
-                              text: 'Send Reset Link',
-                              icon: Icons.send_rounded,
-                              isLoading: _authController.isLoading,
-                              onPressed: _handleForgotPassword,
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Back to Login link
-                          _AnimatedTextField(
-                            delay: 400,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Remember your password? ',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withValues(alpha: 0.8),
+                                // Email input
+                                _AnimatedTextField(
+                                  delay: 180,
+                                  child: AppTextField(
+                                    label: 'Email Address',
+                                    hintText: 'you@company.com',
+                                    controller: _emailController,
+                                    keyboardType: TextInputType.emailAddress,
+                                    prefixIcon: Icons.alternate_email_rounded,
+                                    onChanged: (_) {
+                                      _authController.clearError();
+                                      _authController.clearSuccess();
+                                    },
+                                    validator: (val) {
+                                      if (val == null || val.trim().isEmpty) {
+                                        return 'Please enter your email';
+                                      }
+                                      if (!val.contains('@') || !val.contains('.')) {
+                                        return 'Please enter a valid email address';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ),
-                                TextButton(
-                                  onPressed: _goBackToLogin,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    foregroundColor: Colors.white,
+                                const SizedBox(height: 22),
+
+                                // Send Reset Link button
+                                _AnimatedTextField(
+                                  delay: 240,
+                                  child: AppButton(
+                                    text: 'Send Reset Link',
+                                    icon: Icons.send_rounded,
+                                    isLoading: _authController.isLoading,
+                                    onPressed: _handleForgotPassword,
+                                    height: 52,
+                                    borderRadius: 14,
                                   ),
-                                  child: const Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.2,
-                                    ),
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Return to login
+                                _AnimatedTextField(
+                                  delay: 300,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Text(
+                                        'Remember your password? ',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: _goBackToLogin,
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          foregroundColor: AppColors.primary,
+                                        ),
+                                        child: const Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
+                        ),
 
-                          const SizedBox(height: 40),
-                          Center(
-                            child: Text(
-                              'WorkShift Management System v1.0',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 0.3,
+                        const SizedBox(height: 28),
+
+                        // Security footer
+                        _AnimatedTextField(
+                          delay: 360,
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: const [
+                                  Icon(
+                                    Icons.verified_user_outlined,
+                                    size: 15,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'WorkShift Secure Authentication',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'WorkShift Management System v1.0',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.textMuted.withValues(alpha: 0.8),
+                                  letterSpacing: 0.2,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+
+                        const SizedBox(height: 20),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
