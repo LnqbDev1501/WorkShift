@@ -466,9 +466,9 @@ public class ManagerStaffService : IManagerStaffService
         {
             throw new ArgumentException("Date of birth cannot be in the future.");
         }
-        if (dateOfBirth > today.AddYears(-16))
+        if (dateOfBirth > today.AddYears(-18))
         {
-            throw new ArgumentException("Staff must be at least 16 years old.");
+            throw new ArgumentException("Staff must be at least 18 years old.");
         }
         if (dateOfBirth < today.AddYears(-99))
         {
