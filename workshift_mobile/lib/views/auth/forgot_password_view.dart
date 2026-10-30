@@ -83,7 +83,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
           // Full-screen background image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/ForgotPassword.jpg',
+              'assets/images/forgotpassword.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -398,8 +398,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                           _AnimatedTextField(
                             delay: 200,
                             child: AppTextField(
-                              label: 'Email Address',
-                              hintText: 'you@company.com',
+                              hintText: 'Enter your mail',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: Icons.email_outlined,

@@ -67,8 +67,8 @@ flutter:
   # Assets
   assets:
     - assets/sample_face.jpg
-    - assets/images/LoginPage.jpg
-    - assets/images/ForgotPassword.jpg
+    - assets/images/login.jpg
+    - assets/images/forgotpassword.jpg
     - assets/images/workshift_stamp.png
 
   # An image asset can refer to one or more resolution-specific "variants", see

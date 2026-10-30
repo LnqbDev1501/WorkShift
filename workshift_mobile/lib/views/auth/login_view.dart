@@ -110,7 +110,7 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
           // Full-screen background image
           Positioned.fill(
             child: Image.asset(
-              'assets/images/LoginPage.jpg',
+              'assets/images/login.jpg',
               fit: BoxFit.cover,
             ),
           ),
@@ -287,8 +287,7 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           _AnimatedTextField(
                             delay: 100,
                             child: AppTextField(
-                              label: 'Email Address',
-                              hintText: 'you@company.com',
+                              hintText: 'Enter your mail',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: Icons.email_outlined,
@@ -310,7 +309,6 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                           _AnimatedTextField(
                             delay: 200,
                             child: AppTextField(
-                              label: 'Password',
                               hintText: 'Enter your password',
                               controller: _passwordController,
                               isPassword: true,
