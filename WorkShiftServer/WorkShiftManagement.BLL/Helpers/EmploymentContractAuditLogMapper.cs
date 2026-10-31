@@ -179,6 +179,7 @@ public static class EmploymentContractAuditLogMapper
         "REJECT_CHANGE_REQUEST" => "Quản lý từ chối yêu cầu thay đổi",
         "CANCEL_CONTRACT" => "Hủy hợp đồng",
         "AUTO_CANCEL_CONTRACT" => "Hệ thống tự động hủy hợp đồng do quá hạn chấp nhận",
+        "SEND_TERMINATION_WARNING" => "Cảnh báo vi phạm hợp đồng",
         "TERMINATE_CONTRACT" => "Chấm dứt hợp đồng",
         "AUTO_ACTIVATE_CONTRACT" => "Hệ thống tự động kích hoạt hợp đồng",
         "AUTO_EXPIRE_CONTRACT" => "Hệ thống tự động hết hạn hợp đồng",

@@ -44,6 +44,9 @@ public class ManagerContractDetailViewModel
     public string? OpenChangeRequestStatus { get; set; }
 
     public bool HasPdf { get; set; }
+    public int TerminationWarningCount { get; set; }
+    public bool CanTerminateEarly { get; set; }
+    public List<ContractTerminationWarningViewModel> TerminationWarnings { get; set; } = [];
 
     // History
     public ManagerContractHistoryViewModel? History { get; set; }
@@ -107,4 +110,16 @@ public class ManagerContractChangeItemViewModel
     public string? OriginalValue { get; set; }
     public string ProposedValue { get; set; } = string.Empty;
     public string? Reason { get; set; }
+}
+
+
+public class ContractTerminationWarningViewModel
+{
+    public int NotificationId { get; set; }
+    public int ContractId { get; set; }
+    public short WarningNo { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public DateTime SentAt { get; set; }
+    public Guid SentByManagerId { get; set; }
 }

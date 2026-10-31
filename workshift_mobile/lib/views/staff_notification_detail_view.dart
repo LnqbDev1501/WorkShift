@@ -51,7 +51,11 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
   }
 
   IconData _getTypeIcon(String type) {
-    switch (type.toLowerCase()) {
+    final t = type.toLowerCase();
+    if (t.contains('warning') || t.contains('termination')) {
+      return Icons.warning_amber_rounded;
+    }
+    switch (t) {
       case 'shift':
         return Icons.calendar_today_rounded;
       case 'request':
@@ -70,7 +74,11 @@ class _StaffNotificationDetailViewState extends State<StaffNotificationDetailVie
   }
 
   Color _getTypeColor(String type) {
-    switch (type.toLowerCase()) {
+    final t = type.toLowerCase();
+    if (t.contains('warning') || t.contains('termination')) {
+      return AppColors.warning;
+    }
+    switch (t) {
       case 'shift':
         return AppColors.primary;
       case 'request':

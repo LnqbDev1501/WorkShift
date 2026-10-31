@@ -1,0 +1,354 @@
+@model UI_Admin.Models.Manager.Contract.ContractTerminationPageViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"Termination Warning - {Model.ContractNumber}";
+    var sentCount = Model.WarningCount;
+    var nextWarningNo = Model.NextWarningNo;
+    var isReadyToTerminate = Model.CanTerminate;
+}
+
+<div class="flex flex-col gap-6 max-w-3xl mx-auto">
+
+    <!-- Top Navigation Header -->
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a asp-action="Details" asp-route-id="@Model.ContractId"
+               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
+               title="Back to contract details">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Termination Warning</h1>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>Active
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5 font-medium">Manager &middot; Employment Contract Management</p>
+            </div>
+        </div>
+
+        <div class="hidden sm:flex items-center gap-2 text-xs">
+            <span class="px-3 py-1 rounded-xl bg-white border border-slate-200 font-mono text-slate-700 font-semibold shadow-sm">
+                @Model.ContractNumber
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert / TempData notifications -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-[22px] shrink-0">check_circle</span>
+            <span class="font-medium">@TempData["SuccessMessage"]</span>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-[22px] shrink-0">error</span>
+            <span class="font-medium">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    <!-- Main Container Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+
+        <!-- Card Header Info -->
+        <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Termination Warning</h2>
+                <p class="text-xs text-slate-500 mt-0.5">Manager &middot; Employment Contract Management</p>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600">
+                <span class="material-symbols-outlined text-[22px]">quick_reference_all</span>
+            </div>
+        </div>
+
+        <!-- Warning Progress Section -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-bold text-slate-900">Warning Progress</span>
+                <span class="text-base font-bold @(sentCount >= 3 ? "text-emerald-600" : "text-slate-900")">
+                    @sentCount/3
+                </span>
+            </div>
+
+            <!-- Segmented Progress Bar (3 segments) -->
+            <div class="grid grid-cols-3 gap-2">
+                <!-- Segment 1 -->
+                <div class="h-2 rounded-full transition-all duration-300 @(sentCount >= 1 ? (sentCount >= 3 ? "bg-emerald-500" : "bg-amber-500") : "bg-slate-200")"></div>
+                <!-- Segment 2 -->
+                <div class="h-2 rounded-full transition-all duration-300 @(sentCount >= 2 ? (sentCount >= 3 ? "bg-emerald-500" : "bg-amber-500") : "bg-slate-200")"></div>
+                <!-- Segment 3 -->
+                <div class="h-2 rounded-full transition-all duration-300 @(sentCount >= 3 ? "bg-emerald-500" : "bg-slate-200")"></div>
+            </div>
+
+            <!-- Stage Pills -->
+            <div class="grid grid-cols-4 gap-2 pt-1">
+                <div class="text-center py-1 rounded-xl text-xs font-semibold transition-colors @(sentCount == 0 ? "bg-slate-900 text-white shadow-sm" : "bg-slate-50 text-slate-400 border border-slate-200")">
+                    0/3
+                </div>
+                <div class="text-center py-1 rounded-xl text-xs font-semibold transition-colors @(sentCount == 1 ? "bg-amber-500 text-white shadow-sm" : "bg-slate-50 text-slate-400 border border-slate-200")">
+                    1/3
+                </div>
+                <div class="text-center py-1 rounded-xl text-xs font-semibold transition-colors @(sentCount == 2 ? "bg-amber-500 text-white shadow-sm" : "bg-slate-50 text-slate-400 border border-slate-200")">
+                    2/3
+                </div>
+                <div class="text-center py-1 rounded-xl text-xs font-semibold transition-colors @(sentCount >= 3 ? "bg-emerald-600 text-white shadow-sm" : "bg-slate-50 text-slate-400 border border-slate-200")">
+                    3/3
+                </div>
+            </div>
+        </div>
+
+        <!-- Warning History Accordion if any warnings already sent -->
+        @if (Model.Warnings != null && Model.Warnings.Count > 0)
+        {
+            <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                    <span class="flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-[16px] text-amber-600">history</span>
+                        Lịch sử cảnh báo đã gửi (@Model.Warnings.Count/3)
+                    </span>
+                    <span class="text-slate-400 font-normal">Đã lưu trữ trên hệ thống</span>
+                </div>
+                <div class="space-y-2">
+                    @foreach (var w in Model.Warnings.OrderBy(x => x.WarningNo))
+                    {
+                        <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs shadow-2xs">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                    Cảnh báo lần @w.WarningNo
+                                </span>
+                                <span class="text-slate-400 font-mono text-[11px]">@w.SentAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            <p class="font-semibold text-slate-800 mt-1">@w.Title</p>
+                            <p class="text-slate-600 mt-0.5 text-[11px] leading-relaxed">@w.Content</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Section 2: FORM -->
+        @if (!isReadyToTerminate)
+        {
+            <!-- SEND WARNING FORM (< 3 warnings) -->
+            <form method="post" asp-action="SendTerminationWarning" onsubmit="disableSendWarningBtn(this)" class="space-y-5 pt-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="contractId" value="@Model.ContractId" />
+
+                <!-- Header for current warning -->
+                <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-amber-600 text-[20px]">notification_add</span>
+                        <span>Send Warning @nextWarningNo</span>
+                    </h3>
+                    <span class="text-xs text-slate-500 font-medium bg-slate-100 px-2.5 py-1 rounded-full">
+                        Lần @nextWarningNo trong 3
+                    </span>
+                </div>
+
+                <!-- Contract Context -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                            Contract ID / Number
+                        </label>
+                        <input type="text" readonly disabled
+                               value="#@Model.ContractId (@Model.ContractNumber)"
+                               class="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-mono cursor-not-allowed" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                            Staff Member
+                        </label>
+                        <input type="text" readonly disabled
+                               value="@Model.EmployeeFullName (@Model.EmployeePosition)"
+                               class="w-full h-11 px-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium cursor-not-allowed" />
+                    </div>
+                </div>
+
+                <!-- Notification Title -->
+                <div>
+                    <label for="warning-title-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Notification Title <span class="text-rose-600">*</span>
+                    </label>
+                    <input type="text"
+                           id="warning-title-input"
+                           name="title"
+                           required
+                           minlength="3"
+                           maxlength="150"
+                           value="@Model.WarningTitle"
+                           placeholder="Nhập tiêu đề cảnh báo..."
+                           class="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+                    <span class="text-[11px] text-slate-400 mt-1 block">Tối thiểu 3 ký tự, tối đa 150 ký tự.</span>
+                </div>
+
+                <!-- Notification Content -->
+                <div>
+                    <label for="warning-content-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Notification Content <span class="text-rose-600">*</span>
+                    </label>
+                    <textarea id="warning-content-input"
+                              name="content"
+                              rows="4"
+                              required
+                              minlength="5"
+                              maxlength="1000"
+                              placeholder="Nhập nội dung cảnh báo chi tiết..."
+                              class="w-full p-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">@Model.WarningContent</textarea>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Tối thiểu 5 ký tự, tối đa 1000 ký tự.</span>
+                </div>
+
+                <!-- Live Staff Notification Preview -->
+                <div class="space-y-2">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Staff Notification Preview
+                    </span>
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 shadow-2xs">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                                <span class="material-symbols-outlined text-[18px]">notifications_active</span>
+                            </div>
+                            <div class="flex-1">
+                                <h4 id="preview-title" class="font-bold text-slate-900 text-sm leading-snug">
+                                    @Model.WarningTitle
+                                </h4>
+                                <p id="preview-content" class="text-xs text-slate-600 mt-1.5 leading-relaxed whitespace-pre-wrap">
+                                    @Model.WarningContent
+                                </p>
+                                <span class="text-[10px] text-slate-400 mt-2 block font-medium">Vừa xong &middot; In-App Mobile</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                    <a asp-action="Details" asp-route-id="@Model.ContractId"
+                       class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
+                        Hủy
+                    </a>
+                    <button type="submit" id="btn-submit-warning"
+                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        <span>Gửi cảnh báo @nextWarningNo</span>
+                    </button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <!-- TERMINATION CONFIRMATION FORM (>= 3 warnings completed) -->
+            <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
+                <div class="flex items-center gap-2 text-emerald-900 font-bold text-sm">
+                    <span class="material-symbols-outlined text-emerald-600 text-[20px]">verified</span>
+                    <span>Đã hoàn thành đủ 3 lần cảnh báo vi phạm</span>
+                </div>
+                <p class="text-xs text-emerald-800 leading-relaxed">
+                    Hợp đồng lao động này đã ghi nhận đủ 3 thông báo cảnh báo vi phạm theo quy định. Quản lý hiện được quyền thực hiện thủ tục chấm dứt hợp đồng lao động sớm theo đúng quy định.
+                </p>
+            </div>
+
+            <form method="post" asp-action="Terminate" onsubmit="disableTerminateBtn(this)" class="space-y-5 pt-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.ContractId" />
+
+                <div class="pb-2 border-b border-slate-100">
+                    <h3 class="text-base font-bold text-rose-900 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-rose-600 text-[22px]">gavel</span>
+                        <span>Xác nhận chấm dứt hợp đồng lao động</span>
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Vui lòng chọn ngày hiệu lực và nhập lý do chấm dứt hợp đồng chính thức.</p>
+                </div>
+
+                <!-- Effective Date -->
+                <div>
+                    <label for="termination-effective-date" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Ngày có hiệu lực chấm dứt <span class="text-rose-600">*</span>
+                    </label>
+                    <input type="date"
+                           id="termination-effective-date"
+                           name="terminationEffectiveDate"
+                           value="@DateTime.Now.ToString("yyyy-MM-dd")"
+                           min="@Model.StartDate.ToString("yyyy-MM-dd")"
+                           required
+                           class="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500" />
+                    <span class="text-[11px] text-slate-400 mt-1 block">
+                        Mặc định là ngày hôm nay. Không được chọn ngày trước ngày bắt đầu hợp đồng (@Model.StartDate.ToString("dd/MM/yyyy")).
+                    </span>
+                </div>
+
+                <!-- Reason -->
+                <div>
+                    <label for="termination-reason" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Lý do chấm dứt hợp đồng <span class="text-rose-600">*</span>
+                    </label>
+                    <textarea id="termination-reason"
+                              name="reason"
+                              rows="4"
+                              required
+                              maxlength="500"
+                              placeholder="Nhập lý do chấm dứt hợp đồng (tối đa 500 ký tự)..."
+                              class="w-full p-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"></textarea>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Lý do này sẽ được ghi vào hồ sơ kiểm toán hợp đồng và gửi thông báo cho nhân viên.</span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
+                    <a asp-action="Details" asp-route-id="@Model.ContractId"
+                       class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
+                        Quay lại
+                    </a>
+                    <button type="submit" id="btn-submit-terminate"
+                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">gavel</span>
+                        <span>Xác nhận chấm dứt hợp đồng</span>
+                    </button>
+                </div>
+            </form>
+        }
+    </div>
+
+</div>
+
+@section Scripts {
+<script>
+    // Live update Staff Notification Preview
+    var titleInput = document.getElementById('warning-title-input');
+    var contentInput = document.getElementById('warning-content-input');
+    var previewTitle = document.getElementById('preview-title');
+    var previewContent = document.getElementById('preview-content');
+
+    if (titleInput && previewTitle) {
+        titleInput.addEventListener('input', function() {
+            previewTitle.textContent = this.value || 'Tiêu đề thông báo...';
+        });
+    }
+
+    if (contentInput && previewContent) {
+        contentInput.addEventListener('input', function() {
+            previewContent.textContent = this.value || 'Nội dung thông báo...';
+        });
+    }
+
+    function disableSendWarningBtn(form) {
+        var btn = document.getElementById('btn-submit-warning');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang gửi...';
+        }
+    }
+
+    function disableTerminateBtn(form) {
+        var btn = document.getElementById('btn-submit-terminate');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang xử lý...';
+        }
+    }
+</script>
+}
+

@@ -349,6 +349,65 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         }
     }
 
+    [HttpGet]
+    public async Task<IActionResult> Terminate(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0)
+            return RedirectToAction(nameof(Index));
+
+        try
+        {
+            var contract = await api.GetByIdAsync(id, cancellationToken);
+            if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            {
+                TempData["ErrorMessage"] = "Only ACTIVE contracts can be terminated early. For contracts that are not active yet, please use Cancel.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var warnings = await api.GetTerminationWarningsAsync(id, cancellationToken);
+            var warningCount = warnings.Count;
+            var nextWarningNo = Math.Min(3, warningCount + 1);
+
+            var model = new ContractTerminationPageViewModel
+            {
+                ContractId = contract.ContractId,
+                ContractNumber = contract.ContractNumber,
+                Status = contract.Status,
+                StaffUserId = contract.StaffUserId,
+                EmployeeFullName = contract.EmployeeFullName,
+                EmployeePosition = contract.EmployeePosition,
+                BranchName = contract.BranchName,
+                RegionName = contract.RegionName,
+                StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                HourlyRate = contract.HourlyRate,
+                WarningCount = warningCount,
+                Warnings = warnings,
+                WarningTitle = $"Cảnh báo vi phạm lần {nextWarningNo}",
+                WarningContent = $"Bạn đã vi phạm quy định về việc vắng mặt không phép nhiều lần. Đây là cảnh báo lần {nextWarningNo}/3. Nếu tiếp tục vi phạm, công ty có thể xem xét chấm dứt hợp đồng lao động theo quy định.",
+                TerminationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7))
+            };
+
+            return View(model);
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["ErrorMessage"] = "You do not have permission to access this contract.";
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Terminate(int id, string? reason, DateOnly? terminationEffectiveDate, string? returnUrl = null, CancellationToken cancellationToken = default)
     {
@@ -390,6 +449,63 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendTerminationWarning(
+        int contractId,
+        string title,
+        string content,
+        string? returnUrl = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (contractId <= 0)
+            return RedirectToAction(nameof(Index));
+
+        if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3 || title.Trim().Length > 150)
+        {
+            TempData["ErrorMessage"] = "Tiêu đề thông báo cảnh báo phải từ 3 đến 150 ký tự.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id = contractId });
+        }
+
+        if (string.IsNullOrWhiteSpace(content) || content.Trim().Length < 5 || content.Trim().Length > 1000)
+        {
+            TempData["ErrorMessage"] = "Nội dung thông báo cảnh báo phải từ 5 đến 1000 ký tự.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id = contractId });
+        }
+
+        try
+        {
+            var result = await api.SendTerminationWarningAsync(contractId, title.Trim(), content.Trim(), cancellationToken);
+            TempData["SuccessMessage"] = $"Đã gửi cảnh báo vi phạm lần {result.TerminationNoticeNo}/3 đến nhân viên thành công.";
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Terminate), new { id = contractId });
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id = contractId });
+        }
+        catch (Exception ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
+            return RedirectToAction(nameof(Details), new { id = contractId });
         }
     }
 

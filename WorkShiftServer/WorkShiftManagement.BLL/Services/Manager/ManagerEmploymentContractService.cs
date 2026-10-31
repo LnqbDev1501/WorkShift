@@ -282,7 +282,17 @@ public class ManagerEmploymentContractService(
             request.PageSize,
             cancellationToken);
 
-        var mapped = items.Select(MapToListItemResponse).ToList();
+        var contractIds = items.Select(c => c.ContractId).ToList();
+        var warningCounts = await repository.GetTerminationWarningCountsAsync(contractIds, cancellationToken);
+
+        var mapped = items.Select(c =>
+        {
+            var item = MapToListItemResponse(c);
+            var count = warningCounts.TryGetValue(c.ContractId, out var cnt) ? cnt : 0;
+            item.TerminationWarningCount = count;
+            item.CanTerminateEarly = string.Equals(c.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && count >= 3;
+            return item;
+        }).ToList();
         return new PagedResponse<ManagerEmploymentContractListItemResponse>
         {
             Items = mapped,
@@ -305,7 +315,23 @@ public class ManagerEmploymentContractService(
         if (contract.BranchId != manager.BranchId!.Value)
             throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
 
-        return MapToDetailResponse(contract);
+        var warnings = await repository.GetTerminationWarningsByContractIdAsync(contractId, cancellationToken);
+        var detail = MapToDetailResponse(contract);
+        detail.TerminationWarningCount = warnings.Count;
+        detail.CanTerminateEarly = string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && warnings.Count >= 3;
+        detail.TerminationWarnings = warnings.Select(w => new ContractTerminationWarningDto
+        {
+            NotificationId = w.NotificationId,
+            ContractId = contract.ContractId,
+            WarningNo = w.TerminationNoticeNo ?? 0,
+            Title = w.Title,
+            Content = w.Content,
+            SentAt = w.CreatedAt,
+            SentByManagerId = w.CreatedBy,
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Quản lý"
+        }).ToList();
+
+        return detail;
     }
 
     public async Task<ManagerEmploymentContractDetailResponse> UpdateDraftAsync(Guid managerId, int contractId,
@@ -410,6 +436,76 @@ public class ManagerEmploymentContractService(
         return MapToDetailResponse(contract);
     }
 
+    public async Task<SendContractTerminationWarningResponse> SendTerminationWarningAsync(
+        Guid managerId, int contractId, SendContractTerminationWarningRequest request, CancellationToken cancellationToken = default)
+    {
+        var manager = await RequireManagerAsync(managerId, cancellationToken);
+        if (contractId <= 0)
+            throw new ArgumentException("ContractId must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length < 3 || request.Title.Trim().Length > 150)
+            throw new ArgumentException("Warning notification title must be between 3 and 150 characters.");
+        if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Trim().Length < 5 || request.Content.Trim().Length > 1000)
+            throw new ArgumentException("Warning notification content must be between 5 and 1000 characters.");
+
+        var contract = await repository.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+        if (contract.BranchId != manager.BranchId!.Value)
+            throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
+
+        if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Termination warnings can only be sent for contracts with ACTIVE status.");
+
+        var currentWarningCount = await repository.GetTerminationWarningCountAsync(contractId, cancellationToken);
+        if (currentWarningCount >= 3)
+            throw new InvalidOperationException("This contract has already received all 3 violation warnings. No more warnings can be sent.");
+
+        short nextWarningNo = (short)(currentWarningCount + 1);
+
+        var warningNotification = await repository.AddTerminationWarningAsync(
+            contractId, managerId, request.Title.Trim(), request.Content.Trim(), nextWarningNo, cancellationToken);
+
+        return new SendContractTerminationWarningResponse
+        {
+            NotificationId = warningNotification.NotificationId,
+            ContractId = contractId,
+            TerminationNoticeNo = nextWarningNo,
+            Title = warningNotification.Title,
+            Content = warningNotification.Content,
+            CreatedAt = warningNotification.CreatedAt,
+            SentWarningCount = nextWarningNo,
+            CanRequestTermination = nextWarningNo >= 3
+        };
+    }
+
+    public async Task<IReadOnlyList<ContractTerminationWarningDto>> GetTerminationWarningsAsync(
+        Guid managerId, int contractId, CancellationToken cancellationToken = default)
+    {
+        var manager = await RequireManagerAsync(managerId, cancellationToken);
+        if (contractId <= 0)
+            throw new ArgumentException("ContractId must be greater than 0.");
+
+        var contract = await repository.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+        if (contract.BranchId != manager.BranchId!.Value)
+            throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
+
+        var warnings = await repository.GetTerminationWarningsByContractIdAsync(contractId, cancellationToken);
+
+        return warnings.Select(w => new ContractTerminationWarningDto
+        {
+            NotificationId = w.NotificationId,
+            ContractId = contract.ContractId,
+            WarningNo = w.TerminationNoticeNo ?? 0,
+            Title = w.Title,
+            Content = w.Content,
+            SentAt = w.CreatedAt,
+            SentByManagerId = w.CreatedBy,
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Quản lý"
+        }).ToList();
+    }
+
     public async Task<ManagerEmploymentContractDetailResponse> TerminateContractAsync(Guid managerId, int contractId,
         TerminateEmploymentContractRequest request, CancellationToken cancellationToken = default)
     {
@@ -427,6 +523,10 @@ public class ManagerEmploymentContractService(
 
         if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+
+        var warningCount = await repository.GetTerminationWarningCountAsync(contractId, cancellationToken);
+        if (warningCount < 3)
+            throw new InvalidOperationException($"Chưa thể chấm dứt hợp đồng. Yêu cầu phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi chấm dứt hợp đồng. Số cảnh báo hiện tại: {warningCount}/3.");
 
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var effectiveDate = request.TerminationEffectiveDate ?? todayVn;

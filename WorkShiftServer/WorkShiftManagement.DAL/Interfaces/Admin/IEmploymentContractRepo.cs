@@ -52,6 +52,11 @@ public interface IEmploymentContractRepo
     Task SendContractPdfAsync(int contractId, string filePath, string templateVersion, DateTime generatedAt, DateTime sentAt, Guid managerId, CancellationToken cancellationToken = default);
     Task AddNotificationAsync(WorkShiftManagement.DAL.Entities.Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default);
 
+    Task<int> GetTerminationWarningCountAsync(int contractId, CancellationToken cancellationToken = default);
+    Task<Dictionary<int, int>> GetTerminationWarningCountsAsync(IEnumerable<int> contractIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WorkShiftManagement.DAL.Entities.Notification>> GetTerminationWarningsByContractIdAsync(int contractId, CancellationToken cancellationToken = default);
+    Task<WorkShiftManagement.DAL.Entities.Notification> AddTerminationWarningAsync(int contractId, Guid managerId, string title, string content, short warningNo, CancellationToken cancellationToken = default);
+
     Task<EmploymentContract?> GetStaffContractByIdAsync(int contractId, Guid staffUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmploymentContract>> GetStaffContractsAsync(Guid staffUserId, string? status = null, string? search = null, DateOnly? startDateFrom = null, DateOnly? startDateTo = null, CancellationToken cancellationToken = default);
     Task StaffAcceptContractAsync(int contractId, Guid staffUserId, string newStatus, DateTime acceptedAtUtc, CancellationToken cancellationToken = default);

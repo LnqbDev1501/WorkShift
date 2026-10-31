@@ -18,6 +18,8 @@ public class ManagerContractListItemViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool HasPdf { get; set; }
+    public int TerminationWarningCount { get; set; }
+    public bool CanTerminateEarly { get; set; }
 }
 
 public class ManagerContractListViewModel
