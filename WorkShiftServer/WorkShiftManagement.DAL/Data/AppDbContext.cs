@@ -1340,12 +1340,17 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("notifications");
 
+            entity.HasIndex(e => new { e.ContractId, e.TerminationNoticeNo }, "ux_contract_termination_warning")
+                .IsUnique()
+                .HasFilter("((notification_type)::text = 'CONTRACT_TERMINATION_WARNING'::text)");
+
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
             entity.Property(e => e.Channels)
                 .HasDefaultValueSql("ARRAY['InApp'::text]")
                 .HasColumnType("character varying(20)[]")
                 .HasColumnName("channels");
             entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.ContractId).HasColumnName("contract_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1366,6 +1371,7 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'All'::character varying")
                 .HasColumnName("target_type");
+            entity.Property(e => e.TerminationNoticeNo).HasColumnName("termination_notice_no");
             entity.Property(e => e.Title)
                 .HasMaxLength(200)
                 .HasColumnName("title");
@@ -1387,6 +1393,10 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.TargetRegionId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("notifications_target_region_id_fkey");
+
+            entity.HasOne(d => d.Contract).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.ContractId)
+                .HasConstraintName("notifications_contract_id_fkey");
         });
 
         modelBuilder.Entity<Order>(entity =>

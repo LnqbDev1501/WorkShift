@@ -241,6 +241,62 @@ public class ManagerEmploymentContractController(
         }
     }
 
+    [HttpPost("{id:int}/termination-warnings")]
+    [ProducesResponseType(typeof(SendContractTerminationWarningResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<SendContractTerminationWarningResponse>> SendTerminationWarning(
+        [FromRoute] int id, [FromBody] SendContractTerminationWarningRequest request, CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+        try
+        {
+            return Ok(await service.SendTerminationWarningAsync(managerId.Value, id, request, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return Conflict(new { message = ex.Message }); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send contract termination warning for contract {ContractId}", id);
+            return StatusCode(500, new { message = ex.InnerException?.Message ?? ex.Message });
+        }
+    }
+
+    [HttpGet("{id:int}/termination-warnings")]
+    [ProducesResponseType(typeof(IReadOnlyList<ContractTerminationWarningDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<ContractTerminationWarningDto>>> GetTerminationWarnings(
+        [FromRoute] int id, CancellationToken cancellationToken)
+    {
+        var managerId = GetManagerId();
+        if (!managerId.HasValue)
+            return Unauthorized(new { message = "A valid authenticated user ID is required." });
+        try
+        {
+            return Ok(await service.GetTerminationWarningsAsync(managerId.Value, id, cancellationToken));
+        }
+        catch (UnauthorizedAccessException ex) { return StatusCode(403, new { message = ex.Message }); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to get contract termination warnings for contract {ContractId}", id);
+            return StatusCode(500, new { message = "Could not retrieve termination warnings." });
+        }
+    }
+
     [HttpGet("{id:int}/pdf/preview")]
     public async Task<IActionResult> PreviewPdf([FromRoute] int id, CancellationToken cancellationToken)
     {

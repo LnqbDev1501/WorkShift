@@ -23,4 +23,8 @@ public class ManagerEmploymentContractListItemResponse
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool HasPdf { get; set; }
+
+    // Termination Warnings
+    public int TerminationWarningCount { get; set; }
+    public bool CanTerminateEarly { get; set; }
 }

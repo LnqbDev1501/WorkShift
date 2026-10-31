@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -96,6 +96,8 @@ public partial class EmploymentContract
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<EmploymentContract> InverseReplacesContract { get; set; } = new List<EmploymentContract>();
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual Region Region { get; set; } = null!;
 

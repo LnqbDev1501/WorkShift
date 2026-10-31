@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace WorkShiftManagement.BLL.DTOs.Manager.Response;
 
@@ -45,4 +46,9 @@ public class ManagerEmploymentContractDetailResponse
     public string? ContractTemplateVersion { get; set; }
     public int? OpenChangeRequestId { get; set; }
     public string? OpenChangeRequestStatus { get; set; }
+
+    // Termination Warnings
+    public int TerminationWarningCount { get; set; }
+    public bool CanTerminateEarly { get; set; }
+    public List<ContractTerminationWarningDto> TerminationWarnings { get; set; } = new();
 }

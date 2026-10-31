@@ -26,6 +26,10 @@ public interface IManagerEmploymentContractService
         CancelEmploymentContractRequest request, CancellationToken cancellationToken = default);
     Task<ManagerEmploymentContractDetailResponse> TerminateContractAsync(Guid managerId, int contractId,
         TerminateEmploymentContractRequest request, CancellationToken cancellationToken = default);
+    Task<SendContractTerminationWarningResponse> SendTerminationWarningAsync(Guid managerId, int contractId,
+        SendContractTerminationWarningRequest request, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ContractTerminationWarningDto>> GetTerminationWarningsAsync(Guid managerId, int contractId,
+        CancellationToken cancellationToken = default);
     Task<byte[]> GetPdfPreviewAsync(Guid managerId, int contractId, CancellationToken cancellationToken = default);
     Task<ManagerEmploymentContractDetailResponse> SendContractAsync(Guid managerId, int contractId, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType, string FileName)> GetPdfFileAsync(Guid managerId, int contractId, bool isDownload, CancellationToken cancellationToken = default);

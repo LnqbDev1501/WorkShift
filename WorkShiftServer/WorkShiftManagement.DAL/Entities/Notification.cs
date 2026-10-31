@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -30,6 +30,12 @@ public partial class Notification
     public List<string> Channels { get; set; } = null!;
 
     public List<string> TargetRoles { get; set; } = null!;
+
+    public int? ContractId { get; set; }
+
+    public short? TerminationNoticeNo { get; set; }
+
+    public virtual EmploymentContract? Contract { get; set; }
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 

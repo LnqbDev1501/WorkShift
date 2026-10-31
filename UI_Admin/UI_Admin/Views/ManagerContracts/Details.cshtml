@@ -132,13 +132,13 @@
                 }
                 else if (statusUpper == "ACTIVE")
                 {
-                    <button type="button"
-                            onclick="openTerminateModal()"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
-                            title="Terminate Contract Early">
+                    <a asp-action="Terminate" asp-route-id="@Model.ContractId"
+                       class="inline-flex items-center gap-1.5 px-4 py-2 @(Model.CanTerminateEarly ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200" : "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200") text-sm font-semibold rounded-xl shadow-sm transition-all"
+                       title="@(Model.CanTerminateEarly ? "Chấm dứt hợp đồng sớm (Đã hoàn thành 3/3 cảnh báo)" : "Cảnh báo vi phạm & Chấm dứt hợp đồng (Hiện tại: " + Model.TerminationWarningCount + "/3)")">
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Terminate</span>
-                    </button>
+                        <span>Terminate Contract</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded @(Model.CanTerminateEarly ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800") font-mono font-bold">@Model.TerminationWarningCount/3</span>
+                    </a>
                 }
             }
         </div>
@@ -311,6 +311,138 @@
                     <span>View Change Requests</span>
                 </a>
             }
+        </div>
+    }
+
+    <!-- Termination Warning Progress Card -->
+    @if (statusUpper == "ACTIVE" || Model.TerminationWarningCount > 0)
+    {
+        var sentCount = Model.TerminationWarningCount;
+        var nextWarningNo = sentCount + 1;
+        var warnings = Model.TerminationWarnings ?? [];
+        var w1 = warnings.FirstOrDefault(w => w.WarningNo == 1);
+        var w2 = warnings.FirstOrDefault(w => w.WarningNo == 2);
+        var w3 = warnings.FirstOrDefault(w => w.WarningNo == 3);
+
+        <div class="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 rounded-xl @(sentCount >= 3 ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600")">
+                        <span class="material-symbols-outlined text-[24px]">warning</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-base font-bold text-slate-900">Termination Warning Progress</h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold @(sentCount >= 3 ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-amber-100 text-amber-800 border border-amber-200")">
+                                Warnings Sent: @sentCount/3
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            @if (sentCount >= 3)
+                            {
+                                <span class="text-emerald-700 font-medium">Đã gửi đủ 3 lần cảnh báo vi phạm. Quản lý hiện có thể thực hiện chấm dứt hợp đồng sớm nếu cần.</span>
+                            }
+                            else
+                            {
+                                <span>Quản lý phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi có thể chấm dứt hợp đồng sớm.</span>
+                            }
+                        </p>
+                    </div>
+                </div>
+
+                @if (statusUpper == "ACTIVE" && sentCount < 3)
+                {
+                    <a asp-action="Terminate" asp-route-id="@Model.ContractId"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-sm transition-all shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">notification_add</span>
+                        <span>Send Warning @nextWarningNo</span>
+                    </a>
+                }
+            </div>
+
+            <!-- Warning Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <!-- Warning 1 -->
+                <div class="p-4 rounded-xl border transition-all @(w1 != null ? "bg-amber-50/40 border-amber-200" : "bg-slate-50 border-slate-200")">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold @(w1 != null ? "text-amber-900" : "text-slate-500")">Warning 1</span>
+                        @if (w1 != null)
+                        {
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <span class="material-symbols-outlined text-[13px]">check_circle</span> Sent
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Not Sent</span>
+                        }
+                    </div>
+                    @if (w1 != null)
+                    {
+                        <p class="text-xs font-bold text-slate-900 truncate" title="@w1.Title">@w1.Title</p>
+                        <p class="text-[11px] text-slate-600 line-clamp-2 mt-1" title="@w1.Content">@w1.Content</p>
+                        <p class="text-[10px] text-slate-400 mt-2 font-mono">@w1.SentAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    }
+                    else
+                    {
+                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 1</p>
+                    }
+                </div>
+
+                <!-- Warning 2 -->
+                <div class="p-4 rounded-xl border transition-all @(w2 != null ? "bg-amber-50/40 border-amber-200" : "bg-slate-50 border-slate-200")">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold @(w2 != null ? "text-amber-900" : "text-slate-500")">Warning 2</span>
+                        @if (w2 != null)
+                        {
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <span class="material-symbols-outlined text-[13px]">check_circle</span> Sent
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Not Sent</span>
+                        }
+                    </div>
+                    @if (w2 != null)
+                    {
+                        <p class="text-xs font-bold text-slate-900 truncate" title="@w2.Title">@w2.Title</p>
+                        <p class="text-[11px] text-slate-600 line-clamp-2 mt-1" title="@w2.Content">@w2.Content</p>
+                        <p class="text-[10px] text-slate-400 mt-2 font-mono">@w2.SentAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    }
+                    else
+                    {
+                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 2</p>
+                    }
+                </div>
+
+                <!-- Warning 3 -->
+                <div class="p-4 rounded-xl border transition-all @(w3 != null ? "bg-amber-50/40 border-amber-200" : "bg-slate-50 border-slate-200")">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold @(w3 != null ? "text-amber-900" : "text-slate-500")">Warning 3</span>
+                        @if (w3 != null)
+                        {
+                            <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                <span class="material-symbols-outlined text-[13px]">check_circle</span> Sent
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Not Sent</span>
+                        }
+                    </div>
+                    @if (w3 != null)
+                    {
+                        <p class="text-xs font-bold text-slate-900 truncate" title="@w3.Title">@w3.Title</p>
+                        <p class="text-[11px] text-slate-600 line-clamp-2 mt-1" title="@w3.Content">@w3.Content</p>
+                        <p class="text-[10px] text-slate-400 mt-2 font-mono">@w3.SentAt.ToString("dd/MM/yyyy HH:mm")</p>
+                    }
+                    else
+                    {
+                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 3</p>
+                    }
+                </div>
+            </div>
         </div>
     }
 
@@ -560,7 +692,7 @@
             }
             else if (Model.History?.Items != null && Model.History.Items.Count > 0)
             {
-                <div class="relative border-l-2 border-slate-200 ml-4 space-y-6">
+                <div class="relative border-l-2 border-slate-200 ml-8 pl-6 space-y-6">
                     @foreach (var entry in Model.History.Items)
                     {
                         var isSystem = entry.ActorRole == "SYSTEM" || entry.ActorId == null || string.Equals(entry.ActorName, "Hệ thống", StringComparison.OrdinalIgnoreCase) || string.Equals(entry.ActorName, "System", StringComparison.OrdinalIgnoreCase);
@@ -570,7 +702,7 @@
 
                         <div class="relative pl-6">
                             <!-- Bullet Icon -->
-                            <div class="absolute -left-[17px] top-1 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center shadow-sm @(isEntryAutoCancel ? "bg-rose-500 text-white" : isSystem ? "bg-slate-700 text-white" : isManager ? "bg-indigo-600 text-white" : "bg-teal-600 text-white")">
+                            <div class="absolute -left-[41px] top-3 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center shadow-sm @(isEntryAutoCancel ? "bg-rose-500 text-white" : isSystem ? "bg-slate-700 text-white" : isManager ? "bg-indigo-600 text-white" : "bg-teal-600 text-white")">
                                 <span class="material-symbols-outlined text-[16px]">
                                     @(isEntryAutoCancel ? "event_busy" : isSystem ? "smart_toy" : isManager ? "badge" : "person")
                                 </span>
@@ -930,6 +1062,90 @@
 <!-- Terminate Contract Modal -->
 @if (statusUpper == "ACTIVE")
 {
+    var nextWarningNo = Model.TerminationWarningCount + 1;
+    <div id="termination-warning-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full mx-4 p-6 shadow-2xl">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                        <span class="material-symbols-outlined text-[20px]">warning</span>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Send Termination Warning</h3>
+                </div>
+                <button type="button" onclick="closeTerminationWarningModal()" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+
+            <form method="post" asp-action="SendTerminationWarning" onsubmit="disableTerminationWarningBtn(this)">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="contractId" value="@Model.ContractId" />
+
+                <div class="p-4 my-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Employee:</span>
+                        <span class="font-semibold text-slate-800">@Model.EmployeeFullName</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Contract:</span>
+                        <span class="font-mono text-slate-800">@Model.ContractNumber</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Warning Number:</span>
+                        <span id="warning-no-badge" class="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                            Lần @nextWarningNo / 3
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="warning-title" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Notification Title <span class="text-rose-600">*</span>
+                    </label>
+                    <input type="text"
+                           id="warning-title"
+                           name="title"
+                           required
+                           minlength="3"
+                           maxlength="150"
+                           value="Cảnh báo vi phạm hợp đồng lao động lần @nextWarningNo"
+                           class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
+                </div>
+
+                <div class="mb-5">
+                    <label for="warning-content" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
+                        Notification Content <span class="text-rose-600">*</span>
+                    </label>
+                    <textarea id="warning-content"
+                              name="content"
+                              rows="4"
+                              required
+                              minlength="5"
+                              maxlength="1000"
+                              placeholder="Nhập nội dung cảnh báo chi tiết gửi tới nhân viên (tối đa 1000 ký tự)..."
+                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">Quản lý gửi cảnh báo vi phạm lần @nextWarningNo đối với các điều khoản trong hợp đồng lao động. Vui lòng liên hệ quản lý trực tiếp để giải quyết.</textarea>
+                    <p class="text-[11px] text-slate-400 mt-1">Nội dung này sẽ được gửi trực tiếp vào thông báo In-App của nhân viên.</p>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                    <button type="button"
+                            onclick="closeTerminationWarningModal()"
+                            class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" id="confirm-warning-btn"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">send</span>
+                        <span>Send Warning</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (statusUpper == "ACTIVE")
+{
     <div id="terminate-modal" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full p-6 animate-scale-up">
             <div class="flex items-center gap-3 mb-4">
@@ -1038,6 +1254,34 @@
         }
     }
 
+    function openTerminationWarningModal(warningNo) {
+        var modal = document.getElementById('termination-warning-modal');
+        if (modal) {
+            if (warningNo) {
+                var badge = document.getElementById('warning-no-badge');
+                if (badge) badge.innerText = 'Lần ' + warningNo + ' / 3';
+                var titleInput = document.getElementById('warning-title');
+                if (titleInput) titleInput.value = 'Cảnh báo vi phạm hợp đồng lao động lần ' + warningNo;
+                var contentInput = document.getElementById('warning-content');
+                if (contentInput) contentInput.value = 'Quản lý gửi cảnh báo vi phạm lần ' + warningNo + ' đối với các điều khoản trong hợp đồng lao động. Vui lòng liên hệ quản lý trực tiếp để giải quyết.';
+            }
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function closeTerminationWarningModal() {
+        var modal = document.getElementById('termination-warning-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function disableTerminationWarningBtn(form) {
+        var btn = document.getElementById('confirm-warning-btn');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Sending...';
+        }
+    }
+
     function openTerminateModal() {
         var modal = document.getElementById('terminate-modal');
         if (modal) modal.classList.remove('hidden');
@@ -1060,9 +1304,11 @@
         var sendModal = document.getElementById('send-modal');
         var cancelModal = document.getElementById('cancel-modal');
         var terminateModal = document.getElementById('terminate-modal');
+        var warningModal = document.getElementById('termination-warning-modal');
         if (event.target === sendModal) closeSendModal();
         if (event.target === cancelModal) closeCancelModal();
         if (event.target === terminateModal) closeTerminateModal();
+        if (event.target === warningModal) closeTerminationWarningModal();
     }
 
     document.addEventListener('keydown', function(event) {
@@ -1070,6 +1316,7 @@
             closeSendModal();
             closeCancelModal();
             closeTerminateModal();
+            closeTerminationWarningModal();
         }
     });
 </script>

@@ -157,6 +157,27 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
             ?? throw new InvalidOperationException("Failed to read contract termination result. Please try again.");
     }
 
+    public async Task<SendTerminationWarningResponseModel> SendTerminationWarningAsync(
+        int contractId, string title, string content, CancellationToken ct = default)
+    {
+        using var response = await client.PostAsJsonAsync($"{baseUrl}/api/manager/contracts/{contractId}/termination-warnings", new
+        {
+            title = title.Trim(),
+            content = content.Trim()
+        }, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<SendTerminationWarningResponseModel>(cancellationToken: ct)
+            ?? throw new InvalidOperationException("Failed to read send warning response.");
+    }
+
+    public async Task<List<ContractTerminationWarningViewModel>> GetTerminationWarningsAsync(
+        int contractId, CancellationToken ct = default)
+    {
+        using var response = await client.GetAsync($"{baseUrl}/api/manager/contracts/{contractId}/termination-warnings", ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<List<ContractTerminationWarningViewModel>>(cancellationToken: ct) ?? [];
+    }
+
     public async Task<(byte[] Bytes, string ContentType)> GetPdfPreviewAsync(int id, CancellationToken ct)
     {
         using var response = await client.GetAsync($"{baseUrl}/api/manager/contracts/{id}/pdf/preview", ct);
@@ -316,4 +337,17 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
         if (!response.IsSuccessStatusCode)
             throw new HttpRequestException(await ApiErrorReader.ReadErrorMessageAsync(response, ct), null, response.StatusCode);
     }
+}
+
+
+public class SendTerminationWarningResponseModel
+{
+    public int NotificationId { get; set; }
+    public int ContractId { get; set; }
+    public short TerminationNoticeNo { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
+    public int SentWarningCount { get; set; }
+    public bool CanRequestTermination { get; set; }
 }

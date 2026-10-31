@@ -416,13 +416,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.CancelledAt = now;
         existing.UpdatedAt = now;
 
-        // Cancel any open change request on this contract
-        var openChangeRequests = await _context.ContractChangeRequests
-            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+        // Reject any pending change request on this contract (DRAFT or SUBMITTED)
+        var pendingChangeRequests = await _context.ContractChangeRequests
+            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED"))
             .ToListAsync(cancellationToken);
-        foreach (var cr in openChangeRequests)
+        foreach (var cr in pendingChangeRequests)
         {
-            cr.Status = "CANCELLED";
+            cr.Status = "REJECTED";
+            cr.ReviewedBy = managerId;
+            cr.ReviewedAt = now;
+            cr.ReviewComment = "Tự động từ chối do hợp đồng đã bị hủy.";
             cr.UpdatedAt = now;
         }
 
@@ -469,6 +472,13 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         if (!string.Equals(existing.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+        var warningCount = await _context.Notifications
+            .CountAsync(n => n.ContractId == contractId
+                          && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
+                          && !n.IsDeleted, cancellationToken);
+        if (warningCount < 3)
+            throw new InvalidOperationException($"Chưa thể chấm dứt hợp đồng. Yêu cầu phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi chấm dứt hợp đồng. Số cảnh báo hiện tại: {warningCount}/3.");
+
 
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
@@ -479,13 +489,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.TerminationEffectiveAt = effectiveAtUtc;
         existing.UpdatedAt = now;
 
-        // Close any open change request
-        var openChangeRequests = await _context.ContractChangeRequests
-            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+        // Reject any pending change request on this contract (DRAFT or SUBMITTED)
+        var pendingChangeRequests = await _context.ContractChangeRequests
+            .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED"))
             .ToListAsync(cancellationToken);
-        foreach (var cr in openChangeRequests)
+        foreach (var cr in pendingChangeRequests)
         {
-            cr.Status = "CANCELLED";
+            cr.Status = "REJECTED";
+            cr.ReviewedBy = managerId;
+            cr.ReviewedAt = now;
+            cr.ReviewComment = "Tự động từ chối do hợp đồng lao động đã bị chấm dứt.";
             cr.UpdatedAt = now;
         }
 
@@ -553,16 +566,6 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.Status = "PENDING_STAFF";
         existing.UpdatedAt = sentAt;
 
-        // If there was an approved change request, mark it RESOLVED
-        var approvedChangeRequests = await _context.ContractChangeRequests
-            .Where(cr => cr.ContractId == contractId && cr.Status == "APPROVED")
-            .ToListAsync(cancellationToken);
-        foreach (var cr in approvedChangeRequests)
-        {
-            cr.Status = "RESOLVED";
-            cr.UpdatedAt = sentAt;
-        }
-
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = managerId,
@@ -610,6 +613,130 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             });
         }
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<int> GetTerminationWarningCountAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Notifications
+            .AsNoTracking()
+            .CountAsync(n => n.ContractId == contractId
+                          && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
+                          && !n.IsDeleted, cancellationToken);
+    }
+
+    public async Task<Dictionary<int, int>> GetTerminationWarningCountsAsync(IEnumerable<int> contractIds, CancellationToken cancellationToken = default)
+    {
+        var ids = contractIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<int, int>();
+
+        var list = await _context.Notifications
+            .AsNoTracking()
+            .Where(n => n.ContractId.HasValue
+                     && ids.Contains(n.ContractId.Value)
+                     && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
+                     && !n.IsDeleted)
+            .GroupBy(n => n.ContractId!.Value)
+            .Select(g => new { ContractId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        return list.ToDictionary(x => x.ContractId, x => x.Count);
+    }
+
+    public async Task<IReadOnlyList<WorkShiftManagement.DAL.Entities.Notification>> GetTerminationWarningsByContractIdAsync(int contractId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Notifications
+            .AsNoTracking()
+            .Include(n => n.CreatedByNavigation)
+            .Where(n => n.ContractId == contractId
+                     && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
+                     && !n.IsDeleted)
+            .OrderBy(n => n.TerminationNoticeNo)
+            .ThenBy(n => n.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<WorkShiftManagement.DAL.Entities.Notification> AddTerminationWarningAsync(
+        int contractId, Guid managerId, string title, string content, short warningNo, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        var contract = await _context.EmploymentContracts
+            .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
+
+        if (contract == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+
+        if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Chỉ có thể gửi cảnh báo vi phạm cho hợp đồng đang có hiệu lực (ACTIVE).");
+
+        var existingWarnings = await _context.Notifications
+            .Where(n => n.ContractId == contractId
+                     && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
+                     && !n.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (existingWarnings.Count >= 3)
+            throw new InvalidOperationException("Hợp đồng này đã được gửi đủ 3 lần cảnh báo vi phạm.");
+
+        short calculatedNextNo = (short)(existingWarnings.Count + 1);
+        if (warningNo != calculatedNextNo)
+        {
+            throw new InvalidOperationException($"Số thứ tự cảnh báo không hợp lệ. Cảnh báo tiếp theo phải là lần {calculatedNextNo}.");
+        }
+
+        var now = DateTime.UtcNow;
+        var notification = new WorkShiftManagement.DAL.Entities.Notification
+        {
+            NotificationType = "CONTRACT_TERMINATION_WARNING",
+            Title = title.Trim(),
+            Content = content.Trim(),
+            CreatedBy = managerId,
+            TargetBranchId = contract.BranchId,
+            TargetType = "Branch",
+            Channels = new() { "InApp" },
+            TargetRoles = new(),
+            ContractId = contractId,
+            TerminationNoticeNo = calculatedNextNo,
+            CreatedAt = now,
+            UpdatedAt = now,
+            IsDeleted = false
+        };
+
+        _context.Notifications.Add(notification);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _context.UserNotifications.Add(new UserNotification
+        {
+            NotificationId = notification.NotificationId,
+            UserId = contract.UserId,
+            IsRead = false,
+            CreatedAt = now,
+            IsDeleted = false
+        });
+
+        _context.AuditLogs.Add(new AuditLog
+        {
+            UserId = managerId,
+            Action = "SEND_TERMINATION_WARNING",
+            TableName = "employment_contracts",
+            RecordId = contractId.ToString(),
+            NewValue = JsonSerializer.Serialize(new
+            {
+                contractId,
+                warningNo = calculatedNextNo,
+                title = title.Trim(),
+                content = content.Trim(),
+                sentAt = now,
+                sentToStaffUserId = contract.UserId,
+                note = $"Gửi thông báo cảnh báo vi phạm hợp đồng lần {calculatedNextNo}/3 cho nhân viên."
+            }),
+            CreatedAt = now
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
+        return notification;
     }
 
     public async Task<EmploymentContract?> GetStaffContractByIdAsync(int contractId, Guid staffUserId, CancellationToken cancellationToken = default)
@@ -740,14 +867,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             existing.StaffAcceptedAt = acceptedAtUtc;
             existing.UpdatedAt = acceptedAtUtc;
 
-            // Cancel any open change request since staff has accepted the contract
+            // Reject any pending change request since staff has accepted the contract
             var openChangeRequests = await _context.ContractChangeRequests
                 .Where(cr => cr.ContractId == contractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED"))
                 .ToListAsync(cancellationToken);
             foreach (var cr in openChangeRequests)
             {
-                cr.Status = "CANCELLED";
-                cr.ReviewComment = "Tự động hủy do nhân viên đã chấp thuận ký hợp đồng.";
+                cr.Status = "REJECTED";
+                cr.ReviewedBy = staffUserId;
+                cr.ReviewedAt = acceptedAtUtc;
+                cr.ReviewComment = "Tự động từ chối do nhân viên đã chấp thuận ký hợp đồng.";
                 cr.UpdatedAt = acceptedAtUtc;
             }
 
@@ -1270,12 +1399,15 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 c.UpdatedAt = now;
                 cancelledContractsCount++;
 
-                var openChangeRequests = await _context.ContractChangeRequests
-                    .Where(cr => cr.ContractId == c.ContractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED" || cr.Status == "APPROVED"))
+                var pendingChangeRequests = await _context.ContractChangeRequests
+                    .Where(cr => cr.ContractId == c.ContractId && (cr.Status == "DRAFT" || cr.Status == "SUBMITTED"))
                     .ToListAsync(cancellationToken);
-                foreach (var cr in openChangeRequests)
+                foreach (var cr in pendingChangeRequests)
                 {
-                    cr.Status = "CANCELLED";
+                    cr.Status = "REJECTED";
+                    cr.ReviewedBy = c.CreatedBy;
+                    cr.ReviewedAt = now;
+                    cr.ReviewComment = "Tự động từ chối do hợp đồng đã bị hủy vì quá hạn.";
                     cr.UpdatedAt = now;
                 }
 
