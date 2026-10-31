@@ -21,3 +21,8 @@ obj/
 
 # Test project (excluded from version control)
 WorkShiftServer/WorkShiftManagement.Tests/
+
+# Diagrams & Temp files
+*.drawio
+*.drawio.dtmp
+*.dtmp
