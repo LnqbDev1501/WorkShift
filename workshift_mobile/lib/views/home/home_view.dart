@@ -306,6 +306,8 @@ class _HomeViewState extends State<HomeView> {
                             shift: _controller.todayShift,
                             isFaceNotRegistered:
                                 _controller.isFaceNotRegistered,
+                            isCheckingIn: _controller.isCheckingIn,
+                            isCheckingOut: _controller.isCheckingOut,
                             onRegisterFaceTap: () async {
                               final success = await showFaceRegistrationModal(
                                 context: context,

@@ -932,14 +932,17 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         'Check In Now',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
-                      onPressed: () async {
-                        await AttendanceFlowHandler.handleCheckIn(
-                          context: context,
-                          homeController: widget.homeController,
-                          targetShift: _toEligibleShift(item),
-                        );
-                        _loadHistory();
-                      },
+                      onPressed: AttendanceFlowHandler.isProcessing
+                          ? null
+                          : () async {
+                              setState(() {});
+                              await AttendanceFlowHandler.handleCheckIn(
+                                context: context,
+                                homeController: widget.homeController,
+                                targetShift: _toEligibleShift(item),
+                              );
+                              if (mounted) _loadHistory();
+                            },
                     ),
                   ),
                 ],
@@ -963,14 +966,17 @@ class _AttendanceHistoryViewState extends State<AttendanceHistoryView> {
                         'Check Out Now',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                       ),
-                      onPressed: () async {
-                        await AttendanceFlowHandler.handleCheckOut(
-                          context: context,
-                          homeController: widget.homeController,
-                          targetShift: _toEligibleShift(item),
-                        );
-                        _loadHistory();
-                      },
+                      onPressed: AttendanceFlowHandler.isProcessing
+                          ? null
+                          : () async {
+                              setState(() {});
+                              await AttendanceFlowHandler.handleCheckOut(
+                                context: context,
+                                homeController: widget.homeController,
+                                targetShift: _toEligibleShift(item),
+                              );
+                              if (mounted) _loadHistory();
+                            },
                     ),
                   ),
                 ],

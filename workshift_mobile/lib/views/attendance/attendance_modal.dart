@@ -6,23 +6,33 @@ import '../../models/attendance_shift_model.dart';
 import '../../theme/app_colors.dart';
 import '../face_registration/face_registration_modal.dart';
 
+/// Cờ kiểm tra xem BottomSheet chấm công có đang hiển thị không (tránh mở nhiều cái đè nhau)
+bool _isAttendanceModalOpen = false;
+
 /// Function to show Attendance Popup directly from Homepage
 Future<bool?> showAttendanceModal({
   required BuildContext context,
   required EligibleShiftModel shift,
   required bool isCheckIn,
-}) {
-  return showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    isDismissible: false,
-    enableDrag: false,
-    backgroundColor: Colors.transparent,
-    builder: (ctx) => AttendanceModalPopup(
-      shift: shift,
-      isCheckIn: isCheckIn,
-    ),
-  );
+}) async {
+  if (_isAttendanceModalOpen) return null;
+  _isAttendanceModalOpen = true;
+
+  try {
+    return await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => AttendanceModalPopup(
+        shift: shift,
+        isCheckIn: isCheckIn,
+      ),
+    );
+  } finally {
+    _isAttendanceModalOpen = false;
+  }
 }
 
 class AttendanceModalPopup extends StatefulWidget {

@@ -60,6 +60,8 @@ class HomeController extends ChangeNotifier {
   }
 
   bool _isLoading = true;
+  bool _isCheckingIn = false;
+  bool _isCheckingOut = false;
   UserModel? _user;
   EligibleShiftModel? _todayShift;
   String? _errorMessage;
@@ -67,6 +69,24 @@ class HomeController extends ChangeNotifier {
   bool _hasRegisteredFace = true;
 
   bool get isLoading => _isLoading;
+  bool get isCheckingIn => _isCheckingIn;
+  bool get isCheckingOut => _isCheckingOut;
+  bool get isAttendanceActionInProgress => _isCheckingIn || _isCheckingOut;
+
+  void setCheckingIn(bool value) {
+    if (_isCheckingIn != value) {
+      _isCheckingIn = value;
+      notifyListeners();
+    }
+  }
+
+  void setCheckingOut(bool value) {
+    if (_isCheckingOut != value) {
+      _isCheckingOut = value;
+      notifyListeners();
+    }
+  }
+
   UserModel? get user => _user;
   EligibleShiftModel? get todayShift => _todayShift;
   String? get errorMessage => _errorMessage;

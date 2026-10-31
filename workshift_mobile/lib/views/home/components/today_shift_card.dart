@@ -12,6 +12,8 @@ class TodayShiftCard extends StatelessWidget {
   final VoidCallback? onViewAttendanceHistoryTap;
   final VoidCallback? onRegisterFaceTap;
   final bool isFaceNotRegistered;
+  final bool isCheckingIn;
+  final bool isCheckingOut;
 
   const TodayShiftCard({
     super.key,
@@ -21,6 +23,8 @@ class TodayShiftCard extends StatelessWidget {
     this.onViewAttendanceHistoryTap,
     this.onRegisterFaceTap,
     this.isFaceNotRegistered = false,
+    this.isCheckingIn = false,
+    this.isCheckingOut = false,
   });
 
   // Format backend check-in reason to user-friendly English
@@ -477,7 +481,8 @@ class TodayShiftCard extends StatelessWidget {
                   type: shift!.hasCheckedIn
                       ? AppButtonType.secondary
                       : AppButtonType.primary,
-                  onPressed: onCheckInTap,
+                  isLoading: isCheckingIn,
+                  onPressed: (isCheckingIn || isCheckingOut) ? null : onCheckInTap,
                 ),
               ),
               const SizedBox(width: 10),
@@ -490,7 +495,8 @@ class TodayShiftCard extends StatelessWidget {
                   type: isInProgress
                       ? AppButtonType.primary
                       : AppButtonType.secondary,
-                  onPressed: onCheckOutTap,
+                  isLoading: isCheckingOut,
+                  onPressed: (isCheckingIn || isCheckingOut) ? null : onCheckOutTap,
                 ),
               ),
             ],

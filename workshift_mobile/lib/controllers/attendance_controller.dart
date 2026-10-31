@@ -803,6 +803,7 @@ class AttendanceController extends ChangeNotifier {
       return false;
     }
 
+    if (isSubmitting) return false;
     isSubmitting = true;
     errorMessage = null;
     notifyListeners();
