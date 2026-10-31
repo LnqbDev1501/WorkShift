@@ -72,7 +72,7 @@ public sealed class AccountantProductApiService
             BranchId = paged.BranchId,
             CategoryId = paged.CategoryId,
             StatusFilter = paged.StatusFilter,
-            Categories = paged.Categories,
+            Categories = await GetActiveCategoriesAsync(cancellationToken),
             Branches = paged.Branches
         };
     }
@@ -98,6 +98,24 @@ public sealed class AccountantProductApiService
             ImageUrl = detail.ImageUrl,
             Status = detail.Status
         };
+    }
+
+    public async Task<List<CategoryOptionViewModel>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<CategoryListPagedViewModel>(
+                BuildUrl("api/categories?status=ACTIVE&pageNumber=1&pageSize=100"), cancellationToken);
+
+            return result?.Items
+                .Select(item => new CategoryOptionViewModel { Id = item.CategoryId, Name = item.CategoryName })
+                .OrderBy(option => option.Name)
+                .ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private string BuildUrl(string relativePath) => $"{_apiBaseUrl.TrimEnd('/')}/{relativePath}";

@@ -51,9 +51,11 @@ public class OrderService : IOrderService
                 throw new ArgumentException("Payment status filter only accepts 'PAID', 'UNPAID', or 'PARTIAL'.");
         }
 
-        // Managers only see orders of their own branch.
+        // Managers and Staff only see orders of their own branch.
         // Accountants and Admins can filter by branch or see all.
-        int? branchId = actor.Role == "MANAGER" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
+        int? branchId = (actor.Role == "MANAGER" || actor.Role == "STAFF")
+            ? actor.BranchId
+            : query.BranchId is > 0 ? query.BranchId : null;
 
         var (items, totalCount) = await _orderRepo.GetPagedAsync(
             query.Search,
@@ -81,14 +83,14 @@ public class OrderService : IOrderService
 
         var actor = await GetActorAsync(actorId);
 
-        var data = actor.Role == "MANAGER" && actor.BranchId.HasValue
+        var data = (actor.Role == "MANAGER" || actor.Role == "STAFF") && actor.BranchId.HasValue
             ? await _orderRepo.GetByIdWithBranchAsync(id, actor.BranchId.Value)
             : await _orderRepo.GetByIdAsync(id);
 
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if ((actor.Role == "MANAGER" || actor.Role == "STAFF") && data.BranchId != actor.BranchId)
             return null;
 
         return MapDetail(data);

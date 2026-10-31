@@ -12,6 +12,9 @@ import '../../orders/staff_order_list_view.dart';
 import '../../orders/create_order_view.dart';
 import '../../timesheet/staff_timesheet_view.dart';
 import '../../payroll/payroll_home_view.dart';
+import '../../catalog/product_list_view.dart';
+import '../../adjustments/staff_reward_list_view.dart';
+import '../../adjustments/staff_penalty_list_view.dart';
 import '../../../models/face_registration_model.dart';
 import '../../../services/face_registration_service.dart';
 
@@ -334,6 +337,42 @@ class _QuickActionsState extends State<QuickActions> {
               MaterialPageRoute(builder: (_) => const PayrollHomeView()),
             );
           }
+        },
+      ),
+      _QuickActionData(
+        title: 'Products',
+        subtitle: 'Branch menu & catalog',
+        icon: Icons.fastfood_rounded,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryLight,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ProductListView()),
+          );
+        },
+      ),
+      _QuickActionData(
+        title: 'My Rewards',
+        subtitle: 'Bonuses & praise',
+        icon: Icons.workspace_premium_rounded,
+        iconColor: AppColors.success,
+        iconBgColor: AppColors.successBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffRewardListView()),
+          );
+        },
+      ),
+      _QuickActionData(
+        title: 'My Penalties',
+        subtitle: 'Infractions & deduction',
+        icon: Icons.gavel_rounded,
+        iconColor: AppColors.error,
+        iconBgColor: AppColors.errorBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffPenaltyListView()),
+          );
         },
       ),
     ];

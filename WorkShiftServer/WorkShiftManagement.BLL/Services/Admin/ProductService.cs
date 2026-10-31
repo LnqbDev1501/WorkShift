@@ -46,7 +46,7 @@ public class ProductService : IProductService
         int? categoryId = query.CategoryId is > 0 ? query.CategoryId : null;
 
         // Managers only see products of their own branch.
-        int? branchId = actor.Role == "MANAGER" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
+        int? branchId = actor.Role == "MANAGER" || actor.Role == "STAFF" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
 
         var (items, totalCount) = await _productRepo.GetPagedAsync(query.Search, branchId, categoryId, status, pageNumber, pageSize);
 
@@ -70,7 +70,7 @@ public class ProductService : IProductService
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if (actor.Role == "MANAGER" || actor.Role == "STAFF" && data.BranchId != actor.BranchId)
             return null;
 
         return new ProductDetailResponse

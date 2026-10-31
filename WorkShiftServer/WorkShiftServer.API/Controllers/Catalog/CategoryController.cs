@@ -12,7 +12,7 @@ namespace WorkShiftServer.API.Controllers.Catalog;
 /// </summary>
 [Route("api/categories")]
 [ApiController]
-[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT")]
+[Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT,STAFF")]
 public class CategoryController : ControllerBase
 {
     private const string WriteRoles = "ADMIN,MANAGER";

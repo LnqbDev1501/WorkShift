@@ -6,6 +6,8 @@ import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import 'official_payslip_detail_view.dart';
 import 'payroll_preview_detail_view.dart';
+import '../adjustments/staff_reward_list_view.dart';
+import '../adjustments/staff_penalty_list_view.dart';
 
 /// Màn hình chính Payroll dành cho Staff với 3 phân hệ:
 /// 1. Payroll Previews (Bản xem trước)
@@ -58,6 +60,28 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
         ),
         centerTitle: false,
         elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Khen thưởng',
+            icon: const Icon(Icons.workspace_premium_rounded, color: AppColors.success),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StaffRewardListView()),
+              );
+            },
+          ),
+          IconButton(
+            tooltip: 'Kỷ luật & Phạt',
+            icon: const Icon(Icons.gavel_rounded, color: AppColors.error),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StaffPenaltyListView()),
+              );
+            },
+          ),
+        ],
         backgroundColor: AppColors.surface,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),

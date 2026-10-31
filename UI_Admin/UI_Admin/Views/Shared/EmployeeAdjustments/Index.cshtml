@@ -7,8 +7,7 @@
     Layout = admin ? "_AdminLayout" : manager ? "_ManagerLayout" : "_AccountantLayout";
     var label = EmployeeAdjustmentTypes.Label(Model.AdjustmentType);
     var plural = EmployeeAdjustmentTypes.Plural(Model.AdjustmentType);
-    var pendingOnly = Model.AdjustmentType == EmployeeAdjustmentTypes.Reward && !manager;
-    ViewData["Title"] = admin && pendingOnly ? $"Pending Employee {plural}" : $"Employee {plural}";
+    ViewData["Title"] = $"Employee {plural}";
 }
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
     <div class="flex flex-wrap justify-between items-center gap-3">
@@ -17,9 +16,7 @@
             <h1 class="text-display-lg font-display-lg text-on-surface">@ViewData["Title"]</h1>
             <p>@(manager
                 ? $"Record and track employee {plural.ToLowerInvariant()} for approval."
-                : admin && pendingOnly
-                    ? "Review and approve employee reward requests across branches."
-                    : $"View employee {plural.ToLowerInvariant()} across the organization.")</p>
+                : $"View and manage employee {plural.ToLowerInvariant()} across the organization.")</p>
         </div>
         @if (manager) { <a asp-action="Create" class="btn btn-primary inline-flex items-center gap-2"><span class="material-symbols-outlined">add</span>Create @label.ToLowerInvariant()</a> }
     </div>

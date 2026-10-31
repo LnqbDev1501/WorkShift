@@ -13,7 +13,6 @@ public sealed class AdminEmployeeRewardsController(EmployeeAdjustmentApiService 
 {
     protected override string AdjustmentType => EmployeeAdjustmentTypes.Reward;
     protected override string EntityLabel => "Reward";
-    protected override string? DefaultApprovalStatus => "PENDING";
 
     [HttpPost, ValidateAntiForgeryToken]
     public Task<IActionResult> Approve(int id, [Bind(Prefix = "Decision")] ReviewEmployeeAdjustmentViewModel decision, CancellationToken ct)

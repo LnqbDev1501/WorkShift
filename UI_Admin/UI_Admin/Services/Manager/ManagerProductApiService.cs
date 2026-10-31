@@ -71,7 +71,7 @@ public sealed class ManagerProductApiService
             Search = paged.Search,
             CategoryId = paged.CategoryId,
             StatusFilter = paged.StatusFilter,
-            Categories = paged.Categories
+            Categories = await GetActiveCategoriesAsync(cancellationToken)
         };
     }
 
@@ -149,10 +149,20 @@ public sealed class ManagerProductApiService
 
     public async Task<List<CategoryOptionViewModel>> GetActiveCategoriesAsync(CancellationToken cancellationToken = default)
     {
-        var paged = await _httpClient.GetFromJsonAsync<ProductListPagedViewModel>(
-            BuildUrl("api/products?pageNumber=1&pageSize=100&status=ACTIVE"), cancellationToken);
+        try
+        {
+            var result = await _httpClient.GetFromJsonAsync<CategoryListPagedViewModel>(
+                BuildUrl("api/categories?status=ACTIVE&pageNumber=1&pageSize=100"), cancellationToken);
 
-        return paged?.Categories?.OrderBy(c => c.Name).ToList() ?? [];
+            return result?.Items
+                .Select(item => new CategoryOptionViewModel { Id = item.CategoryId, Name = item.CategoryName })
+                .OrderBy(option => option.Name)
+                .ToList() ?? [];
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private static MultipartFormDataContent BuildFormContent(
