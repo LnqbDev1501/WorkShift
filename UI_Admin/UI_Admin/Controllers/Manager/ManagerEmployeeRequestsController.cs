@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -59,7 +59,7 @@ public class ManagerEmployeeRequestsController : Controller
             {
                 if (from > to)
                 {
-                    ViewBag.ErrorMessage = "Khoảng ngày không hợp lệ: 'Từ ngày' phải trước hoặc cùng ngày với 'Đến ngày'.";
+                    ViewBag.ErrorMessage = "Invalid date range: 'From date' must be before or on the same day as 'To date'.";
                 }
             }
         }
@@ -98,7 +98,7 @@ public class ManagerEmployeeRequestsController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load employee requests list for manager.");
-            ViewBag.ErrorMessage = "Không thể tải danh sách đơn yêu cầu. Vui lòng thử lại sau.";
+            ViewBag.ErrorMessage = "Unable to load employee requests list. Please try again later.";
 
             return View(new ManagerEmployeeRequestListViewModel
             {
@@ -140,7 +140,7 @@ public class ManagerEmployeeRequestsController : Controller
             var detail = await _apiService.GetByIdAsync(id, cancellationToken);
             if (detail == null)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy đơn yêu cầu hoặc đơn đã bị xóa.";
+                TempData["ErrorMessage"] = "Request not found or has been deleted.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -191,15 +191,15 @@ public class ManagerEmployeeRequestsController : Controller
             var (isSuccess, errorMessage, statusCode) = await _apiService.ApproveAsync(id, reviewNote, cancellationToken);
             if (isSuccess)
             {
-                TempData["SuccessMessage"] = $"Đã phê duyệt đơn #{id} thành công.";
+                TempData["SuccessMessage"] = $"Request #{id} has been approved successfully.";
             }
             else if (statusCode == 409)
             {
-                TempData["ErrorMessage"] = "Đơn yêu cầu không còn hợp lệ để xử lý (trạng thái hoặc ca làm việc đã thay đổi). Vui lòng kiểm tra lại.";
+                TempData["ErrorMessage"] = "The request is no longer valid to process (status or shift has changed). Please check again.";
             }
             else
             {
-                TempData["ErrorMessage"] = errorMessage ?? "Phê duyệt đơn yêu cầu thất bại.";
+                TempData["ErrorMessage"] = errorMessage ?? "Failed to approve employee request.";
             }
         }
         catch (UnauthorizedAccessException)
@@ -209,7 +209,7 @@ public class ManagerEmployeeRequestsController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error approving employee request {RequestId}", id);
-            TempData["ErrorMessage"] = $"Lỗi xử lý: {ex.Message}";
+            TempData["ErrorMessage"] = $"Processing error: {ex.Message}";
         }
 
         var safeReturnUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) ? returnUrl : null;
@@ -237,7 +237,7 @@ public class ManagerEmployeeRequestsController : Controller
 
         if (string.IsNullOrWhiteSpace(reviewNote))
         {
-            TempData["ErrorMessage"] = "Lý do từ chối là bắt buộc. Vui lòng nhập lý do từ chối.";
+            TempData["ErrorMessage"] = "Rejection reason is required. Please provide a reason.";
             return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });
         }
 
@@ -246,15 +246,15 @@ public class ManagerEmployeeRequestsController : Controller
             var (isSuccess, errorMessage, statusCode) = await _apiService.RejectAsync(id, reviewNote, cancellationToken);
             if (isSuccess)
             {
-                TempData["SuccessMessage"] = $"Đã từ chối đơn #{id} thành công.";
+                TempData["SuccessMessage"] = $"Request #{id} has been rejected successfully.";
             }
             else if (statusCode == 409)
             {
-                TempData["ErrorMessage"] = "Đơn yêu cầu không còn hợp lệ để xử lý (trạng thái hoặc ca làm việc đã thay đổi). Vui lòng kiểm tra lại.";
+                TempData["ErrorMessage"] = "The request is no longer valid to process (status or shift has changed). Please check again.";
             }
             else
             {
-                TempData["ErrorMessage"] = errorMessage ?? "Từ chối đơn yêu cầu thất bại.";
+                TempData["ErrorMessage"] = errorMessage ?? "Failed to reject employee request.";
             }
         }
         catch (UnauthorizedAccessException)
@@ -264,7 +264,7 @@ public class ManagerEmployeeRequestsController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error rejecting employee request {RequestId}", id);
-            TempData["ErrorMessage"] = $"Lỗi xử lý: {ex.Message}";
+            TempData["ErrorMessage"] = $"Processing error: {ex.Message}";
         }
 
         return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });

@@ -7,6 +7,7 @@ using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Repositories.Staff;
+using WorkShiftManagement.DAL.Policies.Shifts;
 using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
 using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 

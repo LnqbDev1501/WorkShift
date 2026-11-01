@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -138,7 +138,7 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
                     var column = property.Metadata.GetColumnName(identifier);
                     var scale = numericColumns.FirstOrDefault(c => c.TableName == table && c.ColumnName == column)?.Scale;
                     if (scale is >= 0 and < 28 && decimal.Round((decimal)property.CurrentValue!, scale.Value) != (decimal)property.CurrentValue!)
-                        throw new InvalidOperationException($"Cột {table}.{column} chỉ lưu được {scale} chữ số thập phân. Cần đổi cột sang NUMERIC không giới hạn scale để giữ kết quả, hệ thống không tự làm tròn.");
+                        throw new InvalidOperationException($"Column {table}.{column} only supports {scale} decimal places. Unrestricted NUMERIC scale required to preserve calculation precision; no rounding permitted.");
                 }
             }
         }
@@ -146,15 +146,15 @@ public sealed class PayrollCalculationRepo(AppDbContext db) : IPayrollCalculatio
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.ConstraintName == "ck_payroll_deduction")
         {
             throw new InvalidOperationException(
-                "Lưu Payroll thất bại do vi phạm ràng buộc kiểm tra 'ck_payroll_deduction'. " +
-                "Ràng buộc trên database yêu cầu: total_deduction = total_penalty + attendance_deduction + carry_forward_deduction - deferred_deduction_amount. " +
-                "Vui lòng đảm bảo cấu trúc database constraint 'ck_payroll_deduction' trên Supabase đã được cập nhật đồng bộ với nghiệp vụ nợ chuyển kỳ / hoãn trừ.", ex);
+                "Saving Payroll failed due to check constraint 'ck_payroll_deduction'. " +
+                "Database constraint requires: total_deduction = total_penalty + attendance_deduction + carry_forward_deduction - deferred_deduction_amount. " +
+                "Please ensure database constraint 'ck_payroll_deduction' on Supabase is synchronized with the carry forward / deferred deduction business rules.", ex);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState == "23514")
         {
-            throw new InvalidOperationException($"Lưu Payroll thất bại do vi phạm ràng buộc dữ liệu: {pg.ConstraintName ?? pg.MessageText}.", ex);
+            throw new InvalidOperationException($"Saving Payroll failed due to database constraint violation: {pg.ConstraintName ?? pg.MessageText}.", ex);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg && pg.SqlState is "23505" or "23503")
-        { throw new InvalidOperationException("Dữ liệu nguồn đã được sử dụng hoặc thay đổi. Tải lại trước khi tính lương.", ex); }
+        { throw new InvalidOperationException("Source data has been used or modified. Reload inputs before calculating payroll.", ex); }
     }
 }

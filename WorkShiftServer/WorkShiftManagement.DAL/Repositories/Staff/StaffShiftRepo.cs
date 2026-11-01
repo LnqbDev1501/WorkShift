@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Policies.Shifts;
 using WorkShiftManagement.DAL.Interfaces.Staff;
 
 namespace WorkShiftManagement.DAL.Repositories.Staff;

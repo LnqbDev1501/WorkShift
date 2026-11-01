@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 using System.Text.Json.Nodes;
 using WorkShiftManagement.DAL;
 using WorkShiftManagement.DAL.Entities;
-using WorkShiftManagement.DAL.Version.Payroll;
+using WorkShiftManagement.BLL.Policies.Payroll;
 using WorkShiftManagement.DAL.Repositories.Admin;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response;
@@ -71,7 +71,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 if (!AllowedPeriodStatuses.Contains(status))
                 {
                     throw new ArgumentException(
-                        "Status không hợp lệ cho kỳ lương.");
+                        "Invalid status for payroll period.");
                 }
             }
 
@@ -170,7 +170,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
 
             if (period == null)
             {
-                throw new KeyNotFoundException("Không tìm thấy kỳ lương.");
+                throw new KeyNotFoundException("Payroll period not found.");
             }
 
             var payrollResult =
@@ -221,7 +221,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     }
                 };
 
-            // Người tính lương
+            // Calculated by
             if (period.CalculatedBy.HasValue &&
                 period.CalculatedByNavigation != null)
             {
@@ -233,7 +233,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     };
             }
 
-            // Người submit
+            // Submitted by
             if (period.SubmittedBy.HasValue &&
                 period.SubmittedByNavigation != null)
             {
@@ -257,7 +257,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                     };
             }
 
-            // Payroll từng Staff
+            // Payroll for each staff member
             foreach (var payroll in payrollResult.Items)
             {
                 var payrollResponse =
@@ -328,7 +328,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollId,
                 RejectPayrollRequest request,
                 Guid? adminId)
-        { throw new InvalidOperationException("Admin không reject riêng Payroll. Vấn đề được xử lý qua Accountant/Manager trước khi Submit toàn kỳ."); }
+        { throw new InvalidOperationException("Admin cannot reject individual payrolls. Issues must be resolved through Accountant/Manager prior to full-period submission."); }
 
         // =====================================================
         // 4. APPROVE WHOLE PAYROLL PERIOD
@@ -338,10 +338,10 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollPeriodId,
                 Guid? adminId)
         {
-            if (!adminId.HasValue) throw new UnauthorizedAccessException("Cần Admin đã đăng nhập.");
+            if (!adminId.HasValue) throw new UnauthorizedAccessException("Authenticated Administrator required.");
             await _reviews.ApprovePeriodAsync(adminId.Value, payrollPeriodId, CancellationToken.None);
             var period = await _repo.GetPayrollPeriodDetailAsync(payrollPeriodId) ?? throw new KeyNotFoundException();
-            return new PayrollApprovalResponse { PayrollPeriodId = payrollPeriodId, Status = period.Status, ApprovedAt = period.ApprovedAt!.Value, Message = "Đã duyệt, khóa công và phát phiếu lương chính thức." };
+            return new PayrollApprovalResponse { PayrollPeriodId = payrollPeriodId, Status = period.Status, ApprovedAt = period.ApprovedAt!.Value, Message = "Payroll period approved, work hours locked, and official payslips published." };
         }
 
         // =====================================================
@@ -352,7 +352,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
                 int payrollPeriodId,
                 int payrollId,
                 Guid accountantId)
-        { throw new InvalidOperationException("Luồng mới chỉ Submit toàn kỳ sau khi mọi lượt review/correction hoàn tất."); }
+        { throw new InvalidOperationException("Submit is performed for the entire period after all review and correction rounds are completed."); }
 
         public async Task<PayrollPeriodSubmitResponse> SubmitPayrollPeriodAsync(
             int payrollPeriodId,
@@ -360,7 +360,7 @@ namespace WorkShiftManagement.BLL.Services.Admin
         {
             await _reviews.SubmitPeriodAsync(accountantId, payrollPeriodId, CancellationToken.None);
             var period = await _repo.GetPayrollPeriodDetailAsync(payrollPeriodId) ?? throw new KeyNotFoundException();
-            return new PayrollPeriodSubmitResponse { PayrollPeriodId = payrollPeriodId, Status = period.Status, SubmittedAt = period.SubmittedAt!.Value, SubmittedPayrollCount = WorkShiftManagement.DAL.Version.Payroll.PayrollVersionPolicy.Current(period.Payrolls, period.Status).Count, Message = "Đã gửi toàn kỳ cho Admin duyệt." };
+            return new PayrollPeriodSubmitResponse { PayrollPeriodId = payrollPeriodId, Status = period.Status, SubmittedAt = period.SubmittedAt!.Value, SubmittedPayrollCount = WorkShiftManagement.BLL.Policies.Payroll.PayrollVersionPolicy.Current(period.Payrolls, period.Status).Count, Message = "Entire payroll period submitted for Admin approval." };
         }
 
         public static void ValidateTotals(Payroll after)
@@ -420,12 +420,12 @@ namespace WorkShiftManagement.BLL.Services.Admin
         {
             if (pageNumber < 1)
             {
-                throw new ArgumentException("pageNumber phải lớn hơn hoặc bằng 1.");
+                throw new ArgumentException("pageNumber must be greater than or equal to 1.");
             }
 
             if (pageSize < 1 || pageSize > 100)
             {
-                throw new ArgumentException("pageSize phải từ 1 đến 100.");
+                throw new ArgumentException("pageSize must be between 1 and 100.");
             }
 
             if ((long)(pageNumber - 1) * pageSize > int.MaxValue)

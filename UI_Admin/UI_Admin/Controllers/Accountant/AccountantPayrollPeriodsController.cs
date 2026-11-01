@@ -379,7 +379,8 @@ public sealed class AccountantPayrollPeriodsController(
         if (id <= 0) return NotFound();
         try
         {
-            return File(await reports.DownloadAsync(id, ct), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Payroll-{id}.xlsx");
+            var (fileBytes, fileName, contentType) = await reports.DownloadAsync(id, ct);
+            return File(fileBytes, contentType, fileName);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))
@@ -389,4 +390,7 @@ public sealed class AccountantPayrollPeriodsController(
             return RedirectToAction(nameof(Details), new { id });
         }
     }
+
+    [HttpGet]
+    public Task<IActionResult> ExportExcel(int id, CancellationToken ct) => Export(id, ct);
 }

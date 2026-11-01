@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'payroll_preview_model.dart';
 
-/// Trạng thái phiếu lương chính thức
+/// Official payslip status
 class PayslipStatus {
   static const String published = 'PUBLISHED';
 
@@ -22,18 +22,18 @@ class PayslipStatus {
   static String getLabel(String? status) {
     switch (status?.toUpperCase()) {
       case 'PUBLISHED':
-        return 'Chính thức';
+        return 'Published';
       case 'PAID':
-        return 'Đã thanh toán';
+        return 'Paid';
       case 'UNPAID':
-        return 'Chờ thanh toán';
+        return 'Unpaid';
       default:
         return status ?? 'N/A';
     }
   }
 }
 
-/// Thông tin tóm tắt phiếu lương chính thức (PayslipSummaryResponse)
+/// Official payslip summary (PayslipSummaryResponse)
 class PayslipSummaryItem {
   final int payslipId;
   final int payrollId;
@@ -153,7 +153,7 @@ class PayslipSummaryItem {
   }
 }
 
-/// Chi tiết ca làm việc chính thức trong phiếu lương (PayslipWorkDetailsResponse)
+/// Official shift work details in payslip (PayslipWorkDetailsResponse)
 class PayslipWorkDetailItem {
   final int payslipWorkDetailId;
   final int sourceAssignmentId;
@@ -203,7 +203,7 @@ class PayslipWorkDetailItem {
       sourceAssignmentId: json['sourceAssignmentId'] as int? ?? 0,
       sourceAttendanceId: json['sourceAttendanceId'] as int?,
       workDate: json['workDate']?.toString() ?? '',
-      shiftName: json['shiftName']?.toString() ?? 'Ca làm việc',
+      shiftName: json['shiftName']?.toString() ?? 'Work Shift',
       scheduledStartAt: json['scheduledStartAt'] != null
           ? DateTime.tryParse(json['scheduledStartAt'].toString()) ??
               DateTime.now()
@@ -233,7 +233,7 @@ class PayslipWorkDetailItem {
   }
 }
 
-/// Chi tiết đầy đủ phiếu lương chính thức (PayslipDetailsResponse)
+/// Official payslip full details (PayslipDetailsResponse)
 class PayslipDetailModel {
   final PayslipSummaryItem payslip;
   final List<PayslipWorkDetailItem> workDetails;

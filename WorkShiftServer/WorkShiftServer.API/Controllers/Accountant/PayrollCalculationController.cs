@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
@@ -17,7 +17,7 @@ public sealed class PayrollCalculationController(IPayrollCalculationService serv
         try
         {
             var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-            if (!Guid.TryParse(value, out var id) || id == Guid.Empty) throw new UnauthorizedAccessException("Tài khoản không hợp lệ.");
+            if (!Guid.TryParse(value, out var id) || id == Guid.Empty) throw new UnauthorizedAccessException("Invalid user account.");
             return await action(id);
         }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)

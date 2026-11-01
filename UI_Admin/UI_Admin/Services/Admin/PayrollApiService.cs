@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.WebUtilities;
+﻿using Microsoft.AspNetCore.WebUtilities;
 using UI_Admin.Models.Admin.Payroll;
 
 namespace UI_Admin.Services.Admin;
@@ -45,7 +45,7 @@ public class PayrollApiService(HttpClient client, IConfiguration configuration)
         if (response.StatusCode is System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Conflict)
         {
             var error = await response.Content.ReadFromJsonAsync<ReviewError>(cancellationToken: ct);
-            throw new InvalidOperationException(error?.Message ?? "Không thể thực hiện thao tác với trạng thái hiện tại.");
+            throw new InvalidOperationException(error?.Message ?? "Cannot perform operation in the current state.");
         }
         response.EnsureSuccessStatusCode();
     }

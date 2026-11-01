@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
+﻿@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
     ViewData["Title"] = $"{Model.PeriodCode} - Period Details";
@@ -200,7 +200,7 @@
         }
         @if (Model.CanExport)
         {
-            <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all">
+            <a asp-action="Export" asp-route-id="@Model.PayrollPeriodId" download class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium shadow-sm transition-all" title="Download official payroll report to your Downloads folder">
                 <span class="material-symbols-outlined text-base">download</span>
                 <span>Export Excel</span>
             </a>

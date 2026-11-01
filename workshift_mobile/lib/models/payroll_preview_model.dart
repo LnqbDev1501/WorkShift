@@ -1,8 +1,8 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Trạng thái Review của lượt Preview: PENDING, CONFIRMED, FEEDBACK_PENDING, SUPERSEDED, EXPIRED
+/// Review status for preview: PENDING, CONFIRMED, FEEDBACK_PENDING, SUPERSEDED, EXPIRED
 class PayrollReviewStatus {
   static const String pending = 'PENDING';
   static const String confirmed = 'CONFIRMED';
@@ -17,7 +17,7 @@ class PayrollReviewStatus {
       case 'CONFIRMED':
         return AppColors.success;
       case 'FEEDBACK_PENDING':
-        return const Color(0xFF8B5CF6); // Tím
+        return const Color(0xFF8B5CF6); // Purple
       case 'EXPIRED':
         return AppColors.error;
       case 'SUPERSEDED':
@@ -30,22 +30,22 @@ class PayrollReviewStatus {
   static String getLabel(String? status) {
     switch (status?.toUpperCase()) {
       case 'PENDING':
-        return 'Chờ phản hồi';
+        return 'Pending Review';
       case 'CONFIRMED':
-        return 'Đã xác nhận';
+        return 'Confirmed';
       case 'FEEDBACK_PENDING':
-        return 'Đã gửi phản hồi';
+        return 'Feedback Submitted';
       case 'EXPIRED':
-        return 'Quá hạn';
+        return 'Expired';
       case 'SUPERSEDED':
-        return 'Đã có lượt mới';
+        return 'Superseded';
       default:
         return status ?? 'N/A';
     }
   }
 }
 
-/// Trạng thái Feedback: SUBMITTED, APPROVED, EXPLAINED
+/// Feedback status: SUBMITTED, APPROVED, EXPLAINED
 class StaffFeedbackStatus {
   static const String submitted = 'SUBMITTED';
   static const String approved = 'APPROVED';
@@ -67,18 +67,18 @@ class StaffFeedbackStatus {
   static String getLabel(String? status) {
     switch (status?.toUpperCase()) {
       case 'SUBMITTED':
-        return 'Đang chờ xử lý';
+        return 'Pending Review';
       case 'APPROVED':
-        return 'Đã duyệt sửa';
+        return 'Correction Approved';
       case 'EXPLAINED':
-        return 'Đã giải trình';
+        return 'Explained';
       default:
         return status ?? 'N/A';
     }
   }
 }
 
-/// DTO phản hồi một lượt Review Preview (PayrollFeedbackResponse)
+/// Review preview item DTO (PayrollFeedbackResponse)
 class PayrollPreviewItem {
   final int feedbackId;
   final int payrollId;
@@ -188,7 +188,7 @@ class PayrollPreviewItem {
   }
 }
 
-/// Yêu cầu điều chỉnh nguồn lương liên kết với Feedback
+/// Linked correction request for feedback
 class PayrollIssueItem {
   final int correctionRequestId;
   final int payrollId;
@@ -266,7 +266,7 @@ class PayrollIssueItem {
   }
 }
 
-/// Chi tiết từng dòng tính lương (PayrollCalculationDetailResponse)
+/// Calculation line item detail (PayrollCalculationDetailResponse)
 class PayrollCalculationDetailItem {
   final int payrollDetailId;
   final String type;
@@ -318,7 +318,7 @@ class PayrollCalculationDetailItem {
   }
 }
 
-/// Snapshot ca làm việc trích xuất từ WorkInputSnapshot
+/// Work shift snapshot extracted from WorkInputSnapshot
 class ShiftWorkDetailItem {
   final int sourceAssignmentId;
   final int? sourceAttendanceId;
@@ -365,7 +365,7 @@ class ShiftWorkDetailItem {
           : null,
       shiftName: json['shiftNameSnapshot']?.toString() ??
           json['shiftName']?.toString() ??
-          'Ca làm việc',
+          'Work Shift',
       scheduledStartAt: json['scheduledStartAt'] != null
           ? DateTime.tryParse(json['scheduledStartAt'].toString())
           : null,
@@ -393,7 +393,7 @@ class ShiftWorkDetailItem {
   }
 }
 
-/// Mô hình bảng lương gốc được tính (PayrollCalculationResponse)
+/// Payroll calculation response model (PayrollCalculationResponse)
 class PayrollCalculationItem {
   final int payrollId;
   final String userId;
@@ -503,7 +503,7 @@ class PayrollCalculationItem {
   }
 }
 
-/// Điều chỉnh thưởng phạt đang chờ duyệt
+/// Pending adjustments
 class PendingPayrollAdjustmentItem {
   final int rewardPenaltyId;
   final String type;
@@ -530,7 +530,7 @@ class PendingPayrollAdjustmentItem {
   }
 }
 
-/// Chi tiết đầy đủ một lượt Preview (PayrollFeedbackDetailsResponse)
+/// Full payroll preview detail response (PayrollFeedbackDetailsResponse)
 class PayrollPreviewDetail {
   final PayrollPreviewItem feedback;
   final PayrollCalculationItem originalPayroll;

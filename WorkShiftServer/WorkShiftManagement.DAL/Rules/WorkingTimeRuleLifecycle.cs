@@ -1,6 +1,6 @@
 using WorkShiftManagement.DAL.Entities;
 
-namespace WorkShiftManagement.DAL.Version.Rules;
+namespace WorkShiftManagement.DAL.Rules;
 
 public static class WorkingTimeRuleLifecycle
 {
@@ -78,3 +78,4 @@ public static class WorkingTimeRuleLifecycle
         rule.UpdatedAt = now;
     }
 }
+

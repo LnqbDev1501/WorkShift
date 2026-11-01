@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 
@@ -17,19 +17,19 @@ public static class PayrollCalculationPolicy
             && s.Status is "ACTIVE" or "INACTIVE" or "SCHEDULED"
             && s.EffectiveFrom <= date && (s.EffectiveTo == null || s.EffectiveTo >= date)).ToList();
         if (matches.Count != 1)
-            throw new InvalidOperationException($"Ngày {date:dd/MM/yyyy}: thiếu mức lương hoặc có nhiều khoảng lương chồng lấn.");
+            throw new InvalidOperationException($"Date {date:dd/MM/yyyy}: missing salary rate or overlapping salary intervals detected.");
         var salary = matches[0];
         if (salary.HourlyRate <= 0 || salary.Contract.UserId != user || salary.Contract.BranchId != input.Period.BranchId
             || salary.Contract.ApprovedAt == null || salary.Contract.StartDate > date
             || salary.Contract.EndDate.HasValue && salary.Contract.EndDate < date)
-            throw new InvalidOperationException($"Ngày {date:dd/MM/yyyy}: mức lương/hợp đồng không hợp lệ cho nhân viên và chi nhánh này.");
+            throw new InvalidOperationException($"Date {date:dd/MM/yyyy}: invalid salary rate or contract for this employee and branch.");
         return salary;
     }
 
     // The supplied database uses unconstrained NUMERIC. Preserve decimal results; do not round intermediate hours.
     private static decimal Money(decimal value)
     {
-        if (value < 0) throw new InvalidOperationException("Giá trị tiền không được âm.");
+        if (value < 0) throw new InvalidOperationException("Monetary amount cannot be negative.");
         return value;
     }
 
@@ -37,39 +37,39 @@ public static class PayrollCalculationPolicy
     {
         var period = input.Period;
         if (period.Status is not ("OPEN" or "CALCULATED") && !(refresh && (period.Status is "REVISION_REQUIRED" or "SUBMITTED")))
-            throw new InvalidOperationException("Chỉ tính lương ban đầu khi kỳ đang OPEN hoặc CALCULATED.");
+            throw new InvalidOperationException("Initial payroll calculation is only allowed when period is OPEN or CALCULATED.");
         if (period.ScheduleWeekId == null || period.StartDate > period.EndDate)
-            throw new InvalidOperationException("Kỳ lương chưa có tuần làm việc/ngày hợp lệ.");
-        if (!input.EmployeeIds.Contains(user)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
+            throw new InvalidOperationException("Payroll period does not have a valid working schedule week or date range.");
+        if (!input.EmployeeIds.Contains(user)) throw new KeyNotFoundException("Staff member does not belong to this payroll period.");
         if (input.UnsettledPriorEmployees.Contains(user))
-            throw new InvalidOperationException("Kỳ lương trước của nhân viên chưa quyết toán; chưa thể xác định Carry Forward chính thức.");
+            throw new InvalidOperationException("Prior payroll period for this employee is not settled; official Carry Forward cannot be determined.");
         if (!refresh && input.Payrolls.Any(p => p.UserId == user))
-            throw new InvalidOperationException("Nhân viên đã có Payroll. Payroll bị reject phải xử lý bằng luồng correction/version riêng.");
+            throw new InvalidOperationException("Staff member already has a Payroll. Rejected payroll must be processed via correction/versioning workflow.");
         var sheets = input.Timesheets.Where(t => t.UserId == user).ToList();
         if (sheets.Count != 1 || sheets[0].Status != "REVIEWED" || sheets[0].ReviewedAt == null)
-            throw new InvalidOperationException("Nhân viên phải có đúng một Timesheet REVIEWED và thời điểm duyệt.");
+            throw new InvalidOperationException("Staff member must have exactly one REVIEWED timesheet with approval timestamp.");
         var sheet = sheets[0];
-        if (sheet.TimesheetAdjustmentRequests.Any(r => r.Status == "PENDING")) throw new InvalidOperationException("Còn yêu cầu chỉnh công chưa được Manager xử lý.");
+        if (sheet.TimesheetAdjustmentRequests.Any(r => r.Status == "PENDING")) throw new InvalidOperationException("Pending timesheet adjustment requests exist that have not been processed by Manager.");
         if (sheet.User.BranchId != period.BranchId || sheet.TotalWorkMinutes < 0 || sheet.IncompleteShiftCount != 0)
-            throw new InvalidOperationException("Timesheet sai chi nhánh, phút công không hợp lệ hoặc còn ca chưa hoàn tất.");
+            throw new InvalidOperationException("Timesheet belongs to wrong branch, has invalid minutes, or contains incomplete shifts.");
         var assignments = input.Assignments.Where(a => a.UserId == user)
             .OrderBy(a => a.Shift.ScheduledStartAt).ThenBy(a => a.AssignmentId).ToList();
         if (assignments.Count != sheet.TotalAssignedShifts || assignments.Any(a => a.Attendance == null))
-            throw new InvalidOperationException("Chi tiết ca/chấm công không đầy đủ so với Timesheet đã duyệt.");
+            throw new InvalidOperationException("Shift and attendance details are incomplete compared to approved Timesheet.");
         if (assignments.Any(a => a.Attendance!.ActualWorkingMinutes < 0
             || a.Attendance.UpdatedAt > sheet.ReviewedAt || a.UpdatedAt > sheet.ReviewedAt
             || a.Shift.UpdatedAt > sheet.ReviewedAt
             || a.Attendance.AttendancePenaltyRecords.Any(p => p.CreatedAt > sheet.ReviewedAt)))
-            throw new InvalidOperationException("Dữ liệu ca/chấm công đã thay đổi sau khi duyệt công hoặc có phút công không hợp lệ; không thể dùng làm snapshot.");
+            throw new InvalidOperationException("Shift or attendance data has changed after review or contains invalid minutes; cannot be used as snapshot.");
         if (assignments.Sum(a => (long)a.Attendance!.ActualWorkingMinutes) != sheet.TotalWorkMinutes
             || assignments.Sum(a => (long)a.Attendance!.TotalLateMinutes) != sheet.TotalLateMinutes
             || assignments.Sum(a => (long)a.Attendance!.ChargeableLateMinutes) != sheet.ChargeableLateMinutes
             || assignments.Sum(a => (long)a.Attendance!.TotalEarlyLeaveMinutes) != sheet.TotalEarlyLeaveMinutes
             || assignments.Sum(a => (long)a.Attendance!.ChargeableEarlyLeaveMinutes) != sheet.ChargeableEarlyLeaveMinutes)
-            throw new InvalidOperationException("Chi tiết công không khớp Timesheet REVIEWED. Accountant không được tự thay đổi công.");
+            throw new InvalidOperationException("Work details do not match REVIEWED timesheet. Accountant cannot unilaterally modify work minutes.");
         var dated = assignments.Select(a => (Assignment: a, Date: WorkDate(a.Shift.ScheduledStartAt))).ToList();
         if (dated.Any(x => x.Date < period.StartDate || x.Date > period.EndDate))
-            throw new InvalidOperationException("Ca làm việc nằm ngoài kỳ lương.");
+            throw new InvalidOperationException("Shift falls outside of payroll period boundaries.");
         var salaryDates = dated.Select(x => x.Date).Distinct().ToList();
         if (salaryDates.Count == 0) salaryDates.Add(period.StartDate);
         var salaryByDate = salaryDates.ToDictionary(d => d, d => Salary(input, user, d));
@@ -97,7 +97,7 @@ public static class PayrollCalculationPolicy
                 var applicable = input.HolidayRules.Where(r => r.Status is "ACTIVE" or "INACTIVE" or "PUBLISH"
                     && r.EffectiveFrom <= date && (r.EffectiveTo == null || date < r.EffectiveTo)).ToList();
                 if (applicable.Count != 1 || applicable[0].PayMultiplier <= 0)
-                    throw new InvalidOperationException($"Ngày lễ {date:dd/MM/yyyy}: thiếu quy tắc hoặc quy tắc hệ số chồng lấn.");
+                    throw new InvalidOperationException($"Holiday {date:dd/MM/yyyy}: missing holiday pay rule or overlapping rule multipliers detected.");
                 rule = applicable[0];
             }
             var multiplier = rule?.PayMultiplier ?? 1m;
@@ -110,7 +110,7 @@ public static class PayrollCalculationPolicy
                 HolidayPayRuleId = rule?.HolidayPayRuleId, WorkFrom = date, WorkTo = date,
                 Quantity = attendance.ActualWorkingMinutes / 60m, Rate = salary.HourlyRate,
                 Multiplier = multiplier, Amount = amount, CreatedAt = now,
-                Note = $"payable_minutes={attendance.ActualWorkingMinutes}; tiền tính trực tiếp từ phút công"
+                Note = $"payable_minutes={attendance.ActualWorkingMinutes}; pay calculated directly from payable minutes"
             });
             workSnapshots.Add(new
             {
@@ -137,7 +137,7 @@ public static class PayrollCalculationPolicy
         var adjustments = input.Adjustments.Where(a => a.UserId == user && !a.IsDeleted && a.ApprovalStatus == "APPROVED")
             .OrderBy(a => a.CreatedAt).ThenBy(a => a.RewardPenaltyId).ToList();
         if (adjustments.Any(a => a.Amount < 0 || a.AdjustmentType is not ("REWARD" or "PENALTY")))
-            throw new InvalidOperationException("Khoản thưởng/phạt đã duyệt không hợp lệ.");
+            throw new InvalidOperationException("Approved reward or penalty item is invalid.");
         foreach (var reward in adjustments.Where(a => a.AdjustmentType == "REWARD"))
             payroll.PayrollDetails.Add(new PayrollDetail
             {
@@ -167,7 +167,7 @@ public static class PayrollCalculationPolicy
                 || carry.SourcePayrollDetail.PayrollId != carry.SourcePayrollId
                 || carry.SourcePayrollDetail.PayrollDetailId != carry.SourcePayrollDetailId
                 || carry.RemainingAmount > carry.OriginalAmount)
-                throw new InvalidOperationException("Carry Forward sai nhân viên/nguồn Payroll hoặc số dư không hợp lệ.");
+                throw new InvalidOperationException("Carry Forward record has mismatched employee/source payroll or invalid remaining balance.");
             Deduct(new PayrollDetail { Type = "CARRY_FORWARD_DEDUCTION", CarryForwardId = carry.CarryForwardId,
                 ItemCode = $"CF-{carry.CarryForwardId}", Description = carry.Reason, Amount = carry.RemainingAmount });
         }
@@ -181,7 +181,7 @@ public static class PayrollCalculationPolicy
             .OrderBy(p => p.CreatedAt).ThenBy(p => p.AttendancePenaltyId))
             Deduct(new PayrollDetail { Type = "ATTENDANCE_DEDUCTION", AttendancePenaltyId = penalty.AttendancePenaltyId,
                 ItemCode = $"ATTENDANCE-{penalty.AttendancePenaltyId}",
-                Description = $"{penalty.ViolationType}: {penalty.ViolationMinutes} phút", Amount = penalty.PenaltyAmount });
+                Description = $"{penalty.ViolationType}: {penalty.ViolationMinutes} mins", Amount = penalty.PenaltyAmount });
         payroll.TotalPenalty = Money(payroll.PayrollDetails.Where(d => d.Type == "PENALTY").Sum(d => d.Amount));
         payroll.AttendanceDeduction = Money(payroll.PayrollDetails.Where(d => d.Type == "ATTENDANCE_DEDUCTION").Sum(d => d.Amount));
         payroll.CarryForwardDeduction = payroll.PayrollDetails.Where(d => d.Type == "CARRY_FORWARD_DEDUCTION").Sum(d => d.AppliedAmount ?? 0);

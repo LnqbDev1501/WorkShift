@@ -219,7 +219,7 @@
                             @period.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</p>
                         }
                         <p>Approval deadline (UTC+7): @(period.ApprovalDeadlineAt.HasValue ? DateTime.SpecifyKind(period.ApprovalDeadlineAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
-                        @if (period.Status is "PAID" or "CLOSED")
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
                         {
                             <p>Paid at (UTC+7): @(period.PaidAt.HasValue ? DateTime.SpecifyKind(period.PaidAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—") · Closed at (UTC+7): @(period.ClosedAt.HasValue ? DateTime.SpecifyKind(period.ClosedAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
                         }
@@ -230,9 +230,9 @@
                             <a class="payroll-button" asp-controller="AdminPayslips" asp-action="Index">View Official Payslips</a>
                         }
 
-                        @if (period.Status is "PAID" or "CLOSED")
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
                         {
-                            <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId">Export Excel</a>
+                            <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId" download title="Download official payroll report to your Downloads folder">Export Excel</a>
                         }
 
                         <a class="payroll-button payroll-back-button" asp-action="List">

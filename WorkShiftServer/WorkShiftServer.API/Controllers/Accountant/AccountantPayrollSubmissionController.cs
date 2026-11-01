@@ -1,4 +1,4 @@
-using WorkShiftManagement.BLL.Services.Accountant;
+﻿using WorkShiftManagement.BLL.Services.Accountant;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,7 +57,7 @@ namespace WorkShiftServer.API.Controllers.Accountant
             }
         }
 
-        // Gửi lại một Payroll đã bị Admin reject.
+        // Resubmit a payroll previously rejected by Admin.
         [NonAction]
         public async Task<IActionResult>
             SubmitRejectedPayroll(

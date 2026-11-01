@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -31,6 +31,17 @@ public sealed class PayrollPeriodRepo(AppDbContext db) : IPayrollPeriodRepo
                 .ThenInclude(p => p.PayrollDetails)
             .Include(p => p.Payrolls)
                 .ThenInclude(p => p.PayrollCorrectionRequestPayrolls)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.EmployeeType)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PaymentConfirmedByNavigation)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.CalculatedByNavigation)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCarryForwardApplications)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCarryForwardDeductions)
             .AsSplitQuery();
 
     public async Task<(List<PayrollPeriod> Items, int Count)> GetPagedAsync(

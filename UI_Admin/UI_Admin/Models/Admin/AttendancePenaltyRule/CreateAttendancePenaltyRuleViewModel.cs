@@ -4,18 +4,18 @@ namespace UI_Admin.Models.Admin.AttendancePenaltyRule;
 
 public sealed class CreateAttendancePenaltyRuleViewModel
 {
-    [Required(ErrorMessage = "Tên quy tắc là bắt buộc.")]
-    [StringLength(150, ErrorMessage = "Tên quy tắc không được vượt quá 150 ký tự.")]
-    [Display(Name = "Tên rule")]
+    [Required(ErrorMessage = "Rule name is required.")]
+    [StringLength(150, ErrorMessage = "Rule name must not exceed 150 characters.")]
+    [Display(Name = "Rule Name")]
     public string RuleName { get; set; } = string.Empty;
 
-    [StringLength(500, ErrorMessage = "Mô tả không được vượt quá 500 ký tự.")]
-    [Display(Name = "Mô tả")]
+    [StringLength(500, ErrorMessage = "Description must not exceed 500 characters.")]
+    [Display(Name = "Description")]
     public string? Description { get; set; }
 
-    [Required(ErrorMessage = "Ngày bắt đầu hiệu lực là bắt buộc.")]
+    [Required(ErrorMessage = "Effective from date is required.")]
     [DataType(DataType.Date)]
-    [Display(Name = "Ngày bắt đầu hiệu lực")]
+    [Display(Name = "Effective From")]
     public DateOnly? EffectiveFrom { get; set; }
 
     public List<CreateAttendancePenaltyLevelViewModel> PenaltyLevels { get; set; } = new();

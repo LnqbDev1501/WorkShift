@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../models/payslip_model.dart';
 import '../../services/payroll_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 
-/// Màn hình Chi tiết Phiếu lương chính thức (Screen 5: Official Payslip Details)
-/// Chỉ xem, không có xác nhận hay gửi phản hồi, không tính toán lại dữ liệu
+/// Official Payslip Details Screen (Screen 5: Official Payslip Details)
+/// Read-only view: no confirmation or feedback, no data recalculation
 class OfficialPayslipDetailView extends StatefulWidget {
   final int payslipId;
 
@@ -62,7 +62,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Phiếu lương chính thức',
+          'Official Payslip',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -76,7 +76,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Tải lại',
+            tooltip: 'Reload',
             onPressed: _isLoading ? null : _loadDetail,
           ),
         ],
@@ -108,7 +108,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                         ElevatedButton.icon(
                           onPressed: _loadDetail,
                           icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Thử lại'),
+                          label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -119,7 +119,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                   ),
                 )
               : _detail == null
-                  ? const Center(child: Text('Không tìm thấy dữ liệu phiếu lương.'))
+                  ? const Center(child: Text('Official payslip data not found.'))
                   : _buildContent(),
     );
   }
@@ -164,7 +164,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 1. Header Card: Thông tin kỳ lương & Nhân viên
+  /// 1. Header Card: Period & Employee Information
   Widget _buildHeaderCard(PayslipSummaryItem payslip) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -195,7 +195,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                 child: Text(
                   payslip.periodCode.isNotEmpty
                       ? payslip.periodCode
-                      : 'Kỳ #${payslip.payrollPeriodId}',
+                      : 'Period #${payslip.payrollPeriodId}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -233,7 +233,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           Text(
             payslip.periodName.isNotEmpty
                 ? payslip.periodName
-                : 'Phiếu lương kỳ #${payslip.payrollPeriodId}',
+                : 'Payslip for Period #${payslip.payrollPeriodId}',
             style: const TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w800,
@@ -277,7 +277,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                   size: 15, color: AppColors.textSecondary),
               const SizedBox(width: 6),
               const Text(
-                'Khoảng ngày: ',
+                'Date range: ',
                 style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
               Text(
@@ -297,7 +297,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                   size: 15, color: AppColors.textMuted),
               const SizedBox(width: 6),
               const Text(
-                'Ngày phát hành chính thức: ',
+                'Official publication date: ',
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
               Text(
@@ -315,7 +315,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 2. Lương thực nhận chính thức (Net Salary Overview)
+  /// 2. Official Net Salary Overview
   Widget _buildNetSalaryCard(PayslipSummaryItem payslip) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -341,7 +341,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'THỰC LĨNH CHÍNH THỨC (NET SALARY)',
+                'OFFICIAL NET SALARY',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -367,9 +367,9 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniOverviewStat('Tổng thu nhập', formatCurrency(payslip.grossSalary)),
-              _buildMiniOverviewStat('Tổng khấu trừ', formatCurrency(payslip.totalDeduction)),
-              _buildMiniOverviewStat('Tổng giờ công', '${payslip.totalWorkHours}h'),
+              _buildMiniOverviewStat('Total Earnings', formatCurrency(payslip.grossSalary)),
+              _buildMiniOverviewStat('Total Deductions', formatCurrency(payslip.totalDeduction)),
+              _buildMiniOverviewStat('Total Work Hours', '${payslip.totalWorkHours}h'),
             ],
           ),
         ],
@@ -398,7 +398,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 3. Chi tiết các khoản cấu thành lương
+  /// 3. Official Financial Breakdown
   Widget _buildFinancialBreakdownCard(PayslipSummaryItem payslip) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -416,7 +416,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                   size: 18, color: Color(0xFF0F766E)),
               SizedBox(width: 8),
               Text(
-                'Chi tiết thu nhập & khấu trừ chính thức',
+                'Official Earnings & Deductions Breakdown',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -427,54 +427,54 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           ),
           const SizedBox(height: 16),
           _buildDetailRow(
-            'Lương theo giờ công (${payslip.totalWorkHours} giờ @ ${formatCurrency(payslip.hourlyRate)})',
+            'Base Work Pay (${payslip.totalWorkHours} hrs @ ${formatCurrency(payslip.hourlyRate)})',
             formatCurrency(payslip.workPay),
           ),
           if (payslip.totalReward > 0)
             _buildDetailRow(
-              'Tiền thưởng',
+              'Bonus / Reward',
               '+${formatCurrency(payslip.totalReward)}',
               valueColor: AppColors.success,
             ),
           _buildDetailRow(
-            'Tổng thu nhập trước khấu trừ (Gross)',
+            'Gross Earnings',
             formatCurrency(payslip.grossSalary),
             isBold: true,
           ),
           const Divider(height: 20, color: AppColors.borderLight),
           if (payslip.totalPenalty > 0)
             _buildDetailRow(
-              'Tiền phạt vi phạm',
+              'Penalties',
               '-${formatCurrency(payslip.totalPenalty)}',
               valueColor: AppColors.error,
             ),
           if (payslip.attendanceDeduction > 0)
             _buildDetailRow(
-              'Khấu trừ chuyên cần / đi muộn',
+              'Attendance / Late Deductions',
               '-${formatCurrency(payslip.attendanceDeduction)}',
               valueColor: AppColors.error,
             ),
           if (payslip.carryForwardDeduction > 0)
             _buildDetailRow(
-              'Nợ chuyển từ kỳ trước',
+              'Debt Carried Forward from Prior Period',
               '-${formatCurrency(payslip.carryForwardDeduction)}',
               valueColor: AppColors.error,
             ),
           if (payslip.deferredDeductionAmount > 0)
             _buildDetailRow(
-              'Khấu trừ hoãn sang kỳ sau',
+              'Deduction Deferred to Next Period',
               formatCurrency(payslip.deferredDeductionAmount),
               valueColor: AppColors.warning,
             ),
           _buildDetailRow(
-            'Tổng các khoản khấu trừ',
+            'Total Deductions',
             '-${formatCurrency(payslip.totalDeduction)}',
             valueColor: AppColors.error,
             isBold: true,
           ),
           const Divider(height: 20, color: AppColors.border),
           _buildDetailRow(
-            'Thực nhận (Net Salary)',
+            'Net Salary',
             formatCurrency(payslip.netSalary),
             valueColor: const Color(0xFF0F766E),
             isBold: true,
@@ -521,7 +521,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 4. Chi tiết ca làm việc (WorkDetails)
+  /// 4. Shift Work Details (WorkDetails)
   Widget _buildShiftDetailsCard(List<PayslipWorkDetailItem> workDetails) {
     return Container(
       decoration: BoxDecoration(
@@ -535,7 +535,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           initiallyExpanded: false,
           leading: const Icon(Icons.calendar_month_rounded, color: Color(0xFF0F766E)),
           title: Text(
-            'Chi tiết ca làm việc (${workDetails.length} ca)',
+            'Shift Details (${workDetails.length} shifts)',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -550,7 +550,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Không có dữ liệu ca làm việc.',
+                  'No shift work data available.',
                   style: TextStyle(color: AppColors.textMuted),
                 ),
               ),
@@ -595,7 +595,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                       ),
                     ),
                     Text(
-                      '${(shift.payableMinutes / 60.0).toStringAsFixed(1)} giờ',
+                      '${(shift.payableMinutes / 60.0).toStringAsFixed(1)} hrs',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -606,25 +606,25 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Ngày: ${shift.workDate}',
+                  'Date: ${shift.workDate}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Vào/Ra: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
+                  'Attendance: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
                 if (shift.totalLateMinutes > 0 || shift.totalEarlyLeaveMinutes > 0) ...[
                   const SizedBox(height: 3),
                   Text(
-                    'Đi muộn: ${shift.totalLateMinutes}p • Về sớm: ${shift.totalEarlyLeaveMinutes}p',
+                    'Late: ${shift.totalLateMinutes}m • Early Leave: ${shift.totalEarlyLeaveMinutes}m',
                     style: const TextStyle(fontSize: 11, color: AppColors.error),
                   ),
                 ],
                 if (shift.note != null && shift.note!.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Text(
-                    'Ghi chú: ${shift.note}',
+                    'Note: ${shift.note}',
                     style: const TextStyle(
                       fontSize: 11,
                       fontStyle: FontStyle.italic,
@@ -640,7 +640,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 5. Danh mục chi tiết các dòng tính lương (CalculationDetails)
+  /// 5. Specific Calculation Line Items (CalculationDetails)
   Widget _buildCalculationItemsCard(
       List<PayrollCalculationDetailItem> calcDetails) {
     return Container(
@@ -655,7 +655,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           initiallyExpanded: false,
           leading: const Icon(Icons.calculate_outlined, color: Color(0xFF0F766E)),
           title: Text(
-            'Khoản tính cụ thể (${calcDetails.length} mục)',
+            'Specific Line Items (${calcDetails.length} items)',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -714,7 +714,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
     );
   }
 
-  /// 6. Ghi chú phiếu lương chính thức đã đóng băng
+  /// 6. Read-only frozen snapshot notice
   Widget _buildReadOnlyNoticeCard() {
     return Container(
       padding: const EdgeInsets.all(14),
@@ -729,7 +729,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Phiếu lương chính thức đã được phê duyệt và phát hành. Số liệu được lưu trữ nguyên trạng (snapshot) và không thể thay đổi.',
+              'This official payslip has been approved and published. All figures are permanently frozen snapshots and cannot be modified.',
               style: TextStyle(
                 fontSize: 12,
                 color: AppColors.textSecondary,

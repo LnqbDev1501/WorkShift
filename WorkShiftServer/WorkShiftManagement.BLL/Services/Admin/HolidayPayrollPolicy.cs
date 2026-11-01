@@ -13,22 +13,21 @@ public static class HolidayPayrollPolicy
         foreach (var detail in details.Where(d => d.Type == "WORK"))
         {
             if (!detail.WorkFrom.HasValue || !detail.WorkTo.HasValue || detail.WorkTo < detail.WorkFrom)
-                throw new InvalidOperationException("Dòng công cần có ngày làm việc để kiểm tra hệ số ngày lễ.");
+                throw new InvalidOperationException("Work detail requires valid work dates to verify holiday multipliers.");
             var matching = holidays.Where(h => h.IsActive && h.HolidayDate >= detail.WorkFrom && h.HolidayDate <= detail.WorkTo).ToList();
             if (matching.Count == 0)
             {
                 if (detail.PublicHolidayId != null || detail.HolidayPayRuleId != null)
-                    throw new InvalidOperationException("Dòng lương ngày lễ không còn khớp lịch. Cần tính lại.");
+                    throw new InvalidOperationException("Holiday pay detail no longer matches the holiday schedule. Recalculation required.");
                 continue;
             }
             if (matching.Count != 1 || detail.WorkFrom != matching[0].HolidayDate || detail.WorkTo != matching[0].HolidayDate)
-                throw new InvalidOperationException("Cần tách dòng công theo từng ngày lễ trước khi gửi duyệt.");
+                throw new InvalidOperationException("Work details must be split per holiday before submitting for approval.");
             var expected = Resolve(rules, matching[0].HolidayDate)
-                ?? throw new InvalidOperationException($"Chưa có quy định hệ số cho ngày {matching[0].HolidayDate:dd/MM/yyyy}.");
+                ?? throw new InvalidOperationException($"No holiday pay rule found for date {matching[0].HolidayDate:dd/MM/yyyy}.");
             if (detail.PublicHolidayId != matching[0].PublicHolidayId || detail.HolidayPayRuleId != expected.HolidayPayRuleId
                 || detail.Multiplier != expected.PayMultiplier || detail.Quantity is null or < 0 || detail.Rate is null or < 0)
-                throw new InvalidOperationException("Dòng lương chưa lưu đúng ngày lễ, quy định và hệ số. Cần tính lại trước khi duyệt.");
+                throw new InvalidOperationException("Payroll detail does not correctly record holiday, rule, and multiplier. Recalculation required before approval.");
         }
     }
 }
-

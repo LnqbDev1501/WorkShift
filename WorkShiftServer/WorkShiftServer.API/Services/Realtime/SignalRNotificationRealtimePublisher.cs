@@ -3,7 +3,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftServer.API.Hubs;
 
-namespace WorkShiftServer.API.Services;
+namespace WorkShiftServer.API.Services.Realtime;
 
 public class SignalRNotificationRealtimePublisher : INotificationRealtimePublisher
 {

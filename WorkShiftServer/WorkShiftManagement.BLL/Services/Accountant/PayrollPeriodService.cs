@@ -1,9 +1,9 @@
-using WorkShiftManagement.BLL.DTOs.Accountant.PayrollPeriod.Request;
+﻿using WorkShiftManagement.BLL.DTOs.Accountant.PayrollPeriod.Request;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollPeriod.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
-using WorkShiftManagement.DAL.Version.Payroll;
+using WorkShiftManagement.BLL.Policies.Payroll;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 
@@ -631,25 +631,41 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             false,
             ct);
 
-        if (p.Status is not ("PAID" or "CLOSED"))
+        if (p.Status is not ("APPROVED" or "PAID" or "CLOSED"))
         {
             throw new InvalidOperationException(
-                "Excel export is available only for PAID or CLOSED periods.");
+                "Excel export is available only for APPROVED, PAID, or CLOSED periods.");
         }
 
         var current = PayrollVersionPolicy.Current(
             p.Payrolls,
             p.Status);
 
-        if (current.Count == 0
-            || current.Any(w => w.Status != "PAID"))
+        if (current.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "The period does not contain any effective payroll records.");
+        }
+
+        if (p.Status is "PAID" or "CLOSED" && current.Any(w => w.Status != "PAID"))
         {
             throw new InvalidOperationException(
                 "The settled period must contain paid current payrolls.");
         }
 
+        if (p.Status == "APPROVED" && current.Any(w => w.Status is not ("APPROVED" or "PAID")))
+        {
+            throw new InvalidOperationException(
+                "The approved period must contain approved current payrolls.");
+        }
+
+        var cleanBranch = new string(p.BranchNameSnapshot.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == '-').ToArray()).Replace(" ", "_");
+        if (string.IsNullOrWhiteSpace(cleanBranch)) cleanBranch = "Branch";
+        var cleanCode = new string(p.PeriodCode.Where(c => char.IsLetterOrDigit(c) || c == '_' || c == '-').ToArray()).Replace(" ", "");
+        var fileName = $"WorkShift_Payroll_{cleanBranch}_{cleanCode}_{p.StartDate:yyyyMMdd}_{p.EndDate:yyyyMMdd}.xlsx";
+
         return new(
-            PayrollPeriodExcelReport.Create(p, current),
-            $"Payroll-{p.PayrollPeriodId}-{p.StartDate:yyyyMMdd}.xlsx");
+            PayrollPeriodExcelReport.Create(p, current, user.FullName),
+            fileName);
     }
 }

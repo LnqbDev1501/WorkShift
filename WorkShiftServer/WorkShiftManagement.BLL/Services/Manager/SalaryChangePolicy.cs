@@ -13,29 +13,29 @@ public static class SalaryChangePolicy
     public static string RequiredText(string? text)
     {
         var value = Text(text);
-        if (value == null || value.Length > 1000) throw new ArgumentException("Cần nội dung không rỗng, tối đa 1000 ký tự.");
+        if (value == null || value.Length > 1000) throw new ArgumentException("Content is required and must not exceed 1000 characters.");
         return value;
     }
     public static void Rate(decimal proposed)
     {
         if (proposed <= 0 || proposed > 9999999999999999.99m || proposed != decimal.Truncate(proposed * 100m) / 100m)
-            throw new ArgumentException("Mức lương phải dương, tối đa 16 chữ số nguyên và 2 chữ số thập phân; không tự làm tròn.");
+            throw new ArgumentException("Salary rate must be positive with up to 16 integer digits and 2 decimal places; no rounding permitted.");
     }
     public static void ProposedDate(DateOnly date, DateOnly today)
     {
         if (date == DateOnly.MaxValue || date.DayOfWeek != DayOfWeek.Monday || date < NextMonday(today))
-            throw new ArgumentException("Ngày áp dụng phải là thứ Hai từ tuần tiếp theo trở đi (UTC+7).");
+            throw new ArgumentException("Effective date must be a Monday starting from next week onward (UTC+07:00).");
     }
     public static DateOnly ApprovalDate(SalaryChangeRequest item, DateOnly today, DateOnly? selected, string? changeReason)
     {
         if (item.ProposedEffectiveFrom > today)
         {
             if (selected.HasValue && selected != item.ProposedEffectiveFrom || Text(changeReason) != null)
-                throw new ArgumentException("Ngày đề xuất chưa đến; phải giữ nguyên ngày và không nhập lý do đổi ngày.");
+                throw new ArgumentException("Proposed date has not arrived yet; original date must be kept and date change reason left empty.");
             ProposedDate(item.ProposedEffectiveFrom, today);
             return item.ProposedEffectiveFrom;
         }
-        if (!selected.HasValue) throw new ArgumentException("Ngày đề xuất đã đến hoặc đã qua; Admin phải chọn ngày mới.");
+        if (!selected.HasValue) throw new ArgumentException("Proposed date has arrived or passed; Admin must select a new effective date.");
         RequiredText(changeReason);
         ProposedDate(selected.Value, today);
         return selected.Value;
@@ -45,25 +45,25 @@ public static class SalaryChangePolicy
     {
         if (staff.Status != "ACTIVE" || staff.DeletedAt != null || staff.Role?.RoleName != "STAFF"
             || staff.Role.Status != "ACTIVE" || staff.BranchId != branchId || staff.Branch?.Status != "ACTIVE")
-            throw new InvalidOperationException("Staff/chi nhánh phải đang hoạt động và thuộc đúng phạm vi đề xuất.");
+            throw new InvalidOperationException("Staff and branch must be active and within the proposal scope.");
         var rows = salaries.Where(s => s.UserId == staff.UserId && s.Status is "ACTIVE" or "INACTIVE" or "SCHEDULED").ToList();
         var current = rows.Where(s => s.EffectiveFrom <= today && (!s.EffectiveTo.HasValue || s.EffectiveTo >= today)).ToList();
-        if (current.Count != 1) throw new InvalidOperationException("Thiếu mức lương hiện hành hoặc các khoảng lương đang chồng lấn.");
+        if (current.Count != 1) throw new InvalidOperationException("Missing current salary rate or overlapping salary intervals detected.");
         var source = current[0];
         if (expectedId.HasValue && source.SalaryHistoryId != expectedId)
-            throw new InvalidOperationException("Mức lương làm căn cứ đã thay đổi. Manager cần tạo đề xuất mới.");
+            throw new InvalidOperationException("Baseline salary rate has changed. Manager must create a new proposal.");
         var contract = source.Contract;
         if (contract == null || contract.ContractId != source.ContractId || contract.UserId != staff.UserId
             || contract.BranchId != branchId || contract.Status != "ACTIVE" || contract.ApprovedAt == null
             || contract.StaffAcceptedAt == null || contract.StartDate > today
             || contract.EndDate.HasValue && contract.EndDate < effective
             || source.HourlyRate <= 0 || proposed <= source.HourlyRate)
-            throw new InvalidOperationException("Mức mới phải cao hơn mức nguồn; hợp đồng đã duyệt/chấp nhận và còn hiệu lực đến ngày áp dụng.");
+            throw new InvalidOperationException("New rate must be higher than current rate; contract must be approved, accepted, and valid until effective date.");
         if (rows.Any(s => s.SalaryHistoryId != source.SalaryHistoryId && s.EffectiveFrom > today
             && s.Contract.Status != "CANCELLED"))
-            throw new InvalidOperationException("Đã có mức lương tương lai. Cần xử lý lịch đã có trước khi đề xuất/duyệt tiếp.");
+            throw new InvalidOperationException("A future scheduled salary rate already exists. Existing schedule must be resolved before proposing or approving again.");
         if (source.EffectiveTo.HasValue && source.EffectiveTo < effective)
-            throw new InvalidOperationException("Mức nguồn kết thúc trước ngày áp dụng, không được tự kéo dài khoảng hiệu lực.");
+            throw new InvalidOperationException("Source salary rate ends before effective date; cannot unilaterally extend validity interval.");
         return source;
     }
 }

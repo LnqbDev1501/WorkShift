@@ -1,6 +1,6 @@
 using WorkShiftManagement.DAL.Entities;
 
-namespace WorkShiftManagement.DAL.Repositories.Staff;
+namespace WorkShiftManagement.DAL.Policies.Shifts;
 
 public static class StaffShiftContractPolicy
 {
@@ -28,3 +28,4 @@ public static class StaffShiftContractPolicy
                         TimeOnly.FromDateTime(s.ScheduledEndAt.AddHours(7)) == TimeOnly.MinValue))));
     }
 }
+

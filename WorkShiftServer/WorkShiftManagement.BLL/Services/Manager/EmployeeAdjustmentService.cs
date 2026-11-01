@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -9,7 +9,7 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IEmployeeAdjustmentService
 {
     private static void Type(string type)
-    { if (type is not ("REWARD" or "PENALTY")) throw new ArgumentException("Loại thưởng/phạt không hợp lệ."); }
+    { if (type is not ("REWARD" or "PENALTY")) throw new ArgumentException("Invalid reward/penalty adjustment type."); }
     private async Task<User> Actor(Guid id, string? requiredRole, CancellationToken ct)
     {
         var actor = await repo.ActorAsync(id, ct);
@@ -59,7 +59,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         CheckPeriod(item.PayrollPeriod);
         if (item.ApprovalStatus != "PENDING") throw new InvalidOperationException("Chỉ xử lý khoản đang PENDING; khoản đã duyệt/từ chối không được sửa, xóa hoặc duyệt lại.");
         if (item.PayrollId != null || await repo.HasPayrollSourceAsync(item.RewardPenaltyId, ct))
-            throw new InvalidOperationException("Khoản đã liên kết dữ liệu Payroll; không được thay đổi nguồn trực tiếp.");
+            throw new InvalidOperationException("Adjustment item is linked to Payroll data; direct source modification prohibited.");
     }
     private static string Snapshot(EmployeeRewardsPenalty a) => JsonSerializer.Serialize(new
     { a.UserId, a.PayrollPeriodId, a.AdjustmentType, a.AdjustmentName, a.Amount, a.Reason, a.ApprovalStatus,

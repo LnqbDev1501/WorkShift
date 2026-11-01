@@ -1,12 +1,12 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import '../models/staff_request_model.dart';
 import 'api_client.dart';
 
-/// Dịch vụ kết nối API Server cho các chức năng Request của Staff
+/// API service connecting server for Staff Request functions
 class StaffRequestService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Lấy danh sách yêu cầu có phân trang, tìm kiếm & lọc
+  /// Get paged requests list with search and filter
   Future<PagedStaffRequestModel> getRequests({
     String? reason,
     String? requestType,
@@ -69,7 +69,7 @@ class StaffRequestService {
     }
   }
 
-  /// Lấy chi tiết yêu cầu theo ID
+  /// Get request detail by ID
   Future<StaffEmployeeRequestDetailModel> getRequestDetail(
     int requestId,
   ) async {
@@ -88,7 +88,7 @@ class StaffRequestService {
     }
   }
 
-  /// Lấy danh sách ca làm việc đủ điều kiện tạo đơn (LEAVE, LATE_ARRIVAL, EARLY_LEAVE)
+  /// Get eligible shifts list for request creation (LEAVE, LATE_ARRIVAL, EARLY_LEAVE)
   Future<List<StaffEligibleShiftModel>> getEligibleShifts(
     String requestType,
   ) async {
@@ -117,7 +117,7 @@ class StaffRequestService {
     }
   }
 
-  /// Gửi đơn xin nghỉ phép (LEAVE)
+  /// Submit leave request (LEAVE)
   Future<StaffEmployeeRequestDetailModel> submitLeaveRequest({
     required List<int> assignmentIds,
     required String reason,
@@ -141,7 +141,7 @@ class StaffRequestService {
     }
   }
 
-  /// Gửi đơn xin đi trễ (LATE_ARRIVAL)
+  /// Submit late arrival request (LATE_ARRIVAL)
   Future<StaffEmployeeRequestDetailModel> submitLateArrivalRequest({
     required int assignmentId,
     required DateTime requestedTime,
@@ -170,7 +170,7 @@ class StaffRequestService {
     }
   }
 
-  /// Gửi đơn xin về sớm (EARLY_LEAVE)
+  /// Submit early leave request (EARLY_LEAVE)
   Future<StaffEmployeeRequestDetailModel> submitEarlyLeaveRequest({
     required int assignmentId,
     required DateTime requestedTime,
@@ -199,7 +199,7 @@ class StaffRequestService {
     }
   }
 
-  /// Gửi đơn xin tăng lương (SALARY_INCREASE)
+  /// Submit salary increase request (SALARY_INCREASE)
   Future<StaffEmployeeRequestDetailModel> submitSalaryIncreaseRequest({
     required double proposedHourlyRate,
     required String reason,
@@ -226,7 +226,7 @@ class StaffRequestService {
     }
   }
 
-  /// Hủy yêu cầu (Cancel Employee Request)
+  /// Cancel employee request
   Future<StaffEmployeeRequestDetailModel> cancelRequest(int requestId) async {
     try {
       final response = await _apiClient.post(

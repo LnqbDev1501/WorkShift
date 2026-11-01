@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollFeedback;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 using WorkShiftManagement.BLL.Services.Admin;
@@ -8,7 +8,7 @@ using Issue = WorkShiftManagement.DAL.Entities.PayrollCorrectionRequest;
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public sealed class PayrollSourceChangedException(PayrollSourceImpactResponse impact)
-    : InvalidOperationException("Nguồn tính lương không còn khớp. Xem sourceImpact để xử lý đầy đủ các Staff bị ảnh hưởng.")
+    : InvalidOperationException("Payroll calculation sources no longer match. Review sourceImpact to resolve all affected staff.")
 { public PayrollSourceImpactResponse SourceImpact { get; } = impact; }
 
 public sealed partial class PayrollFeedbackService
@@ -28,9 +28,9 @@ public sealed partial class PayrollFeedbackService
         {
             if (node.PreviousPayrollId == original.PayrollId) return current;
             node = d.Payrolls.SingleOrDefault(p => p.PayrollId == node.PreviousPayrollId)
-                ?? throw new InvalidOperationException("Thiếu version trước trong chuỗi Payroll.");
+                ?? throw new InvalidOperationException("Missing previous version in Payroll version chain.");
         }
-        throw new InvalidOperationException("Version hiện hành không thuộc chuỗi của yêu cầu sửa.");
+        throw new InvalidOperationException("Current version does not belong to the correction request chain.");
     }
     private static void RequireCorrectResponse(PayrollReviewData d, Issue r, Payroll current)
     {
@@ -38,7 +38,7 @@ public sealed partial class PayrollFeedbackService
         if (r.Status != "RESPONDED" || r.ResponseAction != "CORRECT"
             || candidate == null && current.Status != "REJECTED"
             || candidate != null && current.Status != "CALCULATED")
-            throw new InvalidOperationException("Cần yêu cầu RESPONDED/CORRECT và Payroll bị reject hoặc bản sửa chờ Accountant hoàn tất.");
+            throw new InvalidOperationException("Requires RESPONDED/CORRECT request and rejected payroll or revision awaiting Accountant completion.");
     }
     private PayrollIssueResponse MapIssue(PayrollReviewData d, Issue r)
     {
@@ -64,11 +64,11 @@ public sealed partial class PayrollFeedbackService
         var u = await Actor(actor, ct, "ACCOUNTANT");
         var d = await Data(u, await repo.PeriodForPayrollAsync(payrollId, ct), ct); Editable(d);
         var r = d.Corrections.SingleOrDefault(r => r.CorrectionRequestId == correctionRequestId)
-            ?? throw new KeyNotFoundException("Không tìm thấy Correction Request trong kỳ.");
-        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ xem trước cho yêu cầu sửa mới nhất.");
+            ?? throw new KeyNotFoundException("Correction Request not found in this payroll period.");
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Preview is only allowed for the latest correction request.");
         var original = d.Payrolls.Single(p => p.PayrollId == r.PayrollId);
         var current = PayrollPreviewPolicy.Current(d).Single(p => p.UserId == original.UserId);
-        if (payrollId != original.PayrollId && payrollId != current.PayrollId) throw new InvalidOperationException("Payroll không thuộc yêu cầu sửa.");
+        if (payrollId != original.PayrollId && payrollId != current.PayrollId) throw new InvalidOperationException("Payroll does not belong to this correction request.");
         RequireCorrectResponse(d, r, current);
         var next = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), current.UserId, actor, Now, true);
         next.PreviousPayrollId = current.PayrollId; next.VersionNo = checked(current.VersionNo + 1); next.CorrectionReason = r.Reason;
@@ -82,14 +82,14 @@ public sealed partial class PayrollFeedbackService
         await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForCorrectionAsync(id, ct), ct);
         var r = d.Corrections.Single(r => r.CorrectionRequestId == id);
-        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Chỉ hoàn tất yêu cầu sửa mới nhất.");
+        if (!PayrollPreviewPolicy.Leaf(d, r)) throw new InvalidOperationException("Only the latest correction request can be completed.");
         if (r.Status == "COMPLETED" && r.ResolvedPayrollId == request.PayrollId) { await tx.CommitAsync(ct); return MapIssue(d, r); }
         Editable(d);
-        var candidate = Candidate(d, r) ?? throw new InvalidOperationException("Chưa có bản sửa đã lưu để Accountant kiểm tra.");
+        var candidate = Candidate(d, r) ?? throw new InvalidOperationException("No saved revision available for Accountant review.");
         RequireCorrectResponse(d, r, candidate);
-        if (request.PayrollId != candidate.PayrollId) throw new InvalidOperationException("Phải kiểm tra và hoàn tất đúng Payroll version hiện hành.");
+        if (request.PayrollId != candidate.PayrollId) throw new InvalidOperationException("Must verify and complete against the current active Payroll version.");
         var rebuilt = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), candidate.UserId, actor, Now, true);
-        if (PayrollPreviewPolicy.Changed(candidate, rebuilt)) throw new InvalidOperationException("Nguồn đổi sau khi tính bản sửa; cần Preview và tính lại trước khi hoàn tất.");
+        if (PayrollPreviewPolicy.Changed(candidate, rebuilt)) throw new InvalidOperationException("Sources changed after revision calculation; preview and recalculation required before completion.");
         PayrollApprovalService.ValidateTotals(candidate);
         await RegisterRelated(d, r, actor, ct);
         Complete(d, r, candidate, actor, note);
@@ -107,7 +107,7 @@ public sealed partial class PayrollFeedbackService
             var p = current.SingleOrDefault(p => p.UserId == user);
             var row = new PayrollSourceImpactEmployee { UserId = user, EmployeeName = p?.EmployeeFullNameSnapshot ?? user.ToString(), PayrollId = p?.PayrollId, VersionNo = p?.VersionNo,
                 CorrectionRequestId = d.Corrections.LastOrDefault(r => r.Payroll.UserId == user && r.Status is "OPEN" or "RESPONDED")?.CorrectionRequestId };
-            if (p == null) row.BlockingReasons.Add("Chưa có Payroll hiện hành.");
+            if (p == null) row.BlockingReasons.Add("No current Payroll record found.");
             else
             {
                 try
@@ -122,7 +122,7 @@ public sealed partial class PayrollFeedbackService
                 { row.BlockingReasons.Add(ex.Message); }
             }
             if (includePending && input.Adjustments.Any(a => a.UserId == user && !a.IsDeleted && a.ApprovalStatus == "PENDING"))
-                row.BlockingReasons.Add("Còn thưởng/phạt PENDING, chưa được đưa vào lương và chưa được Submit/Approve.");
+                row.BlockingReasons.Add("Pending rewards/penalties exist that are not included in payroll or approved.");
             response.Employees.Add(row);
         }
         return response;
@@ -137,7 +137,7 @@ public sealed partial class PayrollFeedbackService
         var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
         var d = await Data(u, await repo.PeriodForCorrectionAsync(correctionRequestId, ct), ct); Editable(d);
         var r = d.Corrections.Single(r => r.CorrectionRequestId == correctionRequestId);
-        if (r.Status != "RESPONDED" || r.ResponseAction != "CORRECT") throw new InvalidOperationException("Chỉ mở rộng phạm vi từ yêu cầu Manager đã CORRECT.");
+        if (r.Status != "RESPONDED" || r.ResponseAction != "CORRECT") throw new InvalidOperationException("Scope expansion is only allowed from requests where Manager selected CORRECT.");
         var result = await RegisterRelated(d, r, actor, ct);
         await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
         await DispatchRealtimeNotificationsAsync();
@@ -159,13 +159,13 @@ public sealed partial class PayrollFeedbackService
             var rebuilt = PayrollCalculationPolicy.Build(input, p.UserId, actor, Now, true);
             if (!PayrollSourceImpactPolicy.OnlyCapturedSharedChanges(p, rebuilt, evidence.SharedChangeKeys))
             {
-                row.BlockingReasons.Add("Có thay đổi khác ngoài phạm vi nguồn chung đã ghi nhận; không tự mở rộng case sau hạn.");
+                row.BlockingReasons.Add("Additional source changes detected outside registered shared sources; automatic scope expansion denied after deadline.");
                 continue;
             }
             // Do not overwrite an unprocessed Staff feedback decision.
             var feedback = d.Reviews.Where(f => f.EmployeeId == p.UserId && PayrollPreviewPolicy.Leaf(d, f)).LastOrDefault();
             if (feedback?.ReviewStatus == "FEEDBACK_PENDING")
-            { row.BlockingReasons.Add("Có Staff feedback cần Accountant xử lý trước khi mở rộng correction."); continue; }
+            { row.BlockingReasons.Add("Pending staff feedback exists that Accountant must resolve before expanding correction."); continue; }
             if (d.Period.InitialFeedbackDeadlineAt.HasValue && (feedback == null || PayrollPreviewPolicy.Root(d, feedback).ClosedAt.HasValue))
             {
                 feedback = new PayrollFeedbackRequest { Payroll = p, PayrollId = p.PayrollId, EmployeeId = p.UserId,

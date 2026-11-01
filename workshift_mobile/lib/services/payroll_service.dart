@@ -1,4 +1,4 @@
-import 'dart:developer';
+﻿import 'dart:developer';
 import 'package:dio/dio.dart';
 import '../models/payroll_preview_model.dart';
 import '../models/payslip_model.dart';
@@ -28,7 +28,7 @@ class PayrollService {
     return e.message ?? fallback;
   }
 
-  /// 1. Lấy danh sách lượt xem trước lương (GET /api/payroll-previews)
+  /// 1. Get payroll preview list (GET /api/payroll-previews)
   Future<List<PayrollPreviewItem>> getPayrollPreviews({
     int page = 1,
     int pageSize = 20,
@@ -77,7 +77,7 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải danh sách xem trước lương');
+      final msg = _extractErrorMessage(e, 'Unable to load payroll preview list');
       log('PayrollService.getPayrollPreviews error: $msg');
       throw msg;
     } catch (e) {
@@ -86,7 +86,7 @@ class PayrollService {
     }
   }
 
-  /// 2. Lấy chi tiết một lượt xem trước lương (GET /api/payroll-previews/{id})
+  /// 2. Get payroll preview details (GET /api/payroll-previews/{id})
   Future<PayrollPreviewDetail> getPayrollPreviewDetail(int feedbackId) async {
     try {
       final response = await _apiClient.get('/api/payroll-previews/$feedbackId');
@@ -96,9 +96,9 @@ class PayrollService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không tìm thấy thông tin lượt xem trước lương.';
+      throw 'Payroll preview details not found.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải chi tiết xem trước lương');
+      final msg = _extractErrorMessage(e, 'Unable to load payroll preview details');
       log('PayrollService.getPayrollPreviewDetail error: $msg');
       throw msg;
     } catch (e) {
@@ -107,7 +107,7 @@ class PayrollService {
     }
   }
 
-  /// 3. Xác nhận đồng ý lượt review (POST /api/payroll-previews/{id}/confirm)
+  /// 3. Confirm payroll preview (POST /api/payroll-previews/{id}/confirm)
   Future<PayrollPreviewItem> confirmPayrollPreview(int feedbackId) async {
     try {
       final response = await _apiClient.post(
@@ -119,9 +119,9 @@ class PayrollService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không thể xác nhận bảng lương.';
+      throw 'Unable to confirm payroll.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Xác nhận bảng lương không thành công');
+      final msg = _extractErrorMessage(e, 'Payroll confirmation failed');
       log('PayrollService.confirmPayrollPreview error: $msg');
       throw msg;
     } catch (e) {
@@ -130,7 +130,7 @@ class PayrollService {
     }
   }
 
-  /// 4. Gửi phản hồi sai sót (POST /api/payroll-previews/{id}/feedback)
+  /// 4. Submit payroll feedback (POST /api/payroll-previews/{id}/feedback)
   Future<PayrollPreviewItem> submitPayrollFeedback(
     int feedbackId,
     String description,
@@ -146,9 +146,9 @@ class PayrollService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không thể gửi phản hồi.';
+      throw 'Unable to submit feedback.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Gửi phản hồi thất bại');
+      final msg = _extractErrorMessage(e, 'Failed to submit feedback');
       log('PayrollService.submitPayrollFeedback error: $msg');
       throw msg;
     } catch (e) {
@@ -157,7 +157,7 @@ class PayrollService {
     }
   }
 
-  /// 5. Lấy danh sách Feedback đã gửi của Staff (GET /api/payroll-previews)
+  /// 5. Get submitted staff feedbacks (GET /api/payroll-previews)
   Future<List<PayrollPreviewItem>> getMyPayrollFeedbacks({
     int page = 1,
     int pageSize = 20,
@@ -197,7 +197,7 @@ class PayrollService {
             )
             .toList();
 
-        // Lọc những lượt review thực sự có feedback của Staff nếu không truyền status cụ thể
+        // Filter review records that actually have staff feedback if no specific status is requested
         if (status == null || status.isEmpty) {
           return list
               .where(
@@ -212,7 +212,7 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải danh sách phản hồi');
+      final msg = _extractErrorMessage(e, 'Unable to load feedback list');
       log('PayrollService.getMyPayrollFeedbacks error: $msg');
       throw msg;
     } catch (e) {
@@ -221,7 +221,7 @@ class PayrollService {
     }
   }
 
-  /// 6. Lấy danh sách phiếu lương chính thức (GET /api/payslips)
+  /// 6. Get official payslips list (GET /api/payslips)
   Future<List<PayslipSummaryItem>> getPayslips({
     int page = 1,
     int pageSize = 20,
@@ -262,7 +262,7 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải danh sách phiếu lương');
+      final msg = _extractErrorMessage(e, 'Unable to load payslips list');
       log('PayrollService.getPayslips error: $msg');
       throw msg;
     } catch (e) {
@@ -271,7 +271,7 @@ class PayrollService {
     }
   }
 
-  /// 7. Lấy chi tiết phiếu lương chính thức (GET /api/payslips/{id})
+  /// 7. Get official payslip details (GET /api/payslips/{id})
   Future<PayslipDetailModel> getPayslipDetail(int payslipId) async {
     try {
       final response = await _apiClient.get('/api/payslips/$payslipId');
@@ -281,9 +281,9 @@ class PayrollService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không tìm thấy chi tiết phiếu lương.';
+      throw 'Payslip details not found.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Không thể tải chi tiết phiếu lương');
+      final msg = _extractErrorMessage(e, 'Unable to load payslip details');
       log('PayrollService.getPayslipDetail error: $msg');
       throw msg;
     } catch (e) {

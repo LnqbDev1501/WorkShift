@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
@@ -101,7 +101,7 @@ public class ManagerEmployeeRequestApiService
                     UserId = userId,
                     FromDate = fromDate,
                     ToDate = toDate,
-                    ErrorMessage = errorMsg ?? "Không thể tải danh sách đơn yêu cầu."
+                    ErrorMessage = errorMsg ?? "Unable to load employee requests list."
                 };
             }
 
@@ -135,7 +135,7 @@ public class ManagerEmployeeRequestApiService
                 UserId = userId,
                 FromDate = fromDate,
                 ToDate = toDate,
-                ErrorMessage = $"Lỗi kết nối máy chủ: {ex.Message}"
+                ErrorMessage = $"Server connection error: {ex.Message}"
             };
         }
     }
@@ -169,7 +169,7 @@ public class ManagerEmployeeRequestApiService
         if (!response.IsSuccessStatusCode)
         {
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            throw new InvalidOperationException(errorMsg ?? "Không thể tải thông tin chi tiết đơn.");
+            throw new InvalidOperationException(errorMsg ?? "Unable to load request details.");
         }
 
         return await response.Content.ReadFromJsonAsync<ManagerEmployeeRequestDetailViewModel>(
@@ -208,7 +208,7 @@ public class ManagerEmployeeRequestApiService
             if (!response.IsSuccessStatusCode)
             {
                 var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-                return ([], errorMsg ?? "Không thể tải lịch sử xử lý.");
+                return ([], errorMsg ?? "Unable to load review history.");
             }
 
             var list = await response.Content.ReadFromJsonAsync<List<ManagerEmployeeRequestHistoryViewModel>>(
@@ -219,7 +219,7 @@ public class ManagerEmployeeRequestApiService
         }
         catch (HttpRequestException ex)
         {
-            return ([], $"Không thể kết nối đến máy chủ: {ex.Message}");
+            return ([], $"Unable to connect to server: {ex.Message}");
         }
     }
 
@@ -244,11 +244,11 @@ public class ManagerEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Không thể phê duyệt đơn yêu cầu.", (int)response.StatusCode);
+            return (false, errorMsg ?? "Failed to approve employee request.", (int)response.StatusCode);
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}", 503);
+            return (false, $"Server connection error: {ex.Message}", 503);
         }
     }
 
@@ -273,11 +273,11 @@ public class ManagerEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Không thể từ chối đơn yêu cầu.", (int)response.StatusCode);
+            return (false, errorMsg ?? "Failed to reject employee request.", (int)response.StatusCode);
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}", 503);
+            return (false, $"Server connection error: {ex.Message}", 503);
         }
     }
 

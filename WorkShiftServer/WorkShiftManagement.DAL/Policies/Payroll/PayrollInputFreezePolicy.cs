@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using WorkShiftManagement.DAL.Entities;
-namespace WorkShiftManagement.DAL.Version.Payroll;
+
+namespace WorkShiftManagement.DAL.Policies.Payroll;
+
 public static class PayrollInputFreezePolicy
 {
     public static bool IsFinalApproval(ChangeTracker tracker, EntityEntry entry, int periodId, params string[] allowedFields)
@@ -10,3 +12,4 @@ public static class PayrollInputFreezePolicy
             && tracker.Entries<PayrollPeriod>().Any(p => p.Entity.PayrollPeriodId == periodId && p.State == EntityState.Modified
                 && p.Property(x => x.Status).OriginalValue == "SUBMITTED" && p.Entity.Status == "APPROVED");
 }
+

@@ -1,4 +1,4 @@
-@using UI_Admin.Helpers
+﻿@using UI_Admin.Helpers
 @using UI_Admin.Models.Staff.Requests
 
 @{
@@ -145,9 +145,9 @@
                         <div id="lateShiftInfoBox" class="hidden mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
                             <span class="material-symbols-outlined text-amber-600 text-base mt-0.5">schedule</span>
                             <div>
-                                <div class="font-bold text-amber-950" id="lateShiftInfoName">Ca làm việc</div>
-                                <div class="text-amber-800 mt-0.5" id="lateShiftInfoTime">Khung giờ: --</div>
-                                <div class="text-[11px] text-amber-700/90 mt-1">📌 Giờ xin đến muộn bắt buộc phải nằm trong khung giờ ca làm ở trên.</div>
+                                <div class="font-bold text-amber-950" id="lateShiftInfoName">Work Shift</div>
+                                <div class="text-amber-800 mt-0.5" id="lateShiftInfoTime">Shift hours: --</div>
+                                <div class="text-[11px] text-amber-700/90 mt-1">📌 Requested arrival time must be within the scheduled shift duration above.</div>
                             </div>
                         </div>
                     }
@@ -162,7 +162,7 @@
                     <p id="lateTimeHint" class="text-[11px] text-gray-400 mt-1">Requested arrival time must be within the scheduled shift duration.</p>
                     <div id="lateTimeError" class="hidden mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
                         <span class="material-symbols-outlined text-rose-600 text-sm">error</span>
-                        <span id="lateTimeErrorMsg">Thời gian không hợp lệ.</span>
+                        <span id="lateTimeErrorMsg">Invalid time.</span>
                     </div>
                 </div>
 
@@ -221,9 +221,9 @@
                         <div id="earlyShiftInfoBox" class="hidden mt-2 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2.5">
                             <span class="material-symbols-outlined text-purple-600 text-base mt-0.5">schedule</span>
                             <div>
-                                <div class="font-bold text-purple-950" id="earlyShiftInfoName">Ca làm việc</div>
-                                <div class="text-purple-800 mt-0.5" id="earlyShiftInfoTime">Khung giờ: --</div>
-                                <div class="text-[11px] text-purple-700/90 mt-1">📌 Giờ xin về sớm bắt buộc phải nằm trong khung giờ ca làm ở trên.</div>
+                                <div class="font-bold text-purple-950" id="earlyShiftInfoName">Work Shift</div>
+                                <div class="text-purple-800 mt-0.5" id="earlyShiftInfoTime">Shift hours: --</div>
+                                <div class="text-[11px] text-purple-700/90 mt-1">📌 Requested departure time must be within the scheduled shift duration above.</div>
                             </div>
                         </div>
                     }
@@ -238,7 +238,7 @@
                     <p id="earlyTimeHint" class="text-[11px] text-gray-400 mt-1">Requested departure time must be within the scheduled shift duration.</p>
                     <div id="earlyTimeError" class="hidden mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
                         <span class="material-symbols-outlined text-rose-600 text-sm">error</span>
-                        <span id="earlyTimeErrorMsg">Thời gian không hợp lệ.</span>
+                        <span id="earlyTimeErrorMsg">Invalid time.</span>
                     </div>
                 </div>
 
@@ -297,8 +297,8 @@
                     const shiftName = option.getAttribute('data-shift-name');
 
                     if (infoBox && displayStart && displayEnd) {
-                        infoName.textContent = shiftName || 'Ca làm việc';
-                        infoTime.textContent = 'Khung giờ ca: từ ' + displayStart + ' đến ' + displayEnd;
+                        infoName.textContent = shiftName || 'Work Shift';
+                        infoTime.textContent = 'Shift duration: ' + displayStart + ' to ' + displayEnd;
                         infoBox.classList.remove('hidden');
                     }
 
@@ -306,7 +306,7 @@
                         input.min = start;
                         input.max = end;
                         if (hint) {
-                            hint.textContent = 'Chọn giờ trong khoảng: ' + displayStart + ' đến ' + displayEnd;
+                            hint.textContent = 'Select time between: ' + displayStart + ' and ' + displayEnd;
                         }
                     }
 
@@ -329,11 +329,11 @@
                     if (!start || !end) return true;
 
                     const val = input.value;
-                    const actionName = isLate ? 'xin đi trễ' : 'xin về sớm';
+                    const actionName = isLate ? 'late arrival' : 'early leave';
 
                     if (val <= start || val >= end) {
                         if (errorBox) {
-                            errorMsg.textContent = 'Thời gian ' + actionName + ' phải nằm trong ca làm: sau ' + displayStart + ' và trước ' + displayEnd + '!';
+                            errorMsg.textContent = 'Requested ' + actionName + ' time must fall within the shift: after ' + displayStart + ' and before ' + displayEnd + '!';
                             errorBox.classList.remove('hidden');
                         }
                         input.classList.add('border-rose-500', 'focus:ring-rose-500');
