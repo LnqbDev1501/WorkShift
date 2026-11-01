@@ -14,26 +14,38 @@
         <div class="header-actions"><span class="history-chip">◷ History</span><a asp-action="Send" class="btn-primary">✦ Send Notification</a></div>
     </header>
 
-    <div class="list-summary-grid">
-        <div class="summary-card"><span class="summary-icon">◎</span><span>Total broadcasts</span><strong>@Model.TotalCount</strong><small>Matching current filters</small></div>
-        <div class="summary-card"><span class="summary-icon">▤</span><span>Current page</span><strong>@Model.Page</strong><small>@Model.Items.Count notifications shown</small></div>
-        <div class="summary-card"><span class="summary-icon">↕</span><span>Sort order</span><strong>@(Model.SortOrder == "asc" ? "Oldest" : "Newest")</strong><small>By creation date</small></div>
-    </div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching notifications", Model.TotalCount.ToString("N0"), "Matching current filters", "notifications"),
+        new("Shown", Model.Items.Count.ToString("N0"), "On this page", "view_list"),
+        new("In-app", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("InApp")).ToString("N0"), "On this page", "campaign"),
+        new("Email", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("Email")).ToString("N0"), "On this page", "mail")
+    })' />
 
-    <form method="get" class="notification-filter-card">
-        <input name="Search" value="@Model.Search" placeholder="Search notification title or message..." />
-        <select name="Type">
-            <option value="">All types</option>
-            <option value="Broadcast" selected="@(Model.Type == "Broadcast")">Broadcast</option>
-        </select>
-        <input name="DateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" type="date" />
-        <input name="DateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" type="date" />
-        <select name="SortOrder">
-            <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
-            <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
-        </select>
+
+    <form method="get" class="ws-list-filter" role="search">
         <input type="hidden" name="SortBy" value="CreatedAt" />
-        <partial name="_ListFilterActions" model='"History"' />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" name="Search" value="@Model.Search" placeholder="Search notification title or message..." /></label>
+            <div class="ws-filter-field"><select aria-label="Notification type" name="Type">
+                <option value="">All types</option>
+                <option value="Broadcast" selected="@(Model.Type == "Broadcast")">Broadcast</option>
+            </select></div>
+            <div class="ws-filter-field"><select aria-label="Sort order" name="SortOrder">
+                <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
+                <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
+            </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "DateFrom", "DateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Created from</span><input aria-label="Created from" name="DateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" type="date" /></label>
+                    <label class="ws-filter-field"><span>Created to</span><input aria-label="Created to" name="DateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" type="date" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"History"' />
+        </div>
     </form>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
@@ -47,7 +59,7 @@
             <div class="table-scroll"><table class="notification-table"><thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Channels</th><th>Created</th><th></th></tr></thead><tbody>
             @foreach (var item in Model.Items)
             {
-                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels ?? Enumerable.Empty<string>()) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" class="detail-link">View details →</a></td></tr>
+                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels ?? Enumerable.Empty<string>()) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td></tr>
             }
             </tbody></table></div>
 

@@ -24,11 +24,17 @@ public class WorkingTimeRulesController : Controller
     public IActionResult Index() => RedirectToAction(nameof(List));
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    public async Task<IActionResult> List(CancellationToken cancellationToken, string? search = null, string? status = null)
     {
         try
         {
-            return View(await _workingTimeRuleApiService.GetListAsync(cancellationToken));
+            var model = await _workingTimeRuleApiService.GetListAsync(cancellationToken);
+            search = search?.Trim();
+            model.Items = model.Items.Where(rule =>
+                (string.IsNullOrEmpty(search) || rule.RuleName.Contains(search, StringComparison.OrdinalIgnoreCase))
+                && (string.IsNullOrWhiteSpace(status) || rule.Status.Equals(status, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            return View(model);
         }
         catch (Exception exception) when (IsApiException(exception, cancellationToken))
         {

@@ -32,7 +32,7 @@
 
 <partial name="_NotificationModal" />
 <div class="shift-page working-time-list">
-    <section class="shift-content" aria-labelledby="working-time-heading">
+    <section class="admin-rule-list shift-content" aria-labelledby="working-time-heading">
         <div class="shift-heading">
             <div>
                 <div class="list-eyebrow">Working Time Policy Directory</div>
@@ -42,11 +42,26 @@
             <a asp-action="Create" class="shift-primary"><span aria-hidden="true">＋</span>Create Version</a>
         </div>
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-            new("Total Versions", Model.Items.Count.ToString("N0"), "All working time versions", "history"),
+            new("Total Versions", Model.Items.Count.ToString("N0"), "Matching current filters", "history"),
             new("Active Version", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Currently in effect", "check_circle"),
             new("Published Version", Model.Items.Count(x => x.CanCancel).ToString("N0"), "Waiting for effective date", "event_available"),
             new("Draft Versions", Model.Items.Count(x => x.CanEdit).ToString("N0"), "Available to edit and publish", "edit_note")
         })' />
+        <form asp-action="List" method="get" class="ws-list-filter" role="search">
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="search" name="search" value="@Context.Request.Query["search"]" placeholder="Search rule name..." aria-label="Search rules" /></label>
+                <div class="ws-filter-field">
+                    <select name="status" aria-label="Status">
+                        <option value="">All statuses</option>
+                        @foreach (var status in new[] { "ACTIVE", "DRAFT", "PUBLISH", "INACTIVE", "CANCEL" })
+                        {
+                            <option value="@status" selected="@(Context.Request.Query["status"].ToString().Equals(status, StringComparison.OrdinalIgnoreCase))">@(status == "PUBLISH" ? "Published" : status == "CANCEL" ? "Cancelled" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(status.ToLowerInvariant()))</option>
+                        }
+                    </select>
+                </div>
+                <partial name="_ListFilterActions" model='"List"' />
+            </div>
+        </form>
         <div class="shift-card">
             @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
             {
@@ -59,8 +74,8 @@
             {
                 <div class="shift-empty">
                     <div class="shift-empty-icon material-symbols-outlined" aria-hidden="true">history</div>
-                    <h2>No working time versions yet</h2>
-                    <p>Create a draft with daily and weekly limits to get started.</p>
+                    <h2>No matching working time versions</h2>
+                    <p>Adjust the filters or create a draft with daily and weekly limits.</p>
                     <a asp-action="Create" class="shift-reset">Create version</a>
                 </div>
             }
@@ -93,7 +108,7 @@
 
                                     <td class="shift-actions">
                                         <div class="working-time-action-group">
-                                            <a asp-action="Detail" asp-route-id="@rule.WorkingTimeRuleId" class="working-time-icon" title="View details" aria-label="View details for @rule.RuleName"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                            <a asp-action="Detail" asp-route-id="@rule.WorkingTimeRuleId" class="ws-icon-action working-time-icon" title="View details" aria-label="View details for @rule.RuleName"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                             <partial name="_VersionActions" model="rule" />
                                         </div>
                                     </td>

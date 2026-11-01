@@ -18,19 +18,27 @@
         new("Approved", Model.Items.Count(x => x.Status == "APPROVED").ToString(), "On this page", "check_circle"),
         new("Scheduled rates", Model.Items.Count(x => x.NewSalaryStatus == "SCHEDULED").ToString(), "On this page", "schedule")
     })' />
-    <form asp-action="Index" method="get" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-4 flex flex-col gap-unit-3">
-        <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-unit-3">
-            <div><label for="Keyword" class="block text-label-md text-secondary mb-1">Employee name, ID or reason</label><input id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search requests..." class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="Status" class="block text-label-md text-secondary mb-1">Request status</label><select id="Status" name="Status" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All statuses</option>@foreach (var s in new[] { "PENDING", "APPROVED", "REJECTED", "CANCELLED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></div>
-            <div><label for="UserId" class="block text-label-md text-secondary mb-1">Exact Staff ID (optional)</label><input id="UserId" name="UserId" value="@Model.Query.UserId" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="CreatedFrom" class="block text-label-md text-secondary mb-1">Created from (UTC+7)</label><input id="CreatedFrom" name="CreatedFrom" type="date" value="@Model.Query.CreatedFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="CreatedTo" class="block text-label-md text-secondary mb-1">Created to (UTC+7)</label><input id="CreatedTo" name="CreatedTo" type="date" value="@Model.Query.CreatedTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            @if (admin) { <div><label for="BranchId" class="block text-label-md text-secondary mb-1">Branch ID (optional)</label><input id="BranchId" name="BranchId" type="number" min="1" value="@Model.Query.BranchId" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div> }
-            <div><label for="EffectiveFrom" class="block text-label-md text-secondary mb-1">Proposed date from</label><input id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="EffectiveTo" class="block text-label-md text-secondary mb-1">Proposed date to</label><input id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+    <form asp-action="Index" method="get" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search requests..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="Status" name="Status"><option value="">All statuses</option>@foreach (var s in new[] { "PENDING", "APPROVED", "REJECTED", "CANCELLED" }) { <option value="@s" selected="@(Model.Query.Status == s)">@s</option> }</select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "UserId", "CreatedFrom", "CreatedTo", "BranchId", "EffectiveFrom", "EffectiveTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Staff ID</span><input aria-label="Staff ID" id="UserId" name="UserId" value="@Model.Query.UserId" /></label>
+                    <label class="ws-filter-field"><span>Created from (UTC+7)</span><input aria-label="Created from (UTC+7)" id="CreatedFrom" name="CreatedFrom" type="date" value="@Model.Query.CreatedFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Created to (UTC+7)</span><input aria-label="Created to (UTC+7)" id="CreatedTo" name="CreatedTo" type="date" value="@Model.Query.CreatedTo?.ToString("yyyy-MM-dd")" /></label>
+                    @if (admin) { <label class="ws-filter-field"><span>Branch</span><input aria-label="Branch" id="BranchId" name="BranchId" type="number" min="1" value="@Model.Query.BranchId" /></label> }
+                    <label class="ws-filter-field"><span>Proposed date from</span><input aria-label="Proposed date from" id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Proposed date to</span><input aria-label="Proposed date to" id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
         </div>
-        <div class="flex justify-end"><partial name="_ListFilterActions" model='"Index"' /></div>
+        <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
     </form>
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto"><table class="w-full text-left">
@@ -44,7 +52,7 @@
                         <td class="px-4 py-3 whitespace-nowrap">@D.Money(row.CurrentHourlyRate)</td><td class="px-4 py-3 whitespace-nowrap text-primary font-semibold">@D.Money(row.ProposedHourlyRate)<span class="text-xs text-secondary"> / hour</span></td>
                         <td class="px-4 py-3 whitespace-nowrap">@D.Date(row.ApprovedEffectiveFrom ?? row.ProposedEffectiveFrom)<div class="text-xs text-secondary">@(row.ApprovedEffectiveFrom.HasValue ? "Approved date" : "Proposed date")</div></td>
                         <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@row.Status</span>@if (row.NewSalaryStatus != null) { <div class="text-xs text-secondary mt-2">Rate: @row.NewSalaryStatus</div> }</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-secondary">@D.Time(row.CreatedAt)</td><td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryChangeRequestId" class="text-primary hover:underline">View</a></td>
+                        <td class="px-4 py-3 whitespace-nowrap text-secondary">@D.Time(row.CreatedAt)</td><td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryChangeRequestId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td>
                     </tr>
                 }
             </tbody>

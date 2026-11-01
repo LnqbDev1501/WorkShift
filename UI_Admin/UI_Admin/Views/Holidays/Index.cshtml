@@ -23,40 +23,28 @@
         {
             <div class="holiday-alert">@Model.SuccessMessage</div>
         }
-        <section class="holiday-stats">
-            <article>
-                <div><span class="stat-label">Active Holidays</span><strong>@Model.ActiveCount</strong><small>In the
-                    selected year</small></div>
-                </article>
-                <article>
-                    <div><span class="stat-label">Inactive
-                        Holidays</span><strong>@Model.InactiveCount</strong><small>Read-only records</small></div>
-                    </article>
-                    <article>
-                        <div><span class="stat-label">Missing Pay Rules</span><strong>@Model.SummaryItems.Count(x => x.IsActive
-                                                                                && x.PayMultiplier == null)</strong><small>Add a rule before calculating payroll</small></div>
-                        </article>
-                        <article>
-                            <div><span class="stat-label">Upcoming Holiday</span><strong
-                                class="upcoming-name">@(Model.UpcomingHoliday?.HolidayName ?? "None scheduled")</strong><small>@Model.UpcomingHoliday?.HolidayDate.ToString("dd/MM/yyyy")</small>
-                            </div>
-                        </article>
-                    </section>
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Active holidays", Model.ActiveCount.ToString("N0"), "In the selected year", "event_available"),
+            new("Inactive holidays", Model.InactiveCount.ToString("N0"), "In the selected year", "event_busy"),
+            new("Missing pay rules", Model.SummaryItems.Count(x => x.IsActive && x.PayMultiplier == null).ToString("N0"), "Add a rule before calculating payroll", "warning"),
+            new("Upcoming holiday", Model.UpcomingHoliday?.HolidayName ?? "None scheduled", Model.UpcomingHoliday?.HolidayDate.ToString("dd/MM/yyyy") ?? "No upcoming date", "event_upcoming")
+        })' />
+
+        <form asp-action="List" method="get" class="ws-list-filter" role="search">
+            <input type="hidden" name="IncludeInactive" value="true" />
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input name="Search" value="@Model.Query.Search" maxlength="150" placeholder="Search by holiday name" aria-label="Holiday name" /></label>
+                <div class="ws-filter-field"><input aria-label="Year" type="number" name="Year" value="@Model.Query.Year" min="1" max="9999" placeholder="All years" /></div>
+                <div class="ws-filter-field"><select name="IsActive" aria-label="Status">
+                                                <option value="">All statuses</option>
+                                                <option value="true" selected="@(Model.Query.IsActive == true)">Active</option>
+                                                <option value="false" selected="@(Model.Query.IsActive == false)">Inactive</option>
+                                            </select></div>
+                <partial name="_ListFilterActions" model='"List"' />
+            </div>
+        </form>
                     <section class="holiday-table-card">
-                        <form asp-action="List" method="get" class="holiday-filters">
-                            <input type="hidden" name="IncludeInactive" value="true" />
-                            <label class="search-box"><input name="Search" value="@Model.Query.Search" maxlength="150"
-                                                                 placeholder="Search by holiday name" aria-label="Holiday name" /></label>
-                                <label>Year <input type="number" name="Year" value="@Model.Query.Year" min="1" max="9999"
-                                                       placeholder="All years" /></label>
-                                    <select name="IsActive" aria-label="Status">
-                                        <option value="">All statuses</option>
-                                        <option value="true" selected="@(Model.Query.IsActive == true)">Active</option>
-                                        <option value="false" selected="@(Model.Query.IsActive == false)">Inactive</option>
-                                    </select>
-                                    <button class="primary-button" type="submit">Apply filters</button><a asp-action="List"
-                                                                                                          class="secondary-button">Reset</a>
-                                </form>
+
                                 <div class="table-scroll">
                                     <table class="holiday-table">
                                         <thead>
@@ -80,7 +68,7 @@
 
                                                             <!-- View -->
                                                             <a asp-action="Details" asp-route-id="@item.PublicHolidayId"
-                                                               class="action-icon action-view" title="View" aria-label="View">
+                                                               class="ws-icon-action action-icon action-view" title="View" aria-label="View">
                                                                 <span class="material-symbols-outlined">visibility</span>
                                                             </a>
 
@@ -88,7 +76,7 @@
                                                             {
                                                                 <!-- Edit -->
                                                                 <a asp-action="Edit" asp-route-id="@item.PublicHolidayId"
-                                                                   class="action-icon action-edit" title="Edit" aria-label="Edit">
+                                                                   class="ws-icon-action action-icon action-edit" title="Edit" aria-label="Edit">
                                                                     <span class="material-symbols-outlined">edit</span>
                                                                 </a>
 
@@ -99,7 +87,7 @@
 
                                                                     @Html.AntiForgeryToken()
 
-                                                                    <button type="submit" class="action-icon action-deactivate" title="Deactivate"
+                                                                    <button type="submit" class="ws-icon-action action-icon action-deactivate" title="Deactivate"
                                                                             aria-label="Deactivate">
                                                                         <span class="material-symbols-outlined">
                                                                             pause_circle
@@ -113,7 +101,7 @@
                                                                 <form asp-action="Restore" asp-route-id="@item.PublicHolidayId" method="post"
                                                                       class="action-form"
                                                                       onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
-                                                                    <button type="submit" class="action-icon action-inactive" title="Restore"
+                                                                    <button type="submit" class="ws-icon-action action-icon action-inactive" title="Restore"
                                                                             aria-label="Restore">
                                                                         <span class="material-symbols-outlined">
                                                                             history

@@ -80,7 +80,7 @@
     .icon-button.danger:hover{background:#ffe4e6}
     .icon-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
     .empty-row{text-align:center!important;color:#6b7280!important;height:100px!important}
-    
+
     /* Modern Premium Modals */
     .modal-overlay{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);backdrop-filter:blur(4px);animation:modalFade .15s ease-out}
     .modal-box{background:#ffffff;border-radius:24px;max-width:440px;width:100%;padding:28px 24px;box-shadow:0 25px 50px -12px rgba(15,23,42,0.25);border:1px solid rgba(226,232,240,0.8);display:flex;flex-direction:column;gap:18px;animation:modalPop .2s cubic-bezier(0.16,1,0.3,1)}
@@ -238,19 +238,16 @@
         })' />
 
         <!-- Filter Card -->
-        <form asp-action="List" method="get" class="filter-card">
-            <div class="filters">
-                <label class="search-box">
-                    <span>⌕</span>
-                    <input asp-for="Query.Search" name="search" class="filter-control" type="search" placeholder="Search rule name or description..." />
-                </label>
-                <select asp-for="Query.Status" name="status" class="filter-control" aria-label="Status">
-                    <option value="">All Statuses</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="SCHEDULED">Scheduled</option>
-                    <option value="DRAFT">Draft</option>
-                    <option value="CANCELLED">Cancelled</option>
-                </select>
+        <form asp-action="List" method="get" class="ws-list-filter" role="search">
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" asp-for="Query.Search" name="search" type="search" placeholder="Search rule name or description..." /></label>
+                <div class="ws-filter-field"><select asp-for="Query.Status" name="status" aria-label="Status">
+                            <option value="">All Statuses</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="SCHEDULED">Scheduled</option>
+                            <option value="DRAFT">Draft</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select></div>
                 <partial name="_ListFilterActions" model='"List"' />
             </div>
         </form>
@@ -356,17 +353,17 @@
                             <td>
                                 <div class="actions">
                                     <!-- View Detail -->
-                                    <a asp-action="Detail" asp-route-id="@rule.AttendanceRuleId" class="icon-button" title="View details" aria-label="View details">
+                                    <a asp-action="Detail" asp-route-id="@rule.AttendanceRuleId" class="ws-icon-action icon-button" title="View details" aria-label="View details">
                                         <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
                                     </a>
 
                                     <!-- Edit & Publish (Only Draft) -->
                                     @if (rule.CanEdit)
                                     {
-                                        <a asp-action="Edit" asp-route-id="@rule.AttendanceRuleId" class="icon-button" title="Edit draft" aria-label="Edit draft">
+                                        <a asp-action="Edit" asp-route-id="@rule.AttendanceRuleId" class="ws-icon-action icon-button" title="Edit draft" aria-label="Edit draft">
                                             <svg viewBox="0 0 24 24"><path d="m14 5 5 5L8 21H3v-5L14 5Z"/><path d="m12 7 5 5"/></svg>
                                         </a>
-                                        <button type="button" class="icon-button success" title="Publish rule" aria-label="Publish rule" onclick="openPublishRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
+                                        <button type="button" class="ws-icon-action icon-button success" title="Publish rule" aria-label="Publish rule" onclick="openPublishRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
                                             <span class="material-symbols-outlined text-[18px]">publish</span>
                                         </button>
                                     }
@@ -374,7 +371,7 @@
                                     <!-- Cancel (Draft or Scheduled) -->
                                     @if (rule.CanCancel)
                                     {
-                                        <button type="button" class="icon-button danger" title="Cancel rule" aria-label="Cancel rule" onclick="openCancelRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))', '@rule.Status')">
+                                        <button type="button" class="ws-icon-action icon-button danger" title="Cancel rule" aria-label="Cancel rule" onclick="openCancelRuleModal(@rule.AttendanceRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))', '@rule.Status')">
                                             <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
                                         </button>
                                     }

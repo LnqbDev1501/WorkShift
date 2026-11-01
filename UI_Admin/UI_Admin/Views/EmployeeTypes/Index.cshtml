@@ -24,25 +24,17 @@
         new("Current Page", Model.PageNumber.ToString("N0"), $"Of {Math.Max(1, Model.TotalPages)} pages", "auto_stories")
     })' />
     }
-    <form method="get" asp-action="Index" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
-        <div class="flex flex-1 flex-col sm:flex-row gap-unit-3 max-w-2xl">
-            <div class="relative flex-1">
-                <label for="employee-type-search" class="sr-only">Search employee types</label>
-                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary" aria-hidden="true">search</span>
-                <input id="employee-type-search" name="search" value="@Model.Search" placeholder="Search employee type name..." type="search" class="w-full h-[40px] pl-9 pr-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
-            </div>
-            <div class="relative sm:w-48">
-                <label for="status-filter" class="sr-only">Status</label>
-                <select id="status-filter" name="status" onchange="this.form.submit()" class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer">
-                    <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
-                    <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
-                    <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
-                </select>
-                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary" aria-hidden="true">expand_more</span>
-            </div>
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" id="employee-type-search" name="search" value="@Model.Search" placeholder="Search employee type name..." type="search" /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status-filter" name="status" onchange="this.form.submit()">
+                        <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
+                        <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
+                        <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
         </div>
-        <partial name="_ListFilterActions" model='"Index"' />
     </form>
     @if (!Model.IsLoaded)
     {
@@ -77,9 +69,9 @@
                         <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary max-w-sm truncate" title="@item.Description">@(string.IsNullOrWhiteSpace(item.Description) ? "No description provided." : item.Description)</td>
                         <td class="px-unit-4 py-2 whitespace-nowrap"><partial name="_StatusBadge" model="item.Status" /></td>
                         <td class="px-unit-5 py-2 text-right whitespace-nowrap"><div class="inline-flex items-center justify-end gap-2">
-                            <a asp-action="Details" asp-route-id="@item.EmployeeTypeId" title="View details" aria-label="View details for @item.TypeName" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-secondary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span></a>
-                            <a asp-action="Edit" asp-route-id="@item.EmployeeTypeId" title="Edit employee type" aria-label="Edit @item.TypeName" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">edit</span></a>
-                            <button type="button" title="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore")" aria-label="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore") @item.TypeName" data-employee-type-action="@(item.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@item.EmployeeTypeId" data-confirmation-url="@Url.Action("StatusConfirmation", new { id = item.EmployeeTypeId, operation = item.Status == "ACTIVE" ? "deactivate" : "restore" })" class="inline-flex items-center justify-center w-8 h-8 rounded-lg @(item.Status == "ACTIVE" ? "text-error hover:bg-error-container" : "text-primary hover:bg-surface-container") transition-colors cursor-pointer">
+                            <a asp-action="Details" asp-route-id="@item.EmployeeTypeId" title="View details" aria-label="View details for @item.TypeName" class="ws-icon-action inline-flex items-center justify-center w-8 h-8 rounded-lg text-secondary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">visibility</span></a>
+                            <a asp-action="Edit" asp-route-id="@item.EmployeeTypeId" title="Edit employee type" aria-label="Edit @item.TypeName" class="ws-icon-action inline-flex items-center justify-center w-8 h-8 rounded-lg text-primary hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[19px]" aria-hidden="true">edit</span></a>
+                            <button type="button" title="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore")" aria-label="@(item.Status == "ACTIVE" ? "Deactivate" : "Restore") @item.TypeName" data-employee-type-action="@(item.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@item.EmployeeTypeId" data-confirmation-url="@Url.Action("StatusConfirmation", new { id = item.EmployeeTypeId, operation = item.Status == "ACTIVE" ? "deactivate" : "restore" })" class="ws-icon-action inline-flex items-center justify-center w-8 h-8 rounded-lg @(item.Status == "ACTIVE" ? "text-error hover:bg-error-container" : "text-primary hover:bg-surface-container") transition-colors cursor-pointer">
                                 <span class="material-symbols-outlined text-[19px]" aria-hidden="true">@(item.Status == "ACTIVE" ? "block" : "restore")</span>
                             </button>
                         </div></td>

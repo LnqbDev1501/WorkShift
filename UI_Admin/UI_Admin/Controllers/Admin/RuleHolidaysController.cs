@@ -16,12 +16,16 @@ public sealed class RuleHolidaysController(HolidayApiService service, ILogger<Ru
     public IActionResult Rules() => RedirectToAction(nameof(List));
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    public async Task<IActionResult> List(CancellationToken cancellationToken, string? search = null, string? status = null)
     {
         try
         {
             var rules = await service.GetRulesAsync(cancellationToken);
-            return View(rules);
+            search = search?.Trim();
+            return View(rules.Where(rule =>
+                (string.IsNullOrEmpty(search) || rule.RuleName.Contains(search, StringComparison.OrdinalIgnoreCase))
+                && (string.IsNullOrWhiteSpace(status) || rule.Status.Equals(status, StringComparison.OrdinalIgnoreCase)))
+                .ToList());
         }
         catch (Exception ex) when (IsApiException(ex, cancellationToken))
         {

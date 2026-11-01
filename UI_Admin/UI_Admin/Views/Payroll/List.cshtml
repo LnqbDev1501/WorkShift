@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Admin.Payroll.PayrollListViewModel
+@model UI_Admin.Models.Admin.Payroll.PayrollListViewModel
 @{
     ViewData["Title"] = "Payroll Periods";
     string Count(string status) => Model.Counts.TryGetValue(status, out var count) ? count.ToString("N0") : "—";
@@ -10,31 +10,39 @@
     @if (Model.Error != null || TempData["PayrollError"] != null) { <div class="alert alert-danger" role="alert">@(Model.Error ?? TempData["PayrollError"]) <a asp-action="List">Try again</a></div> }
     @if (Model.LookupError != null) { <div class="alert alert-warning" role="alert">@Model.LookupError</div> }
     <div asp-validation-summary="All" class="text-danger"></div>
-    <section class="payroll-stats" aria-label="Payroll summary">
-        <article><div>TOTAL PAYROLL CYCLES <span>▦</span></div><p><strong>@Count("")</strong> Periods</p><small>Across matching branches</small></article>
-        <article><div>PENDING REVIEW <span class="purple">●</span></div><p><strong class="purple">@Count("SUBMITTED")</strong> Batches</p><small>Awaiting approval</small></article>
-        <article><div>APPROVED <span>◎</span></div><p><strong>@Count("APPROVED")</strong> Periods</p><small>Approval completed</small></article>
-        <article><div>DISCREPANCY AUDIT <span class="red">⚑</span></div><p><strong class="red">@Count("REVISION_REQUIRED")</strong> Flagged</p><small class="red">Revision required</small></article>
-    </section>
-    <section class="payroll-filters">
-        <form method="get" asp-action="List" id="payroll-filter-form">
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Payroll cycles", Count(""), "Across matching branches", "payments"),
+        new("Pending review", Count("SUBMITTED"), "Awaiting approval", "pending_actions"),
+        new("Approved", Count("APPROVED"), "Approval completed", "verified"),
+        new("Revision required", Count("REVISION_REQUIRED"), "Requires correction", "fact_check")
+    })' />
 
-            <input type="hidden" name="PageSize" value="@Model.Filter.PageSize" />
-            <label class="search-field"><span class="visually-hidden">Search payroll periods</span><input name="Search" value="@Model.Filter.Search" maxlength="100" placeholder="Search by Period Code (PR-...), or period name…" /></label>
-            <label><span class="visually-hidden">Region</span><select name="RegionId" id="payroll-region"><option value="">All Regions (Enterprise)</option>@foreach (var region in Model.Regions) { <option value="@region.RegionId" selected="@(region.RegionId == Model.Filter.RegionId)">@region.RegionName</option> }</select></label>
-            <label><span class="visually-hidden">Branch</span><select name="BranchId" id="payroll-branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.BranchId" selected="@(branch.BranchId == Model.Filter.BranchId)">@branch.BranchName</option> }</select></label>
-            <label><span class="visually-hidden">Payroll status</span><select name="Status" id="payroll-status" aria-label="Payroll status">@foreach (var status in statuses) { <option value="@status.Item1" selected="@((Model.Filter.Status ?? "") == status.Item1)">@status.Item2</option> }</select></label>
-            <label><span class="text-xs text-secondary">Week starts from</span><input type="date" name="StartDateFrom" value="@Model.Filter.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
-            <label><span class="text-xs text-secondary">Week starts to</span><input type="date" name="StartDateTo" value="@Model.Filter.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
+    <form method="get" asp-action="List" id="payroll-filter-form" class="ws-list-filter" role="search">
+        <input type="hidden" name="PageSize" value="@Model.Filter.PageSize" />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" name="Search" value="@Model.Filter.Search" maxlength="100" placeholder="Search by Period Code (PR-...), or period name…" /></label>
+            <div class="ws-filter-field"><select aria-label="Region" name="RegionId" id="payroll-region"><option value="">All Regions (Enterprise)</option>@foreach (var region in Model.Regions) { <option value="@region.RegionId" selected="@(region.RegionId == Model.Filter.RegionId)">@region.RegionName</option> }</select></div>
+            <div class="ws-filter-field"><select aria-label="Branch" name="BranchId" id="payroll-branch"><option value="">All Branches</option>@foreach (var branch in Model.Branches) { <option value="@branch.BranchId" selected="@(branch.BranchId == Model.Filter.BranchId)">@branch.BranchName</option> }</select></div>
+            <div class="ws-filter-field"><select name="Status" id="payroll-status" aria-label="Payroll status">@foreach (var status in statuses) { <option value="@status.Item1" selected="@((Model.Filter.Status ?? "") == status.Item1)">@status.Item2</option> }</select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "StartDateFrom", "StartDateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Start date from</span><input aria-label="Start date from" type="date" name="StartDateFrom" value="@Model.Filter.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Start date to</span><input aria-label="Start date to" type="date" name="StartDateTo" value="@Model.Filter.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
             <partial name="_ListFilterActions" model='"List"' />
-        </form>
-    </section>
+        </div>
+    </form>
     <section class="payroll-table-card">
         <div class="payroll-table-toolbar"><span>Showing payroll records sorted by <strong>Cycle Recency</strong></span><button class="payroll-button" id="payroll-density" type="button" aria-pressed="false">☷ Compact rows</button></div>
         <div class="payroll-table-scroll"><table id="payroll-table"><thead><tr><th>PERIOD IDENTIFIER</th><th>BRANCH</th><th>CYCLE DURATION</th><th>HEADCOUNT</th><th class="money">NET SALARY</th><th>STATUS</th><th>SUBMITTED AUDIT</th><th data-no-export>ACTIONS</th></tr></thead><tbody>
         @foreach (var period in Model.Page.Items)
         {
-            <tr class="@(period.Status == "REVISION_REQUIRED" ? "flagged" : "")"><td><strong>@period.PeriodCode</strong><small>@period.PeriodName</small></td><td><strong>@period.BranchName</strong><small>Branch #@period.BranchId</small></td><td class="dates">@period.StartDate.ToString("dd MMM yyyy") – @period.EndDate.ToString("dd MMM yyyy")</td><td><strong>@period.TotalPayrolls Staff</strong><small>@period.RejectedPayrollCount payrolls requiring revision</small></td><td class="money"><strong>@period.TotalNetSalary.ToString("N0") ₫</strong><small>VND</small></td><td><span class="payroll-status @period.Status.ToLowerInvariant()">● @period.Status.Replace('_', ' ')</span></td><td>@(period.SubmittedBy?.FullName ?? "—")<small>@(period.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</small></td><td data-no-export><a class="payroll-button @(period.Status == "SUBMITTED" ? "primary" : "")" asp-action="Details" asp-route-id="@period.PayrollPeriodId">View Details ›</a></td></tr>
+            <tr class="@(period.Status == "REVISION_REQUIRED" ? "flagged" : "")"><td><strong>@period.PeriodCode</strong><small>@period.PeriodName</small></td><td><strong>@period.BranchName</strong><small>Branch #@period.BranchId</small></td><td class="dates">@period.StartDate.ToString("dd MMM yyyy") – @period.EndDate.ToString("dd MMM yyyy")</td><td><strong>@period.TotalPayrolls Staff</strong><small>@period.RejectedPayrollCount payrolls requiring revision</small></td><td class="money"><strong>@period.TotalNetSalary.ToString("N0") ₫</strong><small>VND</small></td><td><span class="payroll-status @period.Status.ToLowerInvariant()">● @period.Status.Replace('_', ' ')</span></td><td>@(period.SubmittedBy?.FullName ?? "—")<small>@(period.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</small></td><td data-no-export><a class="ws-icon-action" asp-action="Details" asp-route-id="@period.PayrollPeriodId" title="View payroll details" aria-label="View payroll details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td></tr>
         }
         @if (Model.Page.Items.Count == 0) { <tr><td colspan="8" class="payroll-empty"><strong>@(Model.Error == null ? "No payroll periods found" : "Payroll data unavailable")</strong><p>@(Model.Error == null ? "Try another search or reset your filters." : "Check the API connection and try again.")</p><a asp-action="List">Reset filters</a></td></tr> }
         </tbody></table></div>

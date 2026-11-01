@@ -4,31 +4,22 @@
 @{
     ViewData["Title"] = "Employee Requests";
     var items = Model.Items;
-    var currentPage = Model.PageNumber;
-    var totalPages = Model.TotalPages;
     var hasFilters = Model.HasActiveFilters;
     var currentUrl = $"{Context.Request.Path}{Context.Request.QueryString}";
 
-    // Statistics calculated for Image 1 executive stats bar
-    var totalCount = Model.TotalItems;
     var pendingCount = Model.Items.Count(x => string.Equals(x.Status, "PENDING", StringComparison.OrdinalIgnoreCase));
     var approvedCount = Model.Items.Count(x => string.Equals(x.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
     var rejectedCount = Model.Items.Count(x => string.Equals(x.Status, "REJECTED", StringComparison.OrdinalIgnoreCase));
 }
 
-<div class="flex flex-col w-full gap-5 px-4 sm:px-7 py-4">
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
 
     <partial name="_NotificationModal" />
 
-    <!-- Top Workflow Engine Header (Referencing Image 1) -->
+    <!-- Page heading -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex flex-col">
-            <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-purple-100 text-purple-700 border border-purple-200 shadow-xs">
-                    <span class="material-symbols-outlined text-[15px]">account_tree</span>
-                    <span>Roster Workflow Engine</span>
-                </span>
-            </div>
+            <div class="list-eyebrow">Roster Workflow Engine</div>
             <div class="flex items-center gap-3 mt-1.5">
                 <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Employee Requests</h1>
             </div>
@@ -37,7 +28,7 @@
             </p>
         </div>
 
-        <!-- Top Right Actions (Image 1) -->
+        <!-- Page actions -->
         <div class="flex items-center gap-2.5 shrink-0">
             <button type="button" onclick="window.print()" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-semibold flex items-center gap-2 border border-surface-container-high transition-all shadow-sm">
                 <span class="material-symbols-outlined text-[18px] text-secondary">download</span>
@@ -46,208 +37,58 @@
             <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="PENDING"
                class="h-10 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-sm shadow-indigo-200">
                 <span class="material-symbols-outlined text-[18px]">rule</span>
-                <span>Batch Process (@pendingCount)</span>
+                <span>Pending Requests</span>
             </a>
         </div>
     </div>
 
-    <!-- 4 High-End Executive Metric Cards (Referencing Image 1) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Total Submissions -->
-        <div class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Total Submissions</span>
-                <div class="w-9 h-9 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary border border-surface-container-high/60">
-                    <span class="material-symbols-outlined text-[20px]">content_paste</span>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "content_paste"),
+        new("Pending review", pendingCount.ToString("N0"), "On this page", "pending_actions"),
+        new("Approved", approvedCount.ToString("N0"), "On this page", "check_circle"),
+        new("Rejected", rejectedCount.ToString("N0"), "On this page", "cancel")
+    })' />
+
+    <!-- Search and filters -->
+    <form method="get" asp-controller="EmployeeRequests" asp-action="Index" class="ws-list-filter" role="search">
+        <input type="hidden" name="pageNumber" value="1" />
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="filter-search" name="search" value="@Model.Search" placeholder="Search by employee name, reason..." /></label>
+            <div class="ws-filter-field"><select aria-label="Request type" id="filter-request-type" name="requestType">
+                            <option value="ALL" selected="@(string.IsNullOrEmpty(Model.RequestType) || Model.RequestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Request Types</option>
+                            <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave</option>
+                            <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival</option>
+                            <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave</option>
+                            <option value="SALARY_INCREASE" selected="@(Model.RequestType?.Equals("SALARY_INCREASE", StringComparison.OrdinalIgnoreCase) == true)">Salary Increase</option>
+                        </select></div>
+            <div class="ws-filter-field"><select aria-label="Status" id="filter-status" name="status">
+                            <option value="ALL" selected="@(string.IsNullOrEmpty(Model.Status) || Model.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
+                            <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending</option>
+                            <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved</option>
+                            <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected</option>
+                            <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled</option>
+                        </select></div>
+            <div class="ws-filter-field"><select aria-label="Branch" id="filter-branch" name="branchId">
+                            <option value="">All Branches</option>
+                            @foreach (var branch in Model.Branches)
+                            {
+                                <option value="@branch.BranchId" selected="@(Model.BranchId == branch.BranchId)">@branch.BranchName (@branch.BranchCode)</option>
+                            }
+                        </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "fromDate", "toDate" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Submitted from (UTC+7)</span><input aria-label="Submitted from (UTC+7)" type="date" id="filter-from-date" name="fromDate" value="@Model.FromDate" /></label>
+                    <label class="ws-filter-field"><span>Submitted to (UTC+7)</span><input aria-label="Submitted to (UTC+7)" type="date" id="filter-to-date" name="toDate" value="@Model.ToDate" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
                 </div>
-            </div>
-            <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@totalCount</span>
-                <span class="text-xs text-secondary font-medium">this month</span>
-            </div>
-            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-purple-700 font-semibold">
-                <span class="material-symbols-outlined text-[16px]">trending_up</span>
-                <span>+14% vs previous 30d</span>
-            </div>
-            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-purple-50 pointer-events-none -z-0"></div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
         </div>
-
-        <!-- 2. Pending Review -->
-        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="PENDING"
-           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-purple-200 shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-800">Pending Review</span>
-                <div class="flex items-center gap-1.5">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white">Action Required</span>
-                    <div class="w-9 h-9 rounded-xl bg-purple-100 flex items-center justify-center text-indigo-700 border border-purple-200">
-                        <span class="material-symbols-outlined text-[20px]">pending_actions</span>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-indigo-700 tracking-tight">@pendingCount</span>
-                <span class="text-xs text-secondary font-medium">unresolved</span>
-            </div>
-            <div class="mt-3 pt-2.5 border-t border-purple-100 flex items-center gap-1.5 text-xs text-amber-700 font-semibold">
-                <span class="material-symbols-outlined text-[16px] text-amber-600">hourglass_top</span>
-                <span>Oldest: Active queue</span>
-            </div>
-            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-purple-100/50 pointer-events-none -z-0"></div>
-        </a>
-
-        <!-- 3. Approved -->
-        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="APPROVED"
-           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Approved</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-200">
-                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
-                </div>
-            </div>
-            <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@approvedCount</span>
-                <span class="text-xs text-secondary font-medium">processed</span>
-            </div>
-            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-secondary font-medium">
-                <span class="material-symbols-outlined text-[16px] text-secondary">event_available</span>
-                <span>Schedules auto-updated</span>
-            </div>
-            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-emerald-50 pointer-events-none -z-0"></div>
-        </a>
-
-        <!-- 4. Rejected -->
-        <a asp-controller="EmployeeRequests" asp-action="Index" asp-route-status="REJECTED"
-           class="relative overflow-hidden bg-white rounded-2xl p-4.5 border border-surface-container-high/70 shadow-sm hover:shadow-md hover:border-rose-200 transition-all cursor-pointer">
-            <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-secondary">Rejected</span>
-                <div class="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center text-rose-600 border border-rose-200">
-                    <span class="material-symbols-outlined text-[20px]">cancel</span>
-                </div>
-            </div>
-            <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-extrabold text-on-surface tracking-tight">@rejectedCount</span>
-                <span class="text-xs text-secondary font-medium">archived</span>
-            </div>
-            <div class="mt-3 pt-2.5 border-t border-surface-container-high/40 flex items-center gap-1.5 text-xs text-secondary font-medium">
-                <span class="material-symbols-outlined text-[16px] text-secondary">notes</span>
-                <span>Includes manager notes</span>
-            </div>
-            <div class="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-rose-50 pointer-events-none -z-0"></div>
-        </a>
-    </div>
-
-    <!-- Search & Filters Container (Image 2 style) -->
-    <div class="bg-surface-container-lowest rounded-2xl p-4 shadow-sm border border-surface-container-high/60">
-        <form method="get" asp-controller="EmployeeRequests" asp-action="Index" class="flex flex-col gap-3">
-            <input type="hidden" name="pageNumber" value="1" />
-            <input type="hidden" name="pageSize" value="@Model.PageSize" />
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 items-center">
-
-                <!-- Search Input -->
-                <div class="relative col-span-1 sm:col-span-2">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-secondary">search</span>
-                    <input type="text"
-                           id="filter-search"
-                           name="search"
-                           value="@Model.Search"
-                           placeholder="Search by employee name, reason..."
-                           class="w-full h-10 pl-10 pr-4 bg-surface-container-low rounded-xl text-on-surface placeholder:text-secondary/70 font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
-                </div>
-
-                <!-- Request Type Filter -->
-                <div>
-                    <select id="filter-request-type" name="requestType"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
-                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.RequestType) || Model.RequestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Request Types</option>
-                        <option value="LEAVE" selected="@(Model.RequestType?.Equals("LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Leave</option>
-                        <option value="LATE_ARRIVAL" selected="@(Model.RequestType?.Equals("LATE_ARRIVAL", StringComparison.OrdinalIgnoreCase) == true)">Late Arrival</option>
-                        <option value="EARLY_LEAVE" selected="@(Model.RequestType?.Equals("EARLY_LEAVE", StringComparison.OrdinalIgnoreCase) == true)">Early Leave</option>
-                        <option value="SALARY_INCREASE" selected="@(Model.RequestType?.Equals("SALARY_INCREASE", StringComparison.OrdinalIgnoreCase) == true)">Salary Increase</option>
-                    </select>
-                </div>
-
-                <!-- Status Filter -->
-                <div>
-                    <select id="filter-status" name="status"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
-                        <option value="ALL" selected="@(string.IsNullOrEmpty(Model.Status) || Model.Status.Equals("ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
-                        <option value="PENDING" selected="@(Model.Status?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)">Pending</option>
-                        <option value="APPROVED" selected="@(Model.Status?.Equals("APPROVED", StringComparison.OrdinalIgnoreCase) == true)">Approved</option>
-                        <option value="REJECTED" selected="@(Model.Status?.Equals("REJECTED", StringComparison.OrdinalIgnoreCase) == true)">Rejected</option>
-                        <option value="CANCELLED" selected="@(Model.Status?.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase) == true)">Cancelled</option>
-                    </select>
-                </div>
-
-                <!-- Branch Filter -->
-                <div>
-                    <select id="filter-branch" name="branchId"
-                            class="w-full h-10 px-3 bg-surface-container-low rounded-xl text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
-                        <option value="">All Branches</option>
-                        @foreach (var branch in Model.Branches)
-                        {
-                            <option value="@branch.BranchId" selected="@(Model.BranchId == branch.BranchId)">@branch.BranchName (@branch.BranchCode)</option>
-                        }
-                    </select>
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="flex items-center gap-2">
-                    <button type="submit" id="btn-filter"
-                            class="h-10 px-4 rounded-xl bg-primary hover:bg-primary/90 text-white font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer w-full shadow-sm">
-                        <span class="material-symbols-outlined text-[18px]">filter_alt</span>
-                        <span>Filter</span>
-                    </button>
-                    @if (hasFilters)
-                    {
-                        <a asp-controller="EmployeeRequests" asp-action="Index" id="btn-clear-filters"
-                           class="h-10 px-3 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container font-medium text-xs flex items-center justify-center gap-1 transition-colors shrink-0"
-                           title="Clear all filters">
-                            <span class="material-symbols-outlined text-[18px]">close</span>
-                            <span>Clear</span>
-                        </a>
-                    }
-                </div>
-            </div>
-
-            <!-- Date Range Filter Row -->
-            <div class="flex flex-wrap items-center gap-3 pt-2.5 border-t border-surface-container-high/40">
-                <span class="text-xs text-secondary font-medium flex items-center gap-1">
-                    <span class="material-symbols-outlined text-[16px]">calendar_today</span>
-                    <span>Submission Date (VN Time):</span>
-                </span>
-                <div class="flex items-center gap-2">
-                    <label for="filter-from-date" class="text-xs text-secondary">From:</label>
-                    <input type="date" id="filter-from-date" name="fromDate" value="@Model.FromDate"
-                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
-                </div>
-                <div class="flex items-center gap-2">
-                    <label for="filter-to-date" class="text-xs text-secondary">To:</label>
-                    <input type="date" id="filter-to-date" name="toDate" value="@Model.ToDate"
-                           class="h-9 px-3 bg-surface-container-low rounded-lg text-on-surface text-xs focus:outline-none focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
-                </div>
-                <div class="ml-auto text-xs text-secondary/80">
-                    Display Timezone: <strong class="text-secondary font-semibold">Vietnam (UTC+7)</strong>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- Results Summary Count -->
-    <div class="flex items-center justify-between px-1">
-        <p class="text-xs text-secondary font-medium">
-            @if (Model.TotalItems == 0)
-            {
-                <span>No matching requests found.</span>
-            }
-            else
-            {
-                var first = (currentPage - 1) * Model.PageSize + 1;
-                var last = Math.Min(currentPage * Model.PageSize, Model.TotalItems);
-                <span>Showing <strong class="text-on-surface font-bold">@first–@last</strong> of <strong class="text-on-surface font-bold">@Model.TotalItems</strong> employee requests</span>
-            }
-        </p>
-    </div>
+    </form>
 
     <!-- Main Data Table (With Sticky Action Column so Details is ALWAYS visible) -->
     <div class="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden border border-surface-container-high/60">
@@ -479,11 +320,7 @@
                                 <!-- Sticky Actions Column (Guaranteed Visible) -->
                                 <td class="px-4 py-3.5 text-center sticky right-0 bg-surface-container-lowest group-hover:bg-[#FAF8FE] z-10 shadow-[-4px_0_6px_rgba(0,0,0,0.04)]" onclick="event.stopPropagation();">
                                     <a href="@detailsUrl"
-                                       class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs transition-all shadow-sm shadow-purple-200 hover:shadow-md"
-                                       title="View full request details">
-                                        <span>Details</span>
-                                        <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-                                    </a>
+                                       title="View full request details" aria-label="View full request details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                 </td>
                             </tr>
                         }
@@ -497,66 +334,13 @@
     </div>
 
     <!-- Pagination -->
-    @if (totalPages > 1)
+    <partial name="_ListPagination" model="@(new ListPaginationViewModel
     {
-        <div class="flex items-center justify-center gap-2 pt-2">
-            @if (currentPage > 1)
-            {
-                <a asp-controller="EmployeeRequests" asp-action="Index"
-                   asp-route-pageNumber="@(currentPage - 1)"
-                   asp-route-pageSize="@Model.PageSize"
-                   asp-route-search="@Model.Search"
-                   asp-route-requestType="@Model.RequestType"
-                   asp-route-status="@Model.Status"
-                   asp-route-branchId="@Model.BranchId"
-                   asp-route-fromDate="@Model.FromDate"
-                   asp-route-toDate="@Model.ToDate"
-                   class="h-9 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium flex items-center gap-1 transition-colors">
-                    <span class="material-symbols-outlined text-[16px]">chevron_left</span>
-                    <span>Previous</span>
-                </a>
-            }
-
-            <div class="flex items-center gap-1">
-                @for (var p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
-                {
-                    if (p == currentPage)
-                    {
-                        <span class="w-9 h-9 rounded-lg bg-primary text-white font-bold text-xs flex items-center justify-center shadow-sm">@p</span>
-                    }
-                    else
-                    {
-                        <a asp-controller="EmployeeRequests" asp-action="Index"
-                           asp-route-pageNumber="@p"
-                           asp-route-pageSize="@Model.PageSize"
-                           asp-route-search="@Model.Search"
-                           asp-route-requestType="@Model.RequestType"
-                           asp-route-status="@Model.Status"
-                           asp-route-branchId="@Model.BranchId"
-                           asp-route-fromDate="@Model.FromDate"
-                           asp-route-toDate="@Model.ToDate"
-                           class="w-9 h-9 rounded-lg hover:bg-surface-container text-on-surface text-xs font-medium flex items-center justify-center transition-colors">@p</a>
-                    }
-                }
-            </div>
-
-            @if (currentPage < totalPages)
-            {
-                <a asp-controller="EmployeeRequests" asp-action="Index"
-                   asp-route-pageNumber="@(currentPage + 1)"
-                   asp-route-pageSize="@Model.PageSize"
-                   asp-route-search="@Model.Search"
-                   asp-route-requestType="@Model.RequestType"
-                   asp-route-status="@Model.Status"
-                   asp-route-branchId="@Model.BranchId"
-                   asp-route-fromDate="@Model.FromDate"
-                   asp-route-toDate="@Model.ToDate"
-                   class="h-9 px-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-xs font-medium flex items-center gap-1 transition-colors">
-                    <span>Next</span>
-                    <span class="material-symbols-outlined text-[16px]">chevron_right</span>
-                </a>
-            }
-        </div>
-    }
+        PageNumber = Model.PageNumber,
+        PageSize = Model.PageSize,
+        TotalItems = Model.TotalItems,
+        ItemLabel = "employee requests",
+        PageParameter = "pageNumber",
+    })" />
 
 </div>

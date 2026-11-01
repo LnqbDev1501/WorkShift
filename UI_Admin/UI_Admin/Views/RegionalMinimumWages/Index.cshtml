@@ -27,48 +27,28 @@
         </div>
     </div>
 
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching wage policies", Model.Items.Count.ToString("N0"), "Matching current filters", "payments"),
+        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified"),
+        new("Scheduled", Model.Items.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule"),
+        new("Drafts", Model.Items.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document")
+    })' />
+
     <!-- Search & Filter Controls -->
-    <div class="bg-surface-container-lowest rounded-xl p-4 shadow-sm border border-surface-container-high/60 my-2">
-        <form method="get" asp-controller="RegionalMinimumWages" asp-action="Index" class="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto flex-1">
-                <!-- Search Box -->
-                <div class="relative w-full sm:w-72">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-secondary">search</span>
-                    <input type="text"
-                           name="search"
-                           value="@Model.Search"
-                           placeholder="Search wage name..."
-                           class="w-full h-10 pl-10 pr-4 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high transition-all" />
-                </div>
-
-                <!-- Status Filter Dropdown -->
-                <div class="w-full sm:w-48">
-                    <select name="status" onchange="this.form.submit()" class="w-full h-10 px-3 bg-surface-container-low rounded-lg text-on-surface font-body-md text-sm focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary border border-surface-container-high cursor-pointer transition-all">
-                        <option value="all" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "all")">All Statuses</option>
-                        <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft</option>
-                        <option value="PUBLISH" selected="@(Model.StatusFilter == "PUBLISH")">Scheduled / Publish</option>
-                        <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active</option>
-                        <option value="INACTIVE" selected="@(Model.StatusFilter == "INACTIVE")">Inactive</option>
-                        <option value="CANCEL" selected="@(Model.StatusFilter == "CANCEL")">Cancelled</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
-                <button type="submit" class="h-10 px-4 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">filter_list</span>
-                    <span>Filter</span>
-                </button>
-                @if (!string.IsNullOrEmpty(Model.Search) || (!string.IsNullOrEmpty(Model.StatusFilter) && Model.StatusFilter != "all"))
-                {
-                    <a asp-controller="RegionalMinimumWages" asp-action="Index" class="h-10 px-3 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container font-body-md-medium text-xs flex items-center gap-1 transition-colors">
-                        <span class="material-symbols-outlined text-[18px]">close</span>
-                        <span>Clear</span>
-                    </a>
-                }
-            </div>
-        </form>
-    </div>
+    <form method="get" asp-controller="RegionalMinimumWages" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="search" value="@Model.Search" placeholder="Search wage name..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" name="status" onchange="this.form.submit()">
+                            <option value="all" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "all")">All Statuses</option>
+                            <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft</option>
+                            <option value="PUBLISH" selected="@(Model.StatusFilter == "PUBLISH")">Scheduled / Publish</option>
+                            <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active</option>
+                            <option value="INACTIVE" selected="@(Model.StatusFilter == "INACTIVE")">Inactive</option>
+                            <option value="CANCEL" selected="@(Model.StatusFilter == "CANCEL")">Cancelled</option>
+                        </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
 
     <!-- Main Table Container -->
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-surface-container-high/60">
@@ -180,33 +160,23 @@
                                 <td class="px-unit-5 py-2 text-right whitespace-nowrap">
                                     <div class="inline-flex items-center justify-end gap-1.5">
                                         <!-- View (Allowed for ALL statuses) -->
-                                        <a href="@Url.Action("Details", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-xs transition-colors" title="View Details">
-                                            <span class="material-symbols-outlined text-[16px] mr-1">visibility</span> View
-                                        </a>
+                                        <a href="@Url.Action("Details", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" title="View Details" aria-label="View Details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
 
                                         @if (statusUpper == "DRAFT")
                                         {
                                             <!-- Edit (DRAFT only) -->
-                                            <a href="@Url.Action("Edit", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors" title="Edit Draft">
-                                                <span class="material-symbols-outlined text-[16px] mr-1">edit</span> Edit
-                                            </a>
+                                            <a href="@Url.Action("Edit", "RegionalMinimumWages", new { id = item.RegionalMinimumWageId })" title="Edit Draft" aria-label="Edit Draft" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">edit</span></a>
 
                                             <!-- Publish Modal Trigger (DRAFT only) -->
-                                            <button type="button" onclick="openPublishModal(@item.RegionalMinimumWageId, '@item.WageName')" class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-body-md-medium text-xs transition-colors cursor-pointer" title="Publish Wage">
-                                                <span class="material-symbols-outlined text-[16px] mr-1">publish</span> Publish
-                                            </button>
+                                            <button type="button" onclick="openPublishModal(@item.RegionalMinimumWageId, '@item.WageName')" title="Publish Wage" aria-label="Publish Wage" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">publish</span></button>
 
                                             <!-- Cancel Modal Trigger (DRAFT only) -->
-                                            <button type="button" onclick="openCancelModal(@item.RegionalMinimumWageId, '@item.WageName')" class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-body-md-medium text-xs transition-colors cursor-pointer" title="Cancel Wage">
-                                                <span class="material-symbols-outlined text-[16px] mr-1">block</span> Cancel
-                                            </button>
+                                            <button type="button" onclick="openCancelModal(@item.RegionalMinimumWageId, '@item.WageName')" title="Cancel Wage" aria-label="Cancel Wage" class="ws-icon-action danger"><span class="material-symbols-outlined" aria-hidden="true">block</span></button>
                                         }
                                         else if (statusUpper == "PUBLISH")
                                         {
                                             <!-- Cancel Modal Trigger (PUBLISH only) -->
-                                            <button type="button" onclick="openCancelModal(@item.RegionalMinimumWageId, '@item.WageName')" class="inline-flex items-center justify-center h-8 px-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-body-md-medium text-xs transition-colors cursor-pointer" title="Cancel Scheduled Wage">
-                                                <span class="material-symbols-outlined text-[16px] mr-1">block</span> Cancel
-                                            </button>
+                                            <button type="button" onclick="openCancelModal(@item.RegionalMinimumWageId, '@item.WageName')" title="Cancel Scheduled Wage" aria-label="Cancel Scheduled Wage" class="ws-icon-action danger"><span class="material-symbols-outlined" aria-hidden="true">block</span></button>
                                         }
                                     </div>
                                 </td>

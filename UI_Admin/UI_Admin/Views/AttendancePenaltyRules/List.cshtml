@@ -20,12 +20,6 @@
     .ui-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 41px; padding: 0 18px; border: 0; border-radius: 9px; font: 500 14px Arial, Helvetica, sans-serif; text-decoration: none; cursor: pointer; box-shadow: 0 2px 5px #1b1f360d; }
     .ui-button.light { color: #25293b; background: #fff; }
     .ui-button.primary { color: #fff; background: #5146e5; box-shadow: 0 3px 7px #4f46e540; }
-    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
-    .metric { display: flex; align-items: center; justify-content: space-between; min-height: 108px; padding: 17px 16px; background: #fff; border-radius: 9px; box-shadow: 0 1px 3px #191c2d0d; }
-    .metric-label { color: #454c6d; font-size: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
-    .metric-value { margin-top: 9px; color: #11131d; font-size: 20px; font-weight: 600; }
-    .metric-note { margin-top: 7px; color: #555b71; font-size: 13px; }
-    .metric-icon { display: grid; flex: 0 0 40px; width: 40px; height: 40px; margin-left: 14px; place-items: center; color: #4f46e5; background: #f1f2f7; border-radius: 6px; font-size: 21px; }
     .filter-card { margin-bottom: 18px; padding: 16px; background: #fff; border-radius: 9px; box-shadow: 0 1px 3px #191c2d12; }
     .filters { display: grid; grid-template-columns: 3fr 2fr auto; gap: 12px; }
     .search-box { position: relative; }
@@ -142,74 +136,27 @@
         </div>
 
         <!-- Metrics Cards -->
-        <div class="metrics">
-            <div class="metric">
-                <div>
-                    <div class="metric-label">TOTAL RULES</div>
-                    <div class="metric-value">@Model.TotalRules</div>
-                    <div class="metric-note">System-wide rules</div>
-                </div>
-                <div class="metric-icon">
-                    <span class="material-symbols-outlined">gavel</span>
-                </div>
-            </div>
-            <div class="metric">
-                <div>
-                    <div class="metric-label">ACTIVE</div>
-                    <div class="metric-value text-emerald-600">@Model.ActiveRules</div>
-                    <div class="metric-note">Currently in effect</div>
-                </div>
-                <div class="metric-icon !text-emerald-600 !bg-emerald-50">
-                    <span class="material-symbols-outlined">check_circle</span>
-                </div>
-            </div>
-            <div class="metric">
-                <div>
-                    <div class="metric-label">SCHEDULED</div>
-                    <div class="metric-value text-purple-600">@Model.ScheduledRules</div>
-                    <div class="metric-note">Pending effective date</div>
-                </div>
-                <div class="metric-icon !text-purple-600 !bg-purple-50">
-                    <span class="material-symbols-outlined">event</span>
-                </div>
-            </div>
-            <div class="metric">
-                <div>
-                    <div class="metric-label">DRAFT</div>
-                    <div class="metric-value text-amber-600">@Model.DraftRules</div>
-                    <div class="metric-note">Unpublished</div>
-                </div>
-                <div class="metric-icon !text-amber-600 !bg-amber-50">
-                    <span class="material-symbols-outlined">edit_note</span>
-                </div>
-            </div>
-        </div>
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Total rules", Model.TotalRules.ToString("N0"), "All configured policies", "policy"),
+            new("Active", Model.ActiveRules.ToString("N0"), "Currently in effect", "verified"),
+            new("Scheduled", Model.ScheduledRules.ToString("N0"), "Pending effective date", "schedule"),
+            new("Drafts", Model.DraftRules.ToString("N0"), "Unpublished policies", "edit_document")
+        })' />
 
         <!-- Filters -->
-        <div class="filter-card">
-            <form method="get" asp-action="List" class="filters">
-                <div class="search-box">
-                    <span class="material-symbols-outlined search-icon">search</span>
-                    <input type="text" name="searchTerm" value="@Model.SearchTerm" class="filter-control" placeholder="Search by rule name..." />
-                </div>
-                <div>
-                    <select name="status" class="filter-control">
-                        <option value="">All Statuses</option>
-                        <option value="ACTIVE" selected="@(string.Equals(Model.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))">Active</option>
-                        <option value="SCHEDULED" selected="@(string.Equals(Model.Status, "SCHEDULED", StringComparison.OrdinalIgnoreCase))">Scheduled</option>
-                        <option value="DRAFT" selected="@(string.Equals(Model.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))">Draft</option>
-                        <option value="CANCELLED" selected="@(string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">Cancelled</option>
-                    </select>
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="ui-button primary !h-[41px]">Filter</button>
-                    @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || !string.IsNullOrWhiteSpace(Model.Status))
-                    {
-                        <a asp-action="List" class="ui-button clear">Reset</a>
-                    }
-                </div>
-            </form>
-        </div>
+        <form method="get" asp-action="List" class="ws-list-filter" role="search">
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search rules" type="text" name="searchTerm" value="@Model.SearchTerm" placeholder="Search by rule name..." /></label>
+                <div class="ws-filter-field"><select aria-label="Status" name="status">
+                                <option value="">All Statuses</option>
+                                <option value="ACTIVE" selected="@(string.Equals(Model.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))">Active</option>
+                                <option value="SCHEDULED" selected="@(string.Equals(Model.Status, "SCHEDULED", StringComparison.OrdinalIgnoreCase))">Scheduled</option>
+                                <option value="DRAFT" selected="@(string.Equals(Model.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))">Draft</option>
+                                <option value="CANCELLED" selected="@(string.Equals(Model.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))">Cancelled</option>
+                            </select></div>
+                <partial name="_ListFilterActions" model='"List"' />
+            </div>
+        </form>
 
         <!-- Rules Table -->
         <div class="table-card">
@@ -273,14 +220,14 @@
                                 <td>
                                     <div class="actions justify-end">
                                         <!-- Detail Button -->
-                                        <a asp-action="Detail" asp-route-id="@rule.PenaltyRuleId" class="icon-button" title="View Details">
+                                        <a asp-action="Detail" asp-route-id="@rule.PenaltyRuleId" class="ws-icon-action icon-button" title="View Details" aria-label="View Details">
                                             <span class="material-symbols-outlined text-[20px]">visibility</span>
                                         </a>
 
                                         <!-- Edit Button (if Draft) -->
                                         @if (string.Equals(rule.Status, "Draft", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <a asp-action="Edit" asp-route-id="@rule.PenaltyRuleId" class="icon-button !text-amber-600 hover:!bg-amber-50" title="Edit Rule">
+                                            <a asp-action="Edit" asp-route-id="@rule.PenaltyRuleId" class="ws-icon-action icon-button !text-amber-600 hover:!bg-amber-50" title="Edit Rule" aria-label="Edit Rule">
                                                 <span class="material-symbols-outlined text-[20px]">edit</span>
                                             </a>
                                         }
@@ -288,7 +235,7 @@
                                         <!-- Publish Button (if Draft) -->
                                         @if (string.Equals(rule.Status, "Draft", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <button type="button" class="icon-button success" title="Publish Rule" onclick="openPublishModal(@rule.PenaltyRuleId, '@rule.RuleName')">
+                                            <button type="button" class="ws-icon-action icon-button success" title="Publish Rule" onclick="openPublishModal(@rule.PenaltyRuleId, '@rule.RuleName')" aria-label="Publish Rule">
                                                 <span class="material-symbols-outlined text-[20px]">publish</span>
                                             </button>
                                         }
@@ -296,7 +243,7 @@
                                         <!-- Cancel Button (Only if Draft or Scheduled) -->
                                         @if (string.Equals(rule.Status, "Draft", StringComparison.OrdinalIgnoreCase) || string.Equals(rule.Status, "Scheduled", StringComparison.OrdinalIgnoreCase))
                                         {
-                                            <button type="button" class="icon-button danger" title="Cancel Rule" onclick="openCancelModal(@rule.PenaltyRuleId, '@rule.RuleName', '@rule.Status')">
+                                            <button type="button" class="ws-icon-action icon-button danger" title="Cancel Rule" onclick="openCancelModal(@rule.PenaltyRuleId, '@rule.RuleName', '@rule.Status')" aria-label="Cancel Rule">
                                                 <span class="material-symbols-outlined text-[20px]">cancel</span>
                                             </button>
                                         }
@@ -397,7 +344,7 @@
     function openCancelModal(id, name, status) {
         document.getElementById('cancelRuleId').value = id;
         document.getElementById('cancelRuleName').innerText = name;
-        
+
         // Hide cancellation reason input for Draft status
         const isDraft = status && status.toUpperCase() === 'DRAFT';
         const reasonBox = document.getElementById('cancelReasonContainer');
@@ -406,7 +353,7 @@
         } else {
             reasonBox.classList.remove('hidden');
         }
-        
+
         document.getElementById('cancelModal').classList.remove('hidden');
     }
     function closeCancelModal() {
@@ -425,8 +372,8 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
 
-            const newMetrics = doc.querySelector('.metrics');
-            const currentMetrics = document.querySelector('.metrics');
+            const newMetrics = doc.querySelector('.list-metrics');
+            const currentMetrics = document.querySelector('.list-metrics');
             if (newMetrics && currentMetrics) {
                 currentMetrics.innerHTML = newMetrics.innerHTML;
             }

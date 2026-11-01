@@ -41,6 +41,28 @@
             </div>
         }
 
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Pay rules", Model.Count.ToString("N0"), "Matching current filters", "event"),
+        new("Active", Model.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified"),
+        new("Published", Model.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule"),
+        new("Drafts", Model.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document")
+    })' />
+
+        <form asp-action="List" method="get" class="ws-list-filter" role="search">
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="search" name="search" value="@Context.Request.Query["search"]" placeholder="Search rule name..." aria-label="Search rules" /></label>
+                <div class="ws-filter-field">
+                    <select name="status" aria-label="Status">
+                        <option value="">All statuses</option>
+                        @foreach (var status in new[] { "ACTIVE", "DRAFT", "PUBLISH", "INACTIVE", "CANCEL" })
+                        {
+                            <option value="@status" selected="@(Context.Request.Query["status"].ToString().Equals(status, StringComparison.OrdinalIgnoreCase))">@(status == "PUBLISH" ? "Published" : status == "CANCEL" ? "Cancelled" : System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(status.ToLowerInvariant()))</option>
+                        }
+                    </select>
+                </div>
+                <partial name="_ListFilterActions" model='"List"' />
+            </div>
+        </form>
         <section class="holiday-table-card">
             <div class="table-scroll">
                 <table class="holiday-table">
@@ -87,7 +109,7 @@
                                 <td class="actions">
                                     <div class="row-actions flex items-center justify-center gap-1.5">
                                         <!-- View Detail -->
-                                        <a asp-action="Detail" asp-route-id="@rule.HolidayPayRuleId" class="action-view"
+                                        <a asp-action="Detail" asp-route-id="@rule.HolidayPayRuleId" class="ws-icon-action action-view"
                                            title="View details" aria-label="View details">
                                             <span class="material-symbols-outlined">visibility</span>
                                         </a>
@@ -95,13 +117,13 @@
                                         @if (rule.CanEdit)
                                         {
                                             <!-- Edit Draft (Separate Page) -->
-                                            <a asp-action="Edit" asp-route-id="@rule.HolidayPayRuleId" class="action-edit"
+                                            <a asp-action="Edit" asp-route-id="@rule.HolidayPayRuleId" class="ws-icon-action action-edit"
                                                title="Edit pay rule" aria-label="Edit pay rule">
                                                 <span class="material-symbols-outlined">edit</span>
                                             </a>
 
                                             <!-- Delete Draft (Synchronized Popup Modal) -->
-                                            <button type="button" class="action-icon text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer border-0 bg-transparent"
+                                            <button type="button" class="ws-icon-action action-icon text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg flex items-center justify-center transition-colors cursor-pointer border-0 bg-transparent"
                                                     title="Delete draft" aria-label="Delete draft"
                                                     onclick="openDeleteModal(@rule.HolidayPayRuleId, '@Html.Raw(rule.RuleName.Replace("'", "\\'"))')">
                                                 <span class="material-symbols-outlined text-[20px]">delete</span>
@@ -121,8 +143,8 @@
             {
                 <div class="holiday-empty">
                     <span class="material-symbols-outlined text-4xl text-gray-400 mb-2">rule</span>
-                    <h2>No holiday pay rules yet</h2>
-                    <p>Add your first rule to cover the dates needed for payroll calculations.</p>
+                    <h2>No matching holiday pay rules</h2>
+                    <p>Adjust the filters or add a pay rule for the dates needed by payroll.</p>
                 </div>
             }
         </section>
