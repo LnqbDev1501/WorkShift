@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Policies.Shifts;
 using WorkShiftManagement.DAL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Notifications;
 

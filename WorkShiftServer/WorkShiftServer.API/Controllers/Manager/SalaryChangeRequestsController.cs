@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +17,7 @@ public sealed class SalaryChangeRequestsController(ISalaryChangeService service,
     private async Task<IActionResult> Execute(Func<Guid, Task<IActionResult>> action)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
-        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Tài khoản không hợp lệ." });
+        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Invalid user account." });
         try { return await action(id); }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
@@ -28,12 +28,12 @@ public sealed class SalaryChangeRequestsController(ISalaryChangeService service,
         catch (Exception ex) when (ex is DbUpdateException || ex is PostgresException { SqlState: "23505" or "23503" or "23514" or "40P01" or "40001" or "55P03" })
         {
             logger.LogError(ex, "Salary change transaction conflicted with persisted data.");
-            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "Dữ liệu tăng lương đã thay đổi hoặc vi phạm ràng buộc. Hãy tải lại trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "Salary increase data has changed or violated constraints. Please reload before retrying.", Instance = Request.Path });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Salary change request failed.");
-            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Không thể xử lý đề xuất tăng lương. Vui lòng tải lại trạng thái trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Unable to process salary change proposal. Please reload status before retrying.", Instance = Request.Path });
         }
     }
     [HttpGet]

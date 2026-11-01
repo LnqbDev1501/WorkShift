@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using UI_Admin.Models.PayrollCalculation;
 namespace UI_Admin.Services.Accountant;
 
@@ -34,7 +34,7 @@ public sealed class PayrollCalculationActionApiService(HttpClient client, IConfi
         return result;
     }
     public Task<CalculatedPayroll> EmployeeAsync(int id, Guid userId, CancellationToken ct)
-        => throw new InvalidOperationException("Lần đầu phải tính toàn kỳ (Calculate Period). Payroll bị yêu cầu sửa sử dụng quy trình Correction Request và Recalculate.");
+        => throw new InvalidOperationException("The initial calculation must be run for the entire period (Calculate Period). Payrolls requested for modification must use the Correction Request and Recalculate workflow.");
     public async Task<CalculationBatch> PeriodAsync(int id, CancellationToken ct)
     {
         using var r = await client.PostAsync($"{Root}/{id}/calculate", null, ct);

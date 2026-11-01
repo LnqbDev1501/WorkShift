@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -431,11 +431,11 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
     private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
     {
-        "LEAVE" => "xin nghỉ phép",
-        "LATE_ARRIVAL" => "xin đi muộn",
-        "EARLY_LEAVE" => "xin về sớm",
-        "SALARY_INCREASE" => "xin tăng lương",
-        _ => requestType ?? "khác"
+        "LEAVE" => "Leave",
+        "LATE_ARRIVAL" => "Late Arrival",
+        "EARLY_LEAVE" => "Early Leave",
+        "SALARY_INCREASE" => "Salary Increase",
+        _ => requestType ?? "Other"
     };
 
     private async Task<int> GetActiveBranchIdAsync(Guid managerId, CancellationToken cancellationToken)
@@ -586,7 +586,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         try
         {
-            // Lấy danh sách nhân viên cùng chi nhánh, cùng vị trí (loại trừ người xin nghỉ)
+            // Get staff members in same branch and employee type (excluding requester)
             var eligibleStaffIds = await _repo.GetEligibleStaffUserIdsAsync(
                 request.BranchId,
                 employeeTypeId.Value,
@@ -595,10 +595,10 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
             if (eligibleStaffIds.Count == 0) return;
 
-            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "nhân viên";
+            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "staff member";
             var now = DateTime.UtcNow;
 
-            // Mỗi ca được giải phóng slot trong đơn nghỉ sẽ tạo 1 thông báo Open Shift
+            // Create 1 Open Shift notification for each slot freed up by approved leave
             foreach (var lra in request.LeaveRequestAssignments)
             {
                 var shift = lra.Assignment?.Shift;
@@ -608,8 +608,8 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 var endVn = shift.ScheduledEndAt.AddHours(7);
                 var shiftName = shift.ShiftNameSnapshot;
 
-                var title = "📢 Ca làm việc cần người làm thay";
-                var content = $"Ca {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) ngày {startVn:dd/MM/yyyy} đang cần 1 {employeeTypeName} làm thay. Nhấn để xem và nhận ca!";
+                var title = "📢 Shift Available for Replacement";
+                var content = $"Shift {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) on {startVn:dd/MM/yyyy} needs 1 {employeeTypeName} as replacement. Tap to view and pick up!";
 
                 var notification = new NotificationEntity
                 {

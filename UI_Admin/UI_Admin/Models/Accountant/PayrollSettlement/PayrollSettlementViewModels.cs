@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace UI_Admin.Models.Accountant.PayrollSettlement;
 
@@ -68,20 +68,27 @@ public sealed class CarryForwardResponse
     public int CarryForwardId { get; set; }
     public Guid UserId { get; set; }
     public string EmployeeName { get; set; } = "";
+    public string BranchName { get; set; } = "";
+    public string? EmployeeType { get; set; }
+    public string EmployeeStatus { get; set; } = "ACTIVE";
     public int SourceBranchId { get; set; }
     public int SourcePayrollId { get; set; }
     public int SourcePayrollVersionNo { get; set; }
     public int SourcePayrollPeriodId { get; set; }
     public string SourcePeriodCode { get; set; } = "";
+    public string SourcePeriodName { get; set; } = "";
     public int SourcePayrollDetailId { get; set; }
     public string SourceDetailType { get; set; } = "";
     public string SourceDetailDescription { get; set; } = "";
+    public string? SourceDetailNote { get; set; }
+    public int? PenaltyId { get; set; }
     public decimal SourceDeductionAmount { get; set; }
     public decimal SourceAppliedAmount { get; set; }
     public decimal OriginalAmount { get; set; }
     public decimal RemainingAmount { get; set; }
     public decimal TotalAppliedAmount { get; set; }
     public int ApplicationCount { get; set; }
+    public DateTime? LastAppliedAt { get; set; }
     public string Reason { get; set; } = "";
     public string Status { get; set; } = "";
     public DateTime CreatedAt { get; set; }
@@ -103,11 +110,14 @@ public sealed class CarryForwardApplicationResponse
     public Guid UserId { get; set; }
     public int PayrollId { get; set; }
     public int PayrollVersionNo { get; set; }
+    public string PayrollStatus { get; set; } = "";
     public int PayrollPeriodId { get; set; }
     public string PeriodCode { get; set; } = "";
+    public string PeriodName { get; set; } = "";
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
     public decimal AppliedAmount { get; set; }
+    public decimal RemainingBalanceAfter { get; set; }
     public DateTime AppliedAt { get; set; }
 }
 

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
@@ -11,9 +11,13 @@ public sealed class PayrollSettlementRepo(AppDbContext db) : IPayrollSettlementR
     {
         IQueryable<PayrollCarryForwardDeduction> query = db.PayrollCarryForwardDeductions;
         if (!tracking) query = query.AsNoTracking();
-        return query.Include(c => c.SourcePayroll).ThenInclude(p => p.PayrollPeriod).Include(c => c.SourcePayrollDetail)
+        return query
+            .Include(c => c.User).ThenInclude(u => u.EmployeeType)
+            .Include(c => c.SourcePayroll).ThenInclude(p => p.PayrollPeriod)
+            .Include(c => c.SourcePayrollDetail)
             .Include(c => c.PayrollCarryForwardApplications).ThenInclude(a => a.Payroll).ThenInclude(p => p.PayrollPeriod)
-            .Include(c => c.PayrollCarryForwardApplications).ThenInclude(a => a.Payroll).ThenInclude(p => p.PayrollDetails).AsSplitQuery();
+            .Include(c => c.PayrollCarryForwardApplications).ThenInclude(a => a.Payroll).ThenInclude(p => p.PayrollDetails)
+            .AsSplitQuery();
     }
     public async Task<PayrollSettlementData?> LoadAsync(int periodId, int? branchId, bool tracking, CancellationToken ct)
     {

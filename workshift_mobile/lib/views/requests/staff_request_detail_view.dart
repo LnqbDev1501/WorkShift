@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../../models/staff_request_model.dart';
 import '../../theme/app_colors.dart';
@@ -6,7 +6,7 @@ import '../../utils/format_utils.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/status_badge.dart';
 
-/// Màn hình Xem chi tiết yêu cầu của Staff (View Employee Request Details for Staff)
+/// View Employee Request Details for Staff
 class StaffRequestDetailView extends StatefulWidget {
   final int requestId;
   final StaffRequestController controller;
@@ -186,7 +186,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Header Card: Loại yêu cầu & Trạng thái
+                      // 1. Header Card: Request Type & Status
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
@@ -246,7 +246,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 2. Thông tin chung
+                      // 2. General Information
                       _buildSectionTitle('Request Information'),
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -271,7 +271,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                       ),
                       const SizedBox(height: 16),
 
-                      // 3. Chi tiết ca làm việc liên quan hoặc thông tin tăng lương
+                      // 3. Shift Details or Salary Increase Information
                       _buildSectionTitle(
                         detail.requestType == 'SALARY_INCREASE'
                             ? 'Salary Adjustment Details'
@@ -299,7 +299,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                         ),
                       const SizedBox(height: 16),
 
-                      // 4. Kết quả duyệt từ Quản lý (nếu có)
+                      // 4. Manager Review Result (if present)
                       if (!detail.isPending) ...[
                         _buildSectionTitle('Manager Feedback'),
                         Container(
@@ -347,7 +347,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                         const SizedBox(height: 16),
                       ],
 
-                      // 5. Quy định áp dụng (nếu có)
+                      // 5. Applied Policy Rules (if present)
                       if (detail.appliedRule != null) ...[
                         _buildSectionTitle('Applied Policy'),
                         Container(
@@ -373,7 +373,7 @@ class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
                         const SizedBox(height: 24),
                       ],
 
-                      // 6. Nút Hủy yêu cầu (nếu đang ở trạng thái PENDING)
+                      // 6. Cancel Request Button (if PENDING)
                       if (detail.isPending) ...[
                         const SizedBox(height: 8),
                         SizedBox(

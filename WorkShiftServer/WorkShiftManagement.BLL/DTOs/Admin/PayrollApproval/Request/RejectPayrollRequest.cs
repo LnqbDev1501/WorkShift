@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request
 {
@@ -7,10 +7,10 @@ namespace WorkShiftManagement.BLL.DTOs.Admin.PayrollApproval.Request
         [Required]
         [RegularExpression("^(CALCULATION|RATE|REWARD|DEDUCTION|OTHER)$")]
         public string RejectionCategory { get; set; } = string.Empty;
-        [Required(ErrorMessage = "Lý do yêu cầu chỉnh sửa là bắt buộc.")]
+        [Required(ErrorMessage = "Rejection reason is required.")]
         [StringLength(
             1000,
-            ErrorMessage = "Lý do không được vượt quá 1000 ký tự."
+            ErrorMessage = "Rejection reason cannot exceed 1000 characters."
         )]
         public string Reason { get; set; } = string.Empty;
     }

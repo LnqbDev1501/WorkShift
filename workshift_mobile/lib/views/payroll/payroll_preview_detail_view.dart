@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../services/payroll_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 
-/// Màn hình Chi tiết Bản xem trước lương (Screen 2: Payroll Preview Details)
+/// Payroll Preview Details Screen (Screen 2: Payroll Preview Details)
 class PayrollPreviewDetailView extends StatefulWidget {
   final int feedbackId;
 
@@ -55,7 +55,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     }
   }
 
-  /// Xử lý Xác nhận bảng lương (Confirm)
+  /// Handle Confirm payroll preview
   Future<void> _handleConfirm() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -66,20 +66,20 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             Icon(Icons.check_circle_outline_rounded, color: AppColors.success),
             SizedBox(width: 8),
             Text(
-              'Xác nhận bảng lương',
+              'Confirm Payroll Preview',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: const Text(
-          'Bạn xác nhận đồng ý với số liệu lương trong bản xem trước này?\n\n'
-          'Sau khi xác nhận, lượt review sẽ được đánh dấu hoàn tất và bạn sẽ không thể gửi phản hồi cho đợt này nữa.',
+          'Do you agree with the payroll calculation in this preview?\n\n'
+          'Once confirmed, this review round will be marked as complete and you will no longer be able to submit feedback for this round.',
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -88,7 +88,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Đồng ý xác nhận'),
+            child: const Text('Confirm'),
           ),
         ],
       ),
@@ -102,7 +102,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã xác nhận bảng lương thành công!'),
+            content: Text('Payroll preview confirmed successfully!'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -112,7 +112,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -122,7 +122,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     }
   }
 
-  /// Mở Bottom Sheet nhập phản hồi (Submit Feedback)
+  /// Open Bottom Sheet to submit feedback
   void _openFeedbackBottomSheet() {
     final textController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -164,7 +164,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       Icon(Icons.rate_review_outlined, color: AppColors.warning),
                       SizedBox(width: 8),
                       Text(
-                        'Gửi phản hồi bảng lương',
+                        'Submit Payroll Feedback',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -175,7 +175,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Vui lòng mô tả chi tiết sai sót về số ca làm, giờ công, mức lương hoặc khoản thưởng phạt để Kế toán kiểm tra.',
+                    'Please describe in detail any discrepancies regarding shifts, work hours, salary rates, or adjustments for accountant verification.',
                     style: TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
@@ -189,7 +189,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                     maxLength: 2000,
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: 'Nhập nội dung phản hồi (bắt buộc)...',
+                      hintText: 'Enter feedback details (required)...',
                       hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -209,10 +209,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return 'Vui lòng nhập nội dung phản hồi.';
+                        return 'Please enter feedback details.';
                       }
                       if (val.trim().length < 5) {
-                        return 'Nội dung phản hồi cần tối thiểu 5 ký tự.';
+                        return 'Feedback must be at least 5 characters.';
                       }
                       return null;
                     },
@@ -230,7 +230,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                             ),
                             side: const BorderSide(color: AppColors.border),
                           ),
-                          child: const Text('Hủy', style: TextStyle(color: AppColors.textSecondary)),
+                          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -251,7 +251,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                             ),
                           ),
                           child: const Text(
-                            'Gửi phản hồi',
+                            'Submit Feedback',
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -274,7 +274,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã gửi phản hồi thành công! Kế toán sẽ xem xét.'),
+            content: Text('Feedback submitted successfully! The accountant will review it.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -284,7 +284,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -300,7 +300,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Chi tiết Bản xem trước lương',
+          'Payroll Preview Details',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -314,7 +314,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Tải lại',
+            tooltip: 'Reload',
             onPressed: _isLoading ? null : _loadDetail,
           ),
         ],
@@ -346,7 +346,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                         ElevatedButton.icon(
                           onPressed: _loadDetail,
                           icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Thử lại'),
+                          label: const Text('Retry'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: Colors.white,
@@ -357,7 +357,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   ),
                 )
               : _detail == null
-                  ? const Center(child: Text('Không tìm thấy dữ liệu.'))
+                  ? const Center(child: Text('No data found.'))
                   : _buildContent(),
       bottomNavigationBar: _detail != null ? _buildBottomActions() : null,
     );
@@ -423,7 +423,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 1. Card thông tin chung: Kỳ, Version, Lượt review, Hạn chót
+  /// 1. General Card: Period, Version, Round, Deadline
   Widget _buildHeaderCard(PayrollPreviewItem feedback) {
     final statusColor = PayrollReviewStatus.getColor(feedback.reviewStatus);
     final statusLabel = PayrollReviewStatus.getLabel(feedback.reviewStatus);
@@ -455,7 +455,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Kỳ #${feedback.payrollPeriodId}',
+                  'Period #${feedback.payrollPeriodId}',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -495,12 +495,12 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             children: [
               _buildBadgeItem(
                 Icons.layers_outlined,
-                'Phiên bản V${feedback.payrollVersionNo}',
+                'Version V${feedback.payrollVersionNo}',
               ),
               const SizedBox(width: 12),
               _buildBadgeItem(
                 Icons.repeat_rounded,
-                'Lượt review #${feedback.roundNo}',
+                'Review Round #${feedback.roundNo}',
               ),
             ],
           ),
@@ -510,7 +510,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               const Icon(Icons.alarm_rounded, size: 16, color: AppColors.warning),
               const SizedBox(width: 6),
               const Text(
-                'Hạn phản hồi: ',
+                'Feedback deadline: ',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
@@ -535,7 +535,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               const Icon(Icons.send_rounded, size: 15, color: AppColors.textMuted),
               const SizedBox(width: 6),
               const Text(
-                'Ngày gửi: ',
+                'Sent: ',
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
               Text(
@@ -571,7 +571,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 2. Lời giải trình / Ghi chú từ Kế toán
+  /// 2. Accountant Explanation / Notes
   Widget _buildExplanationCard(PayrollPreviewItem feedback) {
     final note = feedback.resolutionNote ?? feedback.resultNote ?? '';
     final prevNote = feedback.previousResolutionNote;
@@ -591,7 +591,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0284C7)),
               SizedBox(width: 8),
               Text(
-                'Lời giải trình từ Kế toán',
+                'Accountant Explanation',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -614,7 +614,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           if (prevNote != null && prevNote.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Ghi chú lượt trước: $prevNote',
+              'Previous round note: $prevNote',
               style: const TextStyle(
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
@@ -627,7 +627,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 3. Phản hồi của chính Staff đã gửi
+  /// 3. Staff's Submitted Feedback
   Widget _buildStaffFeedbackCard(PayrollPreviewItem feedback) {
     final statusColor = StaffFeedbackStatus.getColor(feedback.status);
     final statusLabel = StaffFeedbackStatus.getLabel(feedback.status);
@@ -651,7 +651,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       size: 16, color: AppColors.primary),
                   SizedBox(width: 6),
                   Text(
-                    'Nội dung bạn đã phản hồi',
+                    'Your Submitted Feedback',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -691,7 +691,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           if (feedback.staffRespondedAt != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Thời gian gửi: ${formatVietnamDateTime(feedback.staffRespondedAt)}',
+              'Submitted at: ${formatVietnamDateTime(feedback.staffRespondedAt)}',
               style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
           ],
@@ -700,7 +700,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 4. Thông tin Correction Request liên quan
+  /// 4. Linked Correction Request
   Widget _buildCorrectionsCard(List<PayrollIssueItem> corrections) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -717,7 +717,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               Icon(Icons.build_circle_outlined, size: 18, color: Color(0xFFD97706)),
               SizedBox(width: 8),
               Text(
-                'Yêu cầu chỉnh sửa nguồn (Correction Request)',
+                'Correction Request Details',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -736,7 +736,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   Row(
                     children: [
                       Text(
-                        '#${issue.correctionRequestId} - Trạng thái: ',
+                        '#${issue.correctionRequestId} - Status: ',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -754,7 +754,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                     ],
                   ),
                   Text(
-                    'Lý do: ${issue.reason}',
+                    'Reason: ${issue.reason}',
                     style: const TextStyle(
                       fontSize: 13,
                       color: Color(0xFF78350F),
@@ -762,7 +762,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   ),
                   if (issue.responseNote != null && issue.responseNote!.isNotEmpty)
                     Text(
-                      'Quản lý phản hồi: ${issue.responseNote}',
+                      'Manager Response: ${issue.responseNote}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
@@ -778,7 +778,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 5. Lương thực nhận (Net Salary Highlight)
+  /// 5. Net Salary Highlight
   Widget _buildSalaryOverviewCard(PayrollCalculationItem payroll) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -801,7 +801,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'LƯƠNG THỰC NHẬN TẠM TÍNH (NET)',
+            'ESTIMATED NET SALARY (PREVIEW)',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -824,9 +824,9 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniOverviewStat('Tổng thu nhập', formatCurrency(payroll.grossSalary)),
-              _buildMiniOverviewStat('Tổng khấu trừ', formatCurrency(payroll.totalDeduction)),
-              _buildMiniOverviewStat('Tổng giờ công', '${payroll.totalWorkHours}h'),
+              _buildMiniOverviewStat('Total Earnings', formatCurrency(payroll.grossSalary)),
+              _buildMiniOverviewStat('Total Deductions', formatCurrency(payroll.totalDeduction)),
+              _buildMiniOverviewStat('Total Work Hours', '${payroll.totalWorkHours}h'),
             ],
           ),
         ],
@@ -855,7 +855,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 6. Chi tiết các khoản cấu thành lương (Work, Reward, Penalty, Deduction)
+  /// 6. Earnings & Deductions Breakdown
   Widget _buildFinancialBreakdownCard(PayrollCalculationItem payroll) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -873,7 +873,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   size: 18, color: AppColors.primary),
               SizedBox(width: 8),
               Text(
-                'Chi tiết các khoản thu nhập & khấu trừ',
+                'Earnings & Deductions Breakdown',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -884,54 +884,54 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           ),
           const SizedBox(height: 16),
           _buildDetailRow(
-            'Lương theo giờ công (${payroll.totalWorkHours} giờ @ ${formatCurrency(payroll.hourlyRate)})',
+            'Base Work Pay (${payroll.totalWorkHours} hrs @ ${formatCurrency(payroll.hourlyRate)})',
             formatCurrency(payroll.workPay),
           ),
           if (payroll.totalReward > 0)
             _buildDetailRow(
-              'Tiền thưởng',
+              'Bonus / Reward',
               '+${formatCurrency(payroll.totalReward)}',
               valueColor: AppColors.success,
             ),
           _buildDetailRow(
-            'Thu nhập trước khấu trừ (Gross)',
+            'Gross Earnings',
             formatCurrency(payroll.grossSalary),
             isBold: true,
           ),
           const Divider(height: 20, color: AppColors.borderLight),
           if (payroll.totalPenalty > 0)
             _buildDetailRow(
-              'Tiền phạt vi phạm',
+              'Penalties',
               '-${formatCurrency(payroll.totalPenalty)}',
               valueColor: AppColors.error,
             ),
           if (payroll.attendanceDeduction > 0)
             _buildDetailRow(
-              'Khấu trừ chuyên cần / đi muộn',
+              'Attendance / Late Deductions',
               '-${formatCurrency(payroll.attendanceDeduction)}',
               valueColor: AppColors.error,
             ),
           if (payroll.carryForwardDeduction > 0)
             _buildDetailRow(
-              'Nợ chuyển từ kỳ trước',
+              'Debt Carried Forward from Prior Period',
               '-${formatCurrency(payroll.carryForwardDeduction)}',
               valueColor: AppColors.error,
             ),
           if (payroll.deferredDeductionAmount > 0)
             _buildDetailRow(
-              'Khấu trừ hoãn sang kỳ sau',
+              'Deduction Deferred to Next Period',
               formatCurrency(payroll.deferredDeductionAmount),
               valueColor: AppColors.warning,
             ),
           _buildDetailRow(
-            'Tổng các khoản khấu trừ',
+            'Total Deductions',
             '-${formatCurrency(payroll.totalDeduction)}',
             valueColor: AppColors.error,
             isBold: true,
           ),
           const Divider(height: 20, color: AppColors.border),
           _buildDetailRow(
-            'Thực nhận (Net Salary)',
+            'Net Salary',
             formatCurrency(payroll.netSalary),
             valueColor: AppColors.primary,
             isBold: true,
@@ -978,7 +978,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 7. Chi tiết danh sách ca làm việc
+  /// 7. Shift Work Details
   Widget _buildShiftDetailsCard(PayrollCalculationItem payroll) {
     final workDetails = payroll.workDetails;
     final workRowsFromDetails = payroll.details.where((d) => d.type == 'WORK').toList();
@@ -995,7 +995,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           initiallyExpanded: false,
           leading: const Icon(Icons.event_note_rounded, color: AppColors.primary),
           title: Text(
-            'Chi tiết ca làm việc (${workDetails.isNotEmpty ? workDetails.length : workRowsFromDetails.length} ca)',
+            'Shift Details (${workDetails.isNotEmpty ? workDetails.length : workRowsFromDetails.length} shifts)',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.bold,
@@ -1012,7 +1012,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Không có dữ liệu chi tiết ca.',
+                  'No shift detail data available.',
                   style: TextStyle(color: AppColors.textMuted),
                 ),
               ),
@@ -1057,7 +1057,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       ),
                     ),
                     Text(
-                      '${(shift.payableMinutes / 60.0).toStringAsFixed(1)} giờ',
+                      '${(shift.payableMinutes / 60.0).toStringAsFixed(1)} hrs',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
@@ -1068,18 +1068,18 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Ngày: ${shift.workDate != null ? formatVietnamDate(shift.workDate) : 'N/A'}',
+                  'Date: ${shift.workDate != null ? formatVietnamDate(shift.workDate) : 'N/A'}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Chấm công: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
+                  'Attendance: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
                 if (shift.totalLateMinutes > 0 || shift.totalEarlyLeaveMinutes > 0) ...[
                   const SizedBox(height: 3),
                   Text(
-                    'Đi muộn: ${shift.totalLateMinutes}p • Về sớm: ${shift.totalEarlyLeaveMinutes}p',
+                    'Late: ${shift.totalLateMinutes}m • Early Leave: ${shift.totalEarlyLeaveMinutes}m',
                     style: const TextStyle(fontSize: 11, color: AppColors.error),
                   ),
                 ],
@@ -1119,7 +1119,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 8. Thưởng phạt chưa duyệt
+  /// 8. Pending Adjustments
   Widget _buildPendingAdjustmentsCard(
       List<PendingPayrollAdjustmentItem> adjustments) {
     return Container(
@@ -1133,7 +1133,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Thưởng / Phạt đang chờ duyệt (chưa tính vào kỳ)',
+            'Pending Adjustments (not included in this period)',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -1148,7 +1148,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${a.type == 'REWARD' ? '[Thưởng]' : '[Phạt]'} ${a.name}',
+                    '${a.type == 'REWARD' ? '[Reward]' : '[Penalty]'} ${a.name}',
                     style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
                   Text(
@@ -1168,7 +1168,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  /// 9. Lịch sử các lượt review
+  /// 9. Review Rounds History
   Widget _buildReviewHistoryCard(PayrollPreviewItem feedback) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1185,7 +1185,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               Icon(Icons.history_rounded, size: 18, color: AppColors.textSecondary),
               SizedBox(width: 8),
               Text(
-                'Lịch sử lượt xem trước',
+                'Preview Rounds History',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -1196,12 +1196,12 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Lượt hiện tại: #${feedback.roundNo} (Version ${feedback.payrollVersionNo})',
+            'Current Round: #${feedback.roundNo} (Version ${feedback.payrollVersionNo})',
             style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
-            'Trạng thái: ${PayrollReviewStatus.getLabel(feedback.reviewStatus)}',
+            'Status: ${PayrollReviewStatus.getLabel(feedback.reviewStatus)}',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -1211,7 +1211,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           if (feedback.closedAt != null) ...[
             const SizedBox(height: 4),
             Text(
-              'Đã đóng lúc: ${formatVietnamDateTime(feedback.closedAt)} (${feedback.closureReason ?? ''})',
+              'Closed at: ${formatVietnamDateTime(feedback.closedAt)} (${feedback.closureReason ?? ''})',
               style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
           ],
@@ -1239,10 +1239,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               Expanded(
                 child: Text(
                   feedback.reviewStatus == PayrollReviewStatus.confirmed
-                      ? 'Bạn đã xác nhận lượt xem trước này.'
+                      ? 'You have already confirmed this payroll preview.'
                       : feedback.reviewStatus == PayrollReviewStatus.expired
-                          ? 'Lượt xem trước này đã hết hạn phản hồi.'
-                          : 'Lượt này chỉ có quyền xem.',
+                          ? 'This payroll preview has expired for feedback.'
+                          : 'This round is view-only.',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textMuted,
@@ -1270,7 +1270,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       child: SafeArea(
         child: Row(
           children: [
-            // Nút SUBMIT FEEDBACK
+            // SUBMIT FEEDBACK button
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _isActionSubmitting || !canFeedback
@@ -1278,7 +1278,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                     : _openFeedbackBottomSheet,
                 icon: const Icon(Icons.rate_review_outlined, size: 18),
                 label: const Text(
-                  'Phản hồi sai sót',
+                  'Report Discrepancy',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
@@ -1293,7 +1293,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             ),
             const SizedBox(width: 12),
 
-            // Nút CONFIRM
+            // CONFIRM button
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _isActionSubmitting || !canConfirm
@@ -1310,7 +1310,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       )
                     : const Icon(Icons.check_circle_outline_rounded, size: 18),
                 label: const Text(
-                  'Xác nhận bảng lương',
+                  'Confirm Payroll Preview',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(

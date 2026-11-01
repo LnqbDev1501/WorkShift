@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,13 +18,13 @@ public class StaffSalaryHistoryService(IStaffSalaryHistoryRepo repo) : IStaffSal
         if (salary == null)
         {
             throw new InvalidOperationException(
-                $"Không tìm thấy mức lương hợp lệ cho nhân viên có ID '{userId}' vào ngày làm việc {workDate:yyyy-MM-dd}. Không thể tính lương bằng mức 0.");
+                $"No valid salary rate found for staff member ID '{userId}' on work date {workDate:yyyy-MM-dd}. Payroll calculation cannot proceed with zero rate.");
         }
 
         if (salary.HourlyRate <= 0)
         {
             throw new InvalidOperationException(
-                $"Mức lương giờ ({salary.HourlyRate:N0} đ) của nhân viên có ID '{userId}' vào ngày làm việc {workDate:yyyy-MM-dd} không hợp lệ. Không thể tính lương bằng mức 0.");
+                $"Hourly rate ({salary.HourlyRate:N0} VND) for staff member ID '{userId}' on work date {workDate:yyyy-MM-dd} is invalid. Payroll calculation cannot proceed with zero rate.");
         }
 
         return MapToDto(salary);
@@ -36,13 +36,13 @@ public class StaffSalaryHistoryService(IStaffSalaryHistoryRepo repo) : IStaffSal
         if (salary == null)
         {
             throw new InvalidOperationException(
-                $"Không tìm thấy mức lương hợp lệ cho nhân viên có ID '{userId}' vào ngày làm việc {workDate:yyyy-MM-dd}. Không thể tính lương bằng mức 0.");
+                $"No valid salary rate found for staff member ID '{userId}' on work date {workDate:yyyy-MM-dd}. Payroll calculation cannot proceed with zero rate.");
         }
 
         if (salary.HourlyRate <= 0)
         {
             throw new InvalidOperationException(
-                $"Mức lương giờ ({salary.HourlyRate:N0} đ) của nhân viên có ID '{userId}' vào ngày làm việc {workDate:yyyy-MM-dd} không hợp lệ. Không thể tính lương bằng mức 0.");
+                $"Hourly rate ({salary.HourlyRate:N0} VND) for staff member ID '{userId}' on work date {workDate:yyyy-MM-dd} is invalid. Payroll calculation cannot proceed with zero rate.");
         }
 
         return (salary.SalaryHistoryId, salary.HourlyRate);

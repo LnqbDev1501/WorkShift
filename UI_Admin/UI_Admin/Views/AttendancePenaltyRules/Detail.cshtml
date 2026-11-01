@@ -1,4 +1,4 @@
-@using UI_Admin.Models.Admin.AttendancePenaltyRule
+﻿@using UI_Admin.Models.Admin.AttendancePenaltyRule
 @model AttendancePenaltyRuleDetailViewModel
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
@@ -150,7 +150,7 @@
         <!-- 2 Columns for Penalty Tables: Late and Early Leave -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- 1. Mức phạt đi trễ (Late Violation Levels) -->
+            <!-- 1. Late Violation Levels -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
@@ -190,11 +190,11 @@
                                         <td class="py-3.5 px-4">
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-semibold text-xs border border-slate-200">
                                                 <span class="material-symbols-outlined text-[14px] text-amber-600">schedule</span>
-                                                @(lvl.ToMinutes.HasValue ? $"{lvl.FromMinutes} – {lvl.ToMinutes} mins" : $"≥ {lvl.FromMinutes} mins (Trở lên)")
+                                                @(lvl.ToMinutes.HasValue ? $"{lvl.FromMinutes} – {lvl.ToMinutes} mins" : $"≥ {lvl.FromMinutes} mins (and above)")
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-right font-bold text-rose-600 text-base">
-                                            @lvl.PenaltyAmount.ToString("N0") <span class="text-xs font-semibold text-slate-500">VNĐ</span>
+                                            @lvl.PenaltyAmount.ToString("N0") <span class="text-xs font-semibold text-slate-500">VND</span>
                                         </td>
                                     </tr>
                                 }
@@ -204,7 +204,7 @@
                 </div>
             </div>
 
-            <!-- 2. Mức phạt về sớm (Early Leave Violation Levels) -->
+            <!-- 2. Early Leave Violation Levels -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
@@ -244,11 +244,11 @@
                                         <td class="py-3.5 px-4">
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-semibold text-xs border border-slate-200">
                                                 <span class="material-symbols-outlined text-[14px] text-rose-600">schedule</span>
-                                                @(lvl.ToMinutes.HasValue ? $"{lvl.FromMinutes} – {lvl.ToMinutes} mins" : $"≥ {lvl.FromMinutes} mins (Trở lên)")
+                                                @(lvl.ToMinutes.HasValue ? $"{lvl.FromMinutes} – {lvl.ToMinutes} mins" : $"≥ {lvl.FromMinutes} mins (and above)")
                                             </span>
                                         </td>
                                         <td class="py-3.5 px-4 text-right font-bold text-rose-600 text-base">
-                                            @lvl.PenaltyAmount.ToString("N0") <span class="text-xs font-semibold text-slate-500">VNĐ</span>
+                                            @lvl.PenaltyAmount.ToString("N0") <span class="text-xs font-semibold text-slate-500">VND</span>
                                         </td>
                                     </tr>
                                 }

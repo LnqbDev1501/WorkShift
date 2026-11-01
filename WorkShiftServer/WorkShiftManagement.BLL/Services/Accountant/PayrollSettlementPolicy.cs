@@ -1,7 +1,7 @@
-using WorkShiftManagement.BLL.Services.Admin;
+﻿using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
-using WorkShiftManagement.DAL.Version.Payroll;
+using WorkShiftManagement.BLL.Policies.Payroll;
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public sealed record CarryForwardAllocation(Payroll Payroll, PayrollCarryForwardDeduction Carry, decimal Amount);
@@ -33,7 +33,7 @@ public static class PayrollSettlementPolicy
                     .Sum(d => d.AppliedAmount ?? 0) != a.AppliedAmount)
             || c.OriginalAmount - apps.Sum(a => a.AppliedAmount) != c.RemainingAmount
             || c.Status != (c.RemainingAmount == 0 ? "SETTLED" : c.RemainingAmount == c.OriginalAmount ? "OPEN" : "PARTIALLY_APPLIED"))
-            throw new InvalidOperationException($"Carry Forward #{c.CarryForwardId} sai nguồn, nhân viên, trạng thái hoặc lịch sử/số dư.");
+            throw new InvalidOperationException($"Carry Forward #{c.CarryForwardId} has invalid source, employee, status, or balance history.");
     }
 
     public static PayrollSettlementPlan Assess(PayrollSettlementData data, DateTime now)
@@ -41,28 +41,28 @@ public static class PayrollSettlementPolicy
         var period = data.Period;
         var plan = new PayrollSettlementPlan { Current = PayrollVersionPolicy.Current(data.Payrolls, period.Status) };
         var settled = period.Status is "PAID" or "CLOSED";
-        if (!settled && period.Status != "APPROVED") plan.BlockingReasons.Add("Kỳ phải APPROVED trước khi quyết toán.");
-        if (data.UnresolvedFeedbackCount > 0) plan.BlockingReasons.Add($"Còn {data.UnresolvedFeedbackCount} feedback/correction chưa hoàn tất.");
+        if (!settled && period.Status != "APPROVED") plan.BlockingReasons.Add("Period must be APPROVED prior to settlement.");
+        if (data.UnresolvedFeedbackCount > 0) plan.BlockingReasons.Add($"{data.UnresolvedFeedbackCount} feedback or correction item(s) remain unresolved.");
         if (plan.Current.Count == 0 || !data.ExpectedEmployees.SetEquals(plan.Current.Select(p => p.UserId)))
-            plan.BlockingReasons.Add("Chưa đủ Payroll hiện hành cho toàn bộ nhân viên cần quyết toán.");
-        if (!settled && data.UnsettledPriorEmployees.Count > 0) plan.BlockingReasons.Add("Có nhân viên còn kỳ lương trước chưa quyết toán.");
+            plan.BlockingReasons.Add("Missing current Payroll records for all employees requiring settlement.");
+        if (!settled && data.UnsettledPriorEmployees.Count > 0) plan.BlockingReasons.Add("Some employees have prior unsettled payroll periods; sequential settlement required.");
         if (data.Payrolls.GroupBy(p => p.UserId).Any(g => g.OrderByDescending(p => p.VersionNo).ThenByDescending(p => p.PayrollId)
             .First().Status is "CALCULATED" or "SUBMITTED" or "REJECTED"))
-            plan.BlockingReasons.Add("Còn Payroll version sửa chưa được duyệt hoàn tất.");
+            plan.BlockingReasons.Add("Revised Payroll versions remain pending approval completion.");
         foreach (var p in plan.Current)
         {
             try
             {
                 if (p.Status != (settled ? "PAID" : "APPROVED") || p.PayrollPeriodId != period.PayrollPeriodId || p.BranchId != period.BranchId)
-                    throw new InvalidOperationException("Payroll hiện hành chưa đúng trạng thái/chi nhánh/kỳ.");
+                    throw new InvalidOperationException("Current Payroll has invalid status, branch, or period association.");
                 if (p.Payslip == null || p.Payslip.Status != "PUBLISHED" || p.Payslip.PayrollId != p.PayrollId
                     || p.Payslip.PublishedAt > now || p.Payslip.PeriodStartSnapshot != period.StartDate || p.Payslip.PeriodEndSnapshot != period.EndDate)
-                    throw new InvalidOperationException("Chưa có Payslip hiện hành đã phát hợp lệ.");
+                    throw new InvalidOperationException("Missing valid published official Payslip for current payroll.");
                 PayrollApprovalService.ValidateTotals(p);
                 PayrollRevisionPolicy.Work(p);
                 if (p.PayrollDetails.Any(d => d.PayrollId != p.PayrollId || d.PayrollDetailId <= 0)
                     || p.PayrollDetails.Select(d => d.PayrollDetailId).Distinct().Count() != p.PayrollDetails.Count)
-                    throw new InvalidOperationException("Chi tiết tính lương phải có nguồn duy nhất và thuộc đúng Payroll.");
+                    throw new InvalidOperationException("Calculation details must have unique sources and belong to the correct Payroll.");
                 var carries = data.CarryForwards.Where(c => c.UserId == p.UserId).ToList();
                 foreach (var c in carries) ValidateCarry(c);
                 if (settled) ValidatePaidLedger(p, carries);
@@ -80,17 +80,17 @@ public static class PayrollSettlementPolicy
         var details = p.PayrollDetails.OrderBy(d => d.DisplayOrder).ThenBy(d => d.PayrollDetailId).ToList();
         var oldLines = details.Where(d => d.Type == "CARRY_FORWARD_DEDUCTION").ToList();
         if (!oldLines.Select(d => d.CarryForwardId).SequenceEqual(old.Select(c => (int?)c.CarryForwardId)))
-            throw new InvalidOperationException("Kế hoạch Carry Forward không khớp các khoản còn dư/FIFO; cần correction Payroll.");
+            throw new InvalidOperationException("Carry forward plan does not match remaining balances or FIFO order; Payroll correction required.");
         var newLines = details.Where(d => d.Type is "PENALTY" or "ATTENDANCE_DEDUCTION").ToList();
         if (newLines.Any(d => d.CarryForwardId != null) || newLines.Any(d => oldLines.Any(o => o.DisplayOrder >= d.DisplayOrder)))
-            throw new InvalidOperationException("Giảm trừ mới phải được áp dụng sau Carry Forward cũ.");
+            throw new InvalidOperationException("New deductions must be applied strictly after prior carry forward debt.");
         var available = p.GrossSalary;
         for (var i = 0; i < old.Count; i++)
         {
             var carry = old[i]; var line = oldLines[i]; var amount = Math.Min(available, carry.RemainingAmount);
             if (line.Amount != carry.RemainingAmount || line.AppliedAmount != amount
                 || carry.PayrollCarryForwardApplications.Any(a => a.PayrollId == p.PayrollId))
-                throw new InvalidOperationException("Số dư/kế hoạch trừ Carry Forward đã thay đổi hoặc đã áp dụng; cần kiểm tra/correction.");
+                throw new InvalidOperationException("Carry forward balance or deduction plan has changed or already been applied; verification/correction required.");
             available -= amount;
             if (amount > 0) plan.Applications.Add(new(p, carry, amount));
         }
@@ -98,12 +98,12 @@ public static class PayrollSettlementPolicy
         {
             var applied = Math.Min(available, line.Amount);
             if (line.AppliedAmount != applied || carries.Any(c => c.SourcePayrollDetailId == line.PayrollDetailId))
-                throw new InvalidOperationException("Kế hoạch giảm trừ mới không khớp hoặc đã sinh Carry Forward.");
+                throw new InvalidOperationException("New deduction plan does not match or has already generated a Carry Forward record.");
             available -= applied;
             var deferred = line.Amount - applied;
             if (deferred > 0) plan.NewDeductions.Add(new(p, line, deferred));
         }
-        if (available != p.NetSalary) throw new InvalidOperationException("Thực nhận không khớp kế hoạch quyết toán.");
+        if (available != p.NetSalary) throw new InvalidOperationException("Net salary does not match settlement plan calculation.");
     }
 
     private static void ValidatePaidLedger(Payroll p, List<PayrollCarryForwardDeduction> carries)
@@ -111,9 +111,9 @@ public static class PayrollSettlementPolicy
         foreach (var line in p.PayrollDetails.Where(d => d.Type == "CARRY_FORWARD_DEDUCTION"))
         {
             var c = carries.SingleOrDefault(c => c.CarryForwardId == line.CarryForwardId)
-                ?? throw new InvalidOperationException("Thiếu nguồn Carry Forward đã áp dụng.");
+                ?? throw new InvalidOperationException("Missing source for applied Carry Forward record.");
             if (c.PayrollCarryForwardApplications.Where(a => a.PayrollId == p.PayrollId).Sum(a => a.AppliedAmount) != line.AppliedAmount)
-                throw new InvalidOperationException("Payroll PAID chưa có lịch sử áp dụng Carry Forward đầy đủ.");
+                throw new InvalidOperationException("PAID Payroll lacks complete Carry Forward application audit history.");
         }
         foreach (var line in p.PayrollDetails.Where(d => d.Type is "PENALTY" or "ATTENDANCE_DEDUCTION"))
         {
@@ -121,7 +121,7 @@ public static class PayrollSettlementPolicy
             var c = carries.SingleOrDefault(c => c.SourcePayrollDetailId == line.PayrollDetailId);
             if (amount > 0 && (c == null || c.OriginalAmount != amount || c.SourcePayrollId != p.PayrollId)
                 || amount == 0 && c != null)
-                throw new InvalidOperationException("Payroll PAID chưa có dữ liệu chuyển kỳ khớp khoản giảm trừ.");
+                throw new InvalidOperationException("PAID Payroll lacks carry forward data matching deduction items.");
         }
     }
 }

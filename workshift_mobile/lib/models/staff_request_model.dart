@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-/// Model tóm tắt ca làm việc trong danh sách yêu cầu
+/// Shift summary model in requests list
 class StaffRequestShiftSummaryModel {
   final int totalShifts;
   final String? primaryShiftName;
@@ -34,7 +34,7 @@ class StaffRequestShiftSummaryModel {
   }
 }
 
-/// Model chi tiết yêu cầu tăng lương (SALARY_INCREASE)
+/// Salary increase request detail model (SALARY_INCREASE)
 class StaffSalaryIncreaseDetailModel {
   final int currentContractId;
   final String? contractNumber;
@@ -58,7 +58,7 @@ class StaffSalaryIncreaseDetailModel {
   }
 }
 
-/// Model cho từng dòng trong danh sách yêu cầu của nhân viên (GET /api/staff/requests)
+/// Staff request item model (GET /api/staff/requests)
 class StaffEmployeeRequestListItemModel {
   final int requestId;
   final String userId;
@@ -184,20 +184,20 @@ class StaffEmployeeRequestListItemModel {
   Color get typeColor {
     switch (requestType.toUpperCase()) {
       case 'LEAVE':
-        return const Color(0xFF059669); // Xanh mint đậm
+        return const Color(0xFF059669); // Deep mint green
       case 'LATE_ARRIVAL':
         return const Color(0xFFEA580C); // Cam
       case 'EARLY_LEAVE':
-        return const Color(0xFF7C3AED); // Tím
+        return const Color(0xFF7C3AED); // Purple
       case 'SALARY_INCREASE':
-        return const Color(0xFF2563EB); // Xanh dương
+        return const Color(0xFF2563EB); // Blue
       default:
         return AppColors.primary;
     }
   }
 }
 
-/// Model quy định số lượng đơn tối đa theo tháng
+/// Monthly quota rule model
 class StaffAppliedRequestLimitRuleModel {
   final int ruleId;
   final String requestType;
@@ -220,7 +220,7 @@ class StaffAppliedRequestLimitRuleModel {
   }
 }
 
-/// Model ca nghỉ thuộc đơn nghỉ phép
+/// Leave shift model
 class StaffLeaveRequestAssignmentModel {
   final int leaveRequestAssignmentId;
   final int assignmentId;
@@ -265,7 +265,7 @@ class StaffLeaveRequestAssignmentModel {
   }
 }
 
-/// Model chi tiết điều chỉnh thời gian (Đi trễ / Về sớm)
+/// Time adjustment detail model (Late arrival / Early leave)
 class StaffTimeAdjustmentDetailModel {
   final int assignmentId;
   final DateTime requestedTime;
@@ -313,7 +313,7 @@ class StaffTimeAdjustmentDetailModel {
   }
 }
 
-/// Model chi tiết yêu cầu của nhân viên (GET /api/staff/requests/{requestId})
+/// Staff request detail model (GET /api/staff/requests/{requestId})
 class StaffEmployeeRequestDetailModel {
   final int requestId;
   final String userId;
@@ -470,7 +470,7 @@ class StaffEmployeeRequestDetailModel {
   }
 }
 
-/// Model ca làm việc đủ điều kiện tạo đơn (GET /api/staff/requests/eligible-shifts)
+/// Eligible shift model for requests (GET /api/staff/requests/eligible-shifts)
 class StaffEligibleShiftModel {
   final int assignmentId;
   final int shiftId;
@@ -512,7 +512,7 @@ class StaffEligibleShiftModel {
   }
 }
 
-/// Model phân trang cho danh sách yêu cầu
+/// Paged result model for staff requests
 class PagedStaffRequestModel {
   final List<StaffEmployeeRequestListItemModel> items;
   final int pageNumber;

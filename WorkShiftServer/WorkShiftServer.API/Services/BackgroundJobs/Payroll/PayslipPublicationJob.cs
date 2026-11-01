@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 
 namespace WorkShiftServer.API.Services;
@@ -20,6 +20,6 @@ public sealed class PayslipPublicationJob(IPayslipService service, ILogger<Paysl
             }
         }
         // Hangfire records failure and retries; a failed branch does not prevent other branches publishing.
-        if (failed.Count > 0) throw new AggregateException("Một số kỳ lương chưa phát hành được Payslip.", failed);
+        if (failed.Count > 0) throw new AggregateException("Failed to publish payslips for some payroll periods.", failed);
     }
 }

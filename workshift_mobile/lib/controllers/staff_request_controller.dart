@@ -1,16 +1,16 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/staff_request_model.dart';
 import '../services/staff_request_service.dart';
 
-/// Controller quản lý logic nghiệp vụ và trạng thái màn hình Request của Staff
+/// Controller managing business logic and UI state for Staff Requests
 class StaffRequestController extends ChangeNotifier {
   final StaffRequestService _service;
 
   StaffRequestController({StaffRequestService? service})
       : _service = service ?? StaffRequestService();
 
-  // State danh sách
+  // List state
   final List<StaffEmployeeRequestListItemModel> _requests = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -35,7 +35,7 @@ class StaffRequestController extends ChangeNotifier {
   bool _isSubmitting = false;
   String? _actionErrorMessage;
 
-  // Eligible shifts state (cho tạo mới đơn)
+  // Eligible shifts state (for creating new request)
   List<StaffEligibleShiftModel> _eligibleShifts = [];
   bool _isLoadingEligibleShifts = false;
 
@@ -70,7 +70,7 @@ class StaffRequestController extends ChangeNotifier {
   List<StaffEligibleShiftModel> get eligibleShifts => List.unmodifiable(_eligibleShifts);
   bool get isLoadingEligibleShifts => _isLoadingEligibleShifts;
 
-  /// Nạp trang đầu danh sách yêu cầu
+  /// Load first page of requests list
   Future<void> loadRequests({bool refresh = false}) async {
     if (!refresh) {
       _isLoading = true;
@@ -104,7 +104,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Nạp thêm trang tiếp theo (Load more / Infinite scroll)
+  /// Load next page (Load more / Infinite scroll)
   Future<void> loadMore() async {
     if (_isLoadingMore || !hasMore || _isLoading) return;
 
@@ -129,28 +129,28 @@ class StaffRequestController extends ChangeNotifier {
       _totalPages = result.totalPages;
       _totalItems = result.totalItems;
     } catch (e) {
-      // Có lỗi khi load more
+      // Error during load more
     } finally {
       _isLoadingMore = false;
       notifyListeners();
     }
   }
 
-  /// Đặt từ khóa tìm kiếm theo lý do
+  /// Set keyword search by reason
   Future<void> setSearchQuery(String query) async {
     if (_searchQuery == query) return;
     _searchQuery = query;
     await loadRequests();
   }
 
-  /// Lọc nhanh theo trạng thái (Tab hoặc Chip: PENDING, APPROVED, REJECTED, CANCELLED, ALL)
+  /// Quick filter by status (Tab or Chip: PENDING, APPROVED, REJECTED, CANCELLED, ALL)
   Future<void> setStatusFilter(String status) async {
     if (_selectedStatus == status) return;
     _selectedStatus = status;
     await loadRequests();
   }
 
-  /// Đặt bộ lọc nâng cao
+  /// Set advanced filter
   Future<void> applyAdvancedFilters({
     String? requestType,
     String? status,
@@ -164,7 +164,7 @@ class StaffRequestController extends ChangeNotifier {
     await loadRequests();
   }
 
-  /// Đặt lại toàn bộ bộ lọc
+  /// Reset all filters
   Future<void> resetFilters() async {
     _searchQuery = '';
     _selectedRequestType = 'ALL';
@@ -174,7 +174,7 @@ class StaffRequestController extends ChangeNotifier {
     await loadRequests();
   }
 
-  /// Nạp chi tiết một yêu cầu
+  /// Load details of a single request
   Future<void> loadRequestDetail(int requestId) async {
     _isLoadingDetail = true;
     _actionErrorMessage = null;
@@ -191,7 +191,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Hủy yêu cầu (Cancel Employee Request)
+  /// Cancel employee request
   Future<bool> cancelRequest(int requestId) async {
     _isCancelling = true;
     _actionErrorMessage = null;
@@ -200,7 +200,7 @@ class StaffRequestController extends ChangeNotifier {
     try {
       final updated = await _service.cancelRequest(requestId);
 
-      // Cập nhật optimistic item trong danh sách
+      // Optimistically update item in list
       final index = _requests.indexWhere((r) => r.requestId == requestId);
       if (index != -1) {
         final old = _requests[index];
@@ -222,7 +222,7 @@ class StaffRequestController extends ChangeNotifier {
         );
       }
 
-      // Cập nhật selectedDetail nếu đang mở
+      // Update selectedDetail if currently open
       if (_selectedDetail != null && _selectedDetail!.requestId == requestId) {
         _selectedDetail = updated;
       }
@@ -238,7 +238,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Nạp danh sách ca làm việc đủ điều kiện tạo đơn
+  /// Load list of shifts eligible for request creation
   Future<void> loadEligibleShifts(String requestType) async {
     if (requestType == 'SALARY_INCREASE') {
       _isLoadingEligibleShifts = false;
@@ -263,7 +263,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Gửi đơn nghỉ phép (LEAVE)
+  /// Submit leave request (LEAVE)
   Future<StaffEmployeeRequestDetailModel?> submitLeaveRequest({
     required List<int> assignmentIds,
     required String reason,
@@ -278,7 +278,7 @@ class StaffRequestController extends ChangeNotifier {
         reason: reason,
       );
       _isSubmitting = false;
-      // Reload lại danh sách sau khi tạo mới
+      // Reload list after creating new request
       await loadRequests(refresh: true);
       return result;
     } catch (e) {
@@ -289,7 +289,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Gửi đơn đi trễ (LATE_ARRIVAL)
+  /// Submit late arrival request (LATE_ARRIVAL)
   Future<StaffEmployeeRequestDetailModel?> submitLateArrivalRequest({
     required int assignmentId,
     required DateTime requestedTime,
@@ -316,7 +316,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Gửi đơn về sớm (EARLY_LEAVE)
+  /// Submit early leave request (EARLY_LEAVE)
   Future<StaffEmployeeRequestDetailModel?> submitEarlyLeaveRequest({
     required int assignmentId,
     required DateTime requestedTime,
@@ -343,7 +343,7 @@ class StaffRequestController extends ChangeNotifier {
     }
   }
 
-  /// Gửi đơn xin tăng lương (SALARY_INCREASE)
+  /// Submit salary increase request (SALARY_INCREASE)
   Future<StaffEmployeeRequestDetailModel?> submitSalaryIncreaseRequest({
     required double proposedHourlyRate,
     required String reason,

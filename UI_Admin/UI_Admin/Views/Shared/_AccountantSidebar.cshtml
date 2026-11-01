@@ -1,4 +1,4 @@
-@{
+﻿@{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 
@@ -21,7 +21,7 @@
             <div class="sidebar-header-full flex items-center justify-between w-full px-1">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white shadow-md flex-shrink-0 cursor-pointer overflow-hidden transition-all duration-150 hover:scale-105 active:scale-95 hover:shadow-indigo-500/30 hover:shadow-lg"
-                         title="Nhấp vào để chọc chú cáo!">
+                         title="Click to poke the fox!">
                         <canvas id="sidebar-mascot" class="w-full h-full object-contain pointer-events-none"></canvas>
                     </div>
                     <div class="flex flex-col min-w-0">

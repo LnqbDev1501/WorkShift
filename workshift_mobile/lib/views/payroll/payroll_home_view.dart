@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../models/payslip_model.dart';
 import '../../services/payroll_service.dart';
@@ -9,10 +9,10 @@ import 'payroll_preview_detail_view.dart';
 import '../adjustments/staff_reward_list_view.dart';
 import '../adjustments/staff_penalty_list_view.dart';
 
-/// Màn hình chính Payroll dành cho Staff với 3 phân hệ:
-/// 1. Payroll Previews (Bản xem trước)
-/// 2. My Payroll Feedback (Phản hồi của tôi)
-/// 3. My Payslips (Phiếu lương chính thức)
+/// Staff Payroll main screen with 3 modules:
+/// 1. Payroll Previews
+/// 2. My Payroll Feedback
+/// 3. My Payslips
 class PayrollHomeView extends StatefulWidget {
   final int initialTabIndex;
 
@@ -51,7 +51,7 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Lương & Thu nhập',
+          'Payroll & Earnings',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w800,
@@ -108,15 +108,15 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
               tabs: const [
                 Tab(
                   iconMargin: EdgeInsets.only(bottom: 2),
-                  text: 'Bản xem trước',
+                  text: 'Payroll Previews',
                 ),
                 Tab(
                   iconMargin: EdgeInsets.only(bottom: 2),
-                  text: 'Phản hồi của tôi',
+                  text: 'My Feedbacks',
                 ),
                 Tab(
                   iconMargin: EdgeInsets.only(bottom: 2),
-                  text: 'Phiếu lương',
+                  text: 'Payslips',
                 ),
               ],
             ),
@@ -212,7 +212,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
               ElevatedButton.icon(
                 onPressed: _loadPreviews,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Thử lại'),
+                label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -246,7 +246,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Chưa có bản xem trước lương nào',
+                    'No payroll previews available',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -255,7 +255,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Khi Kế toán gửi bản tính lương xem trước, bạn sẽ thấy ở đây.',
+                    'When the accountant issues a payroll preview, it will appear here.',
                     style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                     textAlign: TextAlign.center,
                   ),
@@ -330,7 +330,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'Kỳ lương #${item.payrollPeriodId}',
+                      'Period #${item.payrollPeriodId}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -366,12 +366,12 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                 children: [
                   _buildTag(
                     Icons.layers_outlined,
-                    'Phiên bản V${item.payrollVersionNo}',
+                    'Version V${item.payrollVersionNo}',
                   ),
                   const SizedBox(width: 10),
                   _buildTag(
                     Icons.repeat_rounded,
-                    'Lượt review #${item.roundNo}',
+                    'Review Round #${item.roundNo}',
                   ),
                 ],
               ),
@@ -384,7 +384,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                       size: 15, color: AppColors.warning),
                   const SizedBox(width: 6),
                   const Text(
-                    'Hạn phản hồi: ',
+                    'Feedback deadline: ',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -415,7 +415,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                           size: 13, color: AppColors.textMuted),
                       const SizedBox(width: 6),
                       Text(
-                        'Ngày gửi: ${formatVietnamDateTime(item.createdAt)}',
+                        'Sent: ${formatVietnamDateTime(item.createdAt)}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textMuted,
@@ -426,7 +426,7 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                   const Row(
                     children: [
                       Text(
-                        'Xem chi tiết',
+                        'View Details',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -567,7 +567,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                             ElevatedButton.icon(
                               onPressed: _loadFeedbacks,
                               icon: const Icon(Icons.refresh_rounded, size: 18),
-                              label: const Text('Thử lại'),
+                              label: const Text('Retry'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
@@ -603,7 +603,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                                     ),
                                     const SizedBox(height: 16),
                                     const Text(
-                                      'Không có phản hồi nào',
+                                      'No feedbacks found',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -612,7 +612,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                                     ),
                                     const SizedBox(height: 6),
                                     const Text(
-                                      'Các phản hồi bạn đã gửi sẽ hiển thị ở đây kèm kết quả xử lý của Kế toán.',
+                                      'Your submitted feedbacks will appear here along with the accountant\'s response.',
                                       style: TextStyle(
                                           fontSize: 13,
                                           color: AppColors.textMuted),
@@ -651,13 +651,13 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _buildFilterChip('Tất cả', null),
+            _buildFilterChip('All', null),
             const SizedBox(width: 8),
-            _buildFilterChip('Chờ xử lý', StaffFeedbackStatus.submitted),
+            _buildFilterChip('Pending', StaffFeedbackStatus.submitted),
             const SizedBox(width: 8),
-            _buildFilterChip('Đã duyệt sửa', StaffFeedbackStatus.approved),
+            _buildFilterChip('Correction Approved', StaffFeedbackStatus.approved),
             const SizedBox(width: 8),
-            _buildFilterChip('Đã giải trình', StaffFeedbackStatus.explained),
+            _buildFilterChip('Explained', StaffFeedbackStatus.explained),
           ],
         ),
       ),
@@ -693,7 +693,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        // Nhấn item phải mở ĐÚNG Preview Round liên quan (dùng feedbackId chính xác)
+        // Tap item opens the exact linked Preview Round (using correct feedbackId)
         onTap: () async {
           await Navigator.push(
             context,
@@ -727,7 +727,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Kỳ #${item.payrollPeriodId} • V${item.payrollVersionNo} (Lượt #${item.roundNo})',
+                    'Period #${item.payrollPeriodId} • V${item.payrollVersionNo} (Round #${item.roundNo})',
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -754,9 +754,9 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
               ),
               const SizedBox(height: 10),
 
-              // Description (Nội dung phản hồi)
+              // Feedback description
               Text(
-                item.description ?? '(Chưa có mô tả)',
+                item.description ?? '(No description provided)',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -770,11 +770,11 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
 
               // Submitted Time
               Text(
-                'Gửi lúc: ${formatVietnamDateTime(submittedTime)}',
+                'Submitted at: ${formatVietnamDateTime(submittedTime)}',
                 style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
               ),
 
-              // Resolution Note (nếu Kế toán đã phản hồi)
+              // Resolution Note (if accountant responded)
               if (item.resolutionNote != null &&
                   item.resolutionNote!.isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -793,7 +793,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          'Kế toán phản hồi: ${item.resolutionNote!}',
+                          'Accountant Response: ${item.resolutionNote!}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF166534),
@@ -806,7 +806,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                 ),
               ],
 
-              // Correction Status nếu có
+              // Correction status if present
               if (item.corrections.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -815,7 +815,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                         size: 14, color: AppColors.warning),
                     const SizedBox(width: 4),
                     Text(
-                      'Yêu cầu chỉnh sửa: ${item.corrections.first.status}',
+                      'Correction Request: ${item.corrections.first.status}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -831,7 +831,7 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Text(
-                    'Xem bản xem trước của lượt này',
+                    'View Preview for this Round',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -928,7 +928,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
               ElevatedButton.icon(
                 onPressed: _loadPayslips,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
-                label: const Text('Thử lại'),
+                label: const Text('Retry'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
@@ -962,7 +962,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Chưa có phiếu lương chính thức nào',
+                    'No official payslips available',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -971,7 +971,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Sau khi Admin phê duyệt bảng lương, phiếu lương chính thức sẽ được phát hành tại đây.',
+                    'After Admin approves the payroll period, official payslips will be published here.',
                     style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                     textAlign: TextAlign.center,
                   ),
@@ -1044,7 +1044,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                     child: Text(
                       item.periodCode.isNotEmpty
                           ? item.periodCode
-                          : 'Kỳ #${item.payrollPeriodId}',
+                          : 'Period #${item.payrollPeriodId}',
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -1091,7 +1091,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                         Text(
                           item.periodName.isNotEmpty
                               ? item.periodName
-                              : 'Phiếu lương kỳ #${item.payrollPeriodId}',
+                              : 'Payslip for Period #${item.payrollPeriodId}',
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -1113,7 +1113,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       const Text(
-                        'Thực nhận',
+                        'Net Pay',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.textMuted,
@@ -1143,7 +1143,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                           size: 14, color: AppColors.textMuted),
                       const SizedBox(width: 6),
                       Text(
-                        'Phát hành: ${formatVietnamDateTime(item.publishedAt)}',
+                        'Published: ${formatVietnamDateTime(item.publishedAt)}',
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppColors.textMuted,
@@ -1154,7 +1154,7 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                   const Row(
                     children: [
                       Text(
-                        'Xem phiếu',
+                        'View Payslip',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,

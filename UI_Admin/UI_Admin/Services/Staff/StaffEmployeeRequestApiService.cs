@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
@@ -94,7 +94,7 @@ public class StaffEmployeeRequestApiService
                     Status = status,
                     FromDate = fromDate,
                     ToDate = toDate,
-                    ErrorMessage = errorMsg ?? "Không thể tải danh sách đơn của bạn."
+                    ErrorMessage = errorMsg ?? "Unable to load your requests list."
                 };
             }
 
@@ -126,7 +126,7 @@ public class StaffEmployeeRequestApiService
                 Status = status,
                 FromDate = fromDate,
                 ToDate = toDate,
-                ErrorMessage = $"Lỗi kết nối máy chủ: {ex.Message}"
+                ErrorMessage = $"Server connection error: {ex.Message}"
             };
         }
     }
@@ -160,7 +160,7 @@ public class StaffEmployeeRequestApiService
         if (!response.IsSuccessStatusCode)
         {
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            throw new InvalidOperationException(errorMsg ?? "Không thể tải thông tin chi tiết đơn.");
+            throw new InvalidOperationException(errorMsg ?? "Unable to load request details.");
         }
 
         return await response.Content.ReadFromJsonAsync<StaffEmployeeRequestDetailViewModel>(
@@ -221,11 +221,11 @@ public class StaffEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Gửi đơn xin nghỉ phép thất bại.");
+            return (false, errorMsg ?? "Failed to submit leave request.");
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}");
+            return (false, $"Server connection error: {ex.Message}");
         }
     }
 
@@ -255,11 +255,11 @@ public class StaffEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Gửi đơn xin đi trễ thất bại.");
+            return (false, errorMsg ?? "Failed to submit late arrival request.");
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}");
+            return (false, $"Server connection error: {ex.Message}");
         }
     }
 
@@ -289,11 +289,11 @@ public class StaffEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Gửi đơn xin về sớm thất bại.");
+            return (false, errorMsg ?? "Failed to submit early leave request.");
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}");
+            return (false, $"Server connection error: {ex.Message}");
         }
     }
 
@@ -315,11 +315,11 @@ public class StaffEmployeeRequestApiService
             }
 
             var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-            return (false, errorMsg ?? "Hủy đơn yêu cầu thất bại.");
+            return (false, errorMsg ?? "Failed to cancel employee request.");
         }
         catch (HttpRequestException ex)
         {
-            return (false, $"Lỗi kết nối máy chủ: {ex.Message}");
+            return (false, $"Server connection error: {ex.Message}");
         }
     }
 

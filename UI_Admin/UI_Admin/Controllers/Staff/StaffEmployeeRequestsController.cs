@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -53,7 +53,7 @@ public class StaffEmployeeRequestsController : Controller
             {
                 if (from > to)
                 {
-                    ViewBag.ErrorMessage = "Khoảng ngày không hợp lệ: 'Từ ngày' phải trước hoặc cùng ngày với 'Đến ngày'.";
+                    ViewBag.ErrorMessage = "Invalid date range: 'From date' must be before or on the same day as 'To date'.";
                 }
             }
         }
@@ -84,7 +84,7 @@ public class StaffEmployeeRequestsController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load employee requests for staff.");
-            ViewBag.ErrorMessage = "Không thể tải danh sách đơn của bạn. Vui lòng thử lại sau.";
+            ViewBag.ErrorMessage = "Unable to load your requests. Please try again later.";
             return View(new StaffEmployeeRequestListViewModel
             {
                 PageNumber = targetPage,
@@ -113,7 +113,7 @@ public class StaffEmployeeRequestsController : Controller
             var detail = await _api.GetByIdAsync(id, ct);
             if (detail == null)
             {
-                TempData["ErrorMessage"] = "Không tìm thấy đơn yêu cầu hoặc bạn không có quyền xem.";
+                TempData["ErrorMessage"] = "Request not found or you do not have permission to view it.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -154,24 +154,24 @@ public class StaffEmployeeRequestsController : Controller
     {
         if (assignmentIds == null || !assignmentIds.Any())
         {
-            TempData["ErrorMessage"] = "Vui lòng chọn ít nhất một ca làm việc để xin nghỉ phép.";
+            TempData["ErrorMessage"] = "Please select at least one shift for leave.";
             return RedirectToAction(nameof(Create), new { type = "LEAVE" });
         }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do xin nghỉ phép.";
+            TempData["ErrorMessage"] = "Please enter a reason for the leave request.";
             return RedirectToAction(nameof(Create), new { type = "LEAVE" });
         }
 
         var (success, errorMsg) = await _api.SubmitLeaveAsync(assignmentIds, reason, ct);
         if (success)
         {
-            TempData["SuccessMessage"] = "Gửi đơn xin nghỉ phép thành công! Đang chờ Quản lý chi nhánh xét duyệt.";
+            TempData["SuccessMessage"] = "Leave request submitted successfully! Awaiting branch manager review.";
             return RedirectToAction(nameof(Index));
         }
 
-        TempData["ErrorMessage"] = errorMsg ?? "Gửi đơn xin nghỉ phép thất bại.";
+        TempData["ErrorMessage"] = errorMsg ?? "Failed to submit leave request.";
         return RedirectToAction(nameof(Create), new { type = "LEAVE" });
     }
 
@@ -181,13 +181,13 @@ public class StaffEmployeeRequestsController : Controller
     {
         if (assignmentId <= 0)
         {
-            TempData["ErrorMessage"] = "Vui lòng chọn ca làm việc cần xin đi trễ.";
+            TempData["ErrorMessage"] = "Please select a shift for late arrival.";
             return RedirectToAction(nameof(Create), new { type = "LATE_ARRIVAL" });
         }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do xin đi trễ.";
+            TempData["ErrorMessage"] = "Please enter a reason for late arrival.";
             return RedirectToAction(nameof(Create), new { type = "LATE_ARRIVAL" });
         }
 
@@ -195,11 +195,11 @@ public class StaffEmployeeRequestsController : Controller
         var (success, errorMsg) = await _api.SubmitLateArrivalAsync(assignmentId, dto, reason, ct);
         if (success)
         {
-            TempData["SuccessMessage"] = "Gửi đơn xin đi trễ thành công! Đang chờ Quản lý chi nhánh xét duyệt.";
+            TempData["SuccessMessage"] = "Late arrival request submitted successfully! Awaiting branch manager review.";
             return RedirectToAction(nameof(Index));
         }
 
-        TempData["ErrorMessage"] = errorMsg ?? "Gửi đơn xin đi trễ thất bại.";
+        TempData["ErrorMessage"] = errorMsg ?? "Failed to submit late arrival request.";
         return RedirectToAction(nameof(Create), new { type = "LATE_ARRIVAL" });
     }
 
@@ -209,13 +209,13 @@ public class StaffEmployeeRequestsController : Controller
     {
         if (assignmentId <= 0)
         {
-            TempData["ErrorMessage"] = "Vui lòng chọn ca làm việc cần xin về sớm.";
+            TempData["ErrorMessage"] = "Please select a shift for early leave.";
             return RedirectToAction(nameof(Create), new { type = "EARLY_LEAVE" });
         }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do xin về sớm.";
+            TempData["ErrorMessage"] = "Please enter a reason for early leave.";
             return RedirectToAction(nameof(Create), new { type = "EARLY_LEAVE" });
         }
 
@@ -223,11 +223,11 @@ public class StaffEmployeeRequestsController : Controller
         var (success, errorMsg) = await _api.SubmitEarlyLeaveAsync(assignmentId, dto, reason, ct);
         if (success)
         {
-            TempData["SuccessMessage"] = "Gửi đơn xin về sớm thành công! Đang chờ Quản lý chi nhánh xét duyệt.";
+            TempData["SuccessMessage"] = "Early leave request submitted successfully! Awaiting branch manager review.";
             return RedirectToAction(nameof(Index));
         }
 
-        TempData["ErrorMessage"] = errorMsg ?? "Gửi đơn xin về sớm thất bại.";
+        TempData["ErrorMessage"] = errorMsg ?? "Failed to submit early leave request.";
         return RedirectToAction(nameof(Create), new { type = "EARLY_LEAVE" });
     }
 
@@ -240,11 +240,11 @@ public class StaffEmployeeRequestsController : Controller
         var (success, errorMsg) = await _api.CancelAsync(id, ct);
         if (success)
         {
-            TempData["SuccessMessage"] = $"Đã hủy đơn #{id} thành công.";
+            TempData["SuccessMessage"] = $"Request #{id} cancelled successfully.";
         }
         else
         {
-            TempData["ErrorMessage"] = errorMsg ?? "Hủy đơn yêu cầu thất bại.";
+            TempData["ErrorMessage"] = errorMsg ?? "Failed to cancel request.";
         }
 
         if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))

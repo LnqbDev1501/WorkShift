@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using UI_Admin.Services;
 using UI_Admin.Models;
@@ -97,7 +97,11 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
     public async Task<IActionResult> Export(int id, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
-        try { return File(await reports.DownloadAsync(id, ct), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"Payroll-{id}.xlsx"); }
+        try
+        {
+            var (fileBytes, fileName, contentType) = await reports.DownloadAsync(id, ct);
+            return File(fileBytes, contentType, fileName);
+        }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized) { return Challenge(); }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden) { return Forbid(); }
@@ -105,6 +109,9 @@ public class PayrollController(PayrollApiService payroll, RegionApiService regio
         catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or InvalidOperationException)
         { logger.LogWarning(ex, "Payroll export failed {Id}", id); TempData["PayrollError"] = ex is HttpRequestException http && http.StatusCode == System.Net.HttpStatusCode.Conflict ? http.Message : "Could not export report. Please try again."; return RedirectToAction(nameof(Details), new { id }); }
     }
+
+    [HttpGet]
+    public Task<IActionResult> ExportExcel(int id, CancellationToken ct) => Export(id, ct);
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(PayrollReviewInput input, CancellationToken ct)

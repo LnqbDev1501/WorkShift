@@ -1,6 +1,6 @@
 using System.Globalization;
 using WorkShiftManagement.DAL.Entities;
-using WorkShiftManagement.DAL.Version.Rules;
+using WorkShiftManagement.DAL.Rules;
 
 namespace WorkShiftManagement.DAL.Notifications;
 

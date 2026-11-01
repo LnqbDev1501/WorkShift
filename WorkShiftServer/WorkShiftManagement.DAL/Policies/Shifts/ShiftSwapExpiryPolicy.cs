@@ -1,6 +1,6 @@
 using WorkShiftManagement.DAL.Entities;
 
-namespace WorkShiftManagement.DAL.Repositories.Staff;
+namespace WorkShiftManagement.DAL.Policies.Shifts;
 
 public static class ShiftSwapExpiryPolicy
 {
@@ -22,3 +22,4 @@ public static class ShiftSwapExpiryPolicy
         return true;
     }
 }
+

@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollSettlement;
@@ -14,7 +14,7 @@ public sealed class PayrollSettlementController(IPayrollSettlementService servic
         try
         {
             if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var actor) || actor == Guid.Empty)
-                throw new UnauthorizedAccessException("Tài khoản không hợp lệ.");
+                throw new UnauthorizedAccessException("Invalid user account.");
             return Ok(await action(actor));
         }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)

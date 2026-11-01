@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using UI_Admin.Models.Admin.Payroll;
 namespace UI_Admin.Models.Accountant.PayrollPeriods;
 
@@ -53,7 +53,7 @@ public sealed class PeriodRecord
     public bool CanUpdate { get; set; }
     public bool CanDelete { get; set; }
     public bool CanOpen { get; set; }
-    public bool CanExport => Status is "PAID" or "CLOSED";
+    public bool CanExport => Status is "APPROVED" or "PAID" or "CLOSED";
     public List<PayrollResponse> Payrolls { get; set; } = [];
     public List<UI_Admin.Models.PayrollDocuments.PayrollIssueResponse> CorrectionRequests { get; set; } = [];
     public List<UI_Admin.Models.PayrollDocuments.PayrollFeedbackResponse> Feedbacks { get; set; } = [];

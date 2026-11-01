@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using UI_Admin.Models;
@@ -27,8 +27,8 @@ public sealed class PayrollPeriodApiService(HttpClient client, IConfiguration co
         if (response.IsSuccessStatusCode) return response;
         using (response)
         {
-            var error = (int)response.StatusCode >= 500 ? "Không xác nhận được kết quả. Hãy tải lại danh sách trước khi thử lại." : await ApiErrorReader.ReadErrorMessageAsync(response, ct);
-            throw new PayrollPeriodApiException(response.StatusCode, error ?? "Không thể xử lý kỳ lương.");
+            var error = (int)response.StatusCode >= 500 ? "Unable to confirm result. Please reload the list before trying again." : await ApiErrorReader.ReadErrorMessageAsync(response, ct);
+            throw new PayrollPeriodApiException(response.StatusCode, error ?? "Unable to process payroll period.");
         }
     }
 

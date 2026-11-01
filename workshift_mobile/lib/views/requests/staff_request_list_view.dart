@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/staff_request_controller.dart';
 import '../../models/staff_request_model.dart';
@@ -8,7 +8,7 @@ import '../../widgets/status_badge.dart';
 import 'staff_request_detail_view.dart';
 import 'submit_request_view.dart';
 
-/// Màn hình Danh sách Yêu cầu của Staff (Chỉ gửi và quản lý Đơn ca làm: Nghỉ phép, Đi muộn, Về sớm)
+/// Staff Request List Screen (Leave, Late Arrival, Early Leave, Salary Increase)
 class StaffRequestListView extends StatefulWidget {
   final bool showBackButton;
 
@@ -208,7 +208,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     ),
                     const Divider(height: 24, color: AppColors.borderLight),
 
-                    // Lọc theo Loại yêu cầu
+                    // Filter by request type
                     const Text(
                       'Request Type',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
@@ -247,7 +247,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Lọc theo Trạng thái
+                    // Filter by status
                     const Text(
                       'Approval Status',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
@@ -286,7 +286,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Lọc theo Khoảng ngày
+                    // Filter by date range
                     const Text(
                       'Date Range (Submitted Date)',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
@@ -597,7 +597,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: Loại yêu cầu & StatusBadge
+            // Top row: Request type & StatusBadge
             Row(
               children: [
                 Container(
@@ -634,7 +634,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
             const Divider(height: 20, color: AppColors.borderLight),
 
-            // Chi tiết tăng lương (SALARY_INCREASE) hoặc Tóm tắt ca làm việc (Shift summary)
+            // Salary increase details or shift summary
             if (item.requestType == 'SALARY_INCREASE' && item.salaryIncreaseDetail != null) ...[
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -685,7 +685,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               const SizedBox(height: 10),
             ],
 
-            // Lý do gửi
+            // Reason
             if (item.reason != null && item.reason!.isNotEmpty) ...[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,7 +707,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
               const SizedBox(height: 10),
             ],
 
-            // Bottom row: Chi nhánh & Nút Hủy (nếu pending)
+            // Bottom row: Branch & Cancel button (if pending)
             Row(
               children: [
                 const Icon(Icons.storefront_outlined, size: 15, color: AppColors.textMuted),
@@ -753,7 +753,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
       }
       return '${s.primaryShiftName ?? 'Shift'} • ${_formatDate(s.primaryScheduledStartAt)} (${_formatTime(s.primaryScheduledStartAt)} - ${_formatTime(s.primaryScheduledEndAt)})';
     } else {
-      // LATE_ARRIVAL hoặc EARLY_LEAVE
+      // LATE_ARRIVAL or EARLY_LEAVE
       final action = item.requestType == 'LATE_ARRIVAL' ? 'Arriving at' : 'Leaving at';
       return '${s.primaryShiftName ?? 'Shift'} • $action ${_formatTime(s.requestedTime)} (${_formatDate(s.primaryScheduledStartAt)})';
     }
@@ -804,7 +804,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
       ),
       body: Column(
         children: [
-          // 1. Search Bar & Nút mở Bộ lọc
+          // 1. Search Bar & Filter Button
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -841,7 +841,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Nút mở modal bộ lọc với badge cho Tab Đơn ca làm
+                // Filter modal button with badge for shift request tab
                 Stack(
                   children: [
                     IconButton(
@@ -871,7 +871,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
           ),
 
-          // 2. Filter chips cuộn ngang theo Trạng thái (Quick Filter)
+          // 2. Status Filter Chips (Quick Filter)
           Container(
             color: Colors.white,
             padding: const EdgeInsets.only(left: 16, right: 16, bottom: 10),
@@ -893,7 +893,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
             ),
           ),
 
-          // 3. Danh sách Đơn ca làm
+          // 3. Shift Requests List
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => _controller.loadRequests(refresh: true),

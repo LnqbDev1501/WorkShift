@@ -1,4 +1,4 @@
-using WorkShiftManagement.DAL.Entities;
+﻿using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
@@ -9,12 +9,12 @@ public static class PayslipPolicy
     private static DateTime ThursdayStart(DateOnly end)
     {
         if (end.DayOfWeek != DayOfWeek.Sunday)
-            throw new InvalidOperationException("Kỳ lương phải kết thúc vào Chủ nhật để xác định lịch phát thứ Năm.");
+            throw new InvalidOperationException("Payroll period must end on Sunday to schedule official publication for Thursday.");
         return new DateTimeOffset(end.AddDays(4).ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).UtcDateTime;
     }
 
     public static string? FeedbackBlocked(Payslip slip, bool isOwnerStaff, bool unresolved, DateTime now)
-        => "Phiếu lương chính thức chỉ để xem. Phản hồi được xử lý trên Payroll Preview trước khi Admin duyệt.";
+        => "Official payslip is view-only. Feedback is handled on the Payroll Preview prior to Admin approval.";
 
     // Both initial publication and replacement use ONLY the immutable payroll work snapshot.
     public static Payslip Create(Payroll payroll, DateTime now, Payslip? previous = null)

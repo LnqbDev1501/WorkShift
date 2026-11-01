@@ -2,57 +2,68 @@
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
     ViewData["Title"] = $"Carry Forward #{Model.Item.CarryForwardId} — {Model.Item.EmployeeName}";
+    var shortId = Model.Item.UserId.ToString().Length >= 8 
+        ? Model.Item.UserId.ToString()[..8].ToUpperInvariant() 
+        : Model.Item.UserId.ToString();
 }
 
-<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
-    <!-- Header Title & Action Bar -->
+<div class="px-4 sm:px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Breadcrumb, Header & Action Bar -->
     <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+            <!-- Breadcrumb -->
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1.5">
                 <span class="material-symbols-outlined text-sm">trending_down</span>
-                <span>Payroll / Carry Forward Details</span>
+                <span>PAYROLL / CARRY FORWARD / DETAILS</span>
             </div>
+
+            <!-- Header Title & Status Badge -->
             <div class="flex items-center gap-3 flex-wrap">
-                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Carry Forward #@Model.Item.CarryForwardId — @Model.Item.EmployeeName</h1>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Carry Forward Deduction Details</h1>
                 @if (Model.Item.Status == "OPEN")
                 {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                         OPEN
                     </span>
                 }
                 else if (Model.Item.Status == "PARTIALLY_APPLIED")
                 {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         PARTIALLY APPLIED
                     </span>
                 }
                 else if (Model.Item.Status == "SETTLED")
                 {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         SETTLED
                     </span>
                 }
                 else
                 {
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
                         @Model.Item.Status
                     </span>
                 }
             </div>
+
             <p class="text-sm text-slate-500 mt-1 flex flex-wrap items-center gap-2">
-                <span>Employee ID: <strong class="text-slate-800">@Model.Item.UserId</strong></span>
+                <span>Record <strong class="text-slate-800 font-semibold">#@Model.Item.CarryForwardId</strong></span>
                 <span>•</span>
-                <span>Source Period: <strong class="text-slate-800">@Model.Item.SourcePeriodCode</strong></span>
+                <span>Employee: <strong class="text-slate-800 font-semibold">@Model.Item.EmployeeName</strong> (Staff ID: @shortId)</span>
                 <span>•</span>
-                <span>Payroll #@Model.Item.SourcePayrollId · V@(Model.Item.SourcePayrollVersionNo)</span>
+                <span>Source Period: <strong class="text-slate-800 font-semibold">@Model.Item.SourcePeriodCode</strong></span>
             </p>
         </div>
 
+        <!-- Back to List Action -->
         <div class="flex items-center gap-3 shrink-0">
-            <a asp-action="CarryForward"
-               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+            <a asp-controller="AccountantCarryForward" asp-action="Index"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-semibold transition-all shadow-sm cursor-pointer">
                 <span class="material-symbols-outlined text-lg">arrow_back</span>
-                <span>Back to Carry Forward</span>
+                <span>Back to List</span>
             </a>
         </div>
     </div>
@@ -65,143 +76,346 @@
         </div>
     }
 
-    <!-- 4 KPI Summary Cards (Manager Style) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Original Amount</span>
-                <span class="material-symbols-outlined text-indigo-600 text-lg">receipt</span>
+    <!-- SECTION A — CARRY FORWARD OVERVIEW (3 SUMMARY CARDS) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- 1. Original Amount (Blue) -->
+        <div class="bg-blue-50/50 border border-blue-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2">
+                <span>ORIGINAL AMOUNT</span>
+                <span class="material-symbols-outlined text-blue-600 text-xl">receipt_long</span>
             </div>
             <div>
-                <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(Model.Item.OriginalAmount)</div>
-                <div class="text-xs text-slate-400 mt-1">@Model.Item.SourceDetailType</div>
+                <div class="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-tight">@D.Money(Model.Item.OriginalAmount)</div>
+                <div class="text-xs text-blue-600 mt-1">
+                    Initial unrecovered deduction amount
+                </div>
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Total Deducted</span>
-                <span class="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+        <!-- 2. Total Deducted (Green) -->
+        <div class="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">
+                <span>TOTAL DEDUCTED</span>
+                <span class="material-symbols-outlined text-emerald-600 text-xl">task_alt</span>
             </div>
             <div>
-                <div class="text-2xl font-bold text-emerald-700 tracking-tight">@D.Money(Model.Item.TotalAppliedAmount)</div>
-                <div class="text-xs text-slate-400 mt-1">Across @Model.Applications.TotalItems period(s)</div>
+                <div class="text-2xl sm:text-3xl font-extrabold text-emerald-700 tracking-tight">@D.Money(Model.Item.TotalAppliedAmount)</div>
+                <div class="text-xs text-emerald-600 mt-1">
+                    Recovered across @Model.Applications.TotalItems subsequent payroll period(s)
+                </div>
             </div>
         </div>
 
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Remaining Balance</span>
-                <span class="material-symbols-outlined text-rose-600 text-lg">pending</span>
+        <!-- 3. Remaining Balance (Orange / Purple) -->
+        <div class="bg-amber-50/50 border border-amber-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+            <div class="flex items-center justify-between text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2">
+                <span>REMAINING BALANCE</span>
+                <span class="material-symbols-outlined text-amber-600 text-xl">pending_actions</span>
             </div>
             <div>
-                <div class="text-2xl font-bold text-rose-700 tracking-tight">@D.Money(Model.Item.RemainingAmount)</div>
-                <div class="text-xs text-slate-400 mt-1">Due for subsequent deduction</div>
-            </div>
-        </div>
-
-        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-            <div class="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                <span>Recovery Status</span>
-                <span class="material-symbols-outlined text-indigo-600 text-lg">verified</span>
-            </div>
-            <div>
-                <div class="text-2xl font-bold text-slate-900 tracking-tight">@Model.Item.Status.Replace('_', ' ')</div>
-                <div class="text-xs text-slate-400 mt-1">FIFO deduction policy</div>
+                <div class="text-2xl sm:text-3xl font-extrabold text-amber-700 tracking-tight">@D.Money(Model.Item.RemainingAmount)</div>
+                <div class="text-xs text-amber-600 mt-1">
+                    Pending subsequent deduction under FIFO policy
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Deduction Source Snapshot Card -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-        <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
-            <span class="material-symbols-outlined text-indigo-600 text-lg">info</span>
-            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Original Deduction Details</h2>
+    <!-- 2 COLUMNS: SECTION B (EMPLOYEE INFO) & SECTION C (ORIGINAL DEDUCTION INFO) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- SECTION B — EMPLOYEE INFORMATION -->
+        <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">person</span>
+                <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Employee Information</h2>
+            </div>
+
+            <dl class="space-y-3.5 text-xs">
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                    <dt class="text-slate-500 font-medium">Employee Name</dt>
+                    <dd class="text-sm font-bold text-slate-900">@Model.Item.EmployeeName</dd>
+                </div>
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                    <dt class="text-slate-500 font-medium">Staff ID (Full / Short)</dt>
+                    <dd class="font-mono text-slate-800" title="@Model.Item.UserId">
+                        <span class="font-bold">@shortId</span>
+                        <span class="text-[11px] text-slate-400 block truncate max-w-[180px]">@Model.Item.UserId</span>
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                    <dt class="text-slate-500 font-medium">Branch</dt>
+                    <dd class="font-semibold text-slate-800">
+                        @(string.IsNullOrEmpty(Model.Item.BranchName) ? $"Branch #{Model.Item.SourceBranchId}" : Model.Item.BranchName)
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                    <dt class="text-slate-500 font-medium">Employee Type / Role</dt>
+                    <dd class="font-semibold text-slate-800">
+                        @(Model.Item.EmployeeType ?? "Staff")
+                    </dd>
+                </div>
+                <div class="flex items-center justify-between py-1">
+                    <dt class="text-slate-500 font-medium">Account Status</dt>
+                    <dd>
+                        @if (Model.Item.EmployeeStatus == "ACTIVE")
+                        {
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                ACTIVE
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                @Model.Item.EmployeeStatus
+                            </span>
+                        }
+                    </dd>
+                </div>
+            </dl>
         </div>
 
-        <dl class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <dt class="text-slate-500 font-medium">Source Description</dt>
-                <dd class="text-sm font-bold text-slate-900 mt-0.5">@Model.Item.SourceDetailDescription</dd>
+        <!-- SECTION C — ORIGINAL DEDUCTION INFORMATION -->
+        <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">assignment_late</span>
+                <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Original Deduction Information</h2>
             </div>
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <dt class="text-slate-500 font-medium">Underlying Reason</dt>
-                <dd class="text-sm font-bold text-slate-900 mt-0.5">@Model.Item.Reason</dd>
-            </div>
-            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                <dt class="text-slate-500 font-medium">Source Period</dt>
-                <dd class="text-sm font-bold text-indigo-600 mt-0.5">
-                    <a asp-action="Details" asp-route-id="@Model.Item.SourcePayrollPeriodId" class="hover:underline">
-                        @Model.Item.SourcePeriodCode
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Carry Forward ID</span>
+                    <strong class="text-sm text-slate-900">#@Model.Item.CarryForwardId</strong>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Deduction Type</span>
+                    <strong class="text-sm text-slate-900">
+                        @if (Model.Item.SourceDetailType == "PENALTY")
+                        {
+                            <span class="text-rose-700 font-bold">DISCIPLINARY PENALTY</span>
+                        }
+                        else if (Model.Item.SourceDetailType == "ATTENDANCE_DEDUCTION")
+                        {
+                            <span class="text-amber-700 font-bold">ATTENDANCE DEDUCTION</span>
+                        }
+                        else
+                        {
+                            <span>@Model.Item.SourceDetailType</span>
+                        }
+                    </strong>
+                </div>
+
+                <div class="sm:col-span-2 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Deduction Source &amp; Description</span>
+                    <strong class="text-sm text-slate-900">@Model.Item.SourceDetailDescription</strong>
+                    @if (!string.IsNullOrEmpty(Model.Item.SourceDetailNote))
+                    {
+                        <p class="text-[11px] text-slate-500 italic mt-0.5">@Model.Item.SourceDetailNote</p>
+                    }
+                </div>
+
+                <div class="sm:col-span-2 p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Deduction Reason</span>
+                    <p class="text-sm text-slate-800 font-medium">@Model.Item.Reason</p>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Penalty ID</span>
+                    <strong class="text-sm text-slate-900">
+                        @(Model.Item.PenaltyId.HasValue ? $"#{Model.Item.PenaltyId.Value}" : "—")
+                    </strong>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Payroll Period</span>
+                    <a asp-controller="AccountantPayrollPeriods" asp-action="Details" asp-route-id="@Model.Item.SourcePayrollPeriodId"
+                       class="text-sm font-bold text-indigo-600 hover:text-indigo-800 hover:underline inline-flex items-center gap-1">
+                        <span>@Model.Item.SourcePeriodCode</span>
+                        <span class="material-symbols-outlined text-sm">open_in_new</span>
                     </a>
-                </dd>
+                    @if (!string.IsNullOrEmpty(Model.Item.SourcePeriodName))
+                    {
+                        <span class="text-[11px] text-slate-500 block truncate">@Model.Item.SourcePeriodName</span>
+                    }
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Payroll Record</span>
+                    <strong class="text-sm text-slate-900">Payroll #@Model.Item.SourcePayrollId · V@(Model.Item.SourcePayrollVersionNo)</strong>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                    <span class="text-slate-400 block mb-0.5">Original Full / Applied Amount</span>
+                    <strong class="text-sm text-slate-900">
+                        Full: @D.Money(Model.Item.SourceDeductionAmount) · Applied: @D.Money(Model.Item.SourceAppliedAmount)
+                    </strong>
+                </div>
             </div>
-        </dl>
+        </div>
     </div>
 
-    <!-- Application History Table Card -->
+    <!-- SECTION D — DEDUCTION HISTORY (FUTURE PAYROLL RECOVERY) -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-            <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-indigo-600 text-lg">history</span>
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">history</span>
                 <h3 class="text-sm font-bold text-slate-900">Deduction Recovery History</h3>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Applications.TotalItems @(Model.Applications.TotalItems == 1 ? "Recovery Record" : "Recovery Records")
+                </span>
             </div>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                @Model.Applications.TotalItems @(Model.Applications.TotalItems == 1 ? "Application" : "Applications")
-            </span>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th class="py-3.5 px-6">Application ID</th>
-                        <th class="py-3.5 px-6">Applied Period</th>
-                        <th class="py-3.5 px-6">Period Dates</th>
-                        <th class="py-3.5 px-6 text-right font-bold text-indigo-900">Deducted Amount</th>
-                        <th class="py-3.5 px-6">Applied At (UTC+7)</th>
-                        <th class="py-3.5 px-6 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm">
-                    @foreach (var app in Model.Applications.Items)
-                    {
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="py-4 px-6 font-mono font-semibold text-slate-900">
-                                #@app.ApplicationId
-                            </td>
-                            <td class="py-4 px-6">
-                                <div class="font-medium text-slate-800">@app.PeriodCode</div>
-                                <div class="text-xs text-slate-400 mt-0.5">Payroll #@app.PayrollId · V@(app.PayrollVersionNo)</div>
-                            </td>
-                            <td class="py-4 px-6 text-xs text-slate-600">
-                                @app.PeriodStart.ToString("dd/MM/yyyy") – @app.PeriodEnd.ToString("dd/MM/yyyy")
-                            </td>
-                            <td class="py-4 px-6 text-right font-bold text-emerald-600">
-                                -@D.Money(app.AppliedAmount)
-                            </td>
-                            <td class="py-4 px-6 text-xs text-slate-600">
-                                @app.AppliedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")
-                            </td>
-                            <td class="py-4 px-6 text-right">
-                                <a asp-controller="AccountantPayrollPeriods" asp-action="Details" asp-route-id="@app.PayrollPeriodId"
-                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
-                                    <span class="material-symbols-outlined text-sm">visibility</span>
-                                    <span>View Period</span>
-                                </a>
-                            </td>
+        @if (Model.Applications.Items.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">hourglass_empty</span>
+                </div>
+                <h4 class="text-base font-bold text-slate-900">No deduction history available.</h4>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    This carry forward balance has not been applied to any subsequent payroll period yet.
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">No.</th>
+                            <th class="py-3.5 px-6">Payroll Period</th>
+                            <th class="py-3.5 px-6">Version</th>
+                            <th class="py-3.5 px-6">Deduction Date (UTC+7)</th>
+                            <th class="py-3.5 px-6 text-right">Applied Amount</th>
+                            <th class="py-3.5 px-6 text-right">Remaining Balance After Deduction</th>
+                            <th class="py-3.5 px-6">Payroll Status</th>
+                            <th class="py-3.5 px-6 text-right">Reference</th>
                         </tr>
-                    }
-                    @if (Model.Applications.Items.Count == 0)
-                    {
-                        <tr>
-                            <td colspan="6" class="p-8 text-center text-slate-400 text-xs">
-                                No deduction applications recorded for this carry forward record yet.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @{ int no = 1; }
+                        @foreach (var app in Model.Applications.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- 1. No. -->
+                                <td class="py-4 px-6 font-medium text-slate-500 text-xs">
+                                    @(no++)
+                                </td>
+
+                                <!-- 2. Payroll Period -->
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-900">@app.PeriodCode</div>
+                                    @if (!string.IsNullOrEmpty(app.PeriodName))
+                                    {
+                                        <div class="text-xs text-slate-500 mt-0.5 truncate max-w-[200px]">@app.PeriodName</div>
+                                    }
+                                    <div class="text-[11px] text-slate-400 mt-0.5">
+                                        @app.PeriodStart.ToString("dd/MM/yyyy") – @app.PeriodEnd.ToString("dd/MM/yyyy")
+                                    </div>
+                                </td>
+
+                                <!-- 3. Payroll Version -->
+                                <td class="py-4 px-6 text-xs font-mono font-semibold text-slate-700">
+                                    v@(app.PayrollVersionNo)
+                                </td>
+
+                                <!-- 4. Deduction Date (UTC+7) -->
+                                <td class="py-4 px-6 text-xs text-slate-700">
+                                    @app.AppliedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm")
+                                </td>
+
+                                <!-- 5. Applied Amount -->
+                                <td class="py-4 px-6 text-right font-bold text-emerald-600 text-xs">
+                                    -@D.Money(app.AppliedAmount)
+                                </td>
+
+                                <!-- 6. Remaining Balance After Deduction -->
+                                <td class="py-4 px-6 text-right font-bold text-slate-900 text-xs">
+                                    @D.Money(app.RemainingBalanceAfter)
+                                </td>
+
+                                <!-- 7. Payroll Status -->
+                                <td class="py-4 px-6">
+                                    @if (app.PayrollStatus == "PAID")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                            PAID
+                                        </span>
+                                    }
+                                    else if (app.PayrollStatus == "APPROVED")
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            APPROVED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                            @app.PayrollStatus
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- 8. Reference & Action -->
+                                <td class="py-4 px-6 text-right space-x-1">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono bg-slate-100 text-slate-600" title="Application #@app.ApplicationId">
+                                        App #@app.ApplicationId
+                                    </span>
+                                    <a asp-controller="AccountantPayrollPeriods" asp-action="Details" asp-route-id="@app.PayrollPeriodId"
+                                       class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-all">
+                                        <span class="material-symbols-outlined text-sm">visibility</span>
+                                        <span>View Period</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- SECTION E — AUDIT INFORMATION -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <span class="material-symbols-outlined text-indigo-600 text-xl">verified_user</span>
+            <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Audit Information &amp; Policy</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Created At (UTC+7)</span>
+                <strong class="text-sm text-slate-900">@Model.Item.CreatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm:ss")</strong>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Last Updated At (UTC+7)</span>
+                <strong class="text-sm text-slate-900">@Model.Item.UpdatedAt.AddHours(7).ToString("dd/MM/yyyy HH:mm:ss")</strong>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Created / Managed By</span>
+                <strong class="text-sm text-slate-900">System (Payroll Settlement Engine)</strong>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50/70 border border-slate-100">
+                <span class="text-slate-400 block mb-0.5">Last Deduction Applied At (UTC+7)</span>
+                <strong class="text-sm text-slate-900">
+                    @(Model.Item.LastAppliedAt.HasValue ? Model.Item.LastAppliedAt.Value.AddHours(7).ToString("dd/MM/yyyy HH:mm:ss") : "Not yet applied")
+                </strong>
+            </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-50/50 border border-indigo-150 text-xs text-indigo-950 flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-indigo-600 text-base shrink-0 mt-0.5">policy</span>
+            <div>
+                <strong class="font-bold">FIFO Carry Forward Deduction Rule:</strong>
+                <p class="mt-0.5 text-indigo-800">
+                    This balance is queued and automatically deducted first in future payroll periods before any newly incurred penalties or deductions, until the remaining amount reaches 0 ₫ (SETTLED).
+                </p>
+            </div>
         </div>
     </div>
 </div>

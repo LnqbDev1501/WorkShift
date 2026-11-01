@@ -1,7 +1,7 @@
 using WorkShiftManagement.DAL.Entities;
 using PayrollEntity = WorkShiftManagement.DAL.Entities.Payroll;
 
-namespace WorkShiftManagement.DAL.Version.Payroll;
+namespace WorkShiftManagement.BLL.Policies.Payroll;
 
 public static class PayrollVersionPolicy
 {
@@ -17,3 +17,4 @@ public static class PayrollVersionPolicy
             .ToList();
     }
 }
+

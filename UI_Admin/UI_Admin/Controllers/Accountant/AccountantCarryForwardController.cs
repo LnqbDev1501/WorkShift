@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
 using UI_Admin.Models.Accountant.PayrollSettlement;
 using UI_Admin.Services;
 
@@ -35,9 +36,13 @@ public sealed class AccountantCarryForwardController(PayrollDocumentsApiService 
         try
         {
             model.Item = await api.GetCarryAsync(id, ct);
-            model.Applications = await api.CarryApplicationsAsync(id, page, 20, ct);
+            model.Applications = await api.CarryApplicationsAsync(id, page, 50, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return NotFound();
+        }
         catch (Exception ex) when (Handled(ex))
         {
             if (Access(ex) is IActionResult denied) return denied;
@@ -45,4 +50,8 @@ public sealed class AccountantCarryForwardController(PayrollDocumentsApiService 
         }
         return View("~/Views/AccountantPayrollPeriods/CarryForwardDetail.cshtml", model);
     }
+
+    [HttpGet]
+    public Task<IActionResult> CarryForwardDetail(int id, [FromQuery] int page = 1, CancellationToken ct = default)
+        => Details(id, page, ct);
 }
