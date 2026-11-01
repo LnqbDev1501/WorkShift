@@ -2,7 +2,8 @@
 <section class="list-metrics" aria-label="List summary">
     @foreach (var metric in Model)
     {
-        <article class="list-metric">
+        var accent = metric.Color ?? "#4f46e5";
+        <article class="list-metric" style="--lm-accent:@accent">
             <div class="list-metric-content">
                 <div class="list-metric-label">@metric.Label</div>
                 <div class="list-metric-value">@metric.Value</div>

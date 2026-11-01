@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Accountant.SalaryHistory.SalaryHistoryListViewModel
+﻿@model UI_Admin.Models.Accountant.SalaryHistory.SalaryHistoryListViewModel
 @using D = UI_Admin.Models.Accountant.SalaryHistory.SalaryHistoryDisplay
 @{ ViewData["Title"] = "Salary History"; }
 <div class="flex flex-col w-full gap-unit-4 px-7 py-4">
@@ -6,10 +6,10 @@
     @if (Model.ErrorMessage != null || TempData["SalaryHistoryError"] is string)
     { <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@(Model.ErrorMessage ?? TempData["SalaryHistoryError"]?.ToString()) <a asp-action="Index" asp-all-route-data="@(Context.Request.Query.ToDictionary(q => q.Key, q => q.Value.ToString()))" class="underline ml-2">Retry</a></div> }
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching Records", Model.TotalItems.ToString("N0"), "Matching current filters", "history"),
-        new("Active", Model.Items.Count(i => i.Status == "ACTIVE").ToString(), "On this page", "check_circle"),
-        new("Scheduled", Model.Items.Count(i => i.Status == "SCHEDULED").ToString(), "On this page", "schedule"),
-        new("Employees", Model.Items.Select(i => i.UserId).Distinct().Count().ToString(), "On this page", "groups")
+        new("Matching Records", Model.TotalItems.ToString("N0"), "Matching current filters", "history", "#8b5cf6"),
+        new("Active", Model.Items.Count(i => i.Status == "ACTIVE").ToString(), "On this page", "check_circle", "#10b981"),
+        new("Scheduled", Model.Items.Count(i => i.Status == "SCHEDULED").ToString(), "On this page", "schedule", "#4f46e5"),
+        new("Employees", Model.Items.Select(i => i.UserId).Distinct().Count().ToString(), "On this page", "groups", "#4f46e5")
     })' />
     <form asp-action="Index" method="get" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-4 flex flex-col gap-unit-3">
         <div asp-validation-summary="All" class="text-red-700 text-body-md" role="alert"></div>

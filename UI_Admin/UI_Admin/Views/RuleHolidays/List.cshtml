@@ -1,4 +1,4 @@
-@model List<UI_Admin.Models.Admin.Holidays.HolidayRuleViewModel>
+﻿@model List<UI_Admin.Models.Admin.Holidays.HolidayRuleViewModel>
 
 @{
     var pagination = ListPaginationViewModel.ForCollection(Model.Count, Context.Request.Query["page"], "pay rules");
@@ -42,10 +42,10 @@
         }
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Pay rules", Model.Count.ToString("N0"), "Matching current filters", "event"),
-        new("Active", Model.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified"),
-        new("Published", Model.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule"),
-        new("Drafts", Model.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document")
+        new("Pay rules", Model.Count.ToString("N0"), "Matching current filters", "event", "#0891b2"),
+        new("Active", Model.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified", "#10b981"),
+        new("Published", Model.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule", "#4f46e5"),
+        new("Drafts", Model.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document", "#f59e0b")
     })' />
 
         <form asp-action="List" method="get" class="ws-list-filter" role="search">

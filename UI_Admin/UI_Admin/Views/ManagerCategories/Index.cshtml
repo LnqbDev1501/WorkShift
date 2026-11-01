@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Manager.ManagerCategoryListViewModel
+﻿@model UI_Admin.Models.Manager.ManagerCategoryListViewModel
 
 @{
     ViewData["Title"] = "Categories";
@@ -30,10 +30,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Matching Categories", Model.TotalItems.ToString("N0"), "Matching current filters", "category"),
-new("Active Categories", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
-new("Inactive Categories", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
-new("Products", Model.Items.Sum(x => x.ProductCount).ToString("N0"), "Across categories on this page", "inventory_2")
+new("Matching Categories", Model.TotalItems.ToString("N0"), "Matching current filters", "category", "#8b5cf6"),
+new("Active Categories", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle", "#10b981"),
+new("Inactive Categories", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle", "#f59e0b"),
+new("Products", Model.Items.Sum(x => x.ProductCount).ToString("N0"), "Across categories on this page", "inventory_2", "#4f46e5")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="ManagerCategories" asp-action="Index" id="filter-form" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">

@@ -20,12 +20,19 @@ body.workshift-theme { margin:0; font-family:var(--ws-font); font-size:14px; lin
 .list-eyebrow::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--ws-primary); }
 /* Summary cards share the User Accounts spacing and typography. */
 .list-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:18px; }
-.list-metric { display:flex; align-items:center; justify-content:space-between; gap:14px; min-width:0; min-height:108px; padding:17px 16px; background:#fff; border-radius:9px; box-shadow:0 1px 3px #191c2d0d; }
+.list-metric { display:flex; align-items:center; justify-content:space-between; gap:14px; min-width:0; min-height:108px; padding:17px 16px; background:#fff; border-radius:9px; box-shadow:0 1px 3px #191c2d0d; border-left:3px solid transparent; transition:box-shadow .18s,transform .18s,border-color .18s; }
+.list-metric:hover { box-shadow:0 4px 14px #191c2d16; transform:translateY(-1px); border-left-color:var(--lm-accent,#4f46e5); }
 .list-metric-content { min-width:0; }
 .list-metric-label { color:#454c6d; font-size:13px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; }
-.list-metric-value { margin-top:9px; color:#11131d; font-size:20px; font-weight:600; overflow-wrap:anywhere; }
+.list-metric-value { margin-top:9px; color:#11131d; font-size:20px; font-weight:600; overflow-wrap:anywhere; transition:color .18s; }
+.list-metric:hover .list-metric-value { color:var(--lm-accent,#4f46e5); }
 .list-metric-note { margin-top:7px; color:#555b71; font-size:13px; }
-.list-metric-icon { display:grid; flex:0 0 40px; width:40px; height:40px; place-items:center; color:#4f46e5; background:#f1f2f7; border-radius:6px; font-size:21px; }
+.list-metric-icon { display:grid; flex:0 0 44px; width:44px; height:44px; place-items:center; color:var(--lm-accent,#4f46e5); background:color-mix(in srgb,var(--lm-accent,#4f46e5) 12%,#fff); border-radius:10px; font-size:22px; transition:transform .15s; }
+.list-metric:hover .list-metric-icon { transform:scale(1.08); }
+/* Fallback for browsers without color-mix */
+@supports not (color:color-mix(in srgb,red 10%,blue)) {
+    .list-metric-icon { background:#eef0ff; }
+}
 .workshift-theme :is(.filter-card,.notification-filter-card,.payroll-filters,.holiday-filters,.shift-toolbar,#filter-form,#branch-filter-form) { padding:16px; background:#fff; border:0; border-radius:9px; box-shadow:0 1px 3px #191c2d12; }
 .workshift-theme :is(.filter-card,.notification-filter-card,.payroll-filters,.holiday-filters,.shift-toolbar,#filter-form,#branch-filter-form) :is(input:not([type=checkbox]):not([type=hidden]),select) { min-height:41px; height:41px; border:0; background-color:#f0f1f6; border-radius:7px; }
 .workshift-theme .shift-toolbar { margin-bottom:16px; }

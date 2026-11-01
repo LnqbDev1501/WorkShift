@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDetailsViewModel
+﻿@model UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDetailsViewModel
 @using D = UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDisplay
 @using UI_Admin.Models.EmployeeAdjustments
 @{
@@ -26,10 +26,10 @@
     <partial name="~/Views/Shared/EmployeeAdjustments/_Messages.cshtml" />
     <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Amount", D.Money(row.Amount), label + " value", row.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium"),
-        new("Payroll period", row.PeriodName, row.PeriodCode + " · " + row.PeriodStatus, "calendar_month"),
-        new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range"),
-        new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule")
+        new("Amount", D.Money(row.Amount), label + " value", row.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium", "#f59e0b"),
+        new("Payroll period", row.PeriodName, row.PeriodCode + " · " + row.PeriodStatus, "calendar_month", "#0891b2"),
+        new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range", "#0891b2"),
+        new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule", "#4f46e5")
     })' />
     <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
         <h2 class="text-title-lg font-semibold">Item information</h2>

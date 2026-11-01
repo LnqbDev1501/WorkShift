@@ -1,4 +1,4 @@
-@using UI_Admin.Models.Admin.UserAdmin
+﻿@using UI_Admin.Models.Admin.UserAdmin
 @model UserListViewModel
 
 @{
@@ -300,10 +300,10 @@
         </div>
         <div asp-validation-summary="ModelOnly" class="validation-errors"></div>
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-            new("Total Active Users", Model.ActiveUsers.ToString("N0"), "Currently active accounts", "group"),
-            new("Managers & Accountants", Model.ElevatedUsers.ToString("N0"), "Elevated operational roles", "admin_panel_settings"),
-            new("Pending Activation", Model.PendingUsers.ToString("N0"), "Awaiting account setup", "pending_actions"),
-            new("Branch Deployment", $"{Model.ActiveBranches} / {Model.TotalBranches}", "Active branches", "account_tree")
+            new("Total Active Users", Model.ActiveUsers.ToString("N0"), "Currently active accounts", "group", "#4f46e5"),
+            new("Managers & Accountants", Model.ElevatedUsers.ToString("N0"), "Elevated operational roles", "admin_panel_settings", "#ef4444"),
+            new("Pending Activation", Model.PendingUsers.ToString("N0"), "Awaiting account setup", "pending_actions", "#f59e0b"),
+            new("Branch Deployment", $"{Model.ActiveBranches} / {Model.TotalBranches}", "Active branches", "account_tree", "#8b5cf6")
         })' />
         <form asp-action="List" method="get" class="ws-list-filter" role="search">
             <div class="ws-filter-row">

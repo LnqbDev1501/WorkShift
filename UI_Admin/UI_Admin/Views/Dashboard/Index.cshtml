@@ -1,4 +1,4 @@
-@model DashboardViewModel
+﻿@model DashboardViewModel
 @using System.Globalization
 @{
     ViewData["Title"] = "Overview";
@@ -28,13 +28,13 @@
     {
         <section class="stat-grid" aria-label="Organization statistics">
             @foreach (var card in new[] {
-                (Label: "Total Users", Value: data.TotalUsers, Icon: "♙", Note: "All account statuses"),
-                (Label: "Regions", Value: data.TotalRegions, Icon: "▧", Note: "Operating territories"),
-                (Label: "Branches", Value: data.TotalBranches, Icon: "▤", Note: $"{DashboardViewModel.Number(data.ActiveBranches)} active"),
-                (Label: "Payrolls Awaiting Approval", Value: data.PendingPayrolls, Icon: "◷", Note: "Submitted employee payrolls") })
+                (Label: "Total Users", Value: data.TotalUsers, Icon: "group", Color: "#4f46e5", Note: "All account statuses"),
+                (Label: "Regions", Value: data.TotalRegions, Icon: "map", Color: "#0891b2", Note: "Operating territories"),
+                (Label: "Branches", Value: data.TotalBranches, Icon: "store", Color: "#10b981", Note: $"{DashboardViewModel.Number(data.ActiveBranches)} active"),
+                (Label: "Payrolls Awaiting Approval", Value: data.PendingPayrolls, Icon: "payments", Color: "#f59e0b", Note: "Submitted employee payrolls") })
             {
                 <article class="dashboard-card stat-card">
-                    <div class="card-heading"><span>@card.Label</span><span class="stat-icon" aria-hidden="true">@card.Icon</span></div>
+                    <div class="card-heading"><span>@card.Label</span><span class="stat-icon material-symbols-outlined" aria-hidden="true" style="--si-color:@card.Color">@card.Icon</span></div>
                     <div class="stat-value">@DashboardViewModel.Number(card.Value)
                         @if (card.Label == "Payrolls Awaiting Approval" && card.Value > 0) { <span class="status-badge pending">Action Req.</span> }
                     </div><p>@card.Note</p>

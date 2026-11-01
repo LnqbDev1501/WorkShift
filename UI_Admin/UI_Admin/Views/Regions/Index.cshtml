@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Regions.RegionListPagedViewModel
+﻿@model UI_Admin.Models.Regions.RegionListPagedViewModel
 
 @{
     ViewData["Title"] = "WorkShift Control";
@@ -27,10 +27,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Matching Regions", Model.TotalItems.ToString("N0"), "Matching current filters", "public"),
-new("Active Regions", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
-new("Inactive Regions", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
-new("Branch Deployment", Model.Items.Sum(x => x.BranchCount).ToString("N0"), "Across regions on this page", "account_tree")
+new("Matching Regions", Model.TotalItems.ToString("N0"), "Matching current filters", "public", "#0891b2"),
+new("Active Regions", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle", "#10b981"),
+new("Inactive Regions", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle", "#f59e0b"),
+new("Branch Deployment", Model.Items.Sum(x => x.BranchCount).ToString("N0"), "Across regions on this page", "account_tree", "#8b5cf6")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="Regions" asp-action="Index" id="filter-form" class="ws-list-filter" role="search">

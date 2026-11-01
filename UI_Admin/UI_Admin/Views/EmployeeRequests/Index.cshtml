@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmployeeRequests.AdminEmployeeRequestListViewModel
+﻿@model UI_Admin.Models.EmployeeRequests.AdminEmployeeRequestListViewModel
 @using UI_Admin.Helpers
 
 @{
@@ -43,10 +43,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "content_paste"),
-        new("Pending review", pendingCount.ToString("N0"), "On this page", "pending_actions"),
-        new("Approved", approvedCount.ToString("N0"), "On this page", "check_circle"),
-        new("Rejected", rejectedCount.ToString("N0"), "On this page", "cancel")
+        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "content_paste", "#4f46e5"),
+        new("Pending review", pendingCount.ToString("N0"), "On this page", "pending_actions", "#f59e0b"),
+        new("Approved", approvedCount.ToString("N0"), "On this page", "check_circle", "#10b981"),
+        new("Rejected", rejectedCount.ToString("N0"), "On this page", "cancel", "#ef4444")
     })' />
 
     <!-- Search and filters -->

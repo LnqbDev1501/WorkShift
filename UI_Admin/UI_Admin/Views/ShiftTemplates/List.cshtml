@@ -1,4 +1,4 @@
-@model UI_Admin.Models.ShiftTemplateListViewModel
+﻿@model UI_Admin.Models.ShiftTemplateListViewModel
 @{
     ViewData["Title"] = "Shift Templates";
     var filterRoutes = new Dictionary<string, string>
@@ -19,10 +19,10 @@
             <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
         </div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Matching Templates", Model.Result.TotalItems.ToString("N0"), "Matching current filters", "calendar_view_week"),
-new("Active Templates", Model.Result.Items.Count(x => x.IsActive).ToString("N0"), "On this page", "check_circle"),
-new("Inactive Templates", Model.Result.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
-new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", "view_list")
+new("Matching Templates", Model.Result.TotalItems.ToString("N0"), "Matching current filters", "calendar_view_week", "#4f46e5"),
+new("Active Templates", Model.Result.Items.Count(x => x.IsActive).ToString("N0"), "On this page", "check_circle", "#10b981"),
+new("Inactive Templates", Model.Result.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle", "#f59e0b"),
+new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", "view_list", "#4f46e5")
 })' />
         <partial name="_Feedback" />
         <form asp-controller="ShiftTemplates" asp-action="List" method="get" role="search" class="ws-list-filter">

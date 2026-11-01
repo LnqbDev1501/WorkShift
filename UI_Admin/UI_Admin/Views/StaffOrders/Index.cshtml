@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Staff.Orders.StaffOrderListViewModel
+﻿@model UI_Admin.Models.Staff.Orders.StaffOrderListViewModel
 
 @{
     ViewData["Title"] = "My Orders";
@@ -25,10 +25,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Total Orders", Model.TotalItems.ToString("N0"), "All time", "receipt_long"),
-new("Completed", Model.Items.Count(x => x.Status == "COMPLETED").ToString("N0"), "This page", "check_circle"),
-new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString("N0"), "This page", "pending"),
-new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"), "This page", "cancel")
+new("Total Orders", Model.TotalItems.ToString("N0"), "All time", "receipt_long", "#f59e0b"),
+new("Completed", Model.Items.Count(x => x.Status == "COMPLETED").ToString("N0"), "This page", "check_circle", "#10b981"),
+new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString("N0"), "This page", "pending", "#f59e0b"),
+new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"), "This page", "cancel", "#ef4444")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="StaffOrders" asp-action="Index" id="filter-form" class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">

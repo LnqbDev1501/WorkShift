@@ -1,4 +1,4 @@
-@model UI_Admin.Models.SalaryChanges.SalaryChangeDetailsViewModel
+﻿@model UI_Admin.Models.SalaryChanges.SalaryChangeDetailsViewModel
 @using D = UI_Admin.Models.SalaryChanges.SalaryChangeDisplay
 @{
     var row = Model.Item;
@@ -11,10 +11,10 @@
     <partial name="~/Views/Shared/SalaryChanges/_Messages.cshtml" />
     <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Previous rate", D.Money(row.CurrentHourlyRate), "Per hour · source history #" + row.CurrentSalaryHistoryId, "history"),
-        new("Proposed rate", D.Money(row.ProposedHourlyRate), "Per hour", "trending_up"),
-        new("Proposed date", D.Date(row.ProposedEffectiveFrom), "Requested by Manager", "calendar_month"),
-        new("Approved date", D.Date(row.ApprovedEffectiveFrom), row.NewSalaryStatus ?? "Awaiting decision", "event_available")
+        new("Previous rate", D.Money(row.CurrentHourlyRate), "Per hour · source history #" + row.CurrentSalaryHistoryId, "history", "#8b5cf6"),
+        new("Proposed rate", D.Money(row.ProposedHourlyRate), "Per hour", "trending_up", "#10b981"),
+        new("Proposed date", D.Date(row.ProposedEffectiveFrom), "Requested by Manager", "calendar_month", "#0891b2"),
+        new("Approved date", D.Date(row.ApprovedEffectiveFrom), row.NewSalaryStatus ?? "Awaiting decision", "event_available", "#10b981")
     })' />
     <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
         <h2 class="text-title-lg font-semibold">Request information</h2>

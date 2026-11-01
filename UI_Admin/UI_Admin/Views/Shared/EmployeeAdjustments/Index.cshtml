@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentListViewModel
+﻿@model UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentListViewModel
 @using D = UI_Admin.Models.EmployeeAdjustments.EmployeeAdjustmentDisplay
 @using UI_Admin.Models.EmployeeAdjustments
 @{
@@ -24,10 +24,10 @@
     @if (Model.ErrorMessage != null)
     { <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@Model.ErrorMessage <a href="@Context.Request.Path@Context.Request.QueryString" class="underline">Retry</a></div> }
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new($"Matching {plural.ToLowerInvariant()}", Model.TotalItems.ToString("N0"), "Matching current filters", Model.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium"),
-        new("Pending", Model.Items.Count(x => x.ApprovalStatus == "PENDING").ToString(), "On this page", "pending_actions"),
-        new("Approved", Model.Items.Count(x => x.ApprovalStatus == "APPROVED").ToString(), "On this page", "check_circle"),
-        new("Rejected", Model.Items.Count(x => x.ApprovalStatus == "REJECTED").ToString(), "On this page", "cancel")
+        new($"Matching {plural.ToLowerInvariant()}", Model.TotalItems.ToString("N0"), "Matching current filters", Model.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium", "#f59e0b"),
+        new("Pending", Model.Items.Count(x => x.ApprovalStatus == "PENDING").ToString(), "On this page", "pending_actions", "#f59e0b"),
+        new("Approved", Model.Items.Count(x => x.ApprovalStatus == "APPROVED").ToString(), "On this page", "check_circle", "#10b981"),
+        new("Rejected", Model.Items.Count(x => x.ApprovalStatus == "REJECTED").ToString(), "On this page", "cancel", "#ef4444")
     })' />
     <form asp-action="Index" method="get" class="ws-list-filter" role="search">
         <div class="ws-filter-row">

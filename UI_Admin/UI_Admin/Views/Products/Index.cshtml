@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Catalog.ProductListPagedViewModel
+﻿@model UI_Admin.Models.Catalog.ProductListPagedViewModel
 
 @{
     ViewData["Title"] = "Products";
@@ -35,10 +35,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Matching Products", Model.TotalItems.ToString("N0"), "Matching current filters", "inventory_2"),
-new("Active Products", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle"),
-new("Inactive Products", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle"),
-new("Categories", Model.Categories.Count.ToString("N0"), "Available for filtering", "category")
+new("Matching Products", Model.TotalItems.ToString("N0"), "Matching current filters", "inventory_2", "#4f46e5"),
+new("Active Products", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle", "#10b981"),
+new("Inactive Products", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle", "#f59e0b"),
+new("Categories", Model.Categories.Count.ToString("N0"), "Available for filtering", "category", "#8b5cf6")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="Products" asp-action="Index" id="filter-form" class="ws-list-filter" role="search">

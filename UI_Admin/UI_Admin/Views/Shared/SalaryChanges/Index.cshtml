@@ -1,4 +1,4 @@
-@model UI_Admin.Models.SalaryChanges.SalaryChangeListViewModel
+﻿@model UI_Admin.Models.SalaryChanges.SalaryChangeListViewModel
 @using D = UI_Admin.Models.SalaryChanges.SalaryChangeDisplay
 @{
     Layout = User.IsInRole("MANAGER") ? "_ManagerLayout" : "_AdminLayout";
@@ -13,10 +13,10 @@
     <partial name="~/Views/Shared/SalaryChanges/_Messages.cshtml" />
     @if (Model.ErrorMessage != null) { <div role="alert" class="rounded-xl bg-red-50 text-red-700 p-unit-4">@Model.ErrorMessage <a href="@Context.Request.Path@Context.Request.QueryString" class="underline">Retry</a></div> }
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "trending_up"),
-        new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString(), "On this page", "pending_actions"),
-        new("Approved", Model.Items.Count(x => x.Status == "APPROVED").ToString(), "On this page", "check_circle"),
-        new("Scheduled rates", Model.Items.Count(x => x.NewSalaryStatus == "SCHEDULED").ToString(), "On this page", "schedule")
+        new("Matching requests", Model.TotalItems.ToString("N0"), "Matching current filters", "trending_up", "#10b981"),
+        new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString(), "On this page", "pending_actions", "#f59e0b"),
+        new("Approved", Model.Items.Count(x => x.Status == "APPROVED").ToString(), "On this page", "check_circle", "#10b981"),
+        new("Scheduled rates", Model.Items.Count(x => x.NewSalaryStatus == "SCHEDULED").ToString(), "On this page", "schedule", "#4f46e5")
     })' />
     <form asp-action="Index" method="get" class="ws-list-filter" role="search">
         <div class="ws-filter-row">

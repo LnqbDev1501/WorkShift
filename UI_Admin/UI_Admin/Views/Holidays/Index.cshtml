@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Admin.Holidays.HolidayIndexViewModel
+﻿@model UI_Admin.Models.Admin.Holidays.HolidayIndexViewModel
 @{
     ViewData["Title"] = "Public Holidays";
 }
@@ -24,9 +24,9 @@
             <div class="holiday-alert">@Model.SuccessMessage</div>
         }
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-            new("Active holidays", Model.ActiveCount.ToString("N0"), "In the selected year", "event_available"),
-            new("Inactive holidays", Model.InactiveCount.ToString("N0"), "In the selected year", "event_busy"),
-            new("Missing pay rules", Model.SummaryItems.Count(x => x.IsActive && x.PayMultiplier == null).ToString("N0"), "Add a rule before calculating payroll", "warning"),
+            new("Active holidays", Model.ActiveCount.ToString("N0"), "In the selected year", "event_available", "#10b981"),
+            new("Inactive holidays", Model.InactiveCount.ToString("N0"), "In the selected year", "event_busy", "#ef4444"),
+            new("Missing pay rules", Model.SummaryItems.Count(x => x.IsActive && x.PayMultiplier == null).ToString("N0"), "Add a rule before calculating payroll", "warning", "#f59e0b"),
             new("Upcoming holiday", Model.UpcomingHoliday?.HolidayName ?? "None scheduled", Model.UpcomingHoliday?.HolidayDate.ToString("dd/MM/yyyy") ?? "No upcoming date", "event_upcoming")
         })' />
 

@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Catalog.StaffAccountPagedViewModel
+﻿@model UI_Admin.Models.Catalog.StaffAccountPagedViewModel
 
 @{
     ViewData["Title"] = "Staff Management";
@@ -34,10 +34,10 @@
     }
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-new("Total Staff", Model.TotalItems.ToString("N0"), "Total staff in your branch", "groups"),
-new("Active Staff", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Active staff", "check_circle"),
-new("Pending Setup", Model.Items.Count(x => x.Status == "PENDING" || !x.HasPassword).ToString("N0"), "Pending first-time setup", "pending_actions"),
-new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "Inactive staff", "pause_circle")
+new("Total Staff", Model.TotalItems.ToString("N0"), "Total staff in your branch", "groups", "#4f46e5"),
+new("Active Staff", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Active staff", "check_circle", "#10b981"),
+new("Pending Setup", Model.Items.Count(x => x.Status == "PENDING" || !x.HasPassword).ToString("N0"), "Pending first-time setup", "pending_actions", "#f59e0b"),
+new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "Inactive staff", "pause_circle", "#f59e0b")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="ManagerStaff" asp-action="Index" id="filter-form" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">

@@ -1,4 +1,4 @@
-@model UI_Admin.Models.WorkingTimeRuleListViewModel
+﻿@model UI_Admin.Models.WorkingTimeRuleListViewModel
 @{
     var pagination = ListPaginationViewModel.ForCollection(Model.Items.Count, Context.Request.Query["page"], "versions");
     ViewData["Title"] = "Working Time Limits";
@@ -42,10 +42,10 @@
             <a asp-action="Create" class="shift-primary"><span aria-hidden="true">＋</span>Create Version</a>
         </div>
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-            new("Total Versions", Model.Items.Count.ToString("N0"), "Matching current filters", "history"),
-            new("Active Version", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Currently in effect", "check_circle"),
-            new("Published Version", Model.Items.Count(x => x.CanCancel).ToString("N0"), "Waiting for effective date", "event_available"),
-            new("Draft Versions", Model.Items.Count(x => x.CanEdit).ToString("N0"), "Available to edit and publish", "edit_note")
+            new("Total Versions", Model.Items.Count.ToString("N0"), "Matching current filters", "history", "#8b5cf6"),
+            new("Active Version", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Currently in effect", "check_circle", "#10b981"),
+            new("Published Version", Model.Items.Count(x => x.CanCancel).ToString("N0"), "Waiting for effective date", "event_available", "#10b981"),
+            new("Draft Versions", Model.Items.Count(x => x.CanEdit).ToString("N0"), "Available to edit and publish", "edit_note", "#f59e0b")
         })' />
         <form asp-action="List" method="get" class="ws-list-filter" role="search">
             <div class="ws-filter-row">

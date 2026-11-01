@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmploymentContracts.EmploymentContractListViewModel
+﻿@model UI_Admin.Models.EmploymentContracts.EmploymentContractListViewModel
 
 @{
     ViewData["Title"] = "Employment Contracts";
@@ -29,10 +29,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching contracts", Model.TotalItems.ToString("N0"), "Matching current filters", "contract"),
-        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "verified"),
-        new("Awaiting approval", Model.Items.Count(x => x.Status == "PENDING_APPROVAL").ToString("N0"), "On this page", "pending_actions"),
-        new("Awaiting staff", Model.Items.Count(x => x.Status == "PENDING_STAFF").ToString("N0"), "On this page", "person")
+        new("Matching contracts", Model.TotalItems.ToString("N0"), "Matching current filters", "contract", "#10b981"),
+        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "verified", "#10b981"),
+        new("Awaiting approval", Model.Items.Count(x => x.Status == "PENDING_APPROVAL").ToString("N0"), "On this page", "pending_actions", "#f59e0b"),
+        new("Awaiting staff", Model.Items.Count(x => x.Status == "PENDING_STAFF").ToString("N0"), "On this page", "person", "#4f46e5")
     })' />
 
     <!-- Search & Filter Controls -->

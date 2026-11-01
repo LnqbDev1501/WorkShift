@@ -1,4 +1,4 @@
-@model UI_Admin.Models.PayrollDocuments.PayslipListViewModel
+﻿@model UI_Admin.Models.PayrollDocuments.PayslipListViewModel
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
     ViewData["Title"] = User.IsInRole("STAFF") ? "My Payslips" : "Published Payslips";
@@ -37,10 +37,10 @@
     }
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching payslips", Model.Data.TotalItems.ToString("N0"), "Matching current filters", "receipt_long"),
-        new("Published", Model.Data.Items.Count(x => x.Status == "PUBLISHED").ToString("N0"), "On this page", "verified"),
-        new("Replaced", Model.Data.Items.Count(x => x.Status == "REPLACED").ToString("N0"), "On this page", "history"),
-        new("Net salary", D.Money(Model.Data.Items.Sum(x => x.NetSalary)), "Payslips on this page", "payments")
+        new("Matching payslips", Model.Data.TotalItems.ToString("N0"), "Matching current filters", "receipt_long", "#f59e0b"),
+        new("Published", Model.Data.Items.Count(x => x.Status == "PUBLISHED").ToString("N0"), "On this page", "verified", "#10b981"),
+        new("Replaced", Model.Data.Items.Count(x => x.Status == "REPLACED").ToString("N0"), "On this page", "history", "#8b5cf6"),
+        new("Net salary", D.Money(Model.Data.Items.Sum(x => x.NetSalary)), "Payslips on this page", "payments", "#f59e0b")
     })' />
 
     <!-- Search and filters -->

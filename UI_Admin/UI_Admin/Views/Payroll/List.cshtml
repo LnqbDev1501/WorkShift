@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Admin.Payroll.PayrollListViewModel
+﻿@model UI_Admin.Models.Admin.Payroll.PayrollListViewModel
 @{
     ViewData["Title"] = "Payroll Periods";
     string Count(string status) => Model.Counts.TryGetValue(status, out var count) ? count.ToString("N0") : "—";
@@ -11,10 +11,10 @@
     @if (Model.LookupError != null) { <div class="alert alert-warning" role="alert">@Model.LookupError</div> }
     <div asp-validation-summary="All" class="text-danger"></div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Payroll cycles", Count(""), "Across matching branches", "payments"),
-        new("Pending review", Count("SUBMITTED"), "Awaiting approval", "pending_actions"),
-        new("Approved", Count("APPROVED"), "Approval completed", "verified"),
-        new("Revision required", Count("REVISION_REQUIRED"), "Requires correction", "fact_check")
+        new("Payroll cycles", Count(""), "Across matching branches", "payments", "#f59e0b"),
+        new("Pending review", Count("SUBMITTED"), "Awaiting approval", "pending_actions", "#f59e0b"),
+        new("Approved", Count("APPROVED"), "Approval completed", "verified", "#10b981"),
+        new("Revision required", Count("REVISION_REQUIRED"), "Requires correction", "fact_check", "#10b981")
     })' />
 
     <form method="get" asp-action="List" id="payroll-filter-form" class="ws-list-filter" role="search">

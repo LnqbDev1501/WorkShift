@@ -1,4 +1,4 @@
-@model UI_Admin.Models.AttendanceRule.AttendanceRuleListViewModel
+﻿@model UI_Admin.Models.AttendanceRule.AttendanceRuleListViewModel
 
 @{
     ViewData["Title"] = "Attendance Rules";
@@ -231,10 +231,10 @@
 
         <!-- Metric Cards -->
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-            new("Total Rules", Model.TotalRules.ToString("N0"), "All configured policies", "policy"),
-            new("Active Rule", Model.ActiveRules.ToString("N0"), "Currently in effect", "verified"),
-            new("Scheduled", Model.ScheduledRules.ToString("N0"), "Upcoming future activations", "schedule"),
-            new("Draft Versions", Model.DraftRules.ToString("N0"), "Under review / unreleased", "pending_actions")
+            new("Total Rules", Model.TotalRules.ToString("N0"), "All configured policies", "policy", "#8b5cf6"),
+            new("Active Rule", Model.ActiveRules.ToString("N0"), "Currently in effect", "verified", "#10b981"),
+            new("Scheduled", Model.ScheduledRules.ToString("N0"), "Upcoming future activations", "schedule", "#4f46e5"),
+            new("Draft Versions", Model.DraftRules.ToString("N0"), "Under review / unreleased", "pending_actions", "#f59e0b")
         })' />
 
         <!-- Filter Card -->
@@ -290,7 +290,7 @@
                                 <div class="rule-cell">
                                     <div class="rule-icon-box @iconClass">
                                         <span class="material-symbols-outlined text-[20px]">
-                                            @(statusLower == "active" ? "verified" : statusLower == "scheduled" ? "event_upcoming" : statusLower == "draft" ? "edit_document" : "rule")
+                                            @(statusLower == "active" ? "verified" : statusLower == "scheduled" ? "event_upcoming" : statusLower == "draft" ? "edit_document" : "rule", "#8b5cf6")
                                         </span>
                                     </div>
                                     <div style="min-width: 0;">

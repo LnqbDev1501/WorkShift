@@ -1,4 +1,4 @@
-@model UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageListViewModel
+﻿@model UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageListViewModel
 
 @{
     var pagination = ListPaginationViewModel.ForCollection(Model.Items.Count, Context.Request.Query["page"], "minimum wages");
@@ -28,10 +28,10 @@
     </div>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching wage policies", Model.Items.Count.ToString("N0"), "Matching current filters", "payments"),
-        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified"),
-        new("Scheduled", Model.Items.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule"),
-        new("Drafts", Model.Items.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document")
+        new("Matching wage policies", Model.Items.Count.ToString("N0"), "Matching current filters", "payments", "#f59e0b"),
+        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "Matching current filters", "verified", "#10b981"),
+        new("Scheduled", Model.Items.Count(x => x.Status == "PUBLISH").ToString("N0"), "Matching current filters", "schedule", "#4f46e5"),
+        new("Drafts", Model.Items.Count(x => x.Status == "DRAFT").ToString("N0"), "Matching current filters", "edit_document", "#f59e0b")
     })' />
 
     <!-- Search & Filter Controls -->

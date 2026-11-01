@@ -1,4 +1,4 @@
-@model UI_Admin.Models.NotificationListPageViewModel
+﻿@model UI_Admin.Models.NotificationListPageViewModel
 @{
     ViewData["Title"] = "Notifications";
 }
@@ -15,10 +15,10 @@
     </header>
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching notifications", Model.TotalCount.ToString("N0"), "Matching current filters", "notifications"),
-        new("Shown", Model.Items.Count.ToString("N0"), "On this page", "view_list"),
-        new("In-app", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("InApp")).ToString("N0"), "On this page", "campaign"),
-        new("Email", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("Email")).ToString("N0"), "On this page", "mail")
+        new("Matching notifications", Model.TotalCount.ToString("N0"), "Matching current filters", "notifications", "#4f46e5"),
+        new("Shown", Model.Items.Count.ToString("N0"), "On this page", "view_list", "#4f46e5"),
+        new("In-app", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("InApp")).ToString("N0"), "On this page", "campaign", "#0891b2"),
+        new("Email", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("Email")).ToString("N0"), "On this page", "mail", "#0891b2")
     })' />
 
 
