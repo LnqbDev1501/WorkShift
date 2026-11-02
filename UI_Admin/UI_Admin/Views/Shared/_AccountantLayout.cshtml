@@ -33,6 +33,22 @@
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
             user-select: none;
         }
+        .sidebar-nav-scroll::-webkit-scrollbar { display: block; width: 4px; }
+        .sidebar-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+        .sidebar-nav-scroll::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+        /* Sidebar section separator with gradient line */
+        #accountant-sidebar nav + nav .sidebar-category-header {
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px solid #1f2937;
+        }
+
+        /* Active nav item glow */
+        #accountant-sidebar .sidebar-nav-item.bg-primary-container {
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+        }
     </style>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -46,9 +62,6 @@
                         "on-primary-fixed": "#0f0069",
                         "on-primary-container": "#dad7ff",
                         "on-primary-fixed-variant": "#3323cc",
-                        "on-primary-fixed-variant": "#3323cc",
-                        "on-primary-container": "#dad7ff",
-                        "on-primary-fixed": "#0f0069",
                         "surface": "#f8f9fd",
                         "surface-container-low": "#f2f3f7",
                         "surface-dim": "#d9dade",
