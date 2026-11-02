@@ -120,7 +120,7 @@
 .ms-activity>summary::after{content:"+";margin-left:auto;font-size:16px}
 .ms-activity[open]>summary::after{content:"−"}
 .ms-activity .ms-timeline{border:0;box-shadow:none;margin:0;border-top:1px solid #e8e4ee;border-radius:0;padding:20px}
-.ms-editor-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,.8fr);gap:26px;align-items:start;max-width:1180px;margin:24px auto}
+.ms-editor-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr);gap:24px;align-items:start;max-width:100%;margin:0}
 .ms-editor-layout .ms-edit-form{max-width:none;width:100%;margin:0;border-radius:18px}
 .ms-editor-preview{position:sticky;top:24px;background:linear-gradient(145deg,#fff,#faf7fe);border:1px solid #e5dcef;border-radius:18px;padding:28px;box-shadow:0 8px 28px #54416606}
 .ms-preview-icon{display:grid;place-items:center;width:52px;height:52px;background:#eee5f8;color:#8a6cad;border-radius:15px;margin:22px 0 18px;font-size:27px}
@@ -138,3 +138,110 @@
 @media(max-width:1100px){.ms-list-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ms-editor-layout{gap:18px;grid-template-columns:minmax(0,1fr) 280px}.ms-editor-layout .ms-edit-form{padding:24px}}
 @media(max-width:850px){.ms-editor-layout{grid-template-columns:1fr}.ms-editor-preview{position:static}.ms-workspace .ms-workspace-hero{padding:26px}.ms-library-heading>span{display:none}}
 @media(max-width:600px){.ms-list-metrics{gap:10px}.ms-list-metrics>article{padding:16px;gap:10px}.ms-list-metrics>article>.material-symbols-outlined{width:34px;height:36px;font-size:19px}.ms-list-metrics strong{font-size:24px}.ms-workspace .ms-workspace-hero h1{font-size:26px}.ms-library-heading{padding:20px}.ms-workspace .ms-week-overview{padding:22px}.ms-editor-preview{padding:24px}}
+
+
+/* Standard Form Layout Framing for Manager Schedules and Shifts */
+.schedule-page.ws-form-page,
+.schedule-page:has(.ms-editor-layout),
+.schedule-page:has(.rl-editor-layout),
+.rule-page:has(.rl-editor-layout) {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 20px 28px 36px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.schedule-page.ws-form-page .ad-heading,
+.schedule-page:has(.ms-editor-layout) .ad-heading,
+.rule-page:has(.rl-editor-layout) .ad-heading {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 20px;
+}
+
+.schedule-page.ws-form-page .ms-editor-layout,
+.schedule-page:has(.ms-editor-layout) .ms-editor-layout,
+.rule-page:has(.rl-editor-layout) .rl-editor-layout {
+    max-width: 100%;
+    margin: 0;
+}
+
+.ms-validation:empty,
+.ms-validation.validation-summary-valid {
+    display: none !important;
+}
+
+
+/* ========================================================
+   Modern Pill Badge Design with Tone Badges
+   ======================================================== */
+.ad-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    border: 1px solid transparent;
+}
+
+.ad-badge::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ad-badge.success {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+}
+.ad-badge.success::before {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.ad-badge.accent {
+    background: #eef2ff !important;
+    color: #4338ca !important;
+    border-color: #c7d2fe !important;
+}
+.ad-badge.accent::before {
+    background: #6366f1;
+}
+
+.ad-badge.warning {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+}
+.ad-badge.warning::before {
+    background: #f59e0b;
+}
+
+.ad-badge.danger {
+    background: #fef2f2 !important;
+    color: #b91c1c !important;
+    border-color: #fecaca !important;
+}
+.ad-badge.danger::before {
+    background: #ef4444;
+}
+
+.ad-badge.muted,
+.ad-badge.neutral {
+    background: #f1f5f9 !important;
+    color: #64748b !important;
+    border-color: #e2e8f0 !important;
+}
+.ad-badge.muted::before,
+.ad-badge.neutral::before {
+    background: #94a3b8;
+}

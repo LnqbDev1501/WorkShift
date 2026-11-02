@@ -9,26 +9,140 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/request-limit-rules.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page rule-page"><a class="ms-back" asp-action="Index">← Back to request limit rules</a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / REQUEST POLICIES</span><h1>@ViewData["Title"]</h1><p>@(Model.Mode == "Replace" ? "Create a new draft version while keeping the active rule in place." : Model.Mode == "Edit" ? "Update the limits and effective date of your draft." : "Set request limits and notice requirements for your branch.")</p></div><span class="ad-badge muted">Draft</span></header>
-    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
-    @if (Model.CanSave)
-    {
-        <div class="rl-editor-layout"><form id="rule-editor" asp-action="@Model.Mode" asp-route-id="@Model.Id" method="post" class="ad-card ms-edit-form rl-edit-form">
-            <div class="ms-form-section-title"><span class="material-symbols-outlined" aria-hidden="true">rule</span><div><h2>Rule settings</h2><p>All required limits are applied per employee in your branch.</p></div></div>
-            @if (Model.Mode == "Replace" && Model.Original is { } original) { <div class="rl-replacement-context"><strong>Replacing active rule #@original.RequestLimitRuleId</strong><p>@R.Label(original.RequestType) · @original.MaxRequestsPerMonth requests / month · @original.MinimumAdvanceDays days advance notice</p><p>Current effective date: @S.Date(original.EffectiveFrom). The new version must start later.</p></div> }
-            <div asp-validation-summary="All" class="ms-validation" role="alert"></div>
-            <div class="ms-form-field"><label asp-for="RequestType"></label>
-                @if (Model.LockType) { <input id="RequestType" type="text" value="@R.Label(Model.Original?.RequestType ?? Model.RequestType)" readonly aria-describedby="type-help" /><input type="hidden" name="RequestType" value="@(Model.Original?.RequestType ?? Model.RequestType)" /> }
-                else { <select asp-for="RequestType" required><option value="">Select a request type</option>@foreach (var type in R.Types) { <option value="@type">@R.Label(type)</option> }</select> }
-                <span asp-validation-for="RequestType" class="ms-field-error"></span><p id="type-help">@(Model.LockType ? "Replacement versions keep the original request type." : "Choose the employee request category this rule applies to.")</p>
+<div class="ws-form-page px-4 sm:px-6 py-6">
+    <div class="accountant-dashboard schedule-page rule-page ws-form-container-wide mx-auto p-0">
+        <header class="ad-heading w-full mb-6">
+            <div>
+                <span class="ad-eyebrow">MANAGER / REQUEST POLICIES</span>
+                <h1>@ViewData["Title"]</h1>
+                <p>@(Model.Mode == "Replace" ? "Create a new draft version while keeping the active rule in place." : Model.Mode == "Edit" ? "Update the limits and effective date of your draft." : "Set request limits and notice requirements for your branch.")</p>
             </div>
-            <div class="rl-form-grid"><div class="ms-form-field"><label asp-for="MaxRequestsPerMonth"></label><input asp-for="MaxRequestsPerMonth" type="number" min="1" max="2147483647" required /><span asp-validation-for="MaxRequestsPerMonth" class="ms-field-error"></span><p>At least 1 request per month.</p></div><div class="ms-form-field"><label asp-for="MinimumAdvanceDays"></label><input asp-for="MinimumAdvanceDays" type="number" min="0" max="2147483647" required /><span asp-validation-for="MinimumAdvanceDays" class="ms-field-error"></span><p>0 means no minimum advance notice.</p></div></div>
-            <div class="ms-form-field"><label asp-for="SubmissionDeadlineDayOfWeek"></label><select asp-for="SubmissionDeadlineDayOfWeek"><option value="">No weekday cutoff</option>@for (short day = 1; day <= 7; day++) { <option value="@day">@R.Weekdays[day - 1]</option> }</select><span asp-validation-for="SubmissionDeadlineDayOfWeek" class="ms-field-error"></span><p>Optional. Weekday cutoffs are supported when publishing Salary Increase rules. Leave blank for other request types.</p></div>
-            <div class="ms-form-field"><label asp-for="EffectiveFrom"></label><input asp-for="EffectiveFrom" type="date" min="@R.Today.ToString("yyyy-MM-dd")" required /><span asp-validation-for="EffectiveFrom" class="ms-field-error"></span><p>Today or a future date in Vietnam (UTC+7). A replacement must start after its previous version.</p></div>
-            <div class="ms-form-info"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>@(Model.Mode == "Replace" ? "Saving creates a replacement draft. The active rule remains in effect until the replacement is published and reaches its effective date." : "Saving keeps this rule as a draft. Publish it after reviewing the limits to apply it to employee requests.")</p></div>
-            <div class="ms-form-actions"><a class="ms-reset" asp-action="@(Model.Id.HasValue ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a><button class="ms-primary" type="submit">@(Model.Mode == "Replace" ? "Create replacement draft" : Model.Mode == "Edit" ? "Save changes" : "Create draft")</button></div>
-        </form><aside class="rl-preview" aria-label="Rule preview"><div class="rl-preview-top"><span class="material-symbols-outlined" aria-hidden="true">tune</span><span>YOUR POLICY, AT A GLANCE</span><span class="ad-badge muted">Draft</span></div><h2 data-preview-type>@(string.IsNullOrEmpty(Model.RequestType) ? "Choose a request type" : R.Label(Model.RequestType))</h2><div class="rl-preview-limit"><strong data-preview-limit>@(Model.MaxRequestsPerMonth?.ToString() ?? "—")</strong><span>requests<br />per month</span></div><div class="rl-preview-row"><span>Advance notice</span><strong><span data-preview-notice>@(Model.MinimumAdvanceDays?.ToString() ?? "—")</span> days</strong></div><div class="rl-preview-row"><span>Effective from</span><strong data-preview-date>@(Model.EffectiveFrom.HasValue ? S.Date(Model.EffectiveFrom.Value) : "Not set")</strong></div><div class="rl-preview-row"><span>Weekday cutoff</span><strong data-preview-weekday>@R.Weekday(Model.SubmissionDeadlineDayOfWeek)</strong></div><div class="rl-preview-footer"><span class="material-symbols-outlined" aria-hidden="true">shield</span><p>Your changes are saved as a draft. Review and publish when ready.</p></div><ol class="rl-workflow"><li><span>01</span><div><strong>Define</strong><small>Set clear limits for your team.</small></div></li><li><span>02</span><div><strong>Review</strong><small>Check dates and request limits.</small></div></li><li><span>03</span><div><strong>Publish</strong><small>Apply now or schedule for later.</small></div></li></ol></aside></div>
-    }
+            <div class="flex items-center gap-3">
+                <span class="ad-badge muted">Draft</span>
+                <a class="ms-back inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors shadow-2xs" asp-action="Index" title="Cancel">
+                    <span class="material-symbols-outlined text-[16px]">close</span> Cancel
+                </a>
+            </div>
+        </header>
+
+        @if (Model.ErrorMessage is not null) { <div class="ad-error mb-4" role="alert">@Model.ErrorMessage</div> }
+
+        @if (Model.CanSave)
+        {
+            <div class="rl-editor-layout w-full m-0" style="max-width: 100%; margin: 0;">
+                <form id="rule-editor" asp-action="@Model.Mode" asp-route-id="@Model.Id" method="post" class="ad-card ms-edit-form rl-edit-form">
+                    <div class="ms-form-section-title">
+                        <span class="material-symbols-outlined" aria-hidden="true">rule</span>
+                        <div>
+                            <h2>Rule settings</h2>
+                            <p>All required limits are applied per employee in your branch.</p>
+                        </div>
+                    </div>
+                    @if (Model.Mode == "Replace" && Model.Original is { } original) {
+                        <div class="rl-replacement-context">
+                            <strong>Replacing active rule #@original.RequestLimitRuleId</strong>
+                            <p>@R.Label(original.RequestType) · @original.MaxRequestsPerMonth requests / month · @original.MinimumAdvanceDays days advance notice</p>
+                            <p>Current effective date: @S.Date(original.EffectiveFrom). The new version must start later.</p>
+                        </div>
+                    }
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div asp-validation-summary="All" class="ms-validation mb-4" role="alert"></div>
+                    }
+                    <div class="ms-form-field">
+                        <label asp-for="RequestType"></label>
+                        @if (Model.LockType) {
+                            <input id="RequestType" type="text" value="@R.Label(Model.Original?.RequestType ?? Model.RequestType)" readonly aria-describedby="type-help" />
+                            <input type="hidden" name="RequestType" value="@(Model.Original?.RequestType ?? Model.RequestType)" />
+                        }
+                        else {
+                            <select asp-for="RequestType" required>
+                                <option value="">Select a request type</option>
+                                @foreach (var type in R.Types) {
+                                    <option value="@type">@R.Label(type)</option>
+                                }
+                            </select>
+                        }
+                        <span asp-validation-for="RequestType" class="ms-field-error"></span>
+                        <p id="type-help">@(Model.LockType ? "Replacement versions keep the original request type." : "Choose the employee request category this rule applies to.")</p>
+                    </div>
+                    <div class="rl-form-grid">
+                        <div class="ms-form-field">
+                            <label asp-for="MaxRequestsPerMonth"></label>
+                            <input asp-for="MaxRequestsPerMonth" type="number" min="1" max="2147483647" required />
+                            <span asp-validation-for="MaxRequestsPerMonth" class="ms-field-error"></span>
+                            <p>At least 1 request per month.</p>
+                        </div>
+                        <div class="ms-form-field">
+                            <label asp-for="MinimumAdvanceDays"></label>
+                            <input asp-for="MinimumAdvanceDays" type="number" min="0" max="2147483647" required />
+                            <span asp-validation-for="MinimumAdvanceDays" class="ms-field-error"></span>
+                            <p>0 means no minimum advance notice.</p>
+                        </div>
+                    </div>
+                    <div class="ms-form-field">
+                        <label asp-for="SubmissionDeadlineDayOfWeek"></label>
+                        <select asp-for="SubmissionDeadlineDayOfWeek">
+                            <option value="">No weekday cutoff</option>
+                            @for (short day = 1; day <= 7; day++) {
+                                <option value="@day">@R.Weekdays[day - 1]</option>
+                            }
+                        </select>
+                        <span asp-validation-for="SubmissionDeadlineDayOfWeek" class="ms-field-error"></span>
+                        <p>Optional. Weekday cutoffs are supported when publishing Salary Increase rules. Leave blank for other request types.</p>
+                    </div>
+                    <div class="ms-form-field">
+                        <label asp-for="EffectiveFrom"></label>
+                        <input asp-for="EffectiveFrom" type="date" min="@R.Today.ToString("yyyy-MM-dd")" required />
+                        <span asp-validation-for="EffectiveFrom" class="ms-field-error"></span>
+                        <p>Today or a future date in Vietnam (UTC+7). A replacement must start after its previous version.</p>
+                    </div>
+                    <div class="ms-form-info">
+                        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                        <p>@(Model.Mode == "Replace" ? "Saving creates a replacement draft. The active rule remains in effect until the replacement is published and reaches its effective date." : "Saving keeps this rule as a draft. Publish it after reviewing the limits to apply it to employee requests.")</p>
+                    </div>
+                    <div class="ms-form-actions">
+                        <a class="ms-reset" asp-action="@(Model.Id.HasValue ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a>
+                        <button class="ms-primary" type="submit">@(Model.Mode == "Replace" ? "Create replacement draft" : Model.Mode == "Edit" ? "Save changes" : "Create draft")</button>
+                    </div>
+                </form>
+
+                <aside class="rl-preview" aria-label="Rule preview">
+                    <div class="rl-preview-top">
+                        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                        <span>YOUR POLICY, AT A GLANCE</span>
+                        <span class="ad-badge muted">Draft</span>
+                    </div>
+                    <h2 data-preview-type>@(string.IsNullOrEmpty(Model.RequestType) ? "Choose a request type" : R.Label(Model.RequestType))</h2>
+                    <div class="rl-preview-limit">
+                        <strong data-preview-limit>@(Model.MaxRequestsPerMonth?.ToString() ?? "—")</strong>
+                        <span>requests<br />per month</span>
+                    </div>
+                    <div class="rl-preview-row">
+                        <span>Advance notice</span>
+                        <strong><span data-preview-notice>@(Model.MinimumAdvanceDays?.ToString() ?? "—")</span> days</strong>
+                    </div>
+                    <div class="rl-preview-row">
+                        <span>Effective from</span>
+                        <strong data-preview-date>@(Model.EffectiveFrom.HasValue ? S.Date(Model.EffectiveFrom.Value) : "Not set")</strong>
+                    </div>
+                    <div class="rl-preview-row">
+                        <span>Weekday cutoff</span>
+                        <strong data-preview-weekday>@R.Weekday(Model.SubmissionDeadlineDayOfWeek)</strong>
+                    </div>
+                    <div class="rl-preview-footer">
+                        <span class="material-symbols-outlined" aria-hidden="true">shield</span>
+                        <p>Your changes are saved as a draft. Review and publish when ready.</p>
+                    </div>
+                    <ol class="rl-workflow">
+                        <li><span>01</span><div><strong>Define</strong><small>Set clear limits for your team.</small></div></li>
+                        <li><span>02</span><div><strong>Review</strong><small>Check dates and request limits.</small></div></li>
+                        <li><span>03</span><div><strong>Publish</strong><small>Apply now or schedule for later.</small></div></li>
+                    </ol>
+                </aside>
+            </div>
+        }
+    </div>
 </div>
 
 @section Scripts { <script src="~/js/request-limit-rules.js" asp-append-version="true"></script> }

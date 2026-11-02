@@ -129,7 +129,7 @@
 }
 
 <div class="w-full px-7 pt-6 pb-10">
-    <div class="w-full max-w-[1200px] mx-auto">
+    <div class="w-full max-w-[1440px] mx-auto">
         <form asp-controller="User" asp-action="Edit" asp-route-id="@Model.UserId" method="post" enctype="multipart/form-data" class="flex flex-col w-full gap-unit-6" id="editUserForm">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="UserId" />

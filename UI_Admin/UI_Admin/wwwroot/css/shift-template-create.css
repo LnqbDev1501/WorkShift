@@ -52,3 +52,10 @@
 .create-errors ul { margin:0; padding-left:18px; } .create-timing-error { margin-bottom:16px; }
 @media(max-width:1200px) { .create-grid { grid-template-columns:minmax(0,1fr); } .create-preview { position:static; } .create-heading { align-items:flex-start; flex-direction:column; } }
 @media(max-width:600px) { .create-card { padding:18px; } .create-time-grid { grid-template-columns:1fr; } .create-metrics { gap:6px; } .create-metrics>div { padding:8px; } .create-metrics strong { font-size:16px; } .create-heading h1 { font-size:26px; } }
+
+
+.shift-content.create-content {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 24px 20px 48px;
+}

@@ -8,20 +8,83 @@
     <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace">
-    <a class="ms-back" asp-action="Index">← Back to weekly schedules</a>
-    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>@ViewData["Title"]</h1><p>@(editing ? $"Update dates for draft schedule #{Model.Id}." : "Plan a new schedule week for your assigned branch.")</p></div><span class="ad-badge muted">Draft</span></header>
-    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
-    @if (Model.CanSave)
-    {
-        <div class="ms-editor-layout"><form id="schedule-editor" asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" class="ad-card ms-edit-form">
-            <div class="ms-form-section-title"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span><div><h2>Schedule settings</h2><p>Set the week and registration window.</p></div></div><div asp-validation-summary="All" class="ms-validation" role="alert"></div>
-            <div class="ms-form-field"><label asp-for="WeekStartDate"></label><input asp-for="WeekStartDate" type="date" readonly="@Model.LockStartDate" aria-describedby="week-help" required /><span asp-validation-for="WeekStartDate" class="ms-field-error"></span><p id="week-help">@(Model.LockStartDate ? "The start date is locked because this schedule already contains shifts." : "Choose a Monday in the future. The week ends on the following Sunday.")</p></div>
-            <div class="ms-form-field"><label asp-for="RegistrationDeadline">Registration deadline · UTC+7</label><input asp-for="RegistrationDeadline" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" aria-describedby="deadline-help" required /><span asp-validation-for="RegistrationDeadline" class="ms-field-error"></span><p id="deadline-help">Choose a future date and time before the schedule week's start date. Times use Vietnam time (UTC+7).</p></div>
-            <div class="ms-form-info"><span class="material-symbols-outlined" aria-hidden="true">info</span><p>@(editing ? "Existing shifts are kept. Only the week start and registration deadline can be updated here." : "The schedule will be created as a draft. You can review it before registration opens.")</p></div>
-            <div class="ms-form-actions"><a class="ms-reset" asp-action="@(editing ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a><button type="submit" class="ms-primary">@(editing ? "Save changes" : "Create schedule")</button></div>
-        </form><aside class="ms-editor-preview"><span class="ms-section-kicker">WEEK PREVIEW · UTC+7</span><span class="material-symbols-outlined ms-preview-icon" aria-hidden="true">calendar_month</span><h2 data-week-preview>Choose your week</h2><p>Monday through Sunday</p><div class="ms-preview-row"><span>Registration closes</span><strong data-deadline-preview>Not set</strong></div><div class="ms-preview-row"><span>Initial status</span><span class="ad-badge muted">Draft</span></div><ol class="ms-planning-steps"><li><strong>01 · Plan the week</strong><span>Choose dates and a registration deadline.</span></li><li><strong>02 · Build your shifts</strong><span>Add templates and staffing requirements.</span></li><li><strong>03 · Open &amp; assign</strong><span>Open registration, then manage your team.</span></li></ol></aside></div>
-    }
+<div class="ws-form-page px-4 sm:px-6 py-6">
+    <div class="accountant-dashboard schedule-page ms-workspace ws-form-container-wide mx-auto p-0" style="max-width: 1440px;">
+        <header class="ad-heading w-full mb-6">
+            <div>
+                <span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span>
+                <h1>@ViewData["Title"]</h1>
+                <p>@(editing ? $"Update dates for draft schedule #{Model.Id}." : "Plan a new schedule week for your assigned branch.")</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="ad-badge muted">Draft</span>
+                <a class="ms-back inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors shadow-2xs" asp-action="Index" title="Cancel">
+                    <span class="material-symbols-outlined text-[16px]">close</span> Cancel
+                </a>
+            </div>
+        </header>
+
+        @if (Model.ErrorMessage is not null) { <div class="ad-error mb-4" role="alert">@Model.ErrorMessage</div> }
+
+        @if (Model.CanSave)
+        {
+            <div class="ms-editor-layout w-full m-0" style="max-width: 100%; margin: 0;">
+                <form id="schedule-editor" asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" class="ad-card ms-edit-form">
+                    <div class="ms-form-section-title">
+                        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
+                        <div>
+                            <h2>Schedule settings</h2>
+                            <p>Set the week and registration window.</p>
+                        </div>
+                    </div>
+                    @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                    {
+                        <div asp-validation-summary="All" class="ms-validation mb-4" role="alert"></div>
+                    }
+                    <div class="ms-form-field">
+                        <label asp-for="WeekStartDate"></label>
+                        <input asp-for="WeekStartDate" type="date" readonly="@Model.LockStartDate" aria-describedby="week-help" required />
+                        <span asp-validation-for="WeekStartDate" class="ms-field-error"></span>
+                        <p id="week-help">@(Model.LockStartDate ? "The start date is locked because this schedule already contains shifts." : "Choose a Monday in the future. The week ends on the following Sunday.")</p>
+                    </div>
+                    <div class="ms-form-field">
+                        <label asp-for="RegistrationDeadline">Registration deadline · UTC+7</label>
+                        <input asp-for="RegistrationDeadline" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" aria-describedby="deadline-help" required />
+                        <span asp-validation-for="RegistrationDeadline" class="ms-field-error"></span>
+                        <p id="deadline-help">Choose a future date and time before the schedule week's start date. Times use Vietnam time (UTC+7).</p>
+                    </div>
+                    <div class="ms-form-info">
+                        <span class="material-symbols-outlined" aria-hidden="true">info</span>
+                        <p>@(editing ? "Existing shifts are kept. Only the week start and registration deadline can be updated here." : "The schedule will be created as a draft. You can review it before registration opens.")</p>
+                    </div>
+                    <div class="ms-form-actions">
+                        <a class="ms-reset" asp-action="@(editing ? "Details" : "Index")" asp-route-id="@Model.Id">Cancel</a>
+                        <button type="submit" class="ms-primary">@(editing ? "Save changes" : "Create schedule")</button>
+                    </div>
+                </form>
+
+                <aside class="ms-editor-preview">
+                    <span class="ms-section-kicker">WEEK PREVIEW · UTC+7</span>
+                    <span class="material-symbols-outlined ms-preview-icon" aria-hidden="true">calendar_month</span>
+                    <h2 data-week-preview>Choose your week</h2>
+                    <p>Monday through Sunday</p>
+                    <div class="ms-preview-row">
+                        <span>Registration closes</span>
+                        <strong data-deadline-preview>Not set</strong>
+                    </div>
+                    <div class="ms-preview-row">
+                        <span>Initial status</span>
+                        <span class="ad-badge muted">Draft</span>
+                    </div>
+                    <ol class="ms-planning-steps">
+                        <li><strong>01 · Plan the week</strong><span>Choose dates and a registration deadline.</span></li>
+                        <li><strong>02 · Build your shifts</strong><span>Add templates and staffing requirements.</span></li>
+                        <li><strong>03 · Open &amp; assign</strong><span>Open registration, then manage your team.</span></li>
+                    </ol>
+                </aside>
+            </div>
+        }
+    </div>
 </div>
 
 @section Scripts { <script src="~/js/manager-schedules.js" asp-append-version="true"></script> }

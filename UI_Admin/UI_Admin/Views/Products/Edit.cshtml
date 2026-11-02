@@ -4,80 +4,90 @@
     ViewData["Title"] = "Edit Product";
 }
 
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <div class="flex items-center gap-unit-3">
-        <a asp-controller="Products" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-        </a>
-        <div class="flex flex-col">
-            <div class="list-eyebrow">Product Catalog</div>
-            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Edit Product</h1>
+<div class="ws-form-page px-4 sm:px-6 py-6">
+    <div class="max-w-5xl mx-auto w-full flex flex-col gap-unit-4">
+        <div class="flex items-center gap-unit-3">
+            <a asp-controller="Products" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm" title="Cancel">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </a>
+            <div class="flex flex-col">
+                <div class="list-eyebrow">Product Catalog</div>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Edit Product</h1>
+            </div>
         </div>
-    </div>
 
-    <div class="w-full max-w-2xl bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
-        <form method="post" asp-controller="Products" asp-action="Edit" asp-route-id="@Model.ProductId" enctype="multipart/form-data" class="flex flex-col gap-unit-4">
-            @Html.AntiForgeryToken()
-            <input type="hidden" asp-for="ProductId" />
-            <input type="hidden" asp-for="Status" />
-            <input type="hidden" asp-for="ImageUrl" />
-            <div asp-validation-summary="ModelOnly" class="text-error font-body-sm text-body-sm"></div>
+        <div class="w-full bg-surface-container-lowest rounded-2xl shadow-sm p-6 sm:p-8 border border-slate-200">
+            <form method="post" asp-controller="Products" asp-action="Edit" asp-route-id="@Model.ProductId" enctype="multipart/form-data" class="flex flex-col gap-unit-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="ProductId" />
+                <input type="hidden" asp-for="Status" />
+                <input type="hidden" asp-for="ImageUrl" />
+                <div asp-validation-summary="ModelOnly" class="text-error font-body-sm text-body-sm"></div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label class="font-label-md text-label-md text-on-surface">Product Code</label>
-                <div>
-                    <span class="font-code-num text-code-num text-primary font-semibold bg-surface-container px-2 py-1 rounded">@Model.ProductCode</span>
-                </div>
-            </div>
-
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="CategoryId" class="font-label-md text-label-md text-on-surface">Category <span class="text-error">*</span></label>
-                <select asp-for="CategoryId" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
-                    <option value="0">-- Select Category --</option>
-                </select>
-                <span asp-validation-for="CategoryId" class="text-error font-body-sm text-body-sm"></span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
                 <div class="flex flex-col gap-unit-2">
-                    <label asp-for="ProductName" class="font-label-md text-label-md text-on-surface">Product Name <span class="text-error">*</span></label>
-                    <input asp-for="ProductName" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" type="text" />
-                    <span asp-validation-for="ProductName" class="text-error font-body-sm text-body-sm"></span>
+                    <label class="font-label-md text-label-md text-on-surface">Product Code</label>
+                    <div>
+                        <span class="font-code-num text-code-num text-primary font-semibold bg-surface-container px-2.5 py-1 rounded-lg">@Model.ProductCode</span>
+                    </div>
                 </div>
+
                 <div class="flex flex-col gap-unit-2">
-                    <label asp-for="Price" class="font-label-md text-label-md text-on-surface">Price <span class="text-error">*</span></label>
-                    <input asp-for="Price" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" type="number" step="0.01" min="0" />
-                    <span asp-validation-for="Price" class="text-error font-body-sm text-body-sm"></span>
+                    <label asp-for="CategoryId" class="font-label-md text-label-md text-on-surface">Category <span class="text-error">*</span></label>
+                    <select asp-for="CategoryId" asp-items="@(new SelectList(Model.Categories, "Id", "Name"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                        <option value="0">-- Select Category --</option>
+                    </select>
+                    <span asp-validation-for="CategoryId" class="text-error font-body-sm text-body-sm"></span>
                 </div>
-            </div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="Description" class="font-label-md text-label-md text-on-surface">Description</label>
-                <textarea asp-for="Description" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container"></textarea>
-                <span asp-validation-for="Description" class="text-error font-body-sm text-body-sm"></span>
-            </div>
-
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="ImageFile" class="font-label-md text-label-md text-on-surface">Product Image</label>
-                <div class="flex items-center gap-unit-3">
-                    @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
-                    {
-                        <img id="current-image" src="@Model.ImageUrl" alt="@Model.ProductName" class="w-20 h-20 rounded-xl border border-surface-container-high object-cover" />
-                    }
-                    <img id="image-preview" alt="Preview" class="hidden w-20 h-20 rounded-xl border border-surface-container-high object-cover" />
-                    <input asp-for="ImageFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container file:mr-3 file:h-full file:border-0 file:bg-surface-container file:text-on-surface file:font-body-md-medium cursor-pointer" />
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
+                    <div class="flex flex-col gap-unit-2">
+                        <label asp-for="ProductName" class="font-label-md text-label-md text-on-surface">Product Name <span class="text-error">*</span></label>
+                        <input asp-for="ProductName" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" type="text" />
+                        <span asp-validation-for="ProductName" class="text-error font-body-sm text-body-sm"></span>
+                    </div>
+                    <div class="flex flex-col gap-unit-2">
+                        <label asp-for="Price" class="font-label-md text-label-md text-on-surface">Price <span class="text-error">*</span></label>
+                        <input asp-for="Price" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" type="number" step="0.01" min="0" />
+                        <span asp-validation-for="Price" class="text-error font-body-sm text-body-sm"></span>
+                    </div>
                 </div>
-                <span class="font-body-sm text-body-sm text-secondary">JPG, PNG or WEBP, max 5MB. Uploading a new image replaces the current one.</span>
-            </div>
 
-            <div class="flex items-center justify-end gap-unit-3 pt-unit-2">
-                <a asp-controller="Products" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
-                <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[20px]">save</span>
-                    <span>Save Changes</span>
-                </button>
-            </div>
-        </form>
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="Description" class="font-label-md text-label-md text-on-surface">Description</label>
+                    <textarea asp-for="Description" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container"></textarea>
+                    <span asp-validation-for="Description" class="text-error font-body-sm text-body-sm"></span>
+                </div>
+
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="ImageFile" class="font-label-md text-label-md text-on-surface">Product Image</label>
+                    <div class="flex items-center gap-unit-3">
+                        @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                        {
+                            <img id="image-preview" src="@Model.ImageUrl" alt="@Model.ProductName" class="w-20 h-20 rounded-xl border border-surface-container-high object-cover" />
+                        }
+                        else
+                        {
+                            <img id="image-preview" alt="Preview" class="hidden w-20 h-20 rounded-xl border border-surface-container-high object-cover" />
+                        }
+                        <input asp-for="ImageFile" type="file" accept=".jpg,.jpeg,.png,.webp" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container file:mr-3 file:h-full file:border-0 file:bg-surface-container file:text-on-surface file:font-body-md-medium cursor-pointer" />
+                    </div>
+                    <span class="font-body-sm text-body-sm text-secondary">Leave empty to keep the current image. JPG, PNG or WEBP, max 5MB.</span>
+                </div>
+
+                <div class="flex items-center gap-unit-2 p-unit-3 bg-surface-container-low rounded-xl">
+                    <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Status:</span>
+                    <span class="font-body-md-medium text-body-md-medium @(Model.Status == "ACTIVE" ? "text-emerald-700" : "text-secondary")">@Model.Status</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                    <a asp-controller="Products" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
+                    <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[20px]">save</span>
+                        <span>Save Changes</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -87,15 +97,10 @@
         document.getElementById('ImageFile')?.addEventListener('change', (e) => {
             const file = e.target.files?.[0];
             const preview = document.getElementById('image-preview');
-            const current = document.getElementById('current-image');
             if (!preview) return;
             if (file) {
                 preview.src = URL.createObjectURL(file);
                 preview.classList.remove('hidden');
-                current?.classList.add('hidden');
-            } else {
-                preview.classList.add('hidden');
-                current?.classList.remove('hidden');
             }
         });
     </script>

@@ -1203,7 +1203,8 @@
 
 /* Full-screen holiday workspaces */
 .holiday-form-page {
-    max-width: none;
+    max-width: 1440px;
+    margin: 0 auto;
     width: 100%;
     min-height: 100vh;
     padding: 26px 28px 34px;

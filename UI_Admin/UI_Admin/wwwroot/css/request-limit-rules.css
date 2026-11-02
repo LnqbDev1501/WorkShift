@@ -37,7 +37,7 @@
 .rl-lifecycle{border-radius:16px;border-left:3px solid #b6a1df!important;background:linear-gradient(120deg,#fff,#fcfaff)}
 .rl-publish-panel{border-radius:18px;box-shadow:0 10px 35px #49337e09!important}
 .rl-publish-icon{width:58px;height:58px;background:#eee6f9;color:#8462b5;border-radius:17px;font-size:27px}
-.rl-editor-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:26px;align-items:start;max-width:1220px;margin:24px auto}
+.rl-editor-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr);gap:24px;align-items:start;max-width:100%;margin:0}
 .rl-editor-layout .rl-edit-form{width:100%;margin:0;max-width:none;padding:32px;border-radius:18px}
 .rl-edit-form .ms-form-section-title{border-bottom-color:#eee9f4}
 .rl-edit-form .ms-form-section-title>.material-symbols-outlined{background:#f0eafa;color:#8665b5}

@@ -5,86 +5,88 @@
     ViewData["Title"] = "Create Staff Account";
 }
 
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <div class="flex items-center gap-unit-3">
-        <a asp-controller="ManagerStaff" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-        </a>
-        <div class="flex flex-col">
-            <div class="list-eyebrow">Staff Management</div>
-            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Staff Account</h1>
+<div class="ws-form-page px-4 sm:px-6 py-6">
+    <div class="max-w-5xl mx-auto w-full flex flex-col gap-unit-4">
+        <div class="flex items-center gap-unit-3">
+            <a asp-controller="ManagerStaff" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm" title="Cancel">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </a>
+            <div class="flex flex-col">
+                <div class="list-eyebrow">Staff Management</div>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Staff Account</h1>
+            </div>
         </div>
-    </div>
 
-    <div class="w-full bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
-        <form method="post" asp-controller="ManagerStaff" asp-action="Create" enctype="multipart/form-data" class="flex flex-col gap-unit-4">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-error font-body-sm text-body-sm"></div>
+        <div class="w-full bg-surface-container-lowest rounded-2xl shadow-sm p-6 sm:p-8 border border-slate-200">
+            <form method="post" asp-controller="ManagerStaff" asp-action="Create" enctype="multipart/form-data" class="flex flex-col gap-unit-4">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="text-error font-body-sm text-body-sm"></div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="FullName" class="font-label-md text-label-md text-on-surface">Full Name <span class="text-error">*</span></label>
-                <input asp-for="FullName" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. Nguyen Van A" type="text" />
-                <span asp-validation-for="FullName" class="text-error font-body-sm text-body-sm"></span>
-            </div>
-
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="Email" class="font-label-md text-label-md text-on-surface">Email <span class="text-error">*</span></label>
-                <input asp-for="Email" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. staff@workshift.com" type="email" />
-                <span asp-validation-for="Email" class="text-error font-body-sm text-body-sm"></span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
                 <div class="flex flex-col gap-unit-2">
-                    <label asp-for="Phone" class="font-label-md text-label-md text-on-surface">Phone <span class="text-error">*</span></label>
-                    <input asp-for="Phone" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 0901234567" type="text" />
-                    <span asp-validation-for="Phone" class="text-error font-body-sm text-body-sm"></span>
+                    <label asp-for="FullName" class="font-label-md text-label-md text-on-surface">Full Name <span class="text-error">*</span></label>
+                    <input asp-for="FullName" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. Nguyen Van A" type="text" />
+                    <span asp-validation-for="FullName" class="text-error font-body-sm text-body-sm"></span>
                 </div>
+
                 <div class="flex flex-col gap-unit-2">
-                    <label asp-for="IdentityNo" class="font-label-md text-label-md text-on-surface">Identity No <span class="text-error">*</span></label>
-                    <input asp-for="IdentityNo" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 123456789" type="text" />
-                    <span asp-validation-for="IdentityNo" class="text-error font-body-sm text-body-sm"></span>
+                    <label asp-for="Email" class="font-label-md text-label-md text-on-surface">Email <span class="text-error">*</span></label>
+                    <input asp-for="Email" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. staff@workshift.com" type="email" />
+                    <span asp-validation-for="Email" class="text-error font-body-sm text-body-sm"></span>
                 </div>
-            </div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="Gender" class="font-label-md text-label-md text-on-surface">Gender <span class="text-error">*</span></label>
-                <select asp-for="Gender" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
-                    <option value="">-- Select Gender --</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                    <option value="OTHER">Other</option>
-                </select>
-                <span asp-validation-for="Gender" class="text-error font-body-sm text-body-sm"></span>
-            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
+                    <div class="flex flex-col gap-unit-2">
+                        <label asp-for="Phone" class="font-label-md text-label-md text-on-surface">Phone <span class="text-error">*</span></label>
+                        <input asp-for="Phone" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 0901234567" type="text" />
+                        <span asp-validation-for="Phone" class="text-error font-body-sm text-body-sm"></span>
+                    </div>
+                    <div class="flex flex-col gap-unit-2">
+                        <label asp-for="IdentityNo" class="font-label-md text-label-md text-on-surface">Identity No <span class="text-error">*</span></label>
+                        <input asp-for="IdentityNo" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 123456789" type="text" />
+                        <span asp-validation-for="IdentityNo" class="text-error font-body-sm text-body-sm"></span>
+                    </div>
+                </div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="EmployeeTypeId" class="font-label-md text-label-md text-on-surface">Employee Type <span class="text-error">*</span></label>
-                <select asp-for="EmployeeTypeId" asp-items="@(new SelectList(Model.EmployeeTypes, "Id", "Name"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
-                    <option value="">-- Select Employee Type --</option>
-                </select>
-                <span asp-validation-for="EmployeeTypeId" class="text-error font-body-sm text-body-sm"></span>
-            </div>
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="Gender" class="font-label-md text-label-md text-on-surface">Gender <span class="text-error">*</span></label>
+                    <select asp-for="Gender" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                        <option value="">-- Select Gender --</option>
+                        <option value="MALE">Male</option>
+                        <option value="FEMALE">Female</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-error font-body-sm text-body-sm"></span>
+                </div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="DateOfBirth" class="font-label-md text-label-md text-on-surface">Date of Birth <span class="text-error">*</span></label>
-                <input asp-for="DateOfBirth" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" type="date" />
-                <span asp-validation-for="DateOfBirth" class="text-error font-body-sm text-body-sm"></span>
-            </div>
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="EmployeeTypeId" class="font-label-md text-label-md text-on-surface">Employee Type <span class="text-error">*</span></label>
+                    <select asp-for="EmployeeTypeId" asp-items="@(new SelectList(Model.EmployeeTypes, "Id", "Name"))" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                        <option value="">-- Select Employee Type --</option>
+                    </select>
+                    <span asp-validation-for="EmployeeTypeId" class="text-error font-body-sm text-body-sm"></span>
+                </div>
 
-            <div class="flex flex-col gap-unit-2">
-                <label asp-for="Address" class="font-label-md text-label-md text-on-surface">Address <span class="text-error">*</span></label>
-                <textarea asp-for="Address" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 123 Nguyen Hue, Quan 1, TP.HCM"></textarea>
-                <span asp-validation-for="Address" class="text-error font-body-sm text-body-sm"></span>
-            </div>
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="DateOfBirth" class="font-label-md text-label-md text-on-surface">Date of Birth <span class="text-error">*</span></label>
+                    <input asp-for="DateOfBirth" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" type="date" />
+                    <span asp-validation-for="DateOfBirth" class="text-error font-body-sm text-body-sm"></span>
+                </div>
 
-            <div class="flex items-center justify-end gap-unit-3 pt-unit-2">
-                <a asp-controller="ManagerStaff" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
-                <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[20px]">add</span>
-                    <span>Create Staff</span>
-                </button>
-            </div>
-        </form>
+                <div class="flex flex-col gap-unit-2">
+                    <label asp-for="Address" class="font-label-md text-label-md text-on-surface">Address <span class="text-error">*</span></label>
+                    <textarea asp-for="Address" rows="3" class="w-full px-unit-3 py-2 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" placeholder="e.g. 123 Nguyen Hue, Quan 1, TP.HCM"></textarea>
+                    <span asp-validation-for="Address" class="text-error font-body-sm text-body-sm"></span>
+                </div>
+
+                <div class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                    <a asp-controller="ManagerStaff" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
+                    <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[20px]">add</span>
+                        <span>Create Staff</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 

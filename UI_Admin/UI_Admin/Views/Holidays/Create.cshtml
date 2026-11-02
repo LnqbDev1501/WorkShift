@@ -12,8 +12,7 @@
             <div>
                 <h1>Create Public Holidays</h1>
                 <p>Choose inclusive date ranges. Each day becomes a separate holiday; maximum 366 days per batch.</p>
-            </div><a asp-action="List" class="secondary-button"><span
-            class="material-symbols-outlined">arrow_back</span>Back to holidays</a>
+            </div><a asp-action="List" class="secondary-button"><span class="material-symbols-outlined">close</span>Cancel</a>
         </div>
         <form asp-action="Create" method="post" id="holiday-create-form" class="holiday-form-full">
             @Html.AntiForgeryToken()

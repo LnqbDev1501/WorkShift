@@ -12,14 +12,14 @@
             <h1 class="text-display-lg font-display-lg text-on-surface">Edit Employee @label</h1>
             <p>Change a pending @label.ToLowerInvariant(). Only pending items in your branch can be edited.</p>
         </div>
-        <a asp-action="Index" class="btn btn-secondary">Back to list</a>
+        <a asp-action="Index" class="btn btn-secondary inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">close</span>Cancel</a>
     </div>
     <form asp-action="Edit" asp-route-id="@Context.Request.RouteValues["id"]" method="post" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
         <partial name="~/Views/Shared/EmployeeAdjustments/_FormFields.cshtml" model="Model" />
         <div class="flex justify-end gap-3">
-            <a asp-action="Index" class="btn btn-secondary">Back</a>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
             <button type="submit" disabled="@(!Model.OptionsLoaded || Model.StaffOptions.Count == 0 || Model.PayrollPeriodOptions.Count == 0)" class="btn btn-primary">Save changes</button>
         </div>
     </form>

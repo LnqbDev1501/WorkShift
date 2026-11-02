@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.ShiftTemplateListViewModel
+@model UI_Admin.Models.ShiftTemplateListViewModel
 @{
     ViewData["Title"] = "Shift Templates";
     var filterRoutes = new Dictionary<string, string>
@@ -16,7 +16,7 @@
     <section class="shift-content" aria-labelledby="shift-heading">
         <div class="shift-heading">
             <div><div class="list-eyebrow">Enterprise Schedule Directory</div><h1 id="shift-heading">Shift Templates</h1><p>Manage reusable shift start and end times.</p></div>
-            <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span aria-hidden="true">＋</span> Create Template</a>
+            <a asp-action="Create" class="shift-primary" style="text-decoration:none"><span class="material-symbols-outlined text-[18px]">add</span> Create Template</a>
         </div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
 new("Matching Templates", Model.Result.TotalItems.ToString("N0"), "Matching current filters", "calendar_view_week", "#4f46e5"),
@@ -88,7 +88,7 @@ new("Templates Shown", Model.Result.Items.Count.ToString("N0"), "On this page", 
                 </div>
                 @if (Model.Result.Items.Count == 0)
                 {
-                    <div class="shift-empty"><div class="shift-empty-icon" aria-hidden="true">⌕</div><h2>No shift templates found</h2><p>@(!Model.HasFilters ? "There are no shift templates in the catalog yet." : "No templates match the entered query. Check for typos or reset filters.")</p>
+                    <div class="shift-empty"><div class="shift-empty-icon" aria-hidden="true"><span class="material-symbols-outlined text-[32px] text-slate-400">search_off</span></div><h2>No shift templates found</h2><p>@(!Model.HasFilters ? "There are no shift templates in the catalog yet." : "No templates match the entered query. Check for typos or reset filters.")</p>
                         @if (Model.HasFilters) { <a asp-action="List" class="shift-reset">Reset Search</a> }
                     </div>
                 }
