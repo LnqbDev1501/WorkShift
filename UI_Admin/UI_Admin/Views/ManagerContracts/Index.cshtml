@@ -4,8 +4,6 @@
     Layout = "_ManagerLayout";
     ViewData["Title"] = "Employment Contracts Management";
     var items = Model.Items;
-    var currentPage = Model.PageNumber;
-    var totalPages = Model.TotalPages;
     var hasFilters = !string.IsNullOrWhiteSpace(Model.Search)
         || (!string.IsNullOrWhiteSpace(Model.StatusFilter) && !Model.StatusFilter.Equals("all", StringComparison.OrdinalIgnoreCase))
         || (Model.StaffUserIdFilter.HasValue && Model.StaffUserIdFilter.Value != Guid.Empty);
@@ -35,91 +33,36 @@
     </div>
 
     <!-- Filter Bar -->
-    <div class="bg-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-200">
-        <form method="get" asp-action="Index" class="flex flex-col gap-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-
-                <!-- Search Input -->
-                <div class="relative">
-                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
-                    <input type="text"
-                           id="contract-search-input"
-                           name="search"
-                           aria-label="Search by contract # or staff name"
-                           value="@Model.Search"
-                           placeholder="Contract # or staff name..."
-                           class="w-full h-10 pl-10 pr-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
-                </div>
-
-                <!-- Staff Filter -->
-                <div>
-                    <select id="contract-staff-select"
-                            name="staffUserId"
-                            aria-label="Filter by staff member"
-                            class="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all">
-                        <option value="">All Staff Members</option>
-                        @foreach (var staff in Model.StaffOptions)
-                        {
-                            <option value="@staff.StaffUserId" selected="@(Model.StaffUserIdFilter == staff.StaffUserId)">@staff.FullName</option>
-                        }
-                    </select>
-                </div>
-
-                <!-- Status Filter -->
-                <div>
-                    <select id="contract-status-select"
-                            name="status"
-                            aria-label="Filter by contract status"
-                            class="w-full h-10 px-3 rounded-lg border border-slate-300 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all">
-                        <option value="all" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "all")">All Statuses</option>
-                        <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft (DRAFT)</option>
-                        <option value="PENDING_STAFF" selected="@(Model.StatusFilter == "PENDING_STAFF")">Pending Staff Response</option>
-                        <option value="PENDING_MANAGER_APPROVAL" selected="@(Model.StatusFilter == "PENDING_MANAGER_APPROVAL")">Pending Approval</option>
-                        <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active (ACTIVE)</option>
-                        <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled (CANCELLED)</option>
-                        <option value="REJECTED" selected="@(Model.StatusFilter == "REJECTED")">Rejected (REJECTED)</option>
-                        <option value="TERMINATED" selected="@(Model.StatusFilter == "TERMINATED")">Terminated (TERMINATED)</option>
-                        <option value="EXPIRED" selected="@(Model.StatusFilter == "EXPIRED")">Expired (EXPIRED)</option>
-                    </select>
-                </div>
-
-                <!-- Filter Actions -->
-                <div class="flex items-center gap-2">
-                    <button type="submit"
-                            class="h-10 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm flex items-center justify-center gap-1.5 transition-colors cursor-pointer flex-1">
-                        <span class="material-symbols-outlined text-[18px]">filter_list</span>
-                        <span>Filter</span>
-                    </button>
-                    @if (hasFilters)
-                    {
-                        <a asp-action="Index"
-                           class="h-10 px-3 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 font-medium text-sm flex items-center justify-center gap-1 transition-colors"
-                           title="Clear filters">
-                            <span class="material-symbols-outlined text-[18px]">close</span>
-                            <span>Clear</span>
-                        </a>
-                    }
-                </div>
-
-            </div>
-        </form>
-    </div>
-
-    <!-- Summary -->
-    <div class="flex items-center justify-between px-1">
-        <p class="text-xs text-slate-500 font-medium">
-            @if (Model.TotalItems == 0)
-            {
-                <span>No matching contracts found.</span>
-            }
-            else
-            {
-                var first = (currentPage - 1) * Model.PageSize + 1;
-                var last = Math.Min(currentPage * Model.PageSize, Model.TotalItems);
-                <span>Showing @first–@last of @Model.TotalItems contracts</span>
-            }
-        </p>
-    </div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching contracts", Model.TotalItems.ToString("N0"), "Matching current filters", "contract"),
+        new("Active", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "verified"),
+        new("Drafts", Model.Items.Count(x => x.Status == "DRAFT").ToString("N0"), "On this page", "edit_document"),
+        new("Awaiting staff", Model.Items.Count(x => x.Status == "PENDING_STAFF").ToString("N0"), "On this page", "person")
+    })' />
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input type="text" id="contract-search-input" name="search" aria-label="Search by contract # or staff name" value="@Model.Search" placeholder="Contract # or staff name..." /></label>
+            <div class="ws-filter-field"><select id="contract-staff-select" name="staffUserId" aria-label="Filter by staff member">
+                            <option value="">All Staff Members</option>
+                            @foreach (var staff in Model.StaffOptions)
+                            {
+                                <option value="@staff.StaffUserId" selected="@(Model.StaffUserIdFilter == staff.StaffUserId)">@staff.FullName</option>
+                            }
+                        </select></div>
+            <div class="ws-filter-field"><select id="contract-status-select" name="status" aria-label="Filter by contract status">
+                            <option value="all" selected="@(string.IsNullOrEmpty(Model.StatusFilter) || Model.StatusFilter == "all")">All Statuses</option>
+                            <option value="DRAFT" selected="@(Model.StatusFilter == "DRAFT")">Draft (DRAFT)</option>
+                            <option value="PENDING_STAFF" selected="@(Model.StatusFilter == "PENDING_STAFF")">Pending Staff Response</option>
+                            <option value="PENDING_MANAGER_APPROVAL" selected="@(Model.StatusFilter == "PENDING_MANAGER_APPROVAL")">Pending Approval</option>
+                            <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE")">Active (ACTIVE)</option>
+                            <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled (CANCELLED)</option>
+                            <option value="REJECTED" selected="@(Model.StatusFilter == "REJECTED")">Rejected (REJECTED)</option>
+                            <option value="TERMINATED" selected="@(Model.StatusFilter == "TERMINATED")">Terminated (TERMINATED)</option>
+                            <option value="EXPIRED" selected="@(Model.StatusFilter == "EXPIRED")">Expired (EXPIRED)</option>
+                        </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
 
     <!-- Table -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -245,20 +188,13 @@
                                 <td class="px-5 py-3.5 whitespace-nowrap text-right align-middle sticky right-0 bg-white/95 group-hover:bg-slate-50/95 backdrop-blur-sm transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">
                                     <div class="inline-flex items-center justify-end gap-1.5">
                                         <a asp-action="Details" asp-route-id="@contract.ContractId"
-                                           class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors"
-                                           title="View Details">
-                                            <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                            <span>Details</span>
-                                        </a>
+                                           title="View Details" class="ws-icon-action" aria-label="View Details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
 
                                         @if (isDraft)
                                         {
                                             <a asp-action="Edit" asp-route-id="@contract.ContractId"
-                                               class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium transition-colors"
-                                               title="Edit Draft">
-                                                <span class="material-symbols-outlined text-[16px]">edit</span>
-                                                <span>Edit</span>
-                                            </a>
+                                               class="ws-icon-action"
+                                               title="Edit Draft" aria-label="Edit draft"><span class="material-symbols-outlined" aria-hidden="true">edit</span></a>
                                         }
 
                                         @{
@@ -271,20 +207,14 @@
                                         {
                                             <button type="button"
                                                     onclick="openCancelModal(@contract.ContractId, '@contract.ContractNumber', '@contract.Status', '@contract.StartDate.ToString("dd/MM/yyyy")')"
-                                                    class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-medium transition-colors cursor-pointer"
-                                                    title="@(isDraft ? "Cancel Draft" : "Cancel Contract Before Effective Date")">
-                                                <span class="material-symbols-outlined text-[16px]">cancel</span>
-                                                <span>Cancel</span>
-                                            </button>
+                                                    class="ws-icon-action danger"
+                                                    title="@(isDraft ? "Cancel Draft" : "Cancel Contract Before Effective Date")" aria-label="Cancel contract"><span class="material-symbols-outlined" aria-hidden="true">cancel</span></button>
                                         }
                                         else if (statusUpper == "ACTIVE")
                                         {
                                             <a asp-action="Terminate" asp-route-id="@contract.ContractId"
-                                               class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg @(contract.CanTerminateEarly ? "bg-rose-50 hover:bg-rose-100 text-rose-700" : "bg-amber-50 hover:bg-amber-100 text-amber-700") text-xs font-medium transition-colors"
-                                               title="@(contract.CanTerminateEarly ? "Chấm dứt hợp đồng sớm (Đã đủ 3/3 cảnh báo)" : "Cảnh báo vi phạm & Chấm dứt hợp đồng (" + contract.TerminationWarningCount + "/3)")">
-                                                <span class="material-symbols-outlined text-[16px]">gavel</span>
-                                                <span>Terminate (@contract.TerminationWarningCount/3)</span>
-                                            </a>
+                                               class="ws-icon-action danger"
+                                               title="@(contract.CanTerminateEarly ? "Chấm dứt hợp đồng sớm (Đã đủ 3/3 cảnh báo)" : "Cảnh báo vi phạm & Chấm dứt hợp đồng (" + contract.TerminationWarningCount + "/3)")" aria-label="Terminate contract"><span class="material-symbols-outlined" aria-hidden="true">gavel</span></a>
                                         }
                                     </div>
                                 </td>
@@ -296,49 +226,14 @@
         </div>
     </div>
 
-    <!-- Pagination -->
-    @if (totalPages > 1)
+    <partial name="_ListPagination" model="@(new ListPaginationViewModel
     {
-        <div class="flex items-center justify-center gap-2 pt-2">
-            @if (currentPage > 1)
-            {
-                <a asp-action="Index"
-                   asp-route-page="@(currentPage - 1)"
-                   asp-route-search="@Model.Search"
-                   asp-route-status="@Model.StatusFilter"
-                   asp-route-staffUserId="@Model.StaffUserIdFilter"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-                </a>
-            }
-
-            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
-            {
-                <a asp-action="Index"
-                   asp-route-page="@p"
-                   asp-route-search="@Model.Search"
-                   asp-route-status="@Model.StatusFilter"
-                   asp-route-staffUserId="@Model.StaffUserIdFilter"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-sm font-semibold transition-colors @(p == currentPage ? "bg-indigo-600 text-white shadow-sm" : "bg-white border border-slate-200 hover:bg-slate-100 text-slate-700")">
-                    @p
-                </a>
-            }
-
-            @if (currentPage < totalPages)
-            {
-                <a asp-action="Index"
-                   asp-route-page="@(currentPage + 1)"
-                   asp-route-search="@Model.Search"
-                   asp-route-status="@Model.StatusFilter"
-                   asp-route-staffUserId="@Model.StaffUserIdFilter"
-                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors">
-                    <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-                </a>
-            }
-        </div>
-        <p class="text-center text-xs text-slate-400 pb-2">Page @currentPage of @totalPages</p>
-    }
-
+        PageNumber = Model.PageNumber,
+        PageSize = Model.PageSize,
+        TotalItems = Model.TotalItems,
+        PageParameter = "page",
+        ItemLabel = "contracts",
+    })" />
 </div>
 
 <!-- Cancel Contract Modal -->

@@ -9,38 +9,37 @@
 }
 <div class="accountant-dashboard schedule-page ms-workspace">
     @if (TempData["ScheduleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
-    <header class="ad-heading ms-workspace-hero"><div><span class="ad-eyebrow">MANAGER / SCHEDULES &amp; SHIFTS</span><h1>Weekly Schedules</h1><p>Review weekly schedules and staffing coverage for your branch.</p></div><div class="ms-header-actions"><a asp-action="Create" class="ms-primary"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create schedule</a><a class="ad-refresh" asp-action="Index" asp-route-fromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" asp-route-status="@Model.Filter.Status"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></div></header>
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SCHEDULES &amp; SHIFTS</span><h1>Weekly Schedules</h1><p>Review weekly schedules and staffing coverage for your branch.</p></div><div class="ms-header-actions"><a asp-action="Create" class="ms-primary"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create schedule</a><a class="ad-refresh" asp-action="Index" asp-route-fromDate="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" asp-route-toDate="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" asp-route-status="@Model.Filter.Status"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></div></header>
 
-    @if (Model.Weeks is null)
+
+    @if (Model.Weeks is { } summaryWeeks)
     {
-    <form method="get" class="ad-card ms-filters" aria-label="Filter weekly schedules"><div class="ms-filter-title"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span><strong>Find a schedule</strong><span>Filter by date range and status</span></div>
-        <div><label for="FromDate">From date</label><input id="FromDate" name="FromDate" type="date" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></div>
-        <div><label for="ToDate">To date</label><input id="ToDate" name="ToDate" type="date" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></div>
-        <div><label for="Status">Status</label><select id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in S.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@S.Label(status)</option> }</select></div>
-        <button type="submit" class="ms-primary">Apply filters</button><a asp-action="Index" class="ms-reset">Reset</a>
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Schedules", summaryWeeks.Count.ToString("N0"), "Matching current filters", "calendar_month"),
+            new("Open registration", summaryWeeks.Count(x => x.Status == "OPEN_REGISTRATION").ToString("N0"), "Matching current filters", "how_to_reg"),
+            new("Total shifts", summaryWeeks.Sum(x => x.TotalShifts).ToString("N0"), "Matching current filters", "work_history"),
+            new("Remaining slots", summaryWeeks.Where(x => x.Status != "CANCELLED").Sum(x => x.RemainingEmployees).ToString("N0"), "Matching current filters", "group_add")
+        })' />
+    }
+    <form method="get" aria-label="Filter weekly schedules" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field manager-filter-date"><span>From</span><input aria-label="From date (UTC+7)" id="FromDate" name="FromDate" type="date" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></label>
+            <label class="ws-filter-field manager-filter-date"><span>To</span><input aria-label="To date (UTC+7)" id="ToDate" name="ToDate" type="date" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in S.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@S.Label(status)</option> }</select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
         <div asp-validation-summary="All" class="ms-validation" role="alert"></div>
     </form>
-    }
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Weeks is { } weeks)
     {
-        <section class="ms-list-metrics" aria-label="Filtered schedule totals">
-            @foreach (var metric in new[] { (Label: "Schedules", Value: (long)weeks.Count, Icon: "calendar_month"), (Label: "Open Registration", Value: (long)weeks.Count(x => x.Status == "OPEN_REGISTRATION"), Icon: "how_to_reg"), (Label: "Total Shifts", Value: weeks.Sum(x => (long)x.TotalShifts), Icon: "work_history"), (Label: "Remaining Slots", Value: weeks.Where(x => x.Status != "CANCELLED").Sum(x => (long)x.RemainingEmployees), Icon: "group_add") })
-            { <article class="ad-card"><span class="material-symbols-outlined" aria-hidden="true">@metric.Icon</span><div><small>@metric.Label</small><strong>@metric.Value.ToString("N0")</strong></div></article> }
-        </section><p class="ms-metric-note">Totals for the schedules matching your current filters.</p>
-    <form method="get" class="ad-card ms-filters" aria-label="Filter weekly schedules"><div class="ms-filter-title"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span><strong>Find a schedule</strong><span>Filter by date range and status</span></div>
-        <div><label for="FromDate">From date</label><input id="FromDate" name="FromDate" type="date" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></div>
-        <div><label for="ToDate">To date</label><input id="ToDate" name="ToDate" type="date" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></div>
-        <div><label for="Status">Status</label><select id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in S.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@S.Label(status)</option> }</select></div>
-        <button type="submit" class="ms-primary">Apply filters</button><a asp-action="Index" class="ms-reset">Reset</a>
-        <div asp-validation-summary="All" class="ms-validation" role="alert"></div>
-    </form>
-        <div class="ms-summary"><span><strong>@weeks.Count</strong> schedules matching your filters</span><span>All times in UTC+7</span></div>
+
+
         <section class="ad-card ad-recent"><div class="ms-library-heading"><div><span class="ms-section-kicker">SCHEDULE LIBRARY</span><h2>Plan your team’s week</h2></div><span>Monday – Sunday · UTC+7</span></div><div class="ad-table-scroll" tabindex="0" role="region" aria-label="Weekly schedules"><table><thead><tr><th scope="col">Schedule Week</th><th scope="col">Status</th><th scope="col">Registration Deadline</th><th scope="col" class="ad-number">Shifts</th><th scope="col">Staffing Coverage</th><th scope="col">Details</th></tr></thead><tbody>
             @if (weeks.Count == 0) { <tr><td colspan="6" class="ad-empty"><span class="material-symbols-outlined ms-empty-icon" aria-hidden="true">calendar_month</span><strong>No weekly schedules found</strong><small>Try changing the dates or selecting a different status.</small></td></tr> }
             @foreach (var week in weeks.OrderByDescending(x => x.WeekStartDate).ThenByDescending(x => x.ScheduleWeekId))
             {
-                <tr><td><a class="ms-week-link" asp-action="Details" asp-route-id="@week.ScheduleWeekId">@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</a><small>Schedule #@week.ScheduleWeekId</small></td><td><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></td><td>@S.Time(week.RegistrationDeadline)</td><td class="ad-number">@week.TotalShifts</td><td><div class="ms-coverage"><span>@week.AssignedEmployees / @week.RequiredEmployees slots</span><strong>@(week.RequiredEmployees == 0 ? "—" : S.Coverage(week.AssignedEmployees, week.RequiredEmployees) + "%")</strong></div><div class="ad-track"><div style="width:@(S.Coverage(week.AssignedEmployees, week.RequiredEmployees))%;background:#6256db"></div></div><small>@week.RemainingEmployees remaining</small></td><td><a class="ms-detail-link" asp-action="Details" asp-route-id="@week.ScheduleWeekId" aria-label="View schedule @week.ScheduleWeekId">View details <span aria-hidden="true">→</span></a></td></tr>
+                <tr><td><a class="ms-week-link" asp-action="Details" asp-route-id="@week.ScheduleWeekId">@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</a><small>Schedule #@week.ScheduleWeekId</small></td><td><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></td><td>@S.Time(week.RegistrationDeadline)</td><td class="ad-number">@week.TotalShifts</td><td><div class="ms-coverage"><span>@week.AssignedEmployees / @week.RequiredEmployees slots</span><strong>@(week.RequiredEmployees == 0 ? "—" : S.Coverage(week.AssignedEmployees, week.RequiredEmployees) + "%")</strong></div><div class="ad-track"><div style="width:@(S.Coverage(week.AssignedEmployees, week.RequiredEmployees))%;background:#6256db"></div></div><small>@week.RemainingEmployees remaining</small></td><td><a asp-action="Details" asp-route-id="@week.ScheduleWeekId" aria-label="View schedule @week.ScheduleWeekId" class="ws-icon-action" title="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td></tr>
             }
         </tbody></table></div><footer>Staffing counts represent assignment slots across shifts, rather than distinct employees.</footer></section>
     }

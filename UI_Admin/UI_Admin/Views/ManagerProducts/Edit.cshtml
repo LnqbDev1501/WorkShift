@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    <div class="w-full max-w-2xl bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
+    <div class="w-full bg-surface-container-lowest rounded-xl shadow-sm p-unit-6">
         <form method="post" asp-controller="ManagerProducts" asp-action="Edit" asp-route-id="@Model.ProductId" enctype="multipart/form-data" class="flex flex-col gap-unit-4">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="ProductId" />

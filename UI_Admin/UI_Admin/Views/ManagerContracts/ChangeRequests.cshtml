@@ -53,28 +53,19 @@
     }
 
     <!-- Status Tabs -->
-    <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 flex flex-wrap gap-1">
-        <a asp-action="ChangeRequests" asp-route-status="SUBMITTED"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(currentFilter == "SUBMITTED" ? "bg-amber-500 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100")">
-            <span class="material-symbols-outlined text-[18px]">hourglass_top</span>
-            <span>Pending Review (SUBMITTED)</span>
-        </a>
-        <a asp-action="ChangeRequests" asp-route-status="APPROVED"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(currentFilter == "APPROVED" ? "bg-emerald-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100")">
-            <span class="material-symbols-outlined text-[18px]">check_circle</span>
-            <span>Approved</span>
-        </a>
-        <a asp-action="ChangeRequests" asp-route-status="REJECTED"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(currentFilter == "REJECTED" ? "bg-rose-600 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100")">
-            <span class="material-symbols-outlined text-[18px]">cancel</span>
-            <span>Rejected</span>
-        </a>
-        <a asp-action="ChangeRequests" asp-route-status="all"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all @(currentFilter == "ALL" ? "bg-slate-800 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100")">
-            <span class="material-symbols-outlined text-[18px]">list</span>
-            <span>All</span>
-        </a>
-    </div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching proposals", Model.TotalItems.ToString("N0"), "Matching current filters", "contract_edit"),
+        new("Submitted", Model.Items.Count(x => x.Status == "SUBMITTED").ToString("N0"), "On this page", "pending_actions"),
+        new("Approved", Model.Items.Count(x => x.Status == "APPROVED").ToString("N0"), "On this page", "verified"),
+        new("Rejected", Model.Items.Count(x => x.Status == "REJECTED").ToString("N0"), "On this page", "cancel")
+    })' />
+    <form method="get" asp-action="ChangeRequests" class="ws-list-filter" role="search">
+            <div class="ws-filter-row">
+                <div class="ws-filter-field"><select name="status" aria-label="Proposal status"><option value="all" selected="@(currentFilter == "ALL")">All proposals</option>@foreach (var status in new[] { "SUBMITTED", "APPROVED", "REJECTED" }) { <option value="@status" selected="@(currentFilter == status)">@System.Globalization.CultureInfo.InvariantCulture.TextInfo.ToTitleCase(status.ToLowerInvariant())</option> }</select></div>
+                <partial name="_ListFilterActions" model='"ChangeRequests"' />
+            </div>
+        </form>
+
 
     <!-- Table Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -163,11 +154,7 @@
                                     }
                                 </td>
                                 <td class="py-3.5 px-4 text-right">
-                                    <a asp-action="ChangeRequestDetails" asp-route-id="@cr.ChangeRequestId"
-                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold @(cr.Status == "SUBMITTED" ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-700") transition-colors">
-                                        <span class="material-symbols-outlined text-[16px]">visibility</span>
-                                        <span>@(cr.Status == "SUBMITTED" ? "Review" : "Details")</span>
-                                    </a>
+                                    <a asp-action="ChangeRequestDetails" asp-route-id="@cr.ChangeRequestId" class="ws-icon-action" title="Review proposal" aria-label="Review proposal"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                 </td>
                             </tr>
                         }
@@ -175,37 +162,14 @@
                 </table>
             </div>
 
-            <!-- Pagination Bar -->
-            @if (Model.TotalPages > 1)
-            {
-                <div class="p-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                    <div>Showing page @Model.PageNumber of @Model.TotalPages (Total @Model.TotalItems requests)</div>
-                    <div class="flex items-center gap-1">
-                        @if (Model.PageNumber > 1)
-                        {
-                            <a asp-action="ChangeRequests" asp-route-status="@Model.StatusFilter" asp-route-page="@(Model.PageNumber - 1)"
-                               class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-medium text-slate-700">Previous</a>
-                        }
-                        @for (var p = 1; p <= Model.TotalPages; p++)
-                        {
-                            if (p == Model.PageNumber)
-                            {
-                                <span class="px-3 py-1.5 rounded-lg bg-indigo-600 font-bold text-white">@p</span>
-                            }
-                            else if (p == 1 || p == Model.TotalPages || Math.Abs(p - Model.PageNumber) <= 2)
-                            {
-                                <a asp-action="ChangeRequests" asp-route-status="@Model.StatusFilter" asp-route-page="@p"
-                                   class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-medium text-slate-700">@p</a>
-                            }
-                        }
-                        @if (Model.PageNumber < Model.TotalPages)
-                        {
-                            <a asp-action="ChangeRequests" asp-route-status="@Model.StatusFilter" asp-route-page="@(Model.PageNumber + 1)"
-                               class="px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 font-medium text-slate-700">Next</a>
-                        }
-                    </div>
-                </div>
-            }
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            PageParameter = "page",
+            ItemLabel = "contract proposals",
+        })" />
         }
     </div>
 </div>

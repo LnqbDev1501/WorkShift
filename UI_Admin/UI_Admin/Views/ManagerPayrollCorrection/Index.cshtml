@@ -55,50 +55,34 @@
     }
 
     <!-- Search & Filter Card -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <form method="get" asp-action="Index" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <!-- Search Input -->
-            <div class="md:col-span-5">
-                <label for="search" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Search</label>
-                <div class="relative flex items-center">
-                    <span class="material-symbols-outlined absolute left-3.5 pointer-events-none text-slate-400 text-lg">search</span>
-                    <input type="text" id="search" name="search" value="@currentSearch" placeholder="Search employee name, reason..."
-                           class="w-full h-11 pl-10 pr-4 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching issues", Model.Count.ToString("N0"), "Matching current filters", "build"),
+        new("Open", Model.Count(x => x.Status == "OPEN").ToString("N0"), "Awaiting response", "pending_actions"),
+        new("Responded", Model.Count(x => x.Status == "RESPONDED").ToString("N0"), "Response submitted", "reply"),
+        new("Completed", Model.Count(x => x.Status == "COMPLETED").ToString("N0"), "Correction completed", "check_circle")
+    })' />
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="search" name="search" value="@currentSearch" placeholder="Search employee name, reason..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="status">
+                        <option value="ALL" selected="@(currentStatus == "ALL")">All Statuses</option>
+                        <option value="OPEN" selected="@(currentStatus == "OPEN")">OPEN (Pending Response)</option>
+                        <option value="RESPONDED" selected="@(currentStatus == "RESPONDED")">RESPONDED</option>
+                        <option value="RETURNED" selected="@(currentStatus == "RETURNED")">RETURNED</option>
+                        <option value="COMPLETED" selected="@(currentStatus == "COMPLETED")">COMPLETED</option>
+                    </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "periodId" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Payroll period ID</span><input aria-label="Payroll period ID" type="number" id="periodId" name="periodId" value="@currentPeriodId" placeholder="e.g. 1, 2..." /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
                 </div>
-            </div>
-
-            <!-- Status Filter -->
-            <div class="md:col-span-3">
-                <label for="status" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Status</label>
-                <select id="status" name="status"
-                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
-                    <option value="ALL" selected="@(currentStatus == "ALL")">All Statuses</option>
-                    <option value="OPEN" selected="@(currentStatus == "OPEN")">OPEN (Pending Response)</option>
-                    <option value="RESPONDED" selected="@(currentStatus == "RESPONDED")">RESPONDED</option>
-                    <option value="RETURNED" selected="@(currentStatus == "RETURNED")">RETURNED</option>
-                    <option value="COMPLETED" selected="@(currentStatus == "COMPLETED")">COMPLETED</option>
-                </select>
-            </div>
-
-            <!-- Period ID Filter (Optional) -->
-            <div class="md:col-span-2">
-                <label for="periodId" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Period ID</label>
-                <input type="number" id="periodId" name="periodId" value="@currentPeriodId" placeholder="e.g. 1, 2..."
-                       class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="md:col-span-2 flex items-center gap-2">
-                <button type="submit" class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer box-border">
-                    <span class="material-symbols-outlined text-base">filter_alt</span>
-                    <span>Filter</span>
-                </button>
-                <a asp-action="Index" class="h-11 w-11 shrink-0 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl text-sm transition-all box-border" title="Reset Filters">
-                    <span class="material-symbols-outlined text-base">restart_alt</span>
-                </a>
-            </div>
-        </form>
-    </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
 
     <!-- Requests Table Card -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -224,19 +208,11 @@
                                 <td class="py-4 px-6 text-right">
                                     @if (isPending)
                                     {
-                                        <button type="button" onclick="openModal('modalRespond-@req.CorrectionRequestId')"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-all shadow-xs cursor-pointer">
-                                            <span class="material-symbols-outlined text-sm">reply</span>
-                                            <span>Respond</span>
-                                        </button>
+                                        <button type="button" onclick="openModal('modalRespond-@req.CorrectionRequestId')" class="ws-icon-action" title="Respond" aria-label="Respond"><span class="material-symbols-outlined" aria-hidden="true">reply</span></button>
                                     }
                                     else
                                     {
-                                        <button type="button" onclick="openModal('modalDetails-@req.CorrectionRequestId')"
-                                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all cursor-pointer">
-                                            <span class="material-symbols-outlined text-sm">visibility</span>
-                                            <span>Details</span>
-                                        </button>
+                                        <button type="button" onclick="openModal('modalDetails-@req.CorrectionRequestId')" class="ws-icon-action" title="View details" aria-label="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></button>
                                     }
                                 </td>
                             </tr>

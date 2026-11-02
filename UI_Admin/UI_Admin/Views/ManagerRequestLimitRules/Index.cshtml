@@ -9,15 +9,22 @@
     <link rel="stylesheet" href="~/css/request-limit-rules.css" asp-append-version="true" />
 }
 <div class="accountant-dashboard schedule-page rule-page">
-    <header class="ad-heading rl-hero"><div><span class="ad-eyebrow">REQUEST LIMIT RULES / MANAGER</span><h1>Better requests.<br /><span>Clearer boundaries.</span></h1><p>Manage monthly request limits and notice periods for your branch.</p></div><div class="ms-header-actions"><a class="ms-primary" asp-action="Create"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create rule</a><a class="ad-refresh" asp-action="Index" asp-route-requestType="@Model.Filter.RequestType" asp-route-status="@Model.Filter.Status" asp-route-pageNumber="@Model.Filter.PageNumber"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></div></header>
+    <header class="ad-heading"><div><span class="ad-eyebrow">REQUEST LIMIT RULES / MANAGER</span><h1>Request Limit Rules</h1><p>Manage monthly request limits and notice periods for your branch.</p></div><div class="ms-header-actions"><a class="ms-primary" asp-action="Create"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create rule</a><a class="ad-refresh" asp-action="Index" asp-route-requestType="@Model.Filter.RequestType" asp-route-status="@Model.Filter.Status" asp-route-pageNumber="@Model.Filter.PageNumber"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></div></header>
     @if (TempData["RuleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
-    <nav class="rl-categories" aria-label="Filter rules by request type">
-        @foreach (var type in R.Types)
-        {
-            <a class="rl-category @(Model.Filter.RequestType == type ? "is-selected" : "")" asp-action="Index" asp-route-requestType="@type" asp-route-status="@Model.Filter.Status" aria-current="@(Model.Filter.RequestType == type ? "true" : null)"><span class="rl-category-icon material-symbols-outlined" aria-hidden="true">@R.Icon(type)</span><span><strong>@R.Label(type)</strong><small>@(type switch { "LEAVE" => "Time away, thoughtfully planned", "LATE_ARRIVAL" => "A little flexibility, clear limits", "EARLY_LEAVE" => "Leaving early, staying aligned", _ => "A fair path to salary reviews" })</small></span><span class="rl-category-arrow" aria-hidden="true">↗</span></a>
-        }
-    </nav>
-    <form method="get" class="ad-card ms-filters"><div class="ms-filter-title"><span class="material-symbols-outlined" aria-hidden="true">filter_alt</span><strong>Find a rule</strong><span>Filter by request type and status</span></div><div><label for="RequestType">Request type</label><select id="RequestType" name="RequestType"><option value="">All request types</option>@foreach (var type in R.Types) { <option value="@type" selected="@(Model.Filter.RequestType == type)">@R.Label(type)</option> }</select></div><div><label for="Status">Status</label><select id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in R.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@R.Label(status)</option> }</select></div><button class="ms-primary" type="submit">Apply filters</button><a class="ms-reset" asp-action="Index">Reset</a><div asp-validation-summary="All" class="ms-validation" role="alert"></div></form>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching rules", (Model.Page?.TotalItems ?? 0).ToString("N0"), "Matching current filters", "rule"),
+        new("Active", (Model.Page?.Items.Count(x => x.Status == "ACTIVE") ?? 0).ToString("N0"), "On this page", "verified"),
+        new("Scheduled", (Model.Page?.Items.Count(x => x.Status == "SCHEDULED") ?? 0).ToString("N0"), "On this page", "schedule"),
+        new("Drafts", (Model.Page?.Items.Count(x => x.Status == "DRAFT") ?? 0).ToString("N0"), "On this page", "edit_document")
+    })' />
+    <form method="get" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <div class="ws-filter-field"><select aria-label="Request type" id="RequestType" name="RequestType"><option value="">All request types</option>@foreach (var type in R.Types) { <option value="@type" selected="@(Model.Filter.RequestType == type)">@R.Label(type)</option> }</select></div>
+            <div class="ws-filter-field"><select aria-label="Status" id="Status" name="Status"><option value="">All statuses</option>@foreach (var status in R.Statuses) { <option value="@status" selected="@(Model.Filter.Status == status)">@R.Label(status)</option> }</select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+        <div asp-validation-summary="All" class="ms-validation" role="alert"></div>
+    </form>
     @if (Model.ErrorMessage is not null) { <section class="ad-error" role="alert"><div><h2>Rules unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Index" asp-route-requestType="@Model.Filter.RequestType" asp-route-status="@Model.Filter.Status">Try again</a></div></section> }
     @if (Model.Page is { } result)
     {
@@ -27,7 +34,7 @@
             @if (result.Items.Count == 0) { <tr><td colspan="6" class="ad-empty"><span class="material-symbols-outlined ms-empty-icon" aria-hidden="true">rule</span><strong>No rules found</strong><small>Create a rule or adjust your filters to get started.</small></td></tr> }
             @foreach (var rule in result.Items)
             {
-                <tr><td><div class="rl-rule-cell"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">@R.Icon(rule.RequestType)</span><div><a class="ms-week-link" asp-action="Details" asp-route-id="@rule.RequestLimitRuleId">@R.Label(rule.RequestType)</a><small>Rule #@rule.RequestLimitRuleId @(rule.SupersedesRuleId.HasValue ? $"· Replaces #{rule.SupersedesRuleId}" : "")</small></div></div></td><td><strong>@rule.MaxRequestsPerMonth</strong><small>requests / month</small></td><td><strong>@rule.MinimumAdvanceDays</strong><small>days before request</small></td><td>@UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveFrom)<small>@(rule.EffectiveTo.HasValue ? "Until " + UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveTo.Value) : "No end date set")</small></td><td><span class="ad-badge @R.Tone(rule.Status)">@R.Label(rule.Status)</span></td><td><a class="ms-detail-link" asp-action="Details" asp-route-id="@rule.RequestLimitRuleId">View details →</a></td></tr>
+                <tr><td><div class="rl-rule-cell"><span class="rl-type-icon material-symbols-outlined" aria-hidden="true">@R.Icon(rule.RequestType)</span><div><a class="ms-week-link" asp-action="Details" asp-route-id="@rule.RequestLimitRuleId">@R.Label(rule.RequestType)</a><small>Rule #@rule.RequestLimitRuleId @(rule.SupersedesRuleId.HasValue ? $"· Replaces #{rule.SupersedesRuleId}" : "")</small></div></div></td><td><strong>@rule.MaxRequestsPerMonth</strong><small>requests / month</small></td><td><strong>@rule.MinimumAdvanceDays</strong><small>days before request</small></td><td>@UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveFrom)<small>@(rule.EffectiveTo.HasValue ? "Until " + UI_Admin.Models.Manager.ScheduleDisplay.Date(rule.EffectiveTo.Value) : "No end date set")</small></td><td><span class="ad-badge @R.Tone(rule.Status)">@R.Label(rule.Status)</span></td><td><a asp-action="Details" asp-route-id="@rule.RequestLimitRuleId" class="ws-icon-action" title="View details" aria-label="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td></tr>
             }
         </tbody></table></div><partial name="_ListPagination" model="pagination" /></section>
     }

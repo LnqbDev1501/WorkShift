@@ -37,46 +37,23 @@ new("Inactive Products", Model.Items.Count(x => x.Status == "INACTIVE").ToString
 new("Categories", Model.Categories.Count.ToString("N0"), "Available for filtering", "category", "#8b5cf6")
 })' />
     <!-- Filter Toolbar -->
-    <form method="get" asp-controller="ManagerProducts" asp-action="Index" id="filter-form" class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
-        <div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-unit-3">
-            <!-- Search Input -->
-            <div class="relative flex-1">
-                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary">search</span>
-                <input class="w-full h-[40px] pl-9 pr-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
-                       id="product-search"
-                       name="search"
-                       value="@Model.Search"
-                       placeholder="Search product code or name..."
-                       type="text">
-            </div>
-            <!-- Category Filter Dropdown -->
-            <div class="relative sm:w-56">
-                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
-                        id="category-filter"
-                        name="categoryId"
-                        onchange="this.form.submit()">
-                    <option value="">All Categories</option>
-                    @foreach (var category in Model.Categories)
-                    {
-                        <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">@category.Name</option>
-                    }
-                </select>
-                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
-            </div>
-            <!-- Status Filter Dropdown -->
-            <div class="relative sm:w-48">
-                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
-                        id="status-filter"
-                        name="status"
-                        onchange="this.form.submit()">
-                    <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
-                    <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
-                    <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
-                </select>
-                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
-            </div>
+    <form method="get" asp-controller="ManagerProducts" asp-action="Index" id="filter-form" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" id="product-search" name="search" value="@Model.Search" placeholder="Search product code or name..." type="text"></label>
+            <div class="ws-filter-field"><select aria-label="Category" id="category-filter" name="categoryId" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <option value="@category.Id" selected="@(Model.CategoryId == category.Id)">@category.Name</option>
+                        }
+                    </select></div>
+            <div class="ws-filter-field"><select aria-label="Status" id="status-filter" name="status" onchange="this.form.submit()">
+                        <option value="all" selected="@(Model.StatusFilter == "all")">All Statuses</option>
+                        <option value="active" selected="@(Model.StatusFilter == "active")">Active</option>
+                        <option value="inactive" selected="@(Model.StatusFilter == "inactive")">Inactive</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
         </div>
-        <partial name="_ListFilterActions" model='"Index"' />
     </form>
 
     <!-- Main Table Container -->
@@ -142,28 +119,21 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                                 </td>
                                 <td class="px-unit-5 py-2 text-right whitespace-nowrap">
                                     <div class="inline-flex items-center justify-end gap-2">
-                                        <a href="@Url.Action("Details", "ManagerProducts", new { id = item.ProductId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">View Details</a>
+                                        <a href="@Url.Action("Details", "ManagerProducts", new { id = item.ProductId })" class="ws-icon-action" title="View details" aria-label="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                         @if (canWrite)
                                         {
-                                            <a href="@Url.Action("Edit", "ManagerProducts", new { id = item.ProductId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-sm transition-colors">Edit</a>
+                                            <a href="@Url.Action("Edit", "ManagerProducts", new { id = item.ProductId })" class="ws-icon-action" title="Edit" aria-label="Edit"><span class="material-symbols-outlined" aria-hidden="true">edit</span></a>
                                             @if (isActive)
                                             {
                                                 <button type="button"
-                                                        class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-error hover:bg-error-container hover:text-on-error-container font-body-md-medium text-body-sm transition-colors open-deactivate-btn cursor-pointer"
                                                         data-id="@item.ProductId"
-                                                        data-name="@item.ProductName">
-                                                    Deactivate
-                                                </button>
+                                                        data-name="@item.ProductName" class="ws-icon-action danger open-deactivate-btn" title="Deactivate" aria-label="Deactivate"><span class="material-symbols-outlined" aria-hidden="true">block</span></button>
                                             }
                                             else
                                             {
                                                 <button type="button"
-                                                        class="inline-flex items-center justify-center gap-1 h-8 px-unit-3 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-primary font-body-md-medium text-body-sm transition-colors open-restore-btn cursor-pointer"
                                                         data-id="@item.ProductId"
-                                                        data-name="@item.ProductName">
-                                                    <span class="material-symbols-outlined text-[16px]">restore</span>
-                                                    <span>Restore</span>
-                                                </button>
+                                                        data-name="@item.ProductName" class="ws-icon-action open-restore-btn" title="Restore" aria-label="Restore"><span class="material-symbols-outlined" aria-hidden="true">restore</span></button>
                                             }
                                         }
                                     </div>

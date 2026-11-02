@@ -1,11 +1,30 @@
-.manager-page { max-width: 1440px; margin: 0 auto; padding: 24px 28px; }
-html body .custom-scrollbar::-webkit-scrollbar { display: block; height: 6px; width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 9999px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* One content frame for every Manager screen; nested views do not add padding. */
+.manager-workspace .manager-page { box-sizing:border-box; width:100%; max-width:1496px; margin:0 auto; padding:16px 28px 36px; }
+.manager-workspace .manager-page > :is(.px-7,.px-4,.p-6,.accountant-dashboard,[class*="max-w-"]) { width:100%; max-width:none; margin:0; padding:0; }
+.manager-workspace .manager-page > .flex.flex-col { gap:16px; }
+.manager-workspace .manager-page > :is(.space-y-6,.space-y-8) > :not([hidden]) ~ :not([hidden]) { margin-top:16px; }
+.manager-workspace :is(.ad-heading,.form-heading,.ms-workspace-hero,.rl-hero) { margin-bottom:16px; gap:24px; }
+.manager-workspace .manager-page h1 { font:600 22px/1.35 var(--ws-font); letter-spacing:normal; color:#191c2a; }
+.manager-workspace .manager-page h1 span { color:inherit; }
+.manager-workspace .manager-page h2 { font:600 18px/1.4 var(--ws-font); color:#20233a; }
+.manager-workspace .manager-page h3 { font:600 16px/1.4 var(--ws-font); }
+.manager-workspace :is(.ad-heading,.form-heading) p { margin-top:4px; font-size:14px; color:#5b6074; }
+.manager-workspace :is(.ad-card,.ms-form-card,.ms-detail-card,.rl-panel,.bg-white.rounded-2xl,.bg-white.rounded-xl) { border-radius:9px; border-color:var(--ws-line); box-shadow:0 1px 3px #191c2d0d; }
+.manager-workspace :is(.manager-primary,.ms-primary,.ad-refresh,.ms-secondary,.ms-reset,.btn-primary,.btn-secondary) { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:41px; padding:9px 18px; border-radius:9px; font:500 14px/1.4 var(--ws-font); text-decoration:none; }
+.manager-workspace :is(.manager-primary,.ms-primary,.btn-primary,.bg-indigo-600,.bg-purple-600) { color:#fff; background:var(--ws-primary); }
+.manager-workspace :is(.manager-primary,.ms-primary,.btn-primary):hover { background:#4338ca; }
+.manager-workspace :is(.ad-refresh,.ms-secondary,.ms-reset,.btn-secondary) { color:#42475a; background:#f0f1f6; }
+.manager-workspace :is(.ad-eyebrow,.ms-section-kicker) { color:#50577a; font:400 13px/1.45 var(--ws-font); letter-spacing:.08em; text-transform:uppercase; }
+.manager-workspace :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { font-family:var(--ws-font); font-size:14px; border-radius:7px; border-color:var(--ws-line); }
+.manager-workspace table { font-family:var(--ws-font); }
+.manager-workspace .manager-page :is(.rule-page,.schedule-page) table td strong { font-size:14px; font-weight:600; letter-spacing:normal; color:inherit; }
+.manager-workspace .manager-page table th { padding-block:11px; color:#4a516f; background:#f0f1f6; font-size:13px; font-weight:600; letter-spacing:normal; }
+.manager-workspace .manager-page table td { font-size:14px; border-color:#f3f3f6; }
+.manager-workspace .ad-stats article { border-radius:9px; border-color:var(--ws-line); }
+.manager-workspace :is(.ad-stats,.ms-detail-metrics) strong { font-size:20px; font-weight:600; }
+.manager-workspace .ws-list-filter { margin-bottom:0; }
+
 .manager-dashboard .dashboard-heading { margin-bottom: 24px; gap: 20px; flex-wrap: wrap; }
-.manager-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 18px; border-radius: 10px; background: #4f46e5; color: white; font-size: 14px; font-weight: 600; white-space: nowrap; }
-.manager-primary:hover { background: #4338ca; }
 .manager-hero { display: flex; align-items: center; gap: 24px; padding: 28px; margin-bottom: 32px; }
 .manager-hero-icon { display: grid; place-items: center; width: 72px; height: 72px; flex-shrink: 0; background: #eef2ff; color: #4f46e5; border-radius: 18px; }
 .manager-hero-icon span { font-size: 36px; }
@@ -23,13 +42,13 @@ html body .custom-scrollbar::-webkit-scrollbar { display: block; height: 6px; wi
 .manager-shortcut p { flex: 1; }
 .manager-tool-icon { color: #4f46e5; background: #eef2ff; border-radius: 12px; padding: 12px; width: fit-content; }
 .manager-workspace a:focus-visible, .manager-workspace button:focus-visible { outline: 2px solid #818cf8; outline-offset: 4px; }
-#contract-form input, #contract-form select, #contract-form textarea { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 11px; margin-top: 6px; }
+.manager-workspace #contract-form :is(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),select,textarea) { width:100%; border:1px solid var(--ws-line); border-radius:7px; padding:11px; margin-top:6px; }
 #contract-form input:focus, #contract-form select:focus, #contract-form textarea:focus { outline: 2px solid #4f46e5; outline-offset: 2px; }
 #contract-form .field-validation-error, #contract-form .validation-summary-errors { color: #b91c1c; }
 #contract-form .validation-summary-valid { display: none; }
 @media (max-width: 1100px) { .manager-hero { flex-wrap: wrap; } .manager-badge { margin-left: 0; } .manager-card-grid { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
-    .manager-page { padding: 20px 16px; }
+    .manager-workspace .manager-page { padding:16px; }
     .manager-workspace #admin-sidebar { width: 72px !important; }
     .manager-workspace #main-content-wrapper { padding-left: 72px !important; }
     .manager-workspace .sidebar-full-label, .manager-workspace .sidebar-header-full, .manager-workspace .sidebar-user-full, .manager-workspace .sidebar-category-header { display: none !important; }
@@ -38,3 +57,12 @@ html body .custom-scrollbar::-webkit-scrollbar { display: block; height: 6px; wi
     .manager-hero { padding: 20px; gap: 16px; }
     .manager-primary { width: 100%; }
 }
+
+/* Date-range controls retain their labels without adding a second filter row. */
+.manager-workspace .manager-filter-date { position:relative; }
+.manager-workspace .manager-filter-date > span { position:absolute; top:50%; left:13px; transform:translateY(-50%); color:#5b6074; font-size:13px; pointer-events:none; }
+.manager-workspace .ws-list-filter .manager-filter-date > input { padding-left:58px; }
+.manager-workspace :is(a,button):is(.bg-primary,.bg-primary-container,.bg-indigo-600,.bg-purple-600):not(.ws-icon-action) { min-height:41px; padding:9px 18px; border-radius:9px; font-size:14px; font-weight:500; }
+.manager-workspace .ws-icon-action { min-height:32px; padding:0; background:transparent; }
+
+.manager-workspace .manager-page :is(div,header):has(> h1,> div > h1) > p { margin-top:4px; color:#5b6074; font:400 14px/1.45 var(--ws-font); }

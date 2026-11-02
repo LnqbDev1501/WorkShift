@@ -66,162 +66,59 @@
         </div>
     }
 
-    <!-- 5 KPI Summary Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <!-- 1. Total Shifts -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
-                <span class="material-symbols-outlined text-2xl">schedule</span>
-            </div>
-            <div class="min-w-0">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">Total Shifts</span>
-                <span class="text-xl font-bold text-slate-900">@Model.Summary.TotalScheduled</span>
-                <span class="text-[10px] text-slate-400 block truncate">In selected scope</span>
-            </div>
-        </div>
-
-        <!-- 2. Working Now -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                <span class="material-symbols-outlined text-2xl">timer</span>
-            </div>
-            <div class="min-w-0">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">Working Now</span>
-                <span class="text-xl font-bold text-amber-600">@Model.Summary.InProgressCount</span>
-                <span class="text-[10px] text-amber-600 font-semibold block truncate">In progress</span>
-            </div>
-        </div>
-
-        <!-- 3. Completed -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                <span class="material-symbols-outlined text-2xl">check_circle</span>
-            </div>
-            <div class="min-w-0">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">Completed</span>
-                <span class="text-xl font-bold text-emerald-600">@Model.Summary.CompletedCount</span>
-                <span class="text-[10px] text-slate-400 block truncate">Checked out</span>
-            </div>
-        </div>
-
-        <!-- 4. Late / Early -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3">
-            <div class="w-11 h-11 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-                <span class="material-symbols-outlined text-2xl">warning</span>
-            </div>
-            <div class="min-w-0">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">Late / Early</span>
-                <span class="text-xl font-bold text-orange-600">@(Model.Summary.LateCount + Model.Summary.EarlyLeaveCount)</span>
-                <span class="text-[10px] text-slate-400 block truncate">@Model.Summary.LateCount Late, @Model.Summary.EarlyLeaveCount Early</span>
-            </div>
-        </div>
-
-        <!-- 5. Absent / On Leave -->
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center gap-3 col-span-2 lg:col-span-1">
-            <div class="w-11 h-11 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                <span class="material-symbols-outlined text-2xl">person_off</span>
-            </div>
-            <div class="min-w-0">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">Absent / Leave</span>
-                <span class="text-xl font-bold text-rose-600">@(Model.Summary.AbsentCount + Model.Summary.OnLeaveCount)</span>
-                <span class="text-[10px] text-slate-400 block truncate">@Model.Summary.AbsentCount Absent, @Model.Summary.OnLeaveCount Leave</span>
-            </div>
-        </div>
-    </div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Scheduled shifts", Model.Summary.TotalScheduled.ToString("N0"), $"{Model.Summary.LateCount} late · {Model.Summary.EarlyLeaveCount} early departure", "schedule"),
+        new("In progress", Model.Summary.InProgressCount.ToString("N0"), "In selected scope", "timer"),
+        new("Completed", Model.Summary.CompletedCount.ToString("N0"), $"{Model.Summary.PresentCount} present", "task_alt"),
+        new("Absent / On leave", (Model.Summary.AbsentCount + Model.Summary.OnLeaveCount).ToString("N0"), $"{Model.Summary.AbsentCount} absent · {Model.Summary.OnLeaveCount} on leave", "person_off")
+    })' />
 
     <!-- Search & Filter Controls -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs">
-        <form method="get" asp-action="Index" class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-            <!-- Left: Search Box -->
-            <div class="relative flex-1 max-w-md">
-                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-                <input type="text"
-                       name="search"
-                       value="@Model.Search"
-                       placeholder="Search by staff name, email, shift..."
-                       class="w-full h-10 pl-9 pr-4 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors" />
-            </div>
-
-            <!-- Right: Filter Dropdowns -->
-            <div class="flex flex-wrap items-center gap-2">
-                <!-- Week Selector Filter -->
-                <div class="relative min-w-[210px]">
-                    <select name="scheduleWeekId"
-                            onchange="this.form.submit()"
-                            class="w-full h-10 pl-3 pr-8 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer appearance-none">
-                        <option value="">All Weeks</option>
-                        @foreach (var w in Model.AvailableWeeks)
-                        {
-                            var isSelected = Model.SelectedScheduleWeekId == w.ScheduleWeekId;
-                            var currentTag = w.IsCurrentWeek ? " (Current)" : "";
-                            <option value="@w.ScheduleWeekId" selected="@isSelected">
-                                @w.PeriodName@currentTag
-                            </option>
-                        }
-                    </select>
-                    <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">expand_more</span>
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="search" value="@Model.Search" placeholder="Search by staff name, email, shift..." /></label>
+            <div class="ws-filter-field"><select aria-label="Weekly period" name="scheduleWeekId" onchange="this.form.submit()">
+                            <option value="">All Weeks</option>
+                            @foreach (var w in Model.AvailableWeeks)
+                            {
+                                var isSelected = Model.SelectedScheduleWeekId == w.ScheduleWeekId;
+                                var currentTag = w.IsCurrentWeek ? " (Current)" : "";
+                                <option value="@w.ScheduleWeekId" selected="@isSelected">
+                                    @w.PeriodName@currentTag
+                                </option>
+                            }
+                        </select></div>
+            <div class="ws-filter-field"><select aria-label="Shift" name="shiftId" onchange="this.form.submit()">
+                            <option value="">All Shifts (@Model.AvailableShifts.Count)</option>
+                            @foreach (var s in Model.AvailableShifts)
+                            {
+                                var timeRange = $"{s.ScheduledStartAt.AddHours(7):HH:mm} - {s.ScheduledEndAt.AddHours(7):HH:mm}";
+                                <option value="@s.ShiftId" selected="@(Model.ShiftId == s.ShiftId)">
+                                    @s.ShiftName (@timeRange)
+                                </option>
+                            }
+                        </select></div>
+            <div class="ws-filter-field"><select aria-label="Status" name="status" onchange="this.form.submit()">
+                            <option value="ALL" selected="@(Model.Status == "ALL")">All Statuses (@Model.Summary.TotalScheduled)</option>
+                            <option value="WORKING" selected="@(Model.Status == "WORKING")">Working Now (@Model.Summary.InProgressCount)</option>
+                            <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Completed (@Model.Summary.CompletedCount)</option>
+                            <option value="LATE" selected="@(Model.Status == "LATE")">Late Arrival (@Model.Summary.LateCount)</option>
+                            <option value="EARLY_LEAVE" selected="@(Model.Status == "EARLY_LEAVE")">Early Leave (@Model.Summary.EarlyLeaveCount)</option>
+                            <option value="ABSENT" selected="@(Model.Status == "ABSENT")">Absent / Pending (@Model.Summary.AbsentCount)</option>
+                            <option value="LEAVE" selected="@(Model.Status == "LEAVE")">On Leave (@Model.Summary.OnLeaveCount)</option>
+                        </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "date" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Attendance date</span><input aria-label="Attendance date" type="date" name="date" value="@dateString" onchange="this.form.submit()" title="Filter by specific date (optional)" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
                 </div>
-
-                <!-- Date Picker (Optional specific day) -->
-                <div class="relative">
-                    <input type="date"
-                           name="date"
-                           value="@dateString"
-                           onchange="this.form.submit()"
-                           title="Filter by specific date (optional)"
-                           class="h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer" />
-                </div>
-
-                <!-- Shift Filter -->
-                <div class="relative min-w-[160px]">
-                    <select name="shiftId"
-                            onchange="this.form.submit()"
-                            class="w-full h-10 pl-3 pr-8 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer appearance-none">
-                        <option value="">All Shifts (@Model.AvailableShifts.Count)</option>
-                        @foreach (var s in Model.AvailableShifts)
-                        {
-                            var timeRange = $"{s.ScheduledStartAt.AddHours(7):HH:mm} - {s.ScheduledEndAt.AddHours(7):HH:mm}";
-                            <option value="@s.ShiftId" selected="@(Model.ShiftId == s.ShiftId)">
-                                @s.ShiftName (@timeRange)
-                            </option>
-                        }
-                    </select>
-                    <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">expand_more</span>
-                </div>
-
-                <!-- Status Filter -->
-                <div class="relative min-w-[160px]">
-                    <select name="status"
-                            onchange="this.form.submit()"
-                            class="w-full h-10 pl-3 pr-8 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer appearance-none">
-                        <option value="ALL" selected="@(Model.Status == "ALL")">All Statuses (@Model.Summary.TotalScheduled)</option>
-                        <option value="WORKING" selected="@(Model.Status == "WORKING")">Working Now (@Model.Summary.InProgressCount)</option>
-                        <option value="COMPLETED" selected="@(Model.Status == "COMPLETED")">Completed (@Model.Summary.CompletedCount)</option>
-                        <option value="LATE" selected="@(Model.Status == "LATE")">Late Arrival (@Model.Summary.LateCount)</option>
-                        <option value="EARLY_LEAVE" selected="@(Model.Status == "EARLY_LEAVE")">Early Leave (@Model.Summary.EarlyLeaveCount)</option>
-                        <option value="ABSENT" selected="@(Model.Status == "ABSENT")">Absent / Pending (@Model.Summary.AbsentCount)</option>
-                        <option value="LEAVE" selected="@(Model.Status == "LEAVE")">On Leave (@Model.Summary.OnLeaveCount)</option>
-                    </select>
-                    <span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none">expand_more</span>
-                </div>
-
-                <button type="submit"
-                        class="h-10 inline-flex items-center justify-center gap-1.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer">
-                    <span class="material-symbols-outlined text-sm">filter_alt</span>
-                    <span>Apply</span>
-                </button>
-
-                @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Status != "ALL" || Model.ShiftId.HasValue || Model.Date.HasValue || Model.SelectedScheduleWeekId.HasValue)
-                {
-                    <a asp-action="Index"
-                       class="h-10 w-10 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl transition-all"
-                       title="Reset All Filters">
-                        <span class="material-symbols-outlined text-sm">restart_alt</span>
-                    </a>
-                }
-            </div>
-        </form>
-    </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
 
     <!-- Attendance Table Card -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
@@ -514,11 +411,7 @@
                                 <td class="px-4 py-4 text-center">
                                     <a asp-action="Details"
                                        asp-route-id="@item.AssignmentId"
-                                       class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-all shadow-2xs"
-                                       title="View Full Details">
-                                        <span>Details</span>
-                                        <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
-                                    </a>
+                                       title="View Full Details" class="ws-icon-action" aria-label="View Full Details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                 </td>
                             </tr>
                         }
@@ -527,94 +420,13 @@
             </table>
         </div>
 
-        <!-- Pagination Controls (Fixed 20 items per page) -->
-        <div class="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
-            <span class="text-xs text-slate-500 font-medium">
-                @if (Model.TotalCount > 0)
-                {
-                    var startItem = (Model.PageIndex - 1) * Model.PageSize + 1;
-                    var endItem = Math.Min(Model.PageIndex * Model.PageSize, Model.TotalCount);
-                    <span>
-                        Showing <strong class="text-slate-800">@startItem</strong> to <strong class="text-slate-800">@endItem</strong> of <strong class="text-slate-800">@Model.TotalCount</strong> records
-                        <span class="text-slate-400 font-normal">(Fixed @Model.PageSize / page)</span>
-                    </span>
-                }
-                else
-                {
-                    <span>Showing 0 records</span>
-                }
-            </span>
-            <div class="flex items-center gap-1.5">
-                <!-- Previous Button -->
-                @if (Model.PageIndex > 1)
-                {
-                    <a asp-action="Index"
-                       asp-route-page="@(Model.PageIndex - 1)"
-                       asp-route-scheduleWeekId="@Model.SelectedScheduleWeekId"
-                       asp-route-date="@dateString"
-                       asp-route-status="@Model.Status"
-                       asp-route-shiftId="@Model.ShiftId"
-                       asp-route-search="@Model.Search"
-                       class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs">
-                        Previous
-                    </a>
-                }
-                else
-                {
-                    <span class="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-xs font-semibold text-slate-400 cursor-not-allowed select-none">
-                        Previous
-                    </span>
-                }
-
-                <!-- Page Numbers -->
-                @{
-                    var startPage = Math.Max(1, Model.PageIndex - 2);
-                    var endPage = Math.Min(Model.TotalPages, Model.PageIndex + 2);
-                }
-                @for (int p = startPage; p <= endPage; p++)
-                {
-                    if (p == Model.PageIndex)
-                    {
-                        <span class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-2xs">
-                            @p
-                        </span>
-                    }
-                    else
-                    {
-                        <a asp-action="Index"
-                           asp-route-page="@p"
-                           asp-route-scheduleWeekId="@Model.SelectedScheduleWeekId"
-                           asp-route-date="@dateString"
-                           asp-route-status="@Model.Status"
-                           asp-route-shiftId="@Model.ShiftId"
-                           asp-route-search="@Model.Search"
-                           class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors">
-                            @p
-                        </a>
-                    }
-                }
-
-                <!-- Next Button -->
-                @if (Model.PageIndex < Model.TotalPages)
-                {
-                    <a asp-action="Index"
-                       asp-route-page="@(Model.PageIndex + 1)"
-                       asp-route-scheduleWeekId="@Model.SelectedScheduleWeekId"
-                       asp-route-date="@dateString"
-                       asp-route-status="@Model.Status"
-                       asp-route-shiftId="@Model.ShiftId"
-                       asp-route-search="@Model.Search"
-                       class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-2xs">
-                        Next
-                    </a>
-                }
-                else
-                {
-                    <span class="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-100 text-xs font-semibold text-slate-400 cursor-not-allowed select-none">
-                        Next
-                    </span>
-                }
-            </div>
-        </div>
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageIndex,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalCount,
+            PageParameter = "page",
+            ItemLabel = "attendance records",
+        })" />
     </div>
 </div>
