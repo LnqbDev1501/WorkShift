@@ -1,21 +1,438 @@
-.dashboard-topbar{height:64px;border-bottom:1px solid #e1e2e6;display:flex;align-items:center;justify-content:space-between;padding:0 32px;font-size:13px;background:#fff}.breadcrumb-divider{margin:0 12px;color:#aaa}.dashboard-topbar strong{font-weight:500}.dashboard-profile{display:flex;align-items:center;gap:12px;text-align:right}.dashboard-profile small,.attendance-date small{display:block;color:#777587;font-size:11px;margin-top:3px}.dashboard-page{min-height:100vh;background:#f6f7fb;padding:16px 28px 28px;color:#191c1f;font-size:13px}.dashboard-page>section,.dashboard-page>.summary-grid,.dashboard-heading{max-width:1440px;margin:0 auto 16px}.dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}.eyebrow{text-transform:uppercase;font-size:10px;letter-spacing:.08em;color:#575e70}.dashboard-page h1{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:4px 0 6px}.dashboard-page h2{font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0}.dashboard-page p{color:#575e70;margin:4px 0 0;line-height:1.5}.sync-badge{white-space:nowrap;border-radius:16px;background:#e7e8ec;padding:7px 12px;font-size:11px;color:#464555;text-decoration:none}.sync-badge:hover{background:#d9dff5}.stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}.dashboard-card{background:white;border-radius:12px;box-shadow:0 1px 3px #191c1f09}.stat-card{padding:20px;min-height:146px;transition:box-shadow .18s,transform .18s;cursor:default}.stat-card:hover{box-shadow:0 6px 18px #191c1f14;transform:translateY(-2px)}.card-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}.stat-card .card-heading{font-size:12px;color:#575e70;font-weight:600}.stat-icon{display:grid;place-items:center;flex-shrink:0;width:38px;height:38px;background:color-mix(in srgb,var(--si-color,#4f46e5) 13%,#fff);border-radius:8px;font-size:20px;color:var(--si-color,#4f46e5);transition:transform .15s}@supports not (color:color-mix(in srgb,red 10%,blue)){.stat-icon{background:#eef0ff;color:#4f46e5}}.stat-card:hover .stat-icon{transform:scale(1.1)}.stat-value{font-size:26px;font-weight:600;margin:10px 0 6px;display:flex;align-items:center;gap:10px}.stat-card p{font-size:12px}.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.summary-card{padding:24px;display:flex;flex-direction:column}.role-list{display:grid;gap:20px;margin:24px 0}.role-label{display:flex;justify-content:space-between;margin-bottom:8px}.role-label span{display:flex;align-items:center;gap:8px}.role-label small{width:48px;text-align:right;color:#575e70}.dot{display:inline-block;width:9px;height:9px;flex-shrink:0;border-radius:50%;margin-right:8px}.chart-track{height:10px;background:#edeef2;border-radius:8px;overflow:hidden}.chart-fill{height:100%;border-radius:inherit}.primary{background:#3525cd}.neutral{background:#3a495f}.staff{background:#4f46e5}.pending{background:#d9dff5}.danger{background:#ba1a1a}.panel-footer{margin-top:auto;padding:12px 10px 0;display:flex;justify-content:space-between;gap:12px;color:#575e70;font-size:11px}.role-list+.panel-footer{background:#f2f3f7;padding:10px;border-radius:8px}.attendance-date{text-align:right;white-space:nowrap;font-size:12px}.attendance-total{margin:18px 0;color:#575e70}.attendance-total strong{font-size:26px;color:#191c1f;margin-right:8px}.attendance-chart{display:flex;height:12px;margin-bottom:20px}.attendance-chart .chart-fill{border-radius:0}.attendance-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}.attendance-grid>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;background:#f2f3f7;border-radius:8px}.attendance-grid span{display:flex;align-items:center}.payroll-card{overflow:hidden}.payroll-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:24px}.payroll-heading>span{font-size:11px;color:#575e70}.payroll-table-scroll{overflow-x:auto}.payroll-table{width:100%;border-collapse:collapse;white-space:nowrap}.payroll-table th{background:#f2f3f7;color:#575e70;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:14px 24px}.payroll-table td{padding:16px 24px;font-size:13px}.payroll-table tbody tr:hover{background:#f8f9fd}.payroll-table small{display:block;color:#575e70;font-size:12px;margin-top:4px}.payroll-table strong{font-weight:600}.number{text-align:right}.date-range{font-size:12px!important;color:#575e70}.status-badge{display:inline-block;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:500;white-space:nowrap}.status-badge.primary{background:#e2dfff;color:#3525cd}.status-badge.danger{background:#ffdad6;color:#93000a}.status-badge.neutral{background:#e7e8ec;color:#3a495f}.status-badge.pending{color:#5c6274}.payroll-footer{padding:16px 24px;background:#f2f3f7;color:#575e70;font-size:11px}.empty-state{padding:28px!important;text-align:center;color:#575e70}.dashboard-error{padding:24px;border:1px solid #ffdad6;border-radius:12px;background:#fff;color:#93000a}.dashboard-error a{display:inline-block;margin-top:12px;color:#3525cd}a:focus-visible,button:focus-visible,.payroll-table-scroll:focus-visible{outline:3px solid #4f46e5;outline-offset:3px}
-@media(min-width:769px){body:has(.dashboard-page) .sidebar-brand{min-height:64px}}
-@media(max-width:1200px){.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-grid{grid-template-columns:1fr}.dashboard-heading{align-items:flex-start}.card-heading .eyebrow{font-size:9px}}
-@media(max-width:768px){.dashboard-page{padding:16px}.dashboard-topbar{padding:0 20px}.dashboard-heading{flex-direction:column}.dashboard-profile>span:first-child{display:none}.dashboard-page h1{font-size:24px}}
-@media(max-width:420px){.stat-grid,.attendance-grid{grid-template-columns:1fr}.summary-card{padding:18px}.card-heading,.payroll-heading{flex-wrap:wrap}.panel-footer{flex-wrap:wrap}.dashboard-topbar{font-size:12px}.attendance-date{text-align:left}}
+/* ===================================================
+   WorkShift Admin – Dashboard CSS
+   Enhanced visual design, all original class names preserved
+   =================================================== */
 
-/* Role distribution: three distinct segments with an accessible text legend. */
-.role-distribution { display:flex; align-items:center; gap:28px; padding:24px 0; flex:1; flex-wrap:wrap; }
-.role-donut { position:relative; width:210px; aspect-ratio:1; border-radius:50%; display:grid; place-items:center; flex:0 0 210px; margin-inline:auto; }
-.role-donut-center { width:126px; aspect-ratio:1; border-radius:50%; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.role-donut-center strong { font-size:30px; font-weight:600; color:#191c2a; line-height:1.2; }
-.role-donut-center span { margin-top:5px; font-size:13px; color:#5b6074; }
-.role-legend { list-style:none; padding:0; margin:0; flex:1 1 230px; min-width:0; }
-.role-legend li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px; padding:15px 0; border-bottom:1px solid #eeeef4; }
-.role-legend li:last-child { border-bottom:0; }
-.role-legend-name { display:flex; align-items:center; gap:9px; font-size:14px; }
-.role-legend-name i { width:10px; height:10px; flex:0 0 10px; border-radius:50%; }
-.role-legend strong { text-align:right; font-size:17px; font-weight:600; }
-.role-legend small { display:block; font-size:11px; font-weight:400; color:#5b6074; }
- .role-segment-percent { position:absolute; z-index:1; transform:translate(-50%,-50%); padding:0; background:transparent; color:#fff; font-size:11px; font-weight:600; line-height:16px; white-space:nowrap; font-variant-numeric:tabular-nums; }
-@media(max-width:600px) { .role-distribution { gap:16px; } .role-legend { flex-basis:100%; } }
+/* ── Topbar (legacy, kept for compatibility) ──────── */
+.dashboard-topbar {
+    height: 64px;
+    border-bottom: 1px solid #e1e2e6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    font-size: 13px;
+    background: #fff;
+    box-shadow: 0 1px 0 #e8eaf0;
+}
+.breadcrumb-divider { margin: 0 12px; color: #aaa; }
+.dashboard-topbar strong { font-weight: 500; }
+.dashboard-profile { display: flex; align-items: center; gap: 12px; text-align: right; }
+.dashboard-profile small,
+.attendance-date small { display: block; color: #777587; font-size: 11px; margin-top: 3px; }
+
+/* ── Dashboard Topbar Row (sticky breadcrumb/clock bar) */
+.dashboard-topbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 28px;
+    background: #fff;
+    border-bottom: 1px solid #e8eaf0;
+    font-size: 13px;
+    color: #50577a;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    box-shadow: 0 1px 4px #191c2a0a;
+}
+.dtb-breadcrumb { display: flex; align-items: center; gap: 6px; font-weight: 500; }
+.dtb-icon { font-size: 17px; color: #5146e5; vertical-align: -3px; }
+.dtb-sep { color: #b0b6c9; margin: 0 1px; font-size: 15px; }
+.dtb-right { display: flex; align-items: center; gap: 12px; }
+.dtb-date { font-size: 12px; color: #626a82; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+.dtb-profile-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    color: #5146e5; text-decoration: none; transition: background 0.15s;
+}
+.dtb-profile-btn:hover { background: #eef0ff; }
+.dtb-profile-btn .material-symbols-outlined { font-size: 22px; }
+
+/* ── Page shell ───────────────────────────────────── */
+.dashboard-page {
+    min-height: 100vh;
+    background: #f6f7fb;
+    padding: 20px 28px 32px;
+    color: #191c1f;
+    font-size: 13px;
+}
+.dashboard-page > section,
+.dashboard-page > .summary-grid,
+.dashboard-heading { max-width: 1440px; margin: 0 auto 20px; }
+
+/* ── Hero heading ─────────────────────────────────── */
+.dashboard-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: #fff;
+    border-radius: 14px;
+    border-left: 4px solid #4f46e5;
+    box-shadow: 0 2px 8px #191c1f0a, 0 0 0 1px #edeef2;
+    margin-bottom: 20px;
+}
+.eyebrow {
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: #5146e5;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.dashboard-page h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.022em;
+    margin: 4px 0 4px;
+    color: #111827;
+    line-height: 1.25;
+}
+.dashboard-page h2 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -.01em;
+    margin: 0;
+    color: #111827;
+}
+.dashboard-page p { color: #575e70; margin: 4px 0 0; line-height: 1.5; }
+
+/* ── Sync / action badges ─────────────────────────── */
+.sync-badge {
+    white-space: nowrap;
+    border-radius: 20px;
+    background: #f0f1f8;
+    border: 1px solid #e0e1ea;
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #4a4f6a;
+    text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.sync-badge:hover {
+    background: #eef0ff;
+    border-color: #c3c0ff;
+    color: #3525cd;
+    box-shadow: 0 2px 6px #4f46e520;
+}
+
+/* ── Stat cards grid ──────────────────────────────── */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+}
+.dashboard-card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 1px 4px #191c1f0b, 0 0 0 1px #f0f1f5;
+}
+.stat-card {
+    padding: 22px 20px 18px;
+    min-height: 148px;
+    transition: box-shadow .2s, transform .2s;
+    cursor: default;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: linear-gradient(135deg, transparent 60%, #f5f3ff18 100%);
+    pointer-events: none;
+}
+.stat-card:hover {
+    box-shadow: 0 8px 24px #191c1f18, 0 0 0 1px #e0e1ea;
+    transform: translateY(-3px);
+}
+.card-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.stat-card .card-heading {
+    font-size: 12px;
+    color: #575e70;
+    font-weight: 600;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+}
+.stat-icon {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: color-mix(in srgb, var(--si-color, #4f46e5) 13%, #fff);
+    border-radius: 10px;
+    font-size: 21px;
+    color: var(--si-color, #4f46e5);
+    transition: transform .18s, box-shadow .18s;
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--si-color, #4f46e5) 20%, transparent);
+}
+@supports not (color: color-mix(in srgb, red 10%, blue)) {
+    .stat-icon { background: #eef0ff; color: #4f46e5; }
+}
+.stat-card:hover .stat-icon {
+    transform: scale(1.12) rotate(-3deg);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--si-color, #4f46e5) 30%, transparent);
+}
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 12px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #111827;
+    letter-spacing: -.02em;
+}
+.stat-card p { font-size: 12px; color: #6b7280; }
+
+/* ── Summary 2-col grid ───────────────────────────── */
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+.summary-card { padding: 24px; display: flex; flex-direction: column; }
+
+/* ── Role distribution ────────────────────────────── */
+.role-list { display: grid; gap: 20px; margin: 24px 0; }
+.role-label { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.role-label span { display: flex; align-items: center; gap: 8px; }
+.role-label small { width: 48px; text-align: right; color: #575e70; }
+.dot { display: inline-block; width: 9px; height: 9px; flex-shrink: 0; border-radius: 50%; margin-right: 8px; }
+
+/* Role donut */
+.role-distribution { display: flex; align-items: center; gap: 28px; padding: 24px 0; flex: 1; flex-wrap: wrap; }
+.role-donut {
+    position: relative;
+    width: 210px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: 0 0 210px;
+    margin-inline: auto;
+    box-shadow: 0 4px 16px #4f46e520;
+}
+.role-donut-center {
+    width: 126px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px #191c2a10;
+}
+.role-donut-center strong { font-size: 30px; font-weight: 700; color: #111827; line-height: 1.2; }
+.role-donut-center span { margin-top: 5px; font-size: 13px; color: #5b6074; }
+.role-legend { list-style: none; padding: 0; margin: 0; flex: 1 1 230px; min-width: 0; }
+.role-legend li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #f0f1f6;
+    transition: background .12s;
+}
+.role-legend li:last-child { border-bottom: 0; }
+.role-legend-name { display: flex; align-items: center; gap: 9px; font-size: 14px; }
+.role-legend-name i { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 50%; }
+.role-legend strong { text-align: right; font-size: 17px; font-weight: 600; }
+.role-legend small { display: block; font-size: 11px; font-weight: 400; color: #5b6074; }
+.role-segment-percent {
+    position: absolute;
+    z-index: 1;
+    transform: translate(-50%, -50%);
+    padding: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px #0006;
+}
+
+/* ── Chart bars ───────────────────────────────────── */
+.chart-track {
+    height: 10px;
+    background: #edeef2;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.chart-fill { height: 100%; border-radius: inherit; }
+.primary   { background: #3525cd; }
+.neutral   { background: #3a495f; }
+.staff     { background: #4f46e5; }
+.pending   { background: #d9dff5; }
+.danger    { background: #ba1a1a; }
+
+/* ── Attendance card ──────────────────────────────── */
+.attendance-date { text-align: right; white-space: nowrap; font-size: 12px; }
+.attendance-total { margin: 18px 0; color: #575e70; }
+.attendance-total strong { font-size: 26px; color: #111827; margin-right: 8px; font-weight: 700; }
+.attendance-chart {
+    display: flex;
+    height: 14px;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px #191c1f14;
+}
+.attendance-chart .chart-fill { border-radius: 0; }
+.attendance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.attendance-grid > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 14px;
+    background: #f7f8fb;
+    border-radius: 10px;
+    border: 1px solid #edeef4;
+    transition: background .12s;
+}
+.attendance-grid > div:hover { background: #eef0ff; }
+.attendance-grid span { display: flex; align-items: center; }
+
+/* ── Payroll table card ───────────────────────────── */
+.payroll-card { overflow: hidden; }
+.payroll-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 24px;
+    border-bottom: 1px solid #f0f1f6;
+}
+.payroll-heading > span { font-size: 11px; color: #575e70; }
+.payroll-table-scroll { overflow-x: auto; }
+.payroll-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+}
+.payroll-table th {
+    background: #f7f8fb;
+    color: #4a516f;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 13px 24px;
+    font-weight: 700;
+    border-bottom: 1px solid #edeef4;
+}
+.payroll-table td {
+    padding: 15px 24px;
+    font-size: 13px;
+    border-bottom: 1px solid #f5f6fa;
+}
+.payroll-table tbody tr:nth-child(even) { background: #fafbfe; }
+.payroll-table tbody tr:hover { background: #f0f1fc; }
+.payroll-table tbody tr:last-child td { border-bottom: 0; }
+.payroll-table small { display: block; color: #575e70; font-size: 12px; margin-top: 3px; }
+.payroll-table strong { font-weight: 600; }
+.number { text-align: right; }
+.date-range { font-size: 12px !important; color: #575e70; }
+.payroll-footer {
+    padding: 14px 24px;
+    background: #f7f8fb;
+    color: #575e70;
+    font-size: 11px;
+    border-top: 1px solid #edeef4;
+}
+
+/* ── Status badges ────────────────────────────────── */
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: .02em;
+}
+.status-badge.primary  { background: #e2dfff; color: #3525cd; }
+.status-badge.danger   { background: #ffdad6; color: #93000a; }
+.status-badge.neutral  { background: #e7e8ec; color: #3a495f; }
+.status-badge.pending  { background: #eef0ff; color: #4f46e5; }
+
+/* ── Panel footer ─────────────────────────────────── */
+.panel-footer {
+    margin-top: auto;
+    padding: 12px 10px 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #575e70;
+    font-size: 11px;
+}
+.role-list + .panel-footer { background: #f2f3f7; padding: 10px; border-radius: 8px; }
+
+/* ── Empty / error states ─────────────────────────── */
+.empty-state { padding: 28px !important; text-align: center; color: #575e70; }
+.dashboard-error {
+    padding: 24px;
+    border: 1px solid #ffdad6;
+    border-radius: 14px;
+    background: #fff;
+    color: #93000a;
+}
+.dashboard-error a { display: inline-block; margin-top: 12px; color: #3525cd; }
+
+/* ── Focus rings ──────────────────────────────────── */
+a:focus-visible,
+button:focus-visible,
+.payroll-table-scroll:focus-visible { outline: 3px solid #4f46e5; outline-offset: 3px; }
+
+/* ── Responsive breakpoints ───────────────────────── */
+@media (min-width: 769px) {
+    body:has(.dashboard-page) .sidebar-brand { min-height: 64px; }
+}
+@media (max-width: 1200px) {
+    .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .summary-grid { grid-template-columns: 1fr; }
+    .dashboard-heading { align-items: flex-start; }
+    .card-heading .eyebrow { font-size: 9px; }
+}
+@media (max-width: 768px) {
+    .dashboard-page { padding: 16px; }
+    .dashboard-topbar { padding: 0 20px; }
+    .dashboard-heading { flex-direction: column; padding: 16px; }
+    .dashboard-profile > span:first-child { display: none; }
+    .dashboard-page h1 { font-size: 22px; }
+    .dashboard-topbar-row { padding: 8px 16px; }
+}
+@media (max-width: 420px) {
+    .stat-grid, .attendance-grid { grid-template-columns: 1fr; }
+    .summary-card { padding: 18px; }
+    .card-heading, .payroll-heading { flex-wrap: wrap; }
+    .panel-footer { flex-wrap: wrap; }
+    .dashboard-topbar { font-size: 12px; }
+    .attendance-date { text-align: left; }
+}
+@media (max-width: 600px) {
+    .role-distribution { gap: 16px; }
+    .role-legend { flex-basis: 100%; }
+}

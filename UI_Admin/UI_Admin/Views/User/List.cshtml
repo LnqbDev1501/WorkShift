@@ -1,4 +1,4 @@
-﻿@using UI_Admin.Models.Admin.UserAdmin
+@using UI_Admin.Models.Admin.UserAdmin
 @model UserListViewModel
 
 @{
@@ -296,7 +296,7 @@
         <div class="page-heading">
             <div><div class="eyebrow"><i></i>Enterprise Access Directory</div><h1>User Accounts</h1><p>View user profiles and manage manager and accountant accounts.</p></div>
             <div class="heading-actions">
-                <a asp-action="Create" class="ui-button primary"><span class="symbol">♙+</span>Create Account</a></div>
+                <a asp-action="Create" class="ui-button primary"><span class="material-symbols-outlined text-[19px]">person_add</span><span>Create Account</span></a></div>
         </div>
         <div asp-validation-summary="ModelOnly" class="validation-errors"></div>
         <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
@@ -324,7 +324,7 @@
                     <tr class="@(isInactive ? "deleted-row" : null)">
                         <td><div class="user-cell">@if (!string.IsNullOrWhiteSpace(user.AvatarUrl)) { <img class="avatar-image" src="@user.AvatarUrl" alt="" /> } else { <span class="initials @(isInactive ? "muted" : null)">@user.Initials</span> }<div><div class="user-name">@user.FullName @if (user.DeletedAt.HasValue) { <span class="deleted-label">Deleted</span> }</div><div class="user-email">@user.Email</div></div></div></td>
                         <td>@user.Phone</td><td><span class="pill">@DisplayName(user.RoleName)</span></td>
-                        <td>@(user.BranchName ?? "—") @if (!string.IsNullOrWhiteSpace(user.PreviousBranchName)) { <span class="previous">Prev: @user.PreviousBranchName</span> }</td>
+                        <td>@(user.BranchName ?? "�") @if (!string.IsNullOrWhiteSpace(user.PreviousBranchName)) { <span class="previous">Prev: @user.PreviousBranchName</span> }</td>
                         <td><span class="pill status @(isPending ? "pending" : isInactive ? "inactive" : null)"><i class="dot"></i>@(isPending ? "Pending Activation" : DisplayName(user.Status))</span></td>
                         <td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td><div class="actions">
