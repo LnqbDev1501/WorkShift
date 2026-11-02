@@ -177,9 +177,7 @@
 
         @if (Model.Error == null && ViewData.ModelState.IsValid)
         {
-            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-                <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "payslips" })' />
-            </div>
+            <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "payslips" })' />
         }
     </div>
 </div>

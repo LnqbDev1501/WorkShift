@@ -199,7 +199,7 @@ public class EmployeeRequestApiService
             if (!response.IsSuccessStatusCode)
             {
                 var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
-                return ([], errorMsg ?? "Không thể tải lịch sử xử lý.");
+                return ([], errorMsg ?? "Unable to load processing history.");
             }
 
             var list = await response.Content.ReadFromJsonAsync<List<AdminEmployeeRequestHistoryViewModel>>(
@@ -210,7 +210,7 @@ public class EmployeeRequestApiService
         }
         catch (HttpRequestException ex)
         {
-            return ([], $"Không thể kết nối đến máy chủ: {ex.Message}");
+            return ([], $"Unable to connect to the server: {ex.Message}");
         }
     }
 

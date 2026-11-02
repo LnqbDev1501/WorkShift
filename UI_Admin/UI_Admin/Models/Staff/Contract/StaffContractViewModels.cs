@@ -103,16 +103,16 @@ public class SubmitStaffContractChangeRequestViewModel
 
     public string RequestType { get; set; } = "CHANGE_REQUEST";
 
-    [MaxLength(1000, ErrorMessage = "Ghi chú của nhân viên tối đa 1000 ký tự.")]
+    [MaxLength(1000, ErrorMessage = "Employee notes cannot exceed 1,000 characters.")]
     public string? StaffComment { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng chọn trường thông tin cần thay đổi.")]
+    [Required(ErrorMessage = "Please select the field to change.")]
     public string FieldName { get; set; } = string.Empty;
 
-    [Required(ErrorMessage = "Vui lòng nhập giá trị đề xuất mới.")]
-    [MaxLength(500, ErrorMessage = "Giá trị đề xuất tối đa 500 ký tự.")]
+    [Required(ErrorMessage = "Please enter the proposed value.")]
+    [MaxLength(500, ErrorMessage = "The proposed value cannot exceed 500 characters.")]
     public string ProposedValue { get; set; } = string.Empty;
 
-    [MaxLength(500, ErrorMessage = "Lý do đề xuất tối đa 500 ký tự.")]
+    [MaxLength(500, ErrorMessage = "The reason cannot exceed 500 characters.")]
     public string? Reason { get; set; }
 }

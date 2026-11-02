@@ -271,7 +271,7 @@ public class ManagerContractApiService(HttpClient client, IConfiguration configu
                 }
             }
         }
-        return result ?? throw new InvalidOperationException("Không thể đọc chi tiết yêu cầu thay đổi hợp đồng.");
+        return result ?? throw new InvalidOperationException("Unable to read contract change request details.");
     }
 
     public async Task ApproveChangeRequestAsync(

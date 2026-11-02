@@ -95,7 +95,8 @@ body.workshift-theme { margin:0; font-family:var(--ws-font); font-size:14px; lin
 .workshift-theme .ws-filter-panel .ws-filter-field > span { display:block; margin-bottom:6px; color:#454c6d; font-size:13px; }
 .workshift-theme .ws-filter-check { display:flex; align-items:center; gap:8px; color:#454c6d; font-size:13px; }
 .workshift-theme .ws-filter-apply { justify-self:end; grid-column:1 / -1; min-height:41px; padding:0 18px; color:#fff; background:var(--ws-primary); border:0; border-radius:9px; cursor:pointer; }
-.workshift-theme .ws-list-filter > .validation-summary-valid { display:none; }
+/* Empty validation summaries must not render an alert frame. */
+.workshift-theme .validation-summary-valid { display:none; }
 .workshift-theme .ws-list-filter > .validation-summary-errors { margin-top:12px; color:#991b1b; font-size:13px; }
 .workshift-theme :is(.users-page,.rules-page) { box-sizing:border-box; width:100%; max-width:1496px; margin-inline:auto; }
 @media(max-width:1000px) {
@@ -209,3 +210,84 @@ html body .overflow-x-auto::-webkit-scrollbar {
 
 .workshift-theme .payroll-stats article { padding:17px 16px; background:#fff; border-radius:9px; box-shadow:0 1px 3px #191c2d0d; }
 .workshift-theme .payroll-stats strong { font-size:20px; font-weight:600; }
+
+/* Shared Manager / Accountant frame; child screens do not add a second padding. */
+.ws-workspace .workspace-page { box-sizing:border-box; width:100%; max-width:1496px; margin:0 auto; padding:16px 28px 36px; }
+.ws-workspace .workspace-page > :is(.px-7,.px-4,.p-6,.accountant-dashboard,[class*="max-w-"]) { width:100%; max-width:none; margin:0; padding:0; }
+.ws-workspace .workspace-page > .flex.flex-col { gap:16px; }
+.ws-workspace .workspace-page > :is(.space-y-6,.space-y-8) > :not([hidden]) ~ :not([hidden]) { margin-top:16px; }
+.ws-workspace :is(.ad-heading,.form-heading,.ms-workspace-hero,.rl-hero) { margin-bottom:16px; gap:24px; }
+.ws-workspace .workspace-page h1 { font:600 22px/1.35 var(--ws-font); letter-spacing:normal; color:#191c2a; }
+.ws-workspace .workspace-page h1 span { color:inherit; }
+.ws-workspace .workspace-page h2 { font:600 18px/1.4 var(--ws-font); color:#20233a; }
+.ws-workspace .workspace-page h3 { font:600 16px/1.4 var(--ws-font); }
+.ws-workspace :is(.ad-heading,.form-heading) p { margin-top:4px; font-size:14px; color:#5b6074; }
+.ws-workspace :is(.ad-card,.ms-form-card,.ms-detail-card,.rl-panel,.bg-white.rounded-2xl,.bg-white.rounded-xl) { border-radius:9px; border-color:var(--ws-line); box-shadow:0 1px 3px #191c2d0d; }
+.ws-workspace :is(.manager-primary,.ms-primary,.ad-refresh,.ms-secondary,.ms-reset,.btn-primary,.btn-secondary) { display:inline-flex; align-items:center; justify-content:center; gap:9px; min-height:41px; padding:9px 18px; border-radius:9px; font:500 14px/1.4 var(--ws-font); text-decoration:none; }
+.ws-workspace :is(.manager-primary,.ms-primary,.btn-primary,.bg-indigo-600,.bg-purple-600) { color:#fff; background:var(--ws-primary); }
+.ws-workspace :is(.manager-primary,.ms-primary,.btn-primary):hover { background:#4338ca; }
+.ws-workspace :is(.ad-refresh,.ms-secondary,.ms-reset,.btn-secondary) { color:#42475a; background:#f0f1f6; }
+.ws-workspace :is(.ad-eyebrow,.ms-section-kicker) { color:#50577a; font:400 13px/1.45 var(--ws-font); letter-spacing:.08em; text-transform:uppercase; }
+.ws-workspace :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) { font-family:var(--ws-font); font-size:14px; border-radius:7px; border-color:var(--ws-line); }
+.ws-workspace table { font-family:var(--ws-font); }
+.ws-workspace .workspace-page :is(.rule-page,.schedule-page) table td strong { font-size:14px; font-weight:600; letter-spacing:normal; color:inherit; }
+.ws-workspace .workspace-page table th { padding-block:11px; color:#4a516f; background:#f0f1f6; font-size:13px; font-weight:600; letter-spacing:normal; }
+.ws-workspace .workspace-page table td { font-size:14px; border-color:#f3f3f6; }
+.ws-workspace .ad-stats article { border-radius:9px; border-color:var(--ws-line); }
+.ws-workspace :is(.ad-stats,.ms-detail-metrics) strong { font-size:20px; font-weight:600; }
+.ws-workspace .ws-list-filter { margin-bottom:0; }
+
+
+.ws-workspace :is(a,button):is(.bg-primary,.bg-primary-container,.bg-indigo-600,.bg-purple-600):not(.ws-icon-action) { min-height:41px; padding:9px 18px; border-radius:9px; font-size:14px; font-weight:500; }
+.ws-workspace .ws-icon-action { min-height:32px; padding:0; background:transparent; }
+.ws-workspace .workspace-page :is(div,header):has(> h1,> div > h1) > p { margin-top:4px; color:#5b6074; font:400 14px/1.45 var(--ws-font); }
+@media(max-width:640px) {
+    .ws-workspace .workspace-page { padding:16px; }
+    .ws-workspace :is(#admin-sidebar,#accountant-sidebar) { width:72px !important; }
+    .ws-workspace #main-content-wrapper { padding-left:72px !important; }
+    .ws-workspace :is(.sidebar-full-label,.sidebar-header-full,.sidebar-user-full,.sidebar-category-header) { display:none !important; }
+    .ws-workspace :is(.sidebar-header-collapsed,.sidebar-user-collapsed) { display:flex !important; }
+    .ws-workspace .sidebar-nav-item { justify-content:center; padding-left:8px; padding-right:8px; }
+}
+
+.ws-filter-panel > .ws-filter-help { grid-column:1 / -1; margin:0; color:#5b6074; font-size:13px; }
+
+/* Keep payment totals readable against the dashboard's dark banner. */
+.ws-workspace .workspace-page .ad-payment { border-radius:9px; }
+.ws-workspace .workspace-page .ad-payment :is(h2,.ad-eyebrow) { color:#fff; }
+.ws-workspace .workspace-page .ad-payment h2 { font-size:22px; }
+
+/* Separate payroll workspace commands from period-information commands. */
+.workshift-theme .ws-icon-action.calculation-action { color:#4338ca; background:#eef0ff; }
+.workshift-theme .ws-icon-action.calculation-action:hover { background:#e0e7ff; }
+.workshift-theme .ws-icon-action.period-details-action { color:#475569; background:#f0f1f6; }
+.workshift-theme .ws-icon-action.period-details-action:hover { color:#334155; background:#e5e7eb; }
+
+/* Pending updates stay visible while an editor or dialog is in use. */
+.ws-realtime-update {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    max-width: min(520px, calc(100vw - 32px));
+    padding: 14px 18px;
+    border: 1px solid #dcd9ff;
+    border-radius: 12px;
+    background: #fff;
+    color: #191c2a;
+    box-shadow: 0 8px 28px #191c2a1a;
+    font: 13px/1.5 Arial, sans-serif;
+}
+.ws-realtime-update button {
+    flex-shrink: 0;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: #5844f1;
+    color: #fff;
+    cursor: pointer;
+}
+.ws-realtime-update button:focus-visible { outline: 2px solid #5844f1; outline-offset: 3px; }

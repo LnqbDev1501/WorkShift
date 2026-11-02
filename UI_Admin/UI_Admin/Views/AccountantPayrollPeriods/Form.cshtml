@@ -27,7 +27,7 @@
     </div>
 
     <!-- Form Card -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-2xl">
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
         <form method="post" asp-action="@(edit ? "Edit" : "Create")" asp-route-id="@(edit ? Model.Id : (int?)null)" class="space-y-5">
             <input asp-for="Id" type="hidden" />
 

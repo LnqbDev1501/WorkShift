@@ -96,12 +96,13 @@ public class WorkingTimeRuleRepo : IWorkingTimeRuleRepo
         return rule;
     }
 
-    public async Task ActivateDueAsync(CancellationToken cancellationToken)
+    public async Task<int> ActivateDueAsync(CancellationToken cancellationToken)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
         await LockAsync(cancellationToken);
-        await ActivateDueLockedAsync(cancellationToken);
+        var activated = await ActivateDueLockedAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        return activated;
     }
 
     private Task LockAsync(CancellationToken cancellationToken) =>
@@ -116,7 +117,7 @@ public class WorkingTimeRuleRepo : IWorkingTimeRuleRepo
         WorkingTimeRuleLifecycle.ValidateSchedule(id, date!.Value, existing);
     }
 
-    private async Task ActivateDueLockedAsync(CancellationToken cancellationToken)
+    private async Task<int> ActivateDueLockedAsync(CancellationToken cancellationToken)
     {
         var today = WorkingTimeRuleLifecycle.Today;
         var due = await _context.WorkingTimeRules
@@ -135,5 +136,6 @@ public class WorkingTimeRuleRepo : IWorkingTimeRuleRepo
             WorkingTimeRuleLifecycle.Activate(next, today, DateTime.UtcNow);
             await _context.SaveChangesAsync(cancellationToken);
         }
+        return due.Count;
     }
 }

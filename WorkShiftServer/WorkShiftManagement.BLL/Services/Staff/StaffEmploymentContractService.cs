@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,7 +26,8 @@ public class StaffEmploymentContractService(
     INotificationRealtimePublisher? realtimePublisher = null,
     INotificationEmailSender? emailSender = null,
     ILogger<StaffEmploymentContractService>? logger = null,
-    IConfiguration? configuration = null) : IStaffEmploymentContractService
+    IConfiguration? configuration = null,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IStaffEmploymentContractService
 {
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
 
@@ -105,7 +107,7 @@ public class StaffEmploymentContractService(
         string? cannotAcceptReason = null;
         if (isPending && isPastStart)
         {
-            cannotAcceptReason = "Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.";
+            cannotAcceptReason = "The contract start date has passed. The contract can no longer be accepted.";
         }
 
         var openCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
@@ -114,11 +116,11 @@ public class StaffEmploymentContractService(
         string? cannotSubmitChangeRequestReason = null;
         if (openCr != null)
         {
-            cannotSubmitChangeRequestReason = "Hợp đồng đã có một yêu cầu thay đổi đang được xử lý.";
+            cannotSubmitChangeRequestReason = "This contract already has a change request under review.";
         }
         else if (!isContractChangeable)
         {
-            cannotSubmitChangeRequestReason = "Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực (ACTIVE) không thể yêu cầu thay đổi.";
+            cannotSubmitChangeRequestReason = "Only contracts awaiting acceptance (PENDING_STAFF) can have change requests. ACTIVE contracts cannot be changed through this process.";
         }
 
         return new StaffContractDetailResponse
@@ -172,7 +174,7 @@ public class StaffEmploymentContractService(
         var todayVn = GetCurrentVietnamDate();
         if (todayVn > contract.StartDate)
         {
-            throw new InvalidOperationException("Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.");
+            throw new InvalidOperationException("The contract start date has passed. The contract can no longer be accepted.");
         }
 
         var newStatus = (todayVn == contract.StartDate) ? "ACTIVE" : "SCHEDULED";
@@ -186,8 +188,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Nhân viên đã chấp nhận hợp đồng",
-                Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã chấp nhận hợp đồng lao động {contract.ContractNumber}. Trạng thái hợp đồng: {newStatus}.",
+                Title = "Employee accepted contract",
+                Content = $"{contract.EmployeeFullNameSnapshot} accepted employment contract {contract.ContractNumber}. Contract status: {newStatus}.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -216,22 +218,22 @@ public class StaffEmploymentContractService(
             throw new ArgumentException("ContractId must be greater than 0.");
 
         if (request.Items == null || request.Items.Count == 0)
-            throw new ArgumentException("Phải có ít nhất một trường thông tin yêu cầu thay đổi.");
+            throw new ArgumentException("At least one field change is required.");
 
         if (request.Items.GroupBy(x => x.FieldName.Trim().ToLowerInvariant()).Any(g => g.Count() > 1))
-            throw new ArgumentException("Mỗi trường thông tin chỉ được gửi yêu cầu thay đổi một lần trong cùng một yêu cầu.");
+            throw new ArgumentException("Each field can appear only once in a change request.");
 
         var contract = await repository.GetStaffContractByIdAsync(contractId, staffUserId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại hoặc không thuộc quyền sở hữu của bạn.");
+            throw new KeyNotFoundException("The contract was not found or does not belong to you.");
 
         var allowedStatuses = new[] { "PENDING_STAFF" };
         if (!allowedStatuses.Contains(contract.Status, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Không thể gửi yêu cầu thay đổi cho hợp đồng ở trạng thái {contract.Status}. Chỉ hợp đồng ở trạng thái chờ ký (PENDING_STAFF) mới có thể yêu cầu thay đổi.");
+            throw new InvalidOperationException($"Cannot request changes to a contract with status {contract.Status}. Only PENDING_STAFF contracts can have change requests.");
 
         var existingCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
         if (existingCr != null)
-            throw new InvalidOperationException("Hợp đồng này đang có một yêu cầu thay đổi chưa hoàn tất.");
+            throw new InvalidOperationException("This contract already has an unresolved change request.");
 
         var now = DateTime.UtcNow;
         var cleanRequestType = (!string.IsNullOrWhiteSpace(request.RequestType) &&
@@ -261,7 +263,7 @@ public class StaffEmploymentContractService(
                 var isMatched = validPositions.Any(p => string.Equals(p, item.ProposedValue.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (!isMatched)
                 {
-                    throw new ArgumentException($"Vị trí '{item.ProposedValue}' không hợp lệ hoặc không có trong danh mục vị trí hoạt động của hệ thống.");
+                    throw new ArgumentException($"Position '{item.ProposedValue}' is invalid or is not an active position.");
                 }
             }
 
@@ -294,8 +296,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng từ nhân viên",
-                Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã gửi yêu cầu thay đổi hợp đồng {contract.ContractNumber}. Vui lòng xem xét và phản hồi.",
+                Title = "Employee contract change request",
+                Content = $"{contract.EmployeeFullNameSnapshot} requested changes to contract {contract.ContractNumber}. Please review and respond.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -322,10 +324,10 @@ public class StaffEmploymentContractService(
 
         var contract = await repository.GetByIdAsync(contractId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại.");
+            throw new KeyNotFoundException("Employment contract not found.");
 
         if (contract.UserId != staffUserId)
-            throw new UnauthorizedAccessException("Bạn chỉ có thể xem yêu cầu thay đổi hợp đồng của chính mình.");
+            throw new UnauthorizedAccessException("You can only view your own contract change requests.");
 
         var list = await repository.GetChangeRequestsByContractIdAsync(contractId, cancellationToken);
         return list.Select(MapToChangeRequestResponse).ToList();
@@ -338,10 +340,10 @@ public class StaffEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
 
         if (cr.RequestedBy != staffUserId && cr.Contract.UserId != staffUserId)
-            throw new UnauthorizedAccessException("Bạn chỉ có thể xem yêu cầu thay đổi hợp đồng của chính mình.");
+            throw new UnauthorizedAccessException("You can only view your own contract change requests.");
 
         return MapToChangeRequestResponse(cr);
     }
@@ -368,26 +370,31 @@ public class StaffEmploymentContractService(
         var hasActive = await repository.HasActiveContractForShiftRegistrationAsync(staffUserId, branchId, scheduledStartAtUtc, scheduledEndAtUtc, cancellationToken);
         if (!hasActive)
         {
-            throw new InvalidOperationException("Bạn không thể đăng ký ca làm việc này. Bạn phải có hợp đồng lao động đang ở trạng thái ACTIVE, thuộc chi nhánh của ca và nằm trong thời hạn hiệu lực của hợp đồng (kể cả giờ bắt đầu và kết thúc ca). Hợp đồng SCHEDULED hoặc PENDING chưa cho phép đăng ký ca.");
+            throw new InvalidOperationException("Shift registration requires an ACTIVE contract for the shift's branch covering the entire shift. SCHEDULED or PENDING contracts do not allow registration.");
         }
     }
 
     public async Task<int> ActivateDueScheduledContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
-        return await repository.ActivateDueScheduledContractsAsync(todayVn, cancellationToken);
+        var count = await repository.ActivateDueScheduledContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(count, "ACTIVATED");
+        return count;
     }
 
     public async Task<int> ExpireDueContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
-        return await repository.ExpireDueContractsAsync(todayVn, cancellationToken);
+        var count = await repository.ExpireDueContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(count, "EXPIRED");
+        return count;
     }
 
     public async Task<int> CancelOverduePendingContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
         var result = await repository.CancelOverduePendingContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(result.CancelledCount, "AUTO_CANCELLED");
 
         if (result.Dispatches != null && result.Dispatches.Count > 0)
         {
@@ -442,6 +449,13 @@ public class StaffEmploymentContractService(
         }
 
         return result.CancelledCount;
+    }
+
+    private async Task PublishContractChangesAsync(int count, string action)
+    {
+        if (count > 0 && adminRealtimePublisher != null)
+            await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "EmploymentContracts", action });
     }
 
     private static DateOnly GetCurrentVietnamDate()

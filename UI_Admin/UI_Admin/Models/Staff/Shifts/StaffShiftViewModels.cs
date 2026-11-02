@@ -78,7 +78,7 @@ public class CancelShiftRegistrationInputModel
 {
     public int ShiftId { get; set; }
 
-    [Required(ErrorMessage = "Vui lòng nhập lý do hủy đăng ký ca làm.")]
-    [StringLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự.")]
+    [Required(ErrorMessage = "Please enter a reason for cancelling the shift registration.")]
+    [StringLength(500, ErrorMessage = "The reason cannot exceed 500 characters.")]
     public string Reason { get; set; } = string.Empty;
 }

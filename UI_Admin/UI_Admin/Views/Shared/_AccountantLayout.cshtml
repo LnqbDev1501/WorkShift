@@ -1,8 +1,3 @@
-@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
-@{
-    var realtimeAction = ViewContext.RouteData.Values["action"]?.ToString();
-    var realtimeEnabled = realtimeAction is "Index" or "List" or "Detail" or "Details" or "Rules" or "Rule";
-}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -173,12 +168,14 @@
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/workshift-theme.css" asp-append-version="true" />
 </head>
-<body class="workshift-theme bg-background font-body-md text-on-surface">
+<body class="workshift-theme ws-workspace accountant-workspace bg-background font-body-md text-on-surface">
     <partial name="_AccountantSidebar" />
 
     <div id="main-content-wrapper" class="pl-[232px]">
         <main class="relative bg-[#F6F7FB] min-h-screen">
-            @RenderBody()
+            <div class="workspace-page">
+                @RenderBody()
+            </div>
         </main>
     </div>
 
@@ -192,12 +189,7 @@
     </script>
 
     <script src="~/js/page-mascot.js"></script>
-    @if (realtimeEnabled)
-    {
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
-        <script id="admin-realtime-config" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { apiBaseUrl = Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193" }))</script>
-        <script src="~/js/admin-realtime.js" asp-append-version="true"></script>
-    }
+    <partial name="_RealtimeScripts" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

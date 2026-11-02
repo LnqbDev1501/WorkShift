@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System.Text.Json;
 using Hangfire;
 using Microsoft.AspNetCore.SignalR;
@@ -6,7 +7,7 @@ using WorkShiftManagement.DAL.Interfaces.Accountant;
 using WorkShiftServer.API.Hubs;
 namespace WorkShiftServer.API.Services;
 public sealed class PayrollSystemNotificationJob(IPayrollSystemNotificationService reminders, IPayrollSystemEventRepo events,
-    IPayrollCalculationRepo calculation, IHubContext<PayrollNotificationHub> hub, TimeProvider clock)
+    IPayrollCalculationRepo calculation, IHubContext<PayrollNotificationHub> hub, TimeProvider clock, IAdminRealtimePublisher realtimePublisher)
 {
     [DisableConcurrentExecution(300)]
     public async Task ExecuteAsync(CancellationToken ct)
@@ -21,6 +22,8 @@ public sealed class PayrollSystemNotificationJob(IPayrollSystemNotificationServi
             // At-least-once delivery: clients deduplicate by EventId; offline clients read the durable API feed.
             await hub.Clients.Group(group).SendAsync("PayrollWorkflowChanged", new { row.EventId, row.CreatedAt, Notification = payload }, ct);
             events.Delivered(row.EventId, clock.GetUtcNow().UtcDateTime); await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
+            await realtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "PayrollNotifications", action = "DELIVERED" });
         }
     }
 }

@@ -69,7 +69,7 @@ public class StaffShiftApiService(HttpClient client, IConfiguration configuratio
         await EnsureSuccessAsync(response, ct);
 
         var data = await response.Content.ReadFromJsonAsync<StaffShiftRegistrationViewModel>(cancellationToken: ct);
-        return data ?? throw new InvalidOperationException("Không thể nhận kết quả đăng ký ca làm.");
+        return data ?? throw new InvalidOperationException("Unable to read the shift registration result.");
     }
 
     public async Task<StaffShiftRegistrationViewModel> CancelRegistrationAsync(
@@ -83,7 +83,7 @@ public class StaffShiftApiService(HttpClient client, IConfiguration configuratio
         await EnsureSuccessAsync(response, ct);
 
         var data = await response.Content.ReadFromJsonAsync<StaffShiftRegistrationViewModel>(cancellationToken: ct);
-        return data ?? throw new InvalidOperationException("Không thể nhận kết quả hủy đăng ký ca làm.");
+        return data ?? throw new InvalidOperationException("Unable to read the cancellation result.");
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)

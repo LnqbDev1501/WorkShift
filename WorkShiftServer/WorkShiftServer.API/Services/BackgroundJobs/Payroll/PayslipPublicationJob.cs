@@ -1,9 +1,11 @@
-﻿using Hangfire;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
+using Hangfire;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 
 namespace WorkShiftServer.API.Services;
 
-public sealed class PayslipPublicationJob(IPayslipService service, ILogger<PayslipPublicationJob> logger)
+public sealed class PayslipPublicationJob(IPayslipService service, ILogger<PayslipPublicationJob> logger,
+    IAdminRealtimePublisher realtimePublisher)
 {
     [DisableConcurrentExecution(300)]
     public async Task ExecuteAsync(CancellationToken ct)
@@ -12,7 +14,12 @@ public sealed class PayslipPublicationJob(IPayslipService service, ILogger<Paysl
         foreach (var id in await service.DuePeriodIdsAsync(ct))
         {
             ct.ThrowIfCancellationRequested();
-            try { await service.PublishInitialAsync(id, ct); }
+            try
+            {
+                await service.PublishInitialAsync(id, ct);
+                await realtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                    new { resource = "Payslips", action = "PUBLISHED" });
+            }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Failed to publish initial payslips for payroll period {PeriodId}.", id);

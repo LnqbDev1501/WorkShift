@@ -4,7 +4,7 @@ namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
 
 public class RejectContractChangeRequest
 {
-    [Required(ErrorMessage = "Lý do từ chối yêu cầu là bắt buộc.")]
-    [MaxLength(500, ErrorMessage = "Lý do từ chối không được vượt quá 500 ký tự.")]
+    [Required(ErrorMessage = "A rejection reason is required.")]
+    [MaxLength(500, ErrorMessage = "The rejection reason cannot exceed 500 characters.")]
     public string Reason { get; set; } = string.Empty;
 }

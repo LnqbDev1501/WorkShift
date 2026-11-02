@@ -136,7 +136,7 @@ public class ManagerEmploymentContractService(
         {
             if (request.HourlyRate.Value < minimumHourlyRate)
             {
-                throw new ArgumentException($"Hourly rate ({request.HourlyRate.Value:N0} VNĐ/h) cannot be lower than the regional minimum wage ({minimumHourlyRate:N0} VNĐ/h).");
+                throw new ArgumentException($"Hourly rate ({request.HourlyRate.Value:N0} VND/hour) cannot be lower than the regional minimum wage ({minimumHourlyRate:N0} VND/hour).");
             }
             finalHourlyRate = request.HourlyRate.Value;
         }
@@ -328,7 +328,7 @@ public class ManagerEmploymentContractService(
             Content = w.Content,
             SentAt = w.CreatedAt,
             SentByManagerId = w.CreatedBy,
-            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Quản lý"
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Manager"
         }).ToList();
 
         return detail;
@@ -414,8 +414,8 @@ public class ManagerEmploymentContractService(
                 var notification = new NotificationEntity
                 {
                     NotificationType = "SYSTEM",
-                    Title = "Hợp đồng lao động đã bị hủy",
-                    Content = $"Hợp đồng lao động {contract.ContractNumber} đã bị quản lý hủy trước ngày bắt đầu. Lý do: {reason}.",
+                    Title = "Employment contract cancelled",
+                    Content = $"Employment contract {contract.ContractNumber} was cancelled by the manager before its start date. Reason: {reason}.",
                     CreatedBy = managerId,
                     TargetBranchId = contract.BranchId,
                     TargetType = "Branch",
@@ -502,7 +502,7 @@ public class ManagerEmploymentContractService(
             Content = w.Content,
             SentAt = w.CreatedAt,
             SentByManagerId = w.CreatedBy,
-            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Quản lý"
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Manager"
         }).ToList();
     }
 
@@ -522,16 +522,16 @@ public class ManagerEmploymentContractService(
             throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
 
         if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+            throw new InvalidOperationException("Only ACTIVE contracts can be terminated. Use Cancel contract for contracts that are not yet active.");
 
         var warningCount = await repository.GetTerminationWarningCountAsync(contractId, cancellationToken);
         if (warningCount < 3)
-            throw new InvalidOperationException($"Chưa thể chấm dứt hợp đồng. Yêu cầu phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi chấm dứt hợp đồng. Số cảnh báo hiện tại: {warningCount}/3.");
+            throw new InvalidOperationException($"Three violation warnings are required before termination. Current warnings: {warningCount}/3.");
 
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var effectiveDate = request.TerminationEffectiveDate ?? todayVn;
         if (effectiveDate < contract.StartDate)
-            throw new ArgumentException("Ngày có hiệu lực chấm dứt hợp đồng không thể trước ngày bắt đầu hợp đồng.");
+            throw new ArgumentException("The termination date cannot precede the contract start date.");
 
         var nowUtc = DateTime.UtcNow;
         var effectiveDateTimeUtc = effectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
@@ -551,8 +551,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Hợp đồng lao động bị chấm dứt",
-                Content = $"Hợp đồng lao động {contract.ContractNumber} đã được quản lý chấm dứt có hiệu lực từ ngày {effectiveDate:yyyy-MM-dd}. Lý do: {reason}.",
+                Title = "Employment contract terminated",
+                Content = $"Employment contract {contract.ContractNumber} was terminated by the manager effective {effectiveDate:yyyy-MM-dd}. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -603,7 +603,7 @@ public class ManagerEmploymentContractService(
 
         if (_cloudinaryService == null)
         {
-            throw new InvalidOperationException("Dịch vụ Cloudinary chưa được cấu hình. Gửi hợp đồng yêu cầu tạo PDF và lưu trữ trên Cloudinary thành công.");
+            throw new InvalidOperationException("Contract storage is not configured. The contract PDF must be generated and uploaded before sending.");
         }
 
         var now = DateTime.UtcNow;
@@ -616,7 +616,7 @@ public class ManagerEmploymentContractService(
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Tải lên file PDF hợp đồng lên Cloudinary thất bại: {ex.Message}", ex);
+            throw new InvalidOperationException($"Unable to upload the contract PDF: {ex.Message}", ex);
         }
 
         var templateVersion = string.IsNullOrWhiteSpace(contract.ContractTemplateVersion) ? "1.0" : IncrementVersion(contract.ContractTemplateVersion);
@@ -650,8 +650,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Hợp đồng lao động mới",
-                Content = $"Bạn đã nhận được Hợp đồng lao động mới (Mã HĐ: {contract.ContractNumber}). Vui lòng xem chi tiết và phản hồi.",
+                Title = "New employment contract",
+                Content = $"You have received employment contract {contract.ContractNumber}. Please review and respond.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -725,9 +725,9 @@ public class ManagerEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
 
         return MapToManagerChangeRequestResponse(cr);
     }
@@ -741,11 +741,11 @@ public class ManagerEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
         if (cr.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be approved.");
 
         var contract = cr.Contract;
         var now = DateTime.UtcNow;
@@ -769,7 +769,7 @@ public class ManagerEmploymentContractService(
                     if (DateOnly.TryParse(finalValStr, out var newStartDate))
                     {
                         if (contract.EndDate.HasValue && contract.EndDate.Value <= newStartDate)
-                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                            throw new ArgumentException("The contract end date must be after the start date.");
                         contract.StartDate = newStartDate;
                         appliedValues["StartDate"] = newStartDate.ToString("yyyy-MM-dd");
                     }
@@ -784,7 +784,7 @@ public class ManagerEmploymentContractService(
                     else if (DateOnly.TryParse(finalValStr, out var newEndDate))
                     {
                         if (newEndDate <= contract.StartDate)
-                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                            throw new ArgumentException("The contract end date must be after the start date.");
                         contract.EndDate = newEndDate;
                         appliedValues["EndDate"] = newEndDate.ToString("yyyy-MM-dd");
                     }
@@ -798,7 +798,7 @@ public class ManagerEmploymentContractService(
                         {
                             var minWage = contract.Region.RegionalMinimumWage.MinimumHourlyRate;
                             if (minWage > 0 && newRate < minWage)
-                                throw new ArgumentException($"Mức lương ({newRate:#,##0} đ/giờ) không được thấp hơn lương tối thiểu vùng ({minWage:#,##0} đ/giờ).");
+                                throw new ArgumentException($"The hourly rate ({newRate:#,##0} VND/hour) cannot be below the regional minimum ({minWage:#,##0} VND/hour).");
                         }
                         contract.HourlyRate = newRate;
                         appliedValues["HourlyRate"] = newRate;
@@ -809,7 +809,7 @@ public class ManagerEmploymentContractService(
                     if (!string.IsNullOrWhiteSpace(finalValStr))
                     {
                         if (finalValStr.Length > 100)
-                            throw new ArgumentException("Chức danh / vị trí không được vượt quá 100 ký tự.");
+                            throw new ArgumentException("The job title or position cannot exceed 100 characters.");
                         contract.EmployeePositionSnapshot = finalValStr.Trim();
                         appliedValues["EmployeePosition"] = finalValStr.Trim();
                     }
@@ -836,7 +836,7 @@ public class ManagerEmploymentContractService(
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Tải lên file PDF hợp đồng mới thất bại: {ex.Message}", ex);
+                throw new InvalidOperationException($"Unable to upload the revised contract PDF: {ex.Message}", ex);
             }
         }
 
@@ -859,7 +859,7 @@ public class ManagerEmploymentContractService(
             oldPdfPath = oldPdfPath,
             newPdfPath = newPdfPublicId,
             appliedFinalValues = appliedValues,
-            note = $"Quản lý đã duyệt yêu cầu thay đổi hợp đồng. Cập nhật phiên bản {templateVersion} và gửi cho nhân viên chấp thuận."
+            note = $"The manager approved the change request. Version {templateVersion} was sent to the employee for acceptance."
         };
 
         await repository.ApproveChangeRequestWithContractUpdateAsync(
@@ -875,8 +875,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng đã được phê duyệt",
-                Content = $"Yêu cầu thay đổi hợp đồng {contract.ContractNumber} đã được quản lý phê duyệt. Hợp đồng phiên bản mới ({templateVersion}) đã được gửi cho bạn. Vui lòng xem xét và chấp thuận.",
+                Title = "Contract change request approved",
+                Content = $"Your change request for contract {contract.ContractNumber} was approved. Please review and accept version {templateVersion}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -903,15 +903,15 @@ public class ManagerEmploymentContractService(
         if (changeRequestId <= 0)
             throw new ArgumentException("ChangeRequestId must be greater than 0.");
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new ArgumentException("Lý do từ chối yêu cầu là bắt buộc.");
+            throw new ArgumentException("A rejection reason is required.");
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
         if (cr.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể từ chối yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be rejected.");
 
         var reason = request.Reason.Trim();
         await repository.RejectChangeRequestAsync(changeRequestId, managerId, reason, cancellationToken);
@@ -926,8 +926,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng đã bị từ chối",
-                Content = $"Yêu cầu thay đổi hợp đồng {cr.Contract.ContractNumber} đã bị quản lý từ chối. Lý do: {reason}.",
+                Title = "Contract change request rejected",
+                Content = $"Your change request for contract {cr.Contract.ContractNumber} was rejected. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = cr.Contract.BranchId,
                 TargetType = "Branch",
@@ -960,9 +960,9 @@ public class ManagerEmploymentContractService(
 
         var contract = await repository.GetByIdAsync(contractId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại.");
+            throw new KeyNotFoundException("Employment contract not found.");
         if (contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Hợp đồng không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The contract does not belong to your branch.");
 
         var successor = await repository.GetSuccessorContractAsync(contractId, cancellationToken);
         EmploymentContract? predecessor = null;

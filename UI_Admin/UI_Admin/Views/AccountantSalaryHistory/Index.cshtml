@@ -11,17 +11,26 @@
         new("Scheduled", Model.Items.Count(i => i.Status == "SCHEDULED").ToString(), "On this page", "schedule", "#4f46e5"),
         new("Employees", Model.Items.Select(i => i.UserId).Distinct().Count().ToString(), "On this page", "groups", "#4f46e5")
     })' />
-    <form asp-action="Index" method="get" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-4 flex flex-col gap-unit-3">
-        <div asp-validation-summary="All" class="text-red-700 text-body-md" role="alert"></div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-unit-3">
-            <div><label for="Keyword" class="block text-label-md text-secondary mb-1">Employee name or ID</label><input id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employees..." class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="Status" class="block text-label-md text-secondary mb-1">Status</label><select id="Status" name="Status" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All statuses</option>@foreach (var value in new[] { "SCHEDULED", "ACTIVE", "INACTIVE" }) { <option value="@value" selected="@(Model.Query.Status == value)">@D.Label(value)</option> }</select></div>
-            <div><label for="ChangeType" class="block text-label-md text-secondary mb-1">Change type</label><select id="ChangeType" name="ChangeType" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl"><option value="">All changes</option>@foreach (var value in new[] { "INITIAL", "INCREASE", "DECREASE" }) { <option value="@value" selected="@(Model.Query.ChangeType == value)">@D.Label(value)</option> }</select></div>
-            <div><label for="EffectiveFrom" class="block text-label-md text-secondary mb-1">Effective period from</label><input id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="EffectiveTo" class="block text-label-md text-secondary mb-1">Effective period to</label><input id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
-            <div><label for="UserId" class="block text-label-md text-secondary mb-1">Exact Staff ID (optional)</label><input id="UserId" name="UserId" value="@Model.Query.UserId" placeholder="Staff ID" class="w-full h-[40px] px-3 border border-surface-container-high rounded-xl" /></div>
+    <form asp-action="Index" method="get" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" id="Keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employees..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="Status" name="Status"><option value="">All statuses</option>@foreach (var value in new[] { "SCHEDULED", "ACTIVE", "INACTIVE" }) { <option value="@value" selected="@(Model.Query.Status == value)">@D.Label(value)</option> }</select></div>
+            <div class="ws-filter-field"><select aria-label="Change type" id="ChangeType" name="ChangeType"><option value="">All changes</option>@foreach (var value in new[] { "INITIAL", "INCREASE", "DECREASE" }) { <option value="@value" selected="@(Model.Query.ChangeType == value)">@D.Label(value)</option> }</select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "EffectiveFrom", "EffectiveTo", "UserId" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Effective from</span><input aria-label="Effective from" id="EffectiveFrom" name="EffectiveFrom" type="date" value="@Model.Query.EffectiveFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Effective to</span><input aria-label="Effective to" id="EffectiveTo" name="EffectiveTo" type="date" value="@Model.Query.EffectiveTo?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Staff ID</span><input aria-label="Staff ID" id="UserId" name="UserId" value="@Model.Query.UserId" placeholder="Staff ID" /></label>
+                    <p class="ws-filter-help">Shows salary records whose effective period overlaps the selected dates.</p>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-3"><p class="text-body-md text-secondary">Shows salary records whose effective period overlaps the selected dates.</p><partial name="_ListFilterActions" model='"Index"' /></div>
+        <div asp-validation-summary="All" class="text-red-700 text-body-md" role="alert"></div>
     </form>
     <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto"><table class="w-full text-left">
@@ -36,7 +45,7 @@
                         <td class="px-4 py-3 whitespace-nowrap text-secondary">@D.Money(row.PreviousHourlyRate)</td><td class="px-4 py-3 whitespace-nowrap font-semibold text-primary">@D.Money(row.HourlyRate)<span class="text-xs text-secondary"> / hour</span></td>
                         <td class="px-4 py-3">@D.Label(row.ChangeType)</td><td class="px-4 py-3 whitespace-nowrap text-body-md">@D.Date(row.EffectiveFrom)<div class="text-xs text-secondary">to @D.Date(row.EffectiveTo)</div></td>
                         <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@D.Label(row.Status)</span></td>
-                        <td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryHistoryId" class="text-primary hover:underline inline-flex items-center gap-1" aria-label="View salary change for @row.EmployeeFullName"><span class="material-symbols-outlined text-[18px]">visibility</span>View</a></td>
+                        <td class="px-5 py-3 text-right"><a asp-action="Details" asp-route-id="@row.SalaryHistoryId" aria-label="View salary change for @row.EmployeeFullName" title="View salary record" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td>
                     </tr>
                 }
             </tbody>

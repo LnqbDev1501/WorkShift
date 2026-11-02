@@ -42,7 +42,7 @@ public class StaffShiftsController(StaffShiftApiService api) : Controller
         }
         catch (Exception)
         {
-            model.ErrorMessage = "Không thể tải danh sách ca làm việc. Vui lòng thử lại sau.";
+            model.ErrorMessage = "Unable to load shifts. Please try again later.";
         }
 
         return View(model);
@@ -59,14 +59,14 @@ public class StaffShiftsController(StaffShiftApiService api) : Controller
     {
         if (shiftId <= 0)
         {
-            TempData["ErrorMessage"] = "Mã ca làm không hợp lệ.";
+            TempData["ErrorMessage"] = "Invalid shift ID.";
             return RedirectToAction(nameof(Index), new { tab, fromDate, toDate });
         }
 
         try
         {
             await api.RegisterShiftAsync(shiftId, ct);
-            TempData["SuccessMessage"] = "Đăng ký ca làm thành công! Ca làm đã được thêm vào lịch làm của bạn.";
+            TempData["SuccessMessage"] = "Shift registration successful. The shift has been added to your schedule.";
         }
         catch (HttpRequestException ex)
         {
@@ -74,7 +74,7 @@ public class StaffShiftsController(StaffShiftApiService api) : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = "Đăng ký ca làm thất bại: " + ex.Message;
+            TempData["ErrorMessage"] = "Shift registration failed: " + ex.Message;
         }
 
         return RedirectToAction(nameof(Index), new { tab = tab ?? "available", fromDate, toDate });
@@ -92,20 +92,20 @@ public class StaffShiftsController(StaffShiftApiService api) : Controller
     {
         if (shiftId <= 0)
         {
-            TempData["ErrorMessage"] = "Mã ca làm không hợp lệ.";
+            TempData["ErrorMessage"] = "Invalid shift ID.";
             return RedirectToAction(nameof(Index), new { tab, fromDate, toDate });
         }
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            TempData["ErrorMessage"] = "Vui lòng nhập lý do hủy đăng ký ca làm.";
+            TempData["ErrorMessage"] = "Please enter a reason for cancelling the shift registration.";
             return RedirectToAction(nameof(Index), new { tab, fromDate, toDate });
         }
 
         try
         {
             await api.CancelRegistrationAsync(shiftId, reason, ct);
-            TempData["SuccessMessage"] = "Đã hủy đăng ký ca làm thành công.";
+            TempData["SuccessMessage"] = "Shift registration cancelled successfully.";
         }
         catch (HttpRequestException ex)
         {
@@ -113,7 +113,7 @@ public class StaffShiftsController(StaffShiftApiService api) : Controller
         }
         catch (Exception ex)
         {
-            TempData["ErrorMessage"] = "Hủy đăng ký thất bại: " + ex.Message;
+            TempData["ErrorMessage"] = "Unable to cancel registration: " + ex.Message;
         }
 
         return RedirectToAction(nameof(Index), new { tab = tab ?? "my-schedule", fromDate, toDate });

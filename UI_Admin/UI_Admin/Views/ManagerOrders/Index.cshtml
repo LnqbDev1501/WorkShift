@@ -99,7 +99,7 @@
                                 <td class="px-4 py-4 text-slate-600">@order.CreatedByName</td>
                                 <td class="px-4 py-4 text-slate-600">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="px-4 py-4 text-slate-600">@order.ItemCount</td>
-                                <td class="px-4 py-4 font-semibold text-slate-900">@order.TotalAmount.ToString("N0") VNĐ</td>
+                                <td class="px-4 py-4 font-semibold text-slate-900">@order.TotalAmount.ToString("N0") VND</td>
                                 <td class="px-4 py-4">
                                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold @GetPaymentColor(order.PaymentStatus)">
                                         @order.PaymentStatus

@@ -100,7 +100,7 @@
                 }
             </div>
             <p class="text-xs text-rose-800 leading-relaxed">
-                <strong>Cancellation Reason:</strong> @(isAutoCancelled ? "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận." : (string.IsNullOrEmpty(Model.CancellationReason) ? "No detailed reason provided." : Model.CancellationReason))
+                <strong>Cancellation Reason:</strong> @(isAutoCancelled ? "The employee did not accept before the start date." : (string.IsNullOrEmpty(Model.CancellationReason) ? "No detailed reason provided." : Model.CancellationReason))
             </p>
             @if (Model.CancelledAt.HasValue)
             {

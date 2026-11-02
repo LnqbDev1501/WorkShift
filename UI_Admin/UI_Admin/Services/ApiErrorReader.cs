@@ -144,8 +144,8 @@ internal static class ApiErrorReader
             if (DateTime.TryParse(endStr, System.Globalization.CultureInfo.InvariantCulture, out var endDt))
                 endVn = endDt.AddHours(7).ToString("HH:mm dd/MM/yyyy");
 
-            var action = isLate ? "xin đi trễ" : "xin về sớm";
-            return $"Thời gian {action} ({reqVn}) không hợp lệ! Phải nằm trong khung giờ của ca làm việc: từ {startVn} đến {endVn}.";
+            var action = isLate ? "late arrival" : "early leave";
+            return $"The requested {action} time ({reqVn}) must be between {startVn} and {endVn} (UTC+7).";
         }
 
         // Pattern: must be submitted at least X day(s) in advance
@@ -156,22 +156,22 @@ internal static class ApiErrorReader
         if (advanceMatch.Success)
         {
             var days = advanceMatch.Groups[1].Value;
-            return $"Đơn yêu cầu phải được gửi trước ít nhất {days} ngày theo quy định của chi nhánh.";
+            return $"Requests must be submitted at least {days} day(s) in advance under branch policy.";
         }
 
         if (msg.Contains("Monthly limit", StringComparison.OrdinalIgnoreCase) || msg.Contains("limit of", StringComparison.OrdinalIgnoreCase))
         {
-            return "Bạn đã đạt giới hạn tối đa số đơn được gửi cho loại yêu cầu này trong tháng theo quy định chi nhánh.";
+            return "You have reached the monthly limit for this request type under branch policy.";
         }
 
         if (msg.Contains("has already started or ended", StringComparison.OrdinalIgnoreCase))
         {
-            return "Ca làm việc này đã bắt đầu hoặc đã kết thúc, không thể gửi yêu cầu nữa.";
+            return "This shift has already started or ended. Requests can no longer be submitted.";
         }
 
         if (msg.Contains("already exists for assignment", StringComparison.OrdinalIgnoreCase))
         {
-            return "Bạn đã có một đơn yêu cầu khác đang chờ duyệt hoặc đã duyệt cho ca làm này.";
+            return "You already have a pending or approved request for this shift.";
         }
 
         return msg;

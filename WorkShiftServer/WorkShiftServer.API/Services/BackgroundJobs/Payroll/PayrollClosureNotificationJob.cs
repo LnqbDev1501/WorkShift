@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using Hangfire;
 using Microsoft.AspNetCore.SignalR;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
@@ -22,13 +23,14 @@ public sealed class HangfirePayrollClosureNotifier(IBackgroundJobClient jobs, IL
 }
 
 public sealed class PayrollClosureNotificationJob(IPayrollSettlementRepo repo, IPayrollCalculationRepo calculation,
-    IHubContext<PayrollNotificationHub> hub, TimeProvider clock, ILogger<PayrollClosureNotificationJob> logger)
+    IHubContext<PayrollNotificationHub> hub, TimeProvider clock, ILogger<PayrollClosureNotificationJob> logger, IAdminRealtimePublisher realtimePublisher)
 {
     [DisableConcurrentExecution(300)]
     public async Task SendAsync(int periodId, CancellationToken ct)
     {
         await using var tx = await calculation.BeginCalculationAsync(ct);
         var eventId = await repo.PendingClosureEventAsync(periodId, ct);
+        var notified = false;
         if (eventId.HasValue)
         {
             var data = await repo.LoadAsync(periodId, null, true, ct);
@@ -39,9 +41,13 @@ public sealed class PayrollClosureNotificationJob(IPayrollSettlementRepo repo, I
                 { eventId, period.PayrollPeriodId, period.PeriodCode, period.BranchId, period.ClosedAt, status = "CLOSED" }, ct);
                 repo.Audit(null, "PAYROLL_CLOSURE_NOTIFIED", period, clock.GetUtcNow().UtcDateTime, new { eventId });
                 await calculation.SaveAsync(ct);
+                notified = true;
             }
         }
         await tx.CommitAsync(ct);
+        if (notified)
+            await realtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "PayrollPeriods", action = "CLOSED" });
     }
 
     public async Task SendPendingAsync(CancellationToken ct)

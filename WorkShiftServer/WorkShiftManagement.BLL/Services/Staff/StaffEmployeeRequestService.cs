@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
@@ -13,6 +14,7 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 
 public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 {
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly IStaffEmployeeRequestRepo _repo;
     private readonly INotificationRepo? _notificationRepo;
     private readonly INotificationRealtimePublisher? _realtimePublisher;
@@ -40,12 +42,14 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         IStaffEmployeeRequestRepo repo,
         INotificationRepo? notificationRepo = null,
         INotificationRealtimePublisher? realtimePublisher = null,
-        ILogger<StaffEmployeeRequestService>? logger = null)
+        ILogger<StaffEmployeeRequestService>? logger = null,
+        IAdminRealtimePublisher? adminRealtimePublisher = null)
     {
         _repo = repo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<PagedResponse<StaffEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -421,6 +425,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         var nowUtc = DateTime.UtcNow;
         var cancelledList = await _repo.CancelOverduePendingRequestsAsync(nowUtc, cancellationToken);
         if (cancelledList.Count == 0) return 0;
+        if (_adminRealtimePublisher != null)
+            await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "EmployeeRequests", action = "AUTO_CANCELLED" });
 
         foreach (var r in cancelledList)
         {

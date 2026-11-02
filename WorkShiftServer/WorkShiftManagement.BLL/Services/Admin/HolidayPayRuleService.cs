@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +19,7 @@ public sealed record HolidayPayRuleResponse(int HolidayPayRuleId, string RuleNam
     DateOnly? EffectiveFrom, DateOnly? EffectiveTo, int? ReplacedRuleId, string Status, bool CanEdit,
     bool CanPublish, bool CanCancel, Guid CreatedBy, DateTime CreatedAt);
 
-public sealed class HolidayPayRuleService(HolidayConfigurationRepo repo)
+public sealed class HolidayPayRuleService(HolidayConfigurationRepo repo, IAdminRealtimePublisher? realtimePublisher = null)
 {
     public static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
     private static object Snapshot(HolidayPayRule r) => new { r.HolidayPayRuleId, r.RuleName, r.PayMultiplier, r.EffectiveFrom, r.EffectiveTo, r.Status, r.ReplacedRuleId };
@@ -123,13 +124,16 @@ public sealed class HolidayPayRuleService(HolidayConfigurationRepo repo)
         }, ct);
     }
 
-    public Task<bool> SynchronizeAsync(CancellationToken ct) => repo.TransactionAsync(async () =>
+    public async Task<bool> SynchronizeAsync(CancellationToken ct)
     {
-        await ActivateDueAsync(ct);
+        var activated = await repo.TransactionAsync(() => ActivateDueAsync(ct), ct);
+        if (activated > 0 && realtimePublisher != null)
+            await realtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "HolidayPayRules", action = "ACTIVATED" });
         return true;
-    }, ct);
+    }
 
-    private async Task ActivateDueAsync(CancellationToken ct)
+    private async Task<int> ActivateDueAsync(CancellationToken ct)
     {
         var due = await repo.Rules.Where(r => r.Status == "PUBLISH" && r.EffectiveFrom <= Today).OrderBy(r => r.EffectiveFrom).ToListAsync(ct);
         foreach (var rule in due)
@@ -151,6 +155,7 @@ public sealed class HolidayPayRuleService(HolidayConfigurationRepo repo)
             repo.Audit(null, "ACTIVATE_HOLIDAY_PAY_RULE", "holiday_pay_rules", rule.HolidayPayRuleId, previousValue, Snapshot(rule));
             await repo.SaveAsync(ct);
         }
+        return due.Count;
     }
 }
 

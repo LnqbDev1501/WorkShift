@@ -9,18 +9,18 @@ public class SubmitContractChangeRequestRequest
 
     public string? StaffComment { get; set; }
 
-    [Required(ErrorMessage = "Danh sách nội dung yêu cầu thay đổi không được để trống.")]
-    [MinLength(1, ErrorMessage = "Phải có ít nhất một trường thông tin yêu cầu thay đổi.")]
+    [Required(ErrorMessage = "The list of requested changes is required.")]
+    [MinLength(1, ErrorMessage = "At least one field change is required.")]
     public List<ContractChangeRequestItemInputDto> Items { get; set; } = new();
 }
 
 public class ContractChangeRequestItemInputDto
 {
-    [Required(ErrorMessage = "Tên trường thay đổi (FieldName) là bắt buộc.")]
-    [MaxLength(100, ErrorMessage = "Tên trường không được vượt quá 100 ký tự.")]
+    [Required(ErrorMessage = "The field name is required.")]
+    [MaxLength(100, ErrorMessage = "The field name cannot exceed 100 characters.")]
     public string FieldName { get; set; } = null!;
 
-    [Required(ErrorMessage = "Giá trị đề xuất (ProposedValue) là bắt buộc.")]
+    [Required(ErrorMessage = "The proposed value is required.")]
     public string ProposedValue { get; set; } = null!;
 
     public string? Reason { get; set; }

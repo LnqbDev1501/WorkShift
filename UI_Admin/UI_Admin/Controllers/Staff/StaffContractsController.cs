@@ -37,7 +37,7 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         }
         catch (Exception)
         {
-            model.ErrorMessage = "Không thể tải danh sách hợp đồng. Vui lòng thử lại sau.";
+            model.ErrorMessage = "Unable to load contracts. Please try again later.";
         }
 
         return View(model);
@@ -56,7 +56,7 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         }
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            TempData["ErrorMessage"] = "Không tìm thấy hợp đồng yêu cầu hoặc bạn không có quyền xem.";
+            TempData["ErrorMessage"] = "Contract not found or access denied.";
             return RedirectToAction(nameof(Index));
         }
         catch (HttpRequestException ex)
@@ -66,7 +66,7 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Không thể tải thông tin chi tiết hợp đồng.";
+            TempData["ErrorMessage"] = "Unable to load contract details.";
             return RedirectToAction(nameof(Index));
         }
     }
@@ -78,15 +78,15 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         try
         {
             await api.AcceptContractAsync(id, ct);
-            TempData["SuccessMessage"] = "Bạn đã chấp thuận hợp đồng lao động thành công!";
+            TempData["SuccessMessage"] = "Employment contract accepted successfully.";
         }
         catch (HttpRequestException ex)
         {
-            TempData["ErrorMessage"] = $"Không thể chấp thuận hợp đồng: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to accept contract: {ex.Message}";
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Đã xảy ra lỗi khi chấp thuận hợp đồng. Vui lòng thử lại.";
+            TempData["ErrorMessage"] = "Unable to accept the contract. Please try again.";
         }
 
         return RedirectToAction(nameof(Details), new { id });
@@ -103,12 +103,12 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         }
         catch (HttpRequestException ex)
         {
-            TempData["ErrorMessage"] = $"Không thể xem PDF hợp đồng: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to view contract PDF: {ex.Message}";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Không thể mở tệp PDF hợp đồng.";
+            TempData["ErrorMessage"] = "Unable to open the contract PDF.";
             return RedirectToAction(nameof(Details), new { id });
         }
     }
@@ -123,12 +123,12 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         }
         catch (HttpRequestException ex)
         {
-            TempData["ErrorMessage"] = $"Không thể tải PDF hợp đồng: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to download contract PDF: {ex.Message}";
             return RedirectToAction(nameof(Details), new { id });
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Không thể tải tệp PDF hợp đồng.";
+            TempData["ErrorMessage"] = "Unable to download the contract PDF.";
             return RedirectToAction(nameof(Details), new { id });
         }
     }
@@ -142,7 +142,7 @@ public class StaffContractsController(StaffContractApiService api) : Controller
     {
         if (!ModelState.IsValid)
         {
-            TempData["ErrorMessage"] = "Dữ liệu yêu cầu thay đổi không hợp lệ. Vui lòng kiểm tra lại.";
+            TempData["ErrorMessage"] = "Invalid change request. Please review your input.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -150,15 +150,15 @@ public class StaffContractsController(StaffContractApiService api) : Controller
         {
             changeRequestForm.ContractId = id;
             await api.SubmitChangeRequestAsync(id, changeRequestForm, ct);
-            TempData["SuccessMessage"] = "Đã gửi yêu cầu thay đổi hợp đồng thành công. Quản lý sẽ sớm phản hồi.";
+            TempData["SuccessMessage"] = "Contract change request submitted. Your manager will review it soon.";
         }
         catch (HttpRequestException ex)
         {
-            TempData["ErrorMessage"] = $"Không thể gửi yêu cầu: {ex.Message}";
+            TempData["ErrorMessage"] = $"Unable to submit request: {ex.Message}";
         }
         catch (Exception)
         {
-            TempData["ErrorMessage"] = "Đã xảy ra lỗi khi gửi yêu cầu thay đổi hợp đồng.";
+            TempData["ErrorMessage"] = "Unable to submit the contract change request.";
         }
 
         return RedirectToAction(nameof(Details), new { id });

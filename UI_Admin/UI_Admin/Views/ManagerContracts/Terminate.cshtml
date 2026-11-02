@@ -108,9 +108,9 @@
                 <div class="flex items-center justify-between text-xs font-bold text-slate-700">
                     <span class="flex items-center gap-1.5">
                         <span class="material-symbols-outlined text-[16px] text-amber-600">history</span>
-                        Lịch sử cảnh báo đã gửi (@Model.Warnings.Count/3)
+                        Warning history (@Model.Warnings.Count/3)
                     </span>
-                    <span class="text-slate-400 font-normal">Đã lưu trữ trên hệ thống</span>
+                    <span class="text-slate-400 font-normal">Saved in the system</span>
                 </div>
                 <div class="space-y-2">
                     @foreach (var w in Model.Warnings.OrderBy(x => x.WarningNo))
@@ -118,7 +118,7 @@
                         <div class="p-3 bg-white rounded-lg border border-slate-200 text-xs shadow-2xs">
                             <div class="flex items-center justify-between mb-1">
                                 <span class="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                    Cảnh báo lần @w.WarningNo
+                                    Warning @w.WarningNo
                                 </span>
                                 <span class="text-slate-400 font-mono text-[11px]">@w.SentAt.ToString("dd/MM/yyyy HH:mm")</span>
                             </div>
@@ -145,7 +145,7 @@
                         <span>Send Warning @nextWarningNo</span>
                     </h3>
                     <span class="text-xs text-slate-500 font-medium bg-slate-100 px-2.5 py-1 rounded-full">
-                        Lần @nextWarningNo trong 3
+                        Warning @nextWarningNo of 3
                     </span>
                 </div>
 
@@ -181,9 +181,9 @@
                            minlength="3"
                            maxlength="150"
                            value="@Model.WarningTitle"
-                           placeholder="Nhập tiêu đề cảnh báo..."
+                           placeholder="Enter warning title..."
                            class="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
-                    <span class="text-[11px] text-slate-400 mt-1 block">Tối thiểu 3 ký tự, tối đa 150 ký tự.</span>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Between 3 and 150 characters.</span>
                 </div>
 
                 <!-- Notification Content -->
@@ -197,9 +197,9 @@
                               required
                               minlength="5"
                               maxlength="1000"
-                              placeholder="Nhập nội dung cảnh báo chi tiết..."
+                              placeholder="Enter warning details..."
                               class="w-full p-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">@Model.WarningContent</textarea>
-                    <span class="text-[11px] text-slate-400 mt-1 block">Tối thiểu 5 ký tự, tối đa 1000 ký tự.</span>
+                    <span class="text-[11px] text-slate-400 mt-1 block">Between 5 and 1,000 characters.</span>
                 </div>
 
                 <!-- Live Staff Notification Preview -->
@@ -219,7 +219,7 @@
                                 <p id="preview-content" class="text-xs text-slate-600 mt-1.5 leading-relaxed whitespace-pre-wrap">
                                     @Model.WarningContent
                                 </p>
-                                <span class="text-[10px] text-slate-400 mt-2 block font-medium">Vừa xong &middot; In-App Mobile</span>
+                                <span class="text-[10px] text-slate-400 mt-2 block font-medium">Just now &middot; In-app notification</span>
                             </div>
                         </div>
                     </div>
@@ -229,12 +229,12 @@
                 <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
                     <a asp-action="Details" asp-route-id="@Model.ContractId"
                        class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
-                        Hủy
+                        Cancel
                     </a>
                     <button type="submit" id="btn-submit-warning"
                             class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
                         <span class="material-symbols-outlined text-[18px]">send</span>
-                        <span>Gửi cảnh báo @nextWarningNo</span>
+                        <span>Send warning @nextWarningNo</span>
                     </button>
                 </div>
             </form>
@@ -245,10 +245,10 @@
             <div class="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
                 <div class="flex items-center gap-2 text-emerald-900 font-bold text-sm">
                     <span class="material-symbols-outlined text-emerald-600 text-[20px]">verified</span>
-                    <span>Đã hoàn thành đủ 3 lần cảnh báo vi phạm</span>
+                    <span>All three violation warnings have been sent</span>
                 </div>
                 <p class="text-xs text-emerald-800 leading-relaxed">
-                    Hợp đồng lao động này đã ghi nhận đủ 3 thông báo cảnh báo vi phạm theo quy định. Quản lý hiện được quyền thực hiện thủ tục chấm dứt hợp đồng lao động sớm theo đúng quy định.
+                    This contract has received all three required violation warnings. The manager may now proceed with early termination under the applicable policy.
                 </p>
             </div>
 
@@ -259,15 +259,15 @@
                 <div class="pb-2 border-b border-slate-100">
                     <h3 class="text-base font-bold text-rose-900 flex items-center gap-2">
                         <span class="material-symbols-outlined text-rose-600 text-[22px]">gavel</span>
-                        <span>Xác nhận chấm dứt hợp đồng lao động</span>
+                        <span>Confirm employment contract termination</span>
                     </h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Vui lòng chọn ngày hiệu lực và nhập lý do chấm dứt hợp đồng chính thức.</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Select the effective date and enter the reason for termination.</p>
                 </div>
 
                 <!-- Effective Date -->
                 <div>
                     <label for="termination-effective-date" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Ngày có hiệu lực chấm dứt <span class="text-rose-600">*</span>
+                        Termination effective date <span class="text-rose-600">*</span>
                     </label>
                     <input type="date"
                            id="termination-effective-date"
@@ -277,35 +277,35 @@
                            required
                            class="w-full h-11 px-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500" />
                     <span class="text-[11px] text-slate-400 mt-1 block">
-                        Mặc định là ngày hôm nay. Không được chọn ngày trước ngày bắt đầu hợp đồng (@Model.StartDate.ToString("dd/MM/yyyy")).
+                        Defaults to today. The date cannot be earlier than the contract start date (@Model.StartDate.ToString("dd/MM/yyyy")).
                     </span>
                 </div>
 
                 <!-- Reason -->
                 <div>
                     <label for="termination-reason" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
-                        Lý do chấm dứt hợp đồng <span class="text-rose-600">*</span>
+                        Reason for termination <span class="text-rose-600">*</span>
                     </label>
                     <textarea id="termination-reason"
                               name="reason"
                               rows="4"
                               required
                               maxlength="500"
-                              placeholder="Nhập lý do chấm dứt hợp đồng (tối đa 500 ký tự)..."
+                              placeholder="Enter the reason for termination (up to 500 characters)..."
                               class="w-full p-3.5 rounded-xl border border-slate-300 text-slate-900 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"></textarea>
-                    <span class="text-[11px] text-slate-400 mt-1 block">Lý do này sẽ được ghi vào hồ sơ kiểm toán hợp đồng và gửi thông báo cho nhân viên.</span>
+                    <span class="text-[11px] text-slate-400 mt-1 block">This reason will be recorded in the contract audit history and sent to the employee.</span>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
                     <a asp-action="Details" asp-route-id="@Model.ContractId"
                        class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
-                        Quay lại
+                        Back
                     </a>
                     <button type="submit" id="btn-submit-terminate"
                             class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Xác nhận chấm dứt hợp đồng</span>
+                        <span>Confirm termination</span>
                     </button>
                 </div>
             </form>
@@ -324,13 +324,13 @@
 
     if (titleInput && previewTitle) {
         titleInput.addEventListener('input', function() {
-            previewTitle.textContent = this.value || 'Tiêu đề thông báo...';
+            previewTitle.textContent = this.value || 'Notification title...';
         });
     }
 
     if (contentInput && previewContent) {
         contentInput.addEventListener('input', function() {
-            previewContent.textContent = this.value || 'Nội dung thông báo...';
+            previewContent.textContent = this.value || 'Notification message...';
         });
     }
 
@@ -338,7 +338,7 @@
         var btn = document.getElementById('btn-submit-warning');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang gửi...';
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Sending...';
         }
     }
 
@@ -346,7 +346,7 @@
         var btn = document.getElementById('btn-submit-terminate');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Đang xử lý...';
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Processing...';
         }
     }
 </script>

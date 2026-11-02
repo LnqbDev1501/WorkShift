@@ -151,60 +151,36 @@
     }
 
     <!-- Search & Filter Card (Manager Style) -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-        <form method="get" asp-action="Index" asp-route-id="@Model.PeriodId" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <!-- Keyword Input -->
-            <div class="md:col-span-5">
-                <label for="keyword" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Search Employee</label>
-                <div class="relative flex items-center">
-                    <span class="material-symbols-outlined absolute left-3.5 pointer-events-none text-slate-400 text-lg">search</span>
-                    <input type="text" id="keyword" name="Keyword" value="@Model.Query.Keyword" placeholder="Search by employee name or ID..."
-                           class="w-full h-11 pl-10 pr-4 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all box-border" />
-                </div>
-            </div>
-
-            <!-- Status Filter -->
-            <div class="md:col-span-3">
-                <label for="status" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Payroll Status</label>
-                <select id="status" name="Status"
-                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
-                    <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
-                    @if (Model.Accountant)
-                    {
-                        <option value="NOT_CALCULATED" selected="@(Model.Query.Status == "NOT_CALCULATED")">Not Calculated</option>
-                    }
-                    <option value="CALCULATED" selected="@(Model.Query.Status == "CALCULATED")">CALCULATED</option>
-                    <option value="SUBMITTED" selected="@(Model.Query.Status == "SUBMITTED")">SUBMITTED</option>
-                    <option value="REJECTED" selected="@(Model.Query.Status == "REJECTED")">REJECTED</option>
-                    <option value="APPROVED" selected="@(Model.Query.Status == "APPROVED")">APPROVED</option>
-                    <option value="PAID" selected="@(Model.Query.Status == "PAID")">PAID</option>
-                    <option value="REPLACED" selected="@(Model.Query.Status == "REPLACED")">REPLACED</option>
-                </select>
-            </div>
-
-            <!-- Calculation State Filter -->
-            <div class="md:col-span-2">
-                <label for="calcState" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 truncate">Readiness</label>
-                <select id="calcState" name="CalculationState"
-                        class="w-full h-11 px-3.5 bg-slate-50/50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer box-border">
-                    <option value="" selected="@(string.IsNullOrEmpty(Model.Query.CalculationState))">All</option>
-                    <option value="READY" selected="@(Model.Query.CalculationState == "READY")">Ready</option>
-                    <option value="BLOCKED" selected="@(Model.Query.CalculationState == "BLOCKED")">Blocked</option>
-                </select>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="md:col-span-2 flex items-center gap-2">
-                <button type="submit" class="flex-1 h-11 inline-flex items-center justify-center gap-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-sm font-semibold shadow-sm transition-all cursor-pointer box-border">
-                    <span class="material-symbols-outlined text-base">filter_alt</span>
-                    <span>Filter</span>
-                </button>
-                <a asp-action="Index" asp-route-id="@Model.PeriodId" class="h-11 w-11 shrink-0 inline-flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-xl text-sm transition-all box-border" title="Reset Filters">
-                    <span class="material-symbols-outlined text-base">restart_alt</span>
-                </a>
-            </div>
-        </form>
-    </div>
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching employees", Model.ReadinessTotal.ToString("N0"), "Matching current filters", "groups"),
+        new("Ready to calculate", (Model.Readiness?.Employees.Count(x => x.CanCalculate) ?? 0).ToString("N0"), "On this page", "task_alt"),
+        new("Blocked", (Model.Readiness?.Employees.Count(x => !x.CanCalculate && x.ExistingPayrollId == null) ?? 0).ToString("N0"), "On this page", "warning"),
+        new("Calculated", (Model.Readiness?.Employees.Count(x => x.ExistingPayrollId.HasValue) ?? 0).ToString("N0"), "On this page", "calculate")
+    })' />
+    <form method="get" asp-action="Index" asp-route-id="@Model.PeriodId" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="keyword" name="Keyword" value="@Model.Query.Keyword" placeholder="Search by employee name or ID..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="Status">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
+                        @if (Model.Accountant)
+                        {
+                            <option value="NOT_CALCULATED" selected="@(Model.Query.Status == "NOT_CALCULATED")">Not Calculated</option>
+                        }
+                        <option value="CALCULATED" selected="@(Model.Query.Status == "CALCULATED")">CALCULATED</option>
+                        <option value="SUBMITTED" selected="@(Model.Query.Status == "SUBMITTED")">SUBMITTED</option>
+                        <option value="REJECTED" selected="@(Model.Query.Status == "REJECTED")">REJECTED</option>
+                        <option value="APPROVED" selected="@(Model.Query.Status == "APPROVED")">APPROVED</option>
+                        <option value="PAID" selected="@(Model.Query.Status == "PAID")">PAID</option>
+                        <option value="REPLACED" selected="@(Model.Query.Status == "REPLACED")">REPLACED</option>
+                    </select></div>
+            <div class="ws-filter-field"><select aria-label="Readiness" id="calcState" name="CalculationState">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Query.CalculationState))">All</option>
+                        <option value="READY" selected="@(Model.Query.CalculationState == "READY")">Ready</option>
+                        <option value="BLOCKED" selected="@(Model.Query.CalculationState == "BLOCKED")">Blocked</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
 
     <!-- Employee Readiness Table Card (Manager Style) -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -368,19 +344,11 @@
                                 <td class="py-4 px-6 text-right">
                                     @if (e.ExistingPayrollId.HasValue)
                                     {
-                                        <a asp-action="Details" asp-route-id="@e.ExistingPayrollId"
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-all">
-                                            <span class="material-symbols-outlined text-sm">visibility</span>
-                                            <span>Details</span>
-                                        </a>
+                                        <a asp-action="Details" asp-route-id="@e.ExistingPayrollId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                     }
                                     else
                                     {
-                                        <a asp-action="Preview" asp-route-id="@Model.PeriodId" asp-route-userId="@e.UserId"
-                                           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg @(e.CanCalculate ? "bg-indigo-600 hover:bg-indigo-700 text-white" : "bg-slate-100 hover:bg-slate-200 text-slate-600") text-xs font-semibold transition-all">
-                                            <span class="material-symbols-outlined text-sm">@(e.CanCalculate ? "preview" : "info")</span>
-                                            <span>@(e.CanCalculate ? "Preview Staff" : "View Source")</span>
-                                        </a>
+                                        <a asp-action="Preview" asp-route-id="@Model.PeriodId" asp-route-userId="@e.UserId" class="ws-icon-action" title="@(e.CanCalculate ? "Preview employee payroll" : "View payroll sources")" aria-label="@(e.CanCalculate ? "Preview employee payroll" : "View payroll sources")"><span class="material-symbols-outlined" aria-hidden="true">@(e.CanCalculate ? "preview" : "info")</span></a>
                                     }
                                 </td>
                             </tr>
@@ -390,11 +358,9 @@
             </div>
         }
 
-        @if (Model.ReadinessError == null && Model.Readiness != null && ViewData.ModelState.IsValid && Model.ReadinessTotal > 20)
+        @if (Model.ReadinessError == null && Model.Readiness != null && ViewData.ModelState.IsValid)
         {
-            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50">
-                <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Query.Page, PageSize = 20, TotalItems = Model.ReadinessTotal, ItemLabel = "employees" })' />
-            </div>
+            <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Query.Page, PageSize = 20, TotalItems = Model.ReadinessTotal, ItemLabel = "employees" })' />
         }
     </div>
 </div>

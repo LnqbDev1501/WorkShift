@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Services;
@@ -39,6 +40,9 @@ public class RegionalMinimumWageActivationWorker : BackgroundService
 
                 if (activatedCount > 0)
                 {
+                    await scope.ServiceProvider.GetRequiredService<IAdminRealtimePublisher>()
+                        .PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                            new { resource = "RegionalMinimumWages", action = "ACTIVATED" });
                     _logger.LogInformation("Regional Minimum Wage Activation Worker activated {Count} due wage(s).", activatedCount);
                 }
             }

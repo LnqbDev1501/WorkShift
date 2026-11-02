@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Manager.ManagerContractDetailViewModel
+@model UI_Admin.Models.Manager.ManagerContractDetailViewModel
 @{
     Layout = "_ManagerLayout";
     ViewData["Title"] = $"Contract {Model.ContractNumber} - Details";
@@ -134,7 +134,7 @@
                 {
                     <a asp-action="Terminate" asp-route-id="@Model.ContractId"
                        class="inline-flex items-center gap-1.5 px-4 py-2 @(Model.CanTerminateEarly ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200" : "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200") text-sm font-semibold rounded-xl shadow-sm transition-all"
-                       title="@(Model.CanTerminateEarly ? "Chấm dứt hợp đồng sớm (Đã hoàn thành 3/3 cảnh báo)" : "Cảnh báo vi phạm & Chấm dứt hợp đồng (Hiện tại: " + Model.TerminationWarningCount + "/3)")">
+                       title="@(Model.CanTerminateEarly ? "Terminate contract early (3/3 warnings sent)" : "Warnings & termination (Current: " + Model.TerminationWarningCount + "/3)")">
                         <span class="material-symbols-outlined text-[18px]">gavel</span>
                         <span>Terminate Contract</span>
                         <span class="text-xs px-1.5 py-0.5 rounded @(Model.CanTerminateEarly ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800") font-mono font-bold">@Model.TerminationWarningCount/3</span>
@@ -223,7 +223,7 @@
                     </span>
                 </div>
                 <p class="text-xs text-blue-800">
-                    The employee accepted this contract on @(Model.StaffAcceptedAt.HasValue ? Model.StaffAcceptedAt.Value.ToString("dd/MM/yyyy HH:mm") : "â€”"). It is scheduled to automatically activate on <strong>@Model.StartDate.ToString("dd/MM/yyyy")</strong>.
+                    The employee accepted this contract on @(Model.StaffAcceptedAt.HasValue ? Model.StaffAcceptedAt.Value.ToString("dd/MM/yyyy HH:mm") : "—"). It is scheduled to automatically activate on <strong>@Model.StartDate.ToString("dd/MM/yyyy")</strong>.
                     @if (isCancellable)
                     {
                         <span class="block mt-1 text-slate-600">You can cancel this contract before the start date if circumstances change.</span>
@@ -340,11 +340,11 @@
                         <p class="text-xs text-slate-500 mt-0.5">
                             @if (sentCount >= 3)
                             {
-                                <span class="text-emerald-700 font-medium">Đã gửi đủ 3 lần cảnh báo vi phạm. Quản lý hiện có thể thực hiện chấm dứt hợp đồng sớm nếu cần.</span>
+                                <span class="text-emerald-700 font-medium">All three violation warnings have been sent. The manager can now terminate the contract early if necessary.</span>
                             }
                             else
                             {
-                                <span>Quản lý phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi có thể chấm dứt hợp đồng sớm.</span>
+                                <span>The manager must send three violation warnings before terminating the contract early.</span>
                             }
                         </p>
                     </div>
@@ -385,7 +385,7 @@
                     }
                     else
                     {
-                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 1</p>
+                        <p class="text-xs text-slate-400 italic mt-1">First warning not sent</p>
                     }
                 </div>
 
@@ -412,7 +412,7 @@
                     }
                     else
                     {
-                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 2</p>
+                        <p class="text-xs text-slate-400 italic mt-1">Second warning not sent</p>
                     }
                 </div>
 
@@ -439,7 +439,7 @@
                     }
                     else
                     {
-                        <p class="text-xs text-slate-400 italic mt-1">Chưa gửi cảnh báo lần 3</p>
+                        <p class="text-xs text-slate-400 italic mt-1">Third warning not sent</p>
                     }
                 </div>
             </div>
@@ -1093,7 +1093,7 @@
                     <div class="flex justify-between">
                         <span class="text-slate-500">Warning Number:</span>
                         <span id="warning-no-badge" class="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
-                            Lần @nextWarningNo / 3
+                            Warning @nextWarningNo / 3
                         </span>
                     </div>
                 </div>
@@ -1108,7 +1108,7 @@
                            required
                            minlength="3"
                            maxlength="150"
-                           value="Cảnh báo vi phạm hợp đồng lao động lần @nextWarningNo"
+                           value="Employment contract violation warning @nextWarningNo"
                            class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500" />
                 </div>
 
@@ -1122,9 +1122,9 @@
                               required
                               minlength="5"
                               maxlength="1000"
-                              placeholder="Nhập nội dung cảnh báo chi tiết gửi tới nhân viên (tối đa 1000 ký tự)..."
-                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">Quản lý gửi cảnh báo vi phạm lần @nextWarningNo đối với các điều khoản trong hợp đồng lao động. Vui lòng liên hệ quản lý trực tiếp để giải quyết.</textarea>
-                    <p class="text-[11px] text-slate-400 mt-1">Nội dung này sẽ được gửi trực tiếp vào thông báo In-App của nhân viên.</p>
+                              placeholder="Enter the warning to send to the employee (up to 1,000 characters)..."
+                              class="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">The manager has issued warning @nextWarningNo for violations of the employment contract. Please contact your manager to resolve this matter.</textarea>
+                    <p class="text-[11px] text-slate-400 mt-1">This message will be delivered to the employee's in-app notifications.</p>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
@@ -1259,11 +1259,11 @@
         if (modal) {
             if (warningNo) {
                 var badge = document.getElementById('warning-no-badge');
-                if (badge) badge.innerText = 'Lần ' + warningNo + ' / 3';
+                if (badge) badge.innerText = 'Warning ' + warningNo + ' / 3';
                 var titleInput = document.getElementById('warning-title');
-                if (titleInput) titleInput.value = 'Cảnh báo vi phạm hợp đồng lao động lần ' + warningNo;
+                if (titleInput) titleInput.value = 'Employment contract violation warning ' + warningNo;
                 var contentInput = document.getElementById('warning-content');
-                if (contentInput) contentInput.value = 'Quản lý gửi cảnh báo vi phạm lần ' + warningNo + ' đối với các điều khoản trong hợp đồng lao động. Vui lòng liên hệ quản lý trực tiếp để giải quyết.';
+                if (contentInput) contentInput.value = 'The manager has issued warning ' + warningNo + ' for violations of the employment contract. Please contact your manager to resolve this matter.';
             }
             modal.classList.remove('hidden');
         }

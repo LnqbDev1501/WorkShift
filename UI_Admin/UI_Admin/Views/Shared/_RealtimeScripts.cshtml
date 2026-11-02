@@ -1,0 +1,31 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@inject Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider Actions
+@{
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var isGet = Context.Request.Method == "GET";
+    var isEditor = System.Text.RegularExpressions.Regex.IsMatch(action,
+        "Create|Edit|Delete|Restore|Confirm|Correct|Preview|Send|Terminate|ChangePassword|ChangeEmail",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+    var getActions = Actions.ActionDescriptors.Items
+        .OfType<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>()
+        .Where(candidate => candidate.ControllerName == controller &&
+            (candidate.ActionConstraints == null || !candidate.ActionConstraints
+                .OfType<Microsoft.AspNetCore.Mvc.ActionConstraints.HttpMethodActionConstraint>()
+                .Any(constraint => !constraint.HttpMethods.Contains("GET"))));
+    var refreshAction = getActions.FirstOrDefault(candidate => candidate.ActionName == action)
+        ?? getActions.FirstOrDefault(candidate => candidate.ActionName == "Index")
+        ?? getActions.FirstOrDefault(candidate => candidate.ActionName == "List");
+    var refreshUrl = isGet
+        ? $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}"
+        : refreshAction == null ? Url.Action("Profile", "Auth")
+        : Url.Action(refreshAction.ActionName, controller, new { id = ViewContext.RouteData.Values["id"] });
+}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+<script id="admin-realtime-config" type="application/json">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        apiBaseUrl = Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193",
+        canReload = isGet && !isEditor,
+        refreshUrl
+    }))</script>
+<script src="~/js/admin-realtime.js" asp-append-version="true"></script>

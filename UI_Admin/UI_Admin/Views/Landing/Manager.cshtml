@@ -1,26 +1,26 @@
 @{
     Layout = "_ManagerLayout";
-    ViewData["Title"] = "Tổng quan chi nhánh";
+    ViewData["Title"] = "Branch Overview";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" />
 }
 <div class="manager-dashboard">
     <div class="dashboard-heading">
-        <div><div class="eyebrow">KHÔNG GIAN MANAGER</div><h1>Tổng quan chi nhánh</h1><p>Xin chào @User.Identity?.Name. Quản lý hợp đồng và danh mục tại một nơi.</p></div>
-        <a asp-controller="ManagerContracts" asp-action="Create" class="manager-primary"><span class="material-symbols-outlined" aria-hidden="true">add</span>Tạo hợp đồng</a>
+        <div><div class="eyebrow">MANAGER WORKSPACE</div><h1>Branch Overview</h1><p>Welcome, @User.Identity?.Name. Manage contracts and catalogs in one place.</p></div>
+        <a asp-controller="ManagerContracts" asp-action="Create" class="manager-primary"><span class="material-symbols-outlined" aria-hidden="true">add</span>Create contract</a>
     </div>
     <section class="manager-hero dashboard-card">
         <div class="manager-hero-icon"><span class="material-symbols-outlined" aria-hidden="true">contract</span></div>
-        <div><div class="eyebrow">QUẢN LÝ NHÂN SỰ</div><h2>Chuẩn bị hợp đồng cho nhân viên</h2><p>Chọn nhân viên thuộc chi nhánh, nhập thời hạn và điều khoản để lưu hợp đồng nháp.</p><a asp-controller="ManagerContracts" asp-action="Create" class="manager-text-link">Mở màn hình tạo hợp đồng <span aria-hidden="true">→</span></a></div>
-        <span class="manager-badge">Hợp đồng nháp · DRAFT</span>
+        <div><div class="eyebrow">STAFF MANAGEMENT</div><h2>Prepare employee contracts</h2><p>Select a branch employee, enter the dates and terms, and save a draft contract.</p><a asp-controller="ManagerContracts" asp-action="Create" class="manager-text-link">Create a contract <span aria-hidden="true">→</span></a></div>
+        <span class="manager-badge">Draft contract</span>
     </section>
     <section aria-labelledby="manager-shortcuts" class="manager-shortcuts">
-        <div class="manager-section-heading"><h2 id="manager-shortcuts">Truy cập nhanh</h2><span>Công cụ quản lý</span></div>
+        <div class="manager-section-heading"><h2 id="manager-shortcuts">Quick access</h2><span>Management tools</span></div>
         <div class="manager-card-grid">
-            <a asp-controller="ManagerContracts" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">contract</span><h3>Quản lý hợp đồng</h3><p>Xem danh sách và quản lý hợp đồng chi nhánh.</p><span class="manager-text-link">Mở danh sách hợp đồng →</span></a>
-            <a asp-controller="Categories" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">category</span><h3>Danh mục</h3><p>Xem và quản lý các nhóm sản phẩm.</p><span class="manager-text-link">Mở danh mục →</span></a>
-            <a asp-controller="Products" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">inventory_2</span><h3>Sản phẩm</h3><p>Tra cứu và cập nhật thông tin sản phẩm.</p><span class="manager-text-link">Mở sản phẩm →</span></a>
+            <a asp-controller="ManagerContracts" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">contract</span><h3>Manage contracts</h3><p>View and manage branch contracts.</p><span class="manager-text-link">View contracts →</span></a>
+            <a asp-controller="Categories" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">category</span><h3>Categories</h3><p>View and manage product categories.</p><span class="manager-text-link">View categories →</span></a>
+            <a asp-controller="Products" asp-action="Index" class="dashboard-card manager-shortcut"><span class="material-symbols-outlined manager-tool-icon" aria-hidden="true">inventory_2</span><h3>Products</h3><p>Find and update product information.</p><span class="manager-text-link">View products →</span></a>
         </div>
     </section>
 </div>

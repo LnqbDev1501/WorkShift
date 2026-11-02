@@ -305,11 +305,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const titleSpan = document.createElement('div');
         titleSpan.className = 'font-body-md-medium text-primary font-bold truncate';
-        titleSpan.textContent = `📍 Đến chính xác tọa độ: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
+        titleSpan.textContent = `📍 Go to coordinates: ${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`;
 
         const addrSpan = document.createElement('div');
         addrSpan.className = 'font-body-sm text-on-surface-variant truncate mt-0.5';
-        addrSpan.textContent = 'Cắm mốc đúng vị trí này và tra cứu địa chỉ xung quanh (không làm lệch tọa độ)';
+        addrSpan.textContent = 'Pin this exact location and look up nearby addresses without changing the coordinates';
 
         textContainer.appendChild(titleSpan);
         textContainer.appendChild(addrSpan);

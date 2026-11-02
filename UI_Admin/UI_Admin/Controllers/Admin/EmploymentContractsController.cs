@@ -108,14 +108,14 @@ public class EmploymentContractsController : Controller
             if (detail.History == null)
             {
                 detail.HistoryLoadFailed = true;
-                detail.HistoryErrorMessage = "Không thể tải dữ liệu lịch sử từ máy chủ.";
+                detail.HistoryErrorMessage = "Unable to load history from the server.";
             }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to load history for contract {ContractId}", contractId);
             detail.HistoryLoadFailed = true;
-            detail.HistoryErrorMessage = "Đã xảy ra lỗi khi kết nối tới dịch vụ lịch sử.";
+            detail.HistoryErrorMessage = "Unable to connect to the history service.";
         }
 
         return View(detail);

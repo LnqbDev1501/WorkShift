@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.SalaryChanges;
@@ -13,7 +14,8 @@ public sealed class SalaryChangeService(
     ISalaryChangeRepo repo,
     TimeProvider clock,
     ILogger<SalaryChangeService> logger,
-    INotificationRealtimePublisher? realtimePublisher = null)
+    INotificationRealtimePublisher? realtimePublisher = null,
+    IAdminRealtimePublisher? adminRealtimePublisher = null)
     : ISalaryChangeService
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
@@ -395,6 +397,9 @@ public sealed class SalaryChangeService(
         }
         await tx.CommitAsync(ct);
         await DispatchRealtimeNotificationsAsync();
+        if (count > 0 && adminRealtimePublisher != null)
+            await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "SalaryHistory", action = "ACTIVATED" });
         return count;
     }
 }

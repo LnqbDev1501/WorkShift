@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
@@ -14,16 +15,24 @@ using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftRepo staffRepo,
-    IShiftAssignmentRepo assignments) : IStaffShiftSwapService
+    IShiftAssignmentRepo assignments, IAdminRealtimePublisher? adminRealtimePublisher = null) : IStaffShiftSwapService
 {
-    public Task<int> ExpireDueAsync(CancellationToken ct = default) =>
-        repo.ExpirePendingAsync(null, DateTime.UtcNow, ct);
+    public Task<int> ExpireDueAsync(CancellationToken ct = default) => ExpirePendingAsync(null, ct);
+
+    private async Task<int> ExpirePendingAsync(Guid? actor, CancellationToken ct)
+    {
+        var count = await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        if (count > 0 && adminRealtimePublisher != null)
+            await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "ShiftSwaps", action = "EXPIRED" });
+        return count;
+    }
 
     public async Task<List<StaffShiftSwapCandidateResponse>> GetCandidatesAsync(Guid actor, int sourceAssignmentId, CancellationToken ct = default)
     {
         ValidateId(sourceAssignmentId);
         var staff = await GetActorAsync(actor, ct);
-        await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        await ExpirePendingAsync(actor, ct);
         var source = await repo.FindAssignmentAsync(sourceAssignmentId, ct)
             ?? throw new KeyNotFoundException("Your shift assignment was not found.");
         if (source.UserId != actor) throw new UnauthorizedAccessException("You can only offer your own assignment.");
@@ -63,7 +72,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         if (direction is not ("ALL" or "SENT" or "RECEIVED"))
             throw new ArgumentException("Direction must be ALL, SENT, or RECEIVED.");
         await GetActorAsync(actor, ct);
-        await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        await ExpirePendingAsync(actor, ct);
         var (items, total) = await repo.GetPagedAsync(actor, status, direction, query.PageNumber, query.PageSize, ct);
         return new()
         {
@@ -76,7 +85,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
     {
         ValidateId(requestId);
         await GetActorAsync(actor, ct);
-        await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        await ExpirePendingAsync(actor, ct);
         return Map(await FindAsync(actor, requestId, ct));
     }
 
@@ -90,7 +99,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         var reason = CleanNote(request.Reason);
         var staff = await GetActorAsync(actor, ct);
         var branchId = staff.BranchId!.Value;
-        await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        await ExpirePendingAsync(actor, ct);
         var result = await repo.ExecuteAsync(request.SourceAssignmentId, request.TargetAssignmentId, null,
             async (source, target, _) =>
             {
@@ -137,7 +146,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         ValidateId(requestId);
         var staff = await GetActorAsync(actor, ct);
         var branchId = staff.BranchId!.Value;
-        await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        await ExpirePendingAsync(actor, ct);
         var reference = await FindAsync(actor, requestId, ct);
         var result = await repo.ExecuteAsync(reference.SourceAssignmentId, reference.TargetAssignmentId, requestId,
             async (source, target, swap) =>

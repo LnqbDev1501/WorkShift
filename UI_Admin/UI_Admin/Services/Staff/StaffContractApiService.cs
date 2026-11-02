@@ -44,7 +44,7 @@ public class StaffContractApiService(HttpClient client, IConfiguration configura
         await EnsureSuccessAsync(response, ct);
 
         var data = await response.Content.ReadFromJsonAsync<StaffContractDetailViewModel>(cancellationToken: ct);
-        return data ?? throw new InvalidOperationException("Không thể giải mã dữ liệu chi tiết hợp đồng.");
+        return data ?? throw new InvalidOperationException("Unable to read contract details.");
     }
 
     public async Task<StaffContractDetailViewModel> AcceptContractAsync(int id, CancellationToken ct = default)
@@ -54,7 +54,7 @@ public class StaffContractApiService(HttpClient client, IConfiguration configura
         await EnsureSuccessAsync(response, ct);
 
         var data = await response.Content.ReadFromJsonAsync<StaffContractDetailViewModel>(cancellationToken: ct);
-        return data ?? throw new InvalidOperationException("Không thể nhận kết quả chấp thuận hợp đồng.");
+        return data ?? throw new InvalidOperationException("Unable to read the contract acceptance result.");
     }
 
     public async Task<(byte[] Bytes, string ContentType, string FileName)> GetStaffPdfFileAsync(
@@ -101,7 +101,7 @@ public class StaffContractApiService(HttpClient client, IConfiguration configura
         await EnsureSuccessAsync(response, ct);
 
         var result = await response.Content.ReadFromJsonAsync<StaffContractChangeRequestViewModel>(cancellationToken: ct);
-        return result ?? throw new InvalidOperationException("Không thể giải mã phản hồi yêu cầu thay đổi.");
+        return result ?? throw new InvalidOperationException("Unable to read the change request response.");
     }
 
     public async Task<IReadOnlyList<StaffContractChangeRequestViewModel>> GetMyContractChangeRequestsAsync(

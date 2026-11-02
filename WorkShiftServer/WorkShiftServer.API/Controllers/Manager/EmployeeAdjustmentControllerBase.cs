@@ -15,7 +15,7 @@ public abstract class EmployeeAdjustmentControllerBase(IEmployeeAdjustmentServic
     protected async Task<IActionResult> Execute(Func<Guid, Task<IActionResult>> action)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
-        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Tài khoản không hợp lệ." });
+        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Invalid account." });
         try { return await action(id); }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
@@ -26,12 +26,12 @@ public abstract class EmployeeAdjustmentControllerBase(IEmployeeAdjustmentServic
         catch (DbUpdateException ex)
         {
             logger.LogError(ex, "Employee adjustment persistence failed.");
-            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "Không thể lưu thưởng/phạt do ràng buộc dữ liệu. Hãy tải lại dữ liệu trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "The reward or penalty could not be saved due to a data constraint. Refresh before trying again.", Instance = Request.Path });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Employee adjustment request failed.");
-            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Không thể xử lý thưởng/phạt. Vui lòng tải lại trạng thái trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Unable to process the reward or penalty. Refresh before trying again.", Instance = Request.Path });
         }
     }
     [HttpGet]

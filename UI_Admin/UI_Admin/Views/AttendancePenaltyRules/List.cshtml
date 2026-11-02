@@ -1,6 +1,5 @@
-﻿@using UI_Admin.Models.Admin.AttendancePenaltyRule
+@using UI_Admin.Models.Admin.AttendancePenaltyRule
 @model AttendancePenaltyRuleListViewModel
-@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = "Attendance Penalty Rules";
@@ -330,7 +329,6 @@
 </div>
 
 @section Scripts {
-<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script>
     function openPublishModal(id, name) {
         document.getElementById('publishRuleId').value = id;
@@ -360,58 +358,5 @@
         document.getElementById('cancelModal').classList.add('hidden');
     }
 
-    async function reloadPenaltyRuleTableData() {
-        try {
-            const response = await fetch(window.location.href, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                cache: 'no-store'
-            });
-            if (!response.ok) return;
-
-            const html = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-
-            const newMetrics = doc.querySelector('.list-metrics');
-            const currentMetrics = document.querySelector('.list-metrics');
-            if (newMetrics && currentMetrics) {
-                currentMetrics.innerHTML = newMetrics.innerHTML;
-            }
-
-            const newTableCard = doc.querySelector('.table-card');
-            const currentTableCard = document.querySelector('.table-card');
-            if (newTableCard && currentTableCard) {
-                currentTableCard.innerHTML = newTableCard.innerHTML;
-            }
-        } catch (err) {
-            console.warn('[SignalR] Failed to reload penalty rule table:', err);
-        }
-    }
-
-    // Realtime Admin Data Sync via SignalR
-    (function () {
-        const apiBaseUrl = '@(Configuration["WorkShiftApi:BaseUrl"]?.TrimEnd('/') ?? "https://localhost:7193")';
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl(`${apiBaseUrl}/hubs/admin-realtime`, {
-                skipNegotiation: false,
-                transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling
-            })
-            .withAutomaticReconnect([0, 2000, 5000, 10000])
-            .build();
-
-        connection.on("AttendancePenaltyRuleChanged", function (payload) {
-            console.log("[SignalR] Attendance penalty rule changed:", payload);
-            reloadPenaltyRuleTableData();
-        });
-
-        connection.start()
-            .then(function () {
-                console.log("[SignalR] Connected to AdminRealtimeHub for Attendance Penalty Rules");
-                return connection.invoke("JoinAdminGroup");
-            })
-            .catch(function (err) {
-                console.warn("[SignalR] Connection error on AdminRealtimeHub:", err);
-            });
-    })();
 </script>
 }

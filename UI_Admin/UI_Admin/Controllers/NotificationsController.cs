@@ -55,7 +55,7 @@ public sealed class NotificationsController : Controller
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to retrieve personal notifications");
-            query.ErrorMessage = "Thông báo cá nhân tạm thời không khả dụng.";
+            query.ErrorMessage = "Personal notifications are temporarily unavailable.";
             return View(query);
         }
     }
@@ -67,7 +67,7 @@ public sealed class NotificationsController : Controller
         {
             var notification = await _notificationApiService.GetMyNotificationByIdAsync(id, cancellationToken);
             if (notification == null)
-                return NotFound("Không tìm thấy thông báo hoặc bạn không có quyền truy cập.");
+                return NotFound("Notification not found or access denied.");
 
             if (!notification.IsRead)
             {
@@ -88,7 +88,7 @@ public sealed class NotificationsController : Controller
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            return NotFound("Không tìm thấy thông báo.");
+            return NotFound("Notification not found.");
         }
         catch (Exception exception)
         {
@@ -158,7 +158,7 @@ public sealed class NotificationsController : Controller
         {
             var notification = await _notificationApiService.GetBroadcastByIdAsync(id, cancellationToken);
             if (notification == null)
-                return NotFound("Không tìm thấy thông báo broadcast.");
+                return NotFound("Broadcast notification not found.");
 
             if (!notification.IsRead && notification.UserNotificationId > 0)
             {
@@ -179,7 +179,7 @@ public sealed class NotificationsController : Controller
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
-            return NotFound("Không tìm thấy thông báo broadcast.");
+            return NotFound("Broadcast notification not found.");
         }
         catch (Exception exception)
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollFeedback;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -12,7 +13,8 @@ using RecalculateRequest = WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalcul
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IPayrollCalculationRepo calculation,
-    TimeProvider clock, ILogger<PayrollFeedbackService> logger, INotificationRealtimePublisher realtimePublisher) : IPayrollFeedbackService
+    TimeProvider clock, ILogger<PayrollFeedbackService> logger, INotificationRealtimePublisher realtimePublisher,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IPayrollFeedbackService
 {
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     private static string Text(string? value) => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= 2000
@@ -539,8 +541,25 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     {
         foreach (var id in await repo.DueReviewPeriodsAsync(Now, ct))
         {
-            try { await using var tx = await calculation.BeginCalculationAsync(ct); var d = await repo.LoadAsync(id, ct); if (d != null) { Expire(d); RefreshPeriod(d, Now); await calculation.SaveAsync(ct); } await tx.CommitAsync(ct); }
-            catch (Exception ex) when (ex is not OperationCanceledException) { logger.LogError(ex, "Could not expire payroll reviews for period {Id}.", id); }
+            try
+            {
+                await using var tx = await calculation.BeginCalculationAsync(ct);
+                var data = await repo.LoadAsync(id, ct);
+                if (data != null)
+                {
+                    Expire(data);
+                    RefreshPeriod(data, Now);
+                    await calculation.SaveAsync(ct);
+                }
+                await tx.CommitAsync(ct);
+                if (data != null && adminRealtimePublisher != null)
+                    await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                        new { resource = "PayrollReviews", action = "EXPIRED" });
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Could not expire payroll reviews for period {Id}.", id);
+            }
         }
     }
     public async Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)

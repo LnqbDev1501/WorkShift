@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,7 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ManagerTimesheetService : IManagerTimesheetService
 {
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly IManagerTimesheetRepo _timesheetRepo;
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly ILogger<ManagerTimesheetService> _logger;
@@ -23,11 +25,13 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
     public ManagerTimesheetService(
         IManagerTimesheetRepo timesheetRepo,
         INotificationRealtimePublisher realtimePublisher,
-        ILogger<ManagerTimesheetService> logger)
+        ILogger<ManagerTimesheetService> logger,
+        IAdminRealtimePublisher? adminRealtimePublisher = null)
     {
         _timesheetRepo = timesheetRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<ManagerTimesheetPagedResponse<ManagerWeeklyTimesheetSummaryResponse>> GetWeeklyTimesheetsAsync(
@@ -839,6 +843,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         try
         {
             var lockedResults = await _timesheetRepo.AutoLockExpiredTimesheetsAsync(cancellationToken);
+            if (lockedResults.Any(item => item.LockedTimesheets.Count > 0) && _adminRealtimePublisher != null)
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                    new { resource = "Timesheets", action = "AUTO_LOCKED" });
 
             foreach (var item in lockedResults)
             {

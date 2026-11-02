@@ -214,7 +214,7 @@
                                         {
                                             <a asp-action="Terminate" asp-route-id="@contract.ContractId"
                                                class="ws-icon-action danger"
-                                               title="@(contract.CanTerminateEarly ? "Chấm dứt hợp đồng sớm (Đã đủ 3/3 cảnh báo)" : "Cảnh báo vi phạm & Chấm dứt hợp đồng (" + contract.TerminationWarningCount + "/3)")" aria-label="Terminate contract"><span class="material-symbols-outlined" aria-hidden="true">gavel</span></a>
+                                               title="@(contract.CanTerminateEarly ? "Terminate contract early (3/3 warnings sent)" : "Warnings & termination (" + contract.TerminationWarningCount + "/3)")" aria-label="Terminate contract"><span class="material-symbols-outlined" aria-hidden="true">gavel</span></a>
                                         }
                                     </div>
                                 </td>

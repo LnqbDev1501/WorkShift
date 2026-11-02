@@ -383,8 +383,8 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 HourlyRate = contract.HourlyRate,
                 WarningCount = warningCount,
                 Warnings = warnings,
-                WarningTitle = $"Cảnh báo vi phạm lần {nextWarningNo}",
-                WarningContent = $"Bạn đã vi phạm quy định về việc vắng mặt không phép nhiều lần. Đây là cảnh báo lần {nextWarningNo}/3. Nếu tiếp tục vi phạm, công ty có thể xem xét chấm dứt hợp đồng lao động theo quy định.",
+                WarningTitle = $"Violation warning {nextWarningNo}",
+                WarningContent = $"Repeated unauthorized absences have been recorded. This is warning {nextWarningNo}/3. Further violations may result in termination under company policy.",
                 TerminationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7))
             };
 
@@ -465,7 +465,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         if (string.IsNullOrWhiteSpace(title) || title.Trim().Length < 3 || title.Trim().Length > 150)
         {
-            TempData["ErrorMessage"] = "Tiêu đề thông báo cảnh báo phải từ 3 đến 150 ký tự.";
+            TempData["ErrorMessage"] = "The warning title must contain between 3 and 150 characters.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id = contractId });
@@ -473,7 +473,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         if (string.IsNullOrWhiteSpace(content) || content.Trim().Length < 5 || content.Trim().Length > 1000)
         {
-            TempData["ErrorMessage"] = "Nội dung thông báo cảnh báo phải từ 5 đến 1000 ký tự.";
+            TempData["ErrorMessage"] = "The warning message must contain between 5 and 1,000 characters.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Details), new { id = contractId });
@@ -482,7 +482,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             var result = await api.SendTerminationWarningAsync(contractId, title.Trim(), content.Trim(), cancellationToken);
-            TempData["SuccessMessage"] = $"Đã gửi cảnh báo vi phạm lần {result.TerminationNoticeNo}/3 đến nhân viên thành công.";
+            TempData["SuccessMessage"] = $"Warning {result.TerminationNoticeNo}/3 was sent to the employee.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 return Redirect(returnUrl);
             return RedirectToAction(nameof(Terminate), new { id = contractId });

@@ -176,7 +176,7 @@ public class CloudinaryService : ICloudinaryService
             if (!fallbackResponse.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                throw new InvalidOperationException($"Không tải được file PDF từ Cloudinary ({response.StatusCode}): {errorBody}");
+                throw new InvalidOperationException($"Unable to download the contract PDF ({response.StatusCode}): {errorBody}");
             }
             return await fallbackResponse.Content.ReadAsByteArrayAsync();
         }

@@ -116,7 +116,7 @@
                             <span class="font-semibold text-rose-900">
                                 @if (Model.CancellationReason == "NOT_ACCEPTED_BY_START_DATE" || (Model.CancellationReason?.Contains("quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase) ?? false))
                                 {
-                                    <span>Quá ngày bắt đầu hợp đồng mà nhân viên chưa xác nhận chấp thuận (Hệ thống tự động hủy)</span>
+                                    <span>The employee did not accept before the start date (automatically cancelled).</span>
                                 }
                                 else
                                 {
@@ -552,7 +552,7 @@
                                             <p class="font-bold text-rose-900">System auto-cancelled contract due to staff not accepting in time:</p>
                                             <p class="text-rose-700 mt-0.5">
                                                 The contract acceptance window has passed (exceeded start date) without staff confirmation.
-                                                The status has transitioned to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="text-rose-900">Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</strong> (not TERMINATED).
+                                                The status has transitioned to <strong class="font-mono text-rose-900">CANCELLED</strong> with reason <strong class="text-rose-900">The employee did not accept before the start date</strong> (not TERMINATED).
                                             </p>
                                         </div>
                                     </div>
@@ -593,7 +593,7 @@
                                         <div>
                                             @if (entry.Reason == "NOT_ACCEPTED_BY_START_DATE" || (entry.Reason?.Contains("quá ngày bắt đầu", StringComparison.OrdinalIgnoreCase) ?? false))
                                             {
-                                                <span class="font-semibold">Reason:</span> <span>Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận</span>
+                                                <span class="font-semibold">Reason:</span> <span>The employee did not accept before the start date</span>
                                             }
                                             else
                                             {

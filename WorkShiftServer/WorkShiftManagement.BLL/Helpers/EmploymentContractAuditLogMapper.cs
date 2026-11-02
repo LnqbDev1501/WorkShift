@@ -16,7 +16,7 @@ public static class EmploymentContractAuditLogMapper
             Action = log.Action,
             ActionTitle = GetActionTitle(log.Action),
             ActorId = log.UserId,
-            ActorName = log.User?.FullName ?? (log.UserId == null ? "Hệ thống" : "Người dùng"),
+            ActorName = log.User?.FullName ?? (log.UserId == null ? "System" : "User"),
             ActorRole = log.User?.Role?.RoleName ?? (log.UserId == null ? "SYSTEM" : string.Empty),
             Timestamp = log.CreatedAt
         };
@@ -147,44 +147,44 @@ public static class EmploymentContractAuditLogMapper
             }
         }
 
-        CompareField("Ngày bắt đầu", "startDate", "StartDate");
-        CompareField("Ngày kết thúc", "endDate", "EndDate");
-        CompareField("Mức lương giờ", "hourlyRate", "HourlyRate");
-        CompareField("Vị trí công việc", "employeePosition", "EmployeePositionSnapshot", "employeePositionSnapshot");
-        CompareField("Điều khoản hợp đồng", "contractTerms", "ContractTerms");
+        CompareField("Start date", "startDate", "StartDate");
+        CompareField("End date", "endDate", "EndDate");
+        CompareField("Hourly rate", "hourlyRate", "HourlyRate");
+        CompareField("Employee position", "employeePosition", "EmployeePositionSnapshot", "employeePositionSnapshot");
+        CompareField("Contract terms", "contractTerms", "ContractTerms");
 
         return list;
     }
 
     public static string GetFriendlyFieldName(string fieldName) => fieldName.ToLowerInvariant() switch
     {
-        "startdate" or "start_date" => "Ngày bắt đầu",
-        "enddate" or "end_date" => "Ngày kết thúc",
-        "hourlyrate" or "hourly_rate" => "Mức lương giờ",
-        "employeeposition" or "employee_position" => "Vị trí công việc",
-        "contractterms" or "contract_terms" => "Điều khoản hợp đồng",
+        "startdate" or "start_date" => "Start date",
+        "enddate" or "end_date" => "End date",
+        "hourlyrate" or "hourly_rate" => "Hourly rate",
+        "employeeposition" or "employee_position" => "Employee position",
+        "contractterms" or "contract_terms" => "Contract terms",
         _ => fieldName
     };
 
     public static string GetActionTitle(string action) => action.ToUpperInvariant() switch
     {
-        "CREATE_DRAFT" => "Tạo dự thảo hợp đồng",
-        "UPDATE_DRAFT" => "Cập nhật dự thảo hợp đồng",
-        "UPDATE_DRAFT_AFTER_APPROVAL" => "Cập nhật hợp đồng theo yêu cầu thay đổi",
-        "SEND_CONTRACT" => "Gửi hợp đồng cho nhân viên",
-        "RESEND_CONTRACT" => "Gửi lại hợp đồng mới cho nhân viên",
-        "STAFF_ACCEPT_CONTRACT" => "Nhân viên đồng ý hợp đồng",
-        "SUBMIT_CHANGE_REQUEST" => "Nhân viên yêu cầu thay đổi hợp đồng",
-        "APPROVE_CHANGE_REQUEST" => "Quản lý duyệt yêu cầu thay đổi",
-        "REJECT_CHANGE_REQUEST" => "Quản lý từ chối yêu cầu thay đổi",
-        "CANCEL_CONTRACT" => "Hủy hợp đồng",
-        "AUTO_CANCEL_CONTRACT" => "Hệ thống tự động hủy hợp đồng do quá hạn chấp nhận",
-        "SEND_TERMINATION_WARNING" => "Cảnh báo vi phạm hợp đồng",
-        "TERMINATE_CONTRACT" => "Chấm dứt hợp đồng",
-        "AUTO_ACTIVATE_CONTRACT" => "Hệ thống tự động kích hoạt hợp đồng",
-        "AUTO_EXPIRE_CONTRACT" => "Hệ thống tự động hết hạn hợp đồng",
-        "CREATE_RENEWAL_CONTRACT" => "Tạo hợp đồng gia hạn/thay thế",
-        "LINKED_REPLACEMENT_CONTRACT" => "Liên kết hợp đồng thay thế mới",
+        "CREATE_DRAFT" => "Create contract draft",
+        "UPDATE_DRAFT" => "Update contract draft",
+        "UPDATE_DRAFT_AFTER_APPROVAL" => "Update contract after approved change request",
+        "SEND_CONTRACT" => "Send contract to employee",
+        "RESEND_CONTRACT" => "Resend revised contract",
+        "STAFF_ACCEPT_CONTRACT" => "Employee accepted contract",
+        "SUBMIT_CHANGE_REQUEST" => "Employee requested contract changes",
+        "APPROVE_CHANGE_REQUEST" => "Manager approved change request",
+        "REJECT_CHANGE_REQUEST" => "Manager rejected change request",
+        "CANCEL_CONTRACT" => "Cancel contract",
+        "AUTO_CANCEL_CONTRACT" => "Automatically cancel contract after acceptance deadline",
+        "SEND_TERMINATION_WARNING" => "Contract violation warning",
+        "TERMINATE_CONTRACT" => "Terminate contract",
+        "AUTO_ACTIVATE_CONTRACT" => "Automatically activate contract",
+        "AUTO_EXPIRE_CONTRACT" => "Automatically expire contract",
+        "CREATE_RENEWAL_CONTRACT" => "Create renewal or replacement contract",
+        "LINKED_REPLACEMENT_CONTRACT" => "Link replacement contract",
         _ => action
     };
 

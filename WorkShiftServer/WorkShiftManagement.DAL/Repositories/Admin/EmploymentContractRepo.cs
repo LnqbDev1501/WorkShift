@@ -136,8 +136,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
             var action = contract.ReplacesContractId.HasValue ? "CREATE_RENEWAL_CONTRACT" : "CREATE_DRAFT";
             var note = contract.ReplacesContractId.HasValue
-                ? $"Tạo hợp đồng gia hạn/thay thế cho hợp đồng cũ #{contract.ReplacesContractId.Value}."
-                : "Tạo dự thảo hợp đồng lao động mới.";
+                ? $"Create renewal or replacement for contract #{contract.ReplacesContractId.Value}."
+                : "Create a new employment contract draft.";
 
             _context.AuditLogs.Add(new AuditLog
             {
@@ -176,7 +176,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                         contractId = contract.ReplacesContractId.Value,
                         replacementContractId = contract.ContractId,
                         replacementContractNumber = contract.ContractNumber,
-                        note = $"Hợp đồng thay thế #{contract.ContractNumber} đã được tạo dự thảo."
+                        note = $"Replacement contract #{contract.ContractNumber} was drafted."
                     }),
                     CreatedAt = contract.CreatedAt
                 });
@@ -352,8 +352,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         var action = hasApprovedCr ? "UPDATE_DRAFT_AFTER_APPROVAL" : "UPDATE_DRAFT";
         var note = hasApprovedCr
-            ? "Cập nhật nội dung hợp đồng theo yêu cầu thay đổi đã duyệt."
-            : "Cập nhật nội dung dự thảo hợp đồng.";
+            ? "Update the contract after an approved change request."
+            : "Update the contract draft.";
 
         var now = DateTime.UtcNow;
         existing.StartDate = contract.StartDate;
@@ -402,11 +402,11 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         var cancellableStatuses = new[] { "DRAFT", "PENDING_STAFF", "PENDING_MANAGER_APPROVAL", "SCHEDULED" };
         if (!cancellableStatuses.Contains(existing.Status, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Không thể hủy hợp đồng ở trạng thái {existing.Status}. Đối với hợp đồng đang có hiệu lực (ACTIVE), vui lòng sử dụng chức năng Chấm dứt hợp đồng.");
+            throw new InvalidOperationException($"Cannot cancel a contract with status {existing.Status}. Use Terminate contract for ACTIVE contracts.");
 
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         if (todayVn > existing.StartDate)
-            throw new InvalidOperationException("Chỉ có thể hủy hợp đồng trước hoặc tại ngày bắt đầu.");
+            throw new InvalidOperationException("Contracts can only be cancelled on or before their start date.");
 
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
@@ -425,7 +425,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             cr.Status = "REJECTED";
             cr.ReviewedBy = managerId;
             cr.ReviewedAt = now;
-            cr.ReviewComment = "Tự động từ chối do hợp đồng đã bị hủy.";
+            cr.ReviewComment = "Automatically rejected because the contract was cancelled.";
             cr.UpdatedAt = now;
         }
 
@@ -436,7 +436,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         foreach (var s in salaries)
         {
             s.Status = "INACTIVE";
-            s.Reason = (s.Reason ?? "") + $" (Hợp đồng đã bị hủy: {reason})";
+            s.Reason = (s.Reason ?? "") + $" (Contract cancelled: {reason})";
         }
 
         _context.AuditLogs.Add(new AuditLog
@@ -453,7 +453,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 reason = reason,
                 cancelledAt = now,
                 terminatedBy = managerId,
-                note = $"Hủy hợp đồng trước ngày bắt đầu. Lý do: {reason}"
+                note = $"Cancel the contract before its start date. Reason: {reason}"
             }),
             CreatedAt = now
         });
@@ -471,13 +471,13 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             throw new KeyNotFoundException("Employment contract was not found.");
 
         if (!string.Equals(existing.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+            throw new InvalidOperationException("Only ACTIVE contracts can be terminated. Use Cancel contract for contracts that are not yet active.");
         var warningCount = await _context.Notifications
             .CountAsync(n => n.ContractId == contractId
                           && n.NotificationType == "CONTRACT_TERMINATION_WARNING"
                           && !n.IsDeleted, cancellationToken);
         if (warningCount < 3)
-            throw new InvalidOperationException($"Chưa thể chấm dứt hợp đồng. Yêu cầu phải gửi đủ 3 thông báo cảnh báo vi phạm trước khi chấm dứt hợp đồng. Số cảnh báo hiện tại: {warningCount}/3.");
+            throw new InvalidOperationException($"Three violation warnings are required before termination. Current warnings: {warningCount}/3.");
 
 
         var oldStatus = existing.Status;
@@ -498,7 +498,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             cr.Status = "REJECTED";
             cr.ReviewedBy = managerId;
             cr.ReviewedAt = now;
-            cr.ReviewComment = "Tự động từ chối do hợp đồng lao động đã bị chấm dứt.";
+            cr.ReviewComment = "Automatically rejected because the employment contract was terminated.";
             cr.UpdatedAt = now;
         }
 
@@ -514,7 +514,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             {
                 s.EffectiveTo = effectiveVnDate >= s.EffectiveFrom ? effectiveVnDate : s.EffectiveFrom;
             }
-            s.Reason = (s.Reason ?? "") + $" (Hợp đồng chấm dứt: {reason})";
+            s.Reason = (s.Reason ?? "") + $" (Contract terminated: {reason})";
         }
 
         _context.AuditLogs.Add(new AuditLog
@@ -532,7 +532,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 terminationEffectiveAt = effectiveAtUtc,
                 terminatedAt = now,
                 terminatedBy = managerId,
-                note = $"Chấm dứt hợp đồng đang hiệu lực. Lý do: {reason}"
+                note = $"Terminate the active contract. Reason: {reason}"
             }),
             CreatedAt = now
         });
@@ -555,8 +555,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var isResend = existing.SentToStaffAt.HasValue;
         var action = isResend ? "RESEND_CONTRACT" : "SEND_CONTRACT";
         var note = isResend
-            ? $"Gửi lại hợp đồng phiên bản {templateVersion} cho nhân viên."
-            : $"Tạo PDF và gửi hợp đồng chính thức phiên bản {templateVersion} cho nhân viên.";
+            ? $"Resend contract version {templateVersion} to the employee."
+            : $"Generate the PDF and send official contract version {templateVersion} to the employee.";
 
         existing.ContractFilePath = filePath;
         existing.ContractTemplateVersion = templateVersion;
@@ -667,7 +667,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             throw new KeyNotFoundException("Employment contract was not found.");
 
         if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Chỉ có thể gửi cảnh báo vi phạm cho hợp đồng đang có hiệu lực (ACTIVE).");
+            throw new InvalidOperationException("Violation warnings can only be sent for ACTIVE contracts.");
 
         var existingWarnings = await _context.Notifications
             .Where(n => n.ContractId == contractId
@@ -676,12 +676,12 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             .ToListAsync(cancellationToken);
 
         if (existingWarnings.Count >= 3)
-            throw new InvalidOperationException("Hợp đồng này đã được gửi đủ 3 lần cảnh báo vi phạm.");
+            throw new InvalidOperationException("This contract has already received all three violation warnings.");
 
         short calculatedNextNo = (short)(existingWarnings.Count + 1);
         if (warningNo != calculatedNextNo)
         {
-            throw new InvalidOperationException($"Số thứ tự cảnh báo không hợp lệ. Cảnh báo tiếp theo phải là lần {calculatedNextNo}.");
+            throw new InvalidOperationException($"Invalid warning number. The next warning must be number {calculatedNextNo}.");
         }
 
         var now = DateTime.UtcNow;
@@ -728,7 +728,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 content = content.Trim(),
                 sentAt = now,
                 sentToStaffUserId = contract.UserId,
-                note = $"Gửi thông báo cảnh báo vi phạm hợp đồng lần {calculatedNextNo}/3 cho nhân viên."
+                note = $"Send contract violation warning {calculatedNextNo}/3 to the employee."
             }),
             CreatedAt = now
         });
@@ -825,7 +825,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             var todayVn = GetVietnamDate(acceptedAtUtc);
             if (todayVn > existing.StartDate)
             {
-                throw new InvalidOperationException("Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.");
+                throw new InvalidOperationException("The contract start date has passed. The contract can no longer be accepted.");
             }
 
             if (newStatus == "ACTIVE" && existing.ReplacesContractId.HasValue)
@@ -851,7 +851,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                             fromStatus = oldStatusPre,
                             toStatus = "EXPIRED",
                             expiredAt = acceptedAtUtc,
-                            reason = $"Hợp đồng tự động hết hạn do hợp đồng thay thế {existing.ContractNumber} có hiệu lực ngay khi chấp nhận.",
+                            reason = $"The contract expired automatically because replacement contract {existing.ContractNumber} took effect upon acceptance.",
                             replacedByContractId = existing.ContractId
                         }),
                         CreatedAt = acceptedAtUtc
@@ -876,7 +876,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 cr.Status = "REJECTED";
                 cr.ReviewedBy = staffUserId;
                 cr.ReviewedAt = acceptedAtUtc;
-                cr.ReviewComment = "Tự động từ chối do nhân viên đã chấp thuận ký hợp đồng.";
+                cr.ReviewComment = "Automatically rejected because the employee accepted the contract.";
                 cr.UpdatedAt = acceptedAtUtc;
             }
 
@@ -903,8 +903,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             }
 
             var note = newStatus == "ACTIVE"
-                ? "Nhân viên đã chấp thuận hợp đồng. Hợp đồng có hiệu lực ngay lập tức."
-                : "Nhân viên đã chấp thuận hợp đồng. Hợp đồng chuyển sang trạng thái SCHEDULED chờ đến ngày bắt đầu.";
+                ? "The employee accepted the contract. It takes effect immediately."
+                : "The employee accepted the contract. It is SCHEDULED to activate on its start date.";
 
             var salaryStatus = (newStatus == "ACTIVE") ? "ACTIVE" : "SCHEDULED";
 
@@ -963,7 +963,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     EffectiveFrom = existing.StartDate,
                     EffectiveTo = existing.EndDate,
                     Status = salaryStatus,
-                    Reason = $"Mức lương ban đầu theo hợp đồng lao động {existing.ContractNumber}.",
+                    Reason = $"Initial hourly rate under employment contract {existing.ContractNumber}.",
                     CreatedBy = existing.CreatedBy,
                     CreatedAt = acceptedAtUtc
                 };
@@ -976,7 +976,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 if (existingSalary.HourlyRate != existing.HourlyRate
                     || existingSalary.EffectiveFrom != existing.StartDate
                     || existingSalary.UserId != existing.UserId)
-                    throw new InvalidOperationException("Lịch sử lương ban đầu đã tồn tại và không khớp hợp đồng. Không được ghi đè đơn giá/ngày bắt đầu; hãy xử lý bằng nghiệp vụ thay đổi lương hoặc hợp đồng.");
+                    throw new InvalidOperationException("The initial salary record already exists and does not match the contract. Use the salary or contract change workflow instead of overwriting the rate or start date.");
                 existingSalary.Status = salaryStatus;
             }
 
@@ -1178,7 +1178,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                             fromStatus = oldContractStatus,
                             toStatus = "EXPIRED",
                             expiredAt = now,
-                            reason = $"Hợp đồng tự động hết hạn do hợp đồng thay thế {targetContract.ContractNumber} có hiệu lực từ ngày {targetContract.StartDate:yyyy-MM-dd}.",
+                            reason = $"The contract expired automatically because replacement contract {targetContract.ContractNumber} took effect on {targetContract.StartDate:yyyy-MM-dd}.",
                             replacedByContractId = targetContract.ContractId
                         }),
                         CreatedAt = now
@@ -1237,7 +1237,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     EffectiveFrom = targetContract.StartDate,
                     EffectiveTo = targetContract.EndDate,
                     Status = "ACTIVE",
-                    Reason = $"Mức lương ban đầu theo hợp đồng lao động {targetContract.ContractNumber}.",
+                    Reason = $"Initial hourly rate under employment contract {targetContract.ContractNumber}.",
                     CreatedBy = targetContract.CreatedBy,
                     CreatedAt = now
                 };
@@ -1273,8 +1273,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     fromStatus = oldStatus,
                     toStatus = "ACTIVE",
                     activatedAt = now,
-                    reason = "Hệ thống tự động kích hoạt hợp đồng khi đến ngày bắt đầu.",
-                    note = "Hợp đồng đã có hiệu lực (ACTIVE)."
+                    reason = "The system automatically activated the contract on its start date.",
+                    note = "The contract is now ACTIVE."
                 }),
                 CreatedAt = now
             });
@@ -1327,8 +1327,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     fromStatus = oldStatus,
                     toStatus = "EXPIRED",
                     expiredAt = now,
-                    reason = "Hệ thống tự động chuyển trạng thái khi qua ngày kết thúc hợp đồng.",
-                    note = "Hợp đồng đã hết hạn (EXPIRED)."
+                    reason = "The system automatically updated the status after the contract end date.",
+                    note = "The contract is now EXPIRED."
                 }),
                 CreatedAt = now
             });
@@ -1393,7 +1393,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
                 var oldStatus = c.Status;
                 c.Status = "CANCELLED";
-                c.CancellationReason = "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận";
+                c.CancellationReason = "NOT_ACCEPTED_BY_START_DATE";
                 c.CancelledBy = null;
                 c.CancelledAt = now;
                 c.UpdatedAt = now;
@@ -1407,7 +1407,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     cr.Status = "REJECTED";
                     cr.ReviewedBy = c.CreatedBy;
                     cr.ReviewedAt = now;
-                    cr.ReviewComment = "Tự động từ chối do hợp đồng đã bị hủy vì quá hạn.";
+                    cr.ReviewComment = "Automatically rejected because the contract was cancelled after its acceptance deadline.";
                     cr.UpdatedAt = now;
                 }
 
@@ -1434,9 +1434,9 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                     {
                         fromStatus = oldStatus,
                         toStatus = "CANCELLED",
-                        reason = "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận",
+                        reason = "NOT_ACCEPTED_BY_START_DATE",
                         cancelledAt = now,
-                        note = "Hệ thống tự động hủy hợp đồng do hết ngày bắt đầu mà nhân viên chưa chấp nhận."
+                        note = "The system automatically cancelled the contract because the employee did not accept before the start date."
                     }),
                     CreatedAt = now
                 });
@@ -1482,8 +1482,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                         }
                     }
 
-                    var notifTitle = $"Hợp đồng lao động {c.ContractNumber} đã bị tự động hủy";
-                    var notifContent = $"Hợp đồng lao động {c.ContractNumber} đã chuyển sang trạng thái CANCELLED do hệ thống tự động hủy. Lý do: Quá ngày bắt đầu {c.StartDate:yyyy-MM-dd} mà nhân viên chưa xác nhận chấp thuận.";
+                    var notifTitle = $"Employment contract {c.ContractNumber} automatically cancelled";
+                    var notifContent = $"Employment contract {c.ContractNumber} was automatically CANCELLED because the employee did not accept by {c.StartDate:yyyy-MM-dd} (NOT_ACCEPTED_BY_START_DATE).";
 
                     var notif = new NotificationEntity
                     {
@@ -1705,7 +1705,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 toStatus = contract != null ? contract.Status : previousContractStatus,
                 reason = changeRequest.StaffComment,
                 staffComment = changeRequest.StaffComment,
-                note = "Nhân viên gửi yêu cầu thay đổi điều khoản hợp đồng.",
+                note = "The employee requested changes to the contract terms.",
                 items = changeRequest.ContractChangeRequestItems.Select(i => new
                 {
                     changeRequestItemId = i.ChangeRequestItemId,
@@ -1732,7 +1732,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         if (changeRequest == null)
             throw new KeyNotFoundException("Contract change request was not found.");
         if (changeRequest.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be approved.");
 
         var now = DateTime.UtcNow;
         changeRequest.Status = "APPROVED";
@@ -1763,7 +1763,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 toStatus = "DRAFT",
                 reason = comment,
                 reviewComment = comment,
-                note = "Quản lý đã phê duyệt yêu cầu thay đổi. Hợp đồng chuyển về DRAFT để cập nhật."
+                note = "The manager approved the change request. The contract returned to DRAFT for updates."
             }),
             CreatedAt = now
         });
@@ -1787,7 +1787,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         if (changeRequest == null)
             throw new KeyNotFoundException("Contract change request was not found.");
         if (changeRequest.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be approved.");
 
         var now = DateTime.UtcNow;
         changeRequest.Status = "APPROVED";
@@ -1830,7 +1830,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         if (changeRequest == null)
             throw new KeyNotFoundException("Contract change request was not found.");
         if (changeRequest.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể từ chối yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be rejected.");
 
         var now = DateTime.UtcNow;
         changeRequest.Status = "REJECTED";
@@ -1861,7 +1861,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 toStatus = "PENDING_STAFF",
                 reason = reason,
                 reviewComment = reason,
-                note = $"Quản lý đã từ chối yêu cầu thay đổi hợp đồng. Lý do: {reason}"
+                note = $"The manager rejected the contract change request. Reason: {reason}"
             }),
             CreatedAt = now
         });

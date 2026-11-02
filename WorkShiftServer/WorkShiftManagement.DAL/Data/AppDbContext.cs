@@ -3360,7 +3360,7 @@ public partial class AppDbContext : DbContext
                 case StaffSalaryHistory salary when e.State != EntityState.Added:
                     // A rate change always creates a new history. Never edit the old rate in place.
                     if (Changes(e, "HourlyRate", "PreviousHourlyRate", "EffectiveFrom", "UserId", "ContractId"))
-                        throw new InvalidOperationException("Không ghi đè đơn giá/lịch sử lương cũ. Phải tạo lịch sử mức lương mới qua nghiệp vụ được duyệt.");
+                        throw new InvalidOperationException("Existing hourly rates and salary history cannot be overwritten. Create a new salary history record through the approval workflow.");
                     if (Changes(e, "EffectiveTo") && salary.EffectiveTo.HasValue)
                         blocked = await PayrollDetails.AnyAsync(d => d.SalaryHistoryId == salary.SalaryHistoryId && frozenPayrolls.Any(p => p.PayrollId == d.PayrollId)
                             && d.WorkTo > salary.EffectiveTo, ct);
@@ -3374,7 +3374,7 @@ public partial class AppDbContext : DbContext
                         blocked = await PayrollDetails.AnyAsync(d => d.HolidayPayRuleId == rule.HolidayPayRuleId && frozenPayrolls.Any(p => p.PayrollId == d.PayrollId), ct);
                     break;
             }
-            if (blocked) throw new InvalidOperationException("Dữ liệu đầu vào/chi tiết lương đã đóng băng từ khi Submit kỳ; không được sửa kỳ đã gửi duyệt hoặc đã hoàn tất.");
+            if (blocked) throw new InvalidOperationException("Payroll inputs and details are frozen after submission. Submitted or completed periods cannot be edited.");
         }
     }
 

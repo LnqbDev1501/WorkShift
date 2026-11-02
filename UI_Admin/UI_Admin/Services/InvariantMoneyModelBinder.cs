@@ -10,7 +10,7 @@ public sealed class InvariantMoneyModelBinder : IModelBinder
         context.ModelState.SetModelValue(context.ModelName, value);
         if (decimal.TryParse(value.FirstValue, NumberStyles.Float, CultureInfo.InvariantCulture, out var amount))
             context.Result = ModelBindingResult.Success(amount);
-        else context.ModelState.TryAddModelError(context.ModelName, "Số tiền không hợp lệ. Dùng dấu chấm cho phần thập phân.");
+        else context.ModelState.TryAddModelError(context.ModelName, "Invalid amount. Use a dot as the decimal separator.");
         return Task.CompletedTask;
     }
 }
