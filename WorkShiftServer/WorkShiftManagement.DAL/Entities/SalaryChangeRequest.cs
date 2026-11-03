@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
 
-/// <summary>
-/// Manager de xuat TANG luong -&gt; Admin. Hien khong giam luong. Hop dong/don gia lay tu History nguon khong ghi de don gia.
-/// </summary>
 public partial class SalaryChangeRequest
 {
     public int SalaryChangeRequestId { get; set; }
@@ -18,18 +15,12 @@ public partial class SalaryChangeRequest
 
     public int? PreviousRequestId { get; set; }
 
-    /// <summary>
-    /// Nguon don gia cu va contract. Backend kiem tra dung Staff, don gia de nghi lon hon nguon, va nguon con hop le luc duyet.
-    /// </summary>
     public int CurrentSalaryHistoryId { get; set; }
 
     public decimal ProposedHourlyRate { get; set; }
 
     public DateOnly ProposedEffectiveFrom { get; set; }
 
-    /// <summary>
-    /// Ngay thuc te: chua den ngay de xuat thi giu ngay; da den/qua thi Admin chon thu Hai tu tuan sau va ghi ly do. Khong hoi to.
-    /// </summary>
     public DateOnly? ApprovedEffectiveFrom { get; set; }
 
     public string? EffectiveDateChangeReason { get; set; }
@@ -52,9 +43,6 @@ public partial class SalaryChangeRequest
 
     public string? CancellationReason { get; set; }
 
-    /// <summary>
-    /// Tao la gui ngay PENDING, khong Draft; thoi diem nay thay requested_at.
-    /// </summary>
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }

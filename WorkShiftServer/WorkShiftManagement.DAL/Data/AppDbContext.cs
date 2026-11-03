@@ -1,10 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Microsoft.EntityFrameworkCore.Storage;
-using WorkShiftManagement.DAL.Policies.Payroll;
 
 namespace WorkShiftManagement.DAL.Data;
 
@@ -132,6 +129,10 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<WorkShift> WorkShifts { get; set; }
 
     public virtual DbSet<WorkingTimeRule> WorkingTimeRules { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseNpgsql("Host=aws-0-ap-northeast-2.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.wvwlopoxobkrmulqsoyi;Password=WorkShift@090909;No Reset On Close=true;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1152,8 +1153,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.EmploymentContracts)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
+                .HasForeignKey<EmploymentContract>(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_user_id_fkey");
         });
@@ -1343,10 +1344,6 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("notifications");
 
-            entity.HasIndex(e => new { e.ContractId, e.TerminationNoticeNo }, "ux_contract_termination_warning")
-                .IsUnique()
-                .HasFilter("((notification_type)::text = 'CONTRACT_TERMINATION_WARNING'::text)");
-
             entity.Property(e => e.NotificationId).HasColumnName("notification_id");
             entity.Property(e => e.Channels)
                 .HasDefaultValueSql("ARRAY['InApp'::text]")
@@ -1382,6 +1379,10 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
 
+            entity.HasOne(d => d.Contract).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.ContractId)
+                .HasConstraintName("notifications_contract_id_fkey");
+
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.Restrict)
@@ -1396,10 +1397,6 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.TargetRegionId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("notifications_target_region_id_fkey");
-
-            entity.HasOne(d => d.Contract).WithMany(p => p.Notifications)
-                .HasForeignKey(d => d.ContractId)
-                .HasConstraintName("notifications_contract_id_fkey");
         });
 
         modelBuilder.Entity<Order>(entity =>
@@ -2442,7 +2439,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.SalaryChangeRequestId).HasName("salary_change_requests_pkey");
 
-            entity.ToTable("salary_change_requests", tb => tb.HasComment("Manager de xuat TANG luong -> Admin. Hien khong giam luong. Hop dong/don gia lay tu History nguon khong ghi de don gia."));
+            entity.ToTable("salary_change_requests");
 
             entity.HasIndex(e => new { e.BranchId, e.Status, e.CreatedAt }, "ix_salary_change_branch_status").IsDescending(false, false, true);
 
@@ -2456,23 +2453,16 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("((status)::text = 'PENDING'::text)");
 
-            entity.Property(e => e.SalaryChangeRequestId)
-                .UseIdentityAlwaysColumn()
-                .HasColumnName("salary_change_request_id");
-            entity.Property(e => e.ApprovedEffectiveFrom)
-                .HasComment("Ngay thuc te: chua den ngay de xuat thi giu ngay; da den/qua thi Admin chon thu Hai tu tuan sau va ghi ly do. Khong hoi to.")
-                .HasColumnName("approved_effective_from");
+            entity.Property(e => e.SalaryChangeRequestId).HasColumnName("salary_change_request_id");
+            entity.Property(e => e.ApprovedEffectiveFrom).HasColumnName("approved_effective_from");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
             entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
-                .HasComment("Tao la gui ngay PENDING, khong Draft; thoi diem nay thay requested_at.")
                 .HasColumnName("created_at");
-            entity.Property(e => e.CurrentSalaryHistoryId)
-                .HasComment("Nguon don gia cu va contract. Backend kiem tra dung Staff, don gia de nghi lon hon nguon, va nguon con hop le luc duyet.")
-                .HasColumnName("current_salary_history_id");
+            entity.Property(e => e.CurrentSalaryHistoryId).HasColumnName("current_salary_history_id");
             entity.Property(e => e.EffectiveDateChangeReason).HasColumnName("effective_date_change_reason");
             entity.Property(e => e.EmployeeRequestId).HasColumnName("employee_request_id");
             entity.Property(e => e.PreviousRequestId).HasColumnName("previous_request_id");
@@ -2523,8 +2513,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReviewedBy)
                 .HasConstraintName("salary_change_requests_reviewed_by_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.SalaryChangeRequests)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.SalaryChangeRequestUser)
+                .HasForeignKey<SalaryChangeRequest>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("salary_change_requests_user_id_fkey");
         });
@@ -2805,8 +2795,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_salary_increase_request_id_fkey");
 
-            entity.HasOne(d => d.User).WithMany(p => p.StaffSalaryHistories)
-                .HasForeignKey(d => d.UserId)
+            entity.HasOne(d => d.User).WithOne(p => p.StaffSalaryHistoryUser)
+                .HasForeignKey<StaffSalaryHistory>(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_user_id_fkey");
         });
@@ -2869,13 +2859,13 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
-            entity.Property(e => e.ReviewDeadline).HasColumnName("review_deadline");
             entity.Property(e => e.IncompleteShiftCount)
                 .HasDefaultValue(0)
                 .HasColumnName("incomplete_shift_count");
             entity.Property(e => e.LockedAt).HasColumnName("locked_at");
             entity.Property(e => e.LockedBy).HasColumnName("locked_by");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.ReviewDeadline).HasColumnName("review_deadline");
             entity.Property(e => e.ReviewNote)
                 .HasMaxLength(500)
                 .HasColumnName("review_note");
@@ -3274,109 +3264,4 @@ public partial class AppDbContext : DbContext
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
-
-    #region Payroll Persistence Guards & Freeze Validation
-
-    // Enforce the freeze for all EF repository writers, not just Payroll controllers.
-    // Snapshot/history reads remain unchanged; future salary records may still be inserted.
-    public override int SaveChanges(bool acceptAllChangesOnSuccess) => SaveChangesAsync(acceptAllChangesOnSuccess).GetAwaiter().GetResult();
-    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => SaveChangesAsync(true, cancellationToken);
-    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
-    {
-        ChangeTracker.DetectChanges();
-        var entries = ChangeTracker.Entries().Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
-            && e.Entity is Timesheet or Attendance or ShiftAssignment or WorkShift or AttendancePenaltyRecord or StaffSalaryHistory
-                or EmployeeRewardsPenalty or HolidayPayRule or PublicHolidayConfig or PayrollDetail or Payroll).ToList();
-        if (entries.Count == 0) return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-        IDbContextTransaction? owned = null;
-        try
-        {
-            if (Database.IsNpgsql())
-            {
-                if (Database.CurrentTransaction == null) owned = await Database.BeginTransactionAsync(cancellationToken);
-                await Database.ExecuteSqlRawAsync("LOCK TABLE public.payroll_periods, public.payrolls IN SHARE ROW EXCLUSIVE MODE", cancellationToken);
-            }
-            await ValidatePayrollFreeze(entries, cancellationToken);
-            var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
-            if (owned != null) await owned.CommitAsync(cancellationToken);
-            return result;
-        }
-        finally { if (owned != null) await owned.DisposeAsync(); }
-    }
-
-    private async Task ValidatePayrollFreeze(List<EntityEntry> entries, CancellationToken ct)
-    {
-        var frozen = PayrollPeriods.AsNoTracking().Where(p => p.Status == "SUBMITTED" || p.Status == "APPROVED" || p.Status == "PAID" || p.Status == "CLOSED");
-        var frozenPayrolls = Payrolls.AsNoTracking().Where(p => frozen.Any(f => f.PayrollPeriodId == p.PayrollPeriodId));
-        static bool Changes(EntityEntry e, params string[] fields) => e.State == EntityState.Deleted || e.Properties.Any(p => p.IsModified && fields.Contains(p.Metadata.Name));
-        static IEnumerable<T> Keys<T>(EntityEntry e, string property)
-        {
-            yield return (T)e.Property(property).CurrentValue!;
-            if (e.State != EntityState.Added) yield return (T)e.Property(property).OriginalValue!;
-        }
-        foreach (var e in entries)
-        {
-            bool blocked = false;
-            switch (e.Entity)
-            {
-                case Payroll p when e.State != EntityState.Added:
-                    var allowed = new[] { "Status", "PaymentConfirmedBy", "PaymentConfirmedAt", "PaidAt", "PaymentReference", "PaymentNote", "UpdatedAt" };
-                    blocked = e.State == EntityState.Deleted || e.Properties.Any(x => x.IsModified && !allowed.Contains(x.Metadata.Name));
-                    blocked = blocked && await frozenPayrolls.AnyAsync(x => x.PayrollId == p.PayrollId, ct);
-                    if (p.Status == "APPROVED" && (string)e.Property(nameof(p.Status)).OriginalValue! == "SUBMITTED"
-                        && PayrollInputFreezePolicy.IsFinalApproval(ChangeTracker, e, p.PayrollPeriodId, "Status", "ApprovedBy", "ApprovedAt", "UpdatedAt")) blocked = false;
-                    break;
-                case PayrollDetail detail:
-                    var payrollIds = Keys<int>(e, nameof(detail.PayrollId)).ToArray();
-                    blocked = await frozenPayrolls.AnyAsync(p => payrollIds.Contains(p.PayrollId), ct);
-                    break;
-                case Timesheet sheet:
-                    var periodIds = Keys<int>(e, nameof(sheet.PayrollPeriodId)).ToArray();
-                    blocked = await frozen.AnyAsync(p => periodIds.Contains(p.PayrollPeriodId), ct);
-                    var approvalLock = sheet.Status == "LOCKED" && PayrollInputFreezePolicy.IsFinalApproval(ChangeTracker, e,
-                        sheet.PayrollPeriodId, "Status", "LockedAt", "LockedBy", "UpdatedAt");
-                    if (approvalLock) blocked = false;
-                    break;
-                case WorkShift shift:
-                    var weeks = Keys<int>(e, nameof(shift.ScheduleWeekId)).ToArray();
-                    blocked = await frozen.AnyAsync(p => p.ScheduleWeekId.HasValue && weeks.Contains(p.ScheduleWeekId.Value), ct);
-                    break;
-                case ShiftAssignment assignment:
-                    var shifts = Keys<int>(e, nameof(assignment.ShiftId)).ToArray();
-                    blocked = await WorkShifts.AnyAsync(s => shifts.Contains(s.ShiftId) && frozen.Any(p => p.ScheduleWeekId == s.ScheduleWeekId), ct);
-                    break;
-                case Attendance attendance:
-                    var assignments = Keys<int>(e, nameof(attendance.AssignmentId)).ToArray();
-                    blocked = await ShiftAssignments.AnyAsync(a => assignments.Contains(a.AssignmentId) && frozen.Any(p => p.ScheduleWeekId == a.Shift.ScheduleWeekId), ct);
-                    break;
-                case AttendancePenaltyRecord penalty:
-                    var attendanceIds = Keys<int>(e, nameof(penalty.AttendanceId)).ToArray();
-                    blocked = await Attendances.AnyAsync(a => attendanceIds.Contains(a.AttendanceId) && frozen.Any(p => p.ScheduleWeekId == a.Assignment.Shift.ScheduleWeekId), ct);
-                    break;
-                case EmployeeRewardsPenalty adjustment:
-                    var rewardPeriods = Keys<int>(e, nameof(adjustment.PayrollPeriodId)).ToArray();
-                    blocked = await frozen.AnyAsync(p => rewardPeriods.Contains(p.PayrollPeriodId), ct);
-                    break;
-                case StaffSalaryHistory salary when e.State != EntityState.Added:
-                    // A rate change always creates a new history. Never edit the old rate in place.
-                    if (Changes(e, "HourlyRate", "PreviousHourlyRate", "EffectiveFrom", "UserId", "ContractId"))
-                        throw new InvalidOperationException("Existing hourly rates and salary history cannot be overwritten. Create a new salary history record through the approval workflow.");
-                    if (Changes(e, "EffectiveTo") && salary.EffectiveTo.HasValue)
-                        blocked = await PayrollDetails.AnyAsync(d => d.SalaryHistoryId == salary.SalaryHistoryId && frozenPayrolls.Any(p => p.PayrollId == d.PayrollId)
-                            && d.WorkTo > salary.EffectiveTo, ct);
-                    break;
-                case PublicHolidayConfig holiday when e.State != EntityState.Added:
-                    blocked = await PayrollDetails.AnyAsync(d => d.PublicHolidayId == holiday.PublicHolidayId && frozenPayrolls.Any(p => p.PayrollId == d.PayrollId), ct);
-                    break;
-                case HolidayPayRule rule when e.State != EntityState.Added:
-                    // Deactivation alone can stop future use while snapshots preserve historical multipliers.
-                    if (Changes(e, "PayMultiplier", "EffectiveFrom", "EffectiveTo"))
-                        blocked = await PayrollDetails.AnyAsync(d => d.HolidayPayRuleId == rule.HolidayPayRuleId && frozenPayrolls.Any(p => p.PayrollId == d.PayrollId), ct);
-                    break;
-            }
-            if (blocked) throw new InvalidOperationException("Payroll inputs and details are frozen after submission. Submitted or completed periods cannot be edited.");
-        }
-    }
-
-    #endregion
 }

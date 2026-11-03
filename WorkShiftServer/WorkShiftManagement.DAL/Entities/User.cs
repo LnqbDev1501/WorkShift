@@ -95,14 +95,7 @@ public partial class User
 
     public virtual ICollection<EmploymentContract> EmploymentContractTerminatedByNavigations { get; set; } = new List<EmploymentContract>();
 
-    public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
-
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    public virtual ICollection<EmploymentContract> EmploymentContractUsers => EmploymentContracts;
-
-    [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-    [Obsolete("Use EmploymentContracts collection instead.")]
-    public virtual EmploymentContract? EmploymentContractUser => EmploymentContracts.FirstOrDefault(c => c.Status == "ACTIVE") ?? EmploymentContracts.FirstOrDefault();
+    public virtual EmploymentContract? EmploymentContractUser { get; set; }
 
     public virtual FaceProfile? FaceProfile { get; set; }
 
@@ -170,7 +163,7 @@ public partial class User
 
     public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestReviewedByNavigations { get; set; } = new List<SalaryChangeRequest>();
 
-    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequests { get; set; } = new List<SalaryChangeRequest>();
+    public virtual SalaryChangeRequest? SalaryChangeRequestUser { get; set; }
 
     public virtual ICollection<ShiftAssignment> ShiftAssignmentAssignedByNavigations { get; set; } = new List<ShiftAssignment>();
 
@@ -186,7 +179,7 @@ public partial class User
 
     public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryCreatedByNavigations { get; set; } = new List<StaffSalaryHistory>();
 
-    public virtual ICollection<StaffSalaryHistory> StaffSalaryHistories { get; set; } = new List<StaffSalaryHistory>();
+    public virtual StaffSalaryHistory? StaffSalaryHistoryUser { get; set; }
 
     public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestReviewedByNavigations { get; set; } = new List<TimesheetAdjustmentRequest>();
 
