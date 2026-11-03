@@ -1,4 +1,10 @@
-using WorkShiftManagement.BLL.Services.Admin;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Interfaces.Admin;
 
 namespace WorkShiftServer.API.Services;
 
@@ -12,7 +18,7 @@ public sealed class HolidayRuleActivationWorker(IServiceScopeFactory scopes, ILo
             try
             {
                 using var scope = scopes.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<HolidayPayRuleService>().SynchronizeAsync(stoppingToken);
+                await scope.ServiceProvider.GetRequiredService<IHolidayPayRuleService>().SynchronizeAsync(stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { return; }
             catch (Exception ex) { logger.LogError(ex, "Unable to activate due holiday pay rules. Will retry."); }
