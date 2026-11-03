@@ -26,17 +26,11 @@ class ShiftDetailContent extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                StatusBadge.neutral(
-                  text: ShiftDisplayFormat.shiftStatus(shift.status),
-                ),
-                StatusBadge.neutral(
-                  text: ShiftDisplayFormat.weekStatus(shift.scheduleWeekStatus),
-                ),
-              ],
+            _StatusInfo(
+              icon: Icons.work_outline,
+              label: 'Shift status',
+              status: shift.status,
+              text: ShiftDisplayFormat.shiftStatus(shift.status),
             ),
             const SizedBox(height: 8),
             AppInfoRow(
@@ -64,11 +58,6 @@ class ShiftDetailContent extends StatelessWidget {
               label: 'Branch',
               value: shift.branchName,
             ),
-            AppInfoRow(
-              icon: Icons.schedule_outlined,
-              label: 'Registration deadline · UTC+7',
-              value: ShiftDisplayFormat.deadline(shift.registrationDeadline),
-            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -81,10 +70,11 @@ class ShiftDetailContent extends StatelessWidget {
                 style: TextStyle(color: AppColors.textSecondary, height: 1.5),
               )
             else ...[
-              AppInfoRow(
+              _StatusInfo(
                 icon: Icons.check_circle_outline,
-                label: 'Assignment status',
-                value: ShiftDisplayFormat.assignmentStatus(own.status),
+                label: 'Your assignment status',
+                status: own.status,
+                text: ShiftDisplayFormat.assignmentStatus(own.status),
               ),
               AppInfoRow(
                 icon: Icons.person_outline,
@@ -123,6 +113,23 @@ class ShiftDetailContent extends StatelessWidget {
                 ),
               ),
             ],
+          ],
+        ),
+        const SizedBox(height: 16),
+        _DetailSection(
+          title: 'Weekly schedule',
+          children: [
+            _StatusInfo(
+              icon: Icons.date_range_outlined,
+              label: 'Weekly schedule status',
+              status: shift.scheduleWeekStatus,
+              text: ShiftDisplayFormat.weekStatus(shift.scheduleWeekStatus),
+            ),
+            AppInfoRow(
+              icon: Icons.schedule_outlined,
+              label: 'Registration deadline · UTC+7',
+              value: ShiftDisplayFormat.deadline(shift.registrationDeadline),
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -173,6 +180,64 @@ class ShiftDetailContent extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _StatusInfo extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String status;
+  final String text;
+
+  const _StatusInfo({
+    required this.icon,
+    required this.label,
+    required this.status,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = switch (status) {
+      'COMPLETED' => StatusBadge.success(text: text),
+      'CANCELLED' => StatusBadge.rejected(text: text),
+      'IN_PROGRESS' => StatusBadge.warning(text: text),
+      'SCHEDULED' || 'ASSIGNED' || 'OPEN_REGISTRATION' => StatusBadge(
+        text: text,
+        hasDot: true,
+        dotColor: AppColors.primary,
+        backgroundColor: AppColors.primaryLight,
+        textColor: AppColors.primaryDark,
+      ),
+      _ => StatusBadge.neutral(text: text),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                badge,
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
