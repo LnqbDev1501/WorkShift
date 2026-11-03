@@ -133,7 +133,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         staff.IdentityNo = identityNo.Trim();
         staff.Gender = gender.Trim().ToUpperInvariant();
         staff.DateOfBirth = dateOfBirth ?? default;
-        staff.Address = address?.Trim();
+        staff.Address = string.IsNullOrWhiteSpace(address) ? string.Empty : address.Trim();
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

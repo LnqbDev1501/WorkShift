@@ -139,7 +139,7 @@ public class ManagerStaffService : IManagerStaffService
             Phone = request.Phone.Trim(),
             IdentityNo = request.IdentityNo.Trim(),
             Gender = request.Gender.Trim().ToUpperInvariant(),
-            DateOfBirth = request.DateOfBirth.Value,
+            DateOfBirth = request.DateOfBirth!.Value,
             AvatarUrl = _defaultAvatarUrl,
             Address = request.Address?.Trim() ?? string.Empty,
             EmployeeTypeId = request.EmployeeTypeId,
@@ -382,7 +382,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
 
-        return (request.FullName.Trim(), phone, identityNo, gender, request.DateOfBirth.Value, address);
+        return (fullName!, phone!, identityNo!, gender!, request.DateOfBirth, address);
     }
 
     private async Task ValidateStaffFieldsAsync(CreateStaffAccountRequest request, int branchId)

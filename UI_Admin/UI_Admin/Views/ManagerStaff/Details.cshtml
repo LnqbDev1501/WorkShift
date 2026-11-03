@@ -116,7 +116,7 @@
             </div>
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Date of Birth</p>
-                <p class="text-sm font-medium text-gray-900">@(Model.DateOfBirth == default ? "Not provided" : Model.DateOfBirth.Value.ToString("dd/MM/yyyy"))</p>
+                <p class="text-sm font-medium text-gray-900">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "Not provided")</p>
             </div>
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
                 <p class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Address</p>

@@ -40,7 +40,7 @@ public abstract class AdminEmployeeAdjustmentReviewControllerBase(EmployeeAdjust
             catch (EmployeeAdjustmentApiException ex) when (ex.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound) { return Failure(ex); }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogError(ex, "Employee {Label} review failed for {Id}.", EntityLabel, id);
+                Logger.LogError(ex, "Employee {Label} review failed for {Id}.", EntityLabel, id);
                 // Reload after a conflict/timeout, since the operation may already have committed.
                 TempData["EmployeeAdjustmentError"] = Error(ex);
                 return RedirectToAction(nameof(Details), new { id });

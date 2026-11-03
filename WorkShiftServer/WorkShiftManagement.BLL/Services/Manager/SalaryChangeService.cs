@@ -316,7 +316,7 @@ public sealed class SalaryChangeService(
         repo.EnqueueNotification(
             senderId: id,
             title: $"Salary Increase Proposal #{requestId} Approved",
-            message: $"Admin has approved salary increase proposal #{requestId} for staff {item.User.FullName} with rate {item.ProposedHourlyRate:N0} VND/h. Approved effective date: {date:dd/MM/yyyy}. The new rate is currently SCHEDULED and will take effect on {date:dd/MM/yyyy}." + (SalaryChangePolicy.Text(r.ReviewNote) != null ? $" Note: {r.ReviewNote.Trim()}" : ""),
+            message: $"Admin has approved salary increase proposal #{requestId} for staff {item.User.FullName} with rate {item.ProposedHourlyRate:N0} VND/h. Approved effective date: {date:dd/MM/yyyy}. The new rate is currently SCHEDULED and will take effect on {date:dd/MM/yyyy}." + (SalaryChangePolicy.Text(r.ReviewNote) is { } noteText ? $" Note: {noteText}" : ""),
             targetType: "Manager",
             recipientIds: [item.RequestedBy],
             now: now);

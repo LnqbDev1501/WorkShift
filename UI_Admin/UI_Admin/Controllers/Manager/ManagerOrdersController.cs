@@ -7,7 +7,6 @@ using UI_Admin.Models;
 using UI_Admin.Models.Manager;
 using UI_Admin.Services;
 
-using UI_Admin.Models;
 
 namespace UI_Admin.Controllers;
 

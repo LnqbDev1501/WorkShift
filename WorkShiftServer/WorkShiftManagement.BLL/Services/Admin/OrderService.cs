@@ -244,7 +244,7 @@ public class OrderService : IOrderService
     public async Task<bool> UpdateStatusAsync(int id, string status, Guid actorId)
     {
         var actor = await GetActorAsync(actorId);
-        var branchId = actor.Role == "MANAGER" ? actor.BranchId.Value : (actor.BranchId ?? throw new UnauthorizedAccessException("User not assigned to a branch."));
+        var branchId = actor.BranchId ?? throw new UnauthorizedAccessException("User not assigned to a branch.");
         var normalizedStatus = status.Trim().ToUpperInvariant();
 
         if (!new[] { "PENDING", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))

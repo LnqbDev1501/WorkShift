@@ -24,7 +24,7 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
             PageNumber = page < 1 ? 1 : page,
             PageSize = 10,
             Search = search,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try
@@ -123,7 +123,7 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
                 ProductCount = detail.ProductCount
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Category could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));

@@ -23,7 +23,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
             if (result.Items.Count == 0 || (long)page * 100 >= result.TotalCount) break;
         }
         model.StaffOptions = model.StaffOptions.DistinctBy(x => x.UserId).OrderBy(x => x.FullName).ToList();
-        model.PayrollPeriodOptions = await api.GetPayrollPeriodsAsync(ct);
+        model.PayrollPeriodOptions = await Api.GetPayrollPeriodsAsync(ct);
         model.OptionsLoaded = true;
     }
 
@@ -58,7 +58,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
         catch (EmployeeAdjustmentApiException ex) when (ex.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) { return Failure(ex); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Employee {Label} creation failed.", EntityLabel);
+            Logger.LogError(ex, "Employee {Label} creation failed.", EntityLabel);
             ModelState.AddModelError("", Error(ex));
         }
         return View(ViewRoot + "Create.cshtml", model);
@@ -110,7 +110,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
         catch (EmployeeAdjustmentApiException ex) when (ex.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden or HttpStatusCode.NotFound) { return Failure(ex); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Employee {Label} update failed for {Id}.", EntityLabel, id);
+            Logger.LogError(ex, "Employee {Label} update failed for {Id}.", EntityLabel, id);
             ModelState.AddModelError("", Error(ex));
         }
         return View(ViewRoot + "Edit.cshtml", model);

@@ -826,7 +826,7 @@ public class ManagerEmploymentContractService(
 
         var oldPdfPath = contract.ContractFilePath;
         var officialPdfBytes = _pdfGenerator.GeneratePdf(contract, isPreview: false);
-        string newPdfPublicId = oldPdfPath;
+        string? newPdfPublicId = oldPdfPath;
 
         if (_cloudinaryService != null)
         {

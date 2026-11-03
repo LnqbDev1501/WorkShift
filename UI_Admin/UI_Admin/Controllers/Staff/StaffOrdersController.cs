@@ -7,7 +7,6 @@ using UI_Admin.Models;
 using UI_Admin.Models.Staff.Orders;
 using UI_Admin.Services.Staff;
 
-using UI_Admin.Models;
 
 namespace UI_Admin.Controllers.Staff;
 
@@ -68,7 +67,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
                 Products = products
             });
         }
-        catch (HttpRequestException exception)
+        catch (HttpRequestException)
         {
             TempData["ErrorMessage"] = "Products could not be loaded. Please try again.";
             return RedirectToAction(nameof(Index));

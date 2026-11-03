@@ -10,6 +10,7 @@ namespace UI_Admin.Controllers.EmployeeAdjustments;
 public abstract class EmployeeAdjustmentControllerBase(EmployeeAdjustmentApiService api, ILogger logger) : Controller
 {
     protected readonly EmployeeAdjustmentApiService Api = api;
+    protected readonly ILogger Logger = logger;
     protected const string ViewRoot = "~/Views/Shared/EmployeeAdjustments/";
 
     protected abstract string AdjustmentType { get; }
@@ -22,7 +23,7 @@ public abstract class EmployeeAdjustmentControllerBase(EmployeeAdjustmentApiServ
         if (ex is EmployeeAdjustmentApiException { Status: HttpStatusCode.Unauthorized }) return RedirectToAction("Login", "Auth");
         if (ex is EmployeeAdjustmentApiException { Status: HttpStatusCode.Forbidden }) return Forbid();
         if (ex is EmployeeAdjustmentApiException { Status: HttpStatusCode.NotFound }) return NotFound();
-        logger.LogError(ex, "Employee adjustment UI request failed.");
+        Logger.LogError(ex, "Employee adjustment UI request failed.");
         TempData["EmployeeAdjustmentError"] = Error(ex);
         return RedirectToAction(nameof(Index));
     }
@@ -48,7 +49,7 @@ public abstract class EmployeeAdjustmentControllerBase(EmployeeAdjustmentApiServ
         catch (EmployeeAdjustmentApiException ex) when (ex.Status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) { return Failure(ex); }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Employee adjustment list failed.");
+            Logger.LogError(ex, "Employee adjustment list failed.");
             model.ErrorMessage = Error(ex);
         }
         return View(ViewRoot + "Index.cshtml", model);

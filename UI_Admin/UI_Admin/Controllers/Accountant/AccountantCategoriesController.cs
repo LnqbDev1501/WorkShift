@@ -7,7 +7,6 @@ using UI_Admin.Models;
 using UI_Admin.Models.Accountant;
 using UI_Admin.Services.Accountant;
 
-using UI_Admin.Models;
 
 namespace UI_Admin.Controllers;
 
@@ -27,7 +26,7 @@ public class AccountantCategoriesController(AccountantCategoryApiService api) : 
             PageNumber = page < 1 ? 1 : page,
             PageSize = ListPaginationViewModel.DefaultPageSize,
             Search = search,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try

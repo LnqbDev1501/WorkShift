@@ -123,7 +123,7 @@ public class ManagerStaffController : Controller
             IdentityNo = detail.IdentityNo,
             Gender = detail.Gender,
             DateOfBirth = detail.DateOfBirth,
-            Address = detail.Address,
+            Address = detail.Address ?? string.Empty,
             Status = detail.Status,
             Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
         });

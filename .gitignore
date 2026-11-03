@@ -1,28 +1,44 @@
-# .NET
+# .NET Build Outputs
 bin/
 obj/
-
-# Visual Studio
-.vs/
-
-# User settings
-*.user
-*.suo
-
-# Secrets / Environment
-.env
-appsettings.Development.json
-appsettings.json
-
 artifacts/
 **/artifacts/
-bin/
-obj/
+*.binlog
 
-# Test project (excluded from version control)
+# Visual Studio / Rider / IDEs
+.vs/
+.idea/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# Environment & Secrets
+.env
+.env.*
+appsettings.json
+appsettings.Development.json
+
+# Logs & Temporary Files
+*.log
+*.tmp
+*.bak
+*.swp
+*.dtmp
+*.drawio.dtmp
+
+# OS Specific
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# Diagrams
+*.drawio
+
+# Test Projects (excluded from version control)
 WorkShiftServer/WorkShiftManagement.Tests/
 
-# Diagrams & Temp files
-*.drawio
-*.drawio.dtmp
-*.dtmp
+# Flutter / Dart (Global Fallback)
+.dart_tool/
+.flutter-plugins-dependencies
+**/build/

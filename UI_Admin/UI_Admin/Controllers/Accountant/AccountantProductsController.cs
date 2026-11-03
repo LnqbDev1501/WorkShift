@@ -7,7 +7,6 @@ using UI_Admin.Models;
 using UI_Admin.Models.Accountant;
 using UI_Admin.Services.Accountant;
 
-using UI_Admin.Models;
 
 namespace UI_Admin.Controllers;
 
@@ -31,7 +30,7 @@ public class AccountantProductsController(AccountantProductApiService api) : Con
             Search = search,
             BranchId = branchId,
             CategoryId = categoryId,
-            StatusFilter = status
+            StatusFilter = status ?? "all"
         };
 
         try
