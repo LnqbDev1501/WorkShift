@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using System.Text.Json;
 using UI_Admin.Models.Admin.Holidays;
@@ -6,8 +7,7 @@ namespace UI_Admin.Services.Admin;
 
 public sealed class HolidayApiService(HttpClient httpClient, IConfiguration configuration)
 {
-    private string BaseUrl => (configuration["WorkShiftApi:BaseUrl"]
-        ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.")).TrimEnd('/');
+    private string BaseUrl => configuration.GetWorkShiftApiBaseUrl();
 
     public async Task<List<HolidayRuleViewModel>> GetRulesAsync(CancellationToken ct) =>
         await httpClient.GetFromJsonAsync<List<HolidayRuleViewModel>>($"{BaseUrl}/api/holiday-pay-rules", ct)

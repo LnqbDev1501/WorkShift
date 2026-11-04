@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models.Branches;
 
@@ -11,7 +12,7 @@ public class BranchApiService
     public BranchApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<BranchListPagedViewModel> GetPagedAsync(

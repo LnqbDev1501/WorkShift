@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models.Manager;
 
@@ -14,7 +15,7 @@ public class ManagerOrderListResponse
 
 public class ManagerOrderApiService(HttpClient client, IConfiguration configuration)
 {
-    private readonly string baseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+    private readonly string baseUrl = configuration.GetWorkShiftApiBaseUrl();
 
     public async Task<ManagerOrderListResponse> GetPagedAsync(
         string? search, string? status, string? paymentStatus,

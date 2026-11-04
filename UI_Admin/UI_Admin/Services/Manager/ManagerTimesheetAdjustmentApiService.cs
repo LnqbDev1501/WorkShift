@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -17,8 +18,7 @@ public sealed class ManagerTimesheetAdjustmentApiService
     public ManagerTimesheetAdjustmentApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<ManagerTimesheetAdjustmentListViewModel?> GetAdjustmentsAsync(
@@ -44,7 +44,7 @@ public sealed class ManagerTimesheetAdjustmentApiService
         if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
             parameters.Add($"scheduleWeekId={scheduleWeekId.Value}");
 
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/adjustments?{string.Join('&', parameters)}";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/adjustments?{string.Join('&', parameters)}";
 
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -57,7 +57,7 @@ public sealed class ManagerTimesheetAdjustmentApiService
         int adjustmentRequestId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/adjustments/{adjustmentRequestId}";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/adjustments/{adjustmentRequestId}";
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return null;
@@ -69,7 +69,7 @@ public sealed class ManagerTimesheetAdjustmentApiService
         int adjustmentRequestId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/adjustments/{adjustmentRequestId}/approve";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/adjustments/{adjustmentRequestId}/approve";
         var response = await _httpClient.PostAsync(url, null, cancellationToken);
 
         if (response.IsSuccessStatusCode)
@@ -98,7 +98,7 @@ public sealed class ManagerTimesheetAdjustmentApiService
         string managerNote,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/adjustments/{adjustmentRequestId}/reject";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/adjustments/{adjustmentRequestId}/reject";
         var payload = new { managerNote };
         var response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
 

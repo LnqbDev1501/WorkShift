@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -11,16 +12,7 @@ public sealed class SalaryHistoryApiException(HttpStatusCode status, string mess
 
 public sealed class SalaryHistoryApiService(HttpClient client, IConfiguration configuration)
 {
-    private string Endpoint
-    {
-        get
-        {
-            var root = configuration["WorkShiftApi:BaseUrl"];
-            if (!Uri.TryCreate(root, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
-                throw new InvalidOperationException("WorkShiftApi:BaseUrl must be an HTTP or HTTPS URL.");
-            return root!.TrimEnd('/') + "/api/Accountant/salary-histories";
-        }
-    }
+    private string Endpoint => configuration.GetWorkShiftApiBaseUrl() + "/api/Accountant/salary-histories";
     private async Task<T> Read<T>(string url, CancellationToken ct)
     {
         using var response = await client.GetAsync(url, ct);

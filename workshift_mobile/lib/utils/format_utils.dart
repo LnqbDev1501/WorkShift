@@ -69,7 +69,12 @@ class StatusChip extends StatelessWidget {
   final Color color;
   final IconData? icon;
 
-  const StatusChip({super.key, required this.label, required this.color, this.icon});
+  const StatusChip({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +107,12 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-Widget buildTotalRow(String label, String value, {bool isTotal = false, Color? color}) {
+Widget buildTotalRow(
+  String label,
+  String value, {
+  bool isTotal = false,
+  Color? color,
+}) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -121,7 +131,8 @@ Widget buildTotalRow(String label, String value, {bool isTotal = false, Color? c
           style: TextStyle(
             fontSize: isTotal ? 18 : 14,
             fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600,
-            color: color ?? (isTotal ? AppColors.primary : AppColors.textPrimary),
+            color:
+                color ?? (isTotal ? AppColors.primary : AppColors.textPrimary),
           ),
         ),
       ],

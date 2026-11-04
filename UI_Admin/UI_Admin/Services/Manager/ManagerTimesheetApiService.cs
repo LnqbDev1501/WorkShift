@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Json;
@@ -16,8 +17,7 @@ public sealed class ManagerTimesheetApiService
     public ManagerTimesheetApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<ManagerTimesheetPagedResponseModel<ManagerWeeklyTimesheetItemModel>> GetWeeklyTimesheetsAsync(
@@ -55,7 +55,7 @@ public sealed class ManagerTimesheetApiService
         if (!string.IsNullOrWhiteSpace(status) && !string.Equals(status, "ALL", StringComparison.OrdinalIgnoreCase))
             parameters.Add($"status={Uri.EscapeDataString(status.Trim())}");
 
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets?{string.Join('&', parameters)}";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets?{string.Join('&', parameters)}";
 
         var result = await _httpClient.GetFromJsonAsync<ManagerTimesheetPagedResponseModel<ManagerWeeklyTimesheetItemModel>>(
             url,
@@ -68,7 +68,7 @@ public sealed class ManagerTimesheetApiService
         int scheduleWeekId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/{scheduleWeekId}";
         try
         {
             return await _httpClient.GetFromJsonAsync<ManagerWeeklyTimesheetDetailViewModel>(
@@ -86,7 +86,7 @@ public sealed class ManagerTimesheetApiService
         DateTime? reviewDeadline = null,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/generate";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/{scheduleWeekId}/generate";
         var payload = reviewDeadline.HasValue ? new { reviewDeadline = reviewDeadline.Value } : null;
         var response = await _httpClient.PostAsJsonAsync(url, payload, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -103,7 +103,7 @@ public sealed class ManagerTimesheetApiService
         int scheduleWeekId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/lock";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/{scheduleWeekId}/lock";
         var response = await _httpClient.PostAsync(url, null, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -120,7 +120,7 @@ public sealed class ManagerTimesheetApiService
         int timesheetId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/reopen-staff/{timesheetId}";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/{scheduleWeekId}/reopen-staff/{timesheetId}";
         var response = await _httpClient.PostAsync(url, null, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -136,7 +136,7 @@ public sealed class ManagerTimesheetApiService
         int scheduleWeekId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/timesheets/{scheduleWeekId}/export-excel";
+        var url = $"{_apiBaseUrl}/api/manager/timesheets/{scheduleWeekId}/export-excel";
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {

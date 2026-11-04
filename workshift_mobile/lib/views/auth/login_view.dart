@@ -14,7 +14,8 @@ class LoginView extends StatefulWidget {
   State<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMixin {
+class _LoginViewState extends State<LoginView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -38,10 +39,13 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -75,9 +79,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => HomeView(
-            userName: _authController.currentUser?.fullName,
-          ),
+          builder: (_) =>
+              HomeView(userName: _authController.currentUser?.fullName),
         ),
       );
     }
@@ -87,13 +90,20 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => const ForgotPasswordView(),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const ForgotPasswordView(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeInOutCubic)),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(1.0, 0.0),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeInOutCubic,
+                  ),
+                ),
             child: FadeTransition(opacity: animation, child: child),
           );
         },
@@ -148,7 +158,9 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                 offset: const Offset(0, 10),
                               ),
                               BoxShadow(
-                                color: AppColors.homeAccent.withValues(alpha: 0.3),
+                                color: AppColors.homeAccent.withValues(
+                                  alpha: 0.3,
+                                ),
                                 blurRadius: 30,
                                 spreadRadius: 2,
                               ),
@@ -178,7 +190,10 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
 
                         // Subtitle badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
@@ -276,7 +291,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                               // Error Banner (if any)
                               AnimatedCrossFade(
                                 duration: const Duration(milliseconds: 300),
-                                crossFadeState: _authController.errorMessage != null
+                                crossFadeState:
+                                    _authController.errorMessage != null
                                     ? CrossFadeState.showFirst
                                     : CrossFadeState.showSecond,
                                 firstChild: Container(
@@ -285,10 +301,15 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                   decoration: BoxDecoration(
                                     color: AppColors.errorBg,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                                    border: Border.all(
+                                      color: AppColors.error.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
                                   ),
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
                                         Icons.error_outline_rounded,
@@ -325,7 +346,8 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                   if (val == null || val.trim().isEmpty) {
                                     return 'Please enter your email';
                                   }
-                                  if (!val.contains('@') || !val.contains('.')) {
+                                  if (!val.contains('@') ||
+                                      !val.contains('.')) {
                                     return 'Please enter a valid email address';
                                   }
                                   return null;
@@ -359,9 +381,13 @@ class _LoginViewState extends State<LoginView> with SingleTickerProviderStateMix
                                 child: TextButton(
                                   onPressed: _goToForgotPassword,
                                   style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 6,
+                                    ),
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                     foregroundColor: AppColors.primary,
                                   ),
                                   child: const Text(

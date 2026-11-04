@@ -25,10 +25,8 @@ Future<bool?> showAttendanceModal({
       isDismissible: false,
       enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => AttendanceModalPopup(
-        shift: shift,
-        isCheckIn: isCheckIn,
-      ),
+      builder: (ctx) =>
+          AttendanceModalPopup(shift: shift, isCheckIn: isCheckIn),
     );
   } finally {
     _isAttendanceModalOpen = false;
@@ -187,9 +185,15 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
   Widget _buildHeader() {
     final isCheckIn = widget.isCheckIn;
     final title = isCheckIn ? 'Attendance Check-In' : 'Attendance Check-Out';
-    final themeColor = isCheckIn ? const Color(0xFF059669) : const Color(0xFFEA580C);
-    final iconColor = isCheckIn ? const Color(0xFF047857) : const Color(0xFFC2410C);
-    final bgLight = isCheckIn ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED);
+    final themeColor = isCheckIn
+        ? const Color(0xFF059669)
+        : const Color(0xFFEA580C);
+    final iconColor = isCheckIn
+        ? const Color(0xFF047857)
+        : const Color(0xFFC2410C);
+    final bgLight = isCheckIn
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFFFF7ED);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 12, 14),
@@ -254,8 +258,13 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   backgroundColor: const Color(0xFFF1F5F9),
                   padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
-                onPressed: () => Navigator.of(context).pop(_controller.isSuccess),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () =>
+                    Navigator.of(context).pop(_controller.isSuccess),
               ),
             ],
           ),
@@ -299,7 +308,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.storefront_rounded, size: 16, color: AppColors.primary),
+                child: const Icon(
+                  Icons.storefront_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -318,12 +331,19 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               GestureDetector(
                 onTap: () => _controller.toggleTestGps(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: _controller.isTestGpsMode ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+                    color: _controller.isTestGpsMode
+                        ? const Color(0xFFEFF6FF)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: _controller.isTestGpsMode ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+                      color: _controller.isTestGpsMode
+                          ? const Color(0xFF3B82F6)
+                          : const Color(0xFFCBD5E1),
                     ),
                   ),
                   child: Row(
@@ -333,7 +353,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         const SizedBox(
                           width: 12,
                           height: 12,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF475569)),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF475569),
+                          ),
                         ),
                         const SizedBox(width: 5),
                         const Text(
@@ -346,17 +369,25 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         ),
                       ] else ...[
                         Icon(
-                          _controller.isTestGpsMode ? Icons.bug_report_rounded : Icons.my_location_rounded,
+                          _controller.isTestGpsMode
+                              ? Icons.bug_report_rounded
+                              : Icons.my_location_rounded,
                           size: 13,
-                          color: _controller.isTestGpsMode ? const Color(0xFF2563EB) : const Color(0xFF475569),
+                          color: _controller.isTestGpsMode
+                              ? const Color(0xFF2563EB)
+                              : const Color(0xFF475569),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _controller.isTestGpsMode ? 'Mock GPS (0m)' : 'Real GPS',
+                          _controller.isTestGpsMode
+                              ? 'Mock GPS (0m)'
+                              : 'Real GPS',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
-                            color: _controller.isTestGpsMode ? const Color(0xFF2563EB) : const Color(0xFF475569),
+                            color: _controller.isTestGpsMode
+                                ? const Color(0xFF2563EB)
+                                : const Color(0xFF475569),
                           ),
                         ),
                       ],
@@ -371,10 +402,14 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: isWithin ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+              color: isWithin
+                  ? const Color(0xFFECFDF5)
+                  : const Color(0xFFFEF2F2),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isWithin ? const Color(0xFFA7F3D0) : const Color(0xFFFECACA),
+                color: isWithin
+                    ? const Color(0xFFA7F3D0)
+                    : const Color(0xFFFECACA),
               ),
             ),
             child: Row(
@@ -382,7 +417,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 Icon(
                   Icons.location_on_rounded,
                   size: 15,
-                  color: isWithin ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                  color: isWithin
+                      ? const Color(0xFF059669)
+                      : const Color(0xFFDC2626),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
@@ -398,16 +435,23 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: isWithin ? const Color(0xFF047857) : const Color(0xFFB91C1C),
+                                color: isWithin
+                                    ? const Color(0xFF047857)
+                                    : const Color(0xFFB91C1C),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
-                              color: isWithin ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                              color: isWithin
+                                  ? const Color(0xFFD1FAE5)
+                                  : const Color(0xFFFEE2E2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -415,7 +459,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: isWithin ? const Color(0xFF065F46) : const Color(0xFF991B1B),
+                                color: isWithin
+                                    ? const Color(0xFF065F46)
+                                    : const Color(0xFF991B1B),
                               ),
                             ),
                           ),
@@ -427,7 +473,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         style: TextStyle(
                           fontSize: 10.5,
                           fontWeight: FontWeight.w500,
-                          color: isWithin ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                          color: isWithin
+                              ? const Color(0xFF059669)
+                              : const Color(0xFFDC2626),
                         ),
                       ),
                     ],
@@ -435,9 +483,14 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 ),
                 const SizedBox(width: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
-                    color: isWithin ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                    color: isWithin
+                        ? const Color(0xFF059669)
+                        : const Color(0xFFDC2626),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -462,7 +515,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     final minutes = (remaining ~/ 60).toString().padLeft(2, '0');
     final seconds = (remaining % 60).toString().padLeft(2, '0');
     final isFramed = _controller.isFaceFramedProperly;
-    final frameColor = isFramed ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final frameColor = isFramed
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
 
     return Container(
       height: 315,
@@ -485,7 +540,8 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
           // 1. Live Camera or Simulated AI Face Mesh
           if (kIsWeb)
             Image.asset('assets/sample_face.jpg', fit: BoxFit.cover)
-          else if (_controller.isCameraInitialized && _controller.cameraController != null)
+          else if (_controller.isCameraInitialized &&
+              _controller.cameraController != null)
             CameraPreview(_controller.cameraController!)
           else
             _buildCameraLoadingPlaceholder(),
@@ -502,7 +558,12 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   height: 3,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Colors.transparent, Color(0xFF10B981), Color(0xFF34D399), Colors.transparent],
+                      colors: [
+                        Colors.transparent,
+                        Color(0xFF10B981),
+                        Color(0xFF34D399),
+                        Colors.transparent,
+                      ],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -524,10 +585,26 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               height: 286,
               child: Stack(
                 children: [
-                  _buildReticleCorner(isTop: true, isLeft: true, color: frameColor),
-                  _buildReticleCorner(isTop: true, isLeft: false, color: frameColor),
-                  _buildReticleCorner(isTop: false, isLeft: true, color: frameColor),
-                  _buildReticleCorner(isTop: false, isLeft: false, color: frameColor),
+                  _buildReticleCorner(
+                    isTop: true,
+                    isLeft: true,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: true,
+                    isLeft: false,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: false,
+                    isLeft: true,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: false,
+                    isLeft: false,
+                    color: frameColor,
+                  ),
                 ],
               ),
             ),
@@ -540,10 +617,7 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               height: 260,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(105),
-                border: Border.all(
-                  color: frameColor,
-                  width: 2.5,
-                ),
+                border: Border.all(color: frameColor, width: 2.5),
                 boxShadow: [
                   BoxShadow(
                     color: frameColor.withValues(alpha: 0.3),
@@ -563,14 +637,19 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
             child: Center(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 5.5,
+                ),
                 decoration: BoxDecoration(
                   color: isFramed
                       ? const Color(0xFF065F46).withValues(alpha: 0.9)
                       : const Color(0xFF991B1B).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isFramed ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                    color: isFramed
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFFF87171),
                     width: 1,
                   ),
                 ),
@@ -578,14 +657,20 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isFramed ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                      isFramed
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
                       size: 14,
                       color: Colors.white,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       isFramed ? 'Face Centered ✓' : 'Align face inside oval',
-                      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -603,7 +688,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 color: Colors.black.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: (remaining < 20 || _controller.isSessionExpired || _controller.isShiftWindowClosed)
+                  color:
+                      (remaining < 20 ||
+                          _controller.isSessionExpired ||
+                          _controller.isShiftWindowClosed)
                       ? const Color(0xFFEF4444)
                       : Colors.white30,
                 ),
@@ -612,21 +700,29 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    (_controller.isSessionExpired || _controller.isShiftWindowClosed)
+                    (_controller.isSessionExpired ||
+                            _controller.isShiftWindowClosed)
                         ? Icons.timer_off_rounded
                         : Icons.timer_outlined,
                     size: 14,
-                    color: (remaining < 20 || _controller.isSessionExpired || _controller.isShiftWindowClosed)
+                    color:
+                        (remaining < 20 ||
+                            _controller.isSessionExpired ||
+                            _controller.isShiftWindowClosed)
                         ? const Color(0xFFEF4444)
                         : Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    (_controller.isSessionExpired || _controller.isShiftWindowClosed)
+                    (_controller.isSessionExpired ||
+                            _controller.isShiftWindowClosed)
                         ? '00:00'
                         : '$minutes:$seconds',
                     style: TextStyle(
-                      color: (remaining < 20 || _controller.isSessionExpired || _controller.isShiftWindowClosed)
+                      color:
+                          (remaining < 20 ||
+                              _controller.isSessionExpired ||
+                              _controller.isShiftWindowClosed)
                           ? const Color(0xFFEF4444)
                           : Colors.white,
                       fontSize: 11.5,
@@ -644,7 +740,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8.5,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(20),
@@ -693,7 +792,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         value: _controller.challengeHoldProgress,
                         minHeight: 4,
                         backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF10B981),
+                        ),
                       ),
                     ),
                   ],
@@ -710,7 +811,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     );
   }
 
-  Widget _buildReticleCorner({required bool isTop, required bool isLeft, required Color color}) {
+  Widget _buildReticleCorner({
+    required bool isTop,
+    required bool isLeft,
+    required Color color,
+  }) {
     return Positioned(
       top: isTop ? 0 : null,
       bottom: !isTop ? 0 : null,
@@ -722,9 +827,13 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
         decoration: BoxDecoration(
           border: Border(
             top: isTop ? BorderSide(color: color, width: 3) : BorderSide.none,
-            bottom: !isTop ? BorderSide(color: color, width: 3) : BorderSide.none,
+            bottom: !isTop
+                ? BorderSide(color: color, width: 3)
+                : BorderSide.none,
             left: isLeft ? BorderSide(color: color, width: 3) : BorderSide.none,
-            right: !isLeft ? BorderSide(color: color, width: 3) : BorderSide.none,
+            right: !isLeft
+                ? BorderSide(color: color, width: 3)
+                : BorderSide.none,
           ),
         ),
       ),
@@ -769,7 +878,8 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
   }
 
   Widget _buildChallengeCard() {
-    final isLocked = _controller.isSessionExpired || _controller.isShiftWindowClosed;
+    final isLocked =
+        _controller.isSessionExpired || _controller.isShiftWindowClosed;
     final current = _controller.currentChallenge;
     final challenges = _controller.challenges;
     final currentIndex = _controller.currentChallengeIndex;
@@ -803,11 +913,15 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: isLocked ? const Color(0xFF94A3B8) : AppColors.primary,
+                    color: isLocked
+                        ? const Color(0xFF94A3B8)
+                        : AppColors.primary,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    isLocked ? Icons.lock_rounded : _getChallengeIcon(current.action),
+                    isLocked
+                        ? Icons.lock_rounded
+                        : _getChallengeIcon(current.action),
                     color: Colors.white,
                     size: 20,
                   ),
@@ -824,7 +938,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: isLocked ? const Color(0xFF64748B) : AppColors.primary,
+                              color: isLocked
+                                  ? const Color(0xFF64748B)
+                                  : AppColors.primary,
                             ),
                           ),
                           Text(
@@ -832,7 +948,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: isLocked ? const Color(0xFF64748B) : AppColors.primary,
+                              color: isLocked
+                                  ? const Color(0xFF64748B)
+                                  : AppColors.primary,
                             ),
                           ),
                         ],
@@ -867,8 +985,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                       color: isDone
                           ? const Color(0xFF059669)
                           : (isCurrent
-                              ? (isLocked ? const Color(0xFF94A3B8) : AppColors.primary)
-                              : const Color(0xFFCBD5E1)),
+                                ? (isLocked
+                                      ? const Color(0xFF94A3B8)
+                                      : AppColors.primary)
+                                : const Color(0xFFCBD5E1)),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -879,7 +999,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
             if (isLocked) ...[
               const SizedBox(height: 10),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFEF2F2),
                   borderRadius: BorderRadius.circular(8),
@@ -887,7 +1010,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.lock_clock_rounded, size: 14, color: Color(0xFFDC2626)),
+                    Icon(
+                      Icons.lock_clock_rounded,
+                      size: 14,
+                      color: Color(0xFFDC2626),
+                    ),
                     SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -911,7 +1038,8 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
 
   Widget _buildBottomBar() {
     final isSubmitting = _controller.isSubmitting;
-    final isExpired = _controller.isSessionExpired || _controller.isShiftWindowClosed;
+    final isExpired =
+        _controller.isSessionExpired || _controller.isShiftWindowClosed;
 
     if (isExpired) {
       final isShiftClosed = _controller.isShiftWindowClosed;
@@ -932,13 +1060,18 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text(
                     'Restart Verification Session',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14.5,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     elevation: 2,
                   ),
                 ),
@@ -950,7 +1083,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   onPressed: () => Navigator.of(context).pop(false),
                   child: const Text(
                     'Close',
-                    style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -963,9 +1100,14 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                     backgroundColor: const Color(0xFFDC2626),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
-                  child: const Text('Shift Closed - Dismiss', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  child: const Text(
+                    'Shift Closed - Dismiss',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
                 ),
               ),
             ],
@@ -989,7 +1131,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               color: isSubmitting ? AppColors.primary : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSubmitting ? AppColors.primary : const Color(0xFFA7F3D0),
+                color: isSubmitting
+                    ? AppColors.primary
+                    : const Color(0xFFA7F3D0),
               ),
             ),
             child: Row(
@@ -1014,7 +1158,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                     ),
                   ),
                 ] else ...[
-                  const Icon(Icons.verified_user_rounded, size: 18, color: Color(0xFF059669)),
+                  const Icon(
+                    Icons.verified_user_rounded,
+                    size: 18,
+                    color: Color(0xFF059669),
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Google ML Kit Face Biometrics Active',
@@ -1031,18 +1179,32 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
           if (kIsWeb || !_controller.isCameraInitialized) ...[
             const SizedBox(height: 10),
             ElevatedButton.icon(
-              onPressed: isSubmitting ? null : () => _controller.testSubmitWithSampleFace(),
-              icon: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 20),
+              onPressed: isSubmitting
+                  ? null
+                  : () => _controller.testSubmitWithSampleFace(),
+              icon: const Icon(
+                Icons.flash_on_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               label: Text(
                 widget.isCheckIn
                     ? 'Test 1 Chạm: Điểm Danh Vào Ngay (Web)'
                     : 'Test 1 Chạm: Điểm Danh Ra Ngay (Web)',
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.isCheckIn ? const Color(0xFF059669) : const Color(0xFFEA580C),
+                backgroundColor: widget.isCheckIn
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFEA580C),
                 minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 2,
               ),
             ),
@@ -1059,9 +1221,15 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     final desc = isShiftClosed
         ? 'Cut-off deadline reached. Attendance verification is locked.'
         : 'The verification window timed out. Live camera & challenges are locked.';
-    final icon = isShiftClosed ? Icons.event_busy_rounded : Icons.timer_off_rounded;
-    final iconColor = isShiftClosed ? const Color(0xFFEF4444) : const Color(0xFFF59E0B);
-    final bgIcon = isShiftClosed ? const Color(0xFF7F1D1D) : const Color(0xFF78350F);
+    final icon = isShiftClosed
+        ? Icons.event_busy_rounded
+        : Icons.timer_off_rounded;
+    final iconColor = isShiftClosed
+        ? const Color(0xFFEF4444)
+        : const Color(0xFFF59E0B);
+    final bgIcon = isShiftClosed
+        ? const Color(0xFF7F1D1D)
+        : const Color(0xFF78350F);
 
     return Container(
       decoration: BoxDecoration(
@@ -1078,7 +1246,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               decoration: BoxDecoration(
                 color: bgIcon.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
-                border: Border.all(color: iconColor.withValues(alpha: 0.5), width: 2),
+                border: Border.all(
+                  color: iconColor.withValues(alpha: 0.5),
+                  width: 2,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: iconColor.withValues(alpha: 0.35),
@@ -1113,12 +1284,20 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               ElevatedButton.icon(
                 onPressed: () => _controller.retrySession(),
                 icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('Restart Verification', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                label: const Text(
+                  'Restart Verification',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ],
@@ -1202,21 +1381,25 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
       bgLight = const Color(0xFFF5F3FF);
       iconData = Icons.face_retouching_off_rounded;
       title = 'Face Profile Required';
-      desc = _controller.errorMessage ??
+      desc =
+          _controller.errorMessage ??
           'You have not registered your biometric face profile yet. Please complete face registration to enable automated attendance verification.';
     } else if (isShiftClosed) {
       themeColor = const Color(0xFFDC2626);
       bgLight = const Color(0xFFFEF2F2);
       iconData = Icons.event_busy_rounded;
       title = 'Attendance Window Closed';
-      desc = _controller.errorMessage ??
+      desc =
+          _controller.errorMessage ??
           'The check-in/check-out time window for this shift has closed. Please contact your manager or HR.';
     } else {
       themeColor = const Color(0xFFEA580C);
       bgLight = const Color(0xFFFFF7ED);
       iconData = Icons.cloud_off_rounded;
       title = 'Session Initialization Failed';
-      desc = _controller.errorMessage ?? 'Unable to connect to biometric verification service. Please try again.';
+      desc =
+          _controller.errorMessage ??
+          'Unable to connect to biometric verification service. Please try again.';
     }
 
     return Column(
@@ -1234,7 +1417,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                     decoration: BoxDecoration(
                       color: bgLight,
                       shape: BoxShape.circle,
-                      border: Border.all(color: themeColor.withValues(alpha: 0.25), width: 2),
+                      border: Border.all(
+                        color: themeColor.withValues(alpha: 0.25),
+                        width: 2,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: themeColor.withValues(alpha: 0.12),
@@ -1272,7 +1458,9 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () async {
-                          final registered = await showFaceRegistrationModal(context: context);
+                          final registered = await showFaceRegistrationModal(
+                            context: context,
+                          );
                           if (registered == true && mounted) {
                             _controller.retrySession();
                           }
@@ -1280,13 +1468,18 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         icon: const Icon(Icons.face_unlock_rounded, size: 20),
                         label: const Text(
                           'Register Face Profile Now',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF7C3AED),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           elevation: 2,
                         ),
                       ),
@@ -1296,7 +1489,13 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ] else if (!isShiftClosed) ...[
@@ -1307,13 +1506,18 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                         icon: const Icon(Icons.refresh_rounded, size: 20),
                         label: const Text(
                           'Try Again',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           elevation: 2,
                         ),
                       ),
@@ -1323,7 +1527,13 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                       width: double.infinity,
                       child: TextButton(
                         onPressed: () => Navigator.of(context).pop(false),
-                        child: const Text('Close', style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                        child: const Text(
+                          'Close',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ] else ...[
@@ -1335,9 +1545,17 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                           backgroundColor: const Color(0xFFDC2626),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text('Understood & Close', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        child: const Text(
+                          'Understood & Close',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -1355,14 +1573,19 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     final checkOutRes = _controller.checkOutResult;
     final isCheckIn = widget.isCheckIn;
 
-    final localTime = (isCheckIn ? checkInRes?.checkInTime : checkOutRes?.checkOutTime)
+    final localTime =
+        (isCheckIn ? checkInRes?.checkInTime : checkOutRes?.checkOutTime)
             ?.toLocal() ??
         DateTime.now();
     final timeStr =
         '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
 
-    final themeColor = isCheckIn ? const Color(0xFF059669) : const Color(0xFFEA580C);
-    final bgCircleColor = isCheckIn ? const Color(0xFFECFDF5) : const Color(0xFFFFF7ED);
+    final themeColor = isCheckIn
+        ? const Color(0xFF059669)
+        : const Color(0xFFEA580C);
+    final bgCircleColor = isCheckIn
+        ? const Color(0xFFECFDF5)
+        : const Color(0xFFFFF7ED);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -1401,10 +1624,15 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
           const SizedBox(height: 6),
           Text(
             isCheckIn
-                ? (checkInRes?.message ?? 'Your attendance check-in is complete.')
-                : (checkOutRes?.message ?? 'Your shift attendance has been completed.'),
+                ? (checkInRes?.message ??
+                      'Your attendance check-in is complete.')
+                : (checkOutRes?.message ??
+                      'Your shift attendance has been completed.'),
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 22),
 
@@ -1430,10 +1658,7 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
                   timeStr,
                 ),
                 const Divider(height: 18),
-                _buildRow(
-                  'Branch',
-                  widget.shift.branchName,
-                ),
+                _buildRow('Branch', widget.shift.branchName),
                 const Divider(height: 18),
                 if (isCheckIn) ...[
                   _buildRow(
@@ -1471,13 +1696,20 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isCheckIn ? AppColors.primary : const Color(0xFFEA580C),
+                backgroundColor: isCheckIn
+                    ? AppColors.primary
+                    : const Color(0xFFEA580C),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 2,
               ),
-              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              child: const Text(
+                'Done',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
             ),
           ),
         ],
@@ -1489,7 +1721,10 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
         Text(
           value,
           style: TextStyle(
@@ -1513,7 +1748,11 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFDC2626),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

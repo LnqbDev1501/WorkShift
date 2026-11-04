@@ -10,10 +10,7 @@ class StaffAdjustmentService {
     int pageSize = 20,
     String? status,
   }) async {
-    final query = <String, dynamic>{
-      'page': page,
-      'pageSize': pageSize,
-    };
+    final query = <String, dynamic>{'page': page, 'pageSize': pageSize};
     if (status != null && status.isNotEmpty && status.toUpperCase() != 'ALL') {
       query['status'] = status.toUpperCase();
     }
@@ -22,13 +19,17 @@ class StaffAdjustmentService {
       '/api/staff/rewards',
       queryParameters: query,
     );
-    return EmployeeAdjustmentPagedResponse.fromJson(response.data as Map<String, dynamic>);
+    return EmployeeAdjustmentPagedResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Lấy chi tiết khen thưởng của chính Staff
   Future<EmployeeAdjustmentModel> getRewardDetail(int id) async {
     final response = await _apiClient.get('/api/staff/rewards/$id');
-    return EmployeeAdjustmentModel.fromJson(response.data as Map<String, dynamic>);
+    return EmployeeAdjustmentModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Lấy danh sách kỷ luật / phạt của chính Staff
@@ -37,10 +38,7 @@ class StaffAdjustmentService {
     int pageSize = 20,
     String? status,
   }) async {
-    final query = <String, dynamic>{
-      'page': page,
-      'pageSize': pageSize,
-    };
+    final query = <String, dynamic>{'page': page, 'pageSize': pageSize};
     if (status != null && status.isNotEmpty && status.toUpperCase() != 'ALL') {
       query['status'] = status.toUpperCase();
     }
@@ -49,12 +47,16 @@ class StaffAdjustmentService {
       '/api/staff/penalties',
       queryParameters: query,
     );
-    return EmployeeAdjustmentPagedResponse.fromJson(response.data as Map<String, dynamic>);
+    return EmployeeAdjustmentPagedResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Lấy chi tiết kỷ luật / phạt của chính Staff
   Future<EmployeeAdjustmentModel> getPenaltyDetail(int id) async {
     final response = await _apiClient.get('/api/staff/penalties/$id');
-    return EmployeeAdjustmentModel.fromJson(response.data as Map<String, dynamic>);
+    return EmployeeAdjustmentModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 }

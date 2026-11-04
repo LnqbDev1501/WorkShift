@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net;
 using System.Net.Http.Json;
 using UI_Admin.Models.RegionalMinimumWages;
@@ -14,7 +15,7 @@ public class RegionalMinimumWageApiService
         IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<List<RegionalMinimumWageListItemViewModel>> GetAllAsync(

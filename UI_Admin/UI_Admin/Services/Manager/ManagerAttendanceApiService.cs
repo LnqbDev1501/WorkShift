@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -17,8 +18,7 @@ public sealed class ManagerAttendanceApiService
     public ManagerAttendanceApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<ManagerDailyAttendanceViewModel?> GetDailyAttendanceAsync(
@@ -52,7 +52,7 @@ public sealed class ManagerAttendanceApiService
         if (shiftId.HasValue && shiftId.Value > 0)
             parameters.Add($"shiftId={shiftId.Value}");
 
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/attendance?{string.Join('&', parameters)}";
+        var url = $"{_apiBaseUrl}/api/manager/attendance?{string.Join('&', parameters)}";
 
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
@@ -65,7 +65,7 @@ public sealed class ManagerAttendanceApiService
         int assignmentId,
         CancellationToken cancellationToken = default)
     {
-        var url = $"{_apiBaseUrl.TrimEnd('/')}/api/manager/attendance/{assignmentId}";
+        var url = $"{_apiBaseUrl}/api/manager/attendance/{assignmentId}";
         var response = await _httpClient.GetAsync(url, cancellationToken);
         if (!response.IsSuccessStatusCode)
             return null;

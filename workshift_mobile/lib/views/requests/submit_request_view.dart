@@ -20,7 +20,8 @@ class SubmitRequestView extends StatefulWidget {
 }
 
 class _SubmitRequestViewState extends State<SubmitRequestView> {
-  late String _selectedRequestType; // LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE
+  late String
+  _selectedRequestType; // LEAVE, LATE_ARRIVAL, EARLY_LEAVE, SALARY_INCREASE
   final _formKey = GlobalKey<FormState>();
   final _reasonController = TextEditingController();
   final _proposedRateController = TextEditingController();
@@ -87,7 +88,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   }
 
   Future<void> _pickTime() async {
-    final initial = _selectedAdjustmentTime ??
+    final initial =
+        _selectedAdjustmentTime ??
         (_selectedShift != null
             ? TimeOfDay.fromDateTime(_selectedShift!.scheduledStartAt.toLocal())
             : TimeOfDay.now());
@@ -135,7 +137,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
   }
 
   String? _getAdjustmentTimeValidationError() {
-    if (_selectedRequestType == 'LEAVE' || _selectedRequestType == 'SALARY_INCREASE') return null;
+    if (_selectedRequestType == 'LEAVE' ||
+        _selectedRequestType == 'SALARY_INCREASE') {
+      return null;
+    }
     if (_selectedShift == null) {
       return 'Please select an applicable shift first.';
     }
@@ -191,7 +196,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         );
         Navigator.pop(context, true);
       } else if (mounted) {
-        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit salary increase request');
+        _showErrorDialog(
+          widget.controller.actionErrorMessage ??
+              'Failed to submit salary increase request',
+        );
       }
       return;
     }
@@ -221,12 +229,18 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         );
         Navigator.pop(context, true);
       } else if (mounted) {
-        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit leave request');
+        _showErrorDialog(
+          widget.controller.actionErrorMessage ??
+              'Failed to submit leave request',
+        );
       }
     } else {
       // LATE_ARRIVAL hoặc EARLY_LEAVE
-      if (_selectedTimeAdjustmentAssignmentId == null || _selectedShift == null) {
-        _showErrorDialog('Please select an applicable shift before submitting.');
+      if (_selectedTimeAdjustmentAssignmentId == null ||
+          _selectedShift == null) {
+        _showErrorDialog(
+          'Please select an applicable shift before submitting.',
+        );
         return;
       }
 
@@ -275,7 +289,9 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         );
         Navigator.pop(context, true);
       } else if (mounted) {
-        _showErrorDialog(widget.controller.actionErrorMessage ?? 'Failed to submit request');
+        _showErrorDialog(
+          widget.controller.actionErrorMessage ?? 'Failed to submit request',
+        );
       }
     }
   }
@@ -293,17 +309,29 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
           children: [
             Icon(Icons.error_outline, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Cannot Submit Request', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Cannot Submit Request',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: Text(displayMsg, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
+        content: Text(
+          displayMsg,
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
+        ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('OK'),
           ),
@@ -332,7 +360,11 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary, size: 22),
+          icon: const Icon(
+            Icons.close_rounded,
+            color: AppColors.textPrimary,
+            size: 22,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -355,17 +387,33 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   children: [
                     Row(
                       children: [
-                        _buildTypeTab('LEAVE', 'Leave', Icons.event_busy_rounded),
+                        _buildTypeTab(
+                          'LEAVE',
+                          'Leave',
+                          Icons.event_busy_rounded,
+                        ),
                         const SizedBox(width: 4),
-                        _buildTypeTab('LATE_ARRIVAL', 'Late Arrival', Icons.more_time_rounded),
+                        _buildTypeTab(
+                          'LATE_ARRIVAL',
+                          'Late Arrival',
+                          Icons.more_time_rounded,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        _buildTypeTab('EARLY_LEAVE', 'Early Departure', Icons.timer_off_rounded),
+                        _buildTypeTab(
+                          'EARLY_LEAVE',
+                          'Early Departure',
+                          Icons.timer_off_rounded,
+                        ),
                         const SizedBox(width: 4),
-                        _buildTypeTab('SALARY_INCREASE', 'Salary Increase', Icons.payments_rounded),
+                        _buildTypeTab(
+                          'SALARY_INCREASE',
+                          'Salary Increase',
+                          Icons.payments_rounded,
+                        ),
                       ],
                     ),
                   ],
@@ -391,30 +439,50 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           hintText: 'e.g. 35000 or 40000',
-                          prefixIcon: const Icon(Icons.monetization_on_outlined, color: AppColors.primary),
+                          prefixIcon: const Icon(
+                            Icons.monetization_on_outlined,
+                            color: AppColors.primary,
+                          ),
                           suffixText: 'VNĐ / hour',
-                          suffixStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          suffixStyle: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                           filled: true,
                           fillColor: const Color(0xFFF8FAFC),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.borderLight),
+                            borderSide: const BorderSide(
+                              color: AppColors.borderLight,
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.borderLight),
+                            borderSide: const BorderSide(
+                              color: AppColors.borderLight,
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.5,
+                            ),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
                             return 'Please enter your proposed hourly rate.';
                           }
-                          final cleaned = val.replaceAll(',', '').replaceAll('.', '').replaceAll(' ', '').trim();
+                          final cleaned = val
+                              .replaceAll(',', '')
+                              .replaceAll('.', '')
+                              .replaceAll(' ', '')
+                              .trim();
                           final num = double.tryParse(cleaned);
                           if (num == null || num <= 0) {
                             return 'Please enter a valid positive salary amount.';
@@ -433,12 +501,20 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                         child: const Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
+                            Icon(
+                              Icons.info_outline_rounded,
+                              color: AppColors.primary,
+                              size: 18,
+                            ),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Your proposed base hourly rate will be submitted for branch manager and corporate review.',
-                                style: TextStyle(fontSize: 12, color: Color(0xFF1E40AF), height: 1.3),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF1E40AF),
+                                  height: 1.3,
+                                ),
                               ),
                             ),
                           ],
@@ -459,7 +535,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 24),
-                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.5,
+                      ),
                     ),
                   )
                 else if (eligibleShifts.isEmpty)
@@ -472,11 +551,18 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.calendar_month_outlined, size: 36, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.calendar_month_outlined,
+                          size: 36,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(height: 8),
                         const Text(
                           'No eligible shifts found',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -484,7 +570,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                               ? 'You can only request leave for upcoming shifts that have not started yet.'
                               : 'No eligible shifts found for this request.',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -492,10 +581,14 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 else
                   ...eligibleShifts.map((shift) {
                     if (_selectedRequestType == 'LEAVE') {
-                      final isChecked = _selectedLeaveAssignmentIds.contains(shift.assignmentId);
+                      final isChecked = _selectedLeaveAssignmentIds.contains(
+                        shift.assignmentId,
+                      );
                       return _buildShiftCheckboxItem(shift, isChecked);
                     } else {
-                      final isSelected = _selectedTimeAdjustmentAssignmentId == shift.assignmentId;
+                      final isSelected =
+                          _selectedTimeAdjustmentAssignmentId ==
+                          shift.assignmentId;
                       return _buildShiftRadioItem(shift, isSelected);
                     }
                   }),
@@ -503,7 +596,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
               ],
 
               // 3. Chọn giờ nếu là Đi trễ / Về sớm
-              if (_selectedRequestType == 'LATE_ARRIVAL' || _selectedRequestType == 'EARLY_LEAVE') ...[
+              if (_selectedRequestType == 'LATE_ARRIVAL' ||
+                  _selectedRequestType == 'EARLY_LEAVE') ...[
                 _buildSectionTitle(
                   _selectedRequestType == 'LATE_ARRIVAL'
                       ? '3. Expected arrival time'
@@ -521,7 +615,11 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 20),
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -540,7 +638,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                                 _selectedRequestType == 'LATE_ARRIVAL'
                                     ? 'Arrival time must be after ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} and before ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.'
                                     : 'Departure time must be after ${_formatTime(_selectedShift!.scheduledStartAt.toLocal())} and before ${_formatTime(_selectedShift!.scheduledEndAt.toLocal())}.',
-                                style: const TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF1E3A8A),
+                                ),
                               ),
                             ],
                           ),
@@ -559,12 +660,19 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 20),
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFD97706),
+                          size: 20,
+                        ),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Please select an applicable shift in step 2 above first.',
-                            style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF92400E),
+                            ),
                           ),
                         ),
                       ],
@@ -574,23 +682,29 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 Builder(
                   builder: (context) {
                     final timeError = _getAdjustmentTimeValidationError();
-                    final hasError = timeError != null && _selectedAdjustmentTime != null;
+                    final hasError =
+                        timeError != null && _selectedAdjustmentTime != null;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         GestureDetector(
                           onTap: _pickTime,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
-                              color: hasError ? const Color(0xFFFEF2F2) : Colors.white,
+                              color: hasError
+                                  ? const Color(0xFFFEF2F2)
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: hasError
                                     ? AppColors.error
                                     : (_selectedAdjustmentTime != null
-                                        ? AppColors.primary
-                                        : AppColors.borderLight),
+                                          ? AppColors.primary
+                                          : AppColors.borderLight),
                                 width: hasError ? 1.5 : 1.0,
                               ),
                             ),
@@ -601,8 +715,8 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                                   color: hasError
                                       ? AppColors.error
                                       : (_selectedAdjustmentTime != null
-                                          ? AppColors.primary
-                                          : AppColors.textMuted),
+                                            ? AppColors.primary
+                                            : AppColors.textMuted),
                                   size: 22,
                                 ),
                                 const SizedBox(width: 12),
@@ -618,12 +732,15 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                                     color: hasError
                                         ? AppColors.error
                                         : (_selectedAdjustmentTime != null
-                                            ? AppColors.textPrimary
-                                            : AppColors.textMuted),
+                                              ? AppColors.textPrimary
+                                              : AppColors.textMuted),
                                   ),
                                 ),
                                 const Spacer(),
-                                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: AppColors.textMuted,
+                                ),
                               ],
                             ),
                           ),
@@ -631,18 +748,27 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                         if (hasError)
                           Container(
                             margin: const EdgeInsets.only(top: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFEE2E2),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: const Color(0xFFFCA5A5)),
+                              border: Border.all(
+                                color: const Color(0xFFFCA5A5),
+                              ),
                             ),
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Padding(
                                   padding: EdgeInsets.only(top: 2),
-                                  child: Icon(Icons.error_outline, color: AppColors.error, size: 16),
+                                  child: Icon(
+                                    Icons.error_outline,
+                                    color: AppColors.error,
+                                    size: 16,
+                                  ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -671,16 +797,20 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 _selectedRequestType == 'LEAVE'
                     ? '3. Reason for leave'
                     : (_selectedRequestType == 'SALARY_INCREASE'
-                        ? '3. Reason for salary increase'
-                        : '4. Reason'),
+                          ? '3. Reason for salary increase'
+                          : '4. Reason'),
               ),
               TextFormField(
                 controller: _reasonController,
                 maxLines: 4,
                 maxLength: 500,
                 decoration: InputDecoration(
-                  hintText: 'Enter detailed reason for the request (required)...',
-                  hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+                  hintText:
+                      'Enter detailed reason for the request (required)...',
+                  hintStyle: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -693,7 +823,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -779,7 +912,9 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                 ),
               ),
             ],
@@ -789,7 +924,10 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
     );
   }
 
-  Widget _buildShiftCheckboxItem(StaffEligibleShiftModel shift, bool isChecked) {
+  Widget _buildShiftCheckboxItem(
+    StaffEligibleShiftModel shift,
+    bool isChecked,
+  ) {
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -816,7 +954,9 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
             Checkbox(
               value: isChecked,
               activeColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
               onChanged: (val) {
                 setState(() {
                   if (val == true) {
@@ -843,11 +983,17 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   const SizedBox(height: 3),
                   Text(
                     '${_formatDate(shift.scheduledStartAt)} • ${_formatTime(shift.scheduledStartAt)} - ${_formatTime(shift.scheduledEndAt)}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Text(
                     shift.branchName,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -866,8 +1012,12 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
           _selectedShift = shift;
           // Thiết lập giờ mặc định: đi trễ là start + 30m, về sớm là end - 30m
           final base = _selectedRequestType == 'LATE_ARRIVAL'
-              ? shift.scheduledStartAt.toLocal().add(const Duration(minutes: 30))
-              : shift.scheduledEndAt.toLocal().subtract(const Duration(minutes: 30));
+              ? shift.scheduledStartAt.toLocal().add(
+                  const Duration(minutes: 30),
+                )
+              : shift.scheduledEndAt.toLocal().subtract(
+                  const Duration(minutes: 30),
+                );
           _selectedAdjustmentTime = TimeOfDay.fromDateTime(base);
         });
       },
@@ -912,11 +1062,17 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   const SizedBox(height: 3),
                   Text(
                     '${_formatDate(shift.scheduledStartAt)} • ${_formatTime(shift.scheduledStartAt)} - ${_formatTime(shift.scheduledEndAt)}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Text(
                     shift.branchName,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),

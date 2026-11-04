@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Text.Json;
 using UI_Admin.Models.Accountant;
 
@@ -7,12 +8,9 @@ public sealed class AccountantDashboardApiService(HttpClient httpClient, IConfig
 {
     public async Task<AccountantDashboardData> GetAsync(CancellationToken cancellationToken)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"];
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) ||
-            (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-            throw new InvalidOperationException("WorkShiftApi:BaseUrl must be a valid HTTP or HTTPS URL.");
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
 
-        using var response = await httpClient.GetAsync($"{baseUrl!.TrimEnd('/')}/api/accountant/dashboard", cancellationToken);
+        using var response = await httpClient.GetAsync($"{baseUrl}/api/accountant/dashboard", cancellationToken);
         response.EnsureSuccessStatusCode();
         var data = await response.Content.ReadFromJsonAsync<AccountantDashboardData>(cancellationToken)
             ?? throw new JsonException("The dashboard API returned an empty response.");

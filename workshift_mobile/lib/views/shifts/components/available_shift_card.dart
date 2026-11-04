@@ -213,9 +213,7 @@ class AvailableShiftCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final register = AppButton(
-                text: isOpen
-                    ? 'Register for shift'
-                    : 'Registration closed',
+                text: isOpen ? 'Register for shift' : 'Registration closed',
                 height: 46,
                 borderRadius: 10,
                 width: double.infinity,

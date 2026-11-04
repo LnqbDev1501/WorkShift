@@ -38,12 +38,19 @@ class StaffContractService {
 
       if (response.data != null && response.data is List) {
         return (response.data as List)
-            .map((e) => StaffContractListItemModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) => StaffContractListItemModel.fromJson(
+                e as Map<String, dynamic>,
+              ),
+            )
             .toList();
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải danh sách hợp đồng lao động');
+      throw _extractErrorMessage(
+        e,
+        'Không thể tải danh sách hợp đồng lao động',
+      );
     } catch (e) {
       throw e.toString();
     }
@@ -54,7 +61,9 @@ class StaffContractService {
     try {
       final response = await _apiClient.get('/api/staff/contracts/$contractId');
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffContractDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffContractDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không tìm thấy dữ liệu hợp đồng.';
     } on DioException catch (e) {
@@ -67,9 +76,13 @@ class StaffContractService {
   /// Chấp nhận / Ký hợp đồng lao động (Accept Employment Contract)
   Future<StaffContractDetailModel> acceptContract(int contractId) async {
     try {
-      final response = await _apiClient.post('/api/staff/contracts/$contractId/accept');
+      final response = await _apiClient.post(
+        '/api/staff/contracts/$contractId/accept',
+      );
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffContractDetailModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffContractDetailModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không nhận được phản hồi từ máy chủ.';
     } on DioException catch (e) {
@@ -97,7 +110,9 @@ class StaffContractService {
       );
 
       if (response.data != null && response.data is Map<String, dynamic>) {
-        return StaffContractChangeRequestModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffContractChangeRequestModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Không nhận được phản hồi từ máy chủ.';
     } on DioException catch (e) {
@@ -108,12 +123,20 @@ class StaffContractService {
   }
 
   /// Lấy danh sách các yêu cầu thay đổi của hợp đồng (GET /api/staff/contracts/{id}/change-requests)
-  Future<List<StaffContractChangeRequestModel>> getMyContractChangeRequests(int contractId) async {
+  Future<List<StaffContractChangeRequestModel>> getMyContractChangeRequests(
+    int contractId,
+  ) async {
     try {
-      final response = await _apiClient.get('/api/staff/contracts/$contractId/change-requests');
+      final response = await _apiClient.get(
+        '/api/staff/contracts/$contractId/change-requests',
+      );
       if (response.data != null && response.data is List) {
         return (response.data as List)
-            .map((e) => StaffContractChangeRequestModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) => StaffContractChangeRequestModel.fromJson(
+                e as Map<String, dynamic>,
+              ),
+            )
             .toList();
       }
       return [];
@@ -125,7 +148,8 @@ class StaffContractService {
   }
 
   /// Lấy tất cả yêu cầu thay đổi hợp đồng từ tất cả hợp đồng của nhân viên
-  Future<List<StaffContractChangeRequestModel>> getAllMyContractChangeRequests() async {
+  Future<List<StaffContractChangeRequestModel>>
+  getAllMyContractChangeRequests() async {
     try {
       final contracts = await getMyContracts();
       if (contracts.isEmpty) return [];
@@ -134,11 +158,13 @@ class StaffContractService {
       for (final c in contracts) {
         try {
           final list = await getMyContractChangeRequests(c.contractId);
-          final enriched = list.map((cr) => cr.copyWith(
-            contractNumber: c.contractNumber,
-            employeePosition: c.employeePosition,
-            branchName: c.branchName,
-          ));
+          final enriched = list.map(
+            (cr) => cr.copyWith(
+              contractNumber: c.contractNumber,
+              employeePosition: c.employeePosition,
+              branchName: c.branchName,
+            ),
+          );
           allRequests.addAll(enriched);
         } catch (_) {}
       }
@@ -151,7 +177,10 @@ class StaffContractService {
   }
 
   /// Lấy dữ liệu file PDF (binary bytes) để xem trước hoặc tải về
-  Future<Uint8List> getPdfBytes(int contractId, {bool isDownload = false}) async {
+  Future<Uint8List> getPdfBytes(
+    int contractId, {
+    bool isDownload = false,
+  }) async {
     try {
       final endpoint = isDownload
           ? '/api/staff/contracts/$contractId/pdf/download'
@@ -176,7 +205,9 @@ class StaffContractService {
   /// Lấy danh sách vị trí công việc hoạt động từ hệ thống (DB)
   Future<List<String>> getActivePositions() async {
     try {
-      final response = await _apiClient.get('/api/staff/contracts/active-positions');
+      final response = await _apiClient.get(
+        '/api/staff/contracts/active-positions',
+      );
       if (response.data != null && response.data is List) {
         return (response.data as List)
             .map((e) => e.toString().trim())

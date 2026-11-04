@@ -40,7 +40,9 @@ class CategoryPagedResponse {
   factory CategoryPagedResponse.fromJson(Map<String, dynamic> json) {
     final rawList = json['items'] as List<dynamic>? ?? [];
     return CategoryPagedResponse(
-      items: rawList.map((e) => CategoryModel.fromJson(e as Map<String, dynamic>)).toList(),
+      items: rawList
+          .map((e) => CategoryModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
       pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
       pageSize: (json['pageSize'] as num?)?.toInt() ?? 20,
       totalItems: (json['totalItems'] as num?)?.toInt() ?? 0,

@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -16,8 +17,7 @@ public sealed class ManagerProductApiService
     public ManagerProductApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<ManagerProductListViewModel> GetPagedAsync(
@@ -193,5 +193,5 @@ public sealed class ManagerProductApiService
         return content;
     }
 
-    private string BuildUrl(string relativePath) => $"{_apiBaseUrl.TrimEnd('/')}/{relativePath}";
+    private string BuildUrl(string relativePath) => $"{_apiBaseUrl}/{relativePath}";
 }

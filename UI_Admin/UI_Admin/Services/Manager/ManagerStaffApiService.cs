@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models;
 using UI_Admin.Models.Catalog;
@@ -12,8 +13,7 @@ public sealed class ManagerStaffApiService
     public ManagerStaffApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<StaffAccountPagedViewModel> GetStaffListAsync(
@@ -36,7 +36,7 @@ public sealed class ManagerStaffApiService
             parameters.Add($"status={Uri.EscapeDataString(status)}");
 
         var result = await _httpClient.GetFromJsonAsync<StaffAccountPagedViewModel>(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff?{string.Join('&', parameters)}",
+            $"{_apiBaseUrl}/api/manager/staff?{string.Join('&', parameters)}",
             cancellationToken);
 
         var paged = result ?? new StaffAccountPagedViewModel();
@@ -48,7 +48,7 @@ public sealed class ManagerStaffApiService
     public async Task<StaffAccountDetailViewModel?> GetStaffDetailAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
         var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}",
+            $"{_apiBaseUrl}/api/manager/staff/{staffId}",
             cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -63,7 +63,7 @@ public sealed class ManagerStaffApiService
     public async Task<List<EmployeeTypeOptionViewModel>> GetActiveEmployeeTypeOptionsAsync(CancellationToken cancellationToken = default)
     {
         var result = await _httpClient.GetFromJsonAsync<List<ActiveEmployeeTypeDto>>(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/employee-types/active",
+            $"{_apiBaseUrl}/api/manager/employee-types/active",
             cancellationToken);
 
         return (result ?? [])
@@ -98,7 +98,7 @@ public sealed class ManagerStaffApiService
         }
 
         using var response = await _httpClient.PostAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff",
+            $"{_apiBaseUrl}/api/manager/staff",
             content,
             cancellationToken);
 
@@ -129,7 +129,7 @@ public sealed class ManagerStaffApiService
         }
 
         using var response = await _httpClient.PutAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}",
+            $"{_apiBaseUrl}/api/manager/staff/{staffId}",
             content,
             cancellationToken);
 
@@ -142,7 +142,7 @@ public sealed class ManagerStaffApiService
     public async Task<(bool Success, string? ErrorMessage)> DeactivateStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.DeleteAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}",
+            $"{_apiBaseUrl}/api/manager/staff/{staffId}",
             cancellationToken);
 
         if (response.IsSuccessStatusCode)
@@ -154,7 +154,7 @@ public sealed class ManagerStaffApiService
 public async Task<(bool Success, string? ErrorMessage)> RestoreStaffAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}/restore",
+            $"{_apiBaseUrl}/api/manager/staff/{staffId}/restore",
             JsonContent.Create(new { }),
             cancellationToken);
 
@@ -167,7 +167,7 @@ public async Task<(bool Success, string? ErrorMessage)> RestoreStaffAsync(Guid s
     public async Task<(bool Success, string? ErrorMessage)> ResendSetupLinkAsync(Guid staffId, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/manager/staff/{staffId}/resend-setup",
+            $"{_apiBaseUrl}/api/manager/staff/{staffId}/resend-setup",
             JsonContent.Create(new { }),
             cancellationToken);
 

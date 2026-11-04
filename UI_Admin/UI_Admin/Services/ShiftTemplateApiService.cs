@@ -8,10 +8,9 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
     public async Task<(bool Success, string? Error, bool DuplicateName)> UpdateAsync(
         EditShiftTemplateViewModel model, CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
         using var response = await httpClient.PutAsJsonAsync(
-            $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{model.Id}", new
+            $"{baseUrl}/api/admin/shift-templates/{model.Id}", new
             {
                 shiftName = model.ShiftName?.Trim(),
                 model.StartTime,
@@ -38,9 +37,8 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
 
     public async Task<ShiftTemplateDetailViewModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
-        using var response = await httpClient.GetAsync($"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{id}", cancellationToken);
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
+        using var response = await httpClient.GetAsync($"{baseUrl}/api/admin/shift-templates/{id}", cancellationToken);
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<ShiftTemplateDetailViewModel>(cancellationToken: cancellationToken)
@@ -49,9 +47,8 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
 
     public async Task<(bool Success, string Message)> SetStatusAsync(int id, bool restore, CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
-        var url = $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates/{id}";
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
+        var url = $"{baseUrl}/api/admin/shift-templates/{id}";
         using var response = restore
             ? await httpClient.PostAsync($"{url}/restore", null, cancellationToken)
             : await httpClient.DeleteAsync(url, cancellationToken);
@@ -74,10 +71,9 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
     public async Task<(bool Success, string? Error, bool DuplicateName)> CreateAsync(
         CreateShiftTemplateViewModel model, CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
         using var response = await httpClient.PostAsJsonAsync(
-            $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates", new
+            $"{baseUrl}/api/admin/shift-templates", new
             {
                 shiftName = model.ShiftName?.Trim(),
                 model.StartTime,
@@ -105,9 +101,8 @@ public sealed class ShiftTemplateApiService(HttpClient httpClient, IConfiguratio
     public async Task<ShiftTemplatePage> GetAllAsync(
         ShiftTemplateListQueryViewModel query, CancellationToken cancellationToken = default)
     {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
-        var url = $"{baseUrl.TrimEnd('/')}/api/admin/shift-templates?page={query.Page}";
+        var baseUrl = configuration.GetWorkShiftApiBaseUrl();
+        var url = $"{baseUrl}/api/admin/shift-templates?page={query.Page}";
         if (!string.IsNullOrWhiteSpace(query.Search))
             url += $"&search={Uri.EscapeDataString(query.Search.Trim())}";
         if (!string.IsNullOrEmpty(query.Status))

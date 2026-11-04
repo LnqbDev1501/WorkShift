@@ -12,8 +12,7 @@ public sealed class CategoryApiService
     public CategoryApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<CategoryListPagedViewModel> GetPagedAsync(
@@ -109,5 +108,5 @@ public sealed class CategoryApiService
         return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
     }
 
-    private string BuildUrl(string relativePath) => $"{_apiBaseUrl.TrimEnd('/')}/{relativePath}";
+    private string BuildUrl(string relativePath) => $"{_apiBaseUrl}/{relativePath}";
 }

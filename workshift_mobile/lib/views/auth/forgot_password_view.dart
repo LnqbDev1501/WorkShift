@@ -12,7 +12,8 @@ class ForgotPasswordView extends StatefulWidget {
   State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
-class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTickerProviderStateMixin {
+class _ForgotPasswordViewState extends State<ForgotPasswordView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _authController = AuthController();
@@ -37,10 +38,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.15),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -111,9 +115,15 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                         // Back Button
                         IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                           style: IconButton.styleFrom(
-                            backgroundColor: Colors.white.withValues(alpha: 0.15),
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.15,
+                            ),
                             padding: const EdgeInsets.all(8),
                             minimumSize: Size.zero,
                           ),
@@ -132,12 +142,16 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.15),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       blurRadius: 20,
                                       offset: const Offset(0, 10),
                                     ),
                                     BoxShadow(
-                                      color: AppColors.homeAccent.withValues(alpha: 0.3),
+                                      color: AppColors.homeAccent.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       blurRadius: 30,
                                       spreadRadius: 2,
                                     ),
@@ -218,7 +232,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
                             ),
                           ],
                         ),
-                        child: _emailSent ? _buildSuccessContent() : _buildFormContent(),
+                        child: _emailSent
+                            ? _buildSuccessContent()
+                            : _buildFormContent(),
                       ),
                     ),
                   ),
@@ -298,7 +314,9 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
               decoration: BoxDecoration(
                 color: AppColors.errorBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,

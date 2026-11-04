@@ -1,10 +1,11 @@
-﻿using System.Text.Json;
+using UI_Admin.Services;
+using System.Text.Json;
 using UI_Admin.Models.PayrollCalculation;
 namespace UI_Admin.Services.Accountant;
 
 public sealed class PayrollCalculationActionApiService(HttpClient client, IConfiguration config)
 {
-    private string Root => (config["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("Missing API URL.")).TrimEnd('/') + "/api/payroll-periods";
+    private string Root => config.GetWorkShiftApiBaseUrl() + "/api/payroll-periods";
     public async Task<CalculationInputResponse> InputsAsync(int id, Guid userId, CancellationToken ct)
     {
         using var r = await client.GetAsync($"{Root}/{id}/employees/{userId}/calculation-inputs", ct);

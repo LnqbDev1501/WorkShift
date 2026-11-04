@@ -1,4 +1,4 @@
-﻿import 'dart:developer';
+import 'dart:developer';
 import 'package:dio/dio.dart';
 import '../models/payroll_preview_model.dart';
 import '../models/payslip_model.dart';
@@ -38,10 +38,7 @@ class PayrollService {
     String? keyword,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
@@ -77,7 +74,10 @@ class PayrollService {
       }
       return [];
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Unable to load payroll preview list');
+      final msg = _extractErrorMessage(
+        e,
+        'Unable to load payroll preview list',
+      );
       log('PayrollService.getPayrollPreviews error: $msg');
       throw msg;
     } catch (e) {
@@ -89,7 +89,9 @@ class PayrollService {
   /// 2. Get payroll preview details (GET /api/payroll-previews/{id})
   Future<PayrollPreviewDetail> getPayrollPreviewDetail(int feedbackId) async {
     try {
-      final response = await _apiClient.get('/api/payroll-previews/$feedbackId');
+      final response = await _apiClient.get(
+        '/api/payroll-previews/$feedbackId',
+      );
 
       if (response.statusCode == 200 && response.data != null) {
         return PayrollPreviewDetail.fromJson(
@@ -98,7 +100,10 @@ class PayrollService {
       }
       throw 'Payroll preview details not found.';
     } on DioException catch (e) {
-      final msg = _extractErrorMessage(e, 'Unable to load payroll preview details');
+      final msg = _extractErrorMessage(
+        e,
+        'Unable to load payroll preview details',
+      );
       log('PayrollService.getPayrollPreviewDetail error: $msg');
       throw msg;
     } catch (e) {
@@ -165,10 +170,7 @@ class PayrollService {
     String? keyword,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (status != null && status.isNotEmpty) {
         queryParams['status'] = status;
       }
@@ -229,10 +231,7 @@ class PayrollService {
     String? status,
   }) async {
     try {
-      final queryParams = <String, dynamic>{
-        'page': page,
-        'pageSize': pageSize,
-      };
+      final queryParams = <String, dynamic>{'page': page, 'pageSize': pageSize};
       if (keyword != null && keyword.trim().isNotEmpty) {
         queryParams['keyword'] = keyword.trim();
       }

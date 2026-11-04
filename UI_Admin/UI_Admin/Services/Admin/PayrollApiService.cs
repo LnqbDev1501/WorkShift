@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.WebUtilities;
+using UI_Admin.Services;
+using Microsoft.AspNetCore.WebUtilities;
 using UI_Admin.Models.Admin.Payroll;
 
 namespace UI_Admin.Services.Admin;
 
 public class PayrollApiService(HttpClient client, IConfiguration configuration)
 {
-    private string BaseUrl => (configuration["WorkShiftApi:BaseUrl"]
-        ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.")).TrimEnd('/');
+    private string BaseUrl => configuration.GetWorkShiftApiBaseUrl();
 
     public async Task<PayrollPeriodListResponse> GetPeriodsAsync(PayrollFilter filter, CancellationToken ct)
     {

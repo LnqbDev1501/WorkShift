@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using System.Text.Json;
 using UI_Admin.Models.AttendanceRule;
@@ -12,8 +13,7 @@ public sealed class AttendanceRuleApiService
     public AttendanceRuleApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<AttendanceRuleListViewModel> GetListAsync(
@@ -197,7 +197,7 @@ public sealed class AttendanceRuleApiService
     }
 
     private string BuildUrl(string relativeUrl) =>
-        $"{_apiBaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+        $"{_apiBaseUrl}/{relativeUrl.TrimStart('/')}";
 
     private sealed class PagedAttendanceRuleApiResponse
     {

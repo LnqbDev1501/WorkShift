@@ -6,10 +6,7 @@ import '../../theme/app_colors.dart';
 class AttendanceDetailView extends StatefulWidget {
   final int assignmentId;
 
-  const AttendanceDetailView({
-    super.key,
-    required this.assignmentId,
-  });
+  const AttendanceDetailView({super.key, required this.assignmentId});
 
   @override
   State<AttendanceDetailView> createState() => _AttendanceDetailViewState();
@@ -34,7 +31,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
     });
 
     try {
-      final res = await _homeService.getStaffAttendanceDetail(widget.assignmentId);
+      final res = await _homeService.getStaffAttendanceDetail(
+        widget.assignmentId,
+      );
       if (mounted) {
         setState(() {
           _detail = res;
@@ -78,7 +77,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
   }
 
   String _formatCurrency(double amount) {
-    final formatted = amount.toStringAsFixed(0).replaceAllMapped(
+    final formatted = amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
@@ -101,7 +102,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -121,7 +126,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 48),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: AppColors.error,
+                size: 48,
+              ),
               const SizedBox(height: 12),
               Text(
                 _errorMessage!,
@@ -281,7 +290,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: badgeBg,
                   borderRadius: BorderRadius.circular(8),
@@ -307,7 +319,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           const Divider(height: 24, color: AppColors.borderLight),
           Row(
             children: [
-              const Icon(Icons.schedule_rounded, size: 16, color: AppColors.primary),
+              const Icon(
+                Icons.schedule_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Scheduled: ${_formatTime(detail.scheduledStartAt)} – ${_formatTime(detail.scheduledEndAt)}',
@@ -323,7 +339,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.location_on_outlined, size: 16, color: AppColors.textMuted),
+              const Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -337,11 +357,15 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    if (detail.branchAddress != null && detail.branchAddress!.isNotEmpty) ...[
+                    if (detail.branchAddress != null &&
+                        detail.branchAddress!.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(
                         detail.branchAddress!,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ],
@@ -370,20 +394,32 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         Expanded(
           child: _buildKpiCard(
             title: 'Late Arrival',
-            value: detail.totalLateMinutes > 0 ? '${detail.totalLateMinutes}m' : '0m',
+            value: detail.totalLateMinutes > 0
+                ? '${detail.totalLateMinutes}m'
+                : '0m',
             icon: Icons.alarm_off_rounded,
-            iconColor: detail.totalLateMinutes > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
-            bg: detail.totalLateMinutes > 0 ? const Color(0xFFFFFBEB) : Colors.white,
+            iconColor: detail.totalLateMinutes > 0
+                ? const Color(0xFFD97706)
+                : AppColors.textMuted,
+            bg: detail.totalLateMinutes > 0
+                ? const Color(0xFFFFFBEB)
+                : Colors.white,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _buildKpiCard(
             title: 'Early Leave',
-            value: detail.totalEarlyLeaveMinutes > 0 ? '${detail.totalEarlyLeaveMinutes}m' : '0m',
+            value: detail.totalEarlyLeaveMinutes > 0
+                ? '${detail.totalEarlyLeaveMinutes}m'
+                : '0m',
             icon: Icons.directions_run_rounded,
-            iconColor: detail.totalEarlyLeaveMinutes > 0 ? const Color(0xFFEA580C) : AppColors.textMuted,
-            bg: detail.totalEarlyLeaveMinutes > 0 ? const Color(0xFFFFF7ED) : Colors.white,
+            iconColor: detail.totalEarlyLeaveMinutes > 0
+                ? const Color(0xFFEA580C)
+                : AppColors.textMuted,
+            bg: detail.totalEarlyLeaveMinutes > 0
+                ? const Color(0xFFFFF7ED)
+                : Colors.white,
           ),
         ),
       ],
@@ -420,7 +456,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 11,
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
@@ -429,8 +468,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
 
   Widget _buildAttendanceTimeline(StaffAttendanceDetailModel detail) {
     final adj = detail.timesheetAdjustment;
-    final isCheckInAdjusted = adj != null && adj.isApproved && adj.adjustCheckIn;
-    final isCheckOutAdjusted = adj != null && adj.isApproved && adj.adjustCheckOut;
+    final isCheckInAdjusted =
+        adj != null && adj.isApproved && adj.adjustCheckIn;
+    final isCheckOutAdjusted =
+        adj != null && adj.isApproved && adj.adjustCheckOut;
 
     return Column(
       children: [
@@ -510,7 +551,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         children: [
           Row(
             children: [
-              const Icon(Icons.published_with_changes_rounded, size: 18, color: AppColors.primary),
+              const Icon(
+                Icons.published_with_changes_rounded,
+                size: 18,
+                color: AppColors.primary,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Timesheet Adjustment Request',
@@ -561,7 +606,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.chat_bubble_outline_rounded, size: 13, color: AppColors.textSecondary),
+                    Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 13,
+                      color: AppColors.textSecondary,
+                    ),
                     SizedBox(width: 5),
                     Text(
                       'Staff Explanation / Reason:',
@@ -575,7 +624,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  adj.reason.isNotEmpty ? '"${adj.reason}"' : 'No detailed explanation provided',
+                  adj.reason.isNotEmpty
+                      ? '"${adj.reason}"'
+                      : 'No detailed explanation provided',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textPrimary,
@@ -587,16 +638,21 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           ),
 
           // Manager Note (if provided)
-          if (adj.managerNote != null && adj.managerNote!.trim().isNotEmpty) ...[
+          if (adj.managerNote != null &&
+              adj.managerNote!.trim().isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: adj.isApproved ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                color: adj.isApproved
+                    ? const Color(0xFFF0FDF4)
+                    : const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: adj.isApproved ? const Color(0xFFBBF7D0) : const Color(0xFFFECACA),
+                  color: adj.isApproved
+                      ? const Color(0xFFBBF7D0)
+                      : const Color(0xFFFECACA),
                 ),
               ),
               child: Column(
@@ -607,7 +663,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                       Icon(
                         Icons.admin_panel_settings_outlined,
                         size: 13,
-                        color: adj.isApproved ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                        color: adj.isApproved
+                            ? const Color(0xFF15803D)
+                            : const Color(0xFFB91C1C),
                       ),
                       const SizedBox(width: 5),
                       Text(
@@ -615,7 +673,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                         style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.bold,
-                          color: adj.isApproved ? const Color(0xFF15803D) : const Color(0xFFB91C1C),
+                          color: adj.isApproved
+                              ? const Color(0xFF15803D)
+                              : const Color(0xFFB91C1C),
                         ),
                       ),
                     ],
@@ -625,7 +685,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                     '"${adj.managerNote!}"',
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: adj.isApproved ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                      color: adj.isApproved
+                          ? const Color(0xFF166534)
+                          : const Color(0xFF991B1B),
                     ),
                   ),
                 ],
@@ -649,11 +711,19 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
-                        const Icon(Icons.login_rounded, size: 14, color: Color(0xFF2563EB)),
+                        const Icon(
+                          Icons.login_rounded,
+                          size: 14,
+                          color: Color(0xFF2563EB),
+                        ),
                         const SizedBox(width: 6),
                         const Text(
                           'Check-In:',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         const Spacer(),
                         Text(
@@ -665,7 +735,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 12,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           _formatTime(adj.requestedCheckInTime),
@@ -685,11 +759,19 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                     padding: const EdgeInsets.symmetric(vertical: 3),
                     child: Row(
                       children: [
-                        const Icon(Icons.logout_rounded, size: 14, color: Color(0xFFEA580C)),
+                        const Icon(
+                          Icons.logout_rounded,
+                          size: 14,
+                          color: Color(0xFFEA580C),
+                        ),
                         const SizedBox(width: 6),
                         const Text(
                           'Check-Out:',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         const Spacer(),
                         Text(
@@ -701,7 +783,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Icon(Icons.arrow_forward_rounded, size: 12, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 12,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           _formatTime(adj.requestedCheckOutTime),
@@ -724,12 +810,18 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
             children: [
               Text(
                 'Submitted: ${_formatDate(adj.createdAt)} ${_formatTime(adj.createdAt)}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
               ),
               if (adj.reviewedAt != null)
                 Text(
                   'Reviewed: ${_formatDate(adj.reviewedAt!)} ${_formatTime(adj.reviewedAt!)}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
                 ),
             ],
           ),
@@ -791,20 +883,32 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                       ),
                     ),
                     Text(
-                      isCompleted ? 'Actual at ${_formatTime(time)}' : 'Not Recorded',
+                      isCompleted
+                          ? 'Actual at ${_formatTime(time)}'
+                          : 'Not Recorded',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isCompleted ? AppColors.textPrimary : AppColors.textMuted,
+                        color: isCompleted
+                            ? AppColors.textPrimary
+                            : AppColors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
               if (isCompleted)
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 20)
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 20,
+                )
               else
-                const Icon(Icons.radio_button_unchecked_rounded, color: AppColors.border, size: 20),
+                const Icon(
+                  Icons.radio_button_unchecked_rounded,
+                  color: AppColors.border,
+                  size: 20,
+                ),
             ],
           ),
           if (isCompleted) ...[
@@ -816,7 +920,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                 children: [
                   const Padding(
                     padding: EdgeInsets.only(top: 2),
-                    child: Icon(Icons.my_location_rounded, size: 14, color: AppColors.textSecondary),
+                    child: Icon(
+                      Icons.my_location_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -835,7 +943,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                             ),
                             const Spacer(),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: distanceMeters <= maxDistanceMeters
                                     ? const Color(0xFFDCFCE7)
@@ -843,7 +954,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                distanceMeters <= maxDistanceMeters ? 'Valid' : 'Out of Range',
+                                distanceMeters <= maxDistanceMeters
+                                    ? 'Valid'
+                                    : 'Out of Range',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -861,7 +974,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                             'GPS Accuracy: ±${accuracyMeters.toStringAsFixed(1)}m',
                             style: TextStyle(
                               fontSize: 11,
-                              color: accuracyMeters <= 25 ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                              color: accuracyMeters <= 25
+                                  ? const Color(0xFF15803D)
+                                  : const Color(0xFFB45309),
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -877,14 +992,21 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
             // Biometric Face Verification
             Row(
               children: [
-                const Icon(Icons.face_rounded, size: 14, color: AppColors.textSecondary),
+                const Icon(
+                  Icons.face_rounded,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     isFaceVerified == true
                         ? 'Facial Recognition: Verified ${faceConfidence != null ? '(${(faceConfidence <= 1.0 ? faceConfidence * 100 : faceConfidence).toStringAsFixed(1)}%)' : ''}'
                         : 'Facial Recognition: Not Verified',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ],
@@ -903,7 +1025,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.history_rounded, size: 13, color: Color(0xFF16A34A)),
+                    const Icon(
+                      Icons.history_rounded,
+                      size: 13,
+                      color: Color(0xFF16A34A),
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       'Adjusted via approved request (Original: ${_formatTime(originalTime)})',
@@ -923,7 +1049,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 14, color: Color(0xFFD97706)),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 14,
+                    color: Color(0xFFD97706),
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     '$violationType: ${violationMinutes}m',
@@ -937,7 +1067,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                     const SizedBox(width: 6),
                     Text(
                       '(Excused: ${excusedMinutes}m)',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF15803D)),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF15803D),
+                      ),
                     ),
                   ],
                 ],
@@ -962,7 +1095,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         children: [
           Row(
             children: [
-              const Icon(Icons.gavel_rounded, size: 18, color: AppColors.textPrimary),
+              const Icon(
+                Icons.gavel_rounded,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Violations & Penalties',
@@ -975,7 +1112,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
               const Spacer(),
               if (detail.activePenalties.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(6),
@@ -998,18 +1138,26 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isApplied ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+                color: isApplied
+                    ? const Color(0xFFFEF2F2)
+                    : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: isApplied ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+                  color: isApplied
+                      ? const Color(0xFFFECACA)
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    isApplied ? Icons.warning_rounded : Icons.check_circle_outline_rounded,
+                    isApplied
+                        ? Icons.warning_rounded
+                        : Icons.check_circle_outline_rounded,
                     size: 18,
-                    color: isApplied ? const Color(0xFFDC2626) : AppColors.textMuted,
+                    color: isApplied
+                        ? const Color(0xFFDC2626)
+                        : AppColors.textMuted,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1021,8 +1169,12 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: isApplied ? const Color(0xFF991B1B) : AppColors.textMuted,
-                            decoration: isApplied ? null : TextDecoration.lineThrough,
+                            color: isApplied
+                                ? const Color(0xFF991B1B)
+                                : AppColors.textMuted,
+                            decoration: isApplied
+                                ? null
+                                : TextDecoration.lineThrough,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -1031,17 +1183,26 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: isApplied ? const Color(0xFFDC2626) : AppColors.textMuted,
-                            decoration: isApplied ? null : TextDecoration.lineThrough,
+                            color: isApplied
+                                ? const Color(0xFFDC2626)
+                                : AppColors.textMuted,
+                            decoration: isApplied
+                                ? null
+                                : TextDecoration.lineThrough,
                           ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isApplied ? const Color(0xFFFEE2E2) : const Color(0xFFE2E8F0),
+                      color: isApplied
+                          ? const Color(0xFFFEE2E2)
+                          : const Color(0xFFE2E8F0),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -1049,7 +1210,9 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isApplied ? const Color(0xFF991B1B) : AppColors.textMuted,
+                        color: isApplied
+                            ? const Color(0xFF991B1B)
+                            : AppColors.textMuted,
                       ),
                     ),
                   ),
@@ -1075,7 +1238,11 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.assignment_outlined, size: 18, color: AppColors.textPrimary),
+              Icon(
+                Icons.assignment_outlined,
+                size: 18,
+                color: AppColors.textPrimary,
+              ),
               SizedBox(width: 8),
               Text(
                 'Associated Shift Requests',
@@ -1133,9 +1300,13 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            isApproved ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+            isApproved
+                ? Icons.check_circle_rounded
+                : Icons.info_outline_rounded,
             size: 16,
-            color: isApproved ? const Color(0xFF16A34A) : AppColors.textSecondary,
+            color: isApproved
+                ? const Color(0xFF16A34A)
+                : AppColors.textSecondary,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1147,14 +1318,20 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     Text(
                       status,
                       style: TextStyle(
                         fontSize: 10.5,
                         fontWeight: FontWeight.bold,
-                        color: isApproved ? const Color(0xFF15803D) : AppColors.textSecondary,
+                        color: isApproved
+                            ? const Color(0xFF15803D)
+                            : AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -1163,7 +1340,10 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
                   const SizedBox(height: 2),
                   Text(
                     'Reason: "$reason"',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ],

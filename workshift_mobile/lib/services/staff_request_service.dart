@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import '../models/staff_request_model.dart';
 import 'api_client.dart';
 
@@ -108,10 +108,7 @@ class StaffRequestService {
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(
-        e,
-        'Failed to load eligible shifts',
-      );
+      throw _extractErrorMessage(e, 'Failed to load eligible shifts');
     } catch (e) {
       throw e.toString();
     }

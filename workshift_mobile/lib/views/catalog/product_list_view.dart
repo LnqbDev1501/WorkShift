@@ -11,11 +11,7 @@ class ProductListView extends StatefulWidget {
   final int? initialCategoryId;
   final String? categoryName;
 
-  const ProductListView({
-    super.key,
-    this.initialCategoryId,
-    this.categoryName,
-  });
+  const ProductListView({super.key, this.initialCategoryId, this.categoryName});
 
   @override
   State<ProductListView> createState() => _ProductListViewState();
@@ -77,7 +73,9 @@ class _ProductListViewState extends State<ProductListView> {
         pageNumber: 1,
         pageSize: 100,
         categoryId: _selectedCategoryId,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -132,7 +130,11 @@ class _ProductListViewState extends State<ProductListView> {
             color: AppColors.primaryLight,
             child: Row(
               children: [
-                const Icon(Icons.storefront_rounded, size: 16, color: AppColors.primary),
+                const Icon(
+                  Icons.storefront_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -156,7 +158,10 @@ class _ProductListViewState extends State<ProductListView> {
               onSubmitted: (_) => _fetchProducts(),
               decoration: InputDecoration(
                 hintText: 'Search products by name or code...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -168,7 +173,10 @@ class _ProductListViewState extends State<ProductListView> {
                     : null,
                 filled: true,
                 fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 16,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
@@ -179,7 +187,10 @@ class _ProductListViewState extends State<ProductListView> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
                 ),
               ),
             ),
@@ -206,7 +217,9 @@ class _ProductListViewState extends State<ProductListView> {
                       },
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
-                        color: _selectedCategoryId == null ? Colors.white : AppColors.textSecondary,
+                        color: _selectedCategoryId == null
+                            ? Colors.white
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -214,7 +227,9 @@ class _ProductListViewState extends State<ProductListView> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: _selectedCategoryId == null ? AppColors.primary : AppColors.border,
+                          color: _selectedCategoryId == null
+                              ? AppColors.primary
+                              : AppColors.border,
                         ),
                       ),
                     ),
@@ -228,13 +243,17 @@ class _ProductListViewState extends State<ProductListView> {
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
-                            _selectedCategoryId = selected ? c.categoryId : null;
+                            _selectedCategoryId = selected
+                                ? c.categoryId
+                                : null;
                           });
                           _fetchProducts();
                         },
                         selectedColor: AppColors.primary,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textSecondary,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -242,7 +261,9 @@ class _ProductListViewState extends State<ProductListView> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
-                            color: isSelected ? AppColors.primary : AppColors.border,
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                       ),
@@ -258,144 +279,179 @@ class _ProductListViewState extends State<ProductListView> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                            const SizedBox(height: 12),
-                            Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _initializeData,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Thử lại'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
                         ),
-                      )
-                    : _products.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Không có sản phẩm nào phù hợp tại chi nhánh của bạn.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _fetchProducts,
-                            child: ListView.separated(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              itemCount: _products.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final product = _products[index];
-                                return Card(
-                                  elevation: 0,
-                                  color: AppColors.surface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: const BorderSide(color: AppColors.border),
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _initializeData,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _products.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Không có sản phẩm nào phù hợp tại chi nhánh của bạn.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchProducts,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      itemCount: _products.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        return Card(
+                          elevation: 0,
+                          color: AppColors.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailView(
+                                    productId: product.productId,
                                   ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ProductDetailView(productId: product.productId),
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Row(
-                                        children: [
-                                          // Product Thumbnail
-                                          Container(
-                                            width: 72,
-                                            height: 72,
-                                            decoration: BoxDecoration(
-                                              color: AppColors.borderLight,
-                                              borderRadius: BorderRadius.circular(12),
-                                              image: (product.imageUrl != null && product.imageUrl!.trim().isNotEmpty)
-                                                  ? DecorationImage(
-                                                      image: NetworkImage(product.imageUrl!),
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : null,
-                                            ),
-                                            child: (product.imageUrl == null || product.imageUrl!.trim().isEmpty)
-                                                ? const Icon(Icons.fastfood_rounded, color: AppColors.textMuted, size: 28)
-                                                : null,
-                                          ),
-                                          const SizedBox(width: 14),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  // Product Thumbnail
+                                  Container(
+                                    width: 72,
+                                    height: 72,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.borderLight,
+                                      borderRadius: BorderRadius.circular(12),
+                                      image:
+                                          (product.imageUrl != null &&
+                                              product.imageUrl!
+                                                  .trim()
+                                                  .isNotEmpty)
+                                          ? DecorationImage(
+                                              image: NetworkImage(
+                                                product.imageUrl!,
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                    ),
+                                    child:
+                                        (product.imageUrl == null ||
+                                            product.imageUrl!.trim().isEmpty)
+                                        ? const Icon(
+                                            Icons.fastfood_rounded,
+                                            color: AppColors.textMuted,
+                                            size: 28,
+                                          )
+                                        : null,
+                                  ),
+                                  const SizedBox(width: 14),
 
-                                          // Info
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: AppColors.primaryLight,
-                                                        borderRadius: BorderRadius.circular(4),
-                                                      ),
-                                                      child: Text(
-                                                        product.categoryName,
-                                                        style: const TextStyle(
-                                                          fontSize: 11,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: AppColors.primary,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const Spacer(),
-                                                    Text(
-                                                      product.productCode,
-                                                      style: const TextStyle(
-                                                        fontSize: 12,
-                                                        color: AppColors.textMuted,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  product.productName,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.textPrimary,
+                                  // Info
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
                                                   ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primaryLight,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                product.categoryName,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primary,
                                                 ),
-                                                const SizedBox(height: 6),
-                                                Text(
-                                                  formatCurrency(product.price),
-                                                  style: const TextStyle(
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: AppColors.primary,
-                                                  ),
-                                                ),
-                                              ],
+                                              ),
                                             ),
+                                            const Spacer(),
+                                            Text(
+                                              product.productCode,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textMuted,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          product.productName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
                                           ),
-                                          const SizedBox(width: 8),
-                                          const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                                        ],
-                                      ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          formatCurrency(product.price),
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                );
-                              },
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

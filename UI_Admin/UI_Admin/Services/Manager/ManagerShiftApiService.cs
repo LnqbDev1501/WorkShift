@@ -1,10 +1,11 @@
+using UI_Admin.Services;
 using System.Net;
 using System.Text.Json;
 using UI_Admin.Models.Manager;
 namespace UI_Admin.Services.Manager;
 public sealed class ManagerShiftApiService(HttpClient client, IConfiguration configuration)
 {
-    private string BaseUrl => (configuration["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("API URL is missing.")).TrimEnd('/');
+    private string BaseUrl => configuration.GetWorkShiftApiBaseUrl();
     public async Task<ShiftDetailResponse> GetAsync(int id, CancellationToken ct)
     {
         var shift = await ReadAsync<ShiftDetailResponse>($"/api/manager/shifts/{id}", ct);

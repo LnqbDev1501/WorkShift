@@ -55,6 +55,8 @@ class ProductService {
       '/api/categories',
       queryParameters: query,
     );
-    return CategoryPagedResponse.fromJson(response.data as Map<String, dynamic>);
+    return CategoryPagedResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 }

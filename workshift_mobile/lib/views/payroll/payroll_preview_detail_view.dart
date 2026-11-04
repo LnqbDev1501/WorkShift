@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../services/payroll_service.dart';
 import '../../theme/app_colors.dart';
@@ -8,10 +8,7 @@ import '../../utils/format_utils.dart';
 class PayrollPreviewDetailView extends StatefulWidget {
   final int feedbackId;
 
-  const PayrollPreviewDetailView({
-    super.key,
-    required this.feedbackId,
-  });
+  const PayrollPreviewDetailView({super.key, required this.feedbackId});
 
   @override
   State<PayrollPreviewDetailView> createState() =>
@@ -74,19 +71,28 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         content: const Text(
           'Do you agree with the payroll calculation in this preview?\n\n'
           'Once confirmed, this review round will be marked as complete and you will no longer be able to submit feedback for this round.',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Confirm'),
           ),
@@ -161,7 +167,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                   const SizedBox(height: 16),
                   const Row(
                     children: [
-                      Icon(Icons.rate_review_outlined, color: AppColors.warning),
+                      Icon(
+                        Icons.rate_review_outlined,
+                        color: AppColors.warning,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         'Submit Payroll Feedback',
@@ -190,7 +199,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                     autofocus: true,
                     decoration: InputDecoration(
                       hintText: 'Enter feedback details (required)...',
-                      hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                      hintStyle: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: AppColors.border),
@@ -201,7 +213,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
                       ),
                       filled: true,
                       fillColor: AppColors.background,
@@ -230,7 +245,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                             ),
                             side: const BorderSide(color: AppColors.border),
                           ),
-                          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -274,7 +292,9 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Feedback submitted successfully! The accountant will review it.'),
+            content: Text(
+              'Feedback submitted successfully! The accountant will review it.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -324,41 +344,44 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded,
-                            size: 52, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: _loadDetail,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Retry'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 52,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : _detail == null
-                  ? const Center(child: Text('No data found.'))
-                  : _buildContent(),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _loadDetail,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _detail == null
+          ? const Center(child: Text('No data found.'))
+          : _buildContent(),
       bottomNavigationBar: _detail != null ? _buildBottomActions() : null,
     );
   }
@@ -378,8 +401,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           const SizedBox(height: 16),
 
           // 2. Explanation / Notes Card (if present)
-          if ((feedback.resolutionNote != null && feedback.resolutionNote!.isNotEmpty) ||
-              (feedback.resultNote != null && feedback.resultNote!.isNotEmpty) ||
+          if ((feedback.resolutionNote != null &&
+                  feedback.resolutionNote!.isNotEmpty) ||
+              (feedback.resultNote != null &&
+                  feedback.resultNote!.isNotEmpty) ||
               (feedback.previousResolutionNote != null &&
                   feedback.previousResolutionNote!.isNotEmpty)) ...[
             _buildExplanationCard(feedback),
@@ -387,7 +412,8 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           ],
 
           // 3. Submitted Feedback Card (if staff already submitted)
-          if (feedback.description != null && feedback.description!.isNotEmpty) ...[
+          if (feedback.description != null &&
+              feedback.description!.isNotEmpty) ...[
             _buildStaffFeedbackCard(feedback),
             const SizedBox(height: 16),
           ],
@@ -449,7 +475,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(8),
@@ -464,7 +493,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -507,7 +539,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           const Divider(height: 24, color: AppColors.borderLight),
           Row(
             children: [
-              const Icon(Icons.alarm_rounded, size: 16, color: AppColors.warning),
+              const Icon(
+                Icons.alarm_rounded,
+                size: 16,
+                color: AppColors.warning,
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Feedback deadline: ',
@@ -532,7 +568,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.send_rounded, size: 15, color: AppColors.textMuted),
+              const Icon(
+                Icons.send_rounded,
+                size: 15,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Sent: ',
@@ -588,7 +628,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF0284C7)),
+              Icon(
+                Icons.info_outline_rounded,
+                size: 18,
+                color: Color(0xFF0284C7),
+              ),
               SizedBox(width: 8),
               Text(
                 'Accountant Explanation',
@@ -647,8 +691,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             children: [
               const Row(
                 children: [
-                  Icon(Icons.chat_bubble_outline_rounded,
-                      size: 16, color: AppColors.primary),
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                   SizedBox(width: 6),
                   Text(
                     'Your Submitted Feedback',
@@ -662,8 +709,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               ),
               if (feedback.status != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: statusColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -714,7 +763,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.build_circle_outlined, size: 18, color: Color(0xFFD97706)),
+              Icon(
+                Icons.build_circle_outlined,
+                size: 18,
+                color: Color(0xFFD97706),
+              ),
               SizedBox(width: 8),
               Text(
                 'Correction Request Details',
@@ -760,7 +813,8 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                       color: Color(0xFF78350F),
                     ),
                   ),
-                  if (issue.responseNote != null && issue.responseNote!.isNotEmpty)
+                  if (issue.responseNote != null &&
+                      issue.responseNote!.isNotEmpty)
                     Text(
                       'Manager Response: ${issue.responseNote}',
                       style: const TextStyle(
@@ -824,9 +878,18 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniOverviewStat('Total Earnings', formatCurrency(payroll.grossSalary)),
-              _buildMiniOverviewStat('Total Deductions', formatCurrency(payroll.totalDeduction)),
-              _buildMiniOverviewStat('Total Work Hours', '${payroll.totalWorkHours}h'),
+              _buildMiniOverviewStat(
+                'Total Earnings',
+                formatCurrency(payroll.grossSalary),
+              ),
+              _buildMiniOverviewStat(
+                'Total Deductions',
+                formatCurrency(payroll.totalDeduction),
+              ),
+              _buildMiniOverviewStat(
+                'Total Work Hours',
+                '${payroll.totalWorkHours}h',
+              ),
             ],
           ),
         ],
@@ -869,8 +932,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.account_balance_wallet_outlined,
-                  size: 18, color: AppColors.primary),
+              Icon(
+                Icons.account_balance_wallet_outlined,
+                size: 18,
+                color: AppColors.primary,
+              ),
               SizedBox(width: 8),
               Text(
                 'Earnings & Deductions Breakdown',
@@ -981,7 +1047,9 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
   /// 7. Shift Work Details
   Widget _buildShiftDetailsCard(PayrollCalculationItem payroll) {
     final workDetails = payroll.workDetails;
-    final workRowsFromDetails = payroll.details.where((d) => d.type == 'WORK').toList();
+    final workRowsFromDetails = payroll.details
+        .where((d) => d.type == 'WORK')
+        .toList();
 
     return Container(
       decoration: BoxDecoration(
@@ -993,7 +1061,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: false,
-          leading: const Icon(Icons.event_note_rounded, color: AppColors.primary),
+          leading: const Icon(
+            Icons.event_note_rounded,
+            color: AppColors.primary,
+          ),
           title: Text(
             'Shift Details (${workDetails.isNotEmpty ? workDetails.length : workRowsFromDetails.length} shifts)',
             style: const TextStyle(
@@ -1007,7 +1078,9 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
             if (workDetails.isNotEmpty)
               ...workDetails.map((shift) => _buildShiftDetailItem(shift))
             else if (workRowsFromDetails.isNotEmpty)
-              ...workRowsFromDetails.map((detail) => _buildFallbackDetailItem(detail))
+              ...workRowsFromDetails.map(
+                (detail) => _buildFallbackDetailItem(detail),
+              )
             else
               const Padding(
                 padding: EdgeInsets.all(16),
@@ -1037,8 +1110,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.access_time_filled_rounded,
-                size: 18, color: AppColors.primary),
+            child: const Icon(
+              Icons.access_time_filled_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1069,18 +1145,28 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                 const SizedBox(height: 3),
                 Text(
                   'Date: ${shift.workDate != null ? formatVietnamDate(shift.workDate) : 'N/A'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   'Attendance: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-                if (shift.totalLateMinutes > 0 || shift.totalEarlyLeaveMinutes > 0) ...[
+                if (shift.totalLateMinutes > 0 ||
+                    shift.totalEarlyLeaveMinutes > 0) ...[
                   const SizedBox(height: 3),
                   Text(
                     'Late: ${shift.totalLateMinutes}m • Early Leave: ${shift.totalEarlyLeaveMinutes}m',
-                    style: const TextStyle(fontSize: 11, color: AppColors.error),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
               ],
@@ -1103,7 +1189,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           Expanded(
             child: Text(
               detail.description,
-              style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
             ),
           ),
           Text(
@@ -1121,7 +1210,8 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
 
   /// 8. Pending Adjustments
   Widget _buildPendingAdjustmentsCard(
-      List<PendingPayrollAdjustmentItem> adjustments) {
+    List<PendingPayrollAdjustmentItem> adjustments,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1149,7 +1239,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
                 children: [
                   Text(
                     '${a.type == 'REWARD' ? '[Reward]' : '[Penalty]'} ${a.name}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Text(
                     formatCurrency(a.amount),
@@ -1182,7 +1275,11 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.history_rounded, size: 18, color: AppColors.textSecondary),
+              Icon(
+                Icons.history_rounded,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
               SizedBox(width: 8),
               Text(
                 'Preview Rounds History',
@@ -1197,7 +1294,10 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           const SizedBox(height: 12),
           Text(
             'Current Round: #${feedback.roundNo} (Version ${feedback.payrollVersionNo})',
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1233,16 +1333,19 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
         child: SafeArea(
           child: Row(
             children: [
-              const Icon(Icons.lock_outline_rounded,
-                  size: 18, color: AppColors.textMuted),
+              const Icon(
+                Icons.lock_outline_rounded,
+                size: 18,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   feedback.reviewStatus == PayrollReviewStatus.confirmed
                       ? 'You have already confirmed this payroll preview.'
                       : feedback.reviewStatus == PayrollReviewStatus.expired
-                          ? 'This payroll preview has expired for feedback.'
-                          : 'This round is view-only.',
+                      ? 'This payroll preview has expired for feedback.'
+                      : 'This round is view-only.',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.textMuted,

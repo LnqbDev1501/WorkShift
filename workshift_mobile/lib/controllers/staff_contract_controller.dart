@@ -8,7 +8,7 @@ class StaffContractController extends ChangeNotifier {
   final StaffContractService _service;
 
   StaffContractController({StaffContractService? service})
-      : _service = service ?? StaffContractService();
+    : _service = service ?? StaffContractService();
 
   // Danh sách hợp đồng
   final List<StaffContractListItemModel> _contracts = [];
@@ -47,7 +47,8 @@ class StaffContractController extends ChangeNotifier {
   bool _isLoadingPositions = false;
 
   // Getters
-  List<StaffContractListItemModel> get contracts => List.unmodifiable(_contracts);
+  List<StaffContractListItemModel> get contracts =>
+      List.unmodifiable(_contracts);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -85,7 +86,9 @@ class StaffContractController extends ChangeNotifier {
       } else if (normalized == 'REJECTED') {
         list = list.where((cr) => cr.isRejected).toList();
       } else {
-        list = list.where((cr) => cr.status.toUpperCase() == normalized).toList();
+        list = list
+            .where((cr) => cr.status.toUpperCase() == normalized)
+            .toList();
       }
     }
     if (_changeRequestSearchQuery.trim().isNotEmpty) {
@@ -95,11 +98,13 @@ class StaffContractController extends ChangeNotifier {
         final reviewComment = (cr.reviewComment ?? '').toLowerCase();
         final contractNumber = (cr.contractNumber ?? '').toLowerCase();
         final reqId = cr.changeRequestId.toString();
-        final hasItemMatch = cr.items.any((item) =>
-            item.fieldName.toLowerCase().contains(q) ||
-            item.fieldDisplayName.toLowerCase().contains(q) ||
-            item.proposedValue.toLowerCase().contains(q) ||
-            (item.reason ?? '').toLowerCase().contains(q));
+        final hasItemMatch = cr.items.any(
+          (item) =>
+              item.fieldName.toLowerCase().contains(q) ||
+              item.fieldDisplayName.toLowerCase().contains(q) ||
+              item.proposedValue.toLowerCase().contains(q) ||
+              (item.reason ?? '').toLowerCase().contains(q),
+        );
         return comment.contains(q) ||
             reviewComment.contains(q) ||
             contractNumber.contains(q) ||
@@ -246,8 +251,6 @@ class StaffContractController extends ChangeNotifier {
       await loadChangeRequests(contractId);
       await loadContracts(refresh: true);
 
-
-
       // Nạp lại danh sách yêu cầu thay đổi và hợp đồng
       await loadChangeRequests(contractId);
       await loadContracts(refresh: true);
@@ -257,7 +260,6 @@ class StaffContractController extends ChangeNotifier {
       return true;
     } catch (e) {
       _actionErrorMessage = e.toString();
-
 
       // Nạp lại danh sách yêu cầu thay đổi và hợp đồng
       await loadChangeRequests(contractId);
@@ -317,13 +319,19 @@ class StaffContractController extends ChangeNotifier {
   }
 
   /// Lấy dữ liệu file PDF của hợp đồng (View and Download Employment Contract PDF)
-  Future<Uint8List?> fetchPdfBytes(int contractId, {bool isDownload = false}) async {
+  Future<Uint8List?> fetchPdfBytes(
+    int contractId, {
+    bool isDownload = false,
+  }) async {
     _isDownloadingPdf = true;
     _actionErrorMessage = null;
     notifyListeners();
 
     try {
-      final bytes = await _service.getPdfBytes(contractId, isDownload: isDownload);
+      final bytes = await _service.getPdfBytes(
+        contractId,
+        isDownload: isDownload,
+      );
       _isDownloadingPdf = false;
       notifyListeners();
       return bytes;

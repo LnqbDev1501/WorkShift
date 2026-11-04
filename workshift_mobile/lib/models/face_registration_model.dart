@@ -58,7 +58,9 @@ class FaceRegistrationSessionModel {
     final rawChallenges = json['challenges'] as List<dynamic>? ?? [];
     return FaceRegistrationSessionModel(
       sessionId: json['sessionId']?.toString() ?? '',
-      expiresAt: DateTime.tryParse(json['expiresAt']?.toString() ?? '') ?? DateTime.now(),
+      expiresAt:
+          DateTime.tryParse(json['expiresAt']?.toString() ?? '') ??
+          DateTime.now(),
       expiresInSeconds: (json['expiresInSeconds'] as num?)?.toInt() ?? 90,
       actionType: json['actionType']?.toString() ?? 'REGISTRATION',
       challenges: rawChallenges
@@ -95,7 +97,9 @@ class FaceRegistrationVerifyResult {
       status: json['status']?.toString() ?? 'ACTIVE',
       faceQualityScore: (json['faceQualityScore'] as num?)?.toDouble(),
       livenessScore: (json['livenessScore'] as num?)?.toDouble() ?? 1.0,
-      registeredAt: DateTime.tryParse(json['registeredAt']?.toString() ?? '') ?? DateTime.now(),
+      registeredAt:
+          DateTime.tryParse(json['registeredAt']?.toString() ?? '') ??
+          DateTime.now(),
     );
   }
 }

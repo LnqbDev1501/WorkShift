@@ -7,7 +7,9 @@ class StaffTimesheetService {
   final ApiClient _apiClient = ApiClient();
 
   /// Retrieves the authenticated staff member's weekly timesheet: GET /api/staff/timesheets/my-timesheet
-  Future<StaffWeeklyTimesheetModel?> getMyWeeklyTimesheet({int? scheduleWeekId}) async {
+  Future<StaffWeeklyTimesheetModel?> getMyWeeklyTimesheet({
+    int? scheduleWeekId,
+  }) async {
     try {
       final queryParams = <String, dynamic>{};
       if (scheduleWeekId != null && scheduleWeekId > 0) {
@@ -20,14 +22,19 @@ class StaffTimesheetService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffWeeklyTimesheetModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       return null;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
         return null;
       }
-      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Failed to load timesheet';
+      final msg =
+          e.response?.data?['message']?.toString() ??
+          e.message ??
+          'Failed to load timesheet';
       log('StaffTimesheetService error: $msg');
       throw msg;
     } catch (e) {
@@ -51,11 +58,16 @@ class StaffTimesheetService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffWeeklyTimesheetModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Failed to confirm timesheet';
     } on DioException catch (e) {
-      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Confirmation failed';
+      final msg =
+          e.response?.data?['message']?.toString() ??
+          e.message ??
+          'Confirmation failed';
       log('StaffTimesheetService confirm error: $msg');
       throw msg;
     } catch (e) {
@@ -79,11 +91,16 @@ class StaffTimesheetService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffWeeklyTimesheetModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Failed to submit timesheet adjustments';
     } on DioException catch (e) {
-      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Submission failed';
+      final msg =
+          e.response?.data?['message']?.toString() ??
+          e.message ??
+          'Submission failed';
       log('StaffTimesheetService adjustments error: $msg');
       throw msg;
     } catch (e) {
@@ -102,11 +119,16 @@ class StaffTimesheetService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        return StaffWeeklyTimesheetModel.fromJson(response.data as Map<String, dynamic>);
+        return StaffWeeklyTimesheetModel.fromJson(
+          response.data as Map<String, dynamic>,
+        );
       }
       throw 'Failed to cancel timesheet adjustment';
     } on DioException catch (e) {
-      final msg = e.response?.data?['message']?.toString() ?? e.message ?? 'Cancellation failed';
+      final msg =
+          e.response?.data?['message']?.toString() ??
+          e.message ??
+          'Cancellation failed';
       log('StaffTimesheetService cancel error: $msg');
       throw msg;
     } catch (e) {

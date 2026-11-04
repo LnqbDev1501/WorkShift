@@ -40,7 +40,10 @@ class AttendanceFlowHandler {
             ),
             title: const Row(
               children: [
-                Icon(Icons.face_retouching_off_rounded, color: Colors.deepOrange),
+                Icon(
+                  Icons.face_retouching_off_rounded,
+                  color: Colors.deepOrange,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(

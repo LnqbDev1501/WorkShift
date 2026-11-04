@@ -129,7 +129,9 @@ class _SubmitContractChangeRequestViewState
     if (!widget.contract.isPendingStaff) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực không thể yêu cầu thay đổi.'),
+          content: Text(
+            'Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực không thể yêu cầu thay đổi.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -138,7 +140,9 @@ class _SubmitContractChangeRequestViewState
     if (_selectedFieldKeys.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least one field to request adjustment.'),
+          content: Text(
+            'Please select at least one field to request adjustment.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -149,11 +153,13 @@ class _SubmitContractChangeRequestViewState
 
     final items = <ContractChangeRequestItemInputModel>[];
     for (var key in _selectedFieldKeys) {
-      items.add(ContractChangeRequestItemInputModel(
-        fieldName: key,
-        proposedValue: _proposedControllers[key]!.text.trim(),
-        reason: _reasonControllers[key]?.text.trim(),
-      ));
+      items.add(
+        ContractChangeRequestItemInputModel(
+          fieldName: key,
+          proposedValue: _proposedControllers[key]!.text.trim(),
+          reason: _reasonControllers[key]?.text.trim(),
+        ),
+      );
     }
 
     final success = await widget.controller.submitChangeRequest(
@@ -166,14 +172,18 @@ class _SubmitContractChangeRequestViewState
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Contract change request submitted to manager successfully!'),
+            content: Text(
+              'Contract change request submitted to manager successfully!',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
       } else {
-        _showErrorDialog(widget.controller.actionErrorMessage ??
-            'Unable to submit change request.');
+        _showErrorDialog(
+          widget.controller.actionErrorMessage ??
+              'Unable to submit change request.',
+        );
       }
     }
   }
@@ -187,17 +197,25 @@ class _SubmitContractChangeRequestViewState
           children: [
             Icon(Icons.error_outline, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Request Failed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Request Failed',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Understood'),
           ),
@@ -224,7 +242,11 @@ class _SubmitContractChangeRequestViewState
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -245,7 +267,11 @@ class _SubmitContractChangeRequestViewState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 22),
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -262,7 +288,10 @@ class _SubmitContractChangeRequestViewState
                           const SizedBox(height: 2),
                           const Text(
                             'Select the fields requiring adjustment to send to your manager for review and revision.',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -282,27 +311,42 @@ class _SubmitContractChangeRequestViewState
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isChecked ? AppColors.primary : AppColors.borderLight,
+                      color: isChecked
+                          ? AppColors.primary
+                          : AppColors.borderLight,
                       width: isChecked ? 1.5 : 1,
                     ),
                   ),
                   child: CheckboxListTile(
                     value: isChecked,
                     activeColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     title: Text(
                       field.label,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isChecked ? FontWeight.bold : FontWeight.w600,
+                        fontWeight: isChecked
+                            ? FontWeight.bold
+                            : FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     subtitle: Text(
                       'Current: ${field.currentValue}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                    secondary: Icon(field.icon, color: isChecked ? AppColors.primary : AppColors.textMuted, size: 22),
+                    secondary: Icon(
+                      field.icon,
+                      color: isChecked
+                          ? AppColors.primary
+                          : AppColors.textMuted,
+                      size: 22,
+                    ),
                     onChanged: (_) => _toggleField(field.key),
                   ),
                 );
@@ -325,8 +369,12 @@ class _SubmitContractChangeRequestViewState
                 maxLines: 3,
                 maxLength: 300,
                 decoration: InputDecoration(
-                  hintText: 'Enter additional comments or explanation for your manager (optional)...',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  hintText:
+                      'Enter additional comments or explanation for your manager (optional)...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -339,7 +387,10 @@ class _SubmitContractChangeRequestViewState
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.all(14),
                 ),
@@ -427,7 +478,13 @@ class _SubmitContractChangeRequestViewState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           SizedBox(width: 8),
-                          Text('Loading active positions...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          Text(
+                            'Loading active positions...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -435,7 +492,9 @@ class _SubmitContractChangeRequestViewState
                 }
 
                 final currentVal = proposedCtrl.text.trim();
-                final dropdownValue = positions.contains(currentVal) ? currentVal : null;
+                final dropdownValue = positions.contains(currentVal)
+                    ? currentVal
+                    : null;
 
                 return DropdownButtonFormField<String>(
                   initialValue: dropdownValue,
@@ -443,19 +502,36 @@ class _SubmitContractChangeRequestViewState
                     labelText: 'Desired Position *',
                     hintText: '-- Select position from system --',
                     helperText: 'Only active system positions are selectable.',
-                    helperStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                    labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    helperStyle: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                    labelStyle: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
-                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: AppColors.primary,
+                  ),
                   isExpanded: true,
                   items: positions.map((pos) {
                     return DropdownMenuItem<String>(
                       value: pos,
                       child: Text(
                         pos,
-                        style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -481,9 +557,17 @@ class _SubmitContractChangeRequestViewState
               decoration: InputDecoration(
                 labelText: 'Proposed New Value *',
                 hintText: 'Enter your proposed value',
-                labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
@@ -499,9 +583,17 @@ class _SubmitContractChangeRequestViewState
             decoration: InputDecoration(
               labelText: 'Reason for Adjustment',
               hintText: 'Explain why this change is requested (optional)',
-              labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
         ],

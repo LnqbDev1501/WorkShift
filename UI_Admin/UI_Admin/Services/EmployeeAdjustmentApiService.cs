@@ -12,8 +12,7 @@ public sealed class EmployeeAdjustmentApiException(HttpStatusCode status, string
 
 public sealed class EmployeeAdjustmentApiService(HttpClient client, IConfiguration configuration)
 {
-    private string Base => (configuration["WorkShiftApi:BaseUrl"]
-        ?? throw new InvalidOperationException("API address is missing.")).TrimEnd('/');
+    private string Base => configuration.GetWorkShiftApiBaseUrl();
 
     private string Endpoint(string type) =>
         $"{Base}/api/employee-{(type == EmployeeAdjustmentTypes.Penalty ? "penalties" : "rewards")}";

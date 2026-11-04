@@ -1,6 +1,6 @@
 import 'dart:developer';
 
-import 'package:flutter/foundation.dart'; // nếu muốn chạy ngork thì comment dòng này
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,19 +12,38 @@ class ApiClient {
   late final Dio dio;
   static const String tokenKey = 'access_token';
 
-  // comment đoạn này nếu muốn chạy web
+  static const String _configuredBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+  );
+
   static String get defaultBaseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5267';
+    if (_configuredBaseUrl.trim().isNotEmpty) {
+      return _normalizeBaseUrl(_configuredBaseUrl);
     }
-    return 'http://10.0.2.2:5267';
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? 'http://10.0.2.2:5267'
+        : 'http://localhost:5267';
   }
 
-  // mở comment đoạn này nếu muốn chạy ngork
-  // static String get defaultBaseUrl {
-  //   // Dán link ngrok của bạn vào đây:
-  //   return 'https://linguini-unselect-science.ngrok-free.dev'.trim();
-  // }
+  static String _normalizeBaseUrl(String value) {
+    final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
+    final uri = Uri.tryParse(normalized);
+    if (uri == null ||
+        !uri.hasAuthority ||
+        uri.host.isEmpty ||
+        (uri.scheme != 'http' && uri.scheme != 'https') ||
+        uri.hasQuery ||
+        uri.hasFragment) {
+      throw ArgumentError.value(
+        value,
+        'baseUrl',
+        'Expected an HTTP or HTTPS URL',
+      );
+    }
+    return normalized;
+  }
+
+  String get baseUrl => dio.options.baseUrl;
 
   ApiClient._internal() {
     dio = Dio(
@@ -69,7 +88,8 @@ class ApiClient {
   }
 
   // Update base URL dynamically if needed
-  void setBaseUrl(String newUrl) => dio.options.baseUrl = newUrl;
+  void setBaseUrl(String newUrl) =>
+      dio.options.baseUrl = _normalizeBaseUrl(newUrl);
 
   // Token management
   Future<void> saveToken(String token) async {

@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Net;
 using System.Text.Json;
@@ -10,10 +11,8 @@ public sealed class ManagerRequestLimitRuleApiService(HttpClient client, IConfig
 {
     private string Url(string path = "")
     {
-        var url = configuration["WorkShiftApi:BaseUrl"];
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http"))
-            throw new InvalidOperationException("Invalid API base URL.");
-        return url!.TrimEnd('/') + "/api/manager/request-limit-rules" + path;
+        var url = configuration.GetWorkShiftApiBaseUrl();
+        return url + "/api/manager/request-limit-rules" + path;
     }
     public async Task<RequestLimitRulePage> ListAsync(RequestLimitRuleFilter filter, CancellationToken ct)
     {

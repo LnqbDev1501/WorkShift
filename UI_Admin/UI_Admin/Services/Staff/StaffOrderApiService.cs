@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Json;
@@ -8,7 +9,7 @@ namespace UI_Admin.Services.Staff;
 
 public sealed class StaffOrderApiService(HttpClient client, IConfiguration configuration)
 {
-    private readonly string _baseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+    private readonly string _baseUrl = configuration.GetWorkShiftApiBaseUrl();
 
     public async Task<StaffOrderListViewModel> GetMyOrdersAsync(
         string? search,

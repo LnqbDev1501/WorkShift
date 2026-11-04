@@ -11,8 +11,7 @@ public sealed class NotificationApiService
     public NotificationApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<NotificationListPageViewModel> GetPagedAsync(
@@ -33,7 +32,7 @@ public sealed class NotificationApiService
         AddParameter(parameters, "dateTo", query.DateTo?.ToString("O"));
 
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/admin/notifications?{string.Join('&', parameters)}",
+            $"{_apiBaseUrl}/api/admin/notifications?{string.Join('&', parameters)}",
             cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -44,7 +43,7 @@ public sealed class NotificationApiService
     public async Task<NotificationDetailViewModel?> GetByIdAsync(int notificationId, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/admin/notifications/{notificationId}",
+            $"{_apiBaseUrl}/api/admin/notifications/{notificationId}",
             cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -57,7 +56,7 @@ public sealed class NotificationApiService
     public async Task<NotificationAudienceOptionsViewModel> GetAudienceOptionsAsync(CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/admin/notifications/audience-options",
+            $"{_apiBaseUrl}/api/admin/notifications/audience-options",
             cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<NotificationAudienceOptionsViewModel>(cancellationToken)
@@ -69,7 +68,7 @@ public sealed class NotificationApiService
         CancellationToken cancellationToken)
     {
         using var response = await _httpClient.PostAsJsonAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/admin/notifications/broadcast",
+            $"{_apiBaseUrl}/api/admin/notifications/broadcast",
             request,
             cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -94,7 +93,7 @@ public sealed class NotificationApiService
         AddParameter(parameters, "search", query.Search);
 
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/personal?{string.Join('&', parameters)}",
+            $"{_apiBaseUrl}/api/notifications/personal?{string.Join('&', parameters)}",
             cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -105,7 +104,7 @@ public sealed class NotificationApiService
     public async Task<PersonalNotificationDetailViewModel?> GetMyNotificationByIdAsync(int userNotificationId, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/personal/{userNotificationId}",
+            $"{_apiBaseUrl}/api/notifications/personal/{userNotificationId}",
             cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -118,7 +117,7 @@ public sealed class NotificationApiService
     public async Task<int> GetUnreadCountAsync(CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/personal/unread-count",
+            $"{_apiBaseUrl}/api/notifications/personal/unread-count",
             cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -129,7 +128,7 @@ public sealed class NotificationApiService
     public async Task<bool> MarkAsReadAsync(int userNotificationId, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.PostAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/personal/{userNotificationId}/read",
+            $"{_apiBaseUrl}/api/notifications/personal/{userNotificationId}/read",
             null,
             cancellationToken);
 
@@ -158,7 +157,7 @@ public sealed class NotificationApiService
         AddParameter(parameters, "dateTo", query.DateTo?.ToString("O"));
 
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/broadcast?{string.Join('&', parameters)}",
+            $"{_apiBaseUrl}/api/notifications/broadcast?{string.Join('&', parameters)}",
             cancellationToken);
         response.EnsureSuccessStatusCode();
 
@@ -169,7 +168,7 @@ public sealed class NotificationApiService
     public async Task<PersonalNotificationDetailViewModel?> GetBroadcastByIdAsync(int notificationId, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(
-            $"{_apiBaseUrl.TrimEnd('/')}/api/notifications/broadcast/{notificationId}",
+            $"{_apiBaseUrl}/api/notifications/broadcast/{notificationId}",
             cancellationToken);
 
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)

@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models;
 using UI_Admin.Models.Catalog;
@@ -13,8 +14,7 @@ public sealed class AccountantCategoryApiService
     public AccountantCategoryApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<AccountantCategoryListViewModel> GetPagedAsync(
@@ -79,5 +79,5 @@ public sealed class AccountantCategoryApiService
         };
     }
 
-    private string BuildUrl(string relativePath) => $"{_apiBaseUrl.TrimEnd('/')}/{relativePath}";
+    private string BuildUrl(string relativePath) => $"{_apiBaseUrl}/{relativePath}";
 }

@@ -10,7 +10,7 @@ public sealed class SalaryChangeApiException(HttpStatusCode status, string messa
 
 public sealed class SalaryChangeApiService(HttpClient client, IConfiguration configuration)
 {
-    private string Endpoint => (configuration["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("API address is missing.")).TrimEnd('/') + "/api/salary-change-requests";
+    private string Endpoint => configuration.GetWorkShiftApiBaseUrl() + "/api/salary-change-requests";
     private static async Task<T> Read<T>(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)

@@ -46,7 +46,8 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Không thể tải danh sách kỷ luật vi phạm. Vui lòng thử lại.';
+        _errorMessage =
+            'Không thể tải danh sách kỷ luật vi phạm. Vui lòng thử lại.';
         _isLoading = false;
       });
     }
@@ -110,7 +111,11 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
             color: AppColors.warningBg,
             child: Row(
               children: [
-                const Icon(Icons.security_rounded, size: 16, color: AppColors.warning),
+                const Icon(
+                  Icons.security_rounded,
+                  size: 16,
+                  color: AppColors.warning,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -144,7 +149,10 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                       children: [
                         const Text(
                           'Tổng số vi phạm',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -173,7 +181,10 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                       children: [
                         const Text(
                           'Đã duyệt khấu trừ',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -198,7 +209,9 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: ['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((status) {
+                children: ['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((
+                  status,
+                ) {
                   final isSelected = _selectedStatus == status;
                   return Padding(
                     padding: const EdgeInsets.only(right: 8.0),
@@ -207,10 +220,10 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                         status == 'ALL'
                             ? 'Tất cả'
                             : status == 'APPROVED'
-                                ? 'Đã duyệt'
-                                : status == 'PENDING'
-                                    ? 'Chờ duyệt'
-                                    : 'Bác bỏ',
+                            ? 'Đã duyệt'
+                            : status == 'PENDING'
+                            ? 'Chờ duyệt'
+                            : 'Bác bỏ',
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -221,14 +234,20 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                       },
                       selectedColor: AppColors.primary,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textSecondary,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textSecondary,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
                       backgroundColor: AppColors.surface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
+                        side: BorderSide(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
+                        ),
                       ),
                     ),
                   );
@@ -243,121 +262,149 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
-                            const SizedBox(height: 12),
-                            Text(_errorMessage!, style: const TextStyle(color: AppColors.textSecondary)),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadPenalties,
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Thử lại'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 48,
+                          color: AppColors.error,
                         ),
-                      )
-                    : _penalties.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'Bạn không có khoản phạt hay vi phạm nào.',
-                              style: TextStyle(color: AppColors.textSecondary),
-                            ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _loadPenalties,
-                            child: ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: _penalties.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final item = _penalties[index];
-                                return Card(
-                                  elevation: 0,
-                                  color: AppColors.surface,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                    side: const BorderSide(color: AppColors.border),
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadPenalties,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Thử lại'),
+                        ),
+                      ],
+                    ),
+                  )
+                : _penalties.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Bạn không có khoản phạt hay vi phạm nào.',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadPenalties,
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _penalties.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = _penalties[index];
+                        return Card(
+                          elevation: 0,
+                          color: AppColors.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => StaffPenaltyDetailView(
+                                    penaltyId: item.rewardPenaltyId,
                                   ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => StaffPenaltyDetailView(penaltyId: item.rewardPenaltyId),
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  item.adjustmentName,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppColors.textPrimary,
-                                                  ),
-                                                ),
-                                              ),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: _getStatusBg(item.approvalStatus),
-                                                  borderRadius: BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  item.approvalStatus,
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: _getStatusColor(item.approvalStatus),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item.adjustmentName,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
                                           ),
-                                          const SizedBox(height: 8),
-                                          Text(
-                                            '- ${formatCurrency(item.amount)}',
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppColors.error,
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusBg(
+                                            item.approvalStatus,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          item.approvalStatus,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: _getStatusColor(
+                                              item.approvalStatus,
                                             ),
                                           ),
-                                          const SizedBox(height: 8),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                'Kỳ: ${item.periodCode}',
-                                                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                                              ),
-                                              if (item.createdAt != null)
-                                                Text(
-                                                  formatVietnamDate(item.createdAt),
-                                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                                                ),
-                                            ],
-                                          ),
-                                        ],
+                                        ),
                                       ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '- ${formatCurrency(item.amount)}',
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.error,
                                     ),
                                   ),
-                                );
-                              },
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Kỳ: ${item.periodCode}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                      if (item.createdAt != null)
+                                        Text(
+                                          formatVietnamDate(item.createdAt),
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

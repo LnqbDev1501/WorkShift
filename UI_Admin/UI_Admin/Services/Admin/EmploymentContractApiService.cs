@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using System.Text;
 using UI_Admin.Models.EmploymentContracts;
@@ -14,7 +15,7 @@ public class EmploymentContractApiService
         IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     /// <summary>

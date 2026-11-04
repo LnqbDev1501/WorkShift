@@ -29,12 +29,10 @@ namespace UI_Admin.Services
             string accessToken,
             string password)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException(
-                    "The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/set-password",
+                $"{apiBaseUrl}/api/auth/set-password",
                 new { accessToken, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
@@ -46,11 +44,10 @@ namespace UI_Admin.Services
 
         public async Task ValidateStaffSetupTokenAsync(string token)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/validate",
+                $"{apiBaseUrl}/api/auth/staff-setup/validate",
                 new { token });
 
             if (response.IsSuccessStatusCode)
@@ -62,11 +59,10 @@ namespace UI_Admin.Services
 
         public async Task SetStaffPasswordAsync(string token, string password)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/staff-setup/set-password",
+                $"{apiBaseUrl}/api/auth/staff-setup/set-password",
                 new { token, password = password.Trim() });
 
             if (response.IsSuccessStatusCode)
@@ -78,11 +74,10 @@ namespace UI_Admin.Services
 
         public async Task<LoginApiResponse> LoginAsync(string email, string password)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/login",
+                $"{apiBaseUrl}/api/auth/login",
                 new { email = email.Trim(), password = password.Trim() });
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
@@ -95,11 +90,10 @@ namespace UI_Admin.Services
 
         public async Task<LoginApiResponse> RefreshAsync(string refreshToken)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/refresh",
+                $"{apiBaseUrl}/api/auth/refresh",
                 new { refreshToken });
             var body = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
@@ -112,11 +106,10 @@ namespace UI_Admin.Services
 
         public async Task RequestPasswordRecoveryAsync(string email)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
             using var response = await _httpClient.PostAsJsonAsync(
-                $"{apiBaseUrl.TrimEnd('/')}/api/auth/forgot-password",
+                $"{apiBaseUrl}/api/auth/forgot-password",
                 new { email = email.Trim() });
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException("The authentication service is temporarily unavailable. Please try again.");
@@ -124,10 +117,9 @@ namespace UI_Admin.Services
 
         public async Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken = default)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
-            using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl.TrimEnd('/')}/api/profile/password")
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl}/api/profile/password")
             {
                 Content = JsonContent.Create(new { currentPassword = currentPassword.Trim(), password = newPassword.Trim() })
             };
@@ -161,10 +153,9 @@ namespace UI_Admin.Services
         string address,
         CancellationToken cancellationToken = default)
     {
-        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+        var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
-        using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me")
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"{apiBaseUrl}/api/profile/me")
         {
             Content = JsonContent.Create(new
             {
@@ -190,8 +181,7 @@ namespace UI_Admin.Services
 
     public async Task<string> UpdateAvatarAsync(IFormFile avatarFile, CancellationToken cancellationToken = default)
     {
-        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+        var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
         using var content = new MultipartFormDataContent();
         await using var stream = avatarFile.OpenReadStream();
@@ -200,7 +190,7 @@ namespace UI_Admin.Services
             new System.Net.Http.Headers.MediaTypeHeaderValue(avatarFile.ContentType ?? "application/octet-stream");
         content.Add(fileContent, "avatarFile", avatarFile.FileName);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me/avatar")
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl}/api/profile/me/avatar")
         {
             Content = content
         };
@@ -221,10 +211,9 @@ namespace UI_Admin.Services
 
     public async Task RequestEmailChangeAsync(string email, CancellationToken cancellationToken = default)
     {
-        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+        var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl.TrimEnd('/')}/api/profile/email/change-request")
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{apiBaseUrl}/api/profile/email/change-request")
         {
             Content = JsonContent.Create(new { email = email.Trim() })
         };
@@ -240,11 +229,10 @@ namespace UI_Admin.Services
 
     public async Task<UserDetailViewModel> ConfirmEmailChangeAsync(string token, CancellationToken cancellationToken = default)
     {
-        var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+        var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
         using var response = await _httpClient.PostAsJsonAsync(
-            $"{apiBaseUrl.TrimEnd('/')}/api/profile/email/confirm",
+            $"{apiBaseUrl}/api/profile/email/confirm",
             new { token },
             cancellationToken);
 
@@ -260,10 +248,9 @@ namespace UI_Admin.Services
 
     public async Task<UserDetailViewModel?> GetMyProfileAsync(CancellationToken cancellationToken = default)
         {
-            var apiBaseUrl = _configuration["WorkShiftApi:BaseUrl"]
-                ?? throw new InvalidOperationException("The WorkShiftApi:BaseUrl configuration is missing.");
+            var apiBaseUrl = _configuration.GetWorkShiftApiBaseUrl();
 
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl.TrimEnd('/')}/api/profile/me");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{apiBaseUrl}/api/profile/me");
 
             var context = _httpContextAccessor.HttpContext;
             if (context != null)

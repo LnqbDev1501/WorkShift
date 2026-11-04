@@ -21,7 +21,8 @@ class StaffTimesheetController extends ChangeNotifier {
   StaffWeeklyTimesheetModel? get timesheet => _timesheet;
   int? get selectedWeekId => _selectedWeekId;
 
-  List<StaffTimesheetWeekOptionModel> get availableWeeks => _timesheet?.availableWeeks ?? [];
+  List<StaffTimesheetWeekOptionModel> get availableWeeks =>
+      _timesheet?.availableWeeks ?? [];
 
   /// Loads weekly timesheet data for the staff member
   Future<void> loadTimesheet({int? scheduleWeekId}) async {
@@ -30,7 +31,9 @@ class StaffTimesheetController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _service.getMyWeeklyTimesheet(scheduleWeekId: scheduleWeekId);
+      final result = await _service.getMyWeeklyTimesheet(
+        scheduleWeekId: scheduleWeekId,
+      );
       _timesheet = result;
       if (result != null) {
         _selectedWeekId = result.scheduleWeekId;
@@ -54,7 +57,9 @@ class StaffTimesheetController extends ChangeNotifier {
   Future<void> navigateWeek({required bool next}) async {
     if (_timesheet == null || availableWeeks.isEmpty) return;
 
-    final currentIndex = availableWeeks.indexWhere((w) => w.scheduleWeekId == _selectedWeekId);
+    final currentIndex = availableWeeks.indexWhere(
+      (w) => w.scheduleWeekId == _selectedWeekId,
+    );
     if (currentIndex == -1) return;
 
     // availableWeeks is sorted by WeekStartDate DESC:
@@ -70,13 +75,17 @@ class StaffTimesheetController extends ChangeNotifier {
 
   bool get hasPreviousWeek {
     if (_timesheet == null || availableWeeks.isEmpty) return false;
-    final currentIndex = availableWeeks.indexWhere((w) => w.scheduleWeekId == _selectedWeekId);
+    final currentIndex = availableWeeks.indexWhere(
+      (w) => w.scheduleWeekId == _selectedWeekId,
+    );
     return currentIndex != -1 && currentIndex < availableWeeks.length - 1;
   }
 
   bool get hasNextWeek {
     if (_timesheet == null || availableWeeks.isEmpty) return false;
-    final currentIndex = availableWeeks.indexWhere((w) => w.scheduleWeekId == _selectedWeekId);
+    final currentIndex = availableWeeks.indexWhere(
+      (w) => w.scheduleWeekId == _selectedWeekId,
+    );
     return currentIndex != -1 && currentIndex > 0;
   }
 
@@ -133,9 +142,7 @@ class StaffTimesheetController extends ChangeNotifier {
   }
 
   /// Cancels a pending timesheet adjustment request
-  Future<String?> cancelAdjustment({
-    required int adjustmentRequestId,
-  }) async {
+  Future<String?> cancelAdjustment({required int adjustmentRequestId}) async {
     _isCancellingAdjustment = true;
     _errorMessage = null;
     notifyListeners();

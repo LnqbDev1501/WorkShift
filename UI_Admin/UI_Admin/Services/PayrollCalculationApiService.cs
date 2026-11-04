@@ -9,7 +9,7 @@ public sealed class CalculationApiException(HttpStatusCode status, string messag
 { public HttpStatusCode Status { get; } = status; public EmployeeReadiness? Readiness { get; } = readiness; }
 public sealed class PayrollCalculationApiService(HttpClient client, IConfiguration config)
 {
-    private string Root => (config["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("Missing API URL.")).TrimEnd('/') + "/api";
+    private string Root => config.GetWorkShiftApiBaseUrl() + "/api";
     public static async Task<T> Read<T>(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)

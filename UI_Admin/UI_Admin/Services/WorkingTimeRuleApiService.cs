@@ -11,8 +11,7 @@ public sealed class WorkingTimeRuleApiService
     public WorkingTimeRuleApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<WorkingTimeRuleListViewModel> GetListAsync(CancellationToken cancellationToken = default)
@@ -91,7 +90,7 @@ public sealed class WorkingTimeRuleApiService
     };
 
     private string BuildUrl(string relativeUrl) =>
-        $"{_apiBaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+        $"{_apiBaseUrl}/{relativeUrl.TrimStart('/')}";
 
     private sealed class ApiErrorResponse
     {

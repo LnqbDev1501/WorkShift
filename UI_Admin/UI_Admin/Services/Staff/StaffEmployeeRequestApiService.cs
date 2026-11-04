@@ -1,4 +1,5 @@
-﻿using System;
+using UI_Admin.Services;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http.Json;
@@ -22,7 +23,7 @@ public class StaffEmployeeRequestApiService
         IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     /// <summary>

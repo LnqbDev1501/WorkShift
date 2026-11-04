@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +14,7 @@ public class EmployeeTypeApiService
     public EmployeeTypeApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/') + "/api/admin/employee-types";
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl() + "/api/admin/employee-types";
     }
 
     public async Task<EmployeeTypeListPagedViewModel> GetPagedAsync(

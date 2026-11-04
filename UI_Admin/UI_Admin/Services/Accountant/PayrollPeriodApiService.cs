@@ -1,4 +1,5 @@
-﻿using System.Net;
+using UI_Admin.Services;
+using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.WebUtilities;
 using UI_Admin.Models;
@@ -15,12 +16,12 @@ public sealed class PayrollPeriodApiException(HttpStatusCode status, string mess
 
 public sealed class PayrollPeriodApiService(HttpClient client, IConfiguration config)
 {
-    private string BaseApi => (config["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("Missing API URL.")).TrimEnd('/') + "/api";
+    private string BaseApi => config.GetWorkShiftApiBaseUrl() + "/api";
     private string Root => BaseApi + "/accountant/payroll-periods";
 
     private async Task<HttpResponseMessage> Send(HttpMethod method, string path, object? body, CancellationToken ct)
     {
-        var url = path.StartsWith("/api/") ? (config["WorkShiftApi:BaseUrl"] ?? "").TrimEnd('/') + path : Root + path;
+        var url = path.StartsWith("/api/") ? config.GetWorkShiftApiBaseUrl() + path : Root + path;
         using var request = new HttpRequestMessage(method, url);
         if (body != null) request.Content = JsonContent.Create(body);
         var response = await client.SendAsync(request, ct);

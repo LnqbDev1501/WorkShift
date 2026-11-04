@@ -28,7 +28,9 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
     super.dispose();
   }
 
-  void _onUpdate() { if (mounted) setState(() {}); }
+  void _onUpdate() {
+    if (mounted) setState(() {});
+  }
 
   Future<void> _handleComplete() async {
     final confirm = await showDialog<bool>(
@@ -37,15 +39,23 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
         title: const Text('Complete Order'),
         content: const Text('Mark as completed? This cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Yes')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Yes'),
+          ),
         ],
       ),
     );
     if (confirm == true) {
       final ok = await _controller.completeOrder(widget.orderId);
       if (ok && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order completed')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Order completed')));
         Navigator.pop(context, true);
       }
     }
@@ -57,27 +67,39 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(order?.orderNumber ?? 'Order Detail', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(
+          order?.orderNumber ?? 'Order Detail',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _controller.isLoading && order == null
           ? const Center(child: CircularProgressIndicator())
           : order == null
-              ? Center(child: AppButton(text: 'Back to List', type: AppButtonType.outline, onPressed: () => Navigator.pop(context)))
-              : RefreshIndicator(
-                  onRefresh: () => _controller.loadOrderDetail(widget.orderId),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: _buildBodyChildren(order),
-                    ),
-                  ),
+          ? Center(
+              child: AppButton(
+                text: 'Back to List',
+                type: AppButtonType.outline,
+                onPressed: () => Navigator.pop(context),
               ),
+            )
+          : RefreshIndicator(
+              onRefresh: () => _controller.loadOrderDetail(widget.orderId),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: _buildBodyChildren(order),
+                ),
+              ),
+            ),
     );
   }
 
@@ -120,13 +142,22 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                   const SizedBox(width: 8),
                   Text(
                     formatDate(order.orderDate),
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
               if (order.paidAt != null) ...[
                 const SizedBox(height: 8),
-                Text('Paid: ${formatDate(order.paidAt!)}', style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w500)),
+                Text(
+                  'Paid: ${formatDate(order.paidAt!)}',
+                  style: const TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ],
           ),
@@ -142,7 +173,10 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
             children: [
               Text(
                 'Items (${items.length})',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 12),
               ...items.asMap().entries.map((e) {
@@ -153,25 +187,55 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${i + 1}. ${item.productName}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text(
+                        '${i + 1}. ${item.productName}',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       const SizedBox(height: 4),
-                      Row(children: [
-                        Text('${item.quantity} × ${formatCurrency(item.unitPrice)}', style: TextStyle(color: AppColors.textSecondary)),
-                        if (item.discountAmount > 0) ...[
-                          const SizedBox(width: 8),
-                          Text('- ${formatCurrency(item.discountAmount)}', style: const TextStyle(color: AppColors.success)),
+                      Row(
+                        children: [
+                          Text(
+                            '${item.quantity} × ${formatCurrency(item.unitPrice)}',
+                            style: TextStyle(color: AppColors.textSecondary),
+                          ),
+                          if (item.discountAmount > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '- ${formatCurrency(item.discountAmount)}',
+                              style: const TextStyle(color: AppColors.success),
+                            ),
+                          ],
+                          const Spacer(),
+                          Text(
+                            formatCurrency(item.totalAmount),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
                         ],
-                        const Spacer(),
-                        Text(formatCurrency(item.totalAmount), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary)),
-                      ]),
+                      ),
                       if (item.note != null && item.note!.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.note_alt_outlined, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.note_alt_outlined,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 6),
-                            Expanded(child: Text(item.note!, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic))),
+                            Expanded(
+                              child: Text(
+                                item.note!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ] else ...[
@@ -179,9 +243,20 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.note_alt_outlined, size: 14, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.note_alt_outlined,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 6),
-                            Text('Không có', style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                            Text(
+                              'Không có',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -210,21 +285,36 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
       if (payments.isNotEmpty) ...[
         const SizedBox(height: 16),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Payments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                const Text(
+                  'Payments',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 12),
-                ...payments.map((p) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(children: [
-                    Expanded(child: Text(p.paymentMethod)),
-                    Text(formatCurrency(p.amount), style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.success)),
-                  ]),
-                )),
+                ...payments.map(
+                  (p) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Expanded(child: Text(p.paymentMethod)),
+                        Text(
+                          formatCurrency(p.amount),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -233,7 +323,9 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
       if (order.note != null && order.note!.isNotEmpty) ...[
         const SizedBox(height: 24),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -241,13 +333,29 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.note_alt_outlined, size: 20, color: AppColors.primary),
+                    const Icon(
+                      Icons.note_alt_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
-                    const Text('Order Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    const Text(
+                      'Order Note',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(order.note!, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+                Text(
+                  order.note!,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -255,7 +363,9 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
       ] else ...[
         const SizedBox(height: 24),
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -263,13 +373,30 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.note_alt_outlined, size: 20, color: AppColors.primary),
+                    const Icon(
+                      Icons.note_alt_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
-                    const Text('Order Note', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    const Text(
+                      'Order Note',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text('Không có', style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontStyle: FontStyle.italic)),
+                Text(
+                  'Không có',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),

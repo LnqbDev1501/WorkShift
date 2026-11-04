@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using System.Text.Json;
 using UI_Admin.Models.Admin.AttendancePenaltyRule;
@@ -12,8 +13,7 @@ public sealed class AttendancePenaltyRuleApiService
     public AttendancePenaltyRuleApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<AttendancePenaltyRuleListViewModel> GetListAsync(
@@ -200,7 +200,7 @@ public sealed class AttendancePenaltyRuleApiService
 
     private string BuildUrl(string relativeUrl)
     {
-        return $"{_apiBaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+        return $"{_apiBaseUrl}/{relativeUrl.TrimStart('/')}";
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

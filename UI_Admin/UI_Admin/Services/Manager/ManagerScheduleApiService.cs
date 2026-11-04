@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using Microsoft.AspNetCore.WebUtilities;
 using System.Text.Json;
 using UI_Admin.Models.Manager;
@@ -39,13 +40,7 @@ public sealed class ManagerScheduleApiService(HttpClient client, IConfiguration 
             throw new HttpRequestException(await ApiErrorReader.ReadErrorMessageAsync(response, ct), null, response.StatusCode);
     }
 
-    private string BaseUrl()
-    {
-        var baseUrl = configuration["WorkShiftApi:BaseUrl"];
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "https" && uri.Scheme != "http"))
-            throw new InvalidOperationException("Invalid API URL.");
-        return baseUrl!.TrimEnd('/');
-    }
+    private string BaseUrl() => configuration.GetWorkShiftApiBaseUrl();
     public Task<List<ScheduleWeekSummaryResponse>> GetListAsync(ManagerScheduleFilter filter, CancellationToken ct) =>
         GetAsync<List<ScheduleWeekSummaryResponse>>(QueryHelpers.AddQueryString("/api/manager/schedule-weeks", new Dictionary<string, string?>
         {

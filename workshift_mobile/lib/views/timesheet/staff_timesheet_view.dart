@@ -49,7 +49,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
   void _selectAllEligibleShifts() {
     final shifts = _controller.timesheet?.shifts ?? [];
     setState(() {
-      final eligible = shifts.where((s) => s.canRequestAdjustment).map((s) => s.assignmentId);
+      final eligible = shifts
+          .where((s) => s.canRequestAdjustment)
+          .map((s) => s.assignmentId);
       if (_selectedAssignmentIds.length == eligible.length) {
         _selectedAssignmentIds.clear();
       } else {
@@ -64,13 +66,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     });
   }
 
-  Future<void> _handleOpenAdjustmentSheet({StaffShiftAttendanceModel? singleShift}) async {
+  Future<void> _handleOpenAdjustmentSheet({
+    StaffShiftAttendanceModel? singleShift,
+  }) async {
     final timesheet = _controller.timesheet;
     if (timesheet == null) return;
 
     final targetShifts = singleShift != null
         ? [singleShift]
-        : timesheet.shifts.where((s) => _selectedAssignmentIds.contains(s.assignmentId)).toList();
+        : timesheet.shifts
+              .where((s) => _selectedAssignmentIds.contains(s.assignmentId))
+              .toList();
 
     if (targetShifts.isEmpty) return;
 
@@ -79,16 +85,16 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       selectedShifts: targetShifts,
       checkInBeforeMinutes: timesheet.checkInBeforeMinutes,
       checkOutAfterMinutes: timesheet.checkOutAfterMinutes,
-      onSubmit: (items) => _controller.submitAdjustments(
-        adjustments: items,
-      ),
+      onSubmit: (items) => _controller.submitAdjustments(adjustments: items),
     );
 
     if (submitted == true && mounted) {
       _clearSelection();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Timesheet adjustment request submitted successfully! Waiting for manager review.'),
+          content: Text(
+            'Timesheet adjustment request submitted successfully! Waiting for manager review.',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -105,7 +111,8 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       selectedWeekId: _controller.selectedWeekId,
     );
 
-    if (selectedWeekId != null && selectedWeekId != _controller.selectedWeekId) {
+    if (selectedWeekId != null &&
+        selectedWeekId != _controller.selectedWeekId) {
       _clearSelection();
       await _controller.selectWeek(selectedWeekId);
     }
@@ -134,19 +141,29 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           children: [
             const Text(
               'Are you sure you have verified all work hours, late minutes, and attendance records for this week? Once confirmed, this timesheet will be ready for final payroll locking.',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: noteController,
               decoration: InputDecoration(
                 hintText: 'Optional confirmation note...',
-                hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: AppColors.border),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
               ),
               maxLines: 2,
             ),
@@ -155,14 +172,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
             ),
             child: const Text('Confirm Now'),
@@ -172,7 +194,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     );
 
     if (confirm == true && mounted) {
-      final success = await _controller.confirmTimesheet(note: noteController.text);
+      final success = await _controller.confirmTimesheet(
+        note: noteController.text,
+      );
       if (mounted) {
         if (success) {
           _clearSelection();
@@ -215,13 +239,18 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Keep Request', style: TextStyle(color: AppColors.textMuted)),
+            child: const Text(
+              'Keep Request',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Cancel Request'),
@@ -274,7 +303,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             tooltip: 'Refresh Timesheet',
             onPressed: () {
               _clearSelection();
-              _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId);
+              _controller.loadTimesheet(
+                scheduleWeekId: _controller.selectedWeekId,
+              );
             },
           ),
         ],
@@ -306,18 +337,29 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   color: AppColors.errorBg,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 36),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: AppColors.error,
+                  size: 36,
+                ),
               ),
               const SizedBox(height: 16),
               const Text(
                 'Unable to Load Timesheet',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 _controller.errorMessage!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
@@ -327,7 +369,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
             ],
@@ -346,12 +390,16 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       );
     }
 
-    final eligibleShiftsCount = timesheet.shifts.where((s) => s.canRequestAdjustment).length;
+    final eligibleShiftsCount = timesheet.shifts
+        .where((s) => s.canRequestAdjustment)
+        .length;
 
     return RefreshIndicator(
       onRefresh: () async {
         _clearSelection();
-        await _controller.loadTimesheet(scheduleWeekId: _controller.selectedWeekId);
+        await _controller.loadTimesheet(
+          scheduleWeekId: _controller.selectedWeekId,
+        );
       },
       color: AppColors.primary,
       child: Column(
@@ -383,7 +431,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.event_available_rounded, size: 20, color: AppColors.primary),
+                          const Icon(
+                            Icons.event_available_rounded,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'Shifts Breakdown',
@@ -402,9 +454,13 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                               onTap: _selectAllEligibleShifts,
                               borderRadius: BorderRadius.circular(8),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 child: Text(
-                                  _selectedAssignmentIds.length == eligibleShiftsCount
+                                  _selectedAssignmentIds.length ==
+                                          eligibleShiftsCount
                                       ? 'Deselect All'
                                       : 'Select All ($eligibleShiftsCount)',
                                   style: const TextStyle(
@@ -417,11 +473,16 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.primaryLight,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                              border: Border.all(
+                                color: const Color(0xFFBFDBFE),
+                              ),
                             ),
                             child: Text(
                               '${timesheet.shifts.length} Shifts',
@@ -491,7 +552,10 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 onTap: _showWeekSelectionModal,
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   child: Row(
                     children: [
                       Column(
@@ -507,12 +571,18 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                           const SizedBox(height: 2),
                           Text(
                             '${timesheet.weekStartDate} – ${timesheet.weekEndDate}',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(width: 4),
-                      const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
+                      const Icon(
+                        Icons.arrow_drop_down_rounded,
+                        color: AppColors.textSecondary,
+                      ),
                     ],
                   ),
                 ),
@@ -537,11 +607,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.storefront_rounded, size: 16, color: AppColors.textMuted),
+                  const Icon(
+                    Icons.storefront_rounded,
+                    size: 16,
+                    color: AppColors.textMuted,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     timesheet.branchName,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -558,7 +636,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
     final isPast = timesheet.isPastDeadline;
     final deadlineText = timesheet.formattedDeadline;
 
-    final (bg, border, iconColor, icon, badgeLabel, badgeBg, badgeText, title, message) = isLocked
+    final (
+      bg,
+      border,
+      iconColor,
+      icon,
+      badgeLabel,
+      badgeBg,
+      badgeText,
+      title,
+      message,
+    ) = isLocked
         ? (
             const Color(0xFFF0FDF4),
             const Color(0xFFBBF7D0),
@@ -571,28 +659,28 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             'All shift records for this period have been reviewed and finalized by the manager for payroll calculation.',
           )
         : isPast
-            ? (
-                const Color(0xFFFEF2F2),
-                const Color(0xFFFECACA),
-                const Color(0xFFDC2626),
-                Icons.timer_off_outlined,
-                'EXPIRED',
-                const Color(0xFFFEE2E2),
-                const Color(0xFFB91C1C),
-                'Review Deadline Expired',
-                'The review deadline ($deadlineText) has passed. Confirmation is closed, pending manager review.',
-              )
-            : (
-                const Color(0xFFEFF6FF),
-                const Color(0xFFBFDBFE),
-                const Color(0xFF2563EB),
-                Icons.schedule_rounded,
-                'OPEN FOR REVIEW',
-                const Color(0xFFDBEAFE),
-                const Color(0xFF1D4ED8),
-                'Review & Adjustment Deadline',
-                'Please verify your shift hours before $deadlineText. Confirmation window will close automatically once expired, pending manager review.',
-              );
+        ? (
+            const Color(0xFFFEF2F2),
+            const Color(0xFFFECACA),
+            const Color(0xFFDC2626),
+            Icons.timer_off_outlined,
+            'EXPIRED',
+            const Color(0xFFFEE2E2),
+            const Color(0xFFB91C1C),
+            'Review Deadline Expired',
+            'The review deadline ($deadlineText) has passed. Confirmation is closed, pending manager review.',
+          )
+        : (
+            const Color(0xFFEFF6FF),
+            const Color(0xFFBFDBFE),
+            const Color(0xFF2563EB),
+            Icons.schedule_rounded,
+            'OPEN FOR REVIEW',
+            const Color(0xFFDBEAFE),
+            const Color(0xFF1D4ED8),
+            'Review & Adjustment Deadline',
+            'Please verify your shift hours before $deadlineText. Confirmation window will close automatically once expired, pending manager review.',
+          );
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -659,7 +747,8 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               child: _buildKpiCard(
                 title: 'Total Work Time',
                 value: timesheet.totalWorkTimeDisplay,
-                subtitle: '${timesheet.totalWorkHours.toStringAsFixed(1)} hrs compiled',
+                subtitle:
+                    '${timesheet.totalWorkHours.toStringAsFixed(1)} hrs compiled',
                 icon: Icons.schedule_rounded,
                 iconColor: const Color(0xFF2563EB),
                 bgColor: const Color(0xFFEFF6FF),
@@ -669,7 +758,8 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             Expanded(
               child: _buildKpiCard(
                 title: 'Shifts Done',
-                value: '${timesheet.completedShifts} / ${timesheet.totalAssignedShifts}',
+                value:
+                    '${timesheet.completedShifts} / ${timesheet.totalAssignedShifts}',
                 subtitle: 'Assigned in week',
                 icon: Icons.task_alt_rounded,
                 iconColor: const Color(0xFF10B981),
@@ -687,8 +777,12 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 value: timesheet.totalLateDisplay,
                 subtitle: '${timesheet.totalLateMinutes} mins late',
                 icon: Icons.alarm_off_rounded,
-                iconColor: timesheet.totalLateMinutes > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
-                bgColor: timesheet.totalLateMinutes > 0 ? const Color(0xFFFEF3C7) : const Color(0xFFF1F5F9),
+                iconColor: timesheet.totalLateMinutes > 0
+                    ? const Color(0xFFD97706)
+                    : AppColors.textMuted,
+                bgColor: timesheet.totalLateMinutes > 0
+                    ? const Color(0xFFFEF3C7)
+                    : const Color(0xFFF1F5F9),
               ),
             ),
             const SizedBox(width: 12),
@@ -698,8 +792,12 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 value: timesheet.totalEarlyLeaveDisplay,
                 subtitle: '${timesheet.totalEarlyLeaveMinutes} mins early',
                 icon: Icons.logout_rounded,
-                iconColor: timesheet.totalEarlyLeaveMinutes > 0 ? const Color(0xFFEA580C) : AppColors.textMuted,
-                bgColor: timesheet.totalEarlyLeaveMinutes > 0 ? const Color(0xFFFFEDD5) : const Color(0xFFF1F5F9),
+                iconColor: timesheet.totalEarlyLeaveMinutes > 0
+                    ? const Color(0xFFEA580C)
+                    : AppColors.textMuted,
+                bgColor: timesheet.totalEarlyLeaveMinutes > 0
+                    ? const Color(0xFFFFEDD5)
+                    : const Color(0xFFF1F5F9),
               ),
             ),
           ],
@@ -731,11 +829,18 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textSecondary,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Icon(icon, size: 16, color: iconColor),
               ),
             ],
@@ -743,7 +848,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -796,8 +905,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                     child: Checkbox(
                       value: isSelected,
                       activeColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      onChanged: (_) => _toggleShiftSelection(shift.assignmentId),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      onChanged: (_) =>
+                          _toggleShiftSelection(shift.assignmentId),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -805,7 +917,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 Expanded(
                   child: Text(
                     shift.dateDisplay,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
                 _buildAttendanceStatusPill(shift),
@@ -816,11 +932,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             // Row 2: Shift Name & Scheduled Time
             Row(
               children: [
-                const Icon(Icons.schedule_rounded, size: 14, color: AppColors.textMuted),
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 14,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   '${shift.shiftName} (${shift.scheduledRangeDisplay})',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),
@@ -833,29 +957,50 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Check-In', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      const Text(
+                        'Check-In',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
                             shift.checkInDisplay,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           if (shift.totalLateMinutes > 0) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: shift.isLateExcused ? const Color(0xFFE0F2FE) : const Color(0xFFFEF3C7),
+                                color: shift.isLateExcused
+                                    ? const Color(0xFFE0F2FE)
+                                    : const Color(0xFFFEF3C7),
                                 borderRadius: BorderRadius.circular(6),
-                                border: shift.isLateExcused ? Border.all(color: const Color(0xFFBAE6FD)) : null,
+                                border: shift.isLateExcused
+                                    ? Border.all(color: const Color(0xFFBAE6FD))
+                                    : null,
                               ),
                               child: Text(
-                                shift.isLateExcused ? 'Late ${shift.lateDisplay} (Excused)' : 'Late ${shift.lateDisplay}',
+                                shift.isLateExcused
+                                    ? 'Late ${shift.lateDisplay} (Excused)'
+                                    : 'Late ${shift.lateDisplay}',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: shift.isLateExcused ? const Color(0xFF0284C7) : const Color(0xFFB45309),
+                                  color: shift.isLateExcused
+                                      ? const Color(0xFF0284C7)
+                                      : const Color(0xFFB45309),
                                 ),
                               ),
                             ),
@@ -869,29 +1014,50 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Check-Out', style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                      const Text(
+                        'Check-Out',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
                             shift.checkOutDisplay,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                           if (shift.totalEarlyLeaveMinutes > 0) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: shift.isEarlyLeaveExcused ? const Color(0xFFE0F2FE) : const Color(0xFFFFEDD5),
+                                color: shift.isEarlyLeaveExcused
+                                    ? const Color(0xFFE0F2FE)
+                                    : const Color(0xFFFFEDD5),
                                 borderRadius: BorderRadius.circular(6),
-                                border: shift.isEarlyLeaveExcused ? Border.all(color: const Color(0xFFBAE6FD)) : null,
+                                border: shift.isEarlyLeaveExcused
+                                    ? Border.all(color: const Color(0xFFBAE6FD))
+                                    : null,
                               ),
                               child: Text(
-                                shift.isEarlyLeaveExcused ? 'Early ${shift.earlyLeaveDisplay} (Excused)' : 'Early ${shift.earlyLeaveDisplay}',
+                                shift.isEarlyLeaveExcused
+                                    ? 'Early ${shift.earlyLeaveDisplay} (Excused)'
+                                    : 'Early ${shift.earlyLeaveDisplay}',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
-                                  color: shift.isEarlyLeaveExcused ? const Color(0xFF0284C7) : const Color(0xFFC2410C),
+                                  color: shift.isEarlyLeaveExcused
+                                      ? const Color(0xFF0284C7)
+                                      : const Color(0xFFC2410C),
                                 ),
                               ),
                             ),
@@ -914,15 +1080,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF0284C7)),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 14,
+                      color: Color(0xFF0284C7),
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         shift.isLateExcused && shift.isEarlyLeaveExcused
                             ? 'Late arrival & early leave excused by approved request (No penalty)'
                             : shift.isLateExcused
-                                ? 'Late arrival excused by approved request (No penalty)'
-                                : 'Early leave excused by approved request (No penalty)',
+                            ? 'Late arrival excused by approved request (No penalty)'
+                            : 'Early leave excused by approved request (No penalty)',
                         style: const TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -949,11 +1119,18 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 children: [
                   const Text(
                     'Compiled Work Time',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   Text(
                     shift.workTimeDisplay,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ],
               ),
@@ -977,13 +1154,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () => _handleOpenAdjustmentSheet(singleShift: shift),
+                  onPressed: () =>
+                      _handleOpenAdjustmentSheet(singleShift: shift),
                   icon: const Icon(Icons.edit_note_rounded, size: 16),
                   label: const Text('Request Adjustment'),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     foregroundColor: const Color(0xFFD97706),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                   ),
                 ),
               ),
@@ -1013,15 +1194,24 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.hourglass_top_rounded, size: 16, color: Color(0xFFD97706)),
+                    Icon(
+                      Icons.hourglass_top_rounded,
+                      size: 16,
+                      color: Color(0xFFD97706),
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'Adjustment Pending Review',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFB45309),
+                      ),
                     ),
                   ],
                 ),
-                if (shift.canCancelAdjustment && shift.adjustmentRequestId != null)
+                if (shift.canCancelAdjustment &&
+                    shift.adjustmentRequestId != null)
                   Tooltip(
                     message: 'Cancel Request',
                     child: InkWell(
@@ -1043,7 +1233,8 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                   ),
               ],
             ),
-            if (shift.adjustmentReason != null && shift.adjustmentReason!.isNotEmpty) ...[
+            if (shift.adjustmentReason != null &&
+                shift.adjustmentReason!.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 'Reason: "${shift.adjustmentReason}"',
@@ -1069,7 +1260,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             SizedBox(width: 6),
             Text(
               'Adjustment Request Cancelled',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -1093,7 +1288,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 SizedBox(width: 6),
                 Text(
                   'Adjustment Rejected by Manager',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.error),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.error,
+                  ),
                 ),
               ],
             ),
@@ -1112,7 +1311,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               style: TextStyle(
                 fontSize: 10,
                 fontStyle: FontStyle.italic,
-                color: shift.canRequestAdjustment ? const Color(0xFFD97706) : const Color(0xFFDC2626),
+                color: shift.canRequestAdjustment
+                    ? const Color(0xFFD97706)
+                    : const Color(0xFFDC2626),
               ),
             ),
           ],
@@ -1133,14 +1334,22 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           children: [
             Row(
               children: [
-                const Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF16A34A)),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 16,
+                  color: Color(0xFF16A34A),
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     shift.managerNote != null && shift.managerNote!.isNotEmpty
                         ? 'Adjustment Approved: "${shift.managerNote}"'
                         : 'Adjustment Approved by Manager',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF15803D),
+                    ),
                   ),
                 ),
               ],
@@ -1149,7 +1358,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               const SizedBox(height: 4),
               const Text(
                 'You can still submit an adjustment for the other time if needed.',
-                style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Color(0xFF16A34A)),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  color: Color(0xFF16A34A),
+                ),
               ),
             ],
           ],
@@ -1173,7 +1386,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
         children: [
           Row(
             children: [
-              const Icon(Icons.gavel_rounded, size: 14, color: AppColors.textSecondary),
+              const Icon(
+                Icons.gavel_rounded,
+                size: 14,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Violation & Penalty History',
@@ -1202,18 +1419,26 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
               decoration: BoxDecoration(
-                color: isApplied ? const Color(0xFFFEF2F2) : const Color(0xFFF1F5F9),
+                color: isApplied
+                    ? const Color(0xFFFEF2F2)
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: isApplied ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0),
+                  color: isApplied
+                      ? const Color(0xFFFECACA)
+                      : const Color(0xFFE2E8F0),
                 ),
               ),
               child: Row(
                 children: [
                   Icon(
-                    isApplied ? Icons.warning_amber_rounded : Icons.check_circle_outline_rounded,
+                    isApplied
+                        ? Icons.warning_amber_rounded
+                        : Icons.check_circle_outline_rounded,
                     size: 13,
-                    color: isApplied ? const Color(0xFFDC2626) : AppColors.textMuted,
+                    color: isApplied
+                        ? const Color(0xFFDC2626)
+                        : AppColors.textMuted,
                   ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -1222,15 +1447,24 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: isApplied ? const Color(0xFFB91C1C) : AppColors.textMuted,
-                        decoration: isApplied ? null : TextDecoration.lineThrough,
+                        color: isApplied
+                            ? const Color(0xFFB91C1C)
+                            : AppColors.textMuted,
+                        decoration: isApplied
+                            ? null
+                            : TextDecoration.lineThrough,
                       ),
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1.5,
+                    ),
                     decoration: BoxDecoration(
-                      color: isApplied ? const Color(0xFFFEE2E2) : const Color(0xFFE0F2FE),
+                      color: isApplied
+                          ? const Color(0xFFFEE2E2)
+                          : const Color(0xFFE0F2FE),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -1238,7 +1472,9 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                       style: TextStyle(
                         fontSize: 9.5,
                         fontWeight: FontWeight.bold,
-                        color: isApplied ? const Color(0xFF991B1B) : const Color(0xFF0284C7),
+                        color: isApplied
+                            ? const Color(0xFF991B1B)
+                            : const Color(0xFF0284C7),
                       ),
                     ),
                   ),
@@ -1262,11 +1498,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       child: const Center(
         child: Column(
           children: [
-            Icon(Icons.event_busy_rounded, size: 36, color: AppColors.textMuted),
+            Icon(
+              Icons.event_busy_rounded,
+              size: 36,
+              color: AppColors.textMuted,
+            ),
             SizedBox(height: 8),
             Text(
               'No Shifts Assigned This Week',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             SizedBox(height: 4),
             Text(
@@ -1281,21 +1525,45 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
   Widget _buildReviewStatusBadge(StaffWeeklyTimesheetModel timesheet) {
     if (timesheet.isLocked) {
-      return _buildBadge(label: 'REVIEWED', bgColor: const Color(0xFFE0F2FE), textColor: const Color(0xFF0284C7));
+      return _buildBadge(
+        label: 'REVIEWED',
+        bgColor: const Color(0xFFE0F2FE),
+        textColor: const Color(0xFF0284C7),
+      );
     }
     if (timesheet.isConfirmed) {
-      return _buildBadge(label: 'CONFIRMED', bgColor: const Color(0xFFD1FAE5), textColor: const Color(0xFF059669));
+      return _buildBadge(
+        label: 'CONFIRMED',
+        bgColor: const Color(0xFFD1FAE5),
+        textColor: const Color(0xFF059669),
+      );
     }
     if (timesheet.isAdjustmentPending || timesheet.pendingAdjustmentCount > 0) {
-      return _buildBadge(label: 'ADJUSTMENT PENDING', bgColor: const Color(0xFFEDE9FE), textColor: const Color(0xFF7C3AED));
+      return _buildBadge(
+        label: 'ADJUSTMENT PENDING',
+        bgColor: const Color(0xFFEDE9FE),
+        textColor: const Color(0xFF7C3AED),
+      );
     }
     if (timesheet.isNoResponse) {
-      return _buildBadge(label: 'NO RESPONSE', bgColor: const Color(0xFFF1F5F9), textColor: const Color(0xFF475569));
+      return _buildBadge(
+        label: 'NO RESPONSE',
+        bgColor: const Color(0xFFF1F5F9),
+        textColor: const Color(0xFF475569),
+      );
     }
     if (timesheet.status.toUpperCase() == 'GENERATED') {
-      return _buildBadge(label: 'PENDING REVIEW', bgColor: const Color(0xFFFEF3C7), textColor: const Color(0xFFD97706));
+      return _buildBadge(
+        label: 'PENDING REVIEW',
+        bgColor: const Color(0xFFFEF3C7),
+        textColor: const Color(0xFFD97706),
+      );
     }
-    return _buildBadge(label: 'NOT GENERATED', bgColor: const Color(0xFFF1F5F9), textColor: const Color(0xFF64748B));
+    return _buildBadge(
+      label: 'NOT GENERATED',
+      bgColor: const Color(0xFFF1F5F9),
+      textColor: const Color(0xFF64748B),
+    );
   }
 
   Widget _buildAttendanceStatusPill(StaffShiftAttendanceModel shift) {
@@ -1309,7 +1577,8 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       return _buildExcusedPill('LATE (EXCUSED)');
     }
 
-    if ((status == 'EARLY_LEAVE' || status == 'EARLY') && shift.isEarlyLeaveExcused) {
+    if ((status == 'EARLY_LEAVE' || status == 'EARLY') &&
+        shift.isEarlyLeaveExcused) {
       return _buildExcusedPill('EARLY (EXCUSED)');
     }
 
@@ -1317,9 +1586,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       if (shift.isLateExcused && shift.isEarlyLeaveExcused) {
         return _buildExcusedPill('LATE & EARLY (EXCUSED)');
       } else if (shift.isLateExcused) {
-        return _buildPillWithIcon('LATE (EXCUSED) & EARLY', const Color(0xFFFFEDD5), const Color(0xFFC2410C), Icons.warning_rounded);
+        return _buildPillWithIcon(
+          'LATE (EXCUSED) & EARLY',
+          const Color(0xFFFFEDD5),
+          const Color(0xFFC2410C),
+          Icons.warning_rounded,
+        );
       } else if (shift.isEarlyLeaveExcused) {
-        return _buildPillWithIcon('LATE & EARLY (EXCUSED)', const Color(0xFFFFEDD5), const Color(0xFFC2410C), Icons.warning_rounded);
+        return _buildPillWithIcon(
+          'LATE & EARLY (EXCUSED)',
+          const Color(0xFFFFEDD5),
+          const Color(0xFFC2410C),
+          Icons.warning_rounded,
+        );
       }
     }
 
@@ -1345,10 +1624,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
       child: Text(
         status == 'LATE_AND_EARLY_LEAVE' ? 'LATE & EARLY' : status,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: text),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: text,
+        ),
       ),
     );
   }
@@ -1364,11 +1650,19 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.verified_rounded, size: 12, color: Color(0xFF0284C7)),
+          const Icon(
+            Icons.verified_rounded,
+            size: 12,
+            color: Color(0xFF0284C7),
+          ),
           const SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF0369A1)),
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0369A1),
+            ),
           ),
         ],
       ),
@@ -1389,20 +1683,35 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: text),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: text,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBadge({required String label, required Color bgColor, required Color textColor}) {
+  Widget _buildBadge({
+    required String label,
+    required Color bgColor,
+    required Color textColor,
+  }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
       ),
     );
   }
@@ -1431,7 +1740,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
               children: [
                 Text(
                   '${_selectedAssignmentIds.length} shift(s) selected',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 TextButton(
                   onPressed: _clearSelection,
@@ -1452,12 +1765,17 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                 icon: const Icon(Icons.edit_calendar_rounded, size: 20),
                 label: Text(
                   'Request Adjustment (${_selectedAssignmentIds.length})',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD97706),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -1486,22 +1804,31 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton.icon(
-            onPressed: _controller.isConfirming ? null : _handleConfirmTimesheet,
+            onPressed: _controller.isConfirming
+                ? null
+                : _handleConfirmTimesheet,
             icon: _controller.isConfirming
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.check_circle_outline_rounded, size: 20),
             label: Text(
-              _controller.isConfirming ? 'Confirming...' : 'Confirm Weekly Timesheet',
+              _controller.isConfirming
+                  ? 'Confirming...'
+                  : 'Confirm Weekly Timesheet',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               elevation: 0,
             ),
           ),
@@ -1519,14 +1846,22 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.hourglass_top_rounded, color: Color(0xFF7C3AED), size: 18),
+            const Icon(
+              Icons.hourglass_top_rounded,
+              color: Color(0xFF7C3AED),
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 timesheet.pendingAdjustmentCount > 0
                     ? 'Waiting for manager to review ${timesheet.pendingAdjustmentCount} pending adjustment request(s).'
                     : 'Adjustment request submitted. Awaiting manager review.',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF6D28D9)),
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF6D28D9),
+                ),
               ),
             ),
           ],
@@ -1548,7 +1883,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             SizedBox(width: 8),
             Text(
               'You have confirmed this weekly timesheet.',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF047857),
+              ),
             ),
           ],
         ),
@@ -1569,7 +1908,11 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             SizedBox(width: 8),
             Text(
               'Review deadline expired (No response).',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF475569),
+              ),
             ),
           ],
         ),

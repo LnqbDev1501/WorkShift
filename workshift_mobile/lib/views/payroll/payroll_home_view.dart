@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../models/payslip_model.dart';
 import '../../services/payroll_service.dart';
@@ -16,10 +16,7 @@ import '../adjustments/staff_penalty_list_view.dart';
 class PayrollHomeView extends StatefulWidget {
   final int initialTabIndex;
 
-  const PayrollHomeView({
-    super.key,
-    this.initialTabIndex = 0,
-  });
+  const PayrollHomeView({super.key, this.initialTabIndex = 0});
 
   @override
   State<PayrollHomeView> createState() => _PayrollHomeViewState();
@@ -63,7 +60,10 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
         actions: [
           IconButton(
             tooltip: 'Khen thưởng',
-            icon: const Icon(Icons.workspace_premium_rounded, color: AppColors.success),
+            icon: const Icon(
+              Icons.workspace_premium_rounded,
+              color: AppColors.success,
+            ),
             onPressed: () {
               Navigator.push(
                 context,
@@ -114,10 +114,7 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
                   iconMargin: EdgeInsets.only(bottom: 2),
                   text: 'My Feedbacks',
                 ),
-                Tab(
-                  iconMargin: EdgeInsets.only(bottom: 2),
-                  text: 'Payslips',
-                ),
+                Tab(iconMargin: EdgeInsets.only(bottom: 2), text: 'Payslips'),
               ],
             ),
           ),
@@ -196,8 +193,11 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 48, color: AppColors.error),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: AppColors.error,
+              ),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
@@ -241,8 +241,11 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                       color: AppColors.primaryLight,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.receipt_rounded,
-                        size: 42, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.receipt_rounded,
+                      size: 42,
+                      color: AppColors.primary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -294,9 +297,8 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => PayrollPreviewDetailView(
-                feedbackId: item.feedbackId,
-              ),
+              builder: (_) =>
+                  PayrollPreviewDetailView(feedbackId: item.feedbackId),
             ),
           );
           if (mounted) _loadPreviews();
@@ -323,8 +325,10 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(8),
@@ -339,8 +343,10 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -380,8 +386,11 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
               // Row 3: Deadline
               Row(
                 children: [
-                  const Icon(Icons.alarm_rounded,
-                      size: 15, color: AppColors.warning),
+                  const Icon(
+                    Icons.alarm_rounded,
+                    size: 15,
+                    color: AppColors.warning,
+                  ),
                   const SizedBox(width: 6),
                   const Text(
                     'Feedback deadline: ',
@@ -411,8 +420,11 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.send_rounded,
-                          size: 13, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.send_rounded,
+                        size: 13,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Sent: ${formatVietnamDateTime(item.createdAt)}',
@@ -433,8 +445,11 @@ class _PayrollPreviewListTabState extends State<_PayrollPreviewListTab> {
                           color: AppColors.primary,
                         ),
                       ),
-                      Icon(Icons.chevron_right_rounded,
-                          size: 18, color: AppColors.primary),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
                     ],
                   ),
                 ],
@@ -489,7 +504,8 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
   List<PayrollPreviewItem> _feedbacks = [];
   bool _isLoading = true;
   String? _errorMessage;
-  String? _selectedStatusFilter; // null = all, or SUBMITTED, APPROVED, EXPLAINED
+  String?
+  _selectedStatusFilter; // null = all, or SUBMITTED, APPROVED, EXPLAINED
 
   @override
   void initState() {
@@ -545,99 +561,103 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                   child: CircularProgressIndicator(color: AppColors.primary),
                 )
               : _errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline_rounded,
+                          size: 48,
+                          color: AppColors.error,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          onPressed: _loadFeedbacks,
+                          icon: const Icon(Icons.refresh_rounded, size: 18),
+                          label: const Text('Retry'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : _feedbacks.isEmpty
+              ? RefreshIndicator(
+                  onRefresh: _loadFeedbacks,
+                  color: AppColors.primary,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.2,
+                      ),
+                      Center(
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.error_outline_rounded,
-                                size: 48, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: AppColors.error,
-                                fontWeight: FontWeight.w600,
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.mark_chat_read_outlined,
+                                size: 42,
+                                color: AppColors.primary,
                               ),
                             ),
                             const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              onPressed: _loadFeedbacks,
-                              icon: const Icon(Icons.refresh_rounded, size: 18),
-                              label: const Text('Retry'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
+                            const Text(
+                              'No feedbacks found',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
                               ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Your submitted feedbacks will appear here along with the accountant\'s response.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textMuted,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       ),
-                    )
-                  : _feedbacks.isEmpty
-                      ? RefreshIndicator(
-                          onRefresh: _loadFeedbacks,
-                          color: AppColors.primary,
-                          child: ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              SizedBox(
-                                  height: MediaQuery.of(context).size.height *
-                                      0.2),
-                              Center(
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(18),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primaryLight,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                          Icons.mark_chat_read_outlined,
-                                          size: 42,
-                                          color: AppColors.primary),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'No feedbacks found',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    const Text(
-                                      'Your submitted feedbacks will appear here along with the accountant\'s response.',
-                                      style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColors.textMuted),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadFeedbacks,
-                          color: AppColors.primary,
-                          child: ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _feedbacks.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final item = _feedbacks[index];
-                              return _buildFeedbackCard(item);
-                            },
-                          ),
-                        ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadFeedbacks,
+                  color: AppColors.primary,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _feedbacks.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final item = _feedbacks[index];
+                      return _buildFeedbackCard(item);
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -655,7 +675,10 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
             const SizedBox(width: 8),
             _buildFilterChip('Pending', StaffFeedbackStatus.submitted),
             const SizedBox(width: 8),
-            _buildFilterChip('Correction Approved', StaffFeedbackStatus.approved),
+            _buildFilterChip(
+              'Correction Approved',
+              StaffFeedbackStatus.approved,
+            ),
             const SizedBox(width: 8),
             _buildFilterChip('Explained', StaffFeedbackStatus.explained),
           ],
@@ -698,9 +721,8 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => PayrollPreviewDetailView(
-                feedbackId: item.feedbackId,
-              ),
+              builder: (_) =>
+                  PayrollPreviewDetailView(feedbackId: item.feedbackId),
             ),
           );
           if (mounted) _loadFeedbacks();
@@ -735,8 +757,10 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
@@ -771,7 +795,10 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
               // Submitted Time
               Text(
                 'Submitted at: ${formatVietnamDateTime(submittedTime)}',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
               ),
 
               // Resolution Note (if accountant responded)
@@ -788,8 +815,11 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.check_circle_outline_rounded,
-                          size: 15, color: Color(0xFF16A34A)),
+                      const Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 15,
+                        color: Color(0xFF16A34A),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -811,8 +841,11 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.build_circle_outlined,
-                        size: 14, color: AppColors.warning),
+                    const Icon(
+                      Icons.build_circle_outlined,
+                      size: 14,
+                      color: AppColors.warning,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       'Correction Request: ${item.corrections.first.status}',
@@ -838,8 +871,11 @@ class _StaffPayrollFeedbackTabState extends State<_StaffPayrollFeedbackTab> {
                       color: AppColors.primary,
                     ),
                   ),
-                  Icon(Icons.chevron_right_rounded,
-                      size: 18, color: AppColors.primary),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                 ],
               ),
             ],
@@ -912,8 +948,11 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 48, color: AppColors.error),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: AppColors.error,
+              ),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
@@ -957,8 +996,11 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                       color: Color(0xFFDCFCE7),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.account_balance_wallet_rounded,
-                        size: 42, color: Color(0xFF16A34A)),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 42,
+                      color: Color(0xFF16A34A),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -1007,9 +1049,8 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
           await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OfficialPayslipDetailView(
-                payslipId: item.payslipId,
-              ),
+              builder: (_) =>
+                  OfficialPayslipDetailView(payslipId: item.payslipId),
             ),
           );
         },
@@ -1035,8 +1076,10 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFDCFCE7),
                       borderRadius: BorderRadius.circular(8),
@@ -1053,8 +1096,10 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.success.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
@@ -1062,8 +1107,11 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.verified_rounded,
-                            size: 13, color: AppColors.success),
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 13,
+                          color: AppColors.success,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           PayslipStatus.getLabel(item.status),
@@ -1139,8 +1187,11 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.event_available_rounded,
-                          size: 14, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.event_available_rounded,
+                        size: 14,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Published: ${formatVietnamDateTime(item.publishedAt)}',
@@ -1161,8 +1212,11 @@ class _OfficialPayslipListTabState extends State<_OfficialPayslipListTab> {
                           color: Color(0xFF0F766E),
                         ),
                       ),
-                      Icon(Icons.chevron_right_rounded,
-                          size: 18, color: Color(0xFF0F766E)),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: Color(0xFF0F766E),
+                      ),
                     ],
                   ),
                 ],

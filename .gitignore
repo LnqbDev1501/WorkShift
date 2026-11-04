@@ -11,11 +11,13 @@ artifacts/
 *.user
 *.userosscache
 *.sln.docstates
+*.slnLaunch.user
 *.suo
 
 # Environment & Secrets
 .env
 .env.*
+!.env.example
 appsettings.json
 appsettings.Development.json
 
@@ -35,10 +37,16 @@ ehthumbs.db
 # Diagrams
 *.drawio
 
-# Test Projects (excluded from version control)
-WorkShiftServer/WorkShiftManagement.Tests/
-
 # Flutter / Dart (Global Fallback)
 .dart_tool/
 .flutter-plugins-dependencies
 **/build/
+
+# Generated Flutter platform files
+**/flutter/ephemeral/
+**/Flutter/ephemeral/
+
+# Coverage and Python caches
+coverage/
+__pycache__/
+*.pyc

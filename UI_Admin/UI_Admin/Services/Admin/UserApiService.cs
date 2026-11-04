@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models.Admin.UserAdmin;
 
@@ -11,8 +12,7 @@ public sealed class UserApiService
     public UserApiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
-        _apiBaseUrl = configuration["WorkShiftApi:BaseUrl"]
-            ?? throw new InvalidOperationException("WorkShiftApi:BaseUrl is missing.");
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
     }
 
     public async Task<UserListViewModel> GetListAsync(
@@ -254,7 +254,7 @@ public sealed class UserApiService
     }
 
     private string BuildUrl(string relativeUrl) =>
-        $"{_apiBaseUrl.TrimEnd('/')}/{relativeUrl.TrimStart('/')}";
+        $"{_apiBaseUrl}/{relativeUrl.TrimStart('/')}";
 
     private static void Add(ICollection<string> parameters, string name, string? value)
     {

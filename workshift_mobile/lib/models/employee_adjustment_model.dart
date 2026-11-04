@@ -110,7 +110,9 @@ class EmployeeAdjustmentPagedResponse {
     final rawList = json['items'] as List<dynamic>? ?? [];
     return EmployeeAdjustmentPagedResponse(
       items: rawList
-          .map((e) => EmployeeAdjustmentModel.fromJson(e as Map<String, dynamic>))
+          .map(
+            (e) => EmployeeAdjustmentModel.fromJson(e as Map<String, dynamic>),
+          )
           .toList(),
       pageNumber: (json['pageNumber'] as num?)?.toInt() ?? 1,
       pageSize: (json['pageSize'] as num?)?.toInt() ?? 20,

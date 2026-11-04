@@ -9,7 +9,7 @@ namespace UI_Admin.Services;
 
 public sealed class PayrollDocumentsApiService(HttpClient client, IConfiguration config)
 {
-    private string Root => (config["WorkShiftApi:BaseUrl"] ?? throw new InvalidOperationException("Missing API URL.")).TrimEnd('/') + "/api";
+    private string Root => config.GetWorkShiftApiBaseUrl() + "/api";
 
     public static string Query(object input)
     {

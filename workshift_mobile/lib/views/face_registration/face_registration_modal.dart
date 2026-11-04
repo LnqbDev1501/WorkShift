@@ -5,9 +5,7 @@ import '../../controllers/face_registration_controller.dart';
 import '../../theme/app_colors.dart';
 
 /// Function to open Face Registration Modal from anywhere in the app
-Future<bool?> showFaceRegistrationModal({
-  required BuildContext context,
-}) {
+Future<bool?> showFaceRegistrationModal({required BuildContext context}) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -22,7 +20,8 @@ class FaceRegistrationModalPopup extends StatefulWidget {
   const FaceRegistrationModalPopup({super.key});
 
   @override
-  State<FaceRegistrationModalPopup> createState() => _FaceRegistrationModalPopupState();
+  State<FaceRegistrationModalPopup> createState() =>
+      _FaceRegistrationModalPopupState();
 }
 
 class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
@@ -157,7 +156,9 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                 decoration: BoxDecoration(
                   color: const Color(0xFFF3E8FF),
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                  ),
                 ),
                 child: const Icon(
                   Icons.face_retouching_natural_rounded,
@@ -196,8 +197,13 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   backgroundColor: const Color(0xFFF1F5F9),
                   padding: const EdgeInsets.all(8),
                 ),
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
-                onPressed: () => Navigator.of(context).pop(_controller.isSuccess),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                  size: 20,
+                ),
+                onPressed: () =>
+                    Navigator.of(context).pop(_controller.isSuccess),
               ),
             ],
           ),
@@ -238,7 +244,9 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
     final minutes = (remaining ~/ 60).toString().padLeft(2, '0');
     final seconds = (remaining % 60).toString().padLeft(2, '0');
     final isFramed = _controller.isFaceFramedProperly;
-    final frameColor = isFramed ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final frameColor = isFramed
+        ? const Color(0xFF10B981)
+        : const Color(0xFFEF4444);
 
     return Container(
       height: 315,
@@ -260,7 +268,8 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
         children: [
           if (kIsWeb)
             Image.asset('assets/sample_face.jpg', fit: BoxFit.cover)
-          else if (_controller.isCameraInitialized && _controller.cameraController != null)
+          else if (_controller.isCameraInitialized &&
+              _controller.cameraController != null)
             CameraPreview(_controller.cameraController!)
           else
             _buildCameraLoadingPlaceholder(),
@@ -277,7 +286,12 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   height: 3,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Colors.transparent, Color(0xFF8B5CF6), Color(0xFFA78BFA), Colors.transparent],
+                      colors: [
+                        Colors.transparent,
+                        Color(0xFF8B5CF6),
+                        Color(0xFFA78BFA),
+                        Colors.transparent,
+                      ],
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -299,10 +313,26 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
               height: 286,
               child: Stack(
                 children: [
-                  _buildReticleCorner(isTop: true, isLeft: true, color: frameColor),
-                  _buildReticleCorner(isTop: true, isLeft: false, color: frameColor),
-                  _buildReticleCorner(isTop: false, isLeft: true, color: frameColor),
-                  _buildReticleCorner(isTop: false, isLeft: false, color: frameColor),
+                  _buildReticleCorner(
+                    isTop: true,
+                    isLeft: true,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: true,
+                    isLeft: false,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: false,
+                    isLeft: true,
+                    color: frameColor,
+                  ),
+                  _buildReticleCorner(
+                    isTop: false,
+                    isLeft: false,
+                    color: frameColor,
+                  ),
                 ],
               ),
             ),
@@ -315,10 +345,7 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
               height: 260,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(105),
-                border: Border.all(
-                  color: frameColor,
-                  width: 2.5,
-                ),
+                border: Border.all(color: frameColor, width: 2.5),
                 boxShadow: [
                   BoxShadow(
                     color: frameColor.withValues(alpha: 0.3),
@@ -338,14 +365,19 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
             child: Center(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 5.5,
+                ),
                 decoration: BoxDecoration(
                   color: isFramed
                       ? const Color(0xFF065F46).withValues(alpha: 0.9)
                       : const Color(0xFF991B1B).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isFramed ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                    color: isFramed
+                        ? const Color(0xFF34D399)
+                        : const Color(0xFFF87171),
                     width: 1,
                   ),
                 ),
@@ -353,14 +385,20 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isFramed ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                      isFramed
+                          ? Icons.check_circle_rounded
+                          : Icons.warning_amber_rounded,
                       size: 14,
                       color: Colors.white,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       isFramed ? 'Face Centered ✓' : 'Align face inside oval',
-                      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -378,7 +416,9 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                 color: Colors.black.withValues(alpha: 0.65),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: remaining < 20 ? const Color(0xFFEF4444) : Colors.white30,
+                  color: remaining < 20
+                      ? const Color(0xFFEF4444)
+                      : Colors.white30,
                 ),
               ),
               child: Row(
@@ -387,13 +427,17 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   Icon(
                     Icons.timer_outlined,
                     size: 14,
-                    color: remaining < 20 ? const Color(0xFFEF4444) : Colors.white,
+                    color: remaining < 20
+                        ? const Color(0xFFEF4444)
+                        : Colors.white,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '$minutes:$seconds',
                     style: TextStyle(
-                      color: remaining < 20 ? const Color(0xFFEF4444) : Colors.white,
+                      color: remaining < 20
+                          ? const Color(0xFFEF4444)
+                          : Colors.white,
                       fontSize: 11.5,
                       fontWeight: FontWeight.w700,
                     ),
@@ -409,7 +453,10 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
             left: 16,
             right: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8.5),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8.5,
+              ),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.85),
                 borderRadius: BorderRadius.circular(20),
@@ -458,7 +505,9 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                         value: _controller.challengeHoldProgress,
                         minHeight: 4,
                         backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF8B5CF6),
+                        ),
                       ),
                     ),
                   ],
@@ -471,7 +520,11 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
     );
   }
 
-  Widget _buildReticleCorner({required bool isTop, required bool isLeft, required Color color}) {
+  Widget _buildReticleCorner({
+    required bool isTop,
+    required bool isLeft,
+    required Color color,
+  }) {
     return Positioned(
       top: isTop ? 0 : null,
       bottom: !isTop ? 0 : null,
@@ -483,9 +536,13 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
         decoration: BoxDecoration(
           border: Border(
             top: isTop ? BorderSide(color: color, width: 3) : BorderSide.none,
-            bottom: !isTop ? BorderSide(color: color, width: 3) : BorderSide.none,
+            bottom: !isTop
+                ? BorderSide(color: color, width: 3)
+                : BorderSide.none,
             left: isLeft ? BorderSide(color: color, width: 3) : BorderSide.none,
-            right: !isLeft ? BorderSide(color: color, width: 3) : BorderSide.none,
+            right: !isLeft
+                ? BorderSide(color: color, width: 3)
+                : BorderSide.none,
           ),
         ),
       ),
@@ -564,7 +621,11 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   color: Color(0xFF7C3AED),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(_getChallengeIcon(current.action), color: Colors.white, size: 20),
+                child: Icon(
+                  _getChallengeIcon(current.action),
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -618,7 +679,9 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                   decoration: BoxDecoration(
                     color: isDone
                         ? const Color(0xFF10B981)
-                        : (isCurrent ? const Color(0xFF7C3AED) : const Color(0xFFCBD5E1)),
+                        : (isCurrent
+                              ? const Color(0xFF7C3AED)
+                              : const Color(0xFFCBD5E1)),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -645,10 +708,14 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
           Container(
             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             decoration: BoxDecoration(
-              color: isSubmitting ? const Color(0xFF7C3AED) : const Color(0xFFFAF5FF),
+              color: isSubmitting
+                  ? const Color(0xFF7C3AED)
+                  : const Color(0xFFFAF5FF),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSubmitting ? const Color(0xFF7C3AED) : const Color(0xFFE9D5FF),
+                color: isSubmitting
+                    ? const Color(0xFF7C3AED)
+                    : const Color(0xFFE9D5FF),
               ),
             ),
             child: Row(
@@ -673,7 +740,11 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                     ),
                   ),
                 ] else ...[
-                  const Icon(Icons.verified_user_rounded, size: 18, color: Color(0xFF7C3AED)),
+                  const Icon(
+                    Icons.verified_user_rounded,
+                    size: 18,
+                    color: Color(0xFF7C3AED),
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Google ML Kit Face Biometrics Active',
@@ -690,16 +761,28 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
           if (kIsWeb || !_controller.isCameraInitialized) ...[
             const SizedBox(height: 10),
             ElevatedButton.icon(
-              onPressed: isSubmitting ? null : () => _controller.testSubmitWithSampleFace(),
-              icon: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 20),
+              onPressed: isSubmitting
+                  ? null
+                  : () => _controller.testSubmitWithSampleFace(),
+              icon: const Icon(
+                Icons.flash_on_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               label: const Text(
                 'Test 1 Chạm: Đăng Ký Khuôn Mặt Ngay (Web)',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.white),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7C3AED),
                 minimumSize: const Size(double.infinity, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 elevation: 2,
               ),
             ),
@@ -748,9 +831,13 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
           ),
           const SizedBox(height: 6),
           Text(
-            result?.message ?? 'Your biometric face profile has been registered and activated successfully.',
+            result?.message ??
+                'Your biometric face profile has been registered and activated successfully.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 22),
           Container(
@@ -762,11 +849,21 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
             ),
             child: Column(
               children: [
-                _buildRow('Biometric Status', 'Active ✓', valueColor: const Color(0xFF059669)),
+                _buildRow(
+                  'Biometric Status',
+                  'Active ✓',
+                  valueColor: const Color(0xFF059669),
+                ),
                 const Divider(height: 18),
-                _buildRow('Face Quality', '${((result?.faceQualityScore ?? 0.95) * 100).toInt()}%'),
+                _buildRow(
+                  'Face Quality',
+                  '${((result?.faceQualityScore ?? 0.95) * 100).toInt()}%',
+                ),
                 const Divider(height: 18),
-                _buildRow('Liveness Score', '${((result?.livenessScore ?? 0.96) * 100).toInt()}%'),
+                _buildRow(
+                  'Liveness Score',
+                  '${((result?.livenessScore ?? 0.96) * 100).toInt()}%',
+                ),
               ],
             ),
           ),
@@ -779,10 +876,15 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                 backgroundColor: const Color(0xFF7C3AED),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 elevation: 2,
               ),
-              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              child: const Text(
+                'Done',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
             ),
           ),
         ],
@@ -794,7 +896,10 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
         Text(
           value,
           style: TextStyle(
@@ -818,7 +923,11 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 18),
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Color(0xFFDC2626),
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

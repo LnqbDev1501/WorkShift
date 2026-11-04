@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models.Accountant;
 
@@ -14,7 +15,7 @@ public class AccountantOrderListResponse
 
 public class AccountantOrderApiService(HttpClient client, IConfiguration configuration)
 {
-    private readonly string baseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+    private readonly string baseUrl = configuration.GetWorkShiftApiBaseUrl();
 
     public async Task<AccountantOrderListResponse> GetPagedAsync(
         string? search, int? branchId, string? status, string? paymentStatus,

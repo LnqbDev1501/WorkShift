@@ -17,7 +17,9 @@ class AuthService {
     );
 
     // 2. Chuyển đổi dữ liệu JSON trả về thành LoginResponse
-    final loginResponse = LoginResponse.fromJson(response.data as Map<String, dynamic>);
+    final loginResponse = LoginResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
 
     // 3. Tự động lưu Access Token vào máy để các request sau tự động có Token
     await _apiClient.saveToken(loginResponse.accessToken);
@@ -39,7 +41,9 @@ class AuthService {
 
   /// Gọi API Quên mật khẩu: POST /api/auth/forgot-password
   /// Backend luôn trả về 204 NoContent để bảo vệ thông tin tài khoản
-  Future<ForgotPasswordResponse> forgotPassword(ForgotPasswordRequest request) async {
+  Future<ForgotPasswordResponse> forgotPassword(
+    ForgotPasswordRequest request,
+  ) async {
     try {
       await _apiClient.post(
         '/api/auth/forgot-password',

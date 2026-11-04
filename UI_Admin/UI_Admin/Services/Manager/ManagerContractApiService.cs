@@ -1,3 +1,4 @@
+using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models.Manager;
 
@@ -14,7 +15,7 @@ public class ManagerContractListResponse
 
 public class ManagerContractApiService(HttpClient client, IConfiguration configuration)
 {
-    private readonly string baseUrl = (configuration["WorkShiftApi:BaseUrl"] ?? "http://localhost:5267").TrimEnd('/');
+    private readonly string baseUrl = configuration.GetWorkShiftApiBaseUrl();
 
     public Task<IReadOnlyList<ContractStaffOption>> GetStaffOptionsAsync(CancellationToken ct) =>
         GetStaffOptionsAsync(null, ct);

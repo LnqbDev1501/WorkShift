@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../models/payroll_preview_model.dart';
 import '../../models/payslip_model.dart';
 import '../../services/payroll_service.dart';
@@ -10,10 +10,7 @@ import '../../utils/format_utils.dart';
 class OfficialPayslipDetailView extends StatefulWidget {
   final int payslipId;
 
-  const OfficialPayslipDetailView({
-    super.key,
-    required this.payslipId,
-  });
+  const OfficialPayslipDetailView({super.key, required this.payslipId});
 
   @override
   State<OfficialPayslipDetailView> createState() =>
@@ -86,41 +83,44 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
               child: CircularProgressIndicator(color: AppColors.primary),
             )
           : _errorMessage != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline_rounded,
-                            size: 52, color: AppColors.error),
-                        const SizedBox(height: 16),
-                        Text(
-                          _errorMessage!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppColors.error,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: _loadDetail,
-                          icon: const Icon(Icons.refresh_rounded, size: 18),
-                          label: const Text('Retry'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 52,
+                      color: AppColors.error,
                     ),
-                  ),
-                )
-              : _detail == null
-                  ? const Center(child: Text('Official payslip data not found.'))
-                  : _buildContent(),
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: _loadDetail,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Retry'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : _detail == null
+          ? const Center(child: Text('Official payslip data not found.'))
+          : _buildContent(),
     );
   }
 
@@ -187,7 +187,10 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7), // Green 100
                   borderRadius: BorderRadius.circular(8),
@@ -204,17 +207,25 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.verified_rounded,
-                        size: 13, color: AppColors.success),
+                    const Icon(
+                      Icons.verified_rounded,
+                      size: 13,
+                      color: AppColors.success,
+                    ),
                     const SizedBox(width: 4),
                     Text(
                       PayslipStatus.getLabel(payslip.status),
@@ -243,8 +254,11 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.person_outline_rounded,
-                  size: 15, color: AppColors.textSecondary),
+              const Icon(
+                Icons.person_outline_rounded,
+                size: 15,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               Text(
                 '${payslip.employeeName}${payslip.employeePosition != null && payslip.employeePosition!.isNotEmpty ? ' • ${payslip.employeePosition}' : ''}',
@@ -260,12 +274,18 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
             const SizedBox(height: 4),
             Row(
               children: [
-                const Icon(Icons.storefront_outlined,
-                    size: 15, color: AppColors.textMuted),
+                const Icon(
+                  Icons.storefront_outlined,
+                  size: 15,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   payslip.branchName,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -273,8 +293,11 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           const Divider(height: 24, color: AppColors.borderLight),
           Row(
             children: [
-              const Icon(Icons.date_range_rounded,
-                  size: 15, color: AppColors.textSecondary),
+              const Icon(
+                Icons.date_range_rounded,
+                size: 15,
+                color: AppColors.textSecondary,
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Date range: ',
@@ -293,8 +316,11 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.event_available_rounded,
-                  size: 15, color: AppColors.textMuted),
+              const Icon(
+                Icons.event_available_rounded,
+                size: 15,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(width: 6),
               const Text(
                 'Official publication date: ',
@@ -321,7 +347,10 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F766E), Color(0xFF0D9488)], // Teal theme for official
+          colors: [
+            Color(0xFF0F766E),
+            Color(0xFF0D9488),
+          ], // Teal theme for official
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -367,9 +396,18 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMiniOverviewStat('Total Earnings', formatCurrency(payslip.grossSalary)),
-              _buildMiniOverviewStat('Total Deductions', formatCurrency(payslip.totalDeduction)),
-              _buildMiniOverviewStat('Total Work Hours', '${payslip.totalWorkHours}h'),
+              _buildMiniOverviewStat(
+                'Total Earnings',
+                formatCurrency(payslip.grossSalary),
+              ),
+              _buildMiniOverviewStat(
+                'Total Deductions',
+                formatCurrency(payslip.totalDeduction),
+              ),
+              _buildMiniOverviewStat(
+                'Total Work Hours',
+                '${payslip.totalWorkHours}h',
+              ),
             ],
           ),
         ],
@@ -412,8 +450,11 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
         children: [
           const Row(
             children: [
-              Icon(Icons.receipt_long_rounded,
-                  size: 18, color: Color(0xFF0F766E)),
+              Icon(
+                Icons.receipt_long_rounded,
+                size: 18,
+                color: Color(0xFF0F766E),
+              ),
               SizedBox(width: 8),
               Text(
                 'Official Earnings & Deductions Breakdown',
@@ -533,7 +574,10 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: false,
-          leading: const Icon(Icons.calendar_month_rounded, color: Color(0xFF0F766E)),
+          leading: const Icon(
+            Icons.calendar_month_rounded,
+            color: Color(0xFF0F766E),
+          ),
           title: Text(
             'Shift Details (${workDetails.length} shifts)',
             style: const TextStyle(
@@ -575,8 +619,11 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
               color: const Color(0xFFCCFBF1), // Teal 100
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.timer_outlined,
-                size: 18, color: Color(0xFF0F766E)),
+            child: const Icon(
+              Icons.timer_outlined,
+              size: 18,
+              color: Color(0xFF0F766E),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -607,18 +654,28 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
                 const SizedBox(height: 3),
                 Text(
                   'Date: ${shift.workDate}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   'Attendance: ${shift.checkInTime != null ? formatVietnamDateTime(shift.checkInTime) : '--:--'} - ${shift.checkOutTime != null ? formatVietnamDateTime(shift.checkOutTime) : '--:--'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
                 ),
-                if (shift.totalLateMinutes > 0 || shift.totalEarlyLeaveMinutes > 0) ...[
+                if (shift.totalLateMinutes > 0 ||
+                    shift.totalEarlyLeaveMinutes > 0) ...[
                   const SizedBox(height: 3),
                   Text(
                     'Late: ${shift.totalLateMinutes}m • Early Leave: ${shift.totalEarlyLeaveMinutes}m',
-                    style: const TextStyle(fontSize: 11, color: AppColors.error),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.error,
+                    ),
                   ),
                 ],
                 if (shift.note != null && shift.note!.isNotEmpty) ...[
@@ -642,7 +699,8 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
 
   /// 5. Specific Calculation Line Items (CalculationDetails)
   Widget _buildCalculationItemsCard(
-      List<PayrollCalculationDetailItem> calcDetails) {
+    List<PayrollCalculationDetailItem> calcDetails,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -653,7 +711,10 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           initiallyExpanded: false,
-          leading: const Icon(Icons.calculate_outlined, color: Color(0xFF0F766E)),
+          leading: const Icon(
+            Icons.calculate_outlined,
+            color: Color(0xFF0F766E),
+          ),
           title: Text(
             'Specific Line Items (${calcDetails.length} items)',
             style: const TextStyle(
@@ -666,9 +727,14 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
             const Divider(height: 1, color: AppColors.borderLight),
             ...calcDetails.map((item) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: AppColors.borderLight)),
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderLight),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -482,7 +482,9 @@ class TodayShiftCard extends StatelessWidget {
                       ? AppButtonType.secondary
                       : AppButtonType.primary,
                   isLoading: isCheckingIn,
-                  onPressed: (isCheckingIn || isCheckingOut) ? null : onCheckInTap,
+                  onPressed: (isCheckingIn || isCheckingOut)
+                      ? null
+                      : onCheckInTap,
                 ),
               ),
               const SizedBox(width: 10),
@@ -496,7 +498,9 @@ class TodayShiftCard extends StatelessWidget {
                       ? AppButtonType.primary
                       : AppButtonType.secondary,
                   isLoading: isCheckingOut,
-                  onPressed: (isCheckingIn || isCheckingOut) ? null : onCheckOutTap,
+                  onPressed: (isCheckingIn || isCheckingOut)
+                      ? null
+                      : onCheckOutTap,
                 ),
               ),
             ],

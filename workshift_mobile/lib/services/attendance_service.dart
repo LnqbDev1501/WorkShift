@@ -7,12 +7,18 @@ class AttendanceService {
   final ApiClient _apiClient = ApiClient();
 
   /// Create a liveness challenge session for Check-In (TTL: 90s)
-  Future<CheckInSessionResponse> createCheckInSession({int? assignmentId}) async {
+  Future<CheckInSessionResponse> createCheckInSession({
+    int? assignmentId,
+  }) async {
     final response = await _apiClient.post(
       '/api/staff/attendance/check-in/session',
-      queryParameters: assignmentId != null ? {'assignmentId': assignmentId} : null,
+      queryParameters: assignmentId != null
+          ? {'assignmentId': assignmentId}
+          : null,
     );
-    return CheckInSessionResponse.fromJson(response.data as Map<String, dynamic>);
+    return CheckInSessionResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Submit Check-In with GPS coordinates and captured face image
@@ -31,10 +37,7 @@ class AttendanceService {
       'Latitude': latitude,
       'Longitude': longitude,
       'GpsAccuracy': gpsAccuracy ?? 5.0,
-      'FaceImage': MultipartFile.fromBytes(
-        imageBytes,
-        filename: filename,
-      ),
+      'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
     });
 
     final response = await _apiClient.post(
@@ -45,12 +48,16 @@ class AttendanceService {
   }
 
   /// Create a liveness challenge session for Check-Out (TTL: 90s)
-  Future<CheckOutSessionResponse> createCheckOutSession(int assignmentId) async {
+  Future<CheckOutSessionResponse> createCheckOutSession(
+    int assignmentId,
+  ) async {
     final response = await _apiClient.post(
       '/api/staff/attendance/check-out/session',
       queryParameters: {'assignmentId': assignmentId},
     );
-    return CheckOutSessionResponse.fromJson(response.data as Map<String, dynamic>);
+    return CheckOutSessionResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Submit Check-Out with GPS coordinates and captured face image
@@ -69,10 +76,7 @@ class AttendanceService {
       'Latitude': latitude,
       'Longitude': longitude,
       'GpsAccuracy': gpsAccuracy ?? 5.0,
-      'FaceImage': MultipartFile.fromBytes(
-        imageBytes,
-        filename: filename,
-      ),
+      'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
     });
 
     final response = await _apiClient.post(

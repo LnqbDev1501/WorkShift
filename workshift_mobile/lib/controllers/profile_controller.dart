@@ -102,10 +102,7 @@ class ProfileController extends ChangeNotifier {
 
     try {
       final formData = FormData.fromMap({
-        'avatarFile': MultipartFile.fromBytes(
-          imageBytes,
-          filename: fileName,
-        ),
+        'avatarFile': MultipartFile.fromBytes(imageBytes, filename: fileName),
       });
       final response = await _apiClient.post(
         '/api/profile/me/avatar',
@@ -163,13 +160,12 @@ class ProfileController extends ChangeNotifier {
     try {
       final response = await _apiClient.post(
         '/api/profile/email/change-request',
-        data: {
-          'email': newEmail.trim(),
-        },
+        data: {'email': newEmail.trim()},
       );
 
       if (response.statusCode == 202 || response.statusCode == 200) {
-        _successMessage = 'Một liên kết xác nhận đã được gửi đến địa chỉ email mới.';
+        _successMessage =
+            'Một liên kết xác nhận đã được gửi đến địa chỉ email mới.';
         _isChangingEmail = false;
         notifyListeners();
         return true;

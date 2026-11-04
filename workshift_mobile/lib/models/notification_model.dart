@@ -48,7 +48,8 @@ class NotificationModel {
       message: json['message']?.toString() ?? '',
       notificationType: json['notificationType']?.toString() ?? '',
       audience: json['audience']?.toString() ?? '',
-      channels: (json['channels'] as List<dynamic>?)
+      channels:
+          (json['channels'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -64,7 +65,8 @@ class NotificationModel {
       totalCount: json['totalCount']?.toInt() ?? 0,
       targetRegionId: json['targetRegionId']?.toInt(),
       targetBranchId: json['targetBranchId']?.toInt(),
-      targetRoles: (json['targetRoles'] as List<dynamic>?)
+      targetRoles:
+          (json['targetRoles'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
