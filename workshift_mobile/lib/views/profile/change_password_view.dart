@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../controllers/profile_controller.dart';
+import '../../controllers/profile/profile_controller.dart';
 import '../../theme/app_colors.dart';
 
 /// Trang đổi mật khẩu (mở từ Profile)

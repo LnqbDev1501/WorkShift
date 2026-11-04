@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/staff_timesheet_model.dart';
+import '../../../models/timesheet/staff_timesheet_model.dart';
 import '../../../theme/app_colors.dart';
 
 class WeekSelectionBottomSheet extends StatefulWidget {

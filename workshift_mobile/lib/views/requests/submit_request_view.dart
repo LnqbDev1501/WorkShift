@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/staff_request_controller.dart';
-import '../../models/staff_request_model.dart';
+import '../../controllers/requests/staff_request_controller.dart';
+import '../../models/requests/staff_request_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 

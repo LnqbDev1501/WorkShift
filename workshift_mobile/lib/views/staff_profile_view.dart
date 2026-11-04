@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../controllers/profile_controller.dart';
-import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
+import '../../controllers/profile/profile_controller.dart';
+import '../../models/auth/user_model.dart';
+import '../../services/auth/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../views/auth/login_view.dart';
 import 'profile/change_email_view.dart';

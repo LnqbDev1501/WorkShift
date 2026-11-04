@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/notification_controller.dart';
-import '../../models/notification_model.dart';
+import '../../controllers/notifications/notification_controller.dart';
+import '../../models/notifications/notification_model.dart';
 import '../../theme/app_colors.dart';
 import 'shifts/available_shifts_view.dart';
 import 'payroll/payroll_home_view.dart';

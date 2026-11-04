@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../controllers/shift_swap_detail_controller.dart';
+import '../../controllers/shifts/shift_swap_detail_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_info_row.dart';

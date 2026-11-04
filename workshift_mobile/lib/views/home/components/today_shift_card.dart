@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/attendance_shift_model.dart';
+import '../../../models/attendance/attendance_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/status_badge.dart';

@@ -1,7 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../controllers/face_registration_controller.dart';
+import '../../controllers/attendance/face_registration_controller.dart';
 import '../../theme/app_colors.dart';
 
 /// Function to open Face Registration Modal from anywhere in the app

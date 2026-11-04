@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../controllers/submit_shift_swap_controller.dart';
-import '../../models/available_shift_model.dart';
-import '../../models/shift_swap_model.dart';
+import '../../controllers/shifts/submit_shift_swap_controller.dart';
+import '../../models/shifts/available_shift_model.dart';
+import '../../models/shifts/shift_swap_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_confirmation_dialog.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/shift_swap_list_controller.dart';
-import '../../models/shift_swap_model.dart';
+import '../../controllers/shifts/shift_swap_list_controller.dart';
+import '../../models/shifts/shift_swap_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_choice_filters.dart';

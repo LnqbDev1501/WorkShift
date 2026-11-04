@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../controllers/my_shifts_controller.dart';
-import '../../models/available_shift_model.dart';
-import '../../services/realtime_service.dart';
+import '../../controllers/shifts/my_shifts_controller.dart';
+import '../../models/shifts/available_shift_model.dart';
+import '../../services/core/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_state_panel.dart';

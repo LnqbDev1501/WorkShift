@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/available_shift_model.dart';
+import '../../../models/shifts/available_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/status_badge.dart';
 import 'shift_display_format.dart';

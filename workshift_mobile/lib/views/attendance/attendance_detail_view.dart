@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/attendance_history_model.dart';
-import '../../services/home_service.dart';
+import '../../models/attendance/attendance_history_model.dart';
+import '../../services/home/home_service.dart';
 import '../../theme/app_colors.dart';
 
 class AttendanceDetailView extends StatefulWidget {

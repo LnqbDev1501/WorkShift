@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../controllers/home_controller.dart';
-import '../../models/attendance_history_model.dart';
-import '../../models/attendance_shift_model.dart';
-import '../../services/home_service.dart';
+import '../../controllers/home/home_controller.dart';
+import '../../models/attendance/attendance_history_model.dart';
+import '../../models/attendance/attendance_shift_model.dart';
+import '../../services/home/home_service.dart';
 import '../../theme/app_colors.dart';
 import '../home/handlers/attendance_flow_handler.dart';
 import 'attendance_detail_view.dart';

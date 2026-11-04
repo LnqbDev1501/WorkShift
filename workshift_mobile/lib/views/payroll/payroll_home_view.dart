@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/payroll_preview_model.dart';
-import '../../models/payslip_model.dart';
-import '../../services/payroll_service.dart';
+import '../../models/payroll/payroll_preview_model.dart';
+import '../../models/payroll/payslip_model.dart';
+import '../../services/payroll/payroll_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import 'official_payslip_detail_view.dart';

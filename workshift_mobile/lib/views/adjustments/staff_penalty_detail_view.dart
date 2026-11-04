@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/employee_adjustment_model.dart';
-import '../../services/staff_adjustment_service.dart';
+import '../../models/adjustments/employee_adjustment_model.dart';
+import '../../services/adjustments/staff_adjustment_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 

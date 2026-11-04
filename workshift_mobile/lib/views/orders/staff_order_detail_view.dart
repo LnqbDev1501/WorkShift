@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/staff_order_controller.dart';
-import '../../models/order_model.dart';
+import '../../controllers/orders/staff_order_controller.dart';
+import '../../models/orders/order_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../utils/format_utils.dart';

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../models/order_model.dart';
-import '../../models/product_model.dart';
-import '../../services/staff_order_service.dart';
-import '../../services/product_service.dart';
+import '../../models/orders/order_model.dart';
+import '../../models/catalog/product_model.dart';
+import '../../services/orders/staff_order_service.dart';
+import '../../services/catalog/product_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';

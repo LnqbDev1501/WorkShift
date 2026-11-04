@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/staff_contract_controller.dart';
-import '../../models/staff_contract_model.dart';
+import '../../controllers/contracts/staff_contract_controller.dart';
+import '../../models/contracts/staff_contract_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 

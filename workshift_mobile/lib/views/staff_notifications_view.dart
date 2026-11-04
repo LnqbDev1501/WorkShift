@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../controllers/notification_controller.dart';
-import '../../models/notification_model.dart';
-import '../../services/realtime_service.dart';
+import '../../controllers/notifications/notification_controller.dart';
+import '../../models/notifications/notification_model.dart';
+import '../../services/core/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import 'staff_notification_detail_view.dart';
 

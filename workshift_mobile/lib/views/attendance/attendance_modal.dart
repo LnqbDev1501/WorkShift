@@ -1,8 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../../controllers/attendance_controller.dart';
-import '../../models/attendance_shift_model.dart';
+import '../../controllers/attendance/attendance_controller.dart';
+import '../../models/attendance/attendance_shift_model.dart';
 import '../../theme/app_colors.dart';
 import '../face_registration/face_registration_modal.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../controllers/home_controller.dart';
-import '../../../models/attendance_shift_model.dart';
+import '../../../controllers/home/home_controller.dart';
+import '../../../models/attendance/attendance_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../attendance/attendance_modal.dart';
 

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import '../../controllers/staff_contract_controller.dart';
-import '../../models/staff_contract_model.dart';
-import '../../services/auth_service.dart';
+import '../../controllers/contracts/staff_contract_controller.dart';
+import '../../models/contracts/staff_contract_model.dart';
+import '../../services/auth/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/file_download_helper.dart';
 import '../../widgets/app_button.dart';

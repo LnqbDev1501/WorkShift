@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../controllers/staff_timesheet_controller.dart';
-import '../../models/staff_timesheet_model.dart';
+import '../../controllers/timesheet/staff_timesheet_controller.dart';
+import '../../models/timesheet/staff_timesheet_model.dart';
 import '../../theme/app_colors.dart';
 import 'components/timesheet_adjustment_sheet.dart';
 import 'components/week_selection_bottom_sheet.dart';

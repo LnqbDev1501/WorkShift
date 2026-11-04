@@ -15,8 +15,8 @@ import '../../payroll/payroll_home_view.dart';
 import '../../catalog/product_list_view.dart';
 import '../../adjustments/staff_reward_list_view.dart';
 import '../../adjustments/staff_penalty_list_view.dart';
-import '../../../models/face_registration_model.dart';
-import '../../../services/face_registration_service.dart';
+import '../../../models/attendance/face_registration_model.dart';
+import '../../../services/attendance/face_registration_service.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
