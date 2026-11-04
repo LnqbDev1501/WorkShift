@@ -1,4 +1,4 @@
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -252,6 +252,8 @@ builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
+builder.Services.AddScoped<IHolidayPayRuleRepo, HolidayPayRuleRepo>();
+builder.Services.AddScoped<IHolidayPayRuleService, HolidayPayRuleService>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
