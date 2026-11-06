@@ -31,10 +31,12 @@ class FaceRegistrationService {
     required String sessionId,
     required Uint8List imageBytes,
     String filename = 'live_face.jpg',
+    double livenessScore = 1.0,
   }) async {
     final formData = FormData.fromMap({
       'SessionId': sessionId,
       'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
+      'LivenessScore': livenessScore.toStringAsFixed(4),
     });
 
     final response = await _apiClient.post(

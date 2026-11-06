@@ -272,7 +272,19 @@ public class FaceRegistrationService : IFaceRegistrationService
         // 5. Extract real facial embedding using ArcFace AI model
         var (faceEmbedding, faceConfidence) = await _faceBiometricService.ExtractFaceEmbeddingAsync(request.FaceImage, cancellationToken);
         decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
-        decimal livenessScore = 1.0000m;
+
+        // Use liveness score from ML Kit (client-side), fallback to 1.0 for web/test mode
+        const decimal MinLivenessRequired = 0.50m;
+        decimal livenessScore = request.LivenessScore.HasValue
+            ? Math.Round(request.LivenessScore.Value, 4)
+            : 1.0000m;
+
+        if (livenessScore < MinLivenessRequired)
+        {
+            throw new InvalidOperationException(
+                $"Liveness verification failed (score: {livenessScore:P0} < {MinLivenessRequired:P0}). " +
+                "Please complete all face challenges clearly and try again.");
+        }
 
         // 6. Biometric Deduplication Check (1:N matching): Prevent registering the same face on multiple accounts
         var (isDuplicate, matchedUserName, similarity) = await _faceRegistrationRepo.FindDuplicateFaceProfileAsync(

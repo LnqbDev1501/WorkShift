@@ -43,6 +43,13 @@ class FaceRegistrationController extends ChangeNotifier {
   String detectionStatus = 'Align face in the oval frame...';
   Uint8List? capturedImageBytes;
 
+  // Liveness score tracking: accumulate ML Kit confidence per challenge
+  final List<double> _challengeScores = [];
+  double _computedLivenessScore = 0.0;
+
+  /// Liveness score computed from ML Kit challenge results (0.0 – 1.0)
+  double get computedLivenessScore => _computedLivenessScore;
+
   // Results
   FaceRegistrationVerifyResult? verifyResult;
   bool isSuccess = false;
@@ -60,9 +67,19 @@ class FaceRegistrationController extends ChangeNotifier {
 
   String? get sessionId => registrationSession?.sessionId;
 
+  /// Compute liveness score from accumulated ML Kit challenge scores.
+  /// Returns a value between 0.0 and 1.0.
+  double _calculateLivenessScore(List<double> scores) {
+    if (scores.isEmpty) return 0.0;
+    final avg = scores.reduce((a, b) => a + b) / scores.length;
+    return double.parse(avg.toStringAsFixed(4));
+  }
+
   /// Initialize Face Registration flow
   Future<void> initialize() async {
     errorMessage = null;
+    _challengeScores.clear();
+    _computedLivenessScore = 0.0;
     notifyListeners();
 
     if (!kIsWeb) {
@@ -251,6 +268,7 @@ class FaceRegistrationController extends ChangeNotifier {
     if (challenge == null) return;
 
     bool isPassed = false;
+    double challengeConfidence = 0.0;
     final action = challenge.action.toUpperCase();
 
     final smile = face.smilingProbability;
@@ -266,6 +284,10 @@ class FaceRegistrationController extends ChangeNotifier {
             rightEye != null &&
             (leftEye < 0.35 || rightEye < 0.35)) {
           isPassed = true;
+          // Score: how closed the eyes are (more closed = more confident blink)
+          final closedLeft = leftEye < 0.35 ? (1.0 - leftEye) : 0.0;
+          final closedRight = rightEye < 0.35 ? (1.0 - rightEye) : 0.0;
+          challengeConfidence = ((closedLeft + closedRight) / 2).clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Please blink your eyes';
         }
@@ -274,6 +296,7 @@ class FaceRegistrationController extends ChangeNotifier {
       case 'SMILE':
         if (smile != null && smile > 0.50) {
           isPassed = true;
+          challengeConfidence = smile.clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Please smile at the camera';
         }
@@ -283,6 +306,8 @@ class FaceRegistrationController extends ChangeNotifier {
         // Turning to user's LEFT (eulerY > 10 on front camera)
         if (eulerY > 10) {
           isPassed = true;
+          // Score: how much they turned (capped at 45°)
+          challengeConfidence = (eulerY / 45.0).clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Turn head to the left';
         }
@@ -292,6 +317,7 @@ class FaceRegistrationController extends ChangeNotifier {
         // Turning to user's RIGHT (eulerY < -10 on front camera)
         if (eulerY < -10) {
           isPassed = true;
+          challengeConfidence = (eulerY.abs() / 45.0).clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Turn head to the right';
         }
@@ -300,6 +326,7 @@ class FaceRegistrationController extends ChangeNotifier {
       case 'NOD':
         if (eulerX < -10) {
           isPassed = true;
+          challengeConfidence = (eulerX.abs() / 30.0).clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Please nod your head slightly';
         }
@@ -309,6 +336,9 @@ class FaceRegistrationController extends ChangeNotifier {
       default:
         if (eulerY.abs() < 10 && eulerZ.abs() < 10) {
           isPassed = true;
+          // Score: how straight they are looking (lower angles = higher score)
+          final straightness = 1.0 - ((eulerY.abs() + eulerZ.abs()) / 20.0);
+          challengeConfidence = straightness.clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Look straight at the camera';
         }
@@ -320,6 +350,7 @@ class FaceRegistrationController extends ChangeNotifier {
         _challengeHoldStartTime = null;
         challengeHoldProgress = 1.0;
         remainingHoldSeconds = 0.0;
+        _challengeScores.add(challengeConfidence);
         _handleChallengePassed(challenge.action);
         return;
       }
@@ -339,6 +370,7 @@ class FaceRegistrationController extends ChangeNotifier {
         _challengeHoldStartTime = null;
         challengeHoldProgress = 1.0;
         remainingHoldSeconds = 0.0;
+        _challengeScores.add(challengeConfidence);
         _handleChallengePassed(challenge.action);
       } else {
         detectionStatus =
@@ -453,6 +485,8 @@ class FaceRegistrationController extends ChangeNotifier {
   Future<void> createSession() async {
     errorMessage = null;
     _countdownTimer?.cancel();
+    _challengeScores.clear();
+    _computedLivenessScore = 0.0;
 
     try {
       registrationSession = await _service.createSession();
@@ -521,10 +555,14 @@ class FaceRegistrationController extends ChangeNotifier {
         return false;
       }
 
+      // Compute liveness score from all completed ML Kit challenge results
+      _computedLivenessScore = _calculateLivenessScore(_challengeScores);
+
       verifyResult = await _service.verifyAndRegister(
         sessionId: sessionId!,
         imageBytes: capturedImageBytes!,
         filename: 'registered_face.jpg',
+        livenessScore: _computedLivenessScore,
       );
 
       _countdownTimer?.cancel();
