@@ -28,17 +28,22 @@ class AttendanceService {
     required double latitude,
     required double longitude,
     double? gpsAccuracy,
+    double? livenessScore,
     required Uint8List imageBytes,
     String filename = 'face_capture.jpg',
   }) async {
-    final formData = FormData.fromMap({
+    final map = <String, dynamic>{
       'AssignmentId': assignmentId,
       'SessionId': sessionId,
       'Latitude': latitude,
       'Longitude': longitude,
       'GpsAccuracy': gpsAccuracy ?? 5.0,
       'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
-    });
+    };
+    if (livenessScore != null) {
+      map['LivenessScore'] = livenessScore.toStringAsFixed(4);
+    }
+    final formData = FormData.fromMap(map);
 
     final response = await _apiClient.post(
       '/api/staff/attendance/check-in',
@@ -67,17 +72,22 @@ class AttendanceService {
     required double latitude,
     required double longitude,
     double? gpsAccuracy,
+    double? livenessScore,
     required Uint8List imageBytes,
     String filename = 'face_capture.jpg',
   }) async {
-    final formData = FormData.fromMap({
+    final map = <String, dynamic>{
       'AssignmentId': assignmentId,
       'SessionId': sessionId,
       'Latitude': latitude,
       'Longitude': longitude,
       'GpsAccuracy': gpsAccuracy ?? 5.0,
       'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
-    });
+    };
+    if (livenessScore != null) {
+      map['LivenessScore'] = livenessScore.toStringAsFixed(4);
+    }
+    final formData = FormData.fromMap(map);
 
     final response = await _apiClient.post(
       '/api/staff/attendance/check-out',

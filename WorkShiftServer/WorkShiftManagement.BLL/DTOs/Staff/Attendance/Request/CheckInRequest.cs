@@ -20,6 +20,9 @@ public sealed class CheckInRequest
 
     public decimal? GpsAccuracy { get; set; }
 
+    [Range(0.0, 1.0, ErrorMessage = "LivenessScore must be between 0.0 and 1.0.")]
+    public decimal? LivenessScore { get; set; }
+
     [Required]
     public IFormFile FaceImage { get; set; } = null!;
 }

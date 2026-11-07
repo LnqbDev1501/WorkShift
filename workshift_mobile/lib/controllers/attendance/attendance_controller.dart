@@ -66,6 +66,17 @@ class AttendanceController extends ChangeNotifier {
   Uint8List? capturedImageBytes;
   String? capturedImageName;
 
+  // Liveness score tracking: accumulate ML Kit confidence per challenge
+  final List<double> _challengeScores = [];
+  double _computedLivenessScore = 0.0;
+  double get computedLivenessScore => _computedLivenessScore;
+
+  double _calculateLivenessScore(List<double> scores) {
+    if (scores.isEmpty) return 0.0;
+    final avg = scores.reduce((a, b) => a + b) / scores.length;
+    return double.parse(avg.toStringAsFixed(4));
+  }
+
   // Results
   CheckInResponse? checkInResult;
   CheckOutResponse? checkOutResult;
@@ -100,6 +111,7 @@ class AttendanceController extends ChangeNotifier {
       math.max(0.0, distanceMeters - effectiveAccuracy);
 
   bool get isWithinGeofence {
+    if (currentLat == null || currentLng == null) return false;
     return effectiveDistanceMeters <= shift.maxAttendanceDistanceMeters;
   }
 
@@ -111,6 +123,8 @@ class AttendanceController extends ChangeNotifier {
     isShiftWindowClosed = false;
     isFaceProfileRequired = false;
     hasSession = false;
+    _challengeScores.clear();
+    _computedLivenessScore = 0.0;
     notifyListeners();
 
     // 1. Guard 3: Pre-flight check on shift window expiration before touching hardware
@@ -407,12 +421,20 @@ class AttendanceController extends ChangeNotifier {
     }
 
     if (isPassed) {
+      double score = 0.95;
+      if (action == 'BLINK') {
+        final eyeVal = math.min(leftEye ?? 0.0, rightEye ?? 0.0);
+        score = (1.0 - eyeVal).clamp(0.65, 1.0);
+      } else if (action == 'SMILE' && smile != null) {
+        score = smile.clamp(0.60, 1.0);
+      }
+
       // Instant pass for blink challenge as requested
       if (action == 'BLINK') {
         _challengeHoldStartTime = null;
         challengeHoldProgress = 1.0;
         remainingHoldSeconds = 0.0;
-        _handleChallengePassed(challenge.action);
+        _handleChallengePassed(challenge.action, score);
         return;
       }
 
@@ -431,7 +453,7 @@ class AttendanceController extends ChangeNotifier {
         _challengeHoldStartTime = null;
         challengeHoldProgress = 1.0;
         remainingHoldSeconds = 0.0;
-        _handleChallengePassed(challenge.action);
+        _handleChallengePassed(challenge.action, score);
       } else {
         detectionStatus =
             '✓ Position held! Keep steady: ${remainingSec.toStringAsFixed(1)}s remaining...';
@@ -448,7 +470,7 @@ class AttendanceController extends ChangeNotifier {
   }
 
   /// Advance to next challenge or finish verification
-  void _handleChallengePassed(String action) {
+  void _handleChallengePassed(String action, [double score = 0.95]) {
     if (isSessionExpired ||
         isShiftWindowClosed ||
         remainingSeconds <= 0 ||
@@ -458,6 +480,7 @@ class AttendanceController extends ChangeNotifier {
     if (_stepCooldown) return;
     _stepCooldown = true;
 
+    _challengeScores.add(score);
     _challengeHoldStartTime = null;
     challengeHoldProgress = 1.0;
     remainingHoldSeconds = 0.0;
@@ -481,7 +504,8 @@ class AttendanceController extends ChangeNotifier {
         detectionStatus = currentChallenge?.instruction ?? 'Next challenge...';
         notifyListeners();
       } else {
-        // Completed all challenges! Stop stream and snap picture!
+        // Completed all challenges! Compute liveness score and snap picture!
+        _computedLivenessScore = _calculateLivenessScore(_challengeScores);
         isDetecting = false;
         detectionStatus = '✓ All steps completed! Capturing photo...';
         notifyListeners();
@@ -705,8 +729,12 @@ class AttendanceController extends ChangeNotifier {
       // 1. Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        locationMessage = 'Please enable GPS location on your device';
-        _useBranchFallback();
+        locationMessage = 'Please enable GPS location on your device to check in';
+        _stopPositionStream();
+        currentLat = null;
+        currentLng = null;
+        currentAccuracy = null;
+        distanceMeters = 0.0;
         isLocating = false;
         notifyListeners();
         return;
@@ -720,8 +748,12 @@ class AttendanceController extends ChangeNotifier {
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        locationMessage = 'GPS permission denied. Using fallback location';
-        _useBranchFallback();
+        locationMessage = 'Location permission is denied. Please grant permission to check in';
+        _stopPositionStream();
+        currentLat = null;
+        currentLng = null;
+        currentAccuracy = null;
+        distanceMeters = 0.0;
         isLocating = false;
         notifyListeners();
         return;
@@ -744,8 +776,12 @@ class AttendanceController extends ChangeNotifier {
       // 4. Start Live GPS Stream (auto-updates as staff moves)
       _startPositionStream();
     } catch (e) {
-      _useBranchFallback();
-      locationMessage = 'Unable to read real GPS. Using fallback location';
+      _stopPositionStream();
+      currentLat = null;
+      currentLng = null;
+      currentAccuracy = null;
+      distanceMeters = 0.0;
+      locationMessage = 'Unable to determine real GPS location: $e';
     } finally {
       isLocating = false;
       notifyListeners();
@@ -783,10 +819,18 @@ class AttendanceController extends ChangeNotifier {
 
   void _useBranchFallback() {
     _stopPositionStream();
-    currentLat = shift.branchLatitude ?? 10.8411;
-    currentLng = shift.branchLongitude ?? 106.8099;
-    currentAccuracy = 5.0;
-    _calculateDistance();
+    if (shift.branchLatitude != null && shift.branchLongitude != null) {
+      currentLat = shift.branchLatitude;
+      currentLng = shift.branchLongitude;
+      currentAccuracy = 5.0;
+      _calculateDistance();
+    } else {
+      currentLat = null;
+      currentLng = null;
+      currentAccuracy = null;
+      distanceMeters = 0.0;
+      locationMessage = 'Branch does not have GPS coordinates configured';
+    }
   }
 
   /// Toggle between Real GPS and Mock GPS (0m) for testing
@@ -889,14 +933,24 @@ class AttendanceController extends ChangeNotifier {
         return false;
       }
 
+      if (currentLat == null || currentLng == null) {
+        errorMessage =
+            'GPS location unavailable. Please enable GPS and grant location permission to check in.';
+        isSubmitting = false;
+        notifyListeners();
+        return false;
+      }
+
       // 2. Submit to backend
+      final liveness = _computedLivenessScore > 0 ? _computedLivenessScore : 1.0;
       if (isCheckIn) {
         checkInResult = await _service.checkIn(
           assignmentId: shift.assignmentId,
           sessionId: sessionId!,
-          latitude: currentLat ?? shift.branchLatitude ?? 0.0,
-          longitude: currentLng ?? shift.branchLongitude ?? 0.0,
+          latitude: currentLat!,
+          longitude: currentLng!,
           gpsAccuracy: currentAccuracy ?? 5.0,
+          livenessScore: liveness,
           imageBytes: capturedImageBytes!,
           filename: capturedImageName ?? 'live_camera.jpg',
         );
@@ -904,9 +958,10 @@ class AttendanceController extends ChangeNotifier {
         checkOutResult = await _service.checkOut(
           assignmentId: shift.assignmentId,
           sessionId: sessionId!,
-          latitude: currentLat ?? shift.branchLatitude ?? 0.0,
-          longitude: currentLng ?? shift.branchLongitude ?? 0.0,
+          latitude: currentLat!,
+          longitude: currentLng!,
           gpsAccuracy: currentAccuracy ?? 5.0,
+          livenessScore: liveness,
           imageBytes: capturedImageBytes!,
           filename: capturedImageName ?? 'live_camera.jpg',
         );
@@ -958,6 +1013,7 @@ class AttendanceController extends ChangeNotifier {
           latitude: currentLat ?? shift.branchLatitude ?? 0.0,
           longitude: currentLng ?? shift.branchLongitude ?? 0.0,
           gpsAccuracy: currentAccuracy ?? 5.0,
+          livenessScore: 1.0,
           imageBytes: sampleBytes,
           filename: 'sample_face.jpg',
         );
@@ -968,6 +1024,7 @@ class AttendanceController extends ChangeNotifier {
           latitude: currentLat ?? shift.branchLatitude ?? 0.0,
           longitude: currentLng ?? shift.branchLongitude ?? 0.0,
           gpsAccuracy: currentAccuracy ?? 5.0,
+          livenessScore: 1.0,
           imageBytes: sampleBytes,
           filename: 'sample_face.jpg',
         );

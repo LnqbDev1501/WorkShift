@@ -27,6 +27,18 @@ public class AttendanceService : IAttendanceService
     private const string ActionTypeCheckOut = "CHECK_OUT";
     private const int MaxImageSizeBytes = 10 * 1024 * 1024; // 10MB
 
+    private static readonly TimeSpan VietnamTimeOffset = TimeSpan.FromHours(7);
+
+    /// <summary>
+    /// Converts a UTC DateTime to Vietnam Local Time (UTC+7).
+    /// </summary>
+    private static DateTime ToVietnamTime(DateTime utcTime) => utcTime.Add(VietnamTimeOffset);
+
+    /// <summary>
+    /// Converts a UTC DateTime to Vietnam DateOnly.
+    /// </summary>
+    private static DateOnly ToVietnamDate(DateTime utcTime) => DateOnly.FromDateTime(ToVietnamTime(utcTime));
+
     private static readonly (string Action, string Instruction)[] PossibleChallenges =
     {
         ("BLINK", "Please blink your eyes"),
@@ -66,7 +78,7 @@ public class AttendanceService : IAttendanceService
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
-        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayVn = ToVietnamDate(nowUtc);
 
         var assignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayVn, cancellationToken);
         if (assignments.Count == 0)
@@ -160,7 +172,7 @@ public class AttendanceService : IAttendanceService
                     {
                         // Ca đã qua giờ checkout mà có checkin nhưng không checkout: INCOMPLETE
                         canCheckOut = false;
-                        cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
+                        cannotCheckOutReason = $"Check-out window has closed. Cut-off was {ToVietnamTime(checkOutCutoffUtc):HH:mm}.";
                         attendanceStatus = "INCOMPLETE";
                         if (assignment.Attendance!.Status == "IN_PROGRESS")
                         {
@@ -190,18 +202,18 @@ public class AttendanceService : IAttendanceService
             else if (nowUtc < windowOpensAtUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {windowOpensAtUtc.AddHours(7):HH:mm}.";
+                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {ToVietnamTime(windowOpensAtUtc):HH:mm}.";
             }
             else if (nowUtc > checkOutCutoffUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-out window has closed for this shift. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
+                cannotCheckInReason = $"Check-out window has closed for this shift. Cut-off was {ToVietnamTime(checkOutCutoffUtc):HH:mm}.";
                 attendanceStatus = "ABSENT";
             }
             else if (nowUtc > cutoffTimeUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm}.";
+                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm}.";
                 attendanceStatus = "ABSENT";
             }
 
@@ -258,7 +270,7 @@ public class AttendanceService : IAttendanceService
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
-        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayVn = ToVietnamDate(nowUtc);
 
         var effectiveToDate = toDate ?? todayVn;
         var effectiveFromDate = fromDate ?? todayVn.AddDays(-30);
@@ -333,7 +345,7 @@ public class AttendanceService : IAttendanceService
                     // Checkout window has closed! Mark as INCOMPLETE
                     status = "INCOMPLETE";
                     canCheckOut = false;
-                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {ToVietnamTime(checkoutCutoffUtc):HH:mm dd/MM/yyyy}.";
 
                     if (attendance!.Status == "IN_PROGRESS")
                     {
@@ -353,7 +365,7 @@ public class AttendanceService : IAttendanceService
                 {
                     status = "ABSENT";
                     canCheckIn = false;
-                    cannotCheckInReason = $"Shift is closed. Cut-off time was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                    cannotCheckInReason = $"Shift is closed. Cut-off time was {ToVietnamTime(checkoutCutoffUtc):HH:mm dd/MM/yyyy}.";
                 }
                 else
                 {
@@ -384,13 +396,13 @@ public class AttendanceService : IAttendanceService
                         if (nowUtc < windowOpensAtUtc)
                         {
                             canCheckIn = false;
-                            cannotCheckInReason = $"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                            cannotCheckInReason = $"Too early to check in. Check-in window opens at {ToVietnamTime(windowOpensAtUtc):HH:mm dd/MM/yyyy}.";
                             status = "UPCOMING";
                         }
                         else if (nowUtc > cutoffTimeUtc)
                         {
                             canCheckIn = false;
-                            cannotCheckInReason = $"Check-in window closed at {cutoffTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Shift recorded as Absent.";
+                            cannotCheckInReason = $"Check-in window closed at {ToVietnamTime(cutoffTimeUtc):HH:mm dd/MM/yyyy}. Shift recorded as Absent.";
                             status = "ABSENT";
                         }
                         else
@@ -710,8 +722,8 @@ public class AttendanceService : IAttendanceService
         if (targetShift.UnfinishedPreviousShift != null)
         {
             var prev = targetShift.UnfinishedPreviousShift;
-            var startVn = prev.ScheduledStartAt.AddHours(7);
-            var endVn = prev.ScheduledEndAt.AddHours(7);
+            var startVn = ToVietnamTime(prev.ScheduledStartAt);
+            var endVn = ToVietnamTime(prev.ScheduledEndAt);
             throw new InvalidOperationException($"You have an unfinished shift: '{prev.ShiftName}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
@@ -821,7 +833,7 @@ public class AttendanceService : IAttendanceService
         var shiftEndUtc = shift.ScheduledEndAt;
 
         // Prevent concurrent check-ins: User cannot check in if actively working in another shift whose checkout window hasn't expired
-        var todayDate = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayDate = ToVietnamDate(nowUtc);
         var todayAssignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayDate, cancellationToken);
         var activeAttendance = todayAssignments.FirstOrDefault(a => 
         {
@@ -837,15 +849,15 @@ public class AttendanceService : IAttendanceService
         if (activeAttendance != null)
         {
             var otherShift = activeAttendance.Shift;
-            var startVn = otherShift.ScheduledStartAt.AddHours(7);
-            var endVn = otherShift.ScheduledEndAt.AddHours(7);
+            var startVn = ToVietnamTime(otherShift.ScheduledStartAt);
+            var endVn = ToVietnamTime(otherShift.ScheduledEndAt);
             throw new InvalidOperationException($"You have an unfinished shift: '{otherShift.ShiftNameSnapshot}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
         var windowOpensAtUtc = shiftStartUtc.AddMinutes(-rule.CheckInBeforeMinutes);
         if (nowUtc < windowOpensAtUtc)
         {
-            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
+            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {ToVietnamTime(windowOpensAtUtc):HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
         }
 
         int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
@@ -863,7 +875,7 @@ public class AttendanceService : IAttendanceService
 
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}.");
+            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}.");
         }
 
         // Calculate Late Minutes
@@ -971,7 +983,9 @@ public class AttendanceService : IAttendanceService
         }
 
         decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
-        decimal livenessScore = 1.0000m;
+        decimal livenessScore = request.LivenessScore.HasValue
+            ? Math.Round(request.LivenessScore.Value, 4)
+            : 1.0000m;
 
         // 7. Serialize Rule Snapshot JSON
         var ruleSnapshotObj = new
@@ -1167,7 +1181,7 @@ public class AttendanceService : IAttendanceService
         var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // Invalidate any active pending check-out session for this user
@@ -1311,7 +1325,7 @@ public class AttendanceService : IAttendanceService
         var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMinutes);
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // 3. Early Leave Calculation
@@ -1420,7 +1434,9 @@ public class AttendanceService : IAttendanceService
         }
 
         decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
-        decimal livenessScore = 1.0000m;
+        decimal livenessScore = request.LivenessScore.HasValue
+            ? Math.Round(request.LivenessScore.Value, 4)
+            : 1.0000m;
 
         // 6. Calculate Actual Working Time
         int actualWorkingMinutes = Math.Max(0, (int)Math.Floor((nowUtc - attendance.CheckInTime.Value).TotalMinutes));
@@ -1545,7 +1561,7 @@ public class AttendanceService : IAttendanceService
         var contract = await _attendanceRepo.GetLatestContractByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You do not have an employment contract registered in the system.");
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var today = ToVietnamDate(DateTime.UtcNow);
 
         if (string.Equals(contract.Status, "TERMINATED", StringComparison.OrdinalIgnoreCase))
         {
