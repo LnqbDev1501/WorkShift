@@ -254,9 +254,7 @@ public class OrderService : IOrderService
         if (existing == null)
             return false;
 
-        // Staff can complete their own orders
-        if (actor.Role == "STAFF" && existing.CreatedBy != actorId)
-            throw new UnauthorizedAccessException("You can only complete your own orders.");
+        // Staff and Managers can complete orders within their branch
 
         if (normalizedStatus == "COMPLETED" && existing.PaymentStatus != "PAID")
             throw new InvalidOperationException("Order must be fully paid before it can be completed.");
