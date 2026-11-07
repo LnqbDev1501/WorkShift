@@ -275,6 +275,7 @@ class OrderListQuery {
   final DateTime? dateTo;
   final int pageNumber;
   final int pageSize;
+  final String? sortBy;
 
   OrderListQuery({
     this.search,
@@ -285,6 +286,7 @@ class OrderListQuery {
     this.dateTo,
     this.pageNumber = 1,
     this.pageSize = 20,
+    this.sortBy,
   });
 
   Map<String, dynamic> toQueryParameters() {
@@ -297,6 +299,7 @@ class OrderListQuery {
     }
     if (dateFrom != null) params['dateFrom'] = dateFrom!.toIso8601String();
     if (dateTo != null) params['dateTo'] = dateTo!.toIso8601String();
+    if (sortBy != null && sortBy!.isNotEmpty) params['sortBy'] = sortBy;
     params['pageNumber'] = pageNumber;
     params['pageSize'] = pageSize;
     return params;

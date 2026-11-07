@@ -13,7 +13,8 @@ public interface IOrderRepo
         DateTime? dateFrom,
         DateTime? dateTo,
         int pageNumber,
-        int pageSize);
+        int pageSize,
+        string? sortBy = null);
 
     Task<OrderDetailData?> GetByIdAsync(int id);
     Task<OrderDetailData?> GetByIdWithBranchAsync(int id, int branchId);

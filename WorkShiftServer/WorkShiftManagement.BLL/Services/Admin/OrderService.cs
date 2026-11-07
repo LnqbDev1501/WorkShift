@@ -65,7 +65,7 @@ public class OrderService : IOrderService
             query.DateFrom,
             query.DateTo,
             pageNumber,
-            pageSize);
+            pageSize, query.SortBy);
 
         return new PagedResponse<OrderResponse>
         {

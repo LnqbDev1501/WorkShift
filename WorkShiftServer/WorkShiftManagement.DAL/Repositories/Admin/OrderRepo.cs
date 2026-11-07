@@ -20,7 +20,8 @@ public class OrderRepo : IOrderRepo
         DateTime? dateFrom,
         DateTime? dateTo,
         int pageNumber,
-        int pageSize)
+        int pageSize,
+        string? sortBy = null)
     {
         var query = _context.Orders.AsNoTracking().AsQueryable();
 
@@ -63,8 +64,21 @@ public class OrderRepo : IOrderRepo
         }
 
         var totalCount = await query.CountAsync();
-        var items = await query
-            .OrderByDescending(order => order.OrderDate)
+
+        IOrderedQueryable<Order> orderedQuery;
+        if (string.Equals(sortBy, "oldest_pending_first", StringComparison.OrdinalIgnoreCase))
+        {
+            orderedQuery = query
+                .OrderBy(order => order.Status == "PENDING" ? 0 : 1)
+                .ThenBy(order => order.Status == "PENDING" ? order.OrderDate : DateTime.MaxValue)
+                .ThenByDescending(order => order.OrderDate);
+        }
+        else
+        {
+            orderedQuery = query.OrderByDescending(order => order.OrderDate);
+        }
+
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(order => new OrderData
