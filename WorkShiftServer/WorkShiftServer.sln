@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36623.8
@@ -9,7 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkShiftManagement.DAL", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WorkShiftServer.API", "WorkShiftServer.API\WorkShiftServer.API.csproj", "{6D7C28DF-8A97-4F4C-8AD1-A4B5BAD71A72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI_Admin", "..\UI_Admin\UI_Admin\UI_Admin.csproj", "{DC5DCE7B-E903-1525-2310-380380364B69}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UI_Admin", "..\UI_Web\UI_Admin\UI_Admin.csproj", "{DC5DCE7B-E903-1525-2310-380380364B69}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

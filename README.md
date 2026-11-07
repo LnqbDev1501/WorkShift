@@ -7,7 +7,7 @@ Hệ thống quản lý ca làm việc, chấm công và bảng lương.
 - `WorkShiftServer/WorkShiftServer.API`: API ASP.NET Core, SignalR và tác vụ Hangfire.
 - `WorkShiftServer/WorkShiftManagement.BLL`: nghiệp vụ, DTO và service.
 - `WorkShiftServer/WorkShiftManagement.DAL`: Entity Framework Core, entity, repository và migration.
-- `UI_Admin/UI_Admin`: web ASP.NET Core MVC cho các vai trò trong hệ thống.
+- `UI_Web/UI_Admin`: web ASP.NET Core MVC cho các vai trò trong hệ thống.
 - `workshift_mobile`: ứng dụng Flutter dành cho nhân viên.
 
 `WorkShiftServer/WorkShiftServer.sln` bao gồm cả API, BLL, DAL và web MVC.
@@ -17,12 +17,12 @@ Hệ thống quản lý ca làm việc, chấm công và bảng lương.
 Cần .NET SDK hỗ trợ `net8.0`, Flutter có Dart `>=3.11.0 <4.0.0` và PostgreSQL/Supabase.
 
 1. Sao chép `WorkShiftServer/WorkShiftServer.API/appsettings.example.json` thành `appsettings.json` trong cùng thư mục rồi điền cấu hình dịch vụ. DbContext nhận cấu hình kết nối từ API.
-2. Sao chép `UI_Admin/UI_Admin/appsettings.example.json` thành `appsettings.json` trong cùng thư mục. Đặt `WorkShiftApi:BaseUrl` trỏ tới API đang chạy. URL phải là HTTP/HTTPS, không có query hoặc fragment.
+2. Sao chép `UI_Web/UI_Admin/appsettings.example.json` thành `appsettings.json` trong cùng thư mục. Đặt `WorkShiftApi:BaseUrl` trỏ tới API đang chạy. URL phải là HTTP/HTTPS, không có query hoặc fragment.
 3. Chạy API và web ở hai terminal:
 
 ```powershell
 dotnet run --project WorkShiftServer/WorkShiftServer.API --launch-profile http
-dotnet run --project UI_Admin/UI_Admin --launch-profile http
+dotnet run --project UI_Web/UI_Admin --launch-profile http
 ```
 
 API mặc định: `http://localhost:5267`; web: `http://localhost:5079`.
