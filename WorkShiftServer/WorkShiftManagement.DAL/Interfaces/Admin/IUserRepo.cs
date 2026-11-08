@@ -60,5 +60,11 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
         Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync();
 
         Task LoadRoleAndBranchAsync(User user);
+
+        Task<bool> HasActiveAccountByEmailAsync(string email);
+
+        Task<User?> GetStaffSetupUserAsync(Guid userId);
+
+        Task ActivateStaffAccountAsync(Guid userId);
     }
 }

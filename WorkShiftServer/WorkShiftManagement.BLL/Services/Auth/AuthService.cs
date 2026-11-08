@@ -7,6 +7,7 @@ using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Services.Auth;
 
@@ -311,13 +312,19 @@ public class AuthService : IAuthService
         if (!Guid.TryParse(user.GetProperty("id").GetString(), out var userId))
             throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
 
+        var localUser = await _userRepo.GetActiveProfileByIdAsync(userId);
+        if (localUser == null)
+            throw new UnauthorizedAccessException("Your WorkShift account is inactive or unavailable.");
+
         return new LoginResponse
         {
             AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
             RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
             ExpiresIn = root.GetProperty("expires_in").GetInt32(),
             UserId = userId,
-            Email = user.GetProperty("email").GetString() ?? string.Empty
+            Email = user.GetProperty("email").GetString() ?? string.Empty,
+            FullName = localUser.FullName,
+            Role = (localUser.Role?.RoleName ?? string.Empty).ToUpperInvariant()
         };
     }
 
@@ -336,20 +343,31 @@ public class AuthService : IAuthService
         if (!Guid.TryParse(user.GetProperty("id").GetString(), out var userId))
             throw new InvalidDataException("Supabase Auth did not return a valid user ID.");
 
+        var localUser = await _userRepo.GetActiveProfileByIdAsync(userId);
+        if (localUser == null)
+            throw new UnauthorizedAccessException("Your WorkShift account is inactive or unavailable.");
+
         return new LoginResponse
         {
             AccessToken = root.GetProperty("access_token").GetString() ?? string.Empty,
             RefreshToken = root.GetProperty("refresh_token").GetString() ?? string.Empty,
             ExpiresIn = root.GetProperty("expires_in").GetInt32(),
             UserId = userId,
-            Email = user.GetProperty("email").GetString() ?? string.Empty
+            Email = user.GetProperty("email").GetString() ?? string.Empty,
+            FullName = localUser.FullName,
+            Role = (localUser.Role?.RoleName ?? string.Empty).ToUpperInvariant()
         };
     }
 
     public async Task SendPasswordRecoveryAsync(string email)
     {
+        var trimmedEmail = email.Trim();
+        var hasActiveAccount = await _userRepo.HasActiveAccountByEmailAsync(trimmedEmail);
+        if (!hasActiveAccount)
+            return;
+
         var endpoint = $"auth/v1/recover?redirect_to={Uri.EscapeDataString(_passwordRecoveryRedirectUrl)}";
-        using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email = email.Trim() });
+        using var response = await _httpClient.PostAsJsonAsync(endpoint, new { email = trimmedEmail });
         if (response.IsSuccessStatusCode)
             return;
 
@@ -497,5 +515,15 @@ public class AuthService : IAuthService
         }
 
         return body;
+    }
+    public async Task<User?> GetStaffSetupUserAsync(Guid userId)
+    {
+        return await _userRepo.GetStaffSetupUserAsync(userId);
+    }
+
+    public async Task SetStaffPasswordAndActivateAsync(Guid userId, string password)
+    {
+        await SetStaffPasswordAsync(userId.ToString(), password);
+        await _userRepo.ActivateStaffAccountAsync(userId);
     }
 }

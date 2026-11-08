@@ -252,6 +252,39 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
             return await _context.Database.BeginTransactionAsync();
         }
 
+        public async Task<bool> HasActiveAccountByEmailAsync(string email)
+        {
+            var trimmedEmail = email.Trim().ToLower();
+            return await _context.Users.AsNoTracking().AnyAsync(item =>
+                item.Email.ToLower() == trimmedEmail && item.Status == "ACTIVE" && item.DeletedAt == null);
+        }
+
+        public async Task<User?> GetStaffSetupUserAsync(Guid userId)
+        {
+            return await _context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId && (u.Status == "ACTIVE" || u.Status == "PENDING") && u.DeletedAt == null)
+                .SingleOrDefaultAsync();
+        }
+
+        public async Task ActivateStaffAccountAsync(Guid userId)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
+            if (user != null)
+            {
+                user.HasPassword = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Status = "ACTIVE";
+                }
+                else if (!user.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("The current account status does not allow activation.");
+                }
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task LoadRoleAndBranchAsync(User user)
         {
             await _context.Entry(user).Reference(u => u.Role).LoadAsync();

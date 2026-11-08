@@ -1,5 +1,6 @@
 using WorkShiftManagement.BLL.DTOs.Auth.Request;
 using WorkShiftManagement.BLL.DTOs.Auth.Response;
+using WorkShiftManagement.DAL.Entities;
 
 namespace WorkShiftManagement.BLL.Interfaces.Auth;
 
@@ -22,4 +23,6 @@ public interface IAuthService
     Task<Guid> CreateStaffUserAsync(string email);
     Task<bool> HasPasswordAsync(Guid userId);
     Task<Guid> SetStaffPasswordAsync(string token, string password);
+    Task<User?> GetStaffSetupUserAsync(Guid userId);
+    Task SetStaffPasswordAndActivateAsync(Guid userId, string password);
 }
