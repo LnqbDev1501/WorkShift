@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -15,8 +15,6 @@ public partial class AppDbContext : DbContext
         : base(options)
     {
     }
-
-    public virtual DbSet<AbsenceLimitRule> AbsenceLimitRules { get; set; }
 
     public virtual DbSet<Attendance> Attendances { get; set; }
 
@@ -150,50 +148,6 @@ public partial class AppDbContext : DbContext
             .HasPostgresExtension("extensions", "uuid-ossp")
             .HasPostgresExtension("vector")
             .HasPostgresExtension("vault", "supabase_vault");
-
-        modelBuilder.Entity<AbsenceLimitRule>(entity =>
-        {
-            entity.HasKey(e => e.AbsenceLimitRuleId).HasName("absence_limit_rules_pkey");
-
-            entity.ToTable("absence_limit_rules");
-
-            entity.HasIndex(e => e.ReplaceId, "idx_absence_limit_rules_replace_id");
-
-            entity.HasIndex(e => e.RuleName, "idx_absence_limit_rules_rule_name");
-
-            entity.HasIndex(e => e.Status, "idx_absence_limit_rules_status");
-
-            entity.HasIndex(e => e.Status, "uq_absence_limit_rule_active")
-                .IsUnique()
-                .HasFilter("((status)::text = 'ACTIVE'::text)");
-
-            entity.HasIndex(e => e.Version, "uq_absence_limit_rule_version").IsUnique();
-
-            entity.Property(e => e.AbsenceLimitRuleId).HasColumnName("absence_limit_rule_id");
-            entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.MaxAbsenceCount).HasColumnName("max_absence_count");
-            entity.Property(e => e.ReplaceId).HasColumnName("replace_id");
-            entity.Property(e => e.RuleName)
-                .HasMaxLength(100)
-                .HasColumnName("rule_name");
-            entity.Property(e => e.Status)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'DRAFT'::character varying")
-                .HasColumnName("status");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-            entity.Property(e => e.Version).HasColumnName("version");
-
-            entity.HasOne(d => d.Replace).WithMany(p => p.InverseReplace)
-                .HasForeignKey(d => d.ReplaceId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_absence_limit_rule_replace");
-        });
 
         modelBuilder.Entity<Attendance>(entity =>
         {
@@ -1149,8 +1103,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
-                .HasForeignKey<EmploymentContract>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.EmploymentContracts)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_user_id_fkey");
         });
@@ -3112,14 +3066,11 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("work_schedule_weeks");
 
-            entity.HasIndex(e => e.AbsenceLimitRuleId, "idx_work_schedule_weeks_absence_limit_rule_id");
-
             entity.HasIndex(e => new { e.BranchId, e.Status, e.WeekStartDate }, "ix_schedule_weeks_branch_status");
 
             entity.HasIndex(e => new { e.BranchId, e.WeekStartDate }, "uq_schedule_week_branch_start").IsUnique();
 
             entity.Property(e => e.ScheduleWeekId).HasColumnName("schedule_week_id");
-            entity.Property(e => e.AbsenceLimitRuleId).HasColumnName("absence_limit_rule_id");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancelReason)
                 .HasMaxLength(500)
@@ -3142,11 +3093,6 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("updated_at");
             entity.Property(e => e.WeekEndDate).HasColumnName("week_end_date");
             entity.Property(e => e.WeekStartDate).HasColumnName("week_start_date");
-
-            entity.HasOne(d => d.AbsenceLimitRule).WithMany(p => p.WorkScheduleWeeks)
-                .HasForeignKey(d => d.AbsenceLimitRuleId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_work_schedule_week_absence_limit_rule");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.WorkScheduleWeeks)
                 .HasForeignKey(d => d.BranchId)

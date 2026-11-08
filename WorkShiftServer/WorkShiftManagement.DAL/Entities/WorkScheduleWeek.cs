@@ -33,10 +33,6 @@ public partial class WorkScheduleWeek
 
     public DateTime UpdatedAt { get; set; }
 
-    public long? AbsenceLimitRuleId { get; set; }
-
-    public virtual AbsenceLimitRule? AbsenceLimitRule { get; set; }
-
     public virtual Branch Branch { get; set; } = null!;
 
     public virtual User? CancelledByNavigation { get; set; }
