@@ -90,6 +90,7 @@ public class StaffOrderController : ControllerBase
         {
             // Staff only sees their own orders - filter by CreatedBy
             // We'll add a CreatedBy filter to the query
+            query.SortBy ??= "oldest_pending_first";
             return Ok(await _orderService.GetPagedAsync(query, actor.Value));
         }
         catch (ArgumentException exception)
@@ -252,3 +253,4 @@ public class StaffOrderController : ControllerBase
         }
     }
 }
+

@@ -10,12 +10,32 @@ class StaffOrderController extends ChangeNotifier {
   String? _errorMessage;
   OrderPagedResponse? _ordersResponse;
   OrderModel? _selectedOrder;
+  OrderListQuery? _currentQuery;
 
   // Getters
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   OrderPagedResponse? get ordersResponse => _ordersResponse;
-  List<OrderModel> get orders => _ordersResponse?.items ?? [];
+  OrderListQuery? get currentQuery => _currentQuery;
+
+  /// Orders list: Pending orders first (FIFO - oldest first), completed/cancelled after (newest first)
+  List<OrderModel> get orders {
+    final list = List<OrderModel>.from(_ordersResponse?.items ?? []);
+    list.sort((a, b) {
+      final aPending = a.status.toUpperCase() == 'PENDING';
+      final bPending = b.status.toUpperCase() == 'PENDING';
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
+      if (aPending && bPending) {
+        // Pending: Oldest order first (FIFO to prepare and deliver first)
+        return a.orderDate.compareTo(b.orderDate);
+      }
+      // Completed / Cancelled: Newest order first
+      return b.orderDate.compareTo(a.orderDate);
+    });
+    return list;
+  }
+
   OrderModel? get selectedOrder => _selectedOrder;
   bool get hasMore =>
       _ordersResponse != null &&
@@ -24,6 +44,10 @@ class StaffOrderController extends ChangeNotifier {
 
   /// Load orders with optional query
   Future<void> loadOrders({OrderListQuery? query, bool refresh = false}) async {
+    if (query != null) {
+      _currentQuery = query;
+    }
+
     if (refresh) {
       _ordersResponse = null;
     }
@@ -35,9 +59,23 @@ class StaffOrderController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final queryToUse =
-          query ??
-          OrderListQuery(pageNumber: (_ordersResponse?.pageNumber ?? 0) + 1);
+      final base = _currentQuery;
+      final nextPage = (_ordersResponse?.pageNumber ?? 0) + 1;
+      final targetPage =
+          refresh ? 1 : (query != null ? query.pageNumber : nextPage);
+
+      final queryToUse = OrderListQuery(
+        search: base?.search,
+        branchId: base?.branchId,
+        status: base?.status,
+        paymentStatus: base?.paymentStatus,
+        dateFrom: base?.dateFrom,
+        dateTo: base?.dateTo,
+        sortBy: base?.sortBy ?? 'oldest_pending_first',
+        pageNumber: targetPage,
+        pageSize: base?.pageSize ?? 20,
+      );
+
       final response = await _orderService.getMyOrders(queryToUse);
 
       if (refresh || _ordersResponse == null) {
@@ -88,7 +126,7 @@ class StaffOrderController extends ChangeNotifier {
       final order = await _orderService.createOrder(request);
       _selectedOrder = order;
       _isLoading = false;
-      // Refresh list
+      // Refresh list with current filter
       await loadOrders(refresh: true);
       notifyListeners();
       return true;

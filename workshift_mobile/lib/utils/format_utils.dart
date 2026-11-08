@@ -38,6 +38,8 @@ String formatVietnamDate(DateTime? dt) {
 
 Color getStatusColor(String status) {
   switch (status.toUpperCase()) {
+    case 'PENDING':
+      return AppColors.warning;
     case 'ACTIVE':
       return AppColors.primary;
     case 'COMPLETED':
