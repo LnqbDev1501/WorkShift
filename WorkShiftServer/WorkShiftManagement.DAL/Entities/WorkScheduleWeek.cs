@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -32,10 +32,6 @@ public partial class WorkScheduleWeek
     public DateTime CreatedAt { get; set; }
 
     public DateTime UpdatedAt { get; set; }
-
-    public long? AbsenceLimitRuleId { get; set; }
-
-    public virtual AbsenceLimitRule? AbsenceLimitRule { get; set; }
 
     public virtual Branch Branch { get; set; } = null!;
 
