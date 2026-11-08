@@ -158,6 +158,16 @@ public class ManagerStaffRepo : IManagerStaffRepo
         staff.DeletedAt = DateTime.UtcNow;
         staff.UpdatedAt = DateTime.UtcNow;
 
+        // Revoke active biometric face profile upon account deactivation/soft-delete
+        var activeFaceProfiles = await _context.FaceProfiles
+            .Where(f => f.UserId == staffId && f.Status == "ACTIVE")
+            .ToListAsync();
+        foreach (var fp in activeFaceProfiles)
+        {
+            fp.Status = "REVOKED";
+            fp.RevokedAt = DateTime.UtcNow;
+        }
+
         await _context.SaveChangesAsync();
         return true;
     }

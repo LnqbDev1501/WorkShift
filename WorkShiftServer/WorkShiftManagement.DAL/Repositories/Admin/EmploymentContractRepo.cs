@@ -537,6 +537,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             CreatedAt = now
         });
 
+        // Revoke active biometric face profile upon contract termination
+        var activeFaceProfiles = await _context.FaceProfiles
+            .Where(f => f.UserId == existing.UserId && f.Status == "ACTIVE")
+            .ToListAsync(cancellationToken);
+        foreach (var fp in activeFaceProfiles)
+        {
+            fp.Status = "REVOKED";
+            fp.RevokedAt = now;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
     }
@@ -1332,6 +1342,17 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 }),
                 CreatedAt = now
             });
+        }
+
+        // Revoke active biometric face profiles for staff whose contracts have expired
+        var expiredUserIds = expiredContracts.Select(c => c.UserId).Distinct().ToList();
+        var expiredActiveFaceProfiles = await _context.FaceProfiles
+            .Where(f => expiredUserIds.Contains(f.UserId) && f.Status == "ACTIVE")
+            .ToListAsync(cancellationToken);
+        foreach (var fp in expiredActiveFaceProfiles)
+        {
+            fp.Status = "REVOKED";
+            fp.RevokedAt = now;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

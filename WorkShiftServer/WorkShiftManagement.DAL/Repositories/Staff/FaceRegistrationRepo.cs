@@ -155,6 +155,8 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
             WHERE fp.status = 'ACTIVE'
               AND fp.user_id != @userId
               AND fp.face_embedding IS NOT NULL
+              AND u.deleted_at IS NULL
+              AND u.status = 'ACTIVE'
             ORDER BY fp.face_embedding <=> @embeddingStr::vector ASC
             LIMIT 1;";
 
