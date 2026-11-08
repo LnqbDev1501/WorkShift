@@ -1,4 +1,4 @@
-﻿using Hangfire;
+using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -246,6 +246,8 @@ builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Accountant.IBranchSalesReportRepo,
+    WorkShiftManagement.DAL.Repositories.Accountant.BranchSalesReportRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
     WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
 builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();

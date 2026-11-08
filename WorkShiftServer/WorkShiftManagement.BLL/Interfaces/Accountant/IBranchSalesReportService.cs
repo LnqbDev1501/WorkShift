@@ -7,4 +7,10 @@ public interface IBranchSalesReportService
         DateTime? dateFrom,
         DateTime? dateTo,
         CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerateManagerBranchSalesReportAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
 }

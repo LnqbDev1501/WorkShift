@@ -43,6 +43,13 @@ public class ManagerOrderApiService(HttpClient client, IConfiguration configurat
             ?? throw new InvalidOperationException("Failed to read order details.");
     }
 
+    public async Task<byte[]> GetInvoicePdfAsync(int id, CancellationToken ct)
+    {
+        using var response = await client.GetAsync($"{baseUrl}/api/manager/orders/{id}/invoice", ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadAsByteArrayAsync(ct);
+    }
+
     public async Task CompleteOrderAsync(int id, CancellationToken ct)
     {
         using var response = await client.PostAsync($"{baseUrl}/api/manager/orders/{id}/complete", null, ct);

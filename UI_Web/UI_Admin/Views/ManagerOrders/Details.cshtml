@@ -1,4 +1,4 @@
-@model UI_Admin.Models.Manager.ManagerOrderDetailViewModel
+﻿@model UI_Admin.Models.Manager.ManagerOrderDetailViewModel
 @{
     Layout = "_ManagerLayout";
     ViewData["Title"] = "Order Details";
@@ -10,10 +10,22 @@
             <h1 class="text-2xl font-bold text-slate-900">@Model.OrderNumber</h1>
             <p class="text-slate-500 text-sm mt-0.5">Order details and payment management.</p>
         </div>
-        <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
+        <div class="flex items-center gap-2">
+            <a asp-action="Invoice" asp-route-id="@Model.OrderId" target="_blank"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+                <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                View Invoice
+            </a>
+            <a asp-action="ExportInvoice" asp-route-id="@Model.OrderId"
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+                <span class="material-symbols-outlined text-[18px]">download</span>
+                Export Invoice
+            </a>
+            <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
             <span class="material-symbols-outlined text-[18px]">arrow_back</span>
             Back to Orders
         </a>
+        </div>
     </div>
 
     @if (TempData["SuccessMessage"] != null)

@@ -7,7 +7,6 @@ using UI_Admin.Models;
 using UI_Admin.Models.Manager;
 using UI_Admin.Services;
 
-
 namespace UI_Admin.Controllers;
 
 [Authorize(Roles = "MANAGER")]
@@ -69,6 +68,42 @@ public class ManagerOrdersController(ManagerOrderApiService api) : Controller
             }
             TempData["ErrorMessage"] = ex.Message;
             return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Invoice(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(Index));
+        try
+        {
+            var order = await api.GetByIdAsync(id, cancellationToken);
+            return View(order);
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportInvoice(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(Index));
+        try
+        {
+            var pdf = await api.GetInvoicePdfAsync(id, cancellationToken);
+            return File(pdf, "application/pdf", $"invoice_{id}.pdf");
+        }
+        catch (HttpRequestException ex)
+        {
+            if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
+            if (ex.StatusCode == HttpStatusCode.Forbidden) return RedirectToAction("AccessDenied", "Auth");
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { id });
         }
     }
 

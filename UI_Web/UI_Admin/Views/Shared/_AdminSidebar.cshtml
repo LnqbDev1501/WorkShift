@@ -1,4 +1,4 @@
-@{
+﻿@{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
 
@@ -385,6 +385,12 @@
                                                            title="Order List">
                                                             <span class="material-symbols-outlined text-[20px] flex-shrink-0">receipt_long</span>
                                                             <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Order List</span>
+                                                        </a>
+                                                        <a asp-controller="ManagerReports" asp-action="BranchSales"
+                                                           class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "ManagerReports" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                                                           title="Branch Sales Report">
+                                                            <span class="material-symbols-outlined text-[20px] flex-shrink-0">download</span>
+                                                            <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branch Sales Report</span>
                                                         </a>
                                                     </nav>
                                                 }
