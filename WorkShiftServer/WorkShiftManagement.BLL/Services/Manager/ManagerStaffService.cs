@@ -223,10 +223,10 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Staff is already inactive.");
         }
 
-        var hasPendingTasks = await CheckPendingTasksAsync(staff.UserId, branchId);
-        if (hasPendingTasks)
+        var blockingReason = await GetDeactivationBlockingReasonAsync(staff.UserId, branchId);
+        if (blockingReason != null)
         {
-            throw new InvalidOperationException("Cannot deactivate staff with pending tasks (shifts, requests, etc.).");
+            throw new InvalidOperationException(blockingReason);
         }
 
         return await _staffRepo.SoftDeleteStaffAsync(staffId, branchId);
@@ -491,18 +491,94 @@ public class ManagerStaffService : IManagerStaffService
         }
     }
 
-    private async Task<bool> CheckPendingTasksAsync(Guid staffUserId, int branchId)
+    private async Task<string?> GetDeactivationBlockingReasonAsync(Guid staffUserId, int branchId)
     {
         var hasShiftAssignments = await _context.ShiftAssignments
-            .AnyAsync(sa => sa.UserId == staffUserId && sa.Status == "ASSIGNED");
+            .AnyAsync(sa => sa.UserId == staffUserId && (sa.Status == "ASSIGNED" || sa.Status == "IN_PROGRESS"));
+        if (hasShiftAssignments)
+        {
+            return "Cannot deactivate staff with assigned upcoming or ongoing shifts. Please reassign, complete, or cancel those shifts first.";
+        }
+
+        var hasActiveAttendance = await _context.Attendances
+            .AnyAsync(a => a.Assignment.UserId == staffUserId && a.Status == "IN_PROGRESS");
+        if (hasActiveAttendance)
+        {
+            return "Cannot deactivate staff currently clocked into an active shift. Please ensure the shift is completed and checked out first.";
+        }
 
         var hasPendingRequests = await _context.EmployeeRequests
             .AnyAsync(er => er.UserId == staffUserId && er.Status == "PENDING");
+        if (hasPendingRequests)
+        {
+            return "Cannot deactivate staff with pending requests (leave, overtime, etc.). Please review them first.";
+        }
 
         var hasSwapRequests = await _context.ShiftSwapRequests
             .AnyAsync(sr => (sr.SourceAssignment.UserId == staffUserId || sr.TargetAssignment.UserId == staffUserId) && sr.Status == "PENDING");
+        if (hasSwapRequests)
+        {
+            return "Cannot deactivate staff with pending shift swap requests. Please review them first.";
+        }
 
-        return hasShiftAssignments || hasPendingRequests || hasSwapRequests;
+        var hasPendingTimesheetAdjustments = await _context.TimesheetAdjustmentRequests
+            .AnyAsync(tar => tar.UserId == staffUserId && tar.Status == "PENDING");
+        if (hasPendingTimesheetAdjustments)
+        {
+            return "Cannot deactivate staff with pending timesheet adjustment requests. Please review all timesheet disputes first.";
+        }
+
+        var hasPendingPayrollCorrections = await _context.PayrollCorrectionRequests
+            .AnyAsync(pcr => pcr.Payroll.UserId == staffUserId && (pcr.Status == "OPEN" || pcr.Status == "RESPONDED"));
+        if (hasPendingPayrollCorrections)
+        {
+            return "Cannot deactivate staff with open payroll correction requests. Please resolve all payroll disputes first.";
+        }
+
+        var hasPendingPayrollFeedback = await _context.PayrollFeedbackRequests
+            .AnyAsync(pfr => pfr.EmployeeId == staffUserId && pfr.ReviewStatus == "PENDING");
+        if (hasPendingPayrollFeedback)
+        {
+            return "Cannot deactivate staff with pending payroll preview reviews. Please wait for the employee to review their payroll.";
+        }
+
+        var hasPendingAdjustments = await _context.EmployeeRewardsPenalties
+            .AnyAsync(erp => erp.UserId == staffUserId && !erp.IsDeleted && erp.ApprovalStatus == "PENDING");
+        if (hasPendingAdjustments)
+        {
+            return "Cannot deactivate staff with pending bonus/penalty adjustments. Please review all adjustments first.";
+        }
+
+        var hasPendingSalaryChanges = await _context.SalaryChangeRequests
+            .AnyAsync(scr => scr.UserId == staffUserId && scr.Status == "PENDING");
+        if (hasPendingSalaryChanges)
+        {
+            return "Cannot deactivate staff with pending salary change proposals. Please resolve the salary change request first.";
+        }
+
+        var hasPendingContractChanges = await _context.ContractChangeRequests
+            .AnyAsync(ccr => ccr.Contract.UserId == staffUserId && ccr.Status == "SUBMITTED");
+        if (hasPendingContractChanges)
+        {
+            return "Cannot deactivate staff with pending contract change requests. Please review the contract changes first.";
+        }
+
+        var hasUnsettledPayroll = await _context.Timesheets
+            .AnyAsync(t => t.UserId == staffUserId
+                        && t.PayrollPeriod.Status != "PAID"
+                        && t.PayrollPeriod.Status != "CLOSED"
+                        && t.PayrollPeriod.Status != "CANCELLED")
+            || await _context.Payrolls
+            .AnyAsync(p => p.UserId == staffUserId
+                        && p.PayrollPeriod.Status != "PAID"
+                        && p.PayrollPeriod.Status != "CLOSED"
+                        && p.PayrollPeriod.Status != "CANCELLED");
+        if (hasUnsettledPayroll)
+        {
+            return "Cannot deactivate staff with records in an unsettled payroll period. Please wait until the payroll period is settled and closed.";
+        }
+
+        return null;
     }
 
     private async Task<StaffAccountDetailResponse> MapToDetailResponse(User staff)
