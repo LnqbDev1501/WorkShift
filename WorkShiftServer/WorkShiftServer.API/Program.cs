@@ -15,6 +15,7 @@ using WorkShiftManagement.BLL.Services.Staff;
 using WorkShiftManagement.BLL.Interfaces.Notification;
 using WorkShiftManagement.BLL.Services.Notification;
 using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Security;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
@@ -120,6 +121,10 @@ var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
     CommandTimeout = 30
 };
 var pooledConnectionString = efConnBuilder.ToString();
+
+var identityNoKey = builder.Configuration["Encryption:IdentityNoKey"]
+    ?? throw new InvalidOperationException("Missing Encryption:IdentityNoKey configuration.");
+IdentityNoEncryption.Configure(identityNoKey);
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {

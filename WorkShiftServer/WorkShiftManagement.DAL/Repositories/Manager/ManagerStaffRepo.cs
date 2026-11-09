@@ -3,6 +3,7 @@ using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Models.Admin;
+using WorkShiftManagement.DAL.Security;
 
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
@@ -94,14 +95,34 @@ public class ManagerStaffRepo : IManagerStaffRepo
     public async Task<bool> ExistsByIdentityNoAsync(string identityNo, Guid? excludeUserId = null)
     {
         var trimmed = identityNo.Trim();
-        var query = _context.Users
-            .AsNoTracking()
-            .Where(u => u.IdentityNo == trimmed && u.DeletedAt == null);
+        var encrypted = IdentityNoEncryption.Protect(trimmed);
 
+        List<int> found;
         if (excludeUserId.HasValue)
-            query = query.Where(u => u.UserId != excludeUserId.Value);
+        {
+            found = await _context.Database
+                .SqlQuery<int>($@"
+                    SELECT 1 AS ""Value""
+                    FROM public.users
+                    WHERE (identity_no = {encrypted} OR identity_no = {trimmed})
+                      AND deleted_at IS NULL
+                      AND user_id <> {excludeUserId.Value}
+                    LIMIT 1")
+                .ToListAsync();
+        }
+        else
+        {
+            found = await _context.Database
+                .SqlQuery<int>($@"
+                    SELECT 1 AS ""Value""
+                    FROM public.users
+                    WHERE (identity_no = {encrypted} OR identity_no = {trimmed})
+                      AND deleted_at IS NULL
+                    LIMIT 1")
+                .ToListAsync();
+        }
 
-        return await query.AnyAsync();
+        return found.Count > 0;
     }
 
     public async Task<User> CreateStaffAsync(User staff, Guid managerId)
@@ -136,6 +157,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         staff.Address = string.IsNullOrWhiteSpace(address) ? string.Empty : address.Trim();
         staff.UpdatedAt = DateTime.UtcNow;
 
+        _context.Entry(staff).Property(u => u.IdentityNo).IsModified = true;
         await _context.SaveChangesAsync();
         return staff;
     }

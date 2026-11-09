@@ -2984,7 +2984,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("has_password");
             entity.Property(e => e.IdentityNo)
-                .HasMaxLength(30)
+                .HasMaxLength(255)
                 .HasColumnName("identity_no");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)

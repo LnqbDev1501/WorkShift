@@ -11,6 +11,7 @@ using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Security;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
@@ -257,7 +258,7 @@ public class UserService : IUserService
                     createdUser.FullName,
                     createdUser.Email,
                     createdUser.Phone,
-                    createdUser.IdentityNo,
+                    IdentityNo = IdentityNoEncryption.Mask(createdUser.IdentityNo),
                     createdUser.RoleId,
                     RoleName = role.RoleName,
                     createdUser.BranchId,
@@ -367,7 +368,7 @@ public class UserService : IUserService
         {
             user.FullName,
             user.Phone,
-            user.IdentityNo,
+            IdentityNo = IdentityNoEncryption.Mask(user.IdentityNo),
             user.Gender,
             user.DateOfBirth,
             user.Address,
@@ -420,6 +421,7 @@ public class UserService : IUserService
         user.FullName = request.FullName;
         user.Phone = request.Phone;
         user.IdentityNo = request.IdentityNo;
+        _userRepo.MarkIdentityNoModified(user);
         user.Gender = request.Gender;
         user.DateOfBirth = request.DateOfBirth!.Value;
         user.Address = request.Address;
@@ -571,7 +573,7 @@ public class UserService : IUserService
                 {
                     user.FullName,
                     user.Phone,
-                    user.IdentityNo,
+                    IdentityNo = IdentityNoEncryption.Mask(user.IdentityNo),
                     user.Gender,
                     user.DateOfBirth,
                     user.Address,

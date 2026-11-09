@@ -45,6 +45,8 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin
 
         void Create(User user);
 
+        void MarkIdentityNoModified(User user);
+
         Task SaveChangesAsync();
 
         Task<Role?> GetRoleByIdAsync(int roleId);

@@ -399,7 +399,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Phone number is already in use.");
         }
 
-        if (await _context.Users.AnyAsync(u => u.IdentityNo == request.IdentityNo.Trim() && u.DeletedAt == null))
+        if (await _staffRepo.ExistsByIdentityNoAsync(request.IdentityNo))
         {
             throw new InvalidOperationException("Identity number is already in use.");
         }
@@ -485,7 +485,7 @@ public class ManagerStaffService : IManagerStaffService
         }
 
         var trimmedIdentity = identityNo.Trim();
-        if (await _context.Users.AsNoTracking().AnyAsync(u => u.IdentityNo == trimmedIdentity && u.UserId != excludeUserId && u.DeletedAt == null))
+        if (await _staffRepo.ExistsByIdentityNoAsync(trimmedIdentity, excludeUserId))
         {
             throw new ArgumentException("Identity number is already in use.");
         }
