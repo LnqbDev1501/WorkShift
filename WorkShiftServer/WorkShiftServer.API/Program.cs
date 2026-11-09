@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using WorkShiftManagement.BLL.Helpers;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Auth;
@@ -196,6 +198,9 @@ builder.Services.AddHttpClient<AuthService>(client =>
     var userRepo = sp.GetRequiredService<IUserRepo>();
     return new AuthService(client, userRepo, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditLogHelper, AuditLogHelper>();
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();

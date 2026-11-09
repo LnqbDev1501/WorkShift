@@ -7,6 +7,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -34,6 +35,7 @@ public class UserService : IUserService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public UserService(
         IUserRepo userRepo,
@@ -43,7 +45,8 @@ public class UserService : IUserService
         IConfiguration configuration,
         ICloudinaryService cloudinaryService,
         IAdminRealtimePublisher adminRealtimePublisher,
-        INotificationRealtimePublisher notificationRealtimePublisher)
+        INotificationRealtimePublisher notificationRealtimePublisher,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -55,6 +58,7 @@ public class UserService : IUserService
         _cloudinaryService = cloudinaryService;
         _adminRealtimePublisher = adminRealtimePublisher;
         _notificationRealtimePublisher = notificationRealtimePublisher;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -181,10 +185,12 @@ public class UserService : IUserService
         await ValidateIdentityIsAvailableAsync(request.Email, request.Phone, request.IdentityNo);
 
         var authUserId = await _authService.CreateUserAndSendInviteAsync(request.Email);
+        User createdUser;
+        CreateAdminUserResponse response;
         try
         {
             var now = DateTime.UtcNow;
-            var user = new User
+            createdUser = new User
             {
                 UserId = authUserId,
                 RoleId = request.RoleId,
@@ -207,21 +213,21 @@ public class UserService : IUserService
                 UpdatedAt = now
             };
 
-            _userRepo.Create(user);
+            _userRepo.Create(createdUser);
             await _userRepo.SaveChangesAsync();
 
-            return new CreateAdminUserResponse
+            response = new CreateAdminUserResponse
             {
-                UserId = user.UserId,
-                RoleId = user.RoleId,
-                BranchId = user.BranchId.Value,
-                FullName = user.FullName,
-                IdentityNo = user.IdentityNo,
-                Email = user.Email,
-                Phone = user.Phone,
-                Status = user.Status,
-                CreatedAt = ConvertToVietnamTime(user.CreatedAt),
-                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
+                UserId = createdUser.UserId,
+                RoleId = createdUser.RoleId,
+                BranchId = createdUser.BranchId.Value,
+                FullName = createdUser.FullName,
+                IdentityNo = createdUser.IdentityNo,
+                Email = createdUser.Email,
+                Phone = createdUser.Phone,
+                Status = createdUser.Status,
+                CreatedAt = ConvertToVietnamTime(createdUser.CreatedAt),
+                UpdatedAt = ConvertToVietnamTime(createdUser.UpdatedAt)
             };
         }
         catch
@@ -237,6 +243,29 @@ public class UserService : IUserService
             }
             throw;
         }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CREATE_ADMIN_USER",
+                tableName: "users",
+                recordId: createdUser.UserId.ToString(),
+                oldValue: null,
+                newValue: new
+                {
+                    createdUser.UserId,
+                    createdUser.FullName,
+                    createdUser.Email,
+                    createdUser.Phone,
+                    createdUser.IdentityNo,
+                    createdUser.RoleId,
+                    RoleName = role.RoleName,
+                    createdUser.BranchId,
+                    createdUser.Status
+                });
+        }
+
+        return response;
     }
 
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
@@ -333,6 +362,22 @@ public class UserService : IUserService
         var emailOwner = await _userRepo.GetByEmailAsync(request.Email);
         if (emailOwner is not null && emailOwner.UserId != userId)
             throw new InvalidOperationException("Email is already in use by another user.");
+
+        var oldSnapshot = new
+        {
+            user.FullName,
+            user.Phone,
+            user.IdentityNo,
+            user.Gender,
+            user.DateOfBirth,
+            user.Address,
+            user.Email,
+            user.BranchId,
+            user.RoleId,
+            RoleName = user.Role.RoleName,
+            user.AvatarUrl,
+            user.Status
+        };
 
         var changedFields = new List<string>();
 
@@ -515,6 +560,33 @@ public class UserService : IUserService
         // Reload the user with Role and Branch included to get RoleName and BranchName
         await _userRepo.LoadRoleAndBranchAsync(user);
 
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "UPDATE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.FullName,
+                    user.Phone,
+                    user.IdentityNo,
+                    user.Gender,
+                    user.DateOfBirth,
+                    user.Address,
+                    user.Email,
+                    user.BranchId,
+                    BranchName = user.Branch?.BranchName,
+                    user.RoleId,
+                    RoleName = user.Role.RoleName,
+                    user.AvatarUrl,
+                    user.Status,
+                    ChangedFields = changedFields
+                },
+                actorUserId: adminUserId);
+        }
+
         return new UpdateAdminUserResponse
         {
             UserId = user.UserId,
@@ -586,6 +658,16 @@ public class UserService : IUserService
             }
         }
 
+        var oldSnapshot = new
+        {
+            user.Status,
+            user.PreviousStatus,
+            user.BranchId,
+            user.PreviousBranchId,
+            user.DeletedAt,
+            RoleName = user.Role.RoleName
+        };
+
         if (user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) ||
             user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
         {
@@ -630,6 +712,24 @@ public class UserService : IUserService
             }
 
             throw;
+        }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "DEACTIVATE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.Status,
+                    user.PreviousStatus,
+                    user.BranchId,
+                    user.PreviousBranchId,
+                    user.DeletedAt,
+                    RoleName = roleName
+                });
         }
     }
 
@@ -676,6 +776,16 @@ public class UserService : IUserService
                     : "This branch already has an Accountant.");
         }
 
+        var oldSnapshot = new
+        {
+            user.Status,
+            user.PreviousStatus,
+            user.BranchId,
+            user.PreviousBranchId,
+            user.DeletedAt,
+            RoleName = user.Role.RoleName
+        };
+
         await _authService.UnbanUserAsync(user.UserId);
         try
         {
@@ -709,6 +819,24 @@ public class UserService : IUserService
             }
 
             throw;
+        }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "RESTORE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.Status,
+                    user.PreviousStatus,
+                    user.BranchId,
+                    user.PreviousBranchId,
+                    user.DeletedAt,
+                    RoleName = roleName
+                });
         }
     }
 

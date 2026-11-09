@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Staff.Timesheet;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
@@ -15,13 +16,16 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 {
     private readonly IStaffTimesheetRepo _repo;
     private readonly ILogger<StaffTimesheetService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public StaffTimesheetService(
         IStaffTimesheetRepo repo,
-        ILogger<StaffTimesheetService> logger)
+        ILogger<StaffTimesheetService> logger,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _repo = repo;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<StaffWeeklyTimesheetResponse?> GetMyWeeklyTimesheetAsync(
@@ -324,7 +328,33 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             throw new KeyNotFoundException("Timesheet record for this week was not found or has not been generated yet.");
         }
 
+        var oldSnapshot = new
+        {
+            timesheet.TimesheetId,
+            timesheet.StaffReviewStatus,
+            timesheet.StaffReviewedAt,
+            timesheet.StaffReviewNote
+        };
+
         await _repo.ConfirmTimesheetAsync(timesheet.TimesheetId, staffId, note, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CONFIRM_TIMESHEET",
+                tableName: "timesheets",
+                recordId: timesheet.TimesheetId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    timesheet.TimesheetId,
+                    ScheduleWeekId = scheduleWeekId,
+                    StaffReviewStatus = "CONFIRMED",
+                    StaffReviewNote = note
+                },
+                actorUserId: staffId,
+                cancellationToken: cancellationToken);
+        }
 
         var updated = await GetMyWeeklyTimesheetAsync(staffId, scheduleWeekId, cancellationToken);
         return updated ?? throw new InvalidOperationException("Failed to retrieve timesheet after confirmation.");

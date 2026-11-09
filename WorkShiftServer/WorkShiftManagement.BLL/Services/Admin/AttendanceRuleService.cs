@@ -3,6 +3,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -23,19 +24,22 @@ public class AttendanceRuleService : IAttendanceRuleService
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendanceRuleService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public AttendanceRuleService(
         IAttendanceRuleRepo attendanceRuleRepo,
         INotificationRepo notificationRepo,
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
-        ILogger<AttendanceRuleService> logger)
+        ILogger<AttendanceRuleService> logger,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _attendanceRuleRepo = attendanceRuleRepo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken)
@@ -189,12 +193,40 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException("The effective date must be after the current active version.");
         }
 
+        var oldSnapshot = new
+        {
+            rule.Status,
+            rule.PublishedBy,
+            rule.PublishedAt,
+            rule.EffectiveFrom
+        };
+
         rule.Status = StatusScheduled;
         rule.PublishedBy = adminUserId;
         rule.PublishedAt = DateTime.UtcNow;
         rule.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "PUBLISH_ATTENDANCE_RULE",
+                tableName: "attendance_rules",
+                recordId: updated.AttendanceRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    updated.AttendanceRuleId,
+                    updated.RuleName,
+                    updated.Status,
+                    updated.EffectiveFrom,
+                    updated.PublishedBy,
+                    updated.PublishedAt
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         await SendPublishNotificationAsync(rule, adminUserId);
 
@@ -222,6 +254,13 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var previousStatus = rule.Status;
+        var oldSnapshot = new
+        {
+            Status = previousStatus,
+            rule.CancelledBy,
+            rule.CancelledAt,
+            rule.CancellationReason
+        };
         var now = DateTime.UtcNow;
 
         rule.Status = StatusCancelled;
@@ -231,6 +270,26 @@ public class AttendanceRuleService : IAttendanceRuleService
         rule.UpdatedAt = now;
 
         await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CANCEL_ATTENDANCE_RULE",
+                tableName: "attendance_rules",
+                recordId: rule.AttendanceRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.AttendanceRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.CancelledBy,
+                    rule.CancelledAt,
+                    rule.CancellationReason
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         if (previousStatus == StatusScheduled)
         {

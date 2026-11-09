@@ -9,6 +9,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Timesheet.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Timesheet.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
@@ -21,17 +22,20 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
     private readonly IManagerTimesheetRepo _timesheetRepo;
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly ILogger<ManagerTimesheetService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public ManagerTimesheetService(
         IManagerTimesheetRepo timesheetRepo,
         INotificationRealtimePublisher realtimePublisher,
         ILogger<ManagerTimesheetService> logger,
-        IAdminRealtimePublisher? adminRealtimePublisher = null)
+        IAdminRealtimePublisher? adminRealtimePublisher = null,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _timesheetRepo = timesheetRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
         _adminRealtimePublisher = adminRealtimePublisher;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<ManagerTimesheetPagedResponse<ManagerWeeklyTimesheetSummaryResponse>> GetWeeklyTimesheetsAsync(
@@ -491,8 +495,29 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         int branchId = manager.BranchId
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
-        var (_, _, staffUserIds, notificationId, notificationContent) =
+        var (week, generatedTimesheets, staffUserIds, notificationId, notificationContent) =
             await _timesheetRepo.GenerateWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, request?.ReviewDeadline, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            var periodId = week.PayrollPeriod?.PayrollPeriodId;
+            await _auditLogHelper.LogAsync(
+                action: "GENERATE_BRANCH_TIMESHEET",
+                tableName: periodId.HasValue ? "payroll_periods" : "timesheets",
+                recordId: (periodId ?? scheduleWeekId).ToString(),
+                oldValue: null,
+                newValue: new
+                {
+                    week.ScheduleWeekId,
+                    PayrollPeriodId = periodId,
+                    week.BranchId,
+                    TimesheetCount = generatedTimesheets.Count,
+                    StaffCount = staffUserIds.Count,
+                    ApprovalDeadlineAt = week.PayrollPeriod?.ApprovalDeadlineAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         if (notificationId > 0 && staffUserIds.Any())
         {
@@ -540,8 +565,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         int branchId = manager.BranchId
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
-        var (_, _, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent) =
+        var (week, lockedTimesheets, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent) =
             await _timesheetRepo.LockWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            var periodId = week.PayrollPeriod?.PayrollPeriodId;
+            await _auditLogHelper.LogAsync(
+                action: "REVIEW_BRANCH_TIMESHEET",
+                tableName: periodId.HasValue ? "payroll_periods" : "timesheets",
+                recordId: (periodId ?? scheduleWeekId).ToString(),
+                oldValue: new { Status = "GENERATED" },
+                newValue: new
+                {
+                    week.ScheduleWeekId,
+                    PayrollPeriodId = periodId,
+                    week.BranchId,
+                    Status = "REVIEWED",
+                    ReviewedCount = lockedTimesheets.Count
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         if (notificationId > 0 && staffUserIds.Any())
         {
@@ -716,6 +761,36 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         var approved = await _timesheetRepo.ApproveAdjustmentRequestAsync(
             adjustmentRequestId, branchId, managerId, cancellationToken);
 
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "APPROVE_TIMESHEET_ADJUSTMENT",
+                tableName: "timesheet_adjustment_requests",
+                recordId: approved.AdjustmentRequestId.ToString(),
+                oldValue: new
+                {
+                    Status = "PENDING",
+                    OldCheckInTime = approved.CurrentCheckInSnapshot,
+                    OldCheckOutTime = approved.CurrentCheckOutSnapshot
+                },
+                newValue: new
+                {
+                    approved.AdjustmentRequestId,
+                    approved.TimesheetId,
+                    approved.AttendanceId,
+                    StaffId = approved.UserId,
+                    approved.Status,
+                    approved.AdjustCheckIn,
+                    approved.RequestedCheckInTime,
+                    approved.AdjustCheckOut,
+                    approved.RequestedCheckOutTime,
+                    approved.ReviewedBy,
+                    approved.ReviewedAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
+
         try
         {
             var shiftName = approved.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
@@ -754,6 +829,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         var rejected = await _timesheetRepo.RejectAdjustmentRequestAsync(
             adjustmentRequestId, branchId, managerId, dto.ManagerNote.Trim(), cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "REJECT_TIMESHEET_ADJUSTMENT",
+                tableName: "timesheet_adjustment_requests",
+                recordId: rejected.AdjustmentRequestId.ToString(),
+                oldValue: new { Status = "PENDING" },
+                newValue: new
+                {
+                    rejected.AdjustmentRequestId,
+                    rejected.TimesheetId,
+                    rejected.AttendanceId,
+                    StaffId = rejected.UserId,
+                    rejected.Status,
+                    rejected.ManagerNote,
+                    rejected.ReviewedBy,
+                    rejected.ReviewedAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         try
         {

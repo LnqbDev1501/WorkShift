@@ -3,6 +3,7 @@ using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -21,19 +22,22 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendancePenaltyRuleService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public AttendancePenaltyRuleService(
         IAttendancePenaltyRuleRepo attendancePenaltyRuleRepo,
         INotificationRepo notificationRepo,
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
-        ILogger<AttendancePenaltyRuleService> logger)
+        ILogger<AttendancePenaltyRuleService> logger,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _attendancePenaltyRuleRepo = attendancePenaltyRuleRepo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<AttendancePenaltyRuleListResponse> GetAttendancePenaltyRulesAsync(
@@ -230,6 +234,13 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException("The effective date must be after the current active version.");
         }
 
+        var oldSnapshot = new
+        {
+            rule.Status,
+            rule.PublishedBy,
+            rule.PublishedAt,
+            rule.EffectiveFrom
+        };
         var now = DateTime.UtcNow;
         rule.Status = "SCHEDULED";
         rule.PublishedBy = adminUserId;
@@ -237,6 +248,27 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "PUBLISH_ATTENDANCE_PENALTY_RULE",
+                tableName: "attendance_penalty_rules",
+                recordId: rule.PenaltyRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.PenaltyRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.EffectiveFrom,
+                    rule.PublishedBy,
+                    rule.PublishedAt,
+                    LevelCount = rule.AttendancePenaltyLevels.Count
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         await SendPublishNotificationAsync(rule, adminUserId);
 
@@ -414,6 +446,13 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var previousStatus = rule.Status;
+        var oldSnapshot = new
+        {
+            Status = previousStatus,
+            rule.CancelledBy,
+            rule.CancelledAt,
+            rule.CancellationReason
+        };
         var now = DateTime.UtcNow;
 
         rule.Status = "CANCELLED";
@@ -423,6 +462,26 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CANCEL_ATTENDANCE_PENALTY_RULE",
+                tableName: "attendance_penalty_rules",
+                recordId: rule.PenaltyRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.PenaltyRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.CancelledBy,
+                    rule.CancelledAt,
+                    rule.CancellationReason
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         if (string.Equals(previousStatus, "SCHEDULED", StringComparison.OrdinalIgnoreCase))
         {
