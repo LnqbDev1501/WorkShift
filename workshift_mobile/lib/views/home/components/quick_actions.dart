@@ -17,6 +17,7 @@ import '../../adjustments/staff_reward_list_view.dart';
 import '../../adjustments/staff_penalty_list_view.dart';
 import '../../../models/attendance/face_registration_model.dart';
 import '../../../services/attendance/face_registration_service.dart';
+import '../../../services/orders/staff_order_service.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -26,6 +27,7 @@ class _QuickActionData {
   final Color iconColor;
   final Color iconBgColor;
   final VoidCallback onTap;
+  final bool isGrayedOut;
 
   const _QuickActionData({
     required this.title,
@@ -34,6 +36,7 @@ class _QuickActionData {
     required this.iconColor,
     required this.iconBgColor,
     required this.onTap,
+    this.isGrayedOut = false,
   });
 }
 
@@ -60,6 +63,29 @@ class QuickActions extends StatefulWidget {
 
 class _QuickActionsState extends State<QuickActions> {
   bool _isExpanded = false;
+  final StaffOrderService _staffOrderService = StaffOrderService();
+  bool _isInShift = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkShiftStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuickActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _checkShiftStatus();
+  }
+
+  Future<void> _checkShiftStatus() async {
+    final inShift = await _staffOrderService.getShiftStatus();
+    if (mounted) {
+      setState(() {
+        _isInShift = inShift;
+      });
+    }
+  }
 
   Future<void> _handleFaceBiometrics() async {
     final faceService = FaceRegistrationService();
@@ -299,7 +325,19 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.point_of_sale_rounded,
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
+        isGrayedOut: !_isInShift,
         onTap: () {
+          if (!_isInShift) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Employees who are off-duty cannot perform this action.',
+                ),
+                backgroundColor: AppColors.error,
+              ),
+            );
+            return;
+          }
           Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
@@ -440,6 +478,7 @@ class _QuickActionsState extends State<QuickActions> {
                   icon: displayedActions[i].icon,
                   iconColor: displayedActions[i].iconColor,
                   iconBgColor: displayedActions[i].iconBgColor,
+                  isGrayedOut: displayedActions[i].isGrayedOut,
                   onTap: displayedActions[i].onTap,
                 ),
               ),
@@ -452,6 +491,7 @@ class _QuickActionsState extends State<QuickActions> {
                     icon: displayedActions[i + 1].icon,
                     iconColor: displayedActions[i + 1].iconColor,
                     iconBgColor: displayedActions[i + 1].iconBgColor,
+                    isGrayedOut: displayedActions[i + 1].isGrayedOut,
                     onTap: displayedActions[i + 1].onTap,
                   ),
                 )

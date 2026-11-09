@@ -93,6 +93,24 @@ public sealed class StaffOrderApiService(HttpClient client, IConfiguration confi
         return result?.Items ?? [];
     }
 
+    public async Task<bool> GetShiftStatusAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{_baseUrl}/api/staff/orders/shift-status";
+            using var response = await client.GetAsync(url, ct);
+            if (!response.IsSuccessStatusCode)
+                return false;
+
+            var result = await response.Content.ReadFromJsonAsync<StaffShiftStatusResponseModel>(cancellationToken: ct);
+            return result?.IsInShift ?? false;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken ct)
     {
         if (!response.IsSuccessStatusCode)

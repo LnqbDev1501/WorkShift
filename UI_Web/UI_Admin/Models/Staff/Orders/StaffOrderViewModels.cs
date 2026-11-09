@@ -239,3 +239,7 @@ public class StaffProductListResponse
 {
     public List<StaffProductOptionViewModel> Items { get; set; } = [];
 }
+public class StaffShiftStatusResponseModel
+{
+    public bool IsInShift { get; set; }
+}

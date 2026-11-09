@@ -4,6 +4,7 @@
     var label = EmployeeAdjustmentTypes.Label(Model.AdjustmentType);
 }
 <input asp-for="AdjustmentType" type="hidden" />
+<input asp-for="PayrollPeriodId" type="hidden" />
 <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-4">
     <div>
         <label asp-for="UserId" class="block text-label-md text-secondary mb-2">Employee *</label>
@@ -14,19 +15,15 @@
         <span asp-validation-for="UserId" class="text-red-700 text-sm"></span>
     </div>
     <div>
-        <label asp-for="PayrollPeriodId" class="block text-label-md text-secondary mb-2">Payroll period *</label>
-        <select asp-for="PayrollPeriodId" class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl">
-            <option value="">Select payroll period</option>
-            @foreach (var period in Model.PayrollPeriodOptions)
+        <label asp-for="AdjustmentDate" class="block text-label-md text-secondary mb-2">Ngày áp dụng (trong tuần hiện tại) *</label>
+        <select asp-for="AdjustmentDate" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl">
+            <option value="">Chọn ngày áp dụng</option>
+            @foreach (var opt in Model.AvailableDates)
             {
-                <option value="@period.PayrollPeriodId">@period.PeriodCode · @period.PeriodName (@period.StartDate.ToString("dd/MM/yyyy") – @period.EndDate.ToString("dd/MM/yyyy")) · @period.Status</option>
+                <option value="@opt.Date.ToString("yyyy-MM-dd")">@opt.DisplayText</option>
             }
         </select>
-        @if (Model.OptionsLoaded && Model.PayrollPeriodOptions.Count == 0)
-        {
-            <p class="text-xs text-amber-700 mt-2">No DRAFT/OPEN payroll period is available in your branch. Create or open a period first.</p>
-        }
-        <span asp-validation-for="PayrollPeriodId" class="text-red-700 text-sm"></span>
+        <span asp-validation-for="AdjustmentDate" class="text-red-700 text-sm"></span>
     </div>
     <div>
         <label asp-for="AdjustmentName" class="block text-label-md text-secondary mb-2">@label name *</label>

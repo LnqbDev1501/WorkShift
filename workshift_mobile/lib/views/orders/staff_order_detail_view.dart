@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/orders/staff_order_controller.dart';
+import '../../services/orders/staff_order_service.dart';
 import '../../models/orders/order_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
@@ -14,10 +15,18 @@ class StaffOrderDetailView extends StatefulWidget {
 
 class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
   final _controller = StaffOrderController();
+  final StaffOrderService _orderService = StaffOrderService();
+  bool _isInShift = false;
+
+  Future<void> _checkShiftStatus() async {
+    final inShift = await _orderService.getShiftStatus();
+    if (mounted) setState(() => _isInShift = inShift);
+  }
 
   @override
   void initState() {
     super.initState();
+    _checkShiftStatus();
     _controller.addListener(_onUpdate);
     _controller.loadOrderDetail(widget.orderId);
   }
@@ -418,8 +427,22 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
         AppButton(
           text: 'Complete',
           icon: Icons.check_circle_rounded,
+          backgroundColor: _isInShift ? null : Colors.grey.shade400,
           isLoading: _controller.isLoading,
-          onPressed: _handleComplete,
+          onPressed: () {
+            if (!_isInShift) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Employees who are off-duty cannot perform this action.',
+                  ),
+                  backgroundColor: AppColors.error,
+                ),
+              );
+              return;
+            }
+            _handleComplete();
+          },
         ),
       );
     }

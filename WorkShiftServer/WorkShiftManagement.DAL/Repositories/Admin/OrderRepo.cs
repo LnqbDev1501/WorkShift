@@ -415,6 +415,22 @@ public class OrderRepo : IOrderRepo
 
     private static TimeZoneInfo VietnamTimeZone { get; } = ResolveVietnamTimeZone();
 
+    public async Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, int branchId, DateTime currentUtcTime, CancellationToken cancellationToken = default)
+    {
+        return await _context.ShiftAssignments
+            .AsNoTracking()
+            .AnyAsync(sa =>
+                sa.UserId == staffId &&
+                sa.Status != "CANCELLED" &&
+                sa.Shift.Status != "CANCELLED" &&
+                sa.Shift.ScheduleWeek.BranchId == branchId &&
+                sa.Shift.ScheduledStartAt <= currentUtcTime &&
+                currentUtcTime <= sa.Shift.ScheduledEndAt &&
+                !sa.LeaveRequestAssignments.Any(l => l.Request.RequestType == "LEAVE" && l.Request.Status == "APPROVED") &&
+                (sa.Attendance == null || sa.Attendance.CheckOutTime == null),
+                cancellationToken);
+    }
+
     private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)
     {
         var vnDateTime = date.ToDateTime(TimeOnly.MinValue);

@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
+﻿@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
 @using UI_Admin.Models.EmployeeAdjustments
 @{
     Layout = "_ManagerLayout";
@@ -20,7 +20,7 @@
         <partial name="~/Views/Shared/EmployeeAdjustments/_FormFields.cshtml" model="Model" />
         <div class="flex justify-end gap-3">
             <a asp-action="Index" class="btn btn-secondary">Cancel</a>
-            <button type="submit" disabled="@(!Model.OptionsLoaded || Model.StaffOptions.Count == 0 || Model.PayrollPeriodOptions.Count == 0)" class="btn btn-primary">Save changes</button>
+            <button type="submit" disabled="@(!Model.OptionsLoaded || Model.StaffOptions.Count == 0 || Model.AvailableDates.Count == 0)" class="btn btn-primary">Save changes</button>
         </div>
     </form>
 </div>

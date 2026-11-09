@@ -20,12 +20,19 @@ class _CreateOrderViewState extends State<CreateOrderView> {
   final _productService = ProductService();
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isInShift = true;
   final List<_ItemBuilder> _items = [];
 
   @override
   void initState() {
     super.initState();
+    _checkShiftStatus();
     _addItem();
+  }
+
+  Future<void> _checkShiftStatus() async {
+    final inShift = await _orderService.getShiftStatus();
+    if (mounted) setState(() => _isInShift = inShift);
   }
 
   @override
@@ -59,6 +66,17 @@ class _CreateOrderViewState extends State<CreateOrderView> {
   }
 
   Future<void> _submit() async {
+    if (!_isInShift) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Employees who are off-duty cannot perform this action.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     for (int i = 0; i < _items.length; i++) {
       if (!_items[i].validate()) {
         setState(() {});
@@ -368,6 +386,7 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                       child: AppButton(
                         text: 'Create Order',
                         icon: Icons.receipt_long_rounded,
+                        backgroundColor: _isInShift ? null : Colors.grey.shade400,
                         isLoading: _isLoading,
                         onPressed: _submit,
                       ),

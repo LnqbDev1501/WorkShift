@@ -68,6 +68,7 @@ public sealed class EmployeeAdjustmentApiService(HttpClient client, IConfigurati
         {
             model.UserId,
             model.PayrollPeriodId,
+            adjustmentDate = model.AdjustmentDate?.ToString("yyyy-MM-dd"),
             adjustmentName = model.AdjustmentName.Trim(),
             model.Amount,
             reason = model.Reason.Trim()
@@ -79,6 +80,7 @@ public sealed class EmployeeAdjustmentApiService(HttpClient client, IConfigurati
         {
             model.UserId,
             model.PayrollPeriodId,
+            adjustmentDate = model.AdjustmentDate?.ToString("yyyy-MM-dd"),
             adjustmentName = model.AdjustmentName.Trim(),
             model.Amount,
             reason = model.Reason.Trim()

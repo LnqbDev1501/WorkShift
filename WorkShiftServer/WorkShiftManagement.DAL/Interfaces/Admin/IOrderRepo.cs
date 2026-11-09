@@ -25,6 +25,7 @@ public interface IOrderRepo
     Task<bool> UpdateStatusAsync(int id, string status);
     Task<bool> UpdatePaymentStatusAsync(int id, string paymentStatus, DateTime? paidAt);
     Task<bool> SoftDeleteAsync(int id);
+    Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, int branchId, DateTime currentUtcTime, CancellationToken cancellationToken = default);
 }
 
 public interface IPaymentRepo

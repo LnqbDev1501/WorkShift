@@ -29,3 +29,8 @@ public sealed class StaffShiftRequirementResponse
     public int AssignedCount { get; set; }
     public int RemainingCount { get; set; }
 }
+
+public sealed class StaffShiftStatusResponse
+{
+    public bool IsInShift { get; set; }
+}

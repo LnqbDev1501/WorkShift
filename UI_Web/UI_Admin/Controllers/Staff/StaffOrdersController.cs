@@ -53,6 +53,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
         if (TempData["ErrorMessage"] is string error)
             model.ErrorMessage = error;
 
+        ViewBag.IsInShift = await api.GetShiftStatusAsync(ct);
         return View(model);
     }
 
@@ -61,6 +62,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
     {
         try
         {
+            ViewBag.IsInShift = await api.GetShiftStatusAsync(ct);
             var products = await api.GetActiveProductsAsync(ct);
             return View(new StaffCreateOrderViewModel
             {
@@ -99,6 +101,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
         }
         catch (HttpRequestException exception)
         {
+            ViewBag.IsInShift = await api.GetShiftStatusAsync(ct);
             model.Products = await api.GetActiveProductsAsync(ct);
             ModelState.AddModelError(string.Empty, exception.Message);
             return View(model);
@@ -111,6 +114,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
         if (id <= 0) return RedirectToAction(nameof(Index));
         try
         {
+            ViewBag.IsInShift = await api.GetShiftStatusAsync(ct);
             var order = await api.GetOrderAsync(id, ct);
             if (order == null)
             {
@@ -140,6 +144,13 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
         if (id <= 0) return RedirectToAction(nameof(Index));
         try
         {
+            var inShift = await api.GetShiftStatusAsync(ct);
+            if (!inShift)
+            {
+                TempData["ErrorMessage"] = "Employees who are off-duty cannot perform this action.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             await api.CompleteOrderAsync(id, ct);
             TempData["SuccessMessage"] = "Order completed successfully.";
             return RedirectToAction(nameof(Details), new { id });

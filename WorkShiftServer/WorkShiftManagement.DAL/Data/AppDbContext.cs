@@ -899,7 +899,8 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_deleted");
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
-            entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.PayrollPeriodId).IsRequired(false).HasColumnName("payroll_period_id");
+            entity.Property(e => e.AdjustmentDate).HasColumnName("adjustment_date");
             entity.Property(e => e.Reason)
                 .HasMaxLength(500)
                 .HasColumnName("reason");

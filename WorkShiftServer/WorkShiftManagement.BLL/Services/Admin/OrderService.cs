@@ -103,6 +103,13 @@ public class OrderService : IOrderService
             throw new UnauthorizedAccessException("Your account is not assigned to a branch.");
         var branchId = actor.BranchId.Value;
 
+        if (actor.Role == "STAFF")
+        {
+            var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
+            if (!inShift)
+                throw new InvalidOperationException("Employees who are off-duty cannot perform this action.");
+        }
+
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
 
@@ -255,6 +262,12 @@ public class OrderService : IOrderService
             return false;
 
         // Staff and Managers can complete orders within their branch
+        if (actor.Role == "STAFF" && normalizedStatus == "COMPLETED")
+        {
+            var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
+            if (!inShift)
+                throw new InvalidOperationException("Employees who are off-duty cannot perform this action.");
+        }
 
         if (normalizedStatus == "COMPLETED" && existing.PaymentStatus != "PAID")
             throw new InvalidOperationException("Order must be fully paid before it can be completed.");
@@ -523,4 +536,12 @@ public class OrderService : IOrderService
         RecordedByName = payment.RecordedByName,
         RecordedAt = payment.RecordedAt
     };
+    public async Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        var actor = await GetActorAsync(actorId);
+        if (!actor.BranchId.HasValue)
+            return false;
+
+        return await _orderRepo.IsStaffInWorkingShiftAsync(staffId, actor.BranchId.Value, DateTime.UtcNow, cancellationToken);
+    }
 }

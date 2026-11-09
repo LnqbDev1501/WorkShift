@@ -23,7 +23,38 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
             if (result.Items.Count == 0 || (long)page * 100 >= result.TotalCount) break;
         }
         model.StaffOptions = model.StaffOptions.DistinctBy(x => x.UserId).OrderBy(x => x.FullName).ToList();
-        model.PayrollPeriodOptions = await Api.GetPayrollPeriodsAsync(ct);
+
+        // Calculate dates in current week from Monday to today
+        var nowVn = DateTime.UtcNow.AddHours(7);
+        var today = DateOnly.FromDateTime(nowVn);
+        int diff = (7 + (int)today.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+        var monday = today.AddDays(-diff);
+
+        model.AvailableDates = [];
+        for (var d = monday; d <= today; d = d.AddDays(1))
+        {
+            var dayName = d.DayOfWeek switch
+            {
+                DayOfWeek.Monday => "Thứ Hai",
+                DayOfWeek.Tuesday => "Thứ Ba",
+                DayOfWeek.Wednesday => "Thứ Tư",
+                DayOfWeek.Thursday => "Thứ Năm",
+                DayOfWeek.Friday => "Thứ Sáu",
+                DayOfWeek.Saturday => "Thứ Bảy",
+                DayOfWeek.Sunday => "Chủ Nhật",
+                _ => ""
+            };
+            var label = $"{dayName}, {d:dd/MM/yyyy}" + (d == today ? " (Hôm nay)" : "");
+            model.AvailableDates.Add(new DateOptionViewModel { Date = d, DisplayText = label });
+        }
+
+        if (!model.AdjustmentDate.HasValue)
+        {
+            model.AdjustmentDate = today;
+        }
+
+        try { model.PayrollPeriodOptions = await Api.GetPayrollPeriodsAsync(ct); }
+        catch { model.PayrollPeriodOptions = []; }
         model.OptionsLoaded = true;
     }
 
@@ -81,6 +112,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
                 AdjustmentType = AdjustmentType,
                 UserId = item.UserId,
                 PayrollPeriodId = item.PayrollPeriodId,
+                AdjustmentDate = item.AdjustmentDate,
                 AdjustmentName = item.AdjustmentName,
                 Amount = item.Amount,
                 Reason = item.Reason

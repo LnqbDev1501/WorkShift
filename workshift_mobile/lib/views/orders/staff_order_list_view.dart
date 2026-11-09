@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../controllers/orders/staff_order_controller.dart';
+import '../../services/orders/staff_order_service.dart';
 import '../../models/orders/order_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
@@ -20,10 +21,18 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
 
   DateTime? _selectedDate = DateTime.now();
   String? _selectedStatus; // null = all
+  final StaffOrderService _orderService = StaffOrderService();
+  bool _isInShift = false;
+
+  Future<void> _checkShiftStatus() async {
+    final inShift = await _orderService.getShiftStatus();
+    if (mounted) setState(() => _isInShift = inShift);
+  }
 
   @override
   void initState() {
     super.initState();
+    _checkShiftStatus();
     _controller.addListener(_onUpdate);
     _scrollController.addListener(_onScroll);
     _fetchOrders(refresh: true);
@@ -78,6 +87,7 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
   }
 
   Future<void> _onRefresh() async {
+    _checkShiftStatus();
     _fetchOrders(refresh: true);
   }
 
@@ -336,7 +346,19 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
               child: AppButton(
                 text: 'Create New Order',
                 icon: Icons.add_rounded,
+                backgroundColor: _isInShift ? null : Colors.grey.shade400,
                 onPressed: () async {
+                  if (!_isInShift) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Employees who are off-duty cannot perform this action.',
+                        ),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                    return;
+                  }
                   await Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const CreateOrderView()),
@@ -347,42 +369,7 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
             ),
             _buildDateFilterBar(),
             _buildStatusFilterChips(),
-            if (_controller.errorMessage != null)
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.errorBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.error.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      color: AppColors.error,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _controller.errorMessage!,
-                        style: const TextStyle(color: AppColors.error),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close_rounded,
-                        color: AppColors.error,
-                        size: 20,
-                      ),
-                      onPressed: _controller.clearError,
-                    ),
-                  ],
-                ),
-              ),
+
             Expanded(
               child: _controller.isLoading && _controller.orders.isEmpty
                   ? const Center(child: CircularProgressIndicator())

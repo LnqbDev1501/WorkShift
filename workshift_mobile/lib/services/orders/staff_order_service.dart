@@ -38,4 +38,17 @@ class StaffOrderService {
   Future<void> cancelOrder(int id) async {
     await _apiClient.post('/api/staff/orders/$id/cancel');
   }
+
+  /// Check if staff is currently in working shift: GET /api/staff/orders/shift-status
+  Future<bool> getShiftStatus() async {
+    try {
+      final response = await _apiClient.get('/api/staff/orders/shift-status');
+      if (response.data is Map<String, dynamic>) {
+        return response.data['isInShift'] == true;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
 }

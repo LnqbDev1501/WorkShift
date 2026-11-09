@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -60,6 +60,7 @@ public sealed class EmployeeAdjustmentItem
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
     public string PeriodStatus { get; set; } = "";
+    public DateOnly? AdjustmentDate { get; set; }
     public string AdjustmentName { get; set; } = "";
     public decimal Amount { get; set; }
     public string Reason { get; set; } = "";
@@ -80,22 +81,44 @@ public sealed class EmployeeAdjustmentItem
     public bool CanReject { get; set; }
 }
 
+public sealed class DateOptionViewModel
+{
+    public DateOnly Date { get; set; }
+    public string DisplayText { get; set; } = "";
+}
+
 public sealed class SaveEmployeeAdjustmentViewModel : IValidatableObject
 {
     public string AdjustmentType { get; set; } = EmployeeAdjustmentTypes.Reward;
     [Required] public Guid? UserId { get; set; }
-    [Range(1, int.MaxValue)] public int? PayrollPeriodId { get; set; }
+    public int? PayrollPeriodId { get; set; }
+    public DateOnly? AdjustmentDate { get; set; }
     [Required, StringLength(100)] public string AdjustmentName { get; set; } = "";
     [Required] public decimal? Amount { get; set; }
     [Required, StringLength(500)] public string Reason { get; set; } = "";
     [BindNever, ValidateNever] public List<StaffAccountListItemViewModel> StaffOptions { get; set; } = [];
     [BindNever, ValidateNever] public List<PayrollPeriodOption> PayrollPeriodOptions { get; set; } = [];
+    [BindNever, ValidateNever] public List<DateOptionViewModel> AvailableDates { get; set; } = [];
     [BindNever, ValidateNever] public bool OptionsLoaded { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
         if (UserId == Guid.Empty) yield return new("Please select an employee.", [nameof(UserId)]);
-        if (PayrollPeriodId is null or <= 0) yield return new("Please select a payroll period.", [nameof(PayrollPeriodId)]);
+        if (!AdjustmentDate.HasValue)
+        {
+            yield return new("Vui lÃ²ng chá»n ngÃ y Ã¡p dá»¥ng trong tuáº§n hiá»‡n táº¡i.", [nameof(AdjustmentDate)]);
+        }
+        else
+        {
+            var nowVn = DateTime.UtcNow.AddHours(7);
+            var today = DateOnly.FromDateTime(nowVn);
+            int diff = (7 + (int)today.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+            var monday = today.AddDays(-diff);
+            if (AdjustmentDate.Value < monday || AdjustmentDate.Value > today)
+            {
+                yield return new("NgÃ y Ã¡p dá»¥ng pháº£i náº±m trong tuáº§n hiá»‡n táº¡i (tá»« thá»© Hai Ä‘áº¿n hÃ´m nay).", [nameof(AdjustmentDate)]);
+            }
+        }
         if (string.IsNullOrWhiteSpace(AdjustmentName)) yield return new("Please enter the item name.", [nameof(AdjustmentName)]);
         if (AdjustmentName.Trim().Length > 100) yield return new("Item name must be at most 100 characters.", [nameof(AdjustmentName)]);
         if (Amount is null) yield return new("Please enter the amount.", [nameof(Amount)]);
