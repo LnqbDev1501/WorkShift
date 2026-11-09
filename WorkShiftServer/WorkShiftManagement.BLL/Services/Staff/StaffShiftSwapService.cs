@@ -243,6 +243,10 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
 
     private async Task ValidateIncomingShiftAsync(Guid staffId, WorkShift outgoing, WorkShift incoming, CancellationToken ct)
     {
+        if (!await staffRepo.HasRegistrationContractAsync(staffId, incoming.ScheduleWeek.BranchId,
+            incoming.ShiftId, DateTime.UtcNow, ct))
+            throw new InvalidOperationException("Both staff members must have an accepted, ACTIVE employment contract that is effective now and covers the entire incoming shift.");
+
         var first = DateOnly.FromDateTime(incoming.ScheduledStartAt.AddHours(7));
         var last = DateOnly.FromDateTime(incoming.ScheduledEndAt.AddTicks(-1).AddHours(7));
         var others = (await assignments.GetStaffShiftsAsync(staffId, ToUtc(StartOfWeek(first)),

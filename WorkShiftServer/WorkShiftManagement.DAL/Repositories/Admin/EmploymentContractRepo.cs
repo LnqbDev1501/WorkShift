@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -394,7 +395,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public async Task CancelContractAsync(int contractId, Guid managerId, string reason, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var existing = await _context.EmploymentContracts
             .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
         if (existing == null)
@@ -411,6 +412,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
         existing.Status = "CANCELLED";
+        await CancelIncompleteAssignmentsAsync(existing, managerId, now, cancellationToken);
         existing.CancellationReason = reason;
         existing.CancelledBy = managerId;
         existing.CancelledAt = now;
@@ -464,7 +466,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public async Task TerminateContractAsync(int contractId, Guid managerId, string reason, DateTime effectiveAtUtc, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var existing = await _context.EmploymentContracts
             .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
         if (existing == null)
@@ -483,6 +485,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
         existing.Status = "TERMINATED";
+        await CancelIncompleteAssignmentsAsync(existing, managerId, now, cancellationToken);
         existing.TerminationReason = reason;
         existing.TerminatedBy = managerId;
         existing.TerminatedAt = now;
@@ -549,6 +552,50 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         await _context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+    }
+
+    private async Task CancelIncompleteAssignmentsAsync(EmploymentContract contract, Guid? actor,
+        DateTime now, CancellationToken cancellationToken)
+    {
+        var assignments = await _context.ShiftAssignments
+            .Where(a => a.UserId == contract.UserId && a.Status == "ASSIGNED")
+            .ToListAsync(cancellationToken);
+        if (assignments.Count == 0) return;
+
+        var reason = $"Employment contract {contract.ContractNumber} is {contract.Status}.";
+        var assignmentIds = assignments.Select(a => a.AssignmentId).ToList();
+        var pendingSwaps = await _context.ShiftSwapRequests
+            .Where(r => r.Status == "PENDING" &&
+                (assignmentIds.Contains(r.SourceAssignmentId) || assignmentIds.Contains(r.TargetAssignmentId)))
+            .ToListAsync(cancellationToken);
+        foreach (var swap in pendingSwaps)
+        {
+            swap.Status = "CANCELLED";
+            swap.RespondedBy = actor;
+            swap.RespondedAt = now;
+            swap.ResponseNote = reason;
+            swap.UpdatedAt = now;
+        }
+
+        foreach (var assignment in assignments)
+        {
+            var oldValue = Manager.ShiftAssignmentRepo.Snapshot(assignment);
+            assignment.Status = "CANCELLED";
+            assignment.CancelledBy = actor;
+            assignment.CancelledAt = now;
+            assignment.CancelReason = reason;
+            assignment.UpdatedAt = now;
+            _context.AuditLogs.Add(new AuditLog
+            {
+                UserId = actor,
+                Action = "AUTO_CANCEL_SHIFT_ASSIGNMENT",
+                TableName = "shift_assignments",
+                RecordId = assignment.AssignmentId.ToString(),
+                OldValue = oldValue,
+                NewValue = Manager.ShiftAssignmentRepo.Snapshot(assignment),
+                CreatedAt = now
+            });
+        }
     }
 
     public async Task SendContractPdfAsync(int contractId, string filePath, string templateVersion, DateTime generatedAt, DateTime sentAt, Guid managerId, CancellationToken cancellationToken = default)
@@ -802,7 +849,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var strategy = _context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
             EmploymentContract? existing;
             if (_context.Database.IsRelational())
@@ -846,6 +893,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 {
                     var oldStatusPre = oldActive.Status;
                     oldActive.Status = "EXPIRED";
+                    await CancelIncompleteAssignmentsAsync(oldActive, staffUserId, acceptedAtUtc, cancellationToken);
                     // Do not alter oldActive.EndDate - preserve the contractual end date.
                     oldActive.UpdatedAt = acceptedAtUtc;
 
@@ -1023,7 +1071,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public async Task<int> ActivateDueScheduledContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var now = DateTime.UtcNow;
 
         var allEmployeeTypes = await _context.EmployeeTypes.ToListAsync(cancellationToken);
@@ -1173,6 +1221,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                 {
                     var oldContractStatus = oldContract.Status;
                     oldContract.Status = "EXPIRED";
+                    await CancelIncompleteAssignmentsAsync(oldContract, null, now, cancellationToken);
                     // DO NOT shorten oldContract.EndDate! Preserve the legal contract term!
                     oldContract.UpdatedAt = now;
 
@@ -1300,7 +1349,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
     public async Task<int> ExpireDueContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
         var expiredContracts = await _context.EmploymentContracts
             .Where(c => c.Status == "ACTIVE" &&
                         c.EndDate != null &&
@@ -1315,6 +1364,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         {
             var oldStatus = c.Status;
             c.Status = "EXPIRED";
+            await CancelIncompleteAssignmentsAsync(c, null, now, cancellationToken);
             c.UpdatedAt = now;
 
             var activeSalaries = await _context.StaffSalaryHistories
@@ -1365,7 +1415,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
 
             List<EmploymentContract> overdueContracts;
             if (_context.Database.IsRelational())
@@ -1414,6 +1464,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
                 var oldStatus = c.Status;
                 c.Status = "CANCELLED";
+                await CancelIncompleteAssignmentsAsync(c, null, now, cancellationToken);
                 c.CancellationReason = "NOT_ACCEPTED_BY_START_DATE";
                 c.CancelledBy = null;
                 c.CancelledAt = now;
