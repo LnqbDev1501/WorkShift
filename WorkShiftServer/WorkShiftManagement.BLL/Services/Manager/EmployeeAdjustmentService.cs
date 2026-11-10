@@ -70,9 +70,14 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, CancellationToken ct)
     {
         var branchId = Scope(actor);
-        var staff = await repo.StaffAsync(r.UserId, branchId ?? (actor.BranchId ?? 0), ct);
+        var effectiveBranchId = branchId ?? (actor.BranchId ?? 0);
+        var staff = await repo.StaffAsync(r.UserId, effectiveBranchId, ct);
         if (staff == null || staff.DeletedAt != null || staff.Status != "ACTIVE" || staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE")
-            throw new ArgumentException("NhÃ¢n viÃªn pháº£i lÃ  Staff Ä‘ang hoáº¡t Ä‘á»™ng thuá»™c chi nhÃ¡nh cá»§a Manager.");
+            throw new ArgumentException("Nhân viên phải là Staff đang hoạt động thuộc chi nhánh của Manager.");
+
+        var hasContract = await repo.StaffHasContractAsync(r.UserId, effectiveBranchId, ct);
+        if (!hasContract)
+            throw new ArgumentException("Chỉ được tạo thưởng/phạt cho nhân viên đã có hợp đồng.");
 
         if (r.PayrollPeriodId.HasValue && r.PayrollPeriodId.Value > 0)
         {

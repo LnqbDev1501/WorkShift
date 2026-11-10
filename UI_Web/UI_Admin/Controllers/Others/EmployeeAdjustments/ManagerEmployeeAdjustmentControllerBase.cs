@@ -18,7 +18,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
         // Read every page so branches with more than 100 employees are not truncated.
         for (var page = 1; ; page++)
         {
-            var result = await staff.GetStaffListAsync(null, "ACTIVE", page, 100, ct);
+            var result = await staff.GetStaffListAsync(null, "ACTIVE", page, 100, hasContract: true, cancellationToken: ct);
             model.StaffOptions.AddRange(result.Items);
             if (result.Items.Count == 0 || (long)page * 100 >= result.TotalCount) break;
         }
@@ -60,7 +60,7 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
 
     private void ValidateEmployee(SaveEmployeeAdjustmentViewModel model) =>
         ModelState.AddModelError(nameof(SaveEmployeeAdjustmentViewModel.UserId),
-            "Select an active employee in your branch.");
+            "Only active employees with an employment contract in your branch can be selected.");
 
     [HttpGet]
     public async Task<IActionResult> Create(CancellationToken ct)

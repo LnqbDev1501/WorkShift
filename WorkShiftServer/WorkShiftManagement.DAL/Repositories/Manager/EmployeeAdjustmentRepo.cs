@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Data;
@@ -11,6 +11,12 @@ public sealed class EmployeeAdjustmentRepo(AppDbContext db) : IEmployeeAdjustmen
     public Task<User?> ActorAsync(Guid id, CancellationToken ct) => db.Users.AsNoTracking().Include(u => u.Role).SingleOrDefaultAsync(u => u.UserId == id, ct);
     public Task<User?> StaffAsync(Guid id, int branchId, CancellationToken ct) => db.Users.AsNoTracking().Include(u => u.Role)
         .SingleOrDefaultAsync(u => u.UserId == id && u.BranchId == branchId, ct);
+    public Task<bool> StaffHasContractAsync(Guid userId, int branchId, CancellationToken ct) =>
+        db.EmploymentContracts.AsNoTracking().AnyAsync(c =>
+            c.UserId == userId &&
+            (c.BranchId == branchId || db.Users.Any(u => u.UserId == userId && u.BranchId == branchId)) &&
+            (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+             c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL"), ct);
     public Task<PayrollPeriod?> PeriodAsync(int id, int? branchId, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
         .SingleOrDefaultAsync(p => p.PayrollPeriodId == id && (!branchId.HasValue || p.BranchId == branchId), ct);
         public Task<PayrollPeriod?> FindPeriodByDateAsync(int branchId, DateOnly date, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()

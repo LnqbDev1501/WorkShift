@@ -1,4 +1,4 @@
-using System.Net.Mail;
+﻿using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -69,9 +69,10 @@ public class ManagerStaffService : IManagerStaffService
         var (items, totalCount) = await _staffRepo.GetPagedStaffAsync(
             branchId,
             query.Search,
-            query.Status,
+            status,
             pageNumber,
-            pageSize);
+            pageSize,
+            query.HasContract);
 
         return new StaffAccountPagedResponse
         {
@@ -628,6 +629,10 @@ public class ManagerStaffService : IManagerStaffService
 
     private static StaffAccountListItemResponse MapToListItem(User staff)
     {
+        var hasContract = staff.EmploymentContracts?.Any(c =>
+            c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+            c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL") ?? false;
+
         return new StaffAccountListItemResponse
         {
             UserId = staff.UserId,
@@ -638,7 +643,8 @@ public class ManagerStaffService : IManagerStaffService
             RoleName = staff.Role?.RoleName ?? "STAFF",
             BranchName = staff.Branch?.BranchName ?? string.Empty,
             CreatedAt = staff.CreatedAt,
-            HasPassword = staff.HasPassword
+            HasPassword = staff.HasPassword,
+            HasContract = hasContract
         };
     }
 }

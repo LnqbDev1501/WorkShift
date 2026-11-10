@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 using System.Text.Json.Serialization;
 
@@ -14,6 +14,7 @@ public class StaffAccountListItemViewModel
     public string BranchName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public bool HasPassword { get; set; } = true;
+    public bool HasContract { get; set; }
 }
 
 public class StaffAccountPagedViewModel
