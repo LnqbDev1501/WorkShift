@@ -70,7 +70,7 @@ public class ProductService : IProductService
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" || actor.Role == "STAFF" && data.BranchId != actor.BranchId)
+        if ((actor.Role == "MANAGER" || actor.Role == "STAFF") && data.BranchId != actor.BranchId)
             return null;
 
         return new ProductDetailResponse
