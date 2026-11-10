@@ -4,10 +4,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.DAL.ReadModels.Staff;
 using WorkShiftManagement.BLL.DTOs.Staff.Timesheet;
 using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Staff;
-using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
@@ -44,7 +44,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         int branchId = staff.BranchId
             ?? throw new InvalidOperationException("Staff is not currently assigned to any branch.");
 
-        var availableWeeks = await _repo.GetAvailableWeeksForStaffAsync(branchId, cancellationToken);
+        var availableWeeks = await _repo.GetAvailableWeeksForStaffAsync(branchId, staffId, cancellationToken);
         if (availableWeeks.Count == 0)
         {
             return null;
@@ -58,14 +58,12 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         else
         {
             // Pick most recent week with generated timesheet for this staff, or fallback to latest week
-            var weekWithTimesheet = availableWeeks.FirstOrDefault(w =>
-                w.PayrollPeriod != null &&
-                w.PayrollPeriod.Timesheets.Any(t => t.UserId == staffId));
+            var weekWithTimesheet = availableWeeks.FirstOrDefault(w => w.HasTimesheet);
 
             targetWeekId = weekWithTimesheet?.ScheduleWeekId ?? availableWeeks[0].ScheduleWeekId;
         }
 
-        var week = await _repo.GetWeeklyScheduleWithStaffShiftsAsync(targetWeekId, branchId, cancellationToken);
+        var week = await _repo.GetWeeklyScheduleWithStaffShiftsAsync(targetWeekId, branchId, staffId, cancellationToken);
         if (week == null)
         {
             return null;
@@ -73,13 +71,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var staffTimesheet = week.PayrollPeriod?.Timesheets.FirstOrDefault(t => t.UserId == staffId);
 
-        var staffAssignments = (week.WorkShifts ?? Enumerable.Empty<WorkShift>())
-            .Where(s => !string.Equals(s.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
-            .SelectMany(s => (s.ShiftAssignments ?? Enumerable.Empty<ShiftAssignment>())
-                .Where(a => a.UserId == staffId && !string.Equals(a.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
-                .Select(a => new { Shift = s, Assignment = a }))
-            .OrderBy(x => x.Shift.ScheduledStartAt)
-            .ToList();
+        var staffAssignments = week.Assignments;
 
         string status;
         string staffReviewStatus;
@@ -149,7 +141,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         var allAdjsByAttendance = staffTimesheet?.TimesheetAdjustmentRequests?
             .GroupBy(r => r.AttendanceId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).ToList())
-            ?? new Dictionary<int, List<TimesheetAdjustmentRequest>>();
+            ?? new Dictionary<int, List<StaffTimesheetAdjustmentReadModel>>();
 
         var shiftDtos = staffAssignments.Select(x =>
         {
@@ -159,7 +151,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
             var reqList = att != null && allAdjsByAttendance.TryGetValue(att.AttendanceId, out var foundList)
                 ? foundList
-                : new List<TimesheetAdjustmentRequest>();
+                : new List<StaffTimesheetAdjustmentReadModel>();
 
             var adj = reqList.FirstOrDefault();
 
@@ -185,12 +177,8 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
             bool canCancelAdj = hasPending && !isLocked && !isPastDeadline;
 
-            var approvedLeave = x.Assignment.LeaveRequestAssignments
-                ?.Select(l => l.Request)
-                ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
-
-            bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
-            string? leaveReason = approvedLeave?.Reason;
+            bool isExcusedLeave = x.Assignment.HasApprovedLeave || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
+            string? leaveReason = x.Assignment.LeaveReason;
 
             return new StaffShiftAttendanceDto
             {
@@ -257,15 +245,14 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var weekOptions = availableWeeks.Select(w =>
         {
-            var t = w.PayrollPeriod?.Timesheets.FirstOrDefault(ts => ts.UserId == staffId);
             return new StaffTimesheetWeekOptionDto
             {
                 ScheduleWeekId = w.ScheduleWeekId,
                 Period = $"{w.WeekStartDate:dd/MM} - {w.WeekEndDate:dd/MM}",
                 WeekStartDate = w.WeekStartDate,
                 WeekEndDate = w.WeekEndDate,
-                HasTimesheet = t != null,
-                Status = t != null ? (t.Status ?? "GENERATED") : "NOT GENERATED"
+                HasTimesheet = w.HasTimesheet,
+                Status = w.Status
             };
         }).ToList();
 
@@ -280,7 +267,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             WeekStartDate = week.WeekStartDate,
             WeekEndDate = week.WeekEndDate,
             BranchId = week.BranchId,
-            BranchName = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
+            BranchName = week.BranchName,
             Status = status,
             StaffReviewStatus = staffReviewStatus,
             CanConfirm = canConfirm,
