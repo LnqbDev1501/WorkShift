@@ -32,6 +32,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
     {
         ValidateId(sourceAssignmentId);
         var staff = await GetActorAsync(actor, ct);
+        await ValidateContractAccessAsync(staff, ct);
         await ExpirePendingAsync(actor, ct);
         var source = await repo.FindAssignmentAsync(sourceAssignmentId, ct)
             ?? throw new KeyNotFoundException("Your shift assignment was not found.");
@@ -42,7 +43,8 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         ValidateSwappableAssignment(source, staff.BranchId!.Value);
         if (await repo.HasPendingAsync(sourceAssignmentId, sourceAssignmentId, ct))
             throw new InvalidOperationException("Your shift already has a pending swap request.");
-        var candidates = await repo.GetCandidateAssignmentsAsync(actor, staff.BranchId!.Value, staff.EmployeeTypeId.Value, ct);
+        var candidates = await repo.GetCandidateAssignmentsAsync(actor, staff.BranchId!.Value,
+            staff.EmployeeTypeId.Value, source.Shift.ScheduleWeekId, ct);
         var result = new List<StaffShiftSwapCandidateResponse>();
         foreach (var target in candidates)
         {
@@ -98,6 +100,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
             throw new ArgumentException("Source and target assignments must be different.");
         var reason = CleanNote(request.Reason);
         var staff = await GetActorAsync(actor, ct);
+        await ValidateContractAccessAsync(staff, ct);
         var branchId = staff.BranchId!.Value;
         await ExpirePendingAsync(actor, ct);
         var result = await repo.ExecuteAsync(request.SourceAssignmentId, request.TargetAssignmentId, null,
@@ -208,6 +211,8 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
     {
         if (source.UserId == target.UserId || source.ShiftId == target.ShiftId)
             throw new InvalidOperationException("A swap requires different staff members and different shifts.");
+        if (source.Shift.ScheduleWeekId != target.Shift.ScheduleWeekId)
+            throw new InvalidOperationException("Both shifts must belong to the same schedule week.");
         ValidateStaff(source.User, branchId);
         ValidateStaff(target.User, branchId);
         if (!source.User.EmployeeTypeId.HasValue || source.User.EmployeeType?.Status != "ACTIVE" ||
@@ -278,6 +283,12 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         }
         assignments.Audit(actor, "SWAP_SHIFT_ASSIGNMENT", source, oldSource);
         assignments.Audit(actor, "SWAP_SHIFT_ASSIGNMENT", target, oldTarget);
+    }
+
+    private async Task ValidateContractAccessAsync(User staff, CancellationToken ct)
+    {
+        if (!await staffRepo.HasActiveContractAsync(staff.UserId, staff.BranchId!.Value, DateTime.UtcNow, ct))
+            throw new InvalidOperationException(StaffShiftContractPolicy.AccessBlockedReason);
     }
 
     private async Task<User> GetActorAsync(Guid actor, CancellationToken ct)

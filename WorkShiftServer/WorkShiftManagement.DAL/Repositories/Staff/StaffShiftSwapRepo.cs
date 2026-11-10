@@ -23,17 +23,18 @@ public sealed class StaffShiftSwapRepo(AppDbContext context) : IStaffShiftSwapRe
     }
 
     public Task<ShiftAssignment?> FindAssignmentAsync(int assignmentId, CancellationToken ct) =>
-        AssignmentDetails().AsNoTracking().SingleOrDefaultAsync(a => a.AssignmentId == assignmentId, ct);
+        AssignmentDetails().AsNoTrackingWithIdentityResolution().SingleOrDefaultAsync(a => a.AssignmentId == assignmentId, ct);
 
-    public Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId, CancellationToken ct)
+    public Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId,
+        int scheduleWeekId, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var earliestStart = now.AddHours(24);
-        return AssignmentDetails().AsNoTracking()
+        return AssignmentDetails().AsNoTrackingWithIdentityResolution()
             .Where(a => a.UserId != actor && a.User.BranchId == branchId && a.User.EmployeeTypeId == employeeTypeId &&
                 a.Status == "ASSIGNED" &&
                 a.Shift.Status == "SCHEDULED" && a.Shift.ScheduledStartAt >= earliestStart &&
-                a.Shift.ScheduleWeek.BranchId == branchId &&
+                a.Shift.ScheduleWeek.BranchId == branchId && a.Shift.ScheduleWeekId == scheduleWeekId &&
                 (a.Shift.ScheduleWeek.Status == "OPEN_REGISTRATION" || a.Shift.ScheduleWeek.Status == "REGISTRATION_CLOSED") &&
                 !context.ShiftSwapRequests.Any(r => r.Status == "PENDING" &&
                     r.SourceAssignment.Shift.ScheduledStartAt > now && r.TargetAssignment.Shift.ScheduledStartAt > now &&

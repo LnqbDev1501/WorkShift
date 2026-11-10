@@ -33,9 +33,9 @@
                 var candidates = Model.Options.Staff.Where(staff => shift.EmployeeRequirements.Any(r => r.EmployeeTypeId == staff.EmployeeTypeId && r.RemainingCount > 0) && !shift.Staff.Any(a => a.UserId == staff.UserId && a.Status != "CANCELLED")).ToList();
                 @if (candidates.Count > 0)
                 {
-                    <form asp-action="Assign" asp-route-id="@shift.ShiftId" method="post" class="sh-assign-form"><label for="userId">Branch employee</label><select id="userId" name="userId" required><option value="">Select an employee</option>@foreach (var staff in candidates) { <option value="@staff.UserId">@staff.FullName · @staff.EmployeeTypeName · @staff.UserId.ToString()[..8]</option> }</select><p>Availability, leave, and working time limits are checked when assigning.</p><button class="ms-primary" type="submit">Assign employee</button></form>
+                    <form asp-action="Assign" asp-route-id="@shift.ShiftId" method="post" class="sh-assign-form"><label for="userId">Branch employee</label><select id="userId" name="userId" required><option value="">Select an employee</option>@foreach (var staff in candidates) { <option value="@staff.UserId">@staff.FullName · @staff.EmployeeTypeName · @staff.UserId.ToString()[..8]</option> }</select><p>Only employees with an accepted, ACTIVE contract currently in effect at this branch can be selected. Contract coverage, availability, leave, and working time limits are checked when assigning.</p><button class="ms-primary" type="submit">Assign employee</button></form>
                 }
-                else { <p>No matching active employees available for the remaining employee types.</p> }
+                else { <p>No eligible employees for the remaining employee types. Employees need an accepted, ACTIVE employment contract currently in effect at this branch before they can be assigned.</p> }
             }
             else { <p>@(shift.RemainingSlots == 0 ? "No remaining slots in this shift." : "Employees must be assigned before 00:00 on the day before the shift (UTC+7). The shift must be scheduled and registration open or closed.")</p> }
         </section></div>

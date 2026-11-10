@@ -1,3 +1,28 @@
+class ShiftAccessModel {
+  final bool canManageShifts;
+  final String? blockedReason;
+
+  const ShiftAccessModel({required this.canManageShifts, this.blockedReason});
+
+  static const checking = ShiftAccessModel(
+    canManageShifts: false,
+    blockedReason: 'Checking your employment contract. Please wait.',
+  );
+
+  static const unavailable = ShiftAccessModel(
+    canManageShifts: false,
+    blockedReason:
+        'Unable to verify your employment contract. Refresh and try again.',
+  );
+
+  factory ShiftAccessModel.fromJson(Map<String, dynamic> json) =>
+      ShiftAccessModel(
+        canManageShifts: json['canManageShifts'] == true,
+        blockedReason:
+            json['blockedReason'] as String? ?? unavailable.blockedReason,
+      );
+}
+
 class ShiftRegistrationModel {
   final int assignmentId;
   final int shiftId;

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../models/shifts/available_shift_model.dart';
+import '../../models/shifts/shift_registration_model.dart';
 import '../../services/shifts/my_shifts_service.dart';
 import '../../services/shifts/shift_registration_service.dart';
 
@@ -22,6 +23,7 @@ class MyShiftsController extends ChangeNotifier {
   String? _error;
   String? _loadMoreError;
   String? _actionError;
+  ShiftAccessModel shiftAccess = ShiftAccessModel.checking;
   MySchedulePeriod _period = MySchedulePeriod.upcoming;
   DateTime? _fromDate;
   DateTime? _toDate;
@@ -200,6 +202,11 @@ class MyShiftsController extends ChangeNotifier {
     _loadMoreError = null;
     notifyListeners();
     try {
+      if (reset) {
+        final access = await _registrationService.getAccess();
+        if (!_current(generation)) return;
+        shiftAccess = access;
+      }
       final page = await _service.getMyShifts(
         pageNumber: reset ? 1 : _page + 1,
         fromDate: fromDate,

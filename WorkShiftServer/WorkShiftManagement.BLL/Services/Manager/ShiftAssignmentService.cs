@@ -8,10 +8,11 @@ using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Interfaces.Staff;
 using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
 namespace WorkShiftManagement.BLL.Services.Manager;
 
-public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo,
+public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleWeekRepo weekRepo, IStaffShiftRepo staffRepo,
     INotificationRealtimePublisher realtimePublisher, ILogger<ShiftAssignmentService> logger) : IShiftAssignmentService
 {
     public async Task<ShiftAssignmentResponse> AssignAsync(Guid actor, int shiftId, AssignShiftRequest request, CancellationToken ct = default)
@@ -31,6 +32,8 @@ public sealed class ShiftAssignmentService(IShiftAssignmentRepo repo, IScheduleW
                 throw new InvalidOperationException("Only active staff in an active STAFF role can be assigned.");
             if (!staff.EmployeeTypeId.HasValue || staff.EmployeeType?.Status != "ACTIVE")
                 throw new InvalidOperationException("Staff must have an active employee type.");
+            if (!await staffRepo.HasRegistrationContractAsync(staff.UserId, branchId, shiftId, DateTime.UtcNow, ct))
+                throw new InvalidOperationException("Cannot assign this employee: an accepted, ACTIVE employment contract at this branch must be effective now and cover the entire shift. Check the contract status, acceptance, start date, end date, and termination date.");
             var requirement = shift.ShiftEmployeeRequirements.SingleOrDefault(r => r.EmployeeTypeId == staff.EmployeeTypeId)
                 ?? throw new InvalidOperationException("The shift does not require this employee type.");
             if (requirement.RequiredCount <= 0 || requirement.EmployeeType.Status != "ACTIVE")

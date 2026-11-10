@@ -34,3 +34,9 @@ public sealed class StaffShiftStatusResponse
 {
     public bool IsInShift { get; set; }
 }
+
+public sealed class StaffShiftAccessResponse
+{
+    public bool CanManageShifts { get; set; }
+    public string? BlockedReason { get; set; }
+}

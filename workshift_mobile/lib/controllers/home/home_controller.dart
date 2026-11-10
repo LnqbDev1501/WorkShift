@@ -5,10 +5,15 @@ import '../../models/requests/staff_request_model.dart';
 import '../../services/requests/staff_request_service.dart';
 import '../../services/auth/auth_service.dart';
 import '../../services/home/home_service.dart';
+import '../../models/shifts/shift_registration_model.dart';
+import '../../services/shifts/shift_registration_service.dart';
 
 class HomeController extends ChangeNotifier {
   final HomeService _homeService = HomeService();
   final AuthService _authService = AuthService();
+  final ShiftRegistrationService _shiftRegistrationService =
+      ShiftRegistrationService();
+  ShiftAccessModel shiftAccess = ShiftAccessModel.checking;
 
   final StaffRequestService _requestService = StaffRequestService();
   List<StaffEmployeeRequestListItemModel> _recentRequests = [];
@@ -193,12 +198,14 @@ class HomeController extends ChangeNotifier {
       final results = await Future.wait([
         _homeService.getMyProfile(),
         _homeService.checkFaceRegistrationStatus(),
+        _shiftRegistrationService.getAccess(),
       ]);
 
       if (results[0] != null) {
         _user = results[0] as UserModel;
       }
       _hasRegisteredFace = results[1] as bool;
+      shiftAccess = results[2] as ShiftAccessModel;
       await Future.wait([_loadRecentRequests(), _loadWeeklyHours()]);
 
       // 3. Lấy ca làm việc hợp lệ hôm nay

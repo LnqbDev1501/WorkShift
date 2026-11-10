@@ -349,6 +349,9 @@ class _HomeViewState extends State<HomeView> {
 
                           // 3. Quick Actions
                           QuickActions(
+                            shiftAccess: _controller.shiftAccess,
+                            onContractsChanged: () =>
+                                _controller.loadHomeData(silent: true),
                             onFaceRegistrationSuccess: () =>
                                 _controller.loadHomeData(),
                             onShiftsChanged: () =>

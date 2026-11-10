@@ -213,9 +213,25 @@ class _MyShiftsViewState extends State<MyShiftsView>
               },
             ),
             IconButton(
-              tooltip: 'Shift swap requests',
-              icon: const Icon(Icons.swap_horiz_rounded),
+              tooltip: _controller.shiftAccess.canManageShifts
+                  ? 'Shift swap requests'
+                  : _controller.shiftAccess.blockedReason,
+              icon: Icon(
+                Icons.swap_horiz_rounded,
+                color: _controller.shiftAccess.canManageShifts
+                    ? null
+                    : Colors.grey,
+              ),
               onPressed: () async {
+                if (!_controller.shiftAccess.canManageShifts) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_controller.shiftAccess.blockedReason!),
+                      duration: const Duration(seconds: 6),
+                    ),
+                  );
+                  return;
+                }
                 await Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ShiftSwapListView()),
                 );

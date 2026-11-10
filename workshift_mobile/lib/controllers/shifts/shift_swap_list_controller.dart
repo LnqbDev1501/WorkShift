@@ -1,11 +1,18 @@
 import 'package:flutter/foundation.dart';
 import '../../models/shifts/shift_swap_model.dart';
 import '../../services/shifts/shift_swap_service.dart';
+import '../../models/shifts/shift_registration_model.dart';
+import '../../services/shifts/shift_registration_service.dart';
 
 class ShiftSwapListController extends ChangeNotifier {
   final ShiftSwapService _service;
-  ShiftSwapListController({ShiftSwapService? service})
-    : _service = service ?? ShiftSwapService();
+  final ShiftRegistrationService _registrationService;
+  ShiftSwapListController({
+    ShiftSwapService? service,
+    ShiftRegistrationService? registrationService,
+  }) : _service = service ?? ShiftSwapService(),
+       _registrationService = registrationService ?? ShiftRegistrationService();
+  ShiftAccessModel shiftAccess = ShiftAccessModel.checking;
   final List<ShiftSwapModel> _items = [];
   List<ShiftSwapModel> get items => List.unmodifiable(_items);
   String? userId;
@@ -47,6 +54,9 @@ class ShiftSwapListController extends ChangeNotifier {
     loadMoreError = null;
     notifyListeners();
     try {
+      final access = await _registrationService.getAccess();
+      if (_disposed || generation != _generation) return;
+      shiftAccess = access;
       final id = await _service.getCurrentUserId();
       final page = await _service.getRequests(
         direction: direction,

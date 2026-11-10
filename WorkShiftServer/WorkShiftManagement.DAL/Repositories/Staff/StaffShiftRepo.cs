@@ -74,6 +74,10 @@ public sealed class StaffShiftRepo(AppDbContext context) : IStaffShiftRepo
         return (items, total);
     }
 
+    public Task<bool> HasActiveContractAsync(Guid staffId, int branchId, DateTime now, CancellationToken ct) =>
+        StaffShiftContractPolicy.ActiveContracts(context.EmploymentContracts, branchId, now)
+            .AnyAsync(c => c.UserId == staffId, ct);
+
     public Task<bool> HasRegistrationContractAsync(Guid staffId, int branchId, int shiftId, DateTime now,
         CancellationToken ct) => StaffShiftContractPolicy.EligibleShifts(
             context.WorkShifts.Where(s => s.ShiftId == shiftId), context.EmploymentContracts,

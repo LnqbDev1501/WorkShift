@@ -146,7 +146,7 @@ class _SubmitShiftSwapViewState extends State<SubmitShiftSwapView> {
               padding: const EdgeInsets.all(16),
               children: [
                 const Text(
-                  'Choose the shift you want to give, then the shift you want to receive. Both shifts must start at least 24 hours from now.',
+                  'Choose the shift you want to give, then an eligible shift in the same week. The shift you receive can be earlier or later than yours. Both shifts must start at least 24 hours from now.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.5,
@@ -251,7 +251,7 @@ class _SubmitShiftSwapViewState extends State<SubmitShiftSwapView> {
                         : null,
                   ),
                   const Text(
-                    'Only matching shifts from your branch are shown. Both schedules are checked again when the request is sent and accepted.',
+                    'Only matching shifts from your branch in the selected shift’s week are shown. Both schedules are checked again when the request is sent and accepted.',
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.5,

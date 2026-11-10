@@ -9,11 +9,19 @@ using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Policies.Shifts;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo assignments) : IStaffShiftService
 {
+    public async Task<StaffShiftAccessResponse> GetAccessAsync(Guid staffId, CancellationToken ct = default)
+    {
+        var staff = await GetStaffAsync(staffId, ct);
+        var allowed = await repo.HasActiveContractAsync(staffId, staff.BranchId!.Value, DateTime.UtcNow, ct);
+        return new() { CanManageShifts = allowed, BlockedReason = allowed ? null : StaffShiftContractPolicy.AccessBlockedReason };
+    }
+
     public Task<PagedResponse<StaffShiftResponse>> GetAvailableAsync(Guid staffId, StaffShiftListQuery query,
         CancellationToken ct = default) => GetPagedAsync(staffId, query, true, ct);
 
@@ -30,7 +38,12 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
         if (query.FromDate > query.ToDate || query.ToDate == DateOnly.MaxValue || query.FromDate == DateOnly.MinValue)
             throw new ArgumentException("Invalid date range.");
         var staff = await GetStaffAsync(staffId, ct);
-        if (availableOnly) ValidateEmployeeType(staff);
+        if (availableOnly)
+        {
+            ValidateEmployeeType(staff);
+            if (!await repo.HasActiveContractAsync(staffId, staff.BranchId!.Value, DateTime.UtcNow, ct))
+                throw new InvalidOperationException(StaffShiftContractPolicy.AccessBlockedReason);
+        }
         var (items, total) = await repo.GetPagedAsync(staffId, staff.BranchId!.Value,
             staff.EmployeeTypeId, availableOnly,
             query.FromDate.HasValue ? ToUtc(query.FromDate.Value) : null,

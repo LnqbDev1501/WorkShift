@@ -18,6 +18,7 @@ import '../../adjustments/staff_penalty_list_view.dart';
 import '../../../models/attendance/face_registration_model.dart';
 import '../../../services/attendance/face_registration_service.dart';
 import '../../../services/orders/staff_order_service.dart';
+import '../../../models/shifts/shift_registration_model.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -47,6 +48,8 @@ class QuickActions extends StatefulWidget {
   final VoidCallback? onNavigateToTimesheet;
   final VoidCallback? onNavigateToSchedule;
   final VoidCallback? onNavigateToPayroll;
+  final ShiftAccessModel shiftAccess;
+  final VoidCallback? onContractsChanged;
 
   const QuickActions({
     super.key,
@@ -55,6 +58,8 @@ class QuickActions extends StatefulWidget {
     this.onNavigateToTimesheet,
     this.onNavigateToSchedule,
     this.onNavigateToPayroll,
+    this.shiftAccess = ShiftAccessModel.checking,
+    this.onContractsChanged,
   });
 
   @override
@@ -85,6 +90,27 @@ class _QuickActionsState extends State<QuickActions> {
         _isInShift = inShift;
       });
     }
+  }
+
+  bool _canOpenShiftActions() {
+    if (widget.shiftAccess.canManageShifts) return true;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Shift actions unavailable'),
+        content: Text(
+          widget.shiftAccess.blockedReason ??
+              ShiftAccessModel.unavailable.blockedReason!,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+    return false;
   }
 
   Future<void> _handleFaceBiometrics() async {
@@ -287,7 +313,9 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.event_note_rounded,
         iconColor: AppColors.actionRegisterIcon,
         iconBgColor: AppColors.actionRegisterBg,
+        isGrayedOut: !widget.shiftAccess.canManageShifts,
         onTap: () async {
+          if (!_canOpenShiftActions()) return;
           await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AvailableShiftsView()),
           );
@@ -300,7 +328,9 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.swap_horiz_rounded,
         iconColor: AppColors.actionSwapIcon,
         iconBgColor: AppColors.actionSwapBg,
+        isGrayedOut: !widget.shiftAccess.canManageShifts,
         onTap: () async {
+          if (!_canOpenShiftActions()) return;
           await Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
@@ -313,10 +343,11 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.verified_user_rounded,
         iconColor: AppColors.actionContractIcon,
         iconBgColor: AppColors.actionContractBg,
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const StaffContractListView()),
           );
+          if (mounted) widget.onContractsChanged?.call();
         },
       ),
       _QuickActionData(

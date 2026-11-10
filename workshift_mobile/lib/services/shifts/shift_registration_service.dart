@@ -7,6 +7,15 @@ class ShiftRegistrationService {
   ShiftRegistrationService({ApiClient? apiClient})
     : _apiClient = apiClient ?? ApiClient();
 
+  Future<ShiftAccessModel> getAccess() async {
+    try {
+      final response = await _apiClient.get('/api/staff/shifts/access');
+      return ShiftAccessModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (_) {
+      return ShiftAccessModel.unavailable;
+    }
+  }
+
   Future<ShiftRegistrationModel> register(int shiftId) async {
     final response = await _apiClient.post(
       '/api/staff/shifts/$shiftId/register',

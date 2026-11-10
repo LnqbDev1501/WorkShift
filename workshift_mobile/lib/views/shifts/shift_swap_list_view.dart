@@ -46,6 +46,7 @@ class _ShiftSwapListViewState extends State<ShiftSwapListView>
   }
 
   Future<void> _create() async {
+    if (!_controller.shiftAccess.canManageShifts) return;
     final result = await Navigator.of(context).push<ShiftSwapModel>(
       MaterialPageRoute(builder: (_) => const SubmitShiftSwapView()),
     );
@@ -73,10 +74,30 @@ class _ShiftSwapListViewState extends State<ShiftSwapListView>
     bottomNavigationBar: SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: AppButton(
-          text: 'New swap request',
-          icon: Icons.add_rounded,
-          onPressed: _create,
+        child: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!_controller.shiftAccess.canManageShifts)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    _controller.shiftAccess.blockedReason!,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              AppButton(
+                text: 'New swap request',
+                icon: Icons.add_rounded,
+                onPressed:
+                    _controller.shiftAccess.canManageShifts &&
+                        !_controller.isLoading
+                    ? _create
+                    : null,
+              ),
+            ],
+          ),
         ),
       ),
     ),

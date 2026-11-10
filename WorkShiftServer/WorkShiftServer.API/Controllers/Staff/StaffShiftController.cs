@@ -19,6 +19,11 @@ namespace WorkShiftServer.API.Controllers.Staff;
 [ProducesResponseType(typeof(ProblemDetails), 500)]
 public sealed class StaffShiftController(IStaffShiftService service, ILogger<StaffShiftController> logger) : ControllerBase
 {
+    [HttpGet("access")]
+    [ProducesResponseType(typeof(StaffShiftAccessResponse), 200)]
+    public Task<IActionResult> Access(CancellationToken ct) =>
+        ExecuteAsync(async staff => Ok(await service.GetAccessAsync(staff, ct)));
+
     [HttpGet("available")]
     [ProducesResponseType(typeof(PagedResponse<StaffShiftResponse>), 200)]
     public Task<IActionResult> Available([FromQuery] StaffShiftListQuery query, CancellationToken ct) =>

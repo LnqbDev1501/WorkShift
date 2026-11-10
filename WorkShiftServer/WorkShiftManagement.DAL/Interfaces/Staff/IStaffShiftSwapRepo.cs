@@ -6,7 +6,8 @@ public interface IStaffShiftSwapRepo
 {
     Task<int> ExpirePendingAsync(Guid? actor, DateTime now, CancellationToken ct);
     Task<ShiftAssignment?> FindAssignmentAsync(int assignmentId, CancellationToken ct);
-    Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId, CancellationToken ct);
+    Task<List<ShiftAssignment>> GetCandidateAssignmentsAsync(Guid actor, int branchId, int employeeTypeId,
+        int scheduleWeekId, CancellationToken ct);
     Task<(List<ShiftSwapRequest> Items, int Total)> GetPagedAsync(Guid actor, string? status, string direction,
         int pageNumber, int pageSize, CancellationToken ct);
     Task<ShiftSwapRequest?> FindAsync(Guid actor, int requestId, CancellationToken ct);
