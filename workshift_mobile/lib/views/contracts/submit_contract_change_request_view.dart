@@ -60,7 +60,9 @@ class _SubmitContractChangeRequestViewState
       _FieldOption(
         key: 'HourlyRate',
         label: 'Base Hourly Rate',
-        currentValue: c.formattedHourlyRate,
+        currentValue: c.regionalMinimumWage != null && c.regionalMinimumWage! > 0
+            ? '${c.formattedHourlyRate} (Min: ${c.regionalMinimumWage!.toStringAsFixed(0)} VND/hr)'
+            : c.formattedHourlyRate,
         icon: Icons.monetization_on_outlined,
       ),
       _FieldOption(
@@ -125,12 +127,57 @@ class _SubmitContractChangeRequestViewState
     });
   }
 
+  Future<void> _pickDate(String fieldKey, TextEditingController controller) async {
+    DateTime initialDate;
+    if (controller.text.isNotEmpty) {
+      initialDate = DateTime.tryParse(controller.text) ??
+          (fieldKey == 'StartDate'
+              ? widget.contract.startDate
+              : (widget.contract.endDate ?? widget.contract.startDate.add(const Duration(days: 365))));
+    } else {
+      initialDate = fieldKey == 'StartDate'
+          ? widget.contract.startDate
+          : (widget.contract.endDate ?? widget.contract.startDate.add(const Duration(days: 365)));
+    }
+
+    final firstDate = DateTime(2020, 1, 1);
+    final lastDate = DateTime(2035, 12, 31);
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(firstDate)
+          ? firstDate
+          : (initialDate.isAfter(lastDate) ? lastDate : initialDate),
+      firstDate: firstDate,
+      lastDate: lastDate,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        controller.text =
+            '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!widget.contract.isPendingStaff) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực không thể yêu cầu thay đổi.',
+            'Change requests can only be submitted for contracts pending acceptance (PENDING_STAFF). Active contracts cannot be modified via change request.',
           ),
           backgroundColor: AppColors.error,
         ),
@@ -150,6 +197,81 @@ class _SubmitContractChangeRequestViewState
     }
 
     if (!_formKey.currentState!.validate()) return;
+
+    // Date validations
+    if (_selectedFieldKeys.contains('StartDate') && _selectedFieldKeys.contains('EndDate')) {
+      final startStr = _proposedControllers['StartDate']?.text.trim();
+      final endStr = _proposedControllers['EndDate']?.text.trim();
+      if (startStr != null && endStr != null && startStr.isNotEmpty && endStr.isNotEmpty) {
+        final start = DateTime.tryParse(startStr);
+        final end = DateTime.tryParse(endStr);
+        if (start != null && end != null && !end.isAfter(start)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract End Date must be after Contract Start Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (_selectedFieldKeys.contains('StartDate') &&
+        !_selectedFieldKeys.contains('EndDate') &&
+        widget.contract.endDate != null) {
+      final startStr = _proposedControllers['StartDate']?.text.trim();
+      if (startStr != null && startStr.isNotEmpty) {
+        final start = DateTime.tryParse(startStr);
+        if (start != null && !widget.contract.endDate!.isAfter(start)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract Start Date must be before current Contract End Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (_selectedFieldKeys.contains('EndDate') && !_selectedFieldKeys.contains('StartDate')) {
+      final endStr = _proposedControllers['EndDate']?.text.trim();
+      if (endStr != null && endStr.isNotEmpty) {
+        final end = DateTime.tryParse(endStr);
+        if (end != null && !end.isAfter(widget.contract.startDate)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract End Date must be after current Contract Start Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    if (_selectedFieldKeys.contains('HourlyRate')) {
+      final rateStr = _proposedControllers['HourlyRate']?.text.trim().replaceAll(',', '');
+      final rate = double.tryParse(rateStr ?? '');
+      if (rate == null || rate <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Proposed hourly rate must be a valid positive number.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final minWage = widget.contract.regionalMinimumWage;
+      if (minWage != null && minWage > 0 && rate < minWage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Proposed hourly rate cannot be lower than the regional minimum wage (${minWage.toStringAsFixed(0)} VND/hr).',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
 
     final items = <ContractChangeRequestItemInputModel>[];
     for (var key in _selectedFieldKeys) {
@@ -549,6 +671,93 @@ class _SubmitContractChangeRequestViewState
                     return null;
                   },
                 );
+              },
+            ),
+          ] else if (field.key == 'StartDate' || field.key == 'EndDate') ...[
+            TextFormField(
+              controller: proposedCtrl,
+              readOnly: true,
+              onTap: () => _pickDate(field.key, proposedCtrl),
+              decoration: InputDecoration(
+                labelText: field.key == 'StartDate'
+                    ? 'Proposed Start Date *'
+                    : 'Proposed End Date *',
+                hintText: 'Tap to select date (YYYY-MM-DD)',
+                helperText: 'Date will be formatted as YYYY-MM-DD.',
+                helperStyle: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
+                  onPressed: () => _pickDate(field.key, proposedCtrl),
+                ),
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please select a date.';
+                }
+                return null;
+              },
+            ),
+          ] else if (field.key == 'HourlyRate') ...[
+            TextFormField(
+              controller: proposedCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Proposed Hourly Rate (VND/hr) *',
+                hintText: 'e.g. 25000',
+                helperText: widget.contract.regionalMinimumWage != null && widget.contract.regionalMinimumWage! > 0
+                    ? 'Regional minimum wage: ${widget.contract.regionalMinimumWage!.toStringAsFixed(0)} VND/hr'
+                    : 'Must be higher than or equal to regional minimum wage.',
+                helperStyle: TextStyle(
+                  fontSize: 11,
+                  color: widget.contract.regionalMinimumWage != null && widget.contract.regionalMinimumWage! > 0
+                      ? AppColors.primary
+                      : AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+                suffixText: 'VND/hr',
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please enter a proposed hourly rate.';
+                }
+                final cleaned = val.trim().replaceAll(',', '');
+                final rate = double.tryParse(cleaned);
+                if (rate == null) {
+                  return 'Hourly rate must be a valid number.';
+                }
+                if (rate <= 0) {
+                  return 'Hourly rate must be greater than 0.';
+                }
+                final minWage = widget.contract.regionalMinimumWage;
+                if (minWage != null && minWage > 0 && rate < minWage) {
+                  return 'Rate cannot be lower than regional minimum (${minWage.toStringAsFixed(0)} VND/hr).';
+                }
+                return null;
               },
             ),
           ] else ...[

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -13,6 +13,7 @@ using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
@@ -22,6 +23,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
     private readonly IManagerEmployeeRequestRepo _repo;
     private readonly INotificationRepo? _notificationRepo;
     private readonly INotificationRealtimePublisher? _realtimePublisher;
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly ILogger<ManagerEmployeeRequestService>? _logger;
 
     private static readonly HashSet<string> AllowedRequestTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -44,12 +46,14 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         IManagerEmployeeRequestRepo repo,
         INotificationRepo? notificationRepo = null,
         INotificationRealtimePublisher? realtimePublisher = null,
-        ILogger<ManagerEmployeeRequestService>? logger = null)
+        ILogger<ManagerEmployeeRequestService>? logger = null,
+        IAdminRealtimePublisher? adminRealtimePublisher = null)
     {
         _repo = repo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<PagedResponse<ManagerEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -314,6 +318,34 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             await BroadcastOpenShiftNotificationAsync(managerId, updated, cancellationToken);
         }
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "APPROVED",
+                    requestId = updated.RequestId,
+                    branchId = updated.BranchId
+                });
+
+                if (updated.RequestType == "LEAVE")
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "Shifts",
+                        action = "OPEN_SHIFT_CREATED",
+                        branchId = updated.BranchId
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for approved request #{RequestId}", requestId);
+            }
+        }
+
         return MapToDetailResponse(updated);
     }
 
@@ -346,6 +378,24 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         }
 
         await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: false, request.ReviewNote);
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "REJECTED",
+                    requestId = updated.RequestId,
+                    branchId = updated.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for rejected request #{RequestId}", requestId);
+            }
+        }
 
         return MapToDetailResponse(updated);
     }

@@ -179,6 +179,36 @@
         updateWageDisplayAndValidation();
     }
 
+    function applyCustomRateValidation(rate) {
+        if (wageSourceBadge) {
+            wageSourceBadge.textContent = 'Custom rate';
+            wageSourceBadge.className = 'text-[11px] text-slate-600 font-medium';
+        }
+        if (isNaN(rate) || rate <= 0) {
+            const msg = regionalWage > 0
+                ? `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`
+                : 'Please enter a valid positive hourly rate.';
+            if (hourlyRateGuidanceNote) {
+                hourlyRateGuidanceNote.textContent = `⚠️ ${msg}`;
+                hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
+            }
+            hourlyRateInput.setCustomValidity(msg);
+        } else if (regionalWage > 0 && rate < regionalWage) {
+            const msg = `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+            if (hourlyRateGuidanceNote) {
+                hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+                hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
+            }
+            hourlyRateInput.setCustomValidity(msg);
+        } else {
+            if (hourlyRateGuidanceNote) {
+                hourlyRateGuidanceNote.textContent = 'Manually adjusted rate (must be at or above regional minimum wage).';
+                hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
+            }
+            hourlyRateInput.setCustomValidity('');
+        }
+    }
+
     function updateWageDisplayAndValidation() {
         if (!hourlyRateInput) return;
         const isRenewal = Boolean(radioRenewal?.checked);
@@ -217,23 +247,7 @@
                 }
                 hourlyRateInput.setCustomValidity('');
             } else {
-                if (wageSourceBadge) {
-                    wageSourceBadge.textContent = 'Custom rate';
-                    wageSourceBadge.className = 'text-[11px] text-slate-600 font-medium';
-                }
-                if (regionalWage > 0 && rate < regionalWage) {
-                    if (hourlyRateGuidanceNote) {
-                        hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
-                        hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
-                    }
-                    hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
-                } else {
-                    if (hourlyRateGuidanceNote) {
-                        hourlyRateGuidanceNote.textContent = 'Manually adjusted rate (must be at or above regional minimum wage).';
-                        hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
-                    }
-                    hourlyRateInput.setCustomValidity('');
-                }
+                applyCustomRateValidation(rate);
             }
         } else {
             if (regionalWage > 0 && rate === regionalWage && !isUserCustomRate) {
@@ -247,23 +261,7 @@
                 }
                 hourlyRateInput.setCustomValidity('');
             } else {
-                if (wageSourceBadge) {
-                    wageSourceBadge.textContent = 'Custom rate';
-                    wageSourceBadge.className = 'text-[11px] text-slate-600 font-medium';
-                }
-                if (regionalWage > 0 && rate < regionalWage) {
-                    if (hourlyRateGuidanceNote) {
-                        hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
-                        hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
-                    }
-                    hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
-                } else {
-                    if (hourlyRateGuidanceNote) {
-                        hourlyRateGuidanceNote.textContent = 'Manually adjusted rate (must be at or above regional minimum wage).';
-                        hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
-                    }
-                    hourlyRateInput.setCustomValidity('');
-                }
+                applyCustomRateValidation(rate);
             }
         }
     }
@@ -666,8 +664,8 @@
     let submitting = false;
     if (form) {
         form.addEventListener('submit', event => {
+            updateWageDisplayAndValidation();
             validate();
-            onStaffSelected();
             if (submitting || !form.reportValidity()) {
                 event.preventDefault();
                 return;

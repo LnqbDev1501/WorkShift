@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/requests/staff_request_controller.dart';
 import '../../models/requests/staff_request_model.dart';
+import '../../services/core/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/app_button.dart';
@@ -22,15 +24,25 @@ class StaffRequestDetailView extends StatefulWidget {
 }
 
 class _StaffRequestDetailViewState extends State<StaffRequestDetailView> {
+  StreamSubscription? _realtimeSubscription;
+
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onControllerUpdate);
     widget.controller.loadRequestDetail(widget.requestId);
+
+    // Auto-refresh when SignalR notification arrives
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted) {
+        widget.controller.loadRequestDetail(widget.requestId);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _realtimeSubscription?.cancel();
     widget.controller.removeListener(_onControllerUpdate);
     super.dispose();
   }

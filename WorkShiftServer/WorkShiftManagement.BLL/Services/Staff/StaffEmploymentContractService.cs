@@ -123,6 +123,14 @@ public class StaffEmploymentContractService(
             cannotSubmitChangeRequestReason = "Only contracts awaiting acceptance (PENDING_STAFF) can have change requests. ACTIVE contracts cannot be changed through this process.";
         }
 
+        decimal? regionalMinWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+            ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+        if (!regionalMinWage.HasValue || regionalMinWage.Value <= 0)
+        {
+            regionalMinWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, contract.StartDate, cancellationToken)
+                ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, contract.StartDate, cancellationToken);
+        }
+
         return new StaffContractDetailResponse
         {
             ContractId = contract.ContractId,
@@ -141,6 +149,7 @@ public class StaffEmploymentContractService(
             BranchAddress = !string.IsNullOrWhiteSpace(contract.BranchAddressSnapshot) ? contract.BranchAddressSnapshot : (contract.Branch?.Address ?? string.Empty),
             RegionId = contract.RegionId,
             RegionName = !string.IsNullOrWhiteSpace(contract.RegionNameSnapshot) ? contract.RegionNameSnapshot : (contract.Region?.RegionName ?? string.Empty),
+            RegionalMinimumWage = regionalMinWage,
             CreatedByManagerName = contract.CreatedByNavigation?.FullName,
             CreatedAt = contract.CreatedAt,
             SentToStaffAt = contract.SentToStaffAt,
@@ -188,8 +197,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Employee accepted contract",
-                Content = $"{contract.EmployeeFullNameSnapshot} accepted employment contract {contract.ContractNumber}. Contract status: {newStatus}.",
+                Title = "Staff Accepted Employment Contract",
+                Content = $"{contract.EmployeeFullNameSnapshot} has accepted employment contract {contract.ContractNumber}. Contract status: {newStatus}.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -200,6 +209,38 @@ public class StaffEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
+
+            if (realtimePublisher != null)
+            {
+                try
+                {
+                    await realtimePublisher.PublishAsync(contract.CreatedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "StaffAcceptContract",
+                        contractId,
+                        contractNumber = contract.ContractNumber,
+                        status = newStatus,
+                        staffName = contract.EmployeeFullNameSnapshot
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -241,6 +282,14 @@ public class StaffEmploymentContractService(
             ? "ACCEPTANCE"
             : "CHANGE_REQUEST";
 
+        // Extract proposed start date if any, to check minimum wage against it
+        DateOnly effectiveStartDate = contract.StartDate;
+        var startDateItem = request.Items.FirstOrDefault(x => string.Equals(x.FieldName.Trim(), "StartDate", StringComparison.OrdinalIgnoreCase));
+        if (startDateItem != null && DateOnly.TryParse(startDateItem.ProposedValue.Trim(), out var parsedProposedStart))
+        {
+            effectiveStartDate = parsedProposedStart;
+        }
+
         var changeRequest = new ContractChangeRequest
         {
             ContractId = contractId,
@@ -266,6 +315,34 @@ public class StaffEmploymentContractService(
                     throw new ArgumentException($"Position '{item.ProposedValue}' is invalid or is not an active position.");
                 }
             }
+            else if (string.Equals(cleanField, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(cleanField, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!decimal.TryParse(item.ProposedValue.Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var proposedRate) &&
+                    !decimal.TryParse(item.ProposedValue.Trim(), out proposedRate))
+                {
+                    throw new ArgumentException("Proposed hourly rate must be a valid number.");
+                }
+
+                if (proposedRate <= 0)
+                {
+                    throw new ArgumentException("Proposed hourly rate must be greater than 0.");
+                }
+
+                decimal? minWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+                    ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+
+                if (!minWage.HasValue || minWage.Value <= 0)
+                {
+                    minWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, effectiveStartDate, cancellationToken)
+                        ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, effectiveStartDate, cancellationToken);
+                }
+
+                if (minWage.HasValue && minWage.Value > 0 && proposedRate < minWage.Value)
+                {
+                    throw new ArgumentException($"Proposed hourly rate ({proposedRate:#,##0} VND/hour) cannot be lower than the regional minimum wage ({minWage.Value:#,##0} VND/hour).");
+                }
+            }
 
             string? originalValue = cleanField.ToLowerInvariant() switch
             {
@@ -273,7 +350,7 @@ public class StaffEmploymentContractService(
                 "enddate" => contract.EndDate?.ToString("yyyy-MM-dd"),
                 "employeeposition" or "position" => contract.EmployeePositionSnapshot,
                 "contractterms" or "terms" => contract.ContractTerms,
-                "hourlyrate" => contract.HourlyRate.ToString("F2"),
+                "hourlyrate" => contract.HourlyRate % 1 == 0 ? contract.HourlyRate.ToString("0") : contract.HourlyRate.ToString("0.##"),
                 _ => null
             };
 
@@ -296,8 +373,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Employee contract change request",
-                Content = $"{contract.EmployeeFullNameSnapshot} requested changes to contract {contract.ContractNumber}. Please review and respond.",
+                Title = "Employment Contract Change Request",
+                Content = $"{contract.EmployeeFullNameSnapshot} has submitted a request to adjust the terms of contract {contract.ContractNumber}. Please review and respond.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -308,6 +385,38 @@ public class StaffEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
+
+            if (realtimePublisher != null)
+            {
+                try
+                {
+                    await realtimePublisher.PublishAsync(contract.CreatedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "SubmitChangeRequest",
+                        contractId,
+                        changeRequestId = changeRequest.ChangeRequestId,
+                        contractNumber = contract.ContractNumber,
+                        staffName = contract.EmployeeFullNameSnapshot
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -491,11 +600,26 @@ public class StaffEmploymentContractService(
             {
                 ChangeRequestItemId = i.ChangeRequestItemId,
                 FieldName = i.FieldName,
-                OriginalValue = DeserializeJsonString(i.OriginalValue),
-                ProposedValue = DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue,
+                OriginalValue = CleanRateString(i.FieldName, DeserializeJsonString(i.OriginalValue)),
+                ProposedValue = CleanRateString(i.FieldName, DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue) ?? string.Empty,
                 Reason = i.Reason
             }).ToList()
         };
+    }
+
+    private static string? CleanRateString(string? fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+        if (string.Equals(fieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fieldName, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ||
+                decimal.TryParse(value, out d))
+            {
+                return d % 1 == 0 ? d.ToString("0") : d.ToString("0.##");
+            }
+        }
+        return value;
     }
 
     private static string? DeserializeJsonString(string? json)

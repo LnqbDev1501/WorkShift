@@ -13,6 +13,8 @@ using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
@@ -20,10 +22,14 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 public class ManagerEmploymentContractService(
     IEmploymentContractRepo repository,
     ICloudinaryService? cloudinaryService = null,
-    IContractPdfGenerator? pdfGenerator = null) : IManagerEmploymentContractService
+    IContractPdfGenerator? pdfGenerator = null,
+    INotificationRealtimePublisher? realtimePublisher = null,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IManagerEmploymentContractService
 {
     private readonly IContractPdfGenerator _pdfGenerator = pdfGenerator ?? new ContractPdfGenerator();
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
+    private readonly INotificationRealtimePublisher? _realtimePublisher = realtimePublisher;
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher = adminRealtimePublisher;
 
     private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
@@ -414,8 +420,8 @@ public class ManagerEmploymentContractService(
                 var notification = new NotificationEntity
                 {
                     NotificationType = "SYSTEM",
-                    Title = "Employment contract cancelled",
-                    Content = $"Employment contract {contract.ContractNumber} was cancelled by the manager before its start date. Reason: {reason}.",
+                    Title = "Employment Contract Cancelled",
+                    Content = $"Employment contract {contract.ContractNumber} was cancelled by your manager before the start date. Reason: {reason}.",
                     CreatedBy = managerId,
                     TargetBranchId = contract.BranchId,
                     TargetType = "Branch",
@@ -426,6 +432,38 @@ public class ManagerEmploymentContractService(
                     IsDeleted = false
                 };
                 await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+                if (_realtimePublisher != null)
+                {
+                    try
+                    {
+                        await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                        {
+                            NotificationId = notification.NotificationId,
+                            Title = notification.Title,
+                            Message = notification.Content,
+                            CreatedAt = notification.CreatedAt
+                        });
+                    }
+                    catch { }
+                }
+
+                if (_adminRealtimePublisher != null)
+                {
+                    try
+                    {
+                        await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                        {
+                            resource = "EmploymentContracts",
+                            action = "CancelContract",
+                            contractId = contract.ContractId,
+                            contractNumber = contract.ContractNumber,
+                            status = contract.Status,
+                            userId = contract.UserId
+                        });
+                    }
+                    catch { }
+                }
             }
             catch
             {
@@ -464,6 +502,38 @@ public class ManagerEmploymentContractService(
 
         var warningNotification = await repository.AddTerminationWarningAsync(
             contractId, managerId, request.Title.Trim(), request.Content.Trim(), nextWarningNo, cancellationToken);
+
+        if (_realtimePublisher != null)
+        {
+            try
+            {
+                await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                {
+                    NotificationId = warningNotification.NotificationId,
+                    Title = warningNotification.Title,
+                    Message = warningNotification.Content,
+                    CreatedAt = warningNotification.CreatedAt
+                });
+            }
+            catch { }
+        }
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmploymentContracts",
+                    action = "TerminationWarning",
+                    contractId = contract.ContractId,
+                    contractNumber = contract.ContractNumber,
+                    warningNo = nextWarningNo,
+                    userId = contract.UserId
+                });
+            }
+            catch { }
+        }
 
         return new SendContractTerminationWarningResponse
         {
@@ -551,8 +621,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Employment contract terminated",
-                Content = $"Employment contract {contract.ContractNumber} was terminated by the manager effective {effectiveDate:yyyy-MM-dd}. Reason: {reason}.",
+                Title = "Employment Contract Terminated",
+                Content = $"Employment contract {contract.ContractNumber} has been terminated by your manager. Effective date: {effectiveDate:dd/MM/yyyy}. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -563,6 +633,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "TerminateContract",
+                        contractId = contract.ContractId,
+                        contractNumber = contract.ContractNumber,
+                        status = contract.Status,
+                        userId = contract.UserId
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -650,8 +752,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "New employment contract",
-                Content = $"You have received employment contract {contract.ContractNumber}. Please review and respond.",
+                Title = "New Employment Contract",
+                Content = $"You have received a new employment contract {contract.ContractNumber}. Please review and respond to accept.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -662,6 +764,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "SendContract",
+                        contractId = contract.ContractId,
+                        contractNumber = contract.ContractNumber,
+                        status = contract.Status,
+                        userId = contract.UserId
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -752,7 +886,8 @@ public class ManagerEmploymentContractService(
 
         var managerItemOverrides = request.Items?
             .Where(i => !string.IsNullOrWhiteSpace(i.FieldName) && !string.IsNullOrWhiteSpace(i.FinalValue))
-            .ToDictionary(i => i.FieldName.Trim().ToLowerInvariant(), i => i.FinalValue.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(i => i.FieldName.Trim().ToLowerInvariant(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last().FinalValue.Trim(), StringComparer.OrdinalIgnoreCase)
             ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         var appliedValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -794,11 +929,18 @@ public class ManagerEmploymentContractService(
                     if (decimal.TryParse(finalValStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var newRate) ||
                         decimal.TryParse(finalValStr, out newRate))
                     {
-                        if (contract.Region?.RegionalMinimumWage != null && contract.Region.RegionalMinimumWage.Status == "ACTIVE")
+                        var minWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+                            ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+
+                        if (!minWage.HasValue || minWage.Value <= 0)
                         {
-                            var minWage = contract.Region.RegionalMinimumWage.MinimumHourlyRate;
-                            if (minWage > 0 && newRate < minWage)
-                                throw new ArgumentException($"The hourly rate ({newRate:#,##0} VND/hour) cannot be below the regional minimum ({minWage:#,##0} VND/hour).");
+                            minWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, contract.StartDate, cancellationToken)
+                                ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, contract.StartDate, cancellationToken);
+                        }
+
+                        if (minWage.HasValue && minWage.Value > 0 && newRate < minWage.Value)
+                        {
+                            throw new ArgumentException($"The hourly rate ({newRate:#,##0} VND/hour) cannot be below the regional minimum ({minWage.Value:#,##0} VND/hour).");
                         }
                         contract.HourlyRate = newRate;
                         appliedValues["HourlyRate"] = newRate;
@@ -875,8 +1017,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Contract change request approved",
-                Content = $"Your change request for contract {contract.ContractNumber} was approved. Please review and accept version {templateVersion}.",
+                Title = "Contract Change Request Approved",
+                Content = $"Your adjustment request for contract {contract.ContractNumber} has been approved. Please review and accept version {templateVersion}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -887,6 +1029,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(cr.RequestedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "ApproveChangeRequest",
+                        contractId = contract.ContractId,
+                        changeRequestId = changeRequestId,
+                        contractNumber = contract.ContractNumber,
+                        requestedBy = cr.RequestedBy
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -926,8 +1100,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Contract change request rejected",
-                Content = $"Your change request for contract {cr.Contract.ContractNumber} was rejected. Reason: {reason}.",
+                Title = "Contract Change Request Rejected",
+                Content = $"Your adjustment request for contract {cr.Contract.ContractNumber} has been rejected. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = cr.Contract.BranchId,
                 TargetType = "Branch",
@@ -938,6 +1112,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(cr.RequestedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "RejectChangeRequest",
+                        contractId = cr.Contract.ContractId,
+                        changeRequestId = changeRequestId,
+                        contractNumber = cr.Contract.ContractNumber,
+                        requestedBy = cr.RequestedBy
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -1150,15 +1356,32 @@ public class ManagerEmploymentContractService(
             CurrentContractTerms = cr.Contract?.ContractTerms,
             BranchName = cr.Contract?.Branch?.BranchName ?? cr.Contract?.BranchNameSnapshot,
             ContractTemplateVersion = cr.Contract?.ContractTemplateVersion,
+            RegionalMinimumWage = cr.Contract?.Region?.RegionalMinimumWage?.MinimumHourlyRate 
+                ?? cr.Contract?.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate,
             Items = cr.ContractChangeRequestItems.Select(i => new ContractChangeRequestItemDetailDto
             {
                 ChangeRequestItemId = i.ChangeRequestItemId,
                 FieldName = i.FieldName,
-                OriginalValue = DeserializeJsonString(i.OriginalValue),
-                ProposedValue = DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue,
+                OriginalValue = CleanRateString(i.FieldName, DeserializeJsonString(i.OriginalValue)),
+                ProposedValue = CleanRateString(i.FieldName, DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue) ?? string.Empty,
                 Reason = i.Reason
             }).ToList()
         };
+    }
+
+    private static string? CleanRateString(string? fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+        if (string.Equals(fieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fieldName, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ||
+                decimal.TryParse(value, out d))
+            {
+                return d % 1 == 0 ? d.ToString("0") : d.ToString("0.##");
+            }
+        }
+        return value;
     }
 
     private static string? DeserializeJsonString(string? json)

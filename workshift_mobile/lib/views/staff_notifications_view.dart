@@ -105,14 +105,47 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
     }
   }
 
+  String _getTypeName(String type) {
+    final t = type.toLowerCase();
+    if (t.contains('warning') || t.contains('termination')) {
+      return 'Warning';
+    }
+    switch (t) {
+      case 'shift':
+      case 'shiftassignment':
+        return 'Shift';
+      case 'request':
+      case 'employeerequest':
+        return 'Request';
+      case 'schedule':
+        return 'Schedule';
+      case 'system':
+        return 'System';
+      case 'alert':
+        return 'Alert';
+      case 'payroll':
+        return 'Payroll';
+      case 'contract':
+        return 'Contract';
+      case 'salarychange':
+        return 'Salary Change';
+      default:
+        return 'Notification';
+    }
+  }
+
   String _formatTime(DateTime? dateTime) {
     if (dateTime == null) return '';
+    final local = dateTime.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(dateTime);
-    if (diff.inDays > 0) return '${diff.inDays} ngày trước';
-    if (diff.inHours > 0) return '${diff.inHours} giờ trước';
-    if (diff.inMinutes > 0) return '${diff.inMinutes} phút trước';
-    return 'Vừa xong';
+    final diff = now.difference(local);
+    if (diff.inDays > 7) {
+      return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year}';
+    }
+    if (diff.inDays > 0) return '${diff.inDays} days ago';
+    if (diff.inHours > 0) return '${diff.inHours} hours ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes} mins ago';
+    return 'Just now';
   }
 
   @override
@@ -121,7 +154,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Thông báo',
+          'Notifications',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -137,7 +170,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
               },
               icon: const Icon(Icons.done_all_rounded, size: 18),
               label: const Text(
-                'Đánh dấu tất cả đã đọc',
+                'Mark all as read',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               style: TextButton.styleFrom(foregroundColor: AppColors.primary),
@@ -159,7 +192,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                 _controller.loadNotifications(search: value);
               },
               decoration: InputDecoration(
-                hintText: 'Tìm kiếm tiêu đề hoặc nội dung...',
+                hintText: 'Search by title or content...',
                 hintStyle: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textMuted,
@@ -258,7 +291,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                               );
                             },
                             icon: const Icon(Icons.refresh_rounded, size: 18),
-                            label: const Text('Thử lại'),
+                            label: const Text('Retry'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
@@ -293,8 +326,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                           const SizedBox(height: 16),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'Không tìm thấy thông báo'
-                                : 'Không có thông báo',
+                                ? 'No notifications found'
+                                : 'No notifications',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
@@ -304,8 +337,8 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                           const SizedBox(height: 8),
                           Text(
                             _searchQuery.isNotEmpty
-                                ? 'Thử từ khóa tìm kiếm khác.'
-                                : 'Bạn chưa có thông báo nào.',
+                                ? 'Try a different search keyword.'
+                                : 'You have no notifications yet.',
                             style: TextStyle(
                               fontSize: 14,
                               color: AppColors.textSecondary,
@@ -452,7 +485,7 @@ class _StaffNotificationsViewState extends State<StaffNotificationsView> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        notification.notificationType.toUpperCase(),
+                        _getTypeName(notification.notificationType),
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
