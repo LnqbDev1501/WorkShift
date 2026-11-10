@@ -637,6 +637,9 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.ContractTemplateVersion = templateVersion;
         existing.PdfGeneratedAt = generatedAt;
         existing.SentToStaffAt = sentAt;
+        existing.ApprovedBy = managerId;
+        existing.ApprovedAt = sentAt;
+        existing.StaffRespondedAt = null;
         existing.StaffAcceptedAt = null;
         existing.Status = "PENDING_STAFF";
         existing.UpdatedAt = sentAt;
@@ -940,7 +943,10 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
             var oldStatus = existing.Status;
             existing.Status = newStatus;
+            existing.StaffRespondedAt = acceptedAtUtc;
             existing.StaffAcceptedAt = acceptedAtUtc;
+            existing.ApprovedBy ??= existing.CreatedBy;
+            existing.ApprovedAt ??= existing.SentToStaffAt ?? acceptedAtUtc;
             existing.UpdatedAt = acceptedAtUtc;
 
             // Reject any pending change request since staff has accepted the contract
@@ -1773,6 +1779,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             if (contract != null)
             {
                 contract.Status = "PENDING_MANAGER_APPROVAL";
+                contract.StaffRespondedAt = changeRequest.CreatedAt;
                 contract.UpdatedAt = changeRequest.CreatedAt;
             }
         }
