@@ -619,6 +619,7 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
         try
         {
             var detail = await api.GetChangeRequestByIdAsync(id, cancellationToken);
+            detail.PositionOptions = await api.GetActivePositionOptionsAsync(cancellationToken);
             return View(detail);
         }
         catch (HttpRequestException ex)

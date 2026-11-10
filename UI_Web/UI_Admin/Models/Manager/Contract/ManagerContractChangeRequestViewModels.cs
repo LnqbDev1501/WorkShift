@@ -66,8 +66,14 @@ public class ManagerContractChangeRequestDetailViewModel
     public string? CurrentContractTerms { get; set; }
     public string? BranchName { get; set; }
     public string? ContractTemplateVersion { get; set; }
+    public decimal? RegionalMinimumWage { get; set; }
 
     public List<ManagerContractChangeRequestItemDetailViewModel> Items { get; set; } = [];
+
+    /// <summary>
+    /// Active employee positions/types available in the system for manager selection dropdown.
+    /// </summary>
+    public List<string> PositionOptions { get; set; } = [];
 }
 
 public class ManagerContractChangeRequestItemDetailViewModel

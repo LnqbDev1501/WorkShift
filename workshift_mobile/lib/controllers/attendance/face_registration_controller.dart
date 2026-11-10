@@ -21,6 +21,7 @@ class FaceRegistrationController extends ChangeNotifier {
   CameraController? cameraController;
   CameraDescription? selectedCamera;
   bool isCameraInitialized = false;
+  bool isCameraFailed = false;
 
   // ML Kit Face Detector
   FaceDetector? _faceDetector;
@@ -78,6 +79,7 @@ class FaceRegistrationController extends ChangeNotifier {
   /// Initialize Face Registration flow
   Future<void> initialize() async {
     errorMessage = null;
+    isCameraFailed = false;
     _challengeScores.clear();
     _computedLivenessScore = 0.0;
     notifyListeners();
@@ -101,7 +103,7 @@ class FaceRegistrationController extends ChangeNotifier {
         await startChallengeDetection();
       }
     } else {
-      detectionStatus = 'Web Test Mode: Sẵn sàng đăng ký 1 chạm';
+      detectionStatus = 'Web Test Mode: Ready for 1-tap registration';
       notifyListeners();
     }
   }
@@ -123,11 +125,13 @@ class FaceRegistrationController extends ChangeNotifier {
     if (kIsWeb) return;
 
     isCameraInitialized = false;
+    isCameraFailed = false;
     notifyListeners();
 
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
+        isCameraFailed = true;
         errorMessage = 'No camera found on this device.';
         notifyListeners();
         return;
@@ -164,6 +168,7 @@ class FaceRegistrationController extends ChangeNotifier {
       cameraController = controller;
       isCameraInitialized = true;
     } catch (e) {
+      isCameraFailed = true;
       errorMessage = 'Camera initialization failed: $e';
     } finally {
       notifyListeners();

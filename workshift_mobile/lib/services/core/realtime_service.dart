@@ -161,9 +161,12 @@ class RealtimeService {
 
     final isSpecialShift =
         payload.title.contains('Ca làm việc') ||
+        payload.title.toLowerCase().contains('shift') ||
         payload.message.contains('nhận ca') ||
+        payload.message.toLowerCase().contains('pick up') ||
         payload.message.contains('Barista') ||
-        payload.message.contains('làm thay');
+        payload.message.contains('làm thay') ||
+        payload.message.toLowerCase().contains('cover');
 
     messenger.showSnackBar(
       SnackBar(

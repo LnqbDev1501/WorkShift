@@ -86,7 +86,7 @@ class _ProductListViewState extends State<ProductListView> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Không thể tải danh sách sản phẩm. Vui lòng thử lại.';
+        _errorMessage = 'Unable to load products. Please try again.';
         _isLoading = false;
       });
     }
@@ -299,7 +299,7 @@ class _ProductListViewState extends State<ProductListView> {
                         ElevatedButton.icon(
                           onPressed: _initializeData,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Thử lại'),
+                          label: const Text('Retry'),
                         ),
                       ],
                     ),
@@ -307,7 +307,7 @@ class _ProductListViewState extends State<ProductListView> {
                 : _products.isEmpty
                 ? const Center(
                     child: Text(
-                      'Không có sản phẩm nào phù hợp tại chi nhánh của bạn.',
+                      'No matching products found for your branch.',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                   )

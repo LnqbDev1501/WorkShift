@@ -10,7 +10,8 @@ public interface IManagerStaffRepo
         string? search,
         string? status,
         int pageNumber,
-        int pageSize);
+        int pageSize,
+        bool? hasContract = null);
 
     Task<User?> GetStaffByIdAsync(Guid staffId, int managerBranchId);
 

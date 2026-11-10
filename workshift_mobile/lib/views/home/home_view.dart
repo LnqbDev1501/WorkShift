@@ -415,56 +415,73 @@ class _HomeViewState extends State<HomeView> {
           StaffProfileView(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-        backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-        currentIndex: _currentTabIndex,
-        onTap: (index) {
-          final returningFromSchedule = index == 0 && _currentTabIndex != 0;
-          setState(() {
-            _currentTabIndex = index;
-          });
-          if (returningFromSchedule) _controller.loadHomeData(silent: true);
-          _notificationController.loadUnreadCount();
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          final screenWidth = MediaQuery.sizeOf(context).width;
+          final isNarrow = screenWidth < 340;
+          final isCompact = screenWidth < 370;
+          final fontSize = isNarrow ? 9.5 : (isCompact ? 10.0 : 11.0);
+          final letterSpacing = isNarrow ? -0.45 : (isCompact ? -0.3 : -0.1);
+
+          return BottomNavigationBar(
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            backgroundColor: AppColors.surface,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: AppColors.textSecondary,
+            selectedFontSize: fontSize,
+            unselectedFontSize: fontSize,
+            selectedLabelStyle: TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: letterSpacing,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              letterSpacing: letterSpacing,
+            ),
+            currentIndex: _currentTabIndex,
+            onTap: (index) {
+              final returningFromSchedule = index == 0 && _currentTabIndex != 0;
+              setState(() {
+                _currentTabIndex = index;
+              });
+              if (returningFromSchedule) _controller.loadHomeData(silent: true);
+              _notificationController.loadUnreadCount();
+            },
+            items: [
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home_filled),
+                label: 'Home',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.assignment_outlined),
+                activeIcon: Icon(Icons.assignment),
+                label: 'Timesheet',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_today_outlined),
+                activeIcon: Icon(Icons.calendar_month),
+                label: 'Schedule',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.payments_outlined),
+                activeIcon: Icon(Icons.payments),
+                label: 'Payroll',
+              ),
+              BottomNavigationBarItem(
+                icon: _buildNotificationIcon(Icons.notifications_outlined),
+                activeIcon: _buildNotificationIcon(Icons.notifications),
+                label: 'Notifications',
+              ),
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                activeIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
+          );
         },
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_filled),
-            label: 'Home',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_outlined),
-            activeIcon: Icon(Icons.assignment),
-            label: 'Timesheet',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_month),
-            label: 'Schedule',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.payments_outlined),
-            activeIcon: Icon(Icons.payments),
-            label: 'Payroll',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNotificationIcon(Icons.notifications_outlined),
-            activeIcon: _buildNotificationIcon(Icons.notifications),
-            label: 'Notification',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
       ),
     );
   }

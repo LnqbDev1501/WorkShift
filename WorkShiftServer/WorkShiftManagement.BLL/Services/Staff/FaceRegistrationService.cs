@@ -52,17 +52,20 @@ public class FaceRegistrationService : IFaceRegistrationService
         _environment = environment;
     }
 
-    private (bool IsEligible, DateTime? NextAllowedDate, string Message) EvaluateReRegistrationEligibility(FaceProfile? activeProfile)
+    private (bool IsEligible, DateTime? NextAllowedDate, string Message) EvaluateReRegistrationEligibility(
+        FaceProfile? activeProfile,
+        bool isWebTestMode)
     {
         if (activeProfile == null)
         {
             return (true, null, "You have not registered a biometric face profile yet.");
         }
 
-        // Allow unrestricted re-registration in Development environment to facilitate testing
-        if (_environment?.IsDevelopment() == true)
+        // Allow unrestricted re-registration only in Web test mode during Development;
+        // real mobile phones always enforce full monthly re-registration rules.
+        if (_environment?.IsDevelopment() == true && isWebTestMode)
         {
-            return (true, null, "Development mode: Biometric profile re-registration is unrestricted for testing.");
+            return (true, null, "Web test mode (Development): Biometric profile re-registration is unrestricted for testing.");
         }
 
         var nowVn = DateTime.UtcNow.AddHours(7);
@@ -82,7 +85,10 @@ public class FaceRegistrationService : IFaceRegistrationService
         return (true, null, "You are eligible to re-register or update your biometric face profile this month.");
     }
 
-    public async Task<FaceProfileStatusResponse> GetStatusAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<FaceProfileStatusResponse> GetStatusAsync(
+        Guid userId,
+        bool isWebTestMode = false,
+        CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -90,7 +96,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         }
 
         var activeProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
-        var eligibility = EvaluateReRegistrationEligibility(activeProfile);
+        var eligibility = EvaluateReRegistrationEligibility(activeProfile, isWebTestMode);
 
         if (activeProfile == null)
         {
@@ -120,7 +126,10 @@ public class FaceRegistrationService : IFaceRegistrationService
         };
     }
 
-    public async Task<FaceRegistrationSessionResponse> CreateSessionAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task<FaceRegistrationSessionResponse> CreateSessionAsync(
+        Guid userId,
+        bool isWebTestMode = false,
+        CancellationToken cancellationToken = default)
     {
         if (userId == Guid.Empty)
         {
@@ -134,7 +143,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
-            var eligibility = EvaluateReRegistrationEligibility(existingProfile);
+            var eligibility = EvaluateReRegistrationEligibility(existingProfile, isWebTestMode);
             if (!eligibility.IsEligible)
             {
                 throw new InvalidOperationException(eligibility.Message);
@@ -269,7 +278,7 @@ public class FaceRegistrationService : IFaceRegistrationService
         var existingProfile = await _faceRegistrationRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken);
         if (existingProfile != null)
         {
-            var eligibility = EvaluateReRegistrationEligibility(existingProfile);
+            var eligibility = EvaluateReRegistrationEligibility(existingProfile, request.IsWebTestMode);
             if (!eligibility.IsEligible)
             {
                 throw new InvalidOperationException(eligibility.Message);
@@ -296,14 +305,15 @@ public class FaceRegistrationService : IFaceRegistrationService
                 "Please complete all face challenges clearly and try again.");
         }
 
-        // 6. Biometric Deduplication Check (1:N matching): Prevent registering the same face on multiple accounts
+        // 6. Biometric Deduplication Check (1:N matching): Prevent registering the same face on multiple accounts.
+        // Only skip when using the Web test sample asset in Development Web test mode.
         bool isTestSampleImage = string.Equals(request.FaceImage.FileName, "sample_face.jpg", StringComparison.OrdinalIgnoreCase);
         bool isDev = _environment?.IsDevelopment() ?? false;
 
-        if (isTestSampleImage || isDev)
+        if (isDev && request.IsWebTestMode && isTestSampleImage)
         {
-            _logger.LogInformation("Skipping biometric deduplication check for user {UserId} (isTestSampleImage: {IsSample}, isDev: {IsDev})",
-                userId, isTestSampleImage, isDev);
+            _logger.LogInformation("Skipping biometric deduplication check for user {UserId} in Web test mode (Development).",
+                userId);
         }
         else
         {

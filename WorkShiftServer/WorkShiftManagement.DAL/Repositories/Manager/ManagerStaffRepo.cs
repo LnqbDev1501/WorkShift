@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
@@ -21,7 +21,8 @@ public class ManagerStaffRepo : IManagerStaffRepo
         string? search,
         string? status,
         int pageNumber,
-        int pageSize)
+        int pageSize,
+        bool? hasContract = null)
     {
         var query = _context.Users
             .AsNoTracking()
@@ -49,9 +50,29 @@ public class ManagerStaffRepo : IManagerStaffRepo
                 query = query.Where(u => u.Status == normalizedStatus);
         }
 
+        if (hasContract == true)
+        {
+            query = query.Where(u => _context.EmploymentContracts.Any(c =>
+                c.UserId == u.UserId &&
+                (c.BranchId == managerBranchId || u.BranchId == managerBranchId) &&
+                (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+                 c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")));
+        }
+        else if (hasContract == false)
+        {
+            query = query.Where(u => !_context.EmploymentContracts.Any(c =>
+                c.UserId == u.UserId &&
+                (c.BranchId == managerBranchId || u.BranchId == managerBranchId) &&
+                (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+                 c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")));
+        }
+
         var totalCount = await query.CountAsync();
 
         var items = await query
+            .Include(u => u.Role)
+            .Include(u => u.Branch)
+            .Include(u => u.EmploymentContracts)
             .OrderByDescending(u => u.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)

@@ -918,8 +918,8 @@ public class UserService : IUserService
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
         try { _ = new MailAddress(request.Email); }
         catch (FormatException) { throw new ArgumentException("Email format is invalid."); }
-        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
-            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
+        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[2689]|07[06-9]|08[1-689]|09[0-46-9])\d{7}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 052, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090-094, 096-099).");
         if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
             throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
@@ -948,8 +948,8 @@ public class UserService : IUserService
 
         if (request.FullName.Length is 0 or > 150)
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
-        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
-            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
+        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[2689]|07[06-9]|08[1-689]|09[0-46-9])\d{7}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 052, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090-094, 096-099).");
         if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
             throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))

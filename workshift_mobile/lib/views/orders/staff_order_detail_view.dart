@@ -259,7 +259,7 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Không có',
+                              'None',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -399,7 +399,7 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Không có',
+                  'None',
                   style: TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,

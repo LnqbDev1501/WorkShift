@@ -47,7 +47,7 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
       if (!mounted) return;
       setState(() {
         _errorMessage =
-            'Không thể tải danh sách kỷ luật vi phạm. Vui lòng thử lại.';
+            'Unable to load penalties. Please try again.';
         _isLoading = false;
       });
     }
@@ -148,7 +148,7 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Tổng số vi phạm',
+                          'Total Penalties',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -180,7 +180,7 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Đã duyệt khấu trừ',
+                          'Approved Deductions',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -208,6 +208,7 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               child: Row(
                 children: ['ALL', 'APPROVED', 'PENDING', 'REJECTED'].map((
                   status,
@@ -218,12 +219,12 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                     child: ChoiceChip(
                       label: Text(
                         status == 'ALL'
-                            ? 'Tất cả'
+                            ? 'All'
                             : status == 'APPROVED'
-                            ? 'Đã duyệt'
+                            ? 'Approved'
                             : status == 'PENDING'
-                            ? 'Chờ duyệt'
-                            : 'Bác bỏ',
+                            ? 'Pending'
+                            : 'Rejected',
                       ),
                       selected: isSelected,
                       onSelected: (selected) {
@@ -263,35 +264,43 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                 ? const Center(child: CircularProgressIndicator())
                 : _errorMessage != null
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.error,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          _errorMessage!,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.error,
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: _loadPenalties,
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Thử lại'),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            _errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _loadPenalties,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : _penalties.isEmpty
                 ? const Center(
-                    child: Text(
-                      'Bạn không có khoản phạt hay vi phạm nào.',
-                      style: TextStyle(color: AppColors.textSecondary),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Text(
+                        'You have no recorded penalties or violations.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ),
                   )
                 : RefreshIndicator(
@@ -381,7 +390,7 @@ class _StaffPenaltyListViewState extends State<StaffPenaltyListView> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Kỳ: ${item.periodCode}',
+                                        'Period: ${item.periodCode}',
                                         style: const TextStyle(
                                           fontSize: 12,
                                           color: AppColors.textMuted,

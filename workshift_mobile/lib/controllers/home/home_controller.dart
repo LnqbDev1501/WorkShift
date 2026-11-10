@@ -115,7 +115,7 @@ class HomeController extends ChangeNotifier {
     if (_user != null && _user!.fullName.isNotEmpty) {
       return _user!.fullName;
     }
-    return 'Bạn';
+    return 'Staff';
   }
 
   // Lấy tên chi nhánh
@@ -128,7 +128,7 @@ class HomeController extends ChangeNotifier {
         _user!.branchName!.isNotEmpty) {
       return _user!.branchName!;
     }
-    return 'Chi nhánh chính';
+    return 'Main Branch';
   }
 
   /// Cập nhật ngay lập tức trạng thái sau khi Check-In thành công (Optimistic UI Update)

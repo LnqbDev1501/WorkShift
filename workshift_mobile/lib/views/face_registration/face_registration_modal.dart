@@ -758,7 +758,7 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
               ],
             ),
           ),
-          if (kIsWeb || !_controller.isCameraInitialized) ...[
+          if (kIsWeb || _controller.isCameraFailed) ...[
             const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: isSubmitting
@@ -770,7 +770,7 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                 size: 20,
               ),
               label: const Text(
-                'Test 1 Chạm: Đăng Ký Khuôn Mặt Ngay (Web)',
+                '1-Tap Test: Instant Face Registration (Web)',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,

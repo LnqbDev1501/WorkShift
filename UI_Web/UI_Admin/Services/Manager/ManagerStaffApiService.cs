@@ -1,4 +1,4 @@
-using UI_Admin.Services;
+﻿using UI_Admin.Services;
 using System.Net.Http.Json;
 using UI_Admin.Models;
 using UI_Admin.Models.Catalog;
@@ -21,7 +21,8 @@ public sealed class ManagerStaffApiService
         string? status,
         int pageNumber,
         int pageSize,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool? hasContract = null)
     {
         var parameters = new List<string>
         {
@@ -34,6 +35,9 @@ public sealed class ManagerStaffApiService
 
         if (!string.IsNullOrWhiteSpace(status) && status != "all")
             parameters.Add($"status={Uri.EscapeDataString(status)}");
+
+        if (hasContract.HasValue)
+            parameters.Add($"hasContract={hasContract.Value.ToString().ToLowerInvariant()}");
 
         var result = await _httpClient.GetFromJsonAsync<StaffAccountPagedViewModel>(
             $"{_apiBaseUrl}/api/manager/staff?{string.Join('&', parameters)}",
@@ -72,7 +76,7 @@ public sealed class ManagerStaffApiService
             .ToList();
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> CreateStaffAsync(
+        public async Task<(bool Success, string? ErrorMessage)> CreateStaffAsync(
         CreateStaffAccountViewModel model,
         CancellationToken cancellationToken = default)
     {
@@ -108,7 +112,7 @@ public sealed class ManagerStaffApiService
         return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
     }
 
-    public async Task<(bool Success, string? ErrorMessage)> UpdateStaffAsync(
+        public async Task<(bool Success, string? ErrorMessage)> UpdateStaffAsync(
         Guid staffId,
         EditStaffAccountViewModel model,
         CancellationToken cancellationToken = default)

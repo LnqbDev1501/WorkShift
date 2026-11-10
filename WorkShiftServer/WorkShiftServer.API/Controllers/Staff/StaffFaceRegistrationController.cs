@@ -29,7 +29,9 @@ public sealed class StaffFaceRegistrationController : ControllerBase
     [HttpGet("status")]
     [ProducesResponseType(typeof(FaceProfileStatusResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<FaceProfileStatusResponse>> GetStatus(CancellationToken cancellationToken)
+    public async Task<ActionResult<FaceProfileStatusResponse>> GetStatus(
+        [FromQuery] bool isWebTestMode = false,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -37,7 +39,7 @@ public sealed class StaffFaceRegistrationController : ControllerBase
             return Unauthorized(new { message = "Could not identify authenticated staff identity from token." });
         }
 
-        var result = await _faceRegistrationService.GetStatusAsync(userId, cancellationToken);
+        var result = await _faceRegistrationService.GetStatusAsync(userId, isWebTestMode, cancellationToken);
         return Ok(result);
     }
 
@@ -48,7 +50,9 @@ public sealed class StaffFaceRegistrationController : ControllerBase
     [ProducesResponseType(typeof(FaceRegistrationSessionResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(object), StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<FaceRegistrationSessionResponse>> CreateSession(CancellationToken cancellationToken)
+    public async Task<ActionResult<FaceRegistrationSessionResponse>> CreateSession(
+        [FromQuery] bool isWebTestMode = false,
+        CancellationToken cancellationToken = default)
     {
         var userId = GetCurrentUserId();
         if (userId == Guid.Empty)
@@ -58,7 +62,7 @@ public sealed class StaffFaceRegistrationController : ControllerBase
 
         try
         {
-            var result = await _faceRegistrationService.CreateSessionAsync(userId, cancellationToken);
+            var result = await _faceRegistrationService.CreateSessionAsync(userId, isWebTestMode, cancellationToken);
             return Ok(result);
         }
         catch (UnauthorizedAccessException exception)

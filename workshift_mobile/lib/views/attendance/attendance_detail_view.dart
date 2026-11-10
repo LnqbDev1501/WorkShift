@@ -83,7 +83,7 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-    return '$formatted đ';
+    return '$formatted VND';
   }
 
   @override

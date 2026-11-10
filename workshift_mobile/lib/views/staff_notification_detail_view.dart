@@ -103,13 +103,46 @@ class _StaffNotificationDetailViewState
     }
   }
 
+  String _getTypeName(String type) {
+    final t = type.toLowerCase();
+    if (t.contains('warning') || t.contains('termination')) {
+      return 'Warning';
+    }
+    switch (t) {
+      case 'shift':
+      case 'shiftassignment':
+        return 'Shift';
+      case 'request':
+      case 'employeerequest':
+        return 'Request';
+      case 'schedule':
+        return 'Schedule';
+      case 'system':
+        return 'System';
+      case 'alert':
+        return 'Alert';
+      case 'payroll':
+        return 'Payroll';
+      case 'contract':
+        return 'Contract';
+      case 'salarychange':
+        return 'Salary Change';
+      default:
+        return 'Notification';
+    }
+  }
+
   String _formatDateTime(DateTime dateTime) {
+    final local = dateTime.toLocal();
     final now = DateTime.now();
-    final diff = now.difference(dateTime);
-    if (diff.inDays > 0) return '${diff.inDays} ngày trước';
-    if (diff.inHours > 0) return '${diff.inHours} giờ trước';
-    if (diff.inMinutes > 0) return '${diff.inMinutes} phút trước';
-    return 'Vừa xong';
+    final diff = now.difference(local);
+    if (diff.inDays > 7) {
+      return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}/${local.year} ${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    }
+    if (diff.inDays > 0) return '${diff.inDays} days ago';
+    if (diff.inHours > 0) return '${diff.inHours} hours ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes} mins ago';
+    return 'Just now';
   }
 
   @override
@@ -118,7 +151,7 @@ class _StaffNotificationDetailViewState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Chi tiết thông báo',
+          'Notification Details',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -167,7 +200,7 @@ class _StaffNotificationDetailViewState
                       _loadDetail();
                     },
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Thử lại'),
+                    label: const Text('Retry'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -180,7 +213,7 @@ class _StaffNotificationDetailViewState
               ),
             )
           : _notification == null
-          ? const Center(child: Text('Không tìm thấy thông báo.'))
+          ? const Center(child: Text('Notification not found.'))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -246,8 +279,9 @@ class _StaffNotificationDetailViewState
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      _notification!.notificationType
-                                          .toUpperCase(),
+                                      _getTypeName(
+                                        _notification!.notificationType,
+                                      ),
                                       style: const TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
@@ -271,7 +305,7 @@ class _StaffNotificationDetailViewState
                           ],
                         ),
                         const SizedBox(height: 16),
-                        // Meta info: Received At, Sender, Viewed At
+                        // Meta info: Thời gian nhận, Người gửi, Thời gian xem
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -317,7 +351,7 @@ class _StaffNotificationDetailViewState
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _notification!.createdByName ?? 'Hệ thống',
+                                    _notification!.createdByName ?? 'System',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -347,7 +381,7 @@ class _StaffNotificationDetailViewState
                                         ? _formatDateTime(
                                             _notification!.readAt!,
                                           )
-                                        : 'Chưa xem',
+                                        : 'Not viewed',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -365,7 +399,7 @@ class _StaffNotificationDetailViewState
                   const SizedBox(height: 24),
                   // Message content
                   const Text(
-                    'Nội dung',
+                    'Notification Content',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -404,7 +438,7 @@ class _StaffNotificationDetailViewState
                                   'NOT_ACCEPTED_BY_START_DATE',
                                   'Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận',
                                 )
-                          : 'Không có nội dung chi tiết.',
+                          : 'No detailed content.',
                       style: const TextStyle(
                         fontSize: 15,
                         color: AppColors.textPrimary,
@@ -433,7 +467,7 @@ class _StaffNotificationDetailViewState
                           size: 20,
                         ),
                         label: const Text(
-                          'Xem danh sách & Nhận ca (Pick up)',
+                          'View & Pick Up Shifts',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -478,7 +512,7 @@ class _StaffNotificationDetailViewState
                         },
                         icon: const Icon(Icons.payments_rounded, size: 20),
                         label: const Text(
-                          'Xem Bảng lương & Phản hồi',
+                          'View Payslip & Feedback',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,

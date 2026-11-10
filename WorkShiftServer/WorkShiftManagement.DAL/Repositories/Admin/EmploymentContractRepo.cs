@@ -280,8 +280,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         return await _context.EmploymentContracts
             .AsNoTracking()
-            .Include(c => c.Branch)
-            .Include(c => c.Region)
+            .Include(c => c.Branch).ThenInclude(b => b!.Region).ThenInclude(r => r.RegionalMinimumWage)
+            .Include(c => c.Region).ThenInclude(r => r.RegionalMinimumWage)
             .Include(c => c.CreatedByNavigation)
             .Include(c => c.ContractChangeRequest)
             .FirstOrDefaultAsync(c => c.ContractId == contractId, cancellationToken);
@@ -363,6 +363,24 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         existing.EmployeePositionSnapshot = contract.EmployeePositionSnapshot;
         existing.ContractTerms = contract.ContractTerms;
         existing.UpdatedAt = now;
+
+        var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == existing.UserId, cancellationToken);
+        if (staffUser != null && !string.IsNullOrWhiteSpace(existing.EmployeePositionSnapshot))
+        {
+            var positionTrimmed = existing.EmployeePositionSnapshot.Trim();
+            var allEmployeeTypes = await _context.EmployeeTypes.ToListAsync(cancellationToken);
+            var matchedType = allEmployeeTypes.FirstOrDefault(t =>
+                string.Equals(t.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase))
+                ?? allEmployeeTypes.FirstOrDefault(t =>
+                string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase));
+
+            if (matchedType != null && staffUser.EmployeeTypeId != matchedType.EmployeeTypeId)
+            {
+                staffUser.EmployeeTypeId = matchedType.EmployeeTypeId;
+                staffUser.UpdatedAt = now;
+            }
+        }
 
         _context.AuditLogs.Add(new AuditLog
         {
@@ -800,8 +818,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         return await _context.EmploymentContracts
             .AsNoTracking()
-            .Include(c => c.Branch)
-            .Include(c => c.Region)
+            .Include(c => c.Branch).ThenInclude(b => b!.Region).ThenInclude(r => r.RegionalMinimumWage)
+            .Include(c => c.Region).ThenInclude(r => r.RegionalMinimumWage)
             .Include(c => c.CreatedByNavigation)
             .Include(c => c.ContractChangeRequest)
             .FirstOrDefaultAsync(c => c.ContractId == contractId && c.UserId == staffUserId && c.Status != "DRAFT", cancellationToken);
@@ -1698,8 +1716,8 @@ public class EmploymentContractRepo : IEmploymentContractRepo
     {
         return _context.ContractChangeRequests
             .Include(cr => cr.ContractChangeRequestItems)
-            .Include(cr => cr.Contract).ThenInclude(c => c.Branch)
-            .Include(cr => cr.Contract).ThenInclude(c => c.Region)
+            .Include(cr => cr.Contract).ThenInclude(c => c.Branch).ThenInclude(b => b!.Region).ThenInclude(r => r.RegionalMinimumWage)
+            .Include(cr => cr.Contract).ThenInclude(c => c.Region).ThenInclude(r => r.RegionalMinimumWage)
             .Include(cr => cr.RequestedByNavigation)
             .Include(cr => cr.ReviewedByNavigation)
             .FirstOrDefaultAsync(cr => cr.ChangeRequestId == changeRequestId, cancellationToken);
@@ -1870,6 +1888,24 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         _context.EmploymentContracts.Update(contract);
 
+        var staffUser = await _context.Users.FirstOrDefaultAsync(u => u.UserId == contract.UserId, cancellationToken);
+        if (staffUser != null && !string.IsNullOrWhiteSpace(contract.EmployeePositionSnapshot))
+        {
+            var positionTrimmed = contract.EmployeePositionSnapshot.Trim();
+            var allEmployeeTypes = await _context.EmployeeTypes.ToListAsync(cancellationToken);
+            var matchedType = allEmployeeTypes.FirstOrDefault(t =>
+                string.Equals(t.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase))
+                ?? allEmployeeTypes.FirstOrDefault(t =>
+                string.Equals(t.TypeName.Trim(), positionTrimmed, StringComparison.OrdinalIgnoreCase));
+
+            if (matchedType != null)
+            {
+                staffUser.EmployeeTypeId = matchedType.EmployeeTypeId;
+                staffUser.UpdatedAt = now;
+            }
+        }
+
         _context.AuditLogs.Add(new AuditLog
         {
             UserId = managerId,
@@ -1990,5 +2026,65 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         var total = await query.CountAsync(cancellationToken);
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
         return (items, total);
+    }
+
+    public async Task<decimal?> GetRegionalMinimumWageAsync(int regionId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default)
+    {
+        if (regionId <= 0) return null;
+        var targetDate = effectiveDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var region = await _context.Regions
+            .AsNoTracking()
+            .Include(r => r.RegionalMinimumWage)
+            .FirstOrDefaultAsync(r => r.RegionId == regionId, cancellationToken);
+
+        if (region?.RegionalMinimumWage != null &&
+            region.RegionalMinimumWage.Status == "ACTIVE" &&
+            region.RegionalMinimumWage.MinimumHourlyRate > 0)
+        {
+            var wage = region.RegionalMinimumWage;
+            if ((wage.EffectiveFrom == null || wage.EffectiveFrom <= targetDate) &&
+                (wage.EffectiveTo == null || wage.EffectiveTo >= targetDate))
+            {
+                return wage.MinimumHourlyRate;
+            }
+            return wage.MinimumHourlyRate;
+        }
+
+        if (region?.RegionalMinimumWageId.HasValue == true)
+        {
+            var wage = await _context.RegionalMinimumWages
+                .AsNoTracking()
+                .FirstOrDefaultAsync(w => w.RegionalMinimumWageId == region.RegionalMinimumWageId.Value && w.Status == "ACTIVE", cancellationToken);
+            if (wage != null && wage.MinimumHourlyRate > 0)
+                return wage.MinimumHourlyRate;
+        }
+
+        return null;
+    }
+
+    public async Task<decimal?> GetBranchRegionalMinimumWageAsync(int branchId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default)
+    {
+        if (branchId <= 0) return null;
+        var targetDate = effectiveDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var branch = await _context.Branches
+            .AsNoTracking()
+            .Include(b => b.Region).ThenInclude(r => r!.RegionalMinimumWage)
+            .FirstOrDefaultAsync(b => b.BranchId == branchId, cancellationToken);
+
+        if (branch?.Region?.RegionalMinimumWage != null &&
+            branch.Region.RegionalMinimumWage.Status == "ACTIVE" &&
+            branch.Region.RegionalMinimumWage.MinimumHourlyRate > 0)
+        {
+            return branch.Region.RegionalMinimumWage.MinimumHourlyRate;
+        }
+
+        if (branch?.RegionId > 0)
+        {
+            return await GetRegionalMinimumWageAsync(branch.RegionId, targetDate, cancellationToken);
+        }
+
+        return null;
     }
 }

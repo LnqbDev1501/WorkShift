@@ -43,7 +43,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
       if (!mounted) return;
       setState(() {
         _errorMessage =
-            'Không thể tải chi tiết khen thưởng hoặc bản ghi không thuộc quyền sở hữu của bạn.';
+            'Unable to load reward details or this record does not belong to you.';
         _isLoading = false;
       });
     }
@@ -116,7 +116,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                     ElevatedButton.icon(
                       onPressed: _loadDetail,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
+                      label: const Text('Retry'),
                     ),
                   ],
                 ),
@@ -159,7 +159,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Trạng thái: ${_reward!.approvalStatus}',
+                                'Status: ${_reward!.approvalStatus}',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -170,10 +170,10 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                               ),
                               Text(
                                 _reward!.isApproved
-                                    ? 'Khoản thưởng đã được phê duyệt và tính vào kỳ lương.'
+                                    ? 'The reward has been approved and included in payroll.'
                                     : _reward!.isRejected
-                                    ? 'Khoản thưởng đã bị từ chối phê duyệt.'
-                                    : 'Khoản thưởng đang chờ cấp quản lý / Admin xét duyệt.',
+                                    ? 'The reward has been rejected.'
+                                    : 'The reward is pending review by management.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: _getStatusColor(
@@ -202,7 +202,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Số tiền khen thưởng',
+                          'Reward Amount',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -236,7 +236,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Thông tin khen thưởng',
+                          'Reward Details',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -245,26 +245,26 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                         ),
                         const SizedBox(height: 14),
                         _buildInfoRow(
-                          'Tên khoản thưởng',
+                          'Reward Name',
                           _reward!.adjustmentName,
                         ),
                         _buildInfoRow(
-                          'Kỳ lương áp dụng',
+                          'Applicable Payroll Period',
                           '${_reward!.periodCode} - ${_reward!.periodName}',
                         ),
                         if (_reward!.createdAt != null)
                           _buildInfoRow(
-                            'Ngày tạo',
+                            'Created Date',
                             formatVietnamDateTime(_reward!.createdAt),
                           ),
                         if (_reward!.createdByName != null)
                           _buildInfoRow(
-                            'Người tạo đề xuất',
+                            'Created By',
                             _reward!.createdByName!,
                           ),
                         const Divider(height: 24),
                         const Text(
-                          'Lý do khen thưởng',
+                          'Reason / Description',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -275,7 +275,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                         Text(
                           _reward!.reason.isNotEmpty
                               ? _reward!.reason
-                              : 'Không có ghi chú thêm.',
+                              : 'No additional notes.',
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
@@ -303,7 +303,7 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Thông tin xét duyệt',
+                            'Review Information',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -313,29 +313,29 @@ class _StaffRewardDetailViewState extends State<StaffRewardDetailView> {
                           const SizedBox(height: 12),
                           if (_reward!.approvedByName != null)
                             _buildInfoRow(
-                              'Người duyệt',
+                              'Approved By',
                               _reward!.approvedByName!,
                             ),
                           if (_reward!.approvedAt != null)
                             _buildInfoRow(
-                              'Thời gian duyệt',
+                              'Approved At',
                               formatVietnamDateTime(_reward!.approvedAt),
                             ),
                           if (_reward!.rejectedByName != null)
                             _buildInfoRow(
-                              'Người từ chối',
+                              'Rejected By',
                               _reward!.rejectedByName!,
                             ),
                           if (_reward!.rejectedAt != null)
                             _buildInfoRow(
-                              'Thời gian từ chối',
+                              'Rejected At',
                               formatVietnamDateTime(_reward!.rejectedAt),
                             ),
                           if (_reward!.reviewNote != null &&
                               _reward!.reviewNote!.trim().isNotEmpty) ...[
                             const SizedBox(height: 8),
                             const Text(
-                              'Ghi chú xét duyệt:',
+                              'Review Notes:',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,

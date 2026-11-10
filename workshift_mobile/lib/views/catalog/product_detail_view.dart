@@ -43,7 +43,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       if (!mounted) return;
       setState(() {
         _errorMessage =
-            'Không thể tải chi tiết sản phẩm hoặc sản phẩm không thuộc chi nhánh của bạn.';
+            'Unable to load product details or product does not belong to your branch.';
         _isLoading = false;
       });
     }
@@ -90,7 +90,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     ElevatedButton.icon(
                       onPressed: _loadProductDetail,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
+                      label: const Text('Retry'),
                     ),
                   ],
                 ),
@@ -236,7 +236,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
                   // Product Code
                   Text(
-                    'Mã sản phẩm: ${_product!.productCode}',
+                    'Product Code: ${_product!.productCode}',
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -258,7 +258,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Giá bán niêm yết',
+                          'List Price',
                           style: TextStyle(
                             fontSize: 15,
                             color: AppColors.textSecondary,
@@ -291,7 +291,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Mô tả sản phẩm',
+                          'Product Description',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -303,7 +303,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                           (_product!.description != null &&
                                   _product!.description!.trim().isNotEmpty)
                               ? _product!.description!
-                              : 'Chưa có thông tin mô tả chi tiết cho sản phẩm này.',
+                              : 'No detailed description available for this product.',
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,

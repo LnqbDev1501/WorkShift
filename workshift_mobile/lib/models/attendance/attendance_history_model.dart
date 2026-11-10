@@ -54,7 +54,7 @@ class StaffAttendanceHistoryModel {
       attendanceId: json['attendanceId'] as int?,
       assignmentId: json['assignmentId'] as int? ?? 0,
       shiftId: json['shiftId'] as int? ?? 0,
-      shiftName: json['shiftName']?.toString() ?? 'Ca làm việc',
+      shiftName: json['shiftName']?.toString() ?? 'Work Shift',
       scheduledStartAt:
           DateTime.tryParse(json['scheduledStartAt']?.toString() ?? '') ??
           DateTime.now(),
@@ -214,7 +214,7 @@ class StaffAttendanceDetailModel {
     return StaffAttendanceDetailModel(
       assignmentId: json['assignmentId'] as int? ?? 0,
       shiftId: json['shiftId'] as int? ?? 0,
-      shiftName: json['shiftName']?.toString() ?? 'Ca làm việc',
+      shiftName: json['shiftName']?.toString() ?? 'Work Shift',
       scheduledStartAt: parseDateTime(json['scheduledStartAt']),
       scheduledEndAt: parseDateTime(json['scheduledEndAt']),
       scheduleWeekId: json['scheduleWeekId'] as int? ?? 0,

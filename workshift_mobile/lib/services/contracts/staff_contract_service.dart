@@ -49,7 +49,7 @@ class StaffContractService {
     } on DioException catch (e) {
       throw _extractErrorMessage(
         e,
-        'Không thể tải danh sách hợp đồng lao động',
+        'Failed to load employment contracts',
       );
     } catch (e) {
       throw e.toString();
@@ -65,9 +65,9 @@ class StaffContractService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không tìm thấy dữ liệu hợp đồng.';
+      throw 'Contract data not found.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải chi tiết hợp đồng');
+      throw _extractErrorMessage(e, 'Failed to load contract details');
     } catch (e) {
       throw e.toString();
     }
@@ -84,9 +84,9 @@ class StaffContractService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không nhận được phản hồi từ máy chủ.';
+      throw 'No response received from server.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Ký hợp đồng thất bại');
+      throw _extractErrorMessage(e, 'Failed to sign contract');
     } catch (e) {
       throw e.toString();
     }
@@ -114,9 +114,9 @@ class StaffContractService {
           response.data as Map<String, dynamic>,
         );
       }
-      throw 'Không nhận được phản hồi từ máy chủ.';
+      throw 'No response received from server.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Gửi yêu cầu thay đổi hợp đồng thất bại');
+      throw _extractErrorMessage(e, 'Failed to submit contract change request');
     } catch (e) {
       throw e.toString();
     }
@@ -141,7 +141,7 @@ class StaffContractService {
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải lịch sử yêu cầu thay đổi');
+      throw _extractErrorMessage(e, 'Failed to load change request history');
     } catch (e) {
       throw e.toString();
     }
@@ -194,9 +194,9 @@ class StaffContractService {
       if (response.data != null) {
         return Uint8List.fromList(response.data!);
       }
-      throw 'Không tải được tệp PDF.';
+      throw 'Failed to download PDF file.';
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải tệp PDF của hợp đồng');
+      throw _extractErrorMessage(e, 'Failed to download contract PDF');
     } catch (e) {
       throw e.toString();
     }
@@ -216,7 +216,7 @@ class StaffContractService {
       }
       return [];
     } on DioException catch (e) {
-      throw _extractErrorMessage(e, 'Không thể tải danh sách vị trí công việc');
+      throw _extractErrorMessage(e, 'Failed to load active positions');
     } catch (e) {
       throw e.toString();
     }

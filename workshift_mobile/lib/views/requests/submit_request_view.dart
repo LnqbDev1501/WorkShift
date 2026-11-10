@@ -423,7 +423,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
               // 2. Nội dung theo loại yêu cầu
               if (_selectedRequestType == 'SALARY_INCREASE') ...[
-                _buildSectionTitle('2. Proposed Hourly Rate (VNĐ/hour)'),
+                _buildSectionTitle('2. Proposed Hourly Rate (VND/hour)'),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -443,7 +443,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                             Icons.monetization_on_outlined,
                             color: AppColors.primary,
                           ),
-                          suffixText: 'VNĐ / hour',
+                          suffixText: 'VND / hour',
                           suffixStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,

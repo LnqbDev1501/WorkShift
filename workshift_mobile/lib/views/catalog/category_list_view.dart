@@ -49,7 +49,7 @@ class _CategoryListViewState extends State<CategoryListView> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Không thể tải danh mục sản phẩm. Vui lòng thử lại.';
+        _errorMessage = 'Unable to load product categories. Please try again.';
         _isLoading = false;
       });
     }
@@ -187,7 +187,7 @@ class _CategoryListViewState extends State<CategoryListView> {
                         ElevatedButton.icon(
                           onPressed: _loadCategories,
                           icon: const Icon(Icons.refresh),
-                          label: const Text('Thử lại'),
+                          label: const Text('Retry'),
                         ),
                       ],
                     ),

@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../models/attendance/face_registration_model.dart';
 import '../core/api_client.dart';
 
@@ -10,6 +11,7 @@ class FaceRegistrationService {
   Future<FaceProfileStatusModel> getStatus() async {
     final response = await _apiClient.get(
       '/api/staff/face-registration/status',
+      queryParameters: kIsWeb ? {'isWebTestMode': true} : null,
     );
     return FaceProfileStatusModel.fromJson(
       response.data as Map<String, dynamic>,
@@ -20,6 +22,7 @@ class FaceRegistrationService {
   Future<FaceRegistrationSessionModel> createSession() async {
     final response = await _apiClient.post(
       '/api/staff/face-registration/session',
+      queryParameters: kIsWeb ? {'isWebTestMode': true} : null,
     );
     return FaceRegistrationSessionModel.fromJson(
       response.data as Map<String, dynamic>,
@@ -37,6 +40,7 @@ class FaceRegistrationService {
       'SessionId': sessionId,
       'FaceImage': MultipartFile.fromBytes(imageBytes, filename: filename),
       'LivenessScore': livenessScore.toStringAsFixed(4),
+      if (kIsWeb) 'IsWebTestMode': 'true',
     });
 
     final response = await _apiClient.post(

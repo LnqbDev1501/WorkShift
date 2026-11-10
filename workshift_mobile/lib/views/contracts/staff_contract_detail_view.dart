@@ -65,7 +65,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
     if (_localStaffName != null && _localStaffName!.trim().isNotEmpty) {
       return _localStaffName!.trim();
     }
-    return 'Người lao động';
+    return 'Employee';
   }
 
   @override
@@ -1113,7 +1113,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Cancellation Reason: ${isAuto ? "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận." : (contract.cancellationReason ?? "No detailed reason provided.")}',
+              'Cancellation Reason: ${isAuto ? "Past start date without employee acceptance." : (contract.cancellationReason ?? "No detailed reason provided.")}',
               style: const TextStyle(fontSize: 12, color: Color(0xFF9F1239)),
             ),
             if (contract.cancelledAt != null)
@@ -1676,7 +1676,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
         children: [
           // National Motto Header
           const Text(
-            'CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM',
+            'SOCIALIST REPUBLIC OF VIETNAM',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
@@ -1687,7 +1687,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
           ),
           const SizedBox(height: 2),
           const Text(
-            'Độc lập - Tự do - Hạnh phúc',
+            'Independence - Freedom - Happiness',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -1702,7 +1702,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
 
           // Document Title
           const Text(
-            'HỢP ĐỒNG LAO ĐỘNG',
+            'EMPLOYMENT CONTRACT',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -1713,43 +1713,43 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
           ),
           const SizedBox(height: 3),
           Text(
-            'Mã hợp đồng: ${contract.contractNumber}',
+            'Contract No.: ${contract.contractNumber}',
             style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
           ),
           const SizedBox(height: 16),
 
           // Section 1: Employer
-          _buildLegalDocSection('1. BÊN SỬ DỤNG LAO ĐỘNG (EMPLOYER)', [
-            _buildDocRow('Chi nhánh:', contract.branchName),
+          _buildLegalDocSection('1. EMPLOYER INFORMATION', [
+            _buildDocRow('Branch:', contract.branchName),
             if (contract.branchAddress.isNotEmpty)
-              _buildDocRow('Địa chỉ:', contract.branchAddress),
-            _buildDocRow('Vùng lương áp dụng:', contract.regionName),
+              _buildDocRow('Address:', contract.branchAddress),
+            _buildDocRow('Applicable Region:', contract.regionName),
           ]),
           const SizedBox(height: 12),
 
           // Section 2: Employee
-          _buildLegalDocSection('2. BÊN NGƯỜI LAO ĐỘNG (EMPLOYEE)', [
+          _buildLegalDocSection('2. EMPLOYEE INFORMATION', [
             _buildDocRow(
-              'Họ và tên:',
+              'Full Name:',
               _getEmployeeDisplayName(contract),
               isBoldValue: true,
             ),
-            _buildDocRow('Chức danh công việc:', contract.employeePosition),
-            _buildDocRow('Địa điểm làm việc:', contract.branchName),
+            _buildDocRow('Position / Title:', contract.employeePosition),
+            _buildDocRow('Work Location:', contract.branchName),
           ]),
           const SizedBox(height: 12),
 
           // Section 3: Terms & Wage
-          _buildLegalDocSection('3. NỘI DUNG VÀ ĐIỀU KHOẢN HỢP ĐỒNG', [
-            _buildDocRow('Ngày bắt đầu:', _formatDate(contract.startDate)),
+          _buildLegalDocSection('3. CONTRACT CONTENT & TERMS', [
+            _buildDocRow('Start Date:', _formatDate(contract.startDate)),
             _buildDocRow(
-              'Ngày kết thúc:',
+              'End Date:',
               contract.endDate != null
                   ? _formatDate(contract.endDate)
-                  : 'Vô thời hạn (Indefinite)',
+                  : 'Indefinite',
             ),
             _buildDocRow(
-              'Mức lương giờ:',
+              'Hourly Wage:',
               contract.formattedHourlyRate,
               isBoldValue: true,
               valueColor: const Color(0xFF047857),
@@ -1780,7 +1780,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
 
           // Acknowledgment Note
           const Text(
-            'XÁC NHẬN CỦA CÁC BÊN\nHợp đồng này được khởi tạo và chứng thực điện tử trên hệ thống WorkShift. Việc chấp nhận hợp đồng có giá trị pháp lý tương đương ký văn bản trực tiếp theo quy định của pháp luật.',
+            'ACKNOWLEDGMENT OF THE PARTIES\nThis contract is generated and electronically authenticated on the WorkShift system. Accepting this contract carries the same legal validity as signing a physical document under applicable law.',
             style: TextStyle(
               fontSize: 9.5,
               fontStyle: FontStyle.italic,
@@ -1808,7 +1808,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
-                        'ĐẠI DIỆN NGƯỜI LAO ĐỘNG',
+                        'EMPLOYEE REPRESENTATIVE',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1817,7 +1817,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                         textAlign: TextAlign.center,
                       ),
                       const Text(
-                        '(Ký và ghi rõ họ tên)',
+                        '(Signature and Full Name)',
                         style: TextStyle(
                           fontSize: 8.5,
                           fontStyle: FontStyle.italic,
@@ -1853,7 +1853,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                                   ),
                                   SizedBox(width: 4),
                                   Text(
-                                    '✓ ĐÃ KÝ ĐIỆN TỬ',
+                                    '✓ DIGITALLY SIGNED',
                                     style: TextStyle(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.bold,
@@ -1876,7 +1876,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 3),
                                   child: Text(
-                                    'Thời gian ký: ${_formatDateTime(contract.staffAcceptedAt)}',
+                                    'Signed at: ${_formatDateTime(contract.staffAcceptedAt)}',
                                     style: const TextStyle(
                                       fontSize: 8.5,
                                       color: Color(0xFF475569),
@@ -1886,7 +1886,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                                 ),
                               const SizedBox(height: 3),
                               const Text(
-                                'Xác thực bảo mật qua tài khoản Staff',
+                                'Verified securely via Staff account',
                                 style: TextStyle(
                                   fontSize: 8,
                                   fontStyle: FontStyle.italic,
@@ -1897,7 +1897,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                             ] else ...[
                               const SizedBox(height: 6),
                               const Text(
-                                '(Chờ người lao động xác nhận điện tử)',
+                                '(Pending employee electronic acceptance)',
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontStyle: FontStyle.italic,
@@ -1933,7 +1933,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                                       ),
                                     ),
                                     child: const Text(
-                                      'Ký ngay',
+                                      'Sign Now',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -1956,7 +1956,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
-                        'CÔNG TY WORKSHIFT',
+                        'WORKSHIFT COMPANY',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -1965,7 +1965,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                         textAlign: TextAlign.center,
                       ),
                       const Text(
-                        '(Ký tên, đóng dấu mộc)',
+                        '(Authorized Signature & Official Seal)',
                         style: TextStyle(
                           fontSize: 8.5,
                           fontStyle: FontStyle.italic,
@@ -2014,7 +2014,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                             ),
                             const SizedBox(height: 4),
                             const Text(
-                              '✓ ĐÃ XÁC THỰC BỞI HỆ THỐNG',
+                              '✓ VERIFIED BY SYSTEM',
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
@@ -2024,7 +2024,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Chi nhánh: ${contract.branchName}',
+                              'Branch: ${contract.branchName}',
                               style: const TextStyle(
                                 fontSize: 8.5,
                                 color: Color(0xFF475569),
@@ -2034,7 +2034,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              'Số HĐ: ${contract.contractNumber}',
+                              'Contract No.: ${contract.contractNumber}',
                               style: const TextStyle(
                                 fontSize: 7.5,
                                 color: Color(0xFF64748B),

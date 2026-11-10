@@ -13,6 +13,10 @@
             @foreach (var staff in Model.StaffOptions) { <option value="@staff.UserId">@staff.FullName · @staff.Email</option> }
         </select>
         <span asp-validation-for="UserId" class="text-red-700 text-sm"></span>
+        @if (Model.StaffOptions.Count == 0)
+        {
+            <p class="text-xs text-amber-600 mt-1">Chưa có nhân viên nào có hợp đồng lao động trong chi nhánh.</p>
+        }
     </div>
     <div>
         <label asp-for="AdjustmentDate" class="block text-label-md text-secondary mb-2">Ngày áp dụng (trong tuần hiện tại) *</label>
