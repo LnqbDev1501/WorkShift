@@ -80,4 +80,7 @@ public interface IEmploymentContractRepo
     Task<IReadOnlyList<AuditLog>> GetContractAuditLogsAsync(int contractId, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetContractAuditLogsPagedAsync(
         int contractId, int pageNumber, int pageSize, string? sortOrder = "desc", CancellationToken cancellationToken = default);
+
+    Task<decimal?> GetRegionalMinimumWageAsync(int regionId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default);
+    Task<decimal?> GetBranchRegionalMinimumWageAsync(int branchId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default);
 }

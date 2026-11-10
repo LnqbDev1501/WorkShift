@@ -19,6 +19,7 @@ public class StaffContractDetailResponse
     public string BranchAddress { get; set; } = null!;
     public int RegionId { get; set; }
     public string RegionName { get; set; } = null!;
+    public decimal? RegionalMinimumWage { get; set; }
 
     public string? CreatedByManagerName { get; set; }
     public DateTime CreatedAt { get; set; }

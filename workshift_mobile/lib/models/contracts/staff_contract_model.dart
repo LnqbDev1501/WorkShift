@@ -145,6 +145,7 @@ class StaffContractDetailModel {
   final String branchAddress;
   final int regionId;
   final String regionName;
+  final double? regionalMinimumWage;
   final String? createdByManagerName;
   final DateTime createdAt;
   final DateTime? sentToStaffAt;
@@ -176,6 +177,7 @@ class StaffContractDetailModel {
     required this.branchAddress,
     required this.regionId,
     required this.regionName,
+    this.regionalMinimumWage,
     this.createdByManagerName,
     required this.createdAt,
     this.sentToStaffAt,
@@ -217,6 +219,7 @@ class StaffContractDetailModel {
       branchAddress: json['branchAddress']?.toString() ?? '',
       regionId: json['regionId'] as int? ?? 0,
       regionName: json['regionName']?.toString() ?? '',
+      regionalMinimumWage: (json['regionalMinimumWage'] as num?)?.toDouble(),
       createdByManagerName: json['createdByManagerName'] as String?,
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()

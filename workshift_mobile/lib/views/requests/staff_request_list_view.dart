@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../controllers/requests/staff_request_controller.dart';
 import '../../models/requests/staff_request_model.dart';
+import '../../services/core/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/status_badge.dart';
@@ -23,6 +24,7 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   Timer? _searchDebounce;
+  StreamSubscription? _realtimeSubscription;
 
   @override
   void initState() {
@@ -34,10 +36,18 @@ class _StaffRequestListViewState extends State<StaffRequestListView> {
         _controller.loadRequests();
       }
     });
+
+    // Auto-refresh when SignalR notification arrives (e.g. request approved/rejected)
+    _realtimeSubscription = RealtimeService.instance.onNotification.listen((_) {
+      if (mounted) {
+        _controller.loadRequests();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _realtimeSubscription?.cancel();
     _searchDebounce?.cancel();
     _searchController.dispose();
     _scrollController.removeListener(_onScroll);

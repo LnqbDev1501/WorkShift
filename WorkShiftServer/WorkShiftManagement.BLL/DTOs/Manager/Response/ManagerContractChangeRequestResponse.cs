@@ -28,5 +28,6 @@ public class ManagerContractChangeRequestResponse
     public string? CurrentContractTerms { get; set; }
     public string? BranchName { get; set; }
     public string? ContractTemplateVersion { get; set; }
+    public decimal? RegionalMinimumWage { get; set; }
     public List<ContractChangeRequestItemDetailDto> Items { get; set; } = new();
 }

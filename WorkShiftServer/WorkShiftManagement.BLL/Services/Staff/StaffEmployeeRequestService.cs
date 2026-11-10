@@ -287,6 +287,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         await SendStaffRequestNotificationToManagerAsync(staff, created, "LEAVE",
             $"Staff member {staff.FullName} submitted a leave request for {request.AssignmentIds.Count} shift(s). Reason: {request.Reason.Trim()}");
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted leave request #{RequestId}", created.RequestId);
+            }
+        }
+
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
     }
@@ -330,6 +348,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "LATE_ARRIVAL",
             $"Staff member {staff.FullName} submitted a late arrival request for {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Reason: {request.Reason.Trim()}");
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted late arrival request #{RequestId}", created.RequestId);
+            }
+        }
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -375,6 +411,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         await SendStaffRequestNotificationToManagerAsync(staff, created, "EARLY_LEAVE",
             $"Staff member {staff.FullName} submitted an early leave request for {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Reason: {request.Reason.Trim()}");
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted early leave request #{RequestId}", created.RequestId);
+            }
+        }
+
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
     }
@@ -396,6 +450,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         await SendStaffRequestNotificationToManagerAsync(staff, created, "SALARY_INCREASE",
             $"Staff member {staff.FullName} submitted a salary increase request proposing {request.ProposedHourlyRate:N0} VND/h. Reason: {request.Reason.Trim()}");
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted salary increase request #{RequestId}", created.RequestId);
+            }
+        }
+
         return MapToDetailResponse(await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken) ?? created);
     }
 
@@ -415,6 +487,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         var cancelled = await _repo.CancelRequestAsync(requestId, staffId, cancellationToken);
 
         await SendStaffCancelNotificationToManagerAsync(staff, cancelled);
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "CANCELLED",
+                    requestId = cancelled.RequestId,
+                    branchId = cancelled.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for cancelled request #{RequestId}", cancelled.RequestId);
+            }
+        }
 
         var detail = await _repo.GetByIdAsync(cancelled.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? cancelled);

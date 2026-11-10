@@ -5,6 +5,21 @@
     var isSubmitted = string.Equals(Model.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase);
     var isApproved = string.Equals(Model.Status, "APPROVED", StringComparison.OrdinalIgnoreCase);
     var isRejected = string.Equals(Model.Status, "REJECTED", StringComparison.OrdinalIgnoreCase);
+
+    string FormatItemVal(string? fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "—";
+        if (string.Equals(fieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fieldName, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ||
+                decimal.TryParse(value, out d))
+            {
+                return d % 1 == 0 ? d.ToString("0") : d.ToString("0.##");
+            }
+        }
+        return value;
+    }
 }
 
 <div class="flex flex-col gap-6 max-w-6xl mx-auto">
@@ -236,27 +251,84 @@
                                         }
                                         else
                                         {
-                                            <span class="px-2.5 py-1 rounded bg-slate-100 font-mono text-slate-700">@item.OriginalValue</span>
+                                            <span class="px-2.5 py-1 rounded bg-slate-100 font-mono text-slate-700">@FormatItemVal(item.FieldName, item.OriginalValue)</span>
                                         }
                                     </td>
                                     <td class="py-4 px-4">
                                         <span class="px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-mono font-bold border border-blue-200">
-                                            @item.ProposedValue
+                                            @FormatItemVal(item.FieldName, item.ProposedValue)
                                         </span>
                                     </td>
                                     <td class="py-4 px-4 text-slate-600 italic">
                                         @(string.IsNullOrWhiteSpace(item.Reason) ? "—" : item.Reason)
                                     </td>
                                     <td class="py-3 px-4 bg-indigo-50/20">
-                                        @if (string.Equals(item.FieldName, "ContractTerms", StringComparison.OrdinalIgnoreCase))
+                                        @if (string.Equals(item.FieldName, "ContractTerms", StringComparison.OrdinalIgnoreCase) || string.Equals(item.FieldName, "Terms", StringComparison.OrdinalIgnoreCase))
                                         {
                                             <textarea name="Items[@i].FinalValue" rows="2"
                                                       class="w-full px-2.5 py-1.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none">@item.FinalValue</textarea>
                                         }
+                                        else if (string.Equals(item.FieldName, "EmployeePosition", StringComparison.OrdinalIgnoreCase) || string.Equals(item.FieldName, "Position", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <select name="Items[@i].FinalValue" required
+                                                    class="w-full h-9 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none cursor-pointer">
+                                                <option value="">-- Select Employee Type / Position --</option>
+                                                @foreach (var pos in Model.PositionOptions)
+                                                {
+                                                    var isSelected = string.Equals(item.FinalValue?.Trim(), pos.Trim(), StringComparison.OrdinalIgnoreCase);
+                                                    <option value="@pos" selected="@isSelected">@pos</option>
+                                                }
+                                                @if (!string.IsNullOrWhiteSpace(item.FinalValue) && !Model.PositionOptions.Any(p => string.Equals(p, item.FinalValue, StringComparison.OrdinalIgnoreCase)))
+                                                {
+                                                    <option value="@item.FinalValue" selected>@item.FinalValue (Proposed)</option>
+                                                }
+                                            </select>
+                                        }
+                                        else if (string.Equals(item.FieldName, "StartDate", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            var dateVal = "";
+                                            if (DateOnly.TryParse(item.FinalValue, out var pStart))
+                                            {
+                                                dateVal = pStart.ToString("yyyy-MM-dd");
+                                            }
+                                            else if (DateOnly.TryParse(item.OriginalValue, out var oStart))
+                                            {
+                                                dateVal = oStart.ToString("yyyy-MM-dd");
+                                            }
+                                            <input type="date" name="Items[@i].FinalValue" value="@dateVal" required
+                                                   class="w-full h-9 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none cursor-pointer" />
+                                        }
+                                        else if (string.Equals(item.FieldName, "EndDate", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            var endDateVal = "";
+                                            if (DateOnly.TryParse(item.FinalValue, out var pEnd))
+                                            {
+                                                endDateVal = pEnd.ToString("yyyy-MM-dd");
+                                            }
+                                            else if (DateOnly.TryParse(item.OriginalValue, out var oEnd))
+                                            {
+                                                endDateVal = oEnd.ToString("yyyy-MM-dd");
+                                            }
+                                            <input type="date" name="Items[@i].FinalValue" value="@endDateVal"
+                                                   class="w-full h-9 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none cursor-pointer" />
+                                        }
+                                        else if (string.Equals(item.FieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            <div class="space-y-1">
+                                                <input type="number" step="any" min="@(Model.RegionalMinimumWage ?? 0)" name="Items[@i].FinalValue" value="@FormatItemVal(item.FieldName, item.FinalValue)" required
+                                                       class="w-full h-9 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none" />
+                                                @if (Model.RegionalMinimumWage.HasValue && Model.RegionalMinimumWage.Value > 0)
+                                                {
+                                                    <span class="text-[11px] text-amber-600 font-medium block">
+                                                        Min regional wage: @Model.RegionalMinimumWage.Value.ToString("#,##0") VND/hr
+                                                    </span>
+                                                }
+                                            </div>
+                                        }
                                         else
                                         {
-                                            <input type="text" name="Items[@i].FinalValue" value="@item.FinalValue"
-                                                   class="w-full h-8 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none" />
+                                            <input type="text" name="Items[@i].FinalValue" value="@item.FinalValue" required
+                                                   class="w-full h-9 px-2.5 bg-white border border-indigo-200 rounded-lg text-xs text-slate-800 font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-600 outline-none" />
                                         }
                                     </td>
                                 </tr>
@@ -319,8 +391,8 @@
                         {
                             <tr class="hover:bg-slate-50/60 transition-colors">
                                 <td class="py-3.5 px-4 font-bold text-slate-800">@item.FieldNameDisplay</td>
-                                <td class="py-3.5 px-4 font-mono text-slate-500">@(string.IsNullOrWhiteSpace(item.OriginalValue) ? "—" : item.OriginalValue)</td>
-                                <td class="py-3.5 px-4 font-mono font-bold text-blue-700">@item.ProposedValue</td>
+                                <td class="py-3.5 px-4 font-mono text-slate-500">@FormatItemVal(item.FieldName, item.OriginalValue)</td>
+                                <td class="py-3.5 px-4 font-mono font-bold text-blue-700">@FormatItemVal(item.FieldName, item.ProposedValue)</td>
                                 <td class="py-3.5 px-4 text-slate-600 italic">@(string.IsNullOrWhiteSpace(item.Reason) ? "—" : item.Reason)</td>
                             </tr>
                         }
@@ -403,6 +475,11 @@
 @section Scripts {
     <script>
         function openConfirmApproveModal() {
+            var form = document.getElementById('approveForm');
+            if (form && !form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
             document.getElementById('confirmApproveModal').classList.remove('hidden');
         }
         function closeConfirmApproveModal() {
