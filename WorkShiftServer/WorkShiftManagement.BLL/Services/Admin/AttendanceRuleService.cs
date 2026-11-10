@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -25,6 +27,7 @@ public class AttendanceRuleService : IAttendanceRuleService
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendanceRuleService> _logger;
     private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendanceRuleService(
         IAttendanceRuleRepo attendanceRuleRepo,
@@ -32,7 +35,8 @@ public class AttendanceRuleService : IAttendanceRuleService
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
         ILogger<AttendanceRuleService> logger,
-        IAuditLogHelper? auditLogHelper = null)
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _attendanceRuleRepo = attendanceRuleRepo;
         _notificationRepo = notificationRepo;
@@ -40,6 +44,7 @@ public class AttendanceRuleService : IAttendanceRuleService
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
         _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken)
@@ -207,6 +212,7 @@ public class AttendanceRuleService : IAttendanceRuleService
         rule.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
 
         if (_auditLogHelper != null)
         {
@@ -270,6 +276,7 @@ public class AttendanceRuleService : IAttendanceRuleService
         rule.UpdatedAt = now;
 
         await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
 
         if (_auditLogHelper != null)
         {
@@ -322,6 +329,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             nextRule.UpdatedAt = now;
 
             await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+            _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
 
             await SendActiveNotificationAsync(nextRule);
             await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });

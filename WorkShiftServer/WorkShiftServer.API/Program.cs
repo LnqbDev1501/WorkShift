@@ -1,7 +1,9 @@
+using System.IO.Compression;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using WorkShiftManagement.BLL.Helpers;
@@ -39,6 +41,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<AdminDataChangedFilter>();
 builder.Services.AddControllers(options => options.Filters.AddService<AdminDataChangedFilter>());
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes;
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -455,6 +467,10 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection(); // Commented out to prevent HTTP 307 redirect when behind ngrok/proxy
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api/auth")
+               && !context.Request.Path.StartsWithSegments("/hubs"),
+    branch => branch.UseResponseCompression());
 app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();

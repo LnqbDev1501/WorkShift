@@ -1,8 +1,10 @@
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
@@ -37,6 +39,7 @@ public class UserService : IUserService
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
     private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public UserService(
         IUserRepo userRepo,
@@ -47,7 +50,8 @@ public class UserService : IUserService
         ICloudinaryService cloudinaryService,
         IAdminRealtimePublisher adminRealtimePublisher,
         INotificationRealtimePublisher notificationRealtimePublisher,
-        IAuditLogHelper? auditLogHelper = null)
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -60,6 +64,7 @@ public class UserService : IUserService
         _adminRealtimePublisher = adminRealtimePublisher;
         _notificationRealtimePublisher = notificationRealtimePublisher;
         _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -483,6 +488,7 @@ public class UserService : IUserService
             }
 
             await transaction.CommitAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
 
             if (notification is not null)
             {
@@ -698,6 +704,7 @@ public class UserService : IUserService
             user.DeletedAt = now;
             user.UpdatedAt = now;
             await _userRepo.SaveChangesAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
         }
         catch
         {
@@ -798,6 +805,7 @@ public class UserService : IUserService
             user.DeletedAt = null;
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepo.SaveChangesAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
         }
         catch (Exception exception)
         {

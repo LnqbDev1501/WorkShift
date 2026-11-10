@@ -70,19 +70,40 @@ public class AttendanceRepo : IAttendanceRepo
         }
 
         var connection = _context.Database.GetDbConnection();
-        if (connection.State != System.Data.ConnectionState.Open)
+        var currentTransaction = _context.Database.CurrentTransaction;
+        bool openedHere = currentTransaction == null
+            && connection.State != System.Data.ConnectionState.Open;
+
+        if (openedHere)
         {
-            await connection.OpenAsync(cancellationToken);
+            await _context.Database.OpenConnectionAsync(cancellationToken);
         }
 
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT face_embedding::text FROM public.face_profiles WHERE face_profile_id = @id LIMIT 1;";
-        var param = cmd.CreateParameter();
-        param.ParameterName = "@id";
-        param.Value = profile.FaceProfileId;
-        cmd.Parameters.Add(param);
+        object? embeddingRaw;
+        try
+        {
+            await using var cmd = connection.CreateCommand();
+            if (currentTransaction != null)
+            {
+                cmd.Transaction = currentTransaction.GetDbTransaction();
+            }
 
-        var embeddingRaw = await cmd.ExecuteScalarAsync(cancellationToken);
+            cmd.CommandText = "SELECT face_embedding::text FROM public.face_profiles WHERE face_profile_id = @id LIMIT 1;";
+            var param = cmd.CreateParameter();
+            param.ParameterName = "@id";
+            param.Value = profile.FaceProfileId;
+            cmd.Parameters.Add(param);
+
+            embeddingRaw = await cmd.ExecuteScalarAsync(cancellationToken);
+        }
+        finally
+        {
+            if (openedHere)
+            {
+                await _context.Database.CloseConnectionAsync();
+            }
+        }
+
         if (embeddingRaw == null)
         {
             return null;

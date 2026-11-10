@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -23,6 +25,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendancePenaltyRuleService> _logger;
     private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendancePenaltyRuleService(
         IAttendancePenaltyRuleRepo attendancePenaltyRuleRepo,
@@ -30,7 +33,8 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
         ILogger<AttendancePenaltyRuleService> logger,
-        IAuditLogHelper? auditLogHelper = null)
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _attendancePenaltyRuleRepo = attendancePenaltyRuleRepo;
         _notificationRepo = notificationRepo;
@@ -38,6 +42,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
         _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AttendancePenaltyRuleListResponse> GetAttendancePenaltyRulesAsync(
@@ -248,6 +253,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
 
         if (_auditLogHelper != null)
         {
@@ -363,6 +369,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             nextRule.UpdatedAt = now;
 
             await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+            _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
 
             await SendActiveNotificationAsync(nextRule);
             await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
@@ -462,6 +469,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
 
         if (_auditLogHelper != null)
         {

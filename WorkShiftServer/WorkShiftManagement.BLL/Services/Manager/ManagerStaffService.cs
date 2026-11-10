@@ -1,6 +1,8 @@
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -22,6 +24,7 @@ public class ManagerStaffService : IManagerStaffService
     private readonly IEmployeeTypeService _employeeTypeService;
     private readonly AppDbContext _context;
     private readonly string _defaultAvatarUrl;
+    private readonly IMemoryCache? _memoryCache;
 
     public ManagerStaffService(
         IManagerStaffRepo staffRepo,
@@ -29,7 +32,8 @@ public class ManagerStaffService : IManagerStaffService
         ICloudinaryService cloudinaryService,
         IEmployeeTypeService employeeTypeService,
         AppDbContext context,
-        Microsoft.Extensions.Configuration.IConfiguration configuration)
+        Microsoft.Extensions.Configuration.IConfiguration configuration,
+        IMemoryCache? memoryCache = null)
     {
         _staffRepo = staffRepo;
         _authService = authService;
@@ -38,6 +42,7 @@ public class ManagerStaffService : IManagerStaffService
         _context = context;
         _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
             ?? throw new InvalidOperationException("Cloudinary:DefaultAvatarUrl is not configured.");
+        _memoryCache = memoryCache;
     }
 
     public async Task<StaffAccountPagedResponse> GetStaffListAsync(ManagerStaffListQuery query, Guid managerId)
@@ -229,7 +234,13 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException(blockingReason);
         }
 
-        return await _staffRepo.SoftDeleteStaffAsync(staffId, branchId);
+        var deactivated = await _staffRepo.SoftDeleteStaffAsync(staffId, branchId);
+        if (deactivated)
+        {
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(staffId));
+        }
+
+        return deactivated;
     }
 
     public async Task<bool> RestoreStaffAsync(Guid staffId, Guid managerId, int? branchId)
@@ -260,7 +271,13 @@ public class ManagerStaffService : IManagerStaffService
             }
         }
 
-        return await _staffRepo.RestoreStaffAsync(staffId, managerBranchId, null);
+        var restored = await _staffRepo.RestoreStaffAsync(staffId, managerBranchId, null);
+        if (restored)
+        {
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(staffId));
+        }
+
+        return restored;
     }
 
     public async Task<bool> ResendStaffSetupLinkAsync(Guid staffId, Guid managerId)

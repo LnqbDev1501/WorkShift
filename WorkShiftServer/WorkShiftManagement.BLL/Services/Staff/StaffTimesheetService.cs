@@ -233,7 +233,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         if (staffTimesheet == null)
         {
-            completedShifts = shiftDtos.Count(s => s.AttendanceStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE");
+            completedShifts = shiftDtos.Count(s => s.AttendanceStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE");
             absentShifts = shiftDtos.Count(s => s.AttendanceStatus == "ABSENT");
             incompleteShifts = shiftDtos.Count(s => s.AttendanceStatus == "INCOMPLETE");
             totalWorkMinutes = shiftDtos.Sum(s => s.ActualWorkingMinutes);

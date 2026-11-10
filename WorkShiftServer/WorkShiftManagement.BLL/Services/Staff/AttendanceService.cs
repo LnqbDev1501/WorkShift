@@ -8,7 +8,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.FaceRegistration.Response;
@@ -56,15 +58,85 @@ public class AttendanceService : IAttendanceService
     private readonly IAttendanceRepo _attendanceRepo;
     private readonly IFaceBiometricService _faceBiometricService;
     private readonly ILogger<AttendanceService> _logger;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendanceService(
         IAttendanceRepo attendanceRepo,
         IFaceBiometricService faceBiometricService,
-        ILogger<AttendanceService> logger)
+        ILogger<AttendanceService> logger,
+        IMemoryCache? memoryCache = null)
     {
         _attendanceRepo = attendanceRepo;
         _faceBiometricService = faceBiometricService;
         _logger = logger;
+        _memoryCache = memoryCache;
+    }
+
+    private async Task<CachedAttendanceRule?> GetCachedActiveAttendanceRuleAsync(CancellationToken cancellationToken)
+    {
+        if (_memoryCache != null &&
+            _memoryCache.TryGetValue(WorkShiftCacheKeys.ActiveAttendanceRule, out CachedAttendanceRule? cached) &&
+            cached != null)
+        {
+            return cached;
+        }
+
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        if (rule == null)
+        {
+            return null;
+        }
+
+        var snapshot = new CachedAttendanceRule(
+            rule.AttendanceRuleId,
+            rule.RuleName,
+            rule.CheckInBeforeMinutes,
+            rule.CheckInGraceMinutes,
+            rule.CheckOutGraceMinutes,
+            rule.CheckOutAfterMinutes,
+            rule.MaxAttendanceDistanceMeters,
+            rule.EffectiveFrom,
+            rule.EffectiveTo,
+            rule.Status);
+
+        _memoryCache?.Set(WorkShiftCacheKeys.ActiveAttendanceRule, snapshot, WorkShiftCacheKeys.DefaultTtl);
+        return snapshot;
+    }
+
+    private async Task<CachedAttendancePenaltyRule?> GetCachedActiveAttendancePenaltyRuleAsync(CancellationToken cancellationToken)
+    {
+        if (_memoryCache != null &&
+            _memoryCache.TryGetValue(WorkShiftCacheKeys.ActiveAttendancePenaltyRule, out CachedAttendancePenaltyRule? cached) &&
+            cached != null)
+        {
+            return cached;
+        }
+
+        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+        if (penaltyRule == null)
+        {
+            return null;
+        }
+
+        var levels = Array.AsReadOnly(penaltyRule.AttendancePenaltyLevels
+            .Select(l => new CachedAttendancePenaltyLevel(
+                l.PenaltyLevelId,
+                l.ViolationType,
+                l.FromMinutes,
+                l.ToMinutes,
+                l.PenaltyAmount))
+            .ToArray());
+
+        var snapshot = new CachedAttendancePenaltyRule(
+            penaltyRule.PenaltyRuleId,
+            penaltyRule.RuleName,
+            penaltyRule.EffectiveFrom,
+            penaltyRule.EffectiveTo,
+            penaltyRule.Status,
+            levels);
+
+        _memoryCache?.Set(WorkShiftCacheKeys.ActiveAttendancePenaltyRule, snapshot, WorkShiftCacheKeys.DefaultTtl);
+        return snapshot;
     }
 
     private async Task<List<EligibleShiftResponse>> GetTodayShiftsAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -86,7 +158,7 @@ public class AttendanceService : IAttendanceService
             return new List<EligibleShiftResponse>();
         }
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
         var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
@@ -278,7 +350,7 @@ public class AttendanceService : IAttendanceService
         var assignments = await _attendanceRepo.GetShiftAssignmentsByDateRangeAsync(
             userId, effectiveFromDate, effectiveToDate, cancellationToken);
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
         var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
@@ -564,7 +636,7 @@ public class AttendanceService : IAttendanceService
             status = nowUtc > shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
         }
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken);
         int maxDistance = rule?.MaxAttendanceDistanceMeters ?? 20;
 
         return new StaffAttendanceDetailResponse
@@ -699,8 +771,6 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Authenticated user identity is required.");
         }
 
-        await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
-
         EligibleShiftResponse targetShift;
         if (assignmentId.HasValue && assignmentId.Value > 0)
         {
@@ -785,8 +855,8 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Check-in request payload is required.");
         }
 
-        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile + Embedding)
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesWithEmbeddingAsync(userId, cancellationToken);
 
         // 2. Validate Assignment
         var assignment = await _attendanceRepo.GetAssignmentWithDetailsAsync(request.AssignmentId, cancellationToken)
@@ -823,10 +893,10 @@ public class AttendanceService : IAttendanceService
         var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(request.AssignmentId, cancellationToken);
 
         // 4. Validate Time Window & Cut-off
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
-        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+        var penaltyRule = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
         var shiftStartUtc = shift.ScheduledStartAt;
@@ -1010,7 +1080,7 @@ public class AttendanceService : IAttendanceService
                 penaltyRule.EffectiveFrom,
                 penaltyRule.EffectiveTo,
                 penaltyRule.Status,
-                PenaltyLevels = penaltyRule.AttendancePenaltyLevels.Select(l => new
+                PenaltyLevels = penaltyRule.Levels.Select(l => new
                 {
                     l.PenaltyLevelId,
                     l.ViolationType,
@@ -1071,7 +1141,7 @@ public class AttendanceService : IAttendanceService
 
             if (chargeableLateMinutes > 0 && penaltyRule != null)
             {
-                var matchedLevel = penaltyRule.AttendancePenaltyLevels
+                var matchedLevel = penaltyRule.Levels
                     .FirstOrDefault(l => l.ViolationType == "LATE" &&
                                          chargeableLateMinutes >= l.FromMinutes &&
                                          (!l.ToMinutes.HasValue || chargeableLateMinutes <= l.ToMinutes.Value));
@@ -1166,7 +1236,7 @@ public class AttendanceService : IAttendanceService
         }
 
         var shift = attendance.Assignment.Shift;
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
         var nowUtc = DateTime.UtcNow;
@@ -1242,8 +1312,8 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Check-out request payload is required.");
         }
 
-        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile + Embedding)
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesWithEmbeddingAsync(userId, cancellationToken);
 
         // 2. Validate Attendance Session
         var attendance = await _attendanceRepo.GetAttendanceWithDetailsByAssignmentIdAsync(request.AssignmentId, cancellationToken)
@@ -1286,7 +1356,9 @@ public class AttendanceService : IAttendanceService
         }
 
         // Active rule fallbacks if snapshot is missing
-        var fallbackRule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        var fallbackRule = snapshot?.AttendanceRule == null
+            ? await GetCachedActiveAttendanceRuleAsync(cancellationToken)
+            : null;
         int checkOutAfterMinutes = snapshot?.AttendanceRule?.CheckOutAfterMinutes ?? fallbackRule?.CheckOutAfterMinutes
             ?? throw new InvalidOperationException("No attendance rule configuration available for check-out.");
         int checkOutGraceMinutes = snapshot?.AttendanceRule?.CheckOutGraceMinutes ?? fallbackRule?.CheckOutGraceMinutes ?? 0;
@@ -1298,11 +1370,11 @@ public class AttendanceService : IAttendanceService
         // If snapshot had no penalty rule, fallback to current active penalty rule
         if (penaltyRuleId == null || penaltyLevels == null)
         {
-            var fallbackPenalty = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+            var fallbackPenalty = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
             if (fallbackPenalty != null)
             {
                 penaltyRuleId = fallbackPenalty.PenaltyRuleId;
-                penaltyLevels = fallbackPenalty.AttendancePenaltyLevels.Select(l => new AttendancePenaltyLevelSnapshotItem
+                penaltyLevels = fallbackPenalty.Levels.Select(l => new AttendancePenaltyLevelSnapshotItem
                 {
                     PenaltyLevelId = l.PenaltyLevelId,
                     ViolationType = l.ViolationType,
@@ -1553,7 +1625,7 @@ public class AttendanceService : IAttendanceService
         }
     }
 
-    private async Task<(User user, EmploymentContract contract, FaceProfile profile, float[] embedding)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<(User user, EmploymentContract contract)> ValidateUserAndContractPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await _attendanceRepo.GetUserByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("Your user account is not active or was not found.");
@@ -1583,6 +1655,23 @@ public class AttendanceService : IAttendanceService
         {
             throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
+
+        return (user, contract);
+    }
+
+    private async Task<(User user, EmploymentContract contract, FaceProfile profile)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var (user, contract) = await ValidateUserAndContractPrerequisitesAsync(userId, cancellationToken);
+
+        var faceProfile = await _attendanceRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken)
+            ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");
+
+        return (user, contract, faceProfile);
+    }
+
+    private async Task<(User user, EmploymentContract contract, FaceProfile profile, float[] embedding)> ValidateStaffPrerequisitesWithEmbeddingAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var (user, contract) = await ValidateUserAndContractPrerequisitesAsync(userId, cancellationToken);
 
         var faceProfileData = await _attendanceRepo.GetActiveFaceProfileWithEmbeddingByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");
