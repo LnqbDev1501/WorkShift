@@ -282,7 +282,7 @@ class StaffShiftAttendanceModel {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-    return '$formatted đ';
+    return '$formatted VND';
   }
 
   final List<StaffShiftPenaltyModel> penalties;
@@ -395,7 +395,7 @@ class StaffShiftPenaltyModel {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
-    return '$formatted đ';
+    return '$formatted VND';
   }
 
   factory StaffShiftPenaltyModel.fromJson(Map<String, dynamic> json) {

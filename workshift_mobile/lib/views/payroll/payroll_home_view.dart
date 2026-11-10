@@ -59,7 +59,7 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
         elevation: 0,
         actions: [
           IconButton(
-            tooltip: 'Khen thưởng',
+            tooltip: 'Rewards',
             icon: const Icon(
               Icons.workspace_premium_rounded,
               color: AppColors.success,
@@ -72,7 +72,7 @@ class _PayrollHomeViewState extends State<PayrollHomeView>
             },
           ),
           IconButton(
-            tooltip: 'Kỷ luật & Phạt',
+            tooltip: 'Penalties',
             icon: const Icon(Icons.gavel_rounded, color: AppColors.error),
             onPressed: () {
               Navigator.push(

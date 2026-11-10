@@ -39,7 +39,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Mật khẩu xác nhận không khớp.'),
+            content: Text('Password confirmation does not match.'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -60,7 +60,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
       _confirmPasswordController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Mật khẩu đã được thay đổi thành công.'),
+          content: Text('Password changed successfully.'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -93,7 +93,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
           validator: validator,
           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
-            hintText: 'Nhập $label',
+            hintText: 'Enter $label',
             hintStyle: const TextStyle(
               fontSize: 13,
               color: AppColors.textMuted,
@@ -147,20 +147,20 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Vui lòng nhập mật khẩu.';
+      return 'Please enter password.';
     }
     if (value.length < 6) {
-      return 'Mật khẩu phải có ít nhất 6 ký tự.';
+      return 'Password must be at least 6 characters.';
     }
     if (value.length > 16) {
-      return 'Mật khẩu không được quá 16 ký tự.';
+      return 'Password must not exceed 16 characters.';
     }
     final hasUpper = RegExp(r'[A-Z]').hasMatch(value);
     final hasLower = RegExp(r'[a-z]').hasMatch(value);
     final hasDigit = RegExp(r'\d').hasMatch(value);
     final hasSpecial = RegExp(r'[^a-zA-Z0-9\s]').hasMatch(value);
     if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-      return 'Mật khẩu phải chứa chữ hoa, chữ thường, số và ký tự đặc biệt.';
+      return 'Password must contain uppercase, lowercase, numbers, and special characters.';
     }
     return null;
   }
@@ -282,7 +282,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                     onToggle: () =>
                         setState(() => _obscureCurrent = !_obscureCurrent),
                     validator: (v) => v == null || v.isEmpty
-                        ? 'Vui lòng nhập mật khẩu hiện tại'
+                        ? 'Please enter your current password.'
                         : null,
                   ),
                   const SizedBox(height: 16),
@@ -302,10 +302,10 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                         setState(() => _obscureConfirm = !_obscureConfirm),
                     validator: (v) {
                       if (v == null || v.isEmpty) {
-                        return 'Vui lòng nhập xác nhận mật khẩu.';
+                        return 'Please confirm your new password.';
                       }
                       if (v != _newPasswordController.text) {
-                        return 'Mật khẩu xác nhận không khớp.';
+                        return 'Password confirmation does not match.';
                       }
                       return null;
                     },
@@ -330,7 +330,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
                           : const Icon(Icons.lock_reset_rounded, size: 18),
                       label: Text(
                         _controller.isChangingPassword
-                            ? 'Đang đổi...'
+                            ? 'Updating...'
                             : 'Change Password',
                         style: const TextStyle(
                           fontSize: 14,
