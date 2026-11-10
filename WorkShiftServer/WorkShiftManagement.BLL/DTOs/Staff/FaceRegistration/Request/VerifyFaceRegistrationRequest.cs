@@ -17,4 +17,9 @@ public class VerifyFaceRegistrationRequest
     /// </summary>
     [Range(0.0, 1.0, ErrorMessage = "LivenessScore must be between 0.0 and 1.0.")]
     public decimal? LivenessScore { get; set; }
+
+    /// <summary>
+    /// Indicates the request originates from Flutter Web test mode (only honored in Development).
+    /// </summary>
+    public bool IsWebTestMode { get; set; } = false;
 }
