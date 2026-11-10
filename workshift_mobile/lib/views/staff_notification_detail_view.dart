@@ -106,10 +106,10 @@ class _StaffNotificationDetailViewState
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
-    if (diff.inDays > 0) return '${diff.inDays} ngày trước';
-    if (diff.inHours > 0) return '${diff.inHours} giờ trước';
-    if (diff.inMinutes > 0) return '${diff.inMinutes} phút trước';
-    return 'Vừa xong';
+    if (diff.inDays > 0) return diff.inDays > 1 ? '${diff.inDays} days ago' : '1 day ago';
+    if (diff.inHours > 0) return diff.inHours > 1 ? '${diff.inHours} hours ago' : '1 hour ago';
+    if (diff.inMinutes > 0) return diff.inMinutes > 1 ? '${diff.inMinutes} minutes ago' : '1 minute ago';
+    return 'Just now';
   }
 
   @override
@@ -118,7 +118,7 @@ class _StaffNotificationDetailViewState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
-          'Chi tiết thông báo',
+          'Notification Details',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         centerTitle: false,
@@ -167,7 +167,7 @@ class _StaffNotificationDetailViewState
                       _loadDetail();
                     },
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                    label: const Text('Thử lại'),
+                    label: const Text('Retry'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
@@ -180,7 +180,7 @@ class _StaffNotificationDetailViewState
               ),
             )
           : _notification == null
-          ? const Center(child: Text('Không tìm thấy thông báo.'))
+          ? const Center(child: Text('Notification not found.'))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -317,7 +317,7 @@ class _StaffNotificationDetailViewState
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _notification!.createdByName ?? 'Hệ thống',
+                                    _notification!.createdByName ?? 'System',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -347,7 +347,7 @@ class _StaffNotificationDetailViewState
                                         ? _formatDateTime(
                                             _notification!.readAt!,
                                           )
-                                        : 'Chưa xem',
+                                        : 'Unread',
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -365,7 +365,7 @@ class _StaffNotificationDetailViewState
                   const SizedBox(height: 24),
                   // Message content
                   const Text(
-                    'Nội dung',
+                    'Message',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -386,25 +386,33 @@ class _StaffNotificationDetailViewState
                           ? _notification!.message
                                 .replaceAll(
                                   'Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu',
-                                  'Lý do: Quá ngày bắt đầu',
+                                  'Cancellation Reason: Start date passed',
                                 )
                                 .replaceAll(
-                                  'Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu',
                                   'Lý do: Quá ngày bắt đầu',
+                                  'Cancellation Reason: Start date passed',
                                 )
                                 .replaceAll(
                                   'chưa xác nhận chấp thuận).',
+                                  'without staff confirmation.',
+                                )
+                                .replaceAll(
                                   'chưa xác nhận chấp thuận.',
+                                  'without staff confirmation.',
                                 )
                                 .replaceAll(
                                   'chưa xác nhận chấp thuận)',
+                                  'without staff confirmation',
+                                )
+                                .replaceAll(
                                   'chưa xác nhận chấp thuận',
+                                  'without staff confirmation',
                                 )
                                 .replaceAll(
                                   'NOT_ACCEPTED_BY_START_DATE',
-                                  'Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận',
+                                  'Start date passed without staff confirmation',
                                 )
-                          : 'Không có nội dung chi tiết.',
+                          : 'No detailed message content.',
                       style: const TextStyle(
                         fontSize: 15,
                         color: AppColors.textPrimary,
@@ -433,7 +441,7 @@ class _StaffNotificationDetailViewState
                           size: 20,
                         ),
                         label: const Text(
-                          'Xem danh sách & Nhận ca (Pick up)',
+                          'View & Pick Up Shifts',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -478,7 +486,7 @@ class _StaffNotificationDetailViewState
                         },
                         icon: const Icon(Icons.payments_rounded, size: 20),
                         label: const Text(
-                          'Xem Bảng lương & Phản hồi',
+                          'View Payroll & Feedback',
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,

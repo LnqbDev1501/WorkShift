@@ -159,7 +159,7 @@ class AttendanceController extends ChangeNotifier {
       await Future.wait([determinePosition(), initCamera()]);
     } else {
       _useBranchFallback();
-      detectionStatus = 'Web Test Mode: Sẵn sàng điểm danh 1 chạm';
+      detectionStatus = 'Web Test Mode: Ready for 1-tap attendance';
     }
 
     isInitializing = false;

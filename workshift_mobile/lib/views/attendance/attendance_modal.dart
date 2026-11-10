@@ -1189,8 +1189,8 @@ class _AttendanceModalPopupState extends State<AttendanceModalPopup>
               ),
               label: Text(
                 widget.isCheckIn
-                    ? 'Test 1 Chạm: Điểm Danh Vào Ngay (Web)'
-                    : 'Test 1 Chạm: Điểm Danh Ra Ngay (Web)',
+                    ? '1-Tap Test: Instant Check-In (Web)'
+                    : '1-Tap Test: Instant Check-Out (Web)',
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,

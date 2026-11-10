@@ -289,7 +289,7 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
               onSelected: (selected) {
                 if (selected) {
                   setState(() {
-                    _selectedStatus = item['key'] as String?;
+                    _selectedStatus = item['key'];
                   });
                   _fetchOrders(refresh: true);
                 }
@@ -475,7 +475,7 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
                                               ),
                                               SizedBox(width: 2),
                                               Text(
-                                                'Chờ làm',
+                                                'Pending',
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,

@@ -66,7 +66,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _controller.errorMessage ?? 'Upload avatar thất bại.',
+              _controller.errorMessage ?? 'Failed to upload profile picture.',
             ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
@@ -75,7 +75,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cập nhật ảnh đại diện thành công.'),
+            content: Text('Profile picture updated successfully.'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
@@ -85,7 +85,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -101,7 +101,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).',
+            'Invalid phone number. Please enter a valid 10-digit mobile phone number.',
           ),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
@@ -122,7 +122,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       setState(() => _isEditingPersonal = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cập nhật thông tin thành công.'),
+          content: Text('Personal information updated successfully.'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -148,20 +148,20 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             Icon(Icons.logout_rounded, color: AppColors.error),
             SizedBox(width: 8),
             Text(
-              'Đăng xuất',
+              'Log Out',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: const Text(
-          'Bạn có chắc muốn đăng xuất khỏi tài khoản này?',
+          'Are you sure you want to log out of this account?',
           style: TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
-              'Hủy',
+              'Cancel',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
@@ -175,7 +175,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Đăng xuất'),
+            child: const Text('Log Out'),
           ),
         ],
       ),
@@ -265,7 +265,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     onPressed: _handleLogout,
                     icon: const Icon(Icons.logout_rounded, size: 20),
                     label: const Text(
-                      'Đăng xuất',
+                      'Log Out',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -355,7 +355,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user?.fullName ?? 'Không có tên',
+                  user?.fullName ?? 'No name provided',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -433,7 +433,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${user?.branchName ?? 'Chi nhánh'} • Joined ${_formatDate(user?.createdAt)}',
+                  '${user?.branchName ?? 'Branch'} • Joined ${_formatDate(user?.createdAt)}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -445,7 +445,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           if (user != null)
             IconButton(
               onPressed: _handleLogout,
-              tooltip: 'Đăng xuất',
+              tooltip: 'Log Out',
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               icon: const Icon(
@@ -590,12 +590,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Personal & Identity Information',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Personal & Identity Information',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -611,18 +613,18 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ? [
                     _buildEditTextField(
                       label: 'FULL NAME',
-                      hint: 'Nhập họ tên',
+                      hint: 'Enter full name',
                       controller: _fullNameController,
                     ),
                     _buildInfoItem(
                       'EMAIL',
-                      user?.email ?? 'Không có email',
+                      user?.email ?? 'No email provided',
                       isVerified: true,
                       isLocked: true,
                     ),
                     _buildEditTextField(
                       label: 'MOBILE PHONE',
-                      hint: 'Nhập số điện thoại (10 chữ số)',
+                      hint: 'Enter 10-digit mobile number',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
@@ -633,7 +635,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     ),
                     _buildInfoItem(
                       'NATIONAL CITIZEN ID',
-                      user?.identityNo ?? 'Không có CCCD',
+                      user?.identityNo ?? 'No ID provided',
                       isLocked: true,
                     ),
                     _buildGenderEditField(),
@@ -645,7 +647,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     ),
                     _buildEditTextField(
                       label: 'RESIDENTIAL ADDRESS',
-                      hint: 'Nhập địa chỉ',
+                      hint: 'Enter address',
                       controller: _addressController,
                       maxLines: 2,
                     ),
@@ -653,38 +655,38 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 : [
                     _buildInfoItem(
                       'FULL NAME',
-                      user?.fullName ?? 'Không có tên',
+                      user?.fullName ?? 'No name provided',
                       onTap: () => setState(() => _isEditingPersonal = true),
                     ),
                     _buildInfoItem(
                       'EMAIL',
-                      user?.email ?? 'Không có email',
+                      user?.email ?? 'No email provided',
                       isVerified: true,
                       isLocked: true,
                     ),
                     _buildInfoItem(
                       'MOBILE PHONE',
-                      user?.phone ?? 'Không có số điện thoại',
+                      user?.phone ?? 'No phone provided',
                       onTap: () => setState(() => _isEditingPersonal = true),
                     ),
                     _buildInfoItem(
                       'NATIONAL CITIZEN ID',
-                      user?.identityNo ?? 'Không có CCCD',
+                      user?.identityNo ?? 'No ID provided',
                       isLocked: true,
                     ),
                     _buildInfoItem(
                       'GENDER',
-                      user?.gender ?? 'Không có giới tính',
+                      user?.gender ?? 'No gender provided',
                       onTap: () => setState(() => _isEditingPersonal = true),
                     ),
                     _buildInfoItem(
                       'DATE OF BIRTH',
-                      _formatDate(user?.dateOfBirth) ?? 'Không có ngày sinh',
+                      _formatDate(user?.dateOfBirth) ?? 'No date of birth',
                       onTap: () => setState(() => _isEditingPersonal = true),
                     ),
                     _buildInfoItem(
                       'RESIDENTIAL ADDRESS',
-                      user?.address ?? 'Không có địa chỉ',
+                      user?.address ?? 'No address provided',
                       onTap: () => setState(() => _isEditingPersonal = true),
                     ),
                   ],
@@ -751,7 +753,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                           : const Icon(Icons.save_rounded, size: 18),
                       label: Text(
                         _controller.isUpdatingProfile
-                            ? 'Đang lưu...'
+                            ? 'Saving...'
                             : 'Save Changes',
                         style: const TextStyle(
                           fontSize: 14,
@@ -847,37 +849,58 @@ class _StaffProfileViewState extends State<StaffProfileView> {
   }
 
   Widget _buildInfoGrid(List<Widget> items) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive breakpoint: Switch to single column on narrow viewports (< 340dp width)
+        // or when font scales require more horizontal breathing space.
+        final isNarrow = constraints.maxWidth < 340;
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 14),
+                items[i],
+              ],
+            ],
+          );
+        }
+
+        return Column(
           children: [
-            Expanded(child: items[0]),
-            const SizedBox(width: 20),
-            Expanded(child: items[1]),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[0]),
+                const SizedBox(width: 12),
+                Expanded(child: items[1]),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[2]),
+                const SizedBox(width: 12),
+                Expanded(child: items[3]),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[4]),
+                const SizedBox(width: 12),
+                Expanded(child: items[5]),
+              ],
+            ),
+            if (items.length > 6) ...[
+              const SizedBox(height: 16),
+              items[6],
+            ],
           ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: items[2]),
-            const SizedBox(width: 20),
-            Expanded(child: items[3]),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: items[4]),
-            const SizedBox(width: 20),
-            Expanded(child: items[5]),
-          ],
-        ),
-        const SizedBox(height: 16),
-        items[6],
-      ],
+        );
+      },
     );
   }
 
@@ -905,7 +928,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _normalizeGender(_genderController.text),
-              hint: const Text('Chọn giới tính'),
+              hint: const Text('Select Gender'),
               isExpanded: true,
               isDense: true,
               items: const [
@@ -1021,12 +1044,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Account & System Info',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Account & System Info',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -1037,10 +1062,10 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
-          _buildSystemInfoItem('USER ID', user?.userId ?? 'Không có ID'),
+          _buildSystemInfoItem('USER ID', user?.userId ?? 'No ID'),
           _buildSystemInfoItem(
             'SYSTEM ROLE',
-            user?.roleName ?? 'Không có vai trò',
+            user?.roleName ?? 'No role',
           ),
           _buildSystemInfoItem(
             'CURRENT STATUS',
@@ -1049,11 +1074,11 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           ),
           _buildSystemInfoItem(
             'JOINED',
-            _formatDate(user?.createdAt) ?? 'Không có ngày',
+            _formatDate(user?.createdAt) ?? 'No date',
           ),
           _buildSystemInfoItem(
             'LAST UPDATED',
-            _formatDate(user?.updatedAt) ?? 'Không có ngày',
+            _formatDate(user?.updatedAt) ?? 'No date',
           ),
           _buildSystemInfoItem(
             'Record Integrity',
@@ -1211,12 +1236,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Account Settings',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Account Settings',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -1230,7 +1257,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           _buildOptionRow(
             icon: Icons.email_rounded,
             title: 'Change Email',
-            subtitle: user?.email ?? 'Cập nhật địa chỉ email',
+            subtitle: user?.email ?? 'Update email address',
             onTap: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const ChangeEmailView())),
@@ -1239,7 +1266,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           _buildOptionRow(
             icon: Icons.lock_reset_rounded,
             title: 'Change Password',
-            subtitle: 'Đổi mật khẩu đăng nhập',
+            subtitle: 'Update login password',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ChangePasswordView()),
             ),

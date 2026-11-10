@@ -55,7 +55,7 @@ class ProfileController extends ChangeNotifier {
   }) async {
     final phoneRegex = RegExp(r'^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$');
     if (!phoneRegex.hasMatch(phone.trim())) {
-      _errorMessage = 'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
+      _errorMessage = 'Invalid phone number. Please enter a valid 10-digit mobile number.';
       notifyListeners();
       return false;
     }
@@ -79,12 +79,12 @@ class ProfileController extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.data != null) {
         _user = UserModel.fromJson(response.data as Map<String, dynamic>);
-        _successMessage = 'Cập nhật thông tin thành công.';
+        _successMessage = 'Personal information updated successfully.';
         _isUpdatingProfile = false;
         notifyListeners();
         return true;
       }
-      _errorMessage = 'Không thể cập nhật thông tin. Vui lòng thử lại.';
+      _errorMessage = 'Unable to update personal information. Please try again.';
       return false;
     } on String catch (e) {
       _errorMessage = e;
@@ -138,12 +138,12 @@ class ProfileController extends ChangeNotifier {
             updatedAt: _user!.updatedAt,
           );
         }
-        _successMessage = 'Cập nhật ảnh đại diện thành công.';
+        _successMessage = 'Profile picture updated successfully.';
         _isUploadingAvatar = false;
         notifyListeners();
         return true;
       }
-      _errorMessage = 'Không thể upload ảnh đại diện. Vui lòng thử lại.';
+      _errorMessage = 'Failed to upload profile picture. Please try again.';
       return false;
     } on String catch (e) {
       _errorMessage = e;
@@ -172,12 +172,12 @@ class ProfileController extends ChangeNotifier {
 
       if (response.statusCode == 202 || response.statusCode == 200) {
         _successMessage =
-            'Một liên kết xác nhận đã được gửi đến địa chỉ email mới.';
+            'A verification link has been sent to your new email.';
         _isChangingEmail = false;
         notifyListeners();
         return true;
       }
-      _errorMessage = 'Không thể gửi yêu cầu đổi email. Vui lòng thử lại.';
+      _errorMessage = 'Unable to submit email change request. Please try again.';
       return false;
     } on String catch (e) {
       _errorMessage = e;
@@ -213,12 +213,12 @@ class ProfileController extends ChangeNotifier {
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        _successMessage = 'Mật khẩu đã được thay đổi thành công.';
+        _successMessage = 'Password changed successfully.';
         _isChangingPassword = false;
         notifyListeners();
         return true;
       }
-      _errorMessage = 'Không thể đổi mật khẩu. Vui lòng thử lại.';
+      _errorMessage = 'Unable to change password. Please try again.';
       return false;
     } on String catch (e) {
       _errorMessage = e;

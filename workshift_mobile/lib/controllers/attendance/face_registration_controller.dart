@@ -101,7 +101,7 @@ class FaceRegistrationController extends ChangeNotifier {
         await startChallengeDetection();
       }
     } else {
-      detectionStatus = 'Web Test Mode: Sẵn sàng đăng ký 1 chạm';
+      detectionStatus = 'Web Test Mode: Ready for 1-tap registration';
       notifyListeners();
     }
   }

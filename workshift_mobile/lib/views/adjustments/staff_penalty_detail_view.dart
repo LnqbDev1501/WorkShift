@@ -45,7 +45,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
       if (!mounted) return;
       setState(() {
         _errorMessage =
-            'Không thể tải chi tiết kỷ luật hoặc bản ghi không thuộc quyền sở hữu của bạn.';
+            'Unable to load penalty details or this record does not belong to you.';
         _isLoading = false;
       });
     }
@@ -118,7 +118,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                     ElevatedButton.icon(
                       onPressed: _loadDetail,
                       icon: const Icon(Icons.refresh),
-                      label: const Text('Thử lại'),
+                      label: const Text('Retry'),
                     ),
                   ],
                 ),
@@ -161,7 +161,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Trạng thái: ${_penalty!.approvalStatus}',
+                                'Status: ${_penalty!.approvalStatus}',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -172,10 +172,10 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                               ),
                               Text(
                                 _penalty!.isApproved
-                                    ? 'Khoản phạt đã được phê duyệt và sẽ khấu trừ vào kỳ lương.'
+                                    ? 'The penalty has been approved and will be deducted in payroll.'
                                     : _penalty!.isRejected
-                                    ? 'Khoản phạt đã bị bác bỏ / từ chối duyệt.'
-                                    : 'Khoản phạt đang chờ cấp thẩm quyền xem xét xử lý.',
+                                    ? 'The penalty has been rejected.'
+                                    : 'The penalty is pending management review.',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: _getStatusColor(
@@ -204,7 +204,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Số tiền khấu trừ phạt',
+                          'Penalty Deduction Amount',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -238,7 +238,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Thông tin kỷ luật vi phạm',
+                          'Penalty Violation Details',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -247,26 +247,26 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                         ),
                         const SizedBox(height: 14),
                         _buildInfoRow(
-                          'Tên khoản phạt',
+                          'Penalty Name',
                           _penalty!.adjustmentName,
                         ),
                         _buildInfoRow(
-                          'Kỳ lương áp dụng',
+                          'Applicable Payroll Period',
                           '${_penalty!.periodCode} - ${_penalty!.periodName}',
                         ),
                         if (_penalty!.createdAt != null)
                           _buildInfoRow(
-                            'Ngày lập biên bản',
+                            'Created Date',
                             formatVietnamDateTime(_penalty!.createdAt),
                           ),
                         if (_penalty!.createdByName != null)
                           _buildInfoRow(
-                            'Người lập đề xuất',
+                            'Created By',
                             _penalty!.createdByName!,
                           ),
                         const Divider(height: 24),
                         const Text(
-                          'Lý do / Mô tả vi phạm',
+                          'Reason / Description',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -277,7 +277,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                         Text(
                           _penalty!.reason.isNotEmpty
                               ? _penalty!.reason
-                              : 'Không có ghi chú thêm.',
+                              : 'No additional notes.',
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
@@ -305,7 +305,7 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Thông tin xét duyệt',
+                            'Review Information',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -315,29 +315,29 @@ class _StaffPenaltyDetailViewState extends State<StaffPenaltyDetailView> {
                           const SizedBox(height: 12),
                           if (_penalty!.approvedByName != null)
                             _buildInfoRow(
-                              'Người duyệt',
+                              'Approved By',
                               _penalty!.approvedByName!,
                             ),
                           if (_penalty!.approvedAt != null)
                             _buildInfoRow(
-                              'Thời gian duyệt',
+                              'Approved At',
                               formatVietnamDateTime(_penalty!.approvedAt),
                             ),
                           if (_penalty!.rejectedByName != null)
                             _buildInfoRow(
-                              'Người bác bỏ',
+                              'Rejected By',
                               _penalty!.rejectedByName!,
                             ),
                           if (_penalty!.rejectedAt != null)
                             _buildInfoRow(
-                              'Thời gian bác bỏ',
+                              'Rejected At',
                               formatVietnamDateTime(_penalty!.rejectedAt),
                             ),
                           if (_penalty!.reviewNote != null &&
                               _penalty!.reviewNote!.trim().isNotEmpty) ...[
                             const SizedBox(height: 8),
                             const Text(
-                              'Ghi chú xét duyệt:',
+                              'Review Notes:',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: AppColors.textSecondary,

@@ -130,7 +130,7 @@ class _SubmitContractChangeRequestViewState
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF). Hợp đồng đã có hiệu lực không thể yêu cầu thay đổi.',
+            'Change requests can only be submitted for contracts awaiting signature (PENDING_STAFF). Active contracts cannot be modified here.',
           ),
           backgroundColor: AppColors.error,
         ),
