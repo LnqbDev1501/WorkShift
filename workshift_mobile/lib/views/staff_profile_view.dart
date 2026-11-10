@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../controllers/profile/profile_controller.dart';
 import '../../models/auth/user_model.dart';
@@ -94,6 +95,21 @@ class _StaffProfileViewState extends State<StaffProfileView> {
   }
 
   Future<void> _handleUpdateProfile() async {
+    final phone = _phoneController.text.trim();
+    final phoneRegex = RegExp(r'^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final success = await _controller.updateProfile(
       fullName: _fullNameController.text,
       phone: _phoneController.text,
@@ -606,9 +622,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     ),
                     _buildEditTextField(
                       label: 'MOBILE PHONE',
-                      hint: 'Nhập số điện thoại',
+                      hint: 'Nhập số điện thoại (10 chữ số)',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      maxLength: 10,
                     ),
                     _buildInfoItem(
                       'NATIONAL CITIZEN ID',
@@ -909,6 +930,8 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     required String hint,
     required TextEditingController controller,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
     int maxLines = 1,
   }) {
     return Column(
@@ -926,6 +949,9 @@ class _StaffProfileViewState extends State<StaffProfileView> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
           maxLines: maxLines,
           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(

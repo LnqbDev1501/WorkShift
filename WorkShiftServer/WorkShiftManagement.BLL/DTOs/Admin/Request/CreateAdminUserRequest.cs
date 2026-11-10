@@ -15,7 +15,7 @@ public class CreateAdminUserRequest
 
     [Required(ErrorMessage = "Phone number is required.")]
     [StringLength(20, ErrorMessage = "Phone number must not exceed 20 characters.")]
-    [RegularExpression(@"^0[35789]\d{8}$", ErrorMessage = "Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.")]
+    [RegularExpression(@"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$", ErrorMessage = "Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).")]
     public string Phone { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Identity number is required.")]

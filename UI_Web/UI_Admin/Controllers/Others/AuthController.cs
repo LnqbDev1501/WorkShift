@@ -180,6 +180,13 @@ namespace UI_Admin.Controllers
             string address,
             CancellationToken cancellationToken)
         {
+            var phoneRegex = new System.Text.RegularExpressions.Regex(@"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$");
+            if (string.IsNullOrWhiteSpace(phone) || !phoneRegex.IsMatch(phone.Trim()))
+            {
+                TempData["ProfileError"] = "Phone number must be a valid 10-digit Vietnamese mobile number (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).";
+                return RedirectToAction(nameof(Profile));
+            }
+
             try
             {
                 await _authService.UpdateProfileAsync(fullName, phone, gender, dateOfBirth, address, cancellationToken);

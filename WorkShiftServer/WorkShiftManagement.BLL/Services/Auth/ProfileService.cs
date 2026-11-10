@@ -49,8 +49,8 @@ public sealed class ProfileService : IProfileService
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
 
         var phone = request.Phone?.Trim() ?? string.Empty;
-        if (!Regex.IsMatch(phone, @"^0[35789]\d{8}$"))
-            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
+        if (!Regex.IsMatch(phone, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
 
         if (await _userRepo.ExistsByPhoneAsync(phone, userId))
             ThrowIdentityConflict("Phone number");

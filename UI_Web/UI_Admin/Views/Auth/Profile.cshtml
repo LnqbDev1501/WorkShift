@@ -226,7 +226,7 @@
                             </div>
                         </div>
                     </div>
-                    <form asp-controller="Auth" asp-action="UpdateProfile" method="post">
+                    <form asp-controller="Auth" asp-action="UpdateProfile" method="post" onsubmit="return validateProfileForm()">
                         @Html.AntiForgeryToken()
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
                             <div class="flex flex-col gap-unit-2">
@@ -248,7 +248,8 @@
                             <div class="flex flex-col gap-unit-2">
                                 <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Mobile Phone</span>
                                 <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5 font-code-num">@(string.IsNullOrWhiteSpace(Model.Phone) ? "—" : Model.Phone)</span>
-                                <input name="Phone" type="text" value="@Model.Phone" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                                <input name="Phone" id="profile-phone-input" type="tel" inputmode="numeric" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="@Model.Phone" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                                <span id="profile-phone-error" class="edit-only hidden text-error font-body-sm text-body-sm text-xs text-red-500 mt-1"></span>
                             </div>
                             <div class="flex flex-col">
                                 <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">National Citizen ID</span>
@@ -422,6 +423,24 @@
 
 @section Scripts {
 <script>
+    function validateProfileForm() {
+        const input = document.getElementById('profile-phone-input');
+        const err = document.getElementById('profile-phone-error');
+        if (!input) return true;
+        const val = input.value.trim();
+        const phoneRegex = /^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$/;
+        if (!phoneRegex.test(val)) {
+            if (err) {
+                err.innerText = 'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
+                err.classList.remove('hidden');
+            }
+            input.focus();
+            return false;
+        }
+        if (err) err.classList.add('hidden');
+        return true;
+    }
+
     function togglePersonalEdit() {
         const card = document.getElementById('personal-info-card');
         if (!card) return;

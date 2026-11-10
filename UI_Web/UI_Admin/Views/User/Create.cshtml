@@ -213,7 +213,7 @@
                                     Mobile Phone Number <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
-                                    <input asp-for="Phone" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="10" placeholder="0912345678" type="tel" />
+                                    <input asp-for="Phone" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="10" placeholder="0912345678" type="tel" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
                                     <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">call</span>
                                 </div>
                                 <span asp-validation-for="Phone" class="field-validation-error"></span>

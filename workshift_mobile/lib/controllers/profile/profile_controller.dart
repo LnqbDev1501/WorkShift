@@ -53,6 +53,13 @@ class ProfileController extends ChangeNotifier {
     String? dateOfBirth,
     required String address,
   }) async {
+    final phoneRegex = RegExp(r'^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$');
+    if (!phoneRegex.hasMatch(phone.trim())) {
+      _errorMessage = 'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
+      notifyListeners();
+      return false;
+    }
+
     _isUpdatingProfile = true;
     _errorMessage = null;
     notifyListeners();

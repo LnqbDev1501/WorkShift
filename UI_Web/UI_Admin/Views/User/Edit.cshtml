@@ -281,7 +281,7 @@
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">call</span>
-                            <input asp-for="Phone" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="10" placeholder="0912345678" type="tel" />
+                            <input asp-for="Phone" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="10" placeholder="0912345678" type="tel" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
                         </div>
                         <span asp-validation-for="Phone" class="field-validation-error"></span>
                     </div>
