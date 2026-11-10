@@ -25,6 +25,14 @@ class ApiClient {
         : 'http://localhost:5267';
   }
 
+  // static String get defaultBaseUrl {
+  //   if (_configuredBaseUrl.trim().isNotEmpty) {
+  //     return _normalizeBaseUrl(_configuredBaseUrl);
+  //   }
+
+  //   return 'https://linguini-unselect-science.ngrok-free.dev';
+  // }
+
   static String _normalizeBaseUrl(String value) {
     final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
     final uri = Uri.tryParse(normalized);
