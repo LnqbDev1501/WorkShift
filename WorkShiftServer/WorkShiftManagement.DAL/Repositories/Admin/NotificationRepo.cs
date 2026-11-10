@@ -108,7 +108,8 @@ public class NotificationRepo : INotificationRepo
             .AsNoTracking()
             .Where(user => user.Status == "ACTIVE"
                         && user.DeletedAt == null
-                        && targetRoles.Contains(user.Role.RoleName));
+                        && targetRoles.Contains(user.Role.RoleName)
+                        && (user.Branch == null || (user.Branch.Status == "ACTIVE" && user.Branch.Region.IsActive)));
 
         if (regionId.HasValue)
         {
