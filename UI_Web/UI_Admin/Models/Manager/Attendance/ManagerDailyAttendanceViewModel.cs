@@ -68,8 +68,10 @@ public sealed class ManagerDailyAttendanceItemViewModel
     public int ActualWorkingMinutes { get; set; }
     public int TotalLateMinutes { get; set; }
     public int ExcusedLateMinutes { get; set; }
+    public int ChargeableLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
     public int ExcusedEarlyLeaveMinutes { get; set; }
+    public int ChargeableEarlyLeaveMinutes { get; set; }
 
     public bool? CheckInFaceVerified { get; set; }
     public bool? CheckOutFaceVerified { get; set; }

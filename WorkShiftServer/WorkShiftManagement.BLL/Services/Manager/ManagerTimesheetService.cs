@@ -2,6 +2,7 @@ using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -13,6 +14,7 @@ using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
@@ -206,6 +208,10 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             return null;
         }
 
+        var activeRule = await _timesheetRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int defaultCheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
+        var nowUtc = DateTime.UtcNow;
+
         var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
         var (totalStaff, confirmedStaff, noResponseStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
             ComputeSummaryMetrics(week, timesheets);
@@ -213,8 +219,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         var staffItems = new List<ManagerStaffTimesheetItemDto>();
 
         var assignmentsByUser = (week.WorkShifts ?? Enumerable.Empty<WorkShift>())
+            .Where(s => !string.Equals(s.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
             .SelectMany(s => (s.ShiftAssignments ?? Enumerable.Empty<ShiftAssignment>()).Select(a => new { Shift = s, Assignment = a }))
-            .Where(x => x.Assignment.Status != "CANCELLED")
+            .Where(x => !string.Equals(x.Assignment.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
             .GroupBy(x => x.Assignment.UserId)
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Shift.ScheduledStartAt).ToList());
 
@@ -226,15 +233,47 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             return userItems.Select(x =>
             {
                 var att = x.Assignment.Attendance;
-                string attStatus = att?.Status
-                    ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
-
                 var approvedLeave = x.Assignment.LeaveRequestAssignments
                     ?.Select(l => l.Request)
                     ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
 
-                bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
+                bool isExcusedLeave = approvedLeave != null || string.Equals(att?.Status, "LEAVE", StringComparison.OrdinalIgnoreCase);
                 string? leaveReason = approvedLeave?.Reason;
+
+                string attStatus;
+                if (isExcusedLeave)
+                {
+                    attStatus = "LEAVE";
+                }
+                else if (att != null)
+                {
+                    if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
+                    {
+                        attStatus = string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)
+                            ? "ABSENT"
+                            : (att.Status ?? "COMPLETED");
+                    }
+                    else if (string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        attStatus = "ABSENT";
+                    }
+                    else if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+                    {
+                        var checkOutCutoffUtc = x.Shift.ScheduledEndAt.AddMinutes(GetCheckOutAfterMinutes(att, defaultCheckOutAfterMinutes));
+                        attStatus = nowUtc > checkOutCutoffUtc ? "ABSENT" : (att.Status ?? "IN_PROGRESS");
+                    }
+                    else
+                    {
+                        attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : (att.Status ?? "SCHEDULED");
+                    }
+                }
+                else
+                {
+                    attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
+                }
+
+                bool isAbsentStatus = !isExcusedLeave && string.Equals(attStatus, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
                 return new ManagerStaffShiftAttendanceDto
                 {
@@ -245,16 +284,16 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     ScheduledEndAt = x.Shift.ScheduledEndAt,
                     CheckInTime = att?.CheckInTime,
                     CheckOutTime = att?.CheckOutTime,
-                    ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-                    TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-                    ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
-                    ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
-                    TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                    ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
-                    ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+                    ActualWorkingMinutes = isAbsentStatus ? 0 : (att?.ActualWorkingMinutes ?? 0),
+                    TotalLateMinutes = isAbsentStatus ? 0 : (att?.TotalLateMinutes ?? 0),
+                    ExcusedLateMinutes = isAbsentStatus ? 0 : (att?.ExcusedLateMinutes ?? 0),
+                    ChargeableLateMinutes = isAbsentStatus ? 0 : (att?.ChargeableLateMinutes ?? 0),
+                    TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.TotalEarlyLeaveMinutes ?? 0),
+                    ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ExcusedEarlyLeaveMinutes ?? 0),
+                    ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ChargeableEarlyLeaveMinutes ?? 0),
                     HasApprovedLateArrival = att?.LateArrivalRequestId.HasValue ?? false,
                     HasApprovedEarlyLeave = att?.EarlyLeaveRequestId.HasValue ?? false,
-                    AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
+                    AttendanceStatus = attStatus,
                     AssignmentStatus = x.Assignment.Status,
                     IsExcusedLeave = isExcusedLeave,
                     LeaveReason = leaveReason,
@@ -278,13 +317,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             foreach (var t in timesheets.OrderBy(t => t.User.FullName))
             {
                 var userShifts = MapUserShifts(t.UserId);
-                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
-                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int lateCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
-                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
-                int incompleteCount = t.IncompleteShiftCount > 0 
-                    ? t.IncompleteShiftCount 
-                    : userShifts.Count(s => s.AttendanceStatus == "INCOMPLETE" || (s.CheckInTime != null && s.CheckOutTime == null && DateTime.UtcNow > s.ScheduledEndAt));
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && s.AttendanceStatus == "ABSENT");
+                int incompleteCount = 0;
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -322,11 +359,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             foreach (var u in ungeneratedUsers)
             {
                 var userShifts = MapUserShifts(u.UserId);
-                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
-                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int lateCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
-                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
-                int incompleteCount = userShifts.Count(s => s.AttendanceStatus == "INCOMPLETE" || (s.CheckInTime != null && s.CheckOutTime == null && DateTime.UtcNow > s.ScheduledEndAt));
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && s.AttendanceStatus == "ABSENT");
+                int incompleteCount = 0;
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -1003,6 +1040,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         string exportedByName = string.IsNullOrWhiteSpace(manager.FullName) ? "Branch Manager" : manager.FullName;
         return TimesheetExcelExporter.GenerateWeeklyTimesheetExcel(detail, exportedByName);
+    }
+
+    private static int GetCheckOutAfterMinutes(Attendance? att, int fallbackMinutes)
+    {
+        if (att != null && !string.IsNullOrWhiteSpace(att.RuleSnapshotJson))
+        {
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(
+                    att.RuleSnapshotJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (snapshot?.AttendanceRule != null && snapshot.AttendanceRule.CheckOutAfterMinutes > 0)
+                {
+                    return snapshot.AttendanceRule.CheckOutAfterMinutes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed snapshot and fallback to active rule
+            }
+        }
+        return fallbackMinutes;
     }
 }
 

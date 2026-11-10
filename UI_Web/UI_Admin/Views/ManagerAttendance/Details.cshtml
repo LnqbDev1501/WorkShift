@@ -8,6 +8,8 @@
     var scheduledRange = $"{Model.ScheduledStartAt.AddHours(7):HH:mm} – {Model.ScheduledEndAt.AddHours(7):HH:mm}";
     var scheduledDurationHours = Math.Round((Model.ScheduledEndAt - Model.ScheduledStartAt).TotalHours, 1);
     var actualWorkHours = Math.Round((decimal)Model.ActualWorkingMinutes / 60m, 2);
+    bool isLateExcused = Model.TotalLateMinutes > 0 && Model.ChargeableLateMinutes == 0;
+    bool isEarlyExcused = Model.TotalEarlyLeaveMinutes > 0 && Model.ChargeableEarlyLeaveMinutes == 0;
 }
 
 <div class="px-7 py-6 max-w-[1280px] mx-auto space-y-6">
@@ -21,7 +23,7 @@
                 <span>/</span>
                 <span class="text-slate-400">Details</span>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2.5">
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Shift Attendance Details</h1>
                 <!-- Status Badge -->
                 @if (Model.IsExcusedLeave || status == "LEAVE")
@@ -40,10 +42,20 @@
                 }
                 else if (status == "COMPLETED")
                 {
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span class="material-symbols-outlined text-sm">check_circle</span>
-                        <span>COMPLETED</span>
-                    </span>
+                    if (isLateExcused || isEarlyExcused)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Valid attendance: Late/Early departure fully excused by approved request">
+                            <span class="material-symbols-outlined text-sm">verified</span>
+                            <span>COMPLETED (EXCUSED)</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="material-symbols-outlined text-sm">check_circle</span>
+                            <span>COMPLETED</span>
+                        </span>
+                    }
                 }
                 else if (status == "INCOMPLETE")
                 {
@@ -61,8 +73,7 @@
                 }
                 else if (status == "LATE")
                 {
-                    bool isExcused = Model.TotalLateMinutes > 0 && Model.ChargeableLateMinutes == 0;
-                    if (isExcused)
+                    if (isLateExcused)
                     {
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
                             <span class="material-symbols-outlined text-sm">verified</span>
@@ -79,8 +90,7 @@
                 }
                 else if (status == "EARLY_LEAVE")
                 {
-                    bool isExcused = Model.TotalEarlyLeaveMinutes > 0 && Model.ChargeableEarlyLeaveMinutes == 0;
-                    if (isExcused)
+                    if (isEarlyExcused)
                     {
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
                             <span class="material-symbols-outlined text-sm">verified</span>
@@ -97,11 +107,24 @@
                 }
                 else if (status == "LATE_AND_EARLY_LEAVE")
                 {
-                    bool isExcused = Model.ChargeableLateMinutes == 0 && Model.ChargeableEarlyLeaveMinutes == 0;
-                    if (isExcused)
+                    if (isLateExcused && isEarlyExcused)
                     {
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
                             <span class="material-symbols-outlined text-sm">verified</span>
+                            <span>LATE &amp; EARLY (EXCUSED)</span>
+                        </span>
+                    }
+                    else if (isLateExcused)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                            <span class="material-symbols-outlined text-sm">warning</span>
+                            <span>LATE (EXCUSED) &amp; EARLY</span>
+                        </span>
+                    }
+                    else if (isEarlyExcused)
+                    {
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                            <span class="material-symbols-outlined text-sm">warning</span>
                             <span>LATE &amp; EARLY (EXCUSED)</span>
                         </span>
                     }
@@ -118,6 +141,24 @@
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
                         <span>SCHEDULED</span>
                     </span>
+                }
+
+                @if (!Model.IsExcusedLeave && status != "LEAVE")
+                {
+                    if (isLateExcused)
+                    {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Late arrival approved (@Model.TotalLateMinutes mins, penalty waived)">
+                            <span class="material-symbols-outlined text-xs">verified</span>
+                            <span>Late @(Model.TotalLateMinutes)m: Excused</span>
+                        </span>
+                    }
+                    if (isEarlyExcused)
+                    {
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Early departure approved (@Model.TotalEarlyLeaveMinutes mins, penalty waived)">
+                            <span class="material-symbols-outlined text-xs">verified</span>
+                            <span>Early @(Model.TotalEarlyLeaveMinutes)m: Excused</span>
+                        </span>
+                    }
                 }
             </div>
             <p class="text-xs text-slate-500 mt-1">

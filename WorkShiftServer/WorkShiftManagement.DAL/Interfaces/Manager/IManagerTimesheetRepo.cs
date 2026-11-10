@@ -70,4 +70,6 @@ public interface IManagerTimesheetRepo
         int branchId,
         Guid managerId,
         CancellationToken cancellationToken = default);
+
+    Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default);
 }

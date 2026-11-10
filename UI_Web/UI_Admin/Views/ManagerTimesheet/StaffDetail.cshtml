@@ -294,6 +294,8 @@
                         @foreach (var shift in staff.Shifts)
                         {
                             var status = (shift.AttendanceStatus ?? "SCHEDULED").ToUpper();
+                            bool isLateExcused = shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0;
+                            bool isEarlyExcused = shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0;
 
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <!-- Date & Shift -->
@@ -302,14 +304,14 @@
                                         <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
                                         <span class="text-xs text-slate-500 mt-0.5">@shift.ShiftName</span>
                                         <div class="mt-1.5 flex flex-wrap gap-1">
-                                            @if (shift.HasApprovedLateArrival || (shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0))
+                                            @if (isLateExcused)
                                             {
                                                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Late arrival approved (@shift.TotalLateMinutes mins, penalty waived)">
                                                     <span class="material-symbols-outlined text-[11px]">verified</span>
                                                     <span>Late @(shift.TotalLateMinutes)m: Excused (Approved)</span>
                                                 </span>
                                             }
-                                            @if (shift.HasApprovedEarlyLeave || (shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0))
+                                            @if (isEarlyExcused)
                                             {
                                                 <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Early departure approved (@shift.TotalEarlyLeaveMinutes mins, penalty waived)">
                                                     <span class="material-symbols-outlined text-[11px]">verified</span>
@@ -368,9 +370,6 @@
 
                                 <!-- Late Time (Xh Ym) -->
                                 <td class="px-6 py-4 text-center">
-                                    @{
-                                        bool isLateExcused = shift.TotalLateMinutes > 0 && (shift.HasApprovedLateArrival || shift.ChargeableLateMinutes == 0);
-                                    }
                                     @if (isLateExcused)
                                     {
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused late arrival: @shift.TotalLateMinutes mins (Penalty waived)">
@@ -392,9 +391,6 @@
 
                                 <!-- Early Leave (Xh Ym) -->
                                 <td class="px-6 py-4 text-center">
-                                    @{
-                                        bool isEarlyExcused = shift.TotalEarlyLeaveMinutes > 0 && (shift.HasApprovedEarlyLeave || shift.ChargeableEarlyLeaveMinutes == 0);
-                                    }
                                     @if (isEarlyExcused)
                                     {
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused early departure: @shift.TotalEarlyLeaveMinutes mins (Penalty waived)">
@@ -425,9 +421,7 @@
                                     }
                                     else if (status == "PRESENT")
                                     {
-                                        bool isExcusedPresent = shift.HasApprovedLateArrival || shift.HasApprovedEarlyLeave 
-                                            || (shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0)
-                                            || (shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0);
+                                        bool isExcusedPresent = isLateExcused || isEarlyExcused;
 
                                         if (isExcusedPresent)
                                         {

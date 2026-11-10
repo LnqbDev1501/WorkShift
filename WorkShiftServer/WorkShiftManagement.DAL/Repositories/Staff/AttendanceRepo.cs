@@ -128,7 +128,7 @@ public class AttendanceRepo : IAttendanceRepo
         return (profile, embedding);
     }
 
-    public Task<List<ShiftAssignment>> GetEligibleShiftAssignmentsForDateAsync(Guid userId, DateOnly targetDate, CancellationToken cancellationToken = default)
+    public Task<List<ShiftAssignment>> GetEligibleShiftAssignmentsForDateAsync(Guid userId, DateOnly targetDate, bool trackChanges = false, CancellationToken cancellationToken = default)
     {
         // Target date is Vietnam local date (UTC+7). 
         // 00:00:00 in Vietnam = 17:00:00 (previous day) in UTC
@@ -136,13 +136,19 @@ public class AttendanceRepo : IAttendanceRepo
         var startOfDayUtc = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc);
         var endOfDayUtc = DateTime.SpecifyKind(targetDate.ToDateTime(TimeOnly.MaxValue).AddHours(-7), DateTimeKind.Utc);
 
-        return _context.ShiftAssignments
-            .AsNoTracking()
+        IQueryable<ShiftAssignment> query = _context.ShiftAssignments;
+        if (!trackChanges)
+        {
+            query = query.AsNoTracking();
+        }
+
+        return query
             .Include(a => a.Shift)
                 .ThenInclude(s => s.ScheduleWeek)
                     .ThenInclude(w => w.Branch)
             .Include(a => a.User)
             .Include(a => a.Attendance)
+                .ThenInclude(att => att!.AttendancePenaltyRecords)
             .Where(a =>
                 a.UserId == userId &&
                 (a.Status == "ASSIGNED" || a.Status == "IN_PROGRESS" || a.Status == "COMPLETED") &&
@@ -163,7 +169,9 @@ public class AttendanceRepo : IAttendanceRepo
             .Include(a => a.Shift)
                 .ThenInclude(s => s.ScheduleWeek)
                     .ThenInclude(w => w.Branch)
+            .Include(a => a.User)
             .Include(a => a.Attendance)
+                .ThenInclude(att => att!.AttendancePenaltyRecords)
             .Where(a =>
                 a.UserId == userId &&
                 a.Shift.Status != "CANCELLED" &&
@@ -172,6 +180,185 @@ public class AttendanceRepo : IAttendanceRepo
             .OrderByDescending(a => a.Shift.ScheduledStartAt)
             .ThenByDescending(a => a.AssignmentId)
             .ToListAsync(cancellationToken);
+    }
+
+    public Task<List<ShiftAssignment>> GetExpiredAssignmentsPendingFinalizationAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        return _context.ShiftAssignments
+            .Include(sa => sa.User)
+            .Include(sa => sa.Shift)
+                .ThenInclude(s => s.ScheduleWeek)
+                    .ThenInclude(w => w.Branch)
+            .Include(sa => sa.Attendance)
+                .ThenInclude(att => att!.AttendancePenaltyRecords)
+            .Where(sa =>
+                sa.Status != "CANCELLED" &&
+                sa.Shift.Status != "CANCELLED" &&
+                sa.Shift.ScheduleWeek.Status != "CANCELLED" &&
+                sa.Shift.ScheduledEndAt < nowUtc &&
+                !sa.LeaveRequestAssignments.Any(l => l.Request.RequestType == "LEAVE" && l.Request.Status == "APPROVED") &&
+                (
+                    sa.Attendance == null ||
+                    (!sa.Attendance.CheckOutTime.HasValue &&
+                     (sa.Attendance.Status == "IN_PROGRESS" || sa.Attendance.Status == "INCOMPLETE")) ||
+                    (!sa.Attendance.CheckInTime.HasValue && sa.Attendance.Status == "INCOMPLETE") ||
+                    (sa.Attendance.Status == "ABSENT" &&
+                     (!sa.Attendance.CheckInTime.HasValue || !sa.Attendance.CheckOutTime.HasValue) &&
+                     (sa.Attendance.ActualWorkingMinutes != 0 ||
+                      sa.Attendance.TotalLateMinutes != 0 ||
+                      sa.Attendance.TotalEarlyLeaveMinutes != 0 ||
+                      sa.Attendance.AttendancePenaltyRecords.Any(p => p.Status == "APPLIED")))
+                ) &&
+                (sa.Shift.ScheduleWeek.PayrollPeriod == null ||
+                 !sa.Shift.ScheduleWeek.PayrollPeriod.Timesheets.Any(t =>
+                     t.UserId == sa.UserId &&
+                     (t.Status == "REVIEWED" || t.Status == "LOCKED"))))
+            .OrderBy(sa => sa.Shift.ScheduledEndAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<HashSet<int>> GetReviewedOrLockedScheduleWeekIdsForUserAsync(Guid userId, IEnumerable<int> scheduleWeekIds, CancellationToken cancellationToken = default)
+    {
+        var ids = scheduleWeekIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new HashSet<int>();
+        }
+
+        var lockedWeekIds = await _context.Timesheets
+            .AsNoTracking()
+            .Where(t =>
+                t.UserId == userId &&
+                t.PayrollPeriod.ScheduleWeekId.HasValue &&
+                ids.Contains(t.PayrollPeriod.ScheduleWeekId.Value) &&
+                (t.Status == "REVIEWED" || t.Status == "LOCKED"))
+            .Select(t => t.PayrollPeriod.ScheduleWeekId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return lockedWeekIds.ToHashSet();
+    }
+
+    public async Task RecalculateGeneratedTimesheetsAsync(IEnumerable<(int ScheduleWeekId, Guid UserId)> targetKeys, DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        var distinctKeys = targetKeys.Distinct().ToList();
+        if (distinctKeys.Count == 0)
+        {
+            return;
+        }
+
+        var weekIds = distinctKeys.Select(k => k.ScheduleWeekId).Distinct().ToList();
+        var userIds = distinctKeys.Select(k => k.UserId).Distinct().ToList();
+
+        var timesheets = await _context.Timesheets
+            .Include(t => t.PayrollPeriod)
+            .Where(t =>
+                t.Status == "GENERATED" &&
+                t.PayrollPeriod.ScheduleWeekId.HasValue &&
+                weekIds.Contains(t.PayrollPeriod.ScheduleWeekId.Value) &&
+                userIds.Contains(t.UserId))
+            .ToListAsync(cancellationToken);
+
+        if (timesheets.Count == 0)
+        {
+            return;
+        }
+
+        var activeWeekIds = timesheets
+            .Where(t => t.PayrollPeriod.ScheduleWeekId.HasValue)
+            .Select(t => t.PayrollPeriod.ScheduleWeekId!.Value)
+            .Distinct()
+            .ToList();
+
+        var activeUserIds = timesheets.Select(t => t.UserId).Distinct().ToList();
+
+        var allAssignments = await _context.ShiftAssignments
+            .AsNoTracking()
+            .Include(sa => sa.Shift)
+            .Include(sa => sa.Attendance)
+            .Where(sa =>
+                activeWeekIds.Contains(sa.Shift.ScheduleWeekId) &&
+                activeUserIds.Contains(sa.UserId) &&
+                sa.Status != "CANCELLED" &&
+                sa.Shift.Status != "CANCELLED")
+            .ToListAsync(cancellationToken);
+
+        bool changed = false;
+        foreach (var sheet in timesheets)
+        {
+            var weekId = sheet.PayrollPeriod.ScheduleWeekId;
+            if (!weekId.HasValue || !distinctKeys.Contains((weekId.Value, sheet.UserId)))
+            {
+                continue;
+            }
+
+            var userAssignments = allAssignments
+                .Where(sa => sa.Shift.ScheduleWeekId == weekId.Value && sa.UserId == sheet.UserId)
+                .ToList();
+
+            int completedCount = 0;
+            int absentCount = 0;
+            int totalWorkMinutes = 0;
+            int totalLateMinutes = 0;
+            int excusedLateMinutes = 0;
+            int chargeableLateMinutes = 0;
+            int totalEarlyLeaveMinutes = 0;
+            int excusedEarlyLeaveMinutes = 0;
+            int chargeableEarlyLeaveMinutes = 0;
+
+            foreach (var assign in userAssignments)
+            {
+                var att = assign.Attendance;
+                if (att == null || !att.CheckInTime.HasValue || !att.CheckOutTime.HasValue)
+                {
+                    absentCount++;
+                    continue;
+                }
+
+                var status = att.Status?.ToUpperInvariant();
+                if (status is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE")
+                {
+                    completedCount++;
+                }
+                else
+                {
+                    absentCount++;
+                    continue;
+                }
+
+                totalWorkMinutes += att.ActualWorkingMinutes;
+                totalLateMinutes += att.TotalLateMinutes;
+                excusedLateMinutes += att.ExcusedLateMinutes;
+                chargeableLateMinutes += att.ChargeableLateMinutes;
+                totalEarlyLeaveMinutes += att.TotalEarlyLeaveMinutes;
+                excusedEarlyLeaveMinutes += att.ExcusedEarlyLeaveMinutes;
+                chargeableEarlyLeaveMinutes += att.ChargeableEarlyLeaveMinutes;
+            }
+
+            sheet.TotalAssignedShifts = userAssignments.Count;
+            sheet.CompletedShiftCount = completedCount;
+            sheet.AbsentShiftCount = absentCount;
+            sheet.IncompleteShiftCount = 0;
+            sheet.TotalWorkMinutes = totalWorkMinutes;
+            sheet.TotalLateMinutes = totalLateMinutes;
+            sheet.ExcusedLateMinutes = excusedLateMinutes;
+            sheet.ChargeableLateMinutes = chargeableLateMinutes;
+            sheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+            sheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
+            sheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
+            sheet.UpdatedAt = nowUtc;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    public void ClearTrackedChanges()
+    {
+        _context.ChangeTracker.Clear();
     }
 
     public Task<ShiftAssignment?> GetAssignmentWithDetailsAsync(int assignmentId, CancellationToken cancellationToken = default)
@@ -312,7 +499,11 @@ public class AttendanceRepo : IAttendanceRepo
     {
         return _context.AttendanceRules
             .AsNoTracking()
-            .FirstOrDefaultAsync(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED", cancellationToken);
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.AttendanceRuleId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public Task<AttendancePenaltyRule?> GetActiveAttendancePenaltyRuleWithLevelsAsync(CancellationToken cancellationToken = default)
@@ -320,7 +511,11 @@ public class AttendanceRepo : IAttendanceRepo
         return _context.AttendancePenaltyRules
             .AsNoTracking()
             .Include(r => r.AttendancePenaltyLevels)
-            .FirstOrDefaultAsync(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED", cancellationToken);
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.PenaltyRuleId)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public Task<FaceVerificationSession?> GetFaceVerificationSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -351,9 +546,31 @@ public class AttendanceRepo : IAttendanceRepo
         return attendance;
     }
 
+    public void AddAttendance(Attendance attendance)
+    {
+        _context.Attendances.Add(attendance);
+    }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<bool> SaveChangesIgnoreDuplicateAttendanceAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+        catch (DbUpdateException ex) when (
+            ex.InnerException is Npgsql.PostgresException pgEx &&
+            pgEx.SqlState == "23505" &&
+            string.Equals(pgEx.ConstraintName, "attendances_assignment_id_key", StringComparison.OrdinalIgnoreCase))
+        {
+            _context.ChangeTracker.Clear();
+            return false;
+        }
     }
 
     public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)

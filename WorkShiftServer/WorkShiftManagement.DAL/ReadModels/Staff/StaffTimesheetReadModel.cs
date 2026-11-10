@@ -72,6 +72,7 @@ public sealed class StaffAttendanceReadModel
 {
     public int AttendanceId { get; set; }
     public string Status { get; set; } = "";
+    public string? RuleSnapshotJson { get; set; }
     public DateTime? CheckInTime { get; set; }
     public DateTime? CheckOutTime { get; set; }
     public int ActualWorkingMinutes { get; set; }

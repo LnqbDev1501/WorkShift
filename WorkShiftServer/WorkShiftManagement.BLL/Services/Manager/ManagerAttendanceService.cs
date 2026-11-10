@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using WorkShiftManagement.BLL.DTOs.Manager.Attendance;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
@@ -70,6 +72,8 @@ public class ManagerAttendanceService : IManagerAttendanceService
             cancellationToken);
 
         // 4. Map to Item DTOs
+        var activeRule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int defaultCheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
         var nowUtc = DateTime.UtcNow;
         var allItems = assignments.Select(sa =>
         {
@@ -87,8 +91,15 @@ public class ManagerAttendanceService : IManagerAttendanceService
                 leaveReason = approvedLeave.Reason;
             }
 
-            var attStatus = DetermineAttendanceStatus(sa.Attendance, sa.Shift.ScheduledStartAt, sa.Shift.ScheduledEndAt, isExcusedLeave, nowUtc);
+            var attStatus = DetermineAttendanceStatus(
+                sa.Attendance,
+                sa.Shift.ScheduledStartAt,
+                sa.Shift.ScheduledEndAt,
+                isExcusedLeave,
+                defaultCheckOutAfterMinutes,
+                nowUtc);
             var attendance = sa.Attendance;
+            bool isAbsentStatus = string.Equals(attStatus, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
             return new ManagerDailyAttendanceItemDto
             {
@@ -105,11 +116,13 @@ public class ManagerAttendanceService : IManagerAttendanceService
                 AttendanceId = attendance?.AttendanceId,
                 CheckInTime = attendance?.CheckInTime,
                 CheckOutTime = attendance?.CheckOutTime,
-                ActualWorkingMinutes = attendance?.ActualWorkingMinutes ?? 0,
-                TotalLateMinutes = attendance?.TotalLateMinutes ?? 0,
-                ExcusedLateMinutes = attendance?.ExcusedLateMinutes ?? 0,
-                TotalEarlyLeaveMinutes = attendance?.TotalEarlyLeaveMinutes ?? 0,
-                ExcusedEarlyLeaveMinutes = attendance?.ExcusedEarlyLeaveMinutes ?? 0,
+                ActualWorkingMinutes = isAbsentStatus ? 0 : (attendance?.ActualWorkingMinutes ?? 0),
+                TotalLateMinutes = isAbsentStatus ? 0 : (attendance?.TotalLateMinutes ?? 0),
+                ExcusedLateMinutes = isAbsentStatus ? 0 : (attendance?.ExcusedLateMinutes ?? 0),
+                ChargeableLateMinutes = isAbsentStatus ? 0 : (attendance?.ChargeableLateMinutes ?? 0),
+                TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (attendance?.TotalEarlyLeaveMinutes ?? 0),
+                ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (attendance?.ExcusedEarlyLeaveMinutes ?? 0),
+                ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (attendance?.ChargeableEarlyLeaveMinutes ?? 0),
                 CheckInFaceVerified = attendance?.CheckInFaceVerified,
                 CheckOutFaceVerified = attendance?.CheckOutFaceVerified,
                 CheckInDistanceMeters = attendance?.CheckInDistanceMeters,
@@ -124,11 +137,11 @@ public class ManagerAttendanceService : IManagerAttendanceService
         var summary = new ManagerDailyAttendanceSummaryDto
         {
             TotalScheduled = allItems.Count,
-            PresentCount = allItems.Count(i => i.AttendanceStatus is "IN_PROGRESS" or "COMPLETED" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE" or "INCOMPLETE"),
+            PresentCount = allItems.Count(i => i.AttendanceStatus is "IN_PROGRESS" or "COMPLETED" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE"),
             InProgressCount = allItems.Count(i => i.AttendanceStatus == "IN_PROGRESS"),
             CompletedCount = allItems.Count(i => i.AttendanceStatus == "COMPLETED"),
-            LateCount = allItems.Count(i => i.TotalLateMinutes > 0),
-            EarlyLeaveCount = allItems.Count(i => i.TotalEarlyLeaveMinutes > 0),
+            LateCount = allItems.Count(i => i.ChargeableLateMinutes > 0 || i.AttendanceStatus is "LATE" or "LATE_AND_EARLY_LEAVE"),
+            EarlyLeaveCount = allItems.Count(i => i.ChargeableEarlyLeaveMinutes > 0 || i.AttendanceStatus is "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE"),
             AbsentCount = allItems.Count(i => i.AttendanceStatus is "ABSENT" or "NOT_CHECKED_IN"),
             OnLeaveCount = allItems.Count(i => i.AttendanceStatus == "LEAVE")
         };
@@ -143,7 +156,7 @@ public class ManagerAttendanceService : IManagerAttendanceService
             }
             else if (filterStatus == "INCOMPLETE")
             {
-                allItems = allItems.Where(i => i.AttendanceStatus == "INCOMPLETE").ToList();
+                allItems = new List<ManagerDailyAttendanceItemDto>();
             }
             else if (filterStatus == "COMPLETED")
             {
@@ -151,11 +164,11 @@ public class ManagerAttendanceService : IManagerAttendanceService
             }
             else if (filterStatus == "LATE")
             {
-                allItems = allItems.Where(i => i.TotalLateMinutes > 0 || i.AttendanceStatus is "LATE" or "LATE_AND_EARLY_LEAVE").ToList();
+                allItems = allItems.Where(i => i.ChargeableLateMinutes > 0 || i.AttendanceStatus is "LATE" or "LATE_AND_EARLY_LEAVE").ToList();
             }
             else if (filterStatus == "EARLY_LEAVE")
             {
-                allItems = allItems.Where(i => i.TotalEarlyLeaveMinutes > 0 || i.AttendanceStatus is "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE").ToList();
+                allItems = allItems.Where(i => i.ChargeableEarlyLeaveMinutes > 0 || i.AttendanceStatus is "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE").ToList();
             }
             else if (filterStatus == "ABSENT")
             {
@@ -273,8 +286,17 @@ public class ManagerAttendanceService : IManagerAttendanceService
             };
         }
 
+        var activeRule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int defaultCheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
         var nowUtc = DateTime.UtcNow;
-        var status = DetermineAttendanceStatus(att, shift.ScheduledStartAt, shift.ScheduledEndAt, isExcusedLeave, nowUtc);
+        var status = DetermineAttendanceStatus(
+            att,
+            shift.ScheduledStartAt,
+            shift.ScheduledEndAt,
+            isExcusedLeave,
+            defaultCheckOutAfterMinutes,
+            nowUtc);
+        bool isAbsentStatus = string.Equals(status, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
         return new ManagerAttendanceDetailResponse
         {
@@ -309,13 +331,13 @@ public class ManagerAttendanceService : IManagerAttendanceService
             CheckOutAccuracyMeters = att?.CheckOutAccuracyMeters,
             CheckOutFaceVerified = att?.CheckOutFaceVerified,
             CheckOutFaceConfidence = att?.CheckOutFaceConfidence,
-            ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-            TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-            ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
-            ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
-            TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-            ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
-            ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+            ActualWorkingMinutes = isAbsentStatus ? 0 : (att?.ActualWorkingMinutes ?? 0),
+            TotalLateMinutes = isAbsentStatus ? 0 : (att?.TotalLateMinutes ?? 0),
+            ExcusedLateMinutes = isAbsentStatus ? 0 : (att?.ExcusedLateMinutes ?? 0),
+            ChargeableLateMinutes = isAbsentStatus ? 0 : (att?.ChargeableLateMinutes ?? 0),
+            TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.TotalEarlyLeaveMinutes ?? 0),
+            ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ExcusedEarlyLeaveMinutes ?? 0),
+            ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ChargeableEarlyLeaveMinutes ?? 0),
             IsExcusedLeave = isExcusedLeave,
             LeaveReason = leaveReason,
             LateArrivalRequest = lateReqSummary,
@@ -335,11 +357,34 @@ public class ManagerAttendanceService : IManagerAttendanceService
         };
     }
 
+    private static int GetCheckOutAfterMinutes(Attendance? att, int fallbackMinutes)
+    {
+        if (att != null && !string.IsNullOrWhiteSpace(att.RuleSnapshotJson))
+        {
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(
+                    att.RuleSnapshotJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (snapshot?.AttendanceRule != null && snapshot.AttendanceRule.CheckOutAfterMinutes > 0)
+                {
+                    return snapshot.AttendanceRule.CheckOutAfterMinutes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed snapshot and fallback to active rule
+            }
+        }
+        return fallbackMinutes;
+    }
+
     private static string DetermineAttendanceStatus(
         Attendance? att,
         DateTime shiftStartAt,
         DateTime shiftEndAt,
         bool isExcusedLeave,
+        int defaultCheckOutAfterMinutes,
         DateTime nowUtc)
     {
         if (isExcusedLeave)
@@ -349,27 +394,37 @@ public class ManagerAttendanceService : IManagerAttendanceService
 
         if (att != null)
         {
-            if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
-            {
-                if (att.Status == "INCOMPLETE" || nowUtc > shiftEndAt)
-                {
-                    return "INCOMPLETE";
-                }
-                return att.TotalLateMinutes > 0 ? "LATE" : "IN_PROGRESS";
-            }
-
             if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
             {
-                if (att.TotalLateMinutes > 0 && att.TotalEarlyLeaveMinutes > 0)
+                bool hasChargeableLate = att.ChargeableLateMinutes > 0;
+                bool hasChargeableEarly = att.ChargeableEarlyLeaveMinutes > 0;
+
+                if (hasChargeableLate && hasChargeableEarly)
                     return "LATE_AND_EARLY_LEAVE";
-                if (att.TotalLateMinutes > 0)
+                if (hasChargeableLate)
                     return "LATE";
-                if (att.TotalEarlyLeaveMinutes > 0)
+                if (hasChargeableEarly)
                     return "EARLY_LEAVE";
                 return "COMPLETED";
             }
 
-            if (att.Status == "ABSENT")
+            if (string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+            {
+                return "ABSENT";
+            }
+
+            if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+            {
+                var checkOutCutoffUtc = shiftEndAt.AddMinutes(GetCheckOutAfterMinutes(att, defaultCheckOutAfterMinutes));
+                if (nowUtc > checkOutCutoffUtc)
+                {
+                    return "ABSENT";
+                }
+                return att.ChargeableLateMinutes > 0 ? "LATE" : "IN_PROGRESS";
+            }
+
+            if (shiftEndAt < nowUtc)
             {
                 return "ABSENT";
             }

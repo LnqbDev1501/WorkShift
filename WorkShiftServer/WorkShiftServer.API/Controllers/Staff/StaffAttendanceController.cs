@@ -83,7 +83,7 @@ public sealed class StaffAttendanceController : ControllerBase
 
 
     /// <summary>
-    /// Retrieves chronological attendance history for the authenticated staff member with status (COMPLETED, IN_PROGRESS, INCOMPLETE, ABSENT).
+    /// Retrieves chronological attendance history for the authenticated staff member with status (COMPLETED, IN_PROGRESS, ABSENT).
     /// </summary>
     [HttpGet("history")]
     [ProducesResponseType(typeof(List<StaffAttendanceHistoryResponse>), StatusCodes.Status200OK)]

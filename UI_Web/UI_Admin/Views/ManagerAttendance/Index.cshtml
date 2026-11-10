@@ -177,6 +177,8 @@
                             var scheduledDate = item.ScheduledStartAt.AddHours(7).ToString("ddd, dd/MM/yyyy");
                             var scheduledRange = $"{item.ScheduledStartAt.AddHours(7):HH:mm} – {item.ScheduledEndAt.AddHours(7):HH:mm}";
                             decimal workH = Math.Round((decimal)item.ActualWorkingMinutes / 60m, 1);
+                            bool isLateExcused = item.TotalLateMinutes > 0 && item.ChargeableLateMinutes == 0;
+                            bool isEarlyExcused = item.TotalEarlyLeaveMinutes > 0 && item.ChargeableEarlyLeaveMinutes == 0;
 
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <!-- Index -->
@@ -309,102 +311,144 @@
 
                                 <!-- Status Badge -->
                                 <td class="px-5 py-4 text-center">
-                                    @if (item.IsExcusedLeave || status == "LEAVE")
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                            <span class="material-symbols-outlined text-sm">event_available</span>
-                                            <span>ON LEAVE</span>
-                                        </span>
-                                    }
-                                    else if (status is "ABSENT" or "NOT_CHECKED_IN")
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="material-symbols-outlined text-sm">close</span>
-                                            <span>@(status == "NOT_CHECKED_IN" ? "NOT IN YET" : "ABSENT")</span>
-                                        </span>
-                                    }
-                                    else if (status == "COMPLETED")
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="material-symbols-outlined text-sm">check_circle</span>
-                                            <span>COMPLETED</span>
-                                        </span>
-                                    }
-                                    else if (status == "INCOMPLETE")
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
-                                            <span class="material-symbols-outlined text-sm">schedule</span>
-                                            <span>INCOMPLETE</span>
-                                        </span>
-                                    }
-                                    else if (status == "IN_PROGRESS")
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                                            <span>WORKING</span>
-                                        </span>
-                                    }
-                                    else if (status == "LATE")
-                                    {
-                                        bool isExcused = item.TotalLateMinutes > 0 && item.TotalLateMinutes == item.ExcusedLateMinutes;
-                                        if (isExcused)
+                                    <div class="flex flex-col items-center gap-1">
+                                        @if (item.IsExcusedLeave || status == "LEAVE")
                                         {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                                                <span class="material-symbols-outlined text-sm">verified</span>
-                                                <span>LATE (EXCUSED)</span>
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="material-symbols-outlined text-sm">event_available</span>
+                                                <span>ON LEAVE</span>
                                             </span>
                                         }
-                                        else
+                                        else if (status is "ABSENT" or "NOT_CHECKED_IN")
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="material-symbols-outlined text-sm">close</span>
+                                                <span>@(status == "NOT_CHECKED_IN" ? "NOT IN YET" : "ABSENT")</span>
+                                            </span>
+                                        }
+                                        else if (status == "COMPLETED")
+                                        {
+                                            if (isLateExcused || isEarlyExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Valid attendance: Late/Early departure fully excused by approved request">
+                                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                                    <span>COMPLETED (EXCUSED)</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                                                    <span>COMPLETED</span>
+                                                </span>
+                                            }
+                                        }
+                                        else if (status == "INCOMPLETE")
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200" title="Shift ended without check-out">
+                                                <span class="material-symbols-outlined text-sm">schedule</span>
+                                                <span>INCOMPLETE</span>
+                                            </span>
+                                        }
+                                        else if (status == "IN_PROGRESS")
                                         {
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                <span class="material-symbols-outlined text-sm">warning</span>
-                                                <span>LATE ARRIVAL</span>
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span>WORKING</span>
                                             </span>
                                         }
-                                    }
-                                    else if (status == "EARLY_LEAVE")
-                                    {
-                                        bool isExcused = item.TotalEarlyLeaveMinutes > 0 && item.TotalEarlyLeaveMinutes == item.ExcusedEarlyLeaveMinutes;
-                                        if (isExcused)
+                                        else if (status == "LATE")
                                         {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                                                <span class="material-symbols-outlined text-sm">verified</span>
-                                                <span>EARLY (EXCUSED)</span>
-                                            </span>
+                                            if (isLateExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                                    <span>LATE (EXCUSED)</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                    <span class="material-symbols-outlined text-sm">warning</span>
+                                                    <span>LATE ARRIVAL</span>
+                                                </span>
+                                            }
+                                        }
+                                        else if (status == "EARLY_LEAVE")
+                                        {
+                                            if (isEarlyExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                                    <span>EARLY (EXCUSED)</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                    <span class="material-symbols-outlined text-sm">directions_walk</span>
+                                                    <span>EARLY LEAVE</span>
+                                                </span>
+                                            }
+                                        }
+                                        else if (status == "LATE_AND_EARLY_LEAVE")
+                                        {
+                                            if (isLateExcused && isEarlyExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                                    <span>LATE &amp; EARLY (EXCUSED)</span>
+                                                </span>
+                                            }
+                                            else if (isLateExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                    <span class="material-symbols-outlined text-sm">warning</span>
+                                                    <span>LATE (EXCUSED) &amp; EARLY</span>
+                                                </span>
+                                            }
+                                            else if (isEarlyExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                    <span class="material-symbols-outlined text-sm">warning</span>
+                                                    <span>LATE &amp; EARLY (EXCUSED)</span>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                    <span class="material-symbols-outlined text-sm">warning</span>
+                                                    <span>LATE &amp; EARLY</span>
+                                                </span>
+                                            }
                                         }
                                         else
                                         {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                                                <span class="material-symbols-outlined text-sm">directions_walk</span>
-                                                <span>EARLY LEAVE</span>
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                                <span>SCHEDULED</span>
                                             </span>
                                         }
-                                    }
-                                    else if (status == "LATE_AND_EARLY_LEAVE")
-                                    {
-                                        bool isExcused = (item.TotalLateMinutes == 0 || item.TotalLateMinutes == item.ExcusedLateMinutes)
-                                                         && (item.TotalEarlyLeaveMinutes == 0 || item.TotalEarlyLeaveMinutes == item.ExcusedEarlyLeaveMinutes);
-                                        if (isExcused)
+
+                                        @if (!item.IsExcusedLeave && status != "LEAVE" && (isLateExcused || isEarlyExcused))
                                         {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
-                                                <span class="material-symbols-outlined text-sm">verified</span>
-                                                <span>LATE &amp; EARLY (EXCUSED)</span>
-                                            </span>
+                                            <div class="flex flex-wrap items-center justify-center gap-1">
+                                                @if (isLateExcused)
+                                                {
+                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Late arrival approved (@item.TotalLateMinutes mins, penalty waived)">
+                                                        <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                        <span>Late @(item.TotalLateMinutes)m: Excused</span>
+                                                    </span>
+                                                }
+                                                @if (isEarlyExcused)
+                                                {
+                                                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Early departure approved (@item.TotalEarlyLeaveMinutes mins, penalty waived)">
+                                                        <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                        <span>Early @(item.TotalEarlyLeaveMinutes)m: Excused</span>
+                                                    </span>
+                                                }
+                                            </div>
                                         }
-                                        else
-                                        {
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                                                <span class="material-symbols-outlined text-sm">warning</span>
-                                                <span>LATE &amp; EARLY</span>
-                                            </span>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                            <span>SCHEDULED</span>
-                                        </span>
-                                    }
+                                    </div>
                                 </td>
 
                                 <!-- Action Details -->

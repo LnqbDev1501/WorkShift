@@ -451,6 +451,12 @@ try
             "overdue-requests-cancellation",
             service => service.CancelOverduePendingRequestsAsync(CancellationToken.None),
             "*/5 * * * *");
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService>(
+            "attendance-absent-finalizer",
+            service => service.FinalizeExpiredAttendancesAsync(CancellationToken.None),
+            "*/5 * * * *");
 }
 
 catch (Exception ex)

@@ -150,4 +150,16 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
                 .ThenInclude(lra => lra.Request)
             .FirstOrDefaultAsync(sa => sa.AssignmentId == assignmentId && sa.Shift.ScheduleWeek.BranchId == branchId, cancellationToken);
     }
+
+    public async Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.AttendanceRules
+            .AsNoTracking()
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.AttendanceRuleId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await _context.AttendanceRules.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+    }
 }

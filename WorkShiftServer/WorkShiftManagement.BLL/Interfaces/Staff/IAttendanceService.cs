@@ -15,4 +15,5 @@ public interface IAttendanceService
     Task<CheckInResponse> CheckInAsync(Guid userId, CheckInRequest request, CancellationToken cancellationToken = default);
     Task<CheckOutSessionResponse> CreateCheckOutSessionAsync(Guid userId, int assignmentId, CancellationToken cancellationToken = default);
     Task<CheckOutResponse> CheckOutAsync(Guid userId, CheckOutRequest request, CancellationToken cancellationToken = default);
+    Task<int> FinalizeExpiredAttendancesAsync(CancellationToken cancellationToken = default);
 }
