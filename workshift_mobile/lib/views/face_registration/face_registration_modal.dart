@@ -758,7 +758,7 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
               ],
             ),
           ),
-          if (kIsWeb || !_controller.isCameraInitialized) ...[
+          if (kIsWeb || _controller.isCameraFailed) ...[
             const SizedBox(height: 10),
             ElevatedButton.icon(
               onPressed: isSubmitting
