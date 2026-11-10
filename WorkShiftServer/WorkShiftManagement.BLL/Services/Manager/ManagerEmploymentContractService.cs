@@ -744,6 +744,10 @@ public class ManagerEmploymentContractService(
         contract.ContractTemplateVersion = templateVersion;
         contract.PdfGeneratedAt = now;
         contract.SentToStaffAt = now;
+        contract.ApprovedBy = managerId;
+        contract.ApprovedAt = now;
+        contract.StaffRespondedAt = null;
+        contract.StaffAcceptedAt = null;
         contract.Status = "PENDING_STAFF";
         contract.UpdatedAt = now;
 
@@ -986,6 +990,9 @@ public class ManagerEmploymentContractService(
         contract.ContractTemplateVersion = templateVersion;
         contract.PdfGeneratedAt = now;
         contract.SentToStaffAt = now;
+        contract.ApprovedBy = managerId;
+        contract.ApprovedAt = now;
+        contract.StaffRespondedAt = null;
         contract.StaffAcceptedAt = null;
         contract.Status = "PENDING_STAFF";
         contract.UpdatedAt = now;
