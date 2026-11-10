@@ -231,15 +231,27 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         await Pending(item, ct); var old = Snapshot(item); var now = DateTime.UtcNow;
         if (approve)
         {
-            var source = new SaveEmployeeAdjustmentRequest {
-                UserId = item.UserId,
-                PayrollPeriodId = item.PayrollPeriodId,
-                AdjustmentDate = item.AdjustmentDate,
-                AdjustmentName = item.AdjustmentName,
-                Amount = item.Amount,
-                Reason = item.Reason
-            };
-            Validate(source); await Targets(actor, source, ct);
+            var staff = item.User;
+            if (staff == null || staff.DeletedAt != null || staff.Status != "ACTIVE"
+                || staff.Role == null || staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE"
+                || !staff.BranchId.HasValue || staff.BranchId.Value <= 0)
+                throw new ArgumentException("Nhân viên phải là Staff đang hoạt động thuộc chi nhánh hợp lệ.");
+
+            var staffBranchId = staff.BranchId.Value;
+            var hasContract = await repo.StaffHasContractAsync(item.UserId, staffBranchId, ct);
+            if (!hasContract)
+                throw new ArgumentException("Chỉ được duyệt thưởng/phạt cho nhân viên đã có hợp đồng.");
+
+            if (item.PayrollPeriodId.HasValue && item.PayrollPeriodId.Value > 0)
+            {
+                var period = item.PayrollPeriod ?? await repo.PeriodAsync(item.PayrollPeriodId.Value, null, ct);
+                if (period != null)
+                {
+                    CheckPeriod(period);
+                    if (period.BranchId != staffBranchId)
+                        throw new ArgumentException("Kỳ lương không thuộc chi nhánh của nhân viên.");
+                }
+            }
         }
         item.ApprovalStatus = approve ? "APPROVED" : "REJECTED"; item.ReviewNote = string.IsNullOrWhiteSpace(r.ReviewNote) ? null : r.ReviewNote.Trim();
         item.ApprovedBy = approve ? id : null; item.ApprovedAt = approve ? now : null;
