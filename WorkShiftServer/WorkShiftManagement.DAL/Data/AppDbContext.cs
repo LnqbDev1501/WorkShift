@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Entities;
@@ -871,6 +871,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.PayrollPeriodId, e.UserId }, "ix_rewards_penalties_payroll_period_user").HasFilter("(is_deleted = false)");
 
             entity.Property(e => e.RewardPenaltyId).HasColumnName("reward_penalty_id");
+            entity.Property(e => e.AdjustmentDate).HasColumnName("adjustment_date");
             entity.Property(e => e.AdjustmentName)
                 .HasMaxLength(100)
                 .HasColumnName("adjustment_name");
@@ -899,8 +900,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(false)
                 .HasColumnName("is_deleted");
             entity.Property(e => e.PayrollId).HasColumnName("payroll_id");
-            entity.Property(e => e.PayrollPeriodId).IsRequired(false).HasColumnName("payroll_period_id");
-            entity.Property(e => e.AdjustmentDate).HasColumnName("adjustment_date");
+            entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
             entity.Property(e => e.Reason)
                 .HasMaxLength(500)
                 .HasColumnName("reason");

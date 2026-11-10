@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -12,8 +12,6 @@ public partial class EmployeeRewardsPenalty
     public string AdjustmentType { get; set; } = null!;
 
     public int? PayrollPeriodId { get; set; }
-
-    public DateOnly? AdjustmentDate { get; set; }
 
     public int? PayrollId { get; set; }
 
@@ -46,6 +44,8 @@ public partial class EmployeeRewardsPenalty
     public DateTime? RejectedAt { get; set; }
 
     public string? ReviewNote { get; set; }
+
+    public DateOnly? AdjustmentDate { get; set; }
 
     public virtual User? ApprovedByNavigation { get; set; }
 
