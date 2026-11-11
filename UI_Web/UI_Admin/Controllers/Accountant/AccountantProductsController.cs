@@ -23,6 +23,11 @@ public class AccountantProductsController(AccountantProductApiService api) : Con
         int page = 1,
         CancellationToken cancellationToken = default)
     {
+        if (!User.IsInRole("ADMIN"))
+        {
+            branchId = null;
+        }
+
         var model = new AccountantProductListViewModel
         {
             PageNumber = page < 1 ? 1 : page,

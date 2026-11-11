@@ -20,6 +20,11 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
         DateTime? dateFrom, DateTime? dateTo, int page = 1,
         CancellationToken cancellationToken = default)
     {
+        if (!User.IsInRole("ADMIN"))
+        {
+            branchId = null;
+        }
+
         var model = new AccountantOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,

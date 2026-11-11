@@ -12,7 +12,7 @@ public class CategoryRepo : ICategoryRepo
 
     public CategoryRepo(AppDbContext context) => _context = context;
 
-    public async Task<(List<CategoryData> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize)
+    public async Task<(List<CategoryData> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize, int? branchId = null)
     {
         var query = _context.ProductCategories.AsNoTracking().AsQueryable();
 
@@ -39,7 +39,7 @@ public class CategoryRepo : ICategoryRepo
                 CategoryName = category.CategoryName,
                 Description = category.Description,
                 Status = category.Status,
-                ProductCount = category.Products.Count,
+                ProductCount = category.Products.Count(p => !branchId.HasValue || p.BranchId == branchId.Value),
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt
             })
@@ -48,7 +48,7 @@ public class CategoryRepo : ICategoryRepo
         return (items, totalCount);
     }
 
-    public Task<CategoryDetailData?> GetByIdAsync(int id)
+    public Task<CategoryDetailData?> GetByIdAsync(int id, int? branchId = null)
     {
         if (id <= 0)
             return Task.FromResult<CategoryDetailData?>(null);
@@ -62,10 +62,11 @@ public class CategoryRepo : ICategoryRepo
                 CategoryName = category.CategoryName,
                 Description = category.Description,
                 Status = category.Status,
-                ProductCount = category.Products.Count,
+                ProductCount = category.Products.Count(p => !branchId.HasValue || p.BranchId == branchId.Value),
                 CreatedAt = category.CreatedAt,
                 UpdatedAt = category.UpdatedAt,
                 Products = category.Products
+                    .Where(product => !branchId.HasValue || product.BranchId == branchId.Value)
                     .OrderBy(product => product.ProductName)
                     .Select(product => new CategoryProductData
                     {

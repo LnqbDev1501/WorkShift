@@ -5,8 +5,8 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface ICategoryRepo
 {
-    Task<(List<CategoryData> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize);
-    Task<CategoryDetailData?> GetByIdAsync(int id);
+    Task<(List<CategoryData> Items, int TotalCount)> GetPagedAsync(string? search, string? status, int pageNumber, int pageSize, int? branchId = null);
+    Task<CategoryDetailData?> GetByIdAsync(int id, int? branchId = null);
     Task<bool> ExistsByNameAsync(string categoryName);
     Task<bool> ExistsByNameExceptIdAsync(string categoryName, int excludeCategoryId);
     Task<bool> HasActiveProductsAsync(int categoryId);

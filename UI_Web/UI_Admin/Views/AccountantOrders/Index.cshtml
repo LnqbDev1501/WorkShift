@@ -8,7 +8,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-slate-900">Orders</h1>
-            <p class="text-slate-500 text-sm mt-0.5">View all customer orders across branches.</p>
+            <p class="text-slate-500 text-sm mt-0.5">@(User.IsInRole("ADMIN") ? "View all customer orders across branches." : "View customer orders in your assigned branch.")</p>
         </div>
     </div>
 
@@ -21,13 +21,16 @@
     <form method="get" asp-action="Index" class="ws-list-filter" role="search">
         <div class="ws-filter-row">
             <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="search" value="@Model.Search" placeholder="Order # or staff..." /></label>
-            <div class="ws-filter-field"><select aria-label="Branch" name="branchId">
-                        <option value="">All Branches</option>
-                        @foreach (var branch in Model.Branches)
-                        {
-                            <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
-                        }
-                    </select></div>
+            @if (User.IsInRole("ADMIN"))
+            {
+                <div class="ws-filter-field"><select aria-label="Branch" name="branchId">
+                            <option value="">All Branches</option>
+                            @foreach (var branch in Model.Branches)
+                            {
+                                <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
+                            }
+                        </select></div>
+            }
             <div class="ws-filter-field"><select aria-label="Status" name="status">
                         <option value="all">All Statuses</option>
                         <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>

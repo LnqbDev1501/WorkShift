@@ -13,4 +13,8 @@ public interface IBranchSalesReportService
         DateTime? dateFrom,
         DateTime? dateTo,
         CancellationToken cancellationToken = default);
+
+    Task<int?> GetUserBranchIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
 }

@@ -51,10 +51,10 @@ public class OrderService : IOrderService
                 throw new ArgumentException("Payment status filter only accepts 'PAID', 'UNPAID', or 'PARTIAL'.");
         }
 
-        // Managers and Staff only see orders of their own branch.
-        // Accountants and Admins can filter by branch or see all.
-        int? branchId = (actor.Role == "MANAGER" || actor.Role == "STAFF")
-            ? actor.BranchId
+        // Managers, Staff, and Accountants only see orders of their own branch.
+        // Admins can filter by branch or see all.
+        int? branchId = (actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT")
+            ? (actor.BranchId.HasValue ? actor.BranchId.Value : -1)
             : query.BranchId is > 0 ? query.BranchId : null;
 
         var (items, totalCount) = await _orderRepo.GetPagedAsync(
@@ -83,14 +83,14 @@ public class OrderService : IOrderService
 
         var actor = await GetActorAsync(actorId);
 
-        var data = (actor.Role == "MANAGER" || actor.Role == "STAFF") && actor.BranchId.HasValue
+        var data = (actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT") && actor.BranchId.HasValue
             ? await _orderRepo.GetByIdWithBranchAsync(id, actor.BranchId.Value)
             : await _orderRepo.GetByIdAsync(id);
 
         if (data == null)
             return null;
 
-        if ((actor.Role == "MANAGER" || actor.Role == "STAFF") && data.BranchId != actor.BranchId)
+        if ((actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT") && (!actor.BranchId.HasValue || data.BranchId != actor.BranchId.Value))
             return null;
 
         return MapDetail(data);
@@ -285,14 +285,14 @@ public class OrderService : IOrderService
 
         var actor = await GetActorAsync(actorId);
 
-        var data = actor.Role == "MANAGER" && actor.BranchId.HasValue
+        var data = (actor.Role is "MANAGER" or "ACCOUNTANT") && actor.BranchId.HasValue
             ? await _orderRepo.GetByIdWithBranchAsync(0, actor.BranchId.Value) // We need GetByOrderNumberAsync
             : await _orderRepo.GetByOrderNumberAsync(orderNumber.Trim());
 
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if ((actor.Role is "MANAGER" or "ACCOUNTANT") && (!actor.BranchId.HasValue || data.BranchId != actor.BranchId.Value))
             return null;
 
         return MapDetail(data);

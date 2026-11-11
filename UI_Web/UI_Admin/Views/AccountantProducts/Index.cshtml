@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Accountant.AccountantProductListViewModel
+@model UI_Admin.Models.Accountant.AccountantProductListViewModel
 
 @{
     ViewData["Title"] = "Products";
@@ -15,7 +15,7 @@
             <div class="flex items-center gap-unit-3">
                 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Products</h1>
             </div>
-            <p class="font-body-md text-body-md text-secondary mt-1">View sellable products, pricing and availability across all branches. Read-only access for Accountant role.</p>
+            <p class="font-body-md text-body-md text-secondary mt-1">@(User.IsInRole("ADMIN") ? "View sellable products, pricing and availability across all branches." : "View sellable products, pricing and availability in your assigned branch. Read-only access for Accountant role.")</p>
         </div>
     </div>
 
@@ -23,19 +23,22 @@
 new("Matching Products", Model.TotalItems.ToString("N0"), "Matching current filters", "inventory_2", "#4f46e5"),
 new("Active Products", Model.Items.Count(x => x.Status == "ACTIVE").ToString("N0"), "On this page", "check_circle", "#10b981"),
 new("Inactive Products", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N0"), "On this page", "pause_circle", "#f59e0b"),
-new("Catalog coverage", $"{Model.Categories.Count:N0} / {Model.Branches.Count:N0}", "Categories / branches available", "category", "#8b5cf6")
+User.IsInRole("ADMIN") ? new("Catalog coverage", $"{Model.Categories.Count:N0} / {Model.Branches.Count:N0}", "Categories / branches available", "category", "#8b5cf6") : new("Categories", Model.Categories.Count.ToString("N0"), "Available for filtering", "category", "#8b5cf6")
 })' />
     <!-- Filter Toolbar -->
     <form method="get" asp-controller="AccountantProducts" asp-action="Index" id="filter-form" class="ws-list-filter" role="search">
         <div class="ws-filter-row">
             <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" id="product-search" name="search" value="@Model.Search" placeholder="Search product code or name..." type="text"></label>
-            <div class="ws-filter-field"><select aria-label="Branch" id="branch-filter" name="branchId" onchange="this.form.submit()">
-                            <option value="">All Branches</option>
-                            @foreach (var branch in Model.Branches)
-                            {
-                                <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
-                            }
-                        </select></div>
+            @if (User.IsInRole("ADMIN"))
+            {
+                <div class="ws-filter-field"><select aria-label="Branch" id="branch-filter" name="branchId" onchange="this.form.submit()">
+                                <option value="">All Branches</option>
+                                @foreach (var branch in Model.Branches)
+                                {
+                                    <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
+                                }
+                            </select></div>
+            }
             <div class="ws-filter-field"><select aria-label="Category" id="category-filter" name="categoryId" onchange="this.form.submit()">
                         <option value="">All Categories</option>
                         @foreach (var category in Model.Categories)

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -25,6 +26,12 @@ public class CategoryController : ControllerBase
         _logger = logger;
     }
 
+    private Guid? GetActorId()
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Guid.TryParse(subject, out var actor) && actor != Guid.Empty ? actor : null;
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(PagedResponse<CategoryResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -32,7 +39,7 @@ public class CategoryController : ControllerBase
     {
         try
         {
-            return Ok(await _categoryService.GetPagedAsync(query));
+            return Ok(await _categoryService.GetPagedAsync(query, GetActorId()));
         }
         catch (ArgumentException exception)
         {
@@ -50,7 +57,7 @@ public class CategoryController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(int id)
     {
-        var category = await _categoryService.GetByIdAsync(id);
+        var category = await _categoryService.GetByIdAsync(id, GetActorId());
         if (category == null)
         {
             return NotFound(new ProblemDetails

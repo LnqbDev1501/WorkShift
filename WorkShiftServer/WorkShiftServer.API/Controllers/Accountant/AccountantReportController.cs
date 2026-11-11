@@ -47,13 +47,30 @@ public class AccountantReportController : ControllerBase
         if (actor == null)
             return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
 
-        if (branchId is null || branchId <= 0)
-            return BadRequest(new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Bad Request",
-                Detail = "A branch must be selected to export the sales report."
-            });
+        int targetBranchId;
+        if (User.IsInRole("ACCOUNTANT"))
+        {
+            var userBranchId = await _branchSalesReportService.GetUserBranchIdAsync(actor.Value, cancellationToken);
+            if (!userBranchId.HasValue)
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Accountant is not assigned to any branch.");
+
+            if (branchId.HasValue && branchId.Value > 0 && branchId.Value != userBranchId.Value)
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You are not authorized to export reports for another branch.");
+
+            targetBranchId = userBranchId.Value;
+        }
+        else
+        {
+            if (branchId is null || branchId <= 0)
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Bad Request",
+                    Detail = "A branch must be selected to export the sales report."
+                });
+
+            targetBranchId = branchId.Value;
+        }
 
         if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
             return BadRequest(new ProblemDetails
@@ -66,8 +83,8 @@ public class AccountantReportController : ControllerBase
         try
         {
             var bytes = await _branchSalesReportService.GenerateBranchSalesReportAsync(
-                branchId.Value, dateFrom, dateTo, cancellationToken);
-            var fileName = $"branch_sales_{branchId.Value}_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+                targetBranchId, dateFrom, dateTo, cancellationToken);
+            var fileName = $"branch_sales_{targetBranchId}_{DateTime.UtcNow:yyyyMMdd}.xlsx";
 
             return File(bytes, ExcelContentType, fileName);
         }

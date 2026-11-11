@@ -29,17 +29,24 @@ public class AccountantReportsController(AccountantOrderApiService api, BranchAp
         int? branchId, DateTime? dateFrom, DateTime? dateTo,
         CancellationToken cancellationToken = default)
     {
-        if (branchId is null || branchId <= 0)
+        if (User.IsInRole("ADMIN"))
         {
-            TempData["ErrorMessage"] = "Please select a branch to export the sales report.";
-            return RedirectToAction(nameof(BranchSales));
+            if (branchId is null || branchId <= 0)
+            {
+                TempData["ErrorMessage"] = "Please select a branch to export the sales report.";
+                return RedirectToAction(nameof(BranchSales));
+            }
+        }
+        else
+        {
+            branchId = null;
         }
 
         try
         {
             var bytes = await api.ExportBranchSalesReportAsync(branchId, dateFrom, dateTo, cancellationToken);
             const string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            return File(bytes, contentType, $"branch_sales_{branchId}_{DateTime.UtcNow:yyyyMMdd}.xlsx");
+            return File(bytes, contentType, $"branch_sales_{DateTime.UtcNow:yyyyMMdd}.xlsx");
         }
         catch (HttpRequestException ex)
         {

@@ -16,7 +16,9 @@
             <h1 class="text-display-lg font-display-lg text-on-surface">@ViewData["Title"]</h1>
             <p>@(manager
                 ? $"Record and track employee {plural.ToLowerInvariant()} for approval."
-                : $"View and manage employee {plural.ToLowerInvariant()} across the organization.")</p>
+                : admin
+                    ? $"View and manage employee {plural.ToLowerInvariant()} across the organization."
+                    : $"View employee {plural.ToLowerInvariant()} in your branch.")</p>
         </div>
         @if (manager) { <a asp-action="Create" class="btn btn-primary inline-flex items-center gap-2"><span class="material-symbols-outlined">add</span>Create @label.ToLowerInvariant()</a> }
     </div>

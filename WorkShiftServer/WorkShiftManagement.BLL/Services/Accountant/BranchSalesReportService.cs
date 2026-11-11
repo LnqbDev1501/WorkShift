@@ -13,6 +13,13 @@ public class BranchSalesReportService : IBranchSalesReportService
         _repo = repo;
     }
 
+    public Task<int?> GetUserBranchIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return _repo.GetManagerBranchIdAsync(userId, cancellationToken);
+    }
+
     public async Task<byte[]> GenerateManagerBranchSalesReportAsync(
         Guid managerId,
         DateTime? dateFrom,
