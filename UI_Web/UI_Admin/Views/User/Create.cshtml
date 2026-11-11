@@ -224,7 +224,7 @@
                                     National Citizen ID (CCCD/CMND) <span class="text-error">*</span>
                                 </label>
                                 <div class="relative">
-                                    <input asp-for="IdentityNo" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-code-num text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="12" placeholder="079099012345" type="text" />
+                                    <input asp-for="IdentityNo" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-code-num text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="12" placeholder="079099012345" type="text" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
                                     <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">badge</span>
                                 </div>
                                 <span asp-validation-for="IdentityNo" class="field-validation-error"></span>

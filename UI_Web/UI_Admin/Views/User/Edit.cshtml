@@ -293,7 +293,7 @@
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">credit_card</span>
-                            <input asp-for="IdentityNo" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="12" placeholder="079099012345" type="text" />
+                            <input asp-for="IdentityNo" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-code-num text-code-num border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="12" placeholder="079099012345" type="text" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
                         </div>
                         <span asp-validation-for="IdentityNo" class="field-validation-error"></span>
                     </div>
