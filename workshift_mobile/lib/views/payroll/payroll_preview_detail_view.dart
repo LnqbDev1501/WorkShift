@@ -888,13 +888,17 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
               ),
               _buildMiniOverviewStat(
                 'Total Work Hours',
-                '${payroll.totalWorkHours}h',
+                '${_formatWorkHours(payroll.totalWorkHours)}h',
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  String _formatWorkHours(num hours) {
+    return hours.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
   Widget _buildMiniOverviewStat(String label, String value) {
@@ -950,7 +954,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
           ),
           const SizedBox(height: 16),
           _buildDetailRow(
-            'Base Work Pay (${payroll.totalWorkHours} hrs @ ${formatCurrency(payroll.hourlyRate)})',
+            'Base Work Pay (${_formatWorkHours(payroll.totalWorkHours)} hrs @ ${formatCurrency(payroll.hourlyRate)})',
             formatCurrency(payroll.workPay),
           ),
           if (payroll.totalReward > 0)

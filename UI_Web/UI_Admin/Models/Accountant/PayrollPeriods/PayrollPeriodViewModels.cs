@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using UI_Admin.Models.Admin.Payroll;
 namespace UI_Admin.Models.Accountant.PayrollPeriods;
 
@@ -80,6 +80,6 @@ public sealed record PeriodConfirmation(PeriodRecord Period, bool Delete);
 public static class PeriodDisplay
 {
     public static readonly string[] Statuses = ["DRAFT", "OPEN", "CALCULATED", "SUBMITTED", "REVISION_REQUIRED", "APPROVED", "PAID", "CLOSED"];
-    public static string Money(decimal value) => value.ToString("#,0.############################", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+    public static string Money(decimal value) => value.ToString("#,##0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
     public static string Time(DateTime? value) => value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—";
 }

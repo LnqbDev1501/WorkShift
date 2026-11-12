@@ -322,7 +322,7 @@
                                                                 </div>
                                                             </td>
                                                             <td>@(pay.EmployeePosition ?? "—")<small>@Money(pay.HourlyRate) / hr</small></td>
-                                                            <td><strong>@pay.TotalWorkHours.ToString("0.############################") hrs</strong></td>
+                                                            <td><strong>@pay.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</strong></td>
                                                             <td class="money">@Money(pay.WorkPay)</td>
                                                             <td class="money reward">@Money(pay.TotalReward)</td>
                                                             <td class="money red">@Money(pay.TotalDeduction)</td>
