@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -153,7 +153,7 @@ public sealed class ReviewEmployeeAdjustmentViewModel
 public static class EmployeeAdjustmentDisplay
 {
     public static string Money(decimal value) =>
-        value.ToString("#,0.##", CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+        (Math.Abs(value) < 0.5m ? 0m : value).ToString("#,##0", CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
 
     public static string Date(DateOnly? value) => value?.ToString("dd/MM/yyyy") ?? "—";
 

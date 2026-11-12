@@ -114,7 +114,7 @@ public static class SalaryChangeDisplay
     {
         get { var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)); var days = ((int)DayOfWeek.Monday - (int)today.DayOfWeek + 7) % 7; return today.AddDays(days == 0 ? 7 : days); }
     }
-    public static string Money(decimal value) => value.ToString("#,0.##", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+    public static string Money(decimal value) => (Math.Abs(value) < 0.5m ? 0m : value).ToString("#,##0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
     public static string Date(DateOnly? value) => value?.ToString("dd/MM/yyyy") ?? "—";
     public static string Time(DateTime? value) => value.HasValue ? DateTime.SpecifyKind(value.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—";
     public static string Badge(string status) => status switch { "PENDING" => "bg-amber-50 text-amber-700", "APPROVED" => "bg-emerald-50 text-emerald-700", "REJECTED" => "bg-red-50 text-red-700", _ => "bg-gray-100 text-gray-700" };

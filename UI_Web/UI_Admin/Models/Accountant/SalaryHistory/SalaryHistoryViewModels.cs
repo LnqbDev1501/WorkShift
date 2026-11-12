@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 namespace UI_Admin.Models.Accountant.SalaryHistory;
 
@@ -52,7 +52,7 @@ public sealed class SalaryHistoryContract
 }
 public static class SalaryHistoryDisplay
 {
-    public static string Money(decimal? amount) => amount.HasValue ? amount.Value.ToString("#,##0", CultureInfo.InvariantCulture) + " VND" : "—";
+    public static string Money(decimal? amount) => amount.HasValue ? (Math.Abs(amount.Value) < 0.5m ? 0m : amount.Value).ToString("#,##0", CultureInfo.GetCultureInfo("vi-VN")) + " VND" : "—";
     public static string Date(DateOnly? date) => date?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "Open-ended";
     public static string Label(string value) => value switch
     { "SCHEDULED" => "Scheduled", "ACTIVE" => "Active", "INACTIVE" => "Inactive", "INITIAL" => "Initial salary", "INCREASE" => "Increase", "DECREASE" => "Decrease", _ => value };

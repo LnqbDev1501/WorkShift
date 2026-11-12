@@ -33,7 +33,7 @@
             <div asp-validation-summary="All" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm" role="alert"></div>
 
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700">
-                Timesheet #@Model.Payroll.TimesheetId • @Model.Payroll.TotalWorkHours.ToString("0.##") Hours. Work inputs are fixed; a new Payroll version will be created. The original version is preserved for audit history.
+                Timesheet #@Model.Payroll.TimesheetId • @Model.Payroll.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) Hours. Work inputs are fixed; a new Payroll version will be created. The original version is preserved for audit history.
             </div>
 
             <div>

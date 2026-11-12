@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodRecord
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
     ViewData["Title"] = $"{Model.PeriodCode} - Period Details";
@@ -348,7 +348,7 @@
             <div>
                 <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(Model.TotalNetSalary)</div>
                 <div class="text-xs text-slate-400 mt-1 truncate">
-                    Work Pay: @D.Money(totalWorkPay) • @totalHours.ToString("0.##")h
+                    Work Pay: @D.Money(totalWorkPay) • @totalHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)h
                 </div>
             </div>
         </div>
@@ -560,7 +560,7 @@
 
                                     <!-- Work Hours -->
                                     <td class="py-4 px-6 font-medium text-slate-800">
-                                        @p.TotalWorkHours.ToString("0.##") h
+                                        @p.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) h
                                     </td>
 
                                     <!-- Work Pay -->

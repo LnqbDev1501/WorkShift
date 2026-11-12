@@ -71,7 +71,7 @@
             </div>
             <div>
                 <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(p.WorkPay)</div>
-                <div class="text-xs text-slate-400 mt-1">@p.TotalWorkHours.ToString("0.##") Work Hours</div>
+                <div class="text-xs text-slate-400 mt-1">@p.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) Work Hours</div>
             </div>
         </div>
 
@@ -163,7 +163,7 @@
                 <h3 class="text-sm font-bold text-slate-900">1. Shift &amp; Attendance Details</h3>
             </div>
             <div class="text-xs text-slate-500 font-medium">
-                Total: @p.TotalWorkHours.ToString("0.##") Hours
+                Total: @p.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) Hours
             </div>
         </div>
 

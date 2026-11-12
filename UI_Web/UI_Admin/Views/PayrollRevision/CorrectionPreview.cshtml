@@ -120,10 +120,10 @@
                 <tbody class="divide-y divide-slate-100">
                     <tr class="hover:bg-slate-50/80 transition-colors">
                         <td class="py-3.5 px-6 font-medium text-slate-800">Total Work Hours</td>
-                        <td class="py-3.5 px-6 text-right font-mono">@cur.TotalWorkHours.ToString("0.##") hrs</td>
-                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@prev.TotalWorkHours.ToString("0.##") hrs</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@cur.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@prev.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
                         <td class="py-3.5 px-6 text-right font-mono font-bold @(prev.TotalWorkHours > cur.TotalWorkHours ? "text-emerald-600" : prev.TotalWorkHours < cur.TotalWorkHours ? "text-rose-600" : "text-slate-500")">
-                            @(prev.TotalWorkHours - cur.TotalWorkHours != 0 ? $"{(prev.TotalWorkHours - cur.TotalWorkHours):+0.##;-0.##} hrs" : "—")
+                            @(prev.TotalWorkHours - cur.TotalWorkHours != 0 ? (prev.TotalWorkHours - cur.TotalWorkHours).ToString("+0.##;-0.##", System.Globalization.CultureInfo.InvariantCulture) + " hrs" : "—")
                         </td>
                     </tr>
                     <tr class="hover:bg-slate-50/80 transition-colors">

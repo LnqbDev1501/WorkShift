@@ -897,9 +897,7 @@ class _PayrollPreviewDetailViewState extends State<PayrollPreviewDetailView> {
     );
   }
 
-  String _formatWorkHours(num hours) {
-    return hours.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
-  }
+  String _formatWorkHours(num hours) => formatWorkHours(hours);
 
   Widget _buildMiniOverviewStat(String label, String value) {
     return Column(

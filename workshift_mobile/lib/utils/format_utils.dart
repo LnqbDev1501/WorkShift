@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-String formatCurrency(double amount) {
-  return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} VND';
+String formatWorkHours(num hours) {
+  return hours.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+String formatCurrency(num amount) {
+  if (amount.abs() < 0.0001) return '0 VND';
+  final isNegative = amount < 0;
+  final formatted = amount.abs().toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]},',
+  );
+  return '${isNegative ? '-' : ''}$formatted VND';
 }
 
 String formatDate(DateTime date) {

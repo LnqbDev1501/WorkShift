@@ -406,7 +406,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
               ),
               _buildMiniOverviewStat(
                 'Total Work Hours',
-                '${payslip.totalWorkHours}h',
+                '${formatWorkHours(payslip.totalWorkHours)}h',
               ),
             ],
           ),
@@ -468,7 +468,7 @@ class _OfficialPayslipDetailViewState extends State<OfficialPayslipDetailView> {
           ),
           const SizedBox(height: 16),
           _buildDetailRow(
-            'Base Work Pay (${payslip.totalWorkHours} hrs @ ${formatCurrency(payslip.hourlyRate)})',
+            'Base Work Pay (${formatWorkHours(payslip.totalWorkHours)} hrs @ ${formatCurrency(payslip.hourlyRate)})',
             formatCurrency(payslip.workPay),
           ),
           if (payslip.totalReward > 0)

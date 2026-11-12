@@ -122,7 +122,7 @@
             </div>
             <div>
                 <div class="text-2xl font-bold text-slate-900 tracking-tight">@D.Money(p.WorkPay)</div>
-                <div class="text-xs text-slate-400 mt-1">@p.TotalWorkHours.ToString("0.##") Hours</div>
+                <div class="text-xs text-slate-400 mt-1">@p.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) Hours</div>
             </div>
         </div>
 
@@ -622,10 +622,10 @@
                     <tbody class="divide-y divide-slate-100">
                         <tr class="hover:bg-slate-50/80">
                             <td class="py-3 px-6 font-medium text-slate-800">Total Work Hours</td>
-                            <td class="py-3 px-6 text-right font-mono">@previous.TotalWorkHours.ToString("0.##") hrs</td>
-                            <td class="py-3 px-6 text-right font-mono font-bold text-indigo-900">@p.TotalWorkHours.ToString("0.##") hrs</td>
+                            <td class="py-3 px-6 text-right font-mono">@previous.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
+                            <td class="py-3 px-6 text-right font-mono font-bold text-indigo-900">@p.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
                             <td class="py-3 px-6 text-right font-mono font-bold @(p.TotalWorkHours > previous.TotalWorkHours ? "text-emerald-600" : p.TotalWorkHours < previous.TotalWorkHours ? "text-rose-600" : "text-slate-500")">
-                                @(p.TotalWorkHours - previous.TotalWorkHours != 0 ? $"{(p.TotalWorkHours - previous.TotalWorkHours):+0.##;-0.##} hrs" : "—")
+                                @(p.TotalWorkHours - previous.TotalWorkHours != 0 ? (p.TotalWorkHours - previous.TotalWorkHours).ToString("+0.##;-0.##", System.Globalization.CultureInfo.InvariantCulture) + " hrs" : "—")
                             </td>
                         </tr>
                         <tr class="hover:bg-slate-50/80">
