@@ -75,7 +75,10 @@ class _ShiftDetailViewState extends State<ShiftDetailView>
                   isError: true,
                 ),
               if (_controller.shift != null)
-                ShiftDetailContent(shift: _controller.shift!),
+                ShiftDetailContent(
+                  shift: _controller.shift!,
+                  attendanceDetail: _controller.attendanceDetail,
+                ),
             ],
           ),
         ),

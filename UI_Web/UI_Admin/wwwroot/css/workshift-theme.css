@@ -53,19 +53,28 @@ body.workshift-theme {
 }
 
 /* Page Containers */
-.workshift-theme :is(.dashboard-page, .notifications-page, .payroll-page, .holiday-page, .shift-content) {
+.workshift-theme :is(.dashboard-page, .notifications-page, .payroll-page, .holiday-page, .shift-content, .accountant-dashboard, .manager-dashboard, .rules-page) {
     width: 100%;
-    max-width: 1496px;
+    max-width: 1536px;
     margin-inline: auto;
     padding: 20px 28px 36px;
     background: var(--ws-bg);
     font-size: 14px;
+    box-sizing: border-box;
 }
 
-.workshift-theme #main-content-wrapper > main > .px-7 {
-    max-width: 1496px;
+.workshift-theme :is(#main-content-wrapper > main > .px-7, #main-content-wrapper > main > div > .px-7, .workspace-page > .px-7, #main-content-wrapper > main > .ws-page-container, .workspace-page > .ws-page-container) {
+    max-width: 1536px;
     margin-inline: auto;
     padding: 20px 28px 36px;
+    box-sizing: border-box;
+}
+
+.workshift-theme .ws-form-page {
+    padding: 20px 28px 36px;
+    max-width: 1536px;
+    margin-inline: auto;
+    box-sizing: border-box;
 }
 
 .workshift-theme :is(.dashboard-heading, .notification-header, .holiday-heading, .form-heading, .shift-heading) {
