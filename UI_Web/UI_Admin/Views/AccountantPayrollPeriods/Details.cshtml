@@ -19,19 +19,75 @@
     var totalAttendanceDeduction = Model.Payrolls.Sum(p => p.AttendanceDeduction);
     var totalHours = Model.Payrolls.Sum(p => p.TotalWorkHours);
 
-    var pendingReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "PENDING") ?? 0;
-    var expiredReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "EXPIRED") ?? 0;
-    var confirmedReviews = Model.Feedbacks?.Count(f => f.ReviewStatus == "CONFIRMED") ?? 0;
-    var openIssues = Model.CorrectionRequests?.Count(c => c.Status is "OPEN" or "RESPONDED") ?? 0;
-    var expiredIssues = Model.CorrectionRequests?.Count(c => c.Status == "EXPIRED") ?? 0;
+    var feedbacks = Model.Feedbacks ?? [];
+    var corrections = Model.CorrectionRequests ?? [];
 
-    // Real submit condition based on backend rules:
+    var currentPayrolls = (Model.Payrolls ?? [])
+        .Where(p => p.Status != "REPLACED")
+        .GroupBy(p => p.UserId)
+        .Select(g => g.OrderByDescending(p => p.VersionNo).ThenByDescending(p => p.PayrollId).First())
+        .ToList();
+
+    var leafCorrections = corrections
+        .Where(c => !corrections.Any(n => n.PreviousRequestId == c.CorrectionRequestId))
+        .ToList();
+
+    var openIssues = leafCorrections.Count(c => c.Status is "OPEN" or "RESPONDED" or "RETURNED");
+    var expiredIssues = leafCorrections.Count(c => c.Status == "EXPIRED");
+    var hasUnresolvedCorrections = leafCorrections.Any(c => c.Status is "OPEN" or "RESPONDED" or "EXPIRED" or "RETURNED");
+
+    int confirmedReviews = 0;
+    int expiredReviews = 0;
+    int pendingReviews = 0;
+    int feedbackPendingReviews = 0;
+    int unreviewedStaffCount = 0;
+
+    foreach (var p in currentPayrolls)
+    {
+        var leaf = feedbacks
+            .Where(f => f.EmployeeId == p.UserId && !feedbacks.Any(n => n.PreviousFeedbackId == f.FeedbackId))
+            .OrderByDescending(f => f.FeedbackId)
+            .FirstOrDefault();
+
+        if (leaf == null || leaf.PayrollId != p.PayrollId)
+        {
+            unreviewedStaffCount++;
+        }
+        else if (leaf.ReviewStatus == "CONFIRMED")
+        {
+            confirmedReviews++;
+        }
+        else if (leaf.ReviewStatus == "EXPIRED")
+        {
+            expiredReviews++;
+        }
+        else if (leaf.ReviewStatus == "PENDING")
+        {
+            pendingReviews++;
+        }
+        else if (leaf.ReviewStatus == "FEEDBACK_PENDING")
+        {
+            feedbackPendingReviews++;
+        }
+        else
+        {
+            unreviewedStaffCount++;
+        }
+    }
+
+    var allStaffReviewed = currentPayrolls.Count > 0
+        && unreviewedStaffCount == 0
+        && (confirmedReviews + expiredReviews) == currentPayrolls.Count;
+
+    // Real submit condition based on backend rules (PayrollPreviewPolicy.RequireReviewed):
     var isEligibleToSubmit = (isCalculated || isRevisionRequired)
-        && Model.Payrolls.Count > 0
+        && currentPayrolls.Count > 0
+        && currentPayrolls.All(p => p.Status == "CALCULATED")
+        && Model.RejectedPayrollCount == 0
+        && allStaffReviewed
         && pendingReviews == 0
-        && openIssues == 0
-        && expiredIssues == 0
-        && Model.RejectedPayrollCount == 0;
+        && feedbackPendingReviews == 0
+        && !hasUnresolvedCorrections;
 }
 
 <div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
@@ -214,13 +270,25 @@
             <div>
                 <strong class="font-bold text-slate-900">Submission Checklist (Required before submitting to Admin):</strong>
                 <ul class="list-disc pl-4 mt-1 space-y-0.5 text-slate-600">
-                    @if (Model.Feedbacks == null || Model.Feedbacks.Count == 0)
+                    @if (currentPayrolls.Count == 0)
+                    {
+                        <li>No payroll records available for calculation or submission.</li>
+                    }
+                    @if (feedbacks.Count == 0)
                     {
                         <li>Current payroll version has not been sent for review.</li>
+                    }
+                    else if (unreviewedStaffCount > 0)
+                    {
+                        <li><strong>@unreviewedStaffCount</strong> employee(s) do not have a valid preview for the current payroll version.</li>
                     }
                     @if (pendingReviews > 0)
                     {
                         <li><strong>@pendingReviews</strong> employee(s) are awaiting payroll review.</li>
+                    }
+                    @if (feedbackPendingReviews > 0)
+                    {
+                        <li><strong>@feedbackPendingReviews</strong> employee review(s) have pending feedback to resolve.</li>
                     }
                     @if (openIssues > 0)
                     {
