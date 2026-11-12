@@ -726,7 +726,7 @@
 
                         <div class="text-right">
                             <span class="font-mono font-bold text-sm @(isApplied ? "text-rose-700" : "text-slate-400 line-through")">
-                                -@p.PenaltyAmount.ToString("N0") VND
+                                -@CurrencyHelper.FormatVnd(p.PenaltyAmount)
                             </span>
                             @if (!isApplied)
                             {

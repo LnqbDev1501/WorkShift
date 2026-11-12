@@ -60,7 +60,7 @@ public sealed class AccountantDashboardViewModel
     public AccountantDashboardData? Data { get; set; }
     public string? ErrorMessage { get; set; }
     public static string Number(int value) => value.ToString("N0", CultureInfo.GetCultureInfo("en-US"));
-    public static string Money(decimal value) => value.ToString("N0", CultureInfo.GetCultureInfo("en-US")) + " VND";
+    public static string Money(decimal value) => value.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
     public static string Percent(int count, int total) => (total <= 0 ? 0 : Math.Clamp(100d * count / total, 0, 100)).ToString("0.##", CultureInfo.InvariantCulture);
     public static string ChartColor(string status) => status.ToUpperInvariant() switch
     {

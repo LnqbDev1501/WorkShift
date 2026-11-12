@@ -483,7 +483,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-slate-500 font-medium">Applicable Hourly Rate</p>
-                        <p class="text-base font-extrabold text-indigo-600 tabular-nums mt-0.5">@Model.HourlyRate.ToString("N0") VND/hr</p>
+                        <p class="text-base font-extrabold text-indigo-600 tabular-nums mt-0.5">@CurrencyHelper.FormatVnd(Model.HourlyRate)/hr</p>
                     </div>
                     <div>
                         <p class="text-xs text-slate-500 font-medium">Position / Title</p>

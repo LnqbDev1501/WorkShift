@@ -143,7 +143,7 @@
                             {
                                 <div class="flex flex-col">
                                     <span class="font-semibold text-on-surface">@Model.MinimumWage.WageName</span>
-                                    <span class="text-xs text-secondary font-code-num">@Model.MinimumWage.MinimumHourlyRate.ToString("N0") VND/hour</span>
+                                    <span class="text-xs text-secondary font-code-num">@CurrencyHelper.FormatVnd(Model.MinimumWage.MinimumHourlyRate)/hour</span>
                                 </div>
                             }
                             else

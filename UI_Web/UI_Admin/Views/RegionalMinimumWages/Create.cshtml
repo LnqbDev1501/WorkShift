@@ -91,11 +91,11 @@
                                    placeholder="e.g., 27000"
                                    required
                                    type="number" />
-                            <span class="absolute right-3.5 px-2 py-0.5 rounded bg-surface-container text-secondary text-xs font-mono font-bold pointer-events-none">VND / hour</span>
+                            <span class="absolute right-3.5 px-2 py-0.5 rounded bg-surface-container text-secondary text-xs font-mono font-bold pointer-events-none">₫ / hour</span>
                         </div>
                         <span asp-validation-for="MinimumHourlyRate" class="text-error text-label-sm"></span>
                         <p class="text-body-sm text-secondary">
-                            The statutory minimum hourly rate in VND (must be greater than 0).
+                            The statutory minimum hourly rate in ₫ (must be greater than 0).
                         </p>
                     </div>
 
@@ -114,7 +114,7 @@
                                 @foreach (var activeWage in activeWages)
                                 {
                                     <option value="@activeWage.RegionalMinimumWageId" selected="@(Model?.ReplacedWageId == activeWage.RegionalMinimumWageId)">
-                                        @activeWage.WageName — @activeWage.MinimumHourlyRate.ToString("N0") VND/hour (ID #@activeWage.RegionalMinimumWageId)
+                                        @activeWage.WageName — @CurrencyHelper.FormatVnd(activeWage.MinimumHourlyRate)/hour (ID #@activeWage.RegionalMinimumWageId)
                                     </option>
                                 }
                             </select>

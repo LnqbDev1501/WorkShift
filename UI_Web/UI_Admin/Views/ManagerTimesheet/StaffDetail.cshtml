@@ -330,15 +330,15 @@
                                                     };
                                                     if (isApplied)
                                                     {
-                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @p.PenaltyAmount.ToString("N0") VND (@p.ViolationMinutes mins)">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @CurrencyHelper.FormatVnd(p.PenaltyAmount) (@p.ViolationMinutes mins)">
                                                             <span class="material-symbols-outlined text-[11px]">gavel</span>
-                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0") VND</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
                                                         </span>
                                                     }
                                                     else
                                                     {
                                                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-400 border border-slate-200 line-through" title="Waived violation @vType (@p.ViolationMinutes mins)">
-                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0") VND</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
                                                             <span class="text-[9px] no-underline font-semibold text-slate-500">(Waived)</span>
                                                         </span>
                                                     }

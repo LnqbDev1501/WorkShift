@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Accountant.PayrollSettlement.CarryForwardListViewModel
+@model UI_Admin.Models.Accountant.PayrollSettlement.CarryForwardListViewModel
 @using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
 @{
     ViewData["Title"] = "Carry Forward Deductions";
@@ -39,7 +39,7 @@
         new("Matching deductions", Model.Data.TotalItems.ToString("N0"), "Matching current filters", "next_plan"),
         new("Open", Model.Data.Items.Count(x => x.Status == "OPEN").ToString("N0"), "On this page", "pending_actions"),
         new("Partially applied", Model.Data.Items.Count(x => x.Status == "PARTIALLY_APPLIED").ToString("N0"), "On this page", "timelapse"),
-        new("Remaining balance", Model.Data.Items.Sum(x => x.RemainingAmount).ToString("N0"), "VND on this page", "account_balance_wallet")
+        new("Remaining balance", CurrencyHelper.FormatVnd(Model.Data.Items.Sum(x => x.RemainingAmount)), "On this page", "account_balance_wallet")
     })' />
     <form method="get" class="ws-list-filter" role="search">
         <div class="ws-filter-row">

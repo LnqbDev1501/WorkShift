@@ -69,10 +69,10 @@
                 {
                     <tr>
                         <td class="py-3 font-medium text-slate-900">@item.ProductName</td>
-                        <td class="py-3 text-right text-slate-600">@item.UnitPrice.ToString("N0")</td>
+                        <td class="py-3 text-right text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                         <td class="py-3 text-center text-slate-600">@item.Quantity</td>
-                        <td class="py-3 text-right text-slate-600">@item.DiscountAmount.ToString("N0")</td>
-                        <td class="py-3 text-right font-semibold text-slate-900">@item.TotalAmount.ToString("N0")</td>
+                        <td class="py-3 text-right text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>
+                        <td class="py-3 text-right font-semibold text-slate-900">@CurrencyHelper.FormatVnd(item.TotalAmount)</td>
                     </tr>
                 }
             </tbody>
@@ -81,11 +81,11 @@
         <div class="flex flex-col items-end gap-1.5 mt-5 pt-4 border-t border-slate-200 text-sm">
             <div class="flex justify-between w-64">
                 <span class="text-slate-500">Subtotal</span>
-                <span class="font-medium">@Model.Subtotal.ToString("N0") VND</span>
+                <span class="font-medium">@CurrencyHelper.FormatVnd(Model.Subtotal)</span>
             </div>
             <div class="flex justify-between w-64 text-base font-bold">
                 <span>Total</span>
-                <span class="text-indigo-600">@Model.TotalAmount.ToString("N0") VND</span>
+                <span class="text-indigo-600">@CurrencyHelper.FormatVnd(Model.TotalAmount)</span>
             </div>
         </div>
 

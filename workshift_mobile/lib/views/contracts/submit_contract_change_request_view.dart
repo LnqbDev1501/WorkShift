@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../controllers/contracts/staff_contract_controller.dart';
 import '../../models/contracts/staff_contract_model.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 import '../../widgets/app_button.dart';
 
 /// Screen: Submit Employment Contract Change Request
@@ -61,7 +62,7 @@ class _SubmitContractChangeRequestViewState
         key: 'HourlyRate',
         label: 'Base Hourly Rate',
         currentValue: c.regionalMinimumWage != null && c.regionalMinimumWage! > 0
-            ? '${c.formattedHourlyRate} (Min: ${c.regionalMinimumWage!.toStringAsFixed(0)} VND/hr)'
+            ? '${c.formattedHourlyRate} (Min: ${formatCurrency(c.regionalMinimumWage!)}/hr)'
             : c.formattedHourlyRate,
         icon: Icons.monetization_on_outlined,
       ),
@@ -264,7 +265,7 @@ class _SubmitContractChangeRequestViewState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Proposed hourly rate cannot be lower than the regional minimum wage (${minWage.toStringAsFixed(0)} VND/hr).',
+              'Proposed hourly rate cannot be lower than the regional minimum wage (${formatCurrency(minWage)}/hr).',
             ),
             backgroundColor: AppColors.error,
           ),
@@ -716,10 +717,10 @@ class _SubmitContractChangeRequestViewState
               controller: proposedCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
-                labelText: 'Proposed Hourly Rate (VND/hr) *',
+                labelText: 'Proposed Hourly Rate (₫/hr) *',
                 hintText: 'e.g. 25000',
                 helperText: widget.contract.regionalMinimumWage != null && widget.contract.regionalMinimumWage! > 0
-                    ? 'Regional minimum wage: ${widget.contract.regionalMinimumWage!.toStringAsFixed(0)} VND/hr'
+                    ? 'Regional minimum wage: ${formatCurrency(widget.contract.regionalMinimumWage!)}/hr'
                     : 'Must be higher than or equal to regional minimum wage.',
                 helperStyle: TextStyle(
                   fontSize: 11,
@@ -728,7 +729,7 @@ class _SubmitContractChangeRequestViewState
                       : AppColors.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
-                suffixText: 'VND/hr',
+                suffixText: '₫/hr',
                 labelStyle: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,
@@ -755,7 +756,7 @@ class _SubmitContractChangeRequestViewState
                 }
                 final minWage = widget.contract.regionalMinimumWage;
                 if (minWage != null && minWage > 0 && rate < minWage) {
-                  return 'Rate cannot be lower than regional minimum (${minWage.toStringAsFixed(0)} VND/hr).';
+                  return 'Rate cannot be lower than regional minimum (${formatCurrency(minWage)}/hr).';
                 }
                 return null;
               },

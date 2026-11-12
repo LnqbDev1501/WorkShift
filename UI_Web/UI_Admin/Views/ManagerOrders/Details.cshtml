@@ -71,10 +71,10 @@
                             {
                                 <tr class="hover:bg-slate-50/50">
                                     <td class="px-5 py-3.5 font-medium text-slate-900">@item.ProductName</td>
-                                    <td class="px-4 py-3.5 text-slate-600">@item.UnitPrice.ToString("N0") VND</td>
+                                    <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@item.Quantity</td>
-                                    <td class="px-4 py-3.5 text-slate-600">@item.DiscountAmount.ToString("N0") VND</td>
-                                    <td class="px-5 py-3.5 text-right font-semibold text-slate-900">@item.TotalAmount.ToString("N0") VND</td>
+                                    <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>
+                                    <td class="px-5 py-3.5 text-right font-semibold text-slate-900">@CurrencyHelper.FormatVnd(item.TotalAmount)</td>
                                 </tr>
                             }
                         </tbody>
@@ -83,11 +83,11 @@
                 <div class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-600">Subtotal</span>
-                        <span class="font-medium">@Model.Subtotal.ToString("N0") VND</span>
+                        <span class="font-medium">@CurrencyHelper.FormatVnd(Model.Subtotal)</span>
                     </div>
                     <div class="flex justify-between text-base font-bold">
                         <span>Total</span>
-                        <span class="text-indigo-600">@Model.TotalAmount.ToString("N0") VND</span>
+                        <span class="text-indigo-600">@CurrencyHelper.FormatVnd(Model.TotalAmount)</span>
                     </div>
                 </div>
             </div>
@@ -106,7 +106,7 @@
                                     <p class="font-medium text-slate-900">@payment.PaymentMethod</p>
                                     <p class="text-xs text-slate-500">@payment.RecordedAt.ToString("dd/MM/yyyy HH:mm") — @payment.RecordedByName</p>
                                 </div>
-                                <span class="font-semibold text-emerald-600">@payment.Amount.ToString("N0") VND</span>
+                                <span class="font-semibold text-emerald-600">@CurrencyHelper.FormatVnd(payment.Amount)</span>
                             </div>
                         }
                     </div>

@@ -199,7 +199,7 @@
                     </div>
                     <div>
                         <p class="text-[11px] uppercase tracking-wider text-secondary font-semibold mb-1">Hourly Rate</p>
-                        <p class="text-sm font-bold text-on-surface tabular-nums">@Model.HourlyRate.ToString("N0") ₫/h</p>
+                        <p class="text-sm font-bold text-on-surface tabular-nums">@CurrencyHelper.FormatVnd(Model.HourlyRate)/h</p>
                     </div>
                     <div>
                         <p class="text-[11px] uppercase tracking-wider text-secondary font-semibold mb-1">Replaces Contract</p>

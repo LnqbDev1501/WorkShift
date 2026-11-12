@@ -149,7 +149,7 @@
                                 @foreach (var wage in Model.MinimumWages)
                                 {
                                     <option value="@wage.RegionalMinimumWageId" selected="@(Model.RegionalMinimumWageId == wage.RegionalMinimumWageId)">
-                                        @wage.WageName — @wage.MinimumHourlyRate.ToString("N0") VND/hour
+                                        @wage.WageName — @CurrencyHelper.FormatVnd(wage.MinimumHourlyRate)/hour
                                     </option>
                                 }
                             </select>

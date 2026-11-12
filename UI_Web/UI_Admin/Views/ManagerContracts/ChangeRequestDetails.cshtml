@@ -139,7 +139,7 @@
                 </div>
                 <div>
                     <span class="text-slate-400 block mb-0.5">Current Rate:</span>
-                    <span class="font-bold text-emerald-700">@(Model.CurrentHourlyRate?.ToString("#,##0") ?? "0") VND/hr</span>
+                    <span class="font-bold text-emerald-700">@CurrencyHelper.FormatVnd(Model.CurrentHourlyRate ?? 0)/hr</span>
                 </div>
             </div>
         </div>
@@ -327,7 +327,7 @@
                                                 @if (Model.RegionalMinimumWage.HasValue && Model.RegionalMinimumWage.Value > 0)
                                                 {
                                                     <span class="text-[11px] text-amber-600 font-medium block">
-                                                        Min regional wage: @Model.RegionalMinimumWage.Value.ToString("#,##0") VND/hr
+                                                        Min regional wage: @CurrencyHelper.FormatVnd(Model.RegionalMinimumWage.Value)/hr
                                                     </span>
                                                 }
                                             </div>

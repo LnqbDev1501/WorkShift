@@ -31,7 +31,7 @@
         </div>
         <div>
             <span class="text-slate-400 uppercase font-semibold text-[10px] tracking-wider block">Current Hourly Rate</span>
-            <span class="text-sm font-bold text-indigo-600 mt-0.5 block tabular-nums">@Model.CurrentHourlyRate.ToString("N0") VND/hr</span>
+            <span class="text-sm font-bold text-indigo-600 mt-0.5 block tabular-nums">@CurrencyHelper.FormatVnd(Model.CurrentHourlyRate)/hr</span>
         </div>
     </div>
 

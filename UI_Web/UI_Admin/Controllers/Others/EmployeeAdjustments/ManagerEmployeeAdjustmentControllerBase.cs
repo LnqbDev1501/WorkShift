@@ -35,16 +35,16 @@ public abstract class ManagerEmployeeAdjustmentControllerBase(EmployeeAdjustment
         {
             var dayName = d.DayOfWeek switch
             {
-                DayOfWeek.Monday => "Thứ Hai",
-                DayOfWeek.Tuesday => "Thứ Ba",
-                DayOfWeek.Wednesday => "Thứ Tư",
-                DayOfWeek.Thursday => "Thứ Năm",
-                DayOfWeek.Friday => "Thứ Sáu",
-                DayOfWeek.Saturday => "Thứ Bảy",
-                DayOfWeek.Sunday => "Chủ Nhật",
+                DayOfWeek.Monday => "Monday",
+                DayOfWeek.Tuesday => "Tuesday",
+                DayOfWeek.Wednesday => "Wednesday",
+                DayOfWeek.Thursday => "Thursday",
+                DayOfWeek.Friday => "Friday",
+                DayOfWeek.Saturday => "Saturday",
+                DayOfWeek.Sunday => "Sunday",
                 _ => ""
             };
-            var label = $"{dayName}, {d:dd/MM/yyyy}" + (d == today ? " (Hôm nay)" : "");
+            var label = $"{dayName}, {d:dd/MM/yyyy}" + (d == today ? " (Today)" : "");
             model.AvailableDates.Add(new DateOptionViewModel { Date = d, DisplayText = label });
         }
 
