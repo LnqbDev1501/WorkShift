@@ -3,12 +3,12 @@
     ViewData["Title"] = "Notification Detail";
 }
 
-<div class="p-6 max-w-[1000px] mx-auto space-y-6">
+<div class="w-full px-7 py-6 mx-auto space-y-6" style="max-width: 1496px;">
     <!-- Top Nav / Back Action -->
     <div class="flex items-center justify-between gap-4">
-        <a asp-action="History" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Notification List
+        <a asp-action="History" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Notification List</span>
         </a>
 
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -92,13 +92,5 @@
                 @Model.Message
             </div>
         </div>
-    </div>
-
-    <!-- Bottom Back Action -->
-    <div class="flex items-center justify-start pt-2">
-        <a asp-action="History" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Notification List
-        </a>
     </div>
 </div>

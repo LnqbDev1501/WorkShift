@@ -73,8 +73,14 @@ body.workshift-theme {
 .workshift-theme .ws-form-page {
     padding: 20px 28px 36px;
     max-width: 1536px;
+    width: 100%;
     margin-inline: auto;
     box-sizing: border-box;
+}
+
+.workshift-theme .ws-form-page > :is(.accountant-dashboard, .schedule-page, .ws-form-container, .ws-form-container-wide) {
+    padding: 0;
+    max-width: 1440px;
 }
 
 .workshift-theme :is(.dashboard-heading, .notification-header, .holiday-heading, .form-heading, .shift-heading) {
@@ -677,20 +683,21 @@ div[asp-validation-summary].validation-summary-valid,
    ======================================================== */
 .ws-form-page {
     width: 100%;
-    padding: 24px 20px 48px;
+    max-width: 1536px;
+    padding: 20px 28px 36px;
     margin: 0 auto;
     box-sizing: border-box;
 }
 
 .ws-form-container {
-    max-width: 860px;
+    max-width: 1440px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
 .ws-form-container-wide {
-    max-width: 1040px;
+    max-width: 1440px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;

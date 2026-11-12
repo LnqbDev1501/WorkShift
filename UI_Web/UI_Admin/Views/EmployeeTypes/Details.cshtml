@@ -1,17 +1,15 @@
 @model UI_Admin.Models.EmployeeTypes.EmployeeTypeDetailViewModel
 @{ ViewData["Title"] = "Employee Type Details"; }
-<div class="flex flex-col w-full px-7 py-4 gap-unit-6">
+<div class="flex flex-col w-full px-7 py-6 gap-unit-6 mx-auto" style="max-width: 1496px;">
     <partial name="_NotificationModal" />
-    <div class="flex flex-wrap items-center justify-between gap-unit-4">
-        <div class="flex items-center gap-3">
-            <a asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface" aria-label="Back to Employee Types"><span class="material-symbols-outlined text-[20px]">arrow_back</span></a>
-            <div><div class="list-eyebrow">Employee Type Details</div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words">@Model.TypeName</h1></div>
-        </div>
+    <div class="flex items-center justify-between gap-unit-4 flex-wrap">
+        <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm"><span class="material-symbols-outlined text-[18px]">arrow_back</span><span>Back to Employee Types</span></a>
         <div class="flex gap-unit-3">
             <button type="button" data-employee-type-action="@(Model.Status == "ACTIVE" ? "deactivate" : "restore")" data-id="@Model.EmployeeTypeId" data-confirmation-url="@Url.Action("StatusConfirmation", new { id = Model.EmployeeTypeId, operation = Model.Status == "ACTIVE" ? "deactivate" : "restore" })" class="h-10 px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high @(Model.Status == "ACTIVE" ? "text-error" : "text-primary") font-body-md-medium">@(Model.Status == "ACTIVE" ? "Deactivate" : "Restore")</button>
             <a asp-action="Edit" asp-route-id="@Model.EmployeeTypeId" class="inline-flex items-center gap-unit-2 h-10 px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium shadow-sm"><span class="material-symbols-outlined text-[18px]">edit</span>Edit Employee Type</a>
         </div>
     </div>
+    <div><div class="list-eyebrow">Employee Type Details</div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words">@Model.TypeName</h1></div>
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <section class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8">
             <h2 class="text-title-lg font-title-lg text-on-surface mb-6">Employee Type Information</h2>

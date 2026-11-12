@@ -33,12 +33,12 @@
                         || (Model.Message?.Contains("bảng lương", StringComparison.OrdinalIgnoreCase) ?? false);
 }
 
-<div class="p-6 max-w-[1000px] mx-auto space-y-6">
+<div class="w-full px-7 py-6 mx-auto space-y-6" style="max-width: 1496px;">
     <!-- Top Nav / Back Action -->
     <div class="flex items-center justify-between gap-4">
-        <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Notifications
+        <a asp-action="Personal" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Notifications</span>
         </a>
 
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -339,25 +339,18 @@
         </div>
 
         <!-- Footer Actions -->
-        <div class="p-6 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
-            <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
-                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-                Back to Notifications
-            </a>
-
-            <div class="flex items-center gap-2">
-                @if (!Model.IsRead)
-                {
-                    <form asp-action="MarkAsRead" asp-route-id="@Model.UserNotificationId" method="post" class="inline">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="returnUrl" value="@Url.Action("PersonalDetail", new { id = Model.UserNotificationId })" />
-                        <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all">
-                            <span class="material-symbols-outlined text-[16px]">done</span>
-                            Mark as Read
-                        </button>
-                    </form>
-                }
+        @if (!Model.IsRead)
+        {
+            <div class="p-6 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3">
+                <form asp-action="MarkAsRead" asp-route-id="@Model.UserNotificationId" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="returnUrl" value="@Url.Action("PersonalDetail", new { id = Model.UserNotificationId })" />
+                    <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all">
+                        <span class="material-symbols-outlined text-[16px]">done</span>
+                        Mark as Read
+                    </button>
+                </form>
             </div>
-        </div>
+        }
     </div>
 </div>

@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace">
-    <a class="ms-back" asp-action="Index">← Back to weekly schedules</a>
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;">
     <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>Delete Weekly Schedule</h1><p>Review the schedule before confirming deletion.</p></div></header>
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Week is { } week)
@@ -17,9 +16,13 @@
             @if (week.Status == "DRAFT")
             {
                 <div class="ms-delete-warning"><strong>This action cannot be undone.</strong><p>Deleting this draft also removes its shifts and employee type requirements. Schedules with assignments or other dependent records cannot be deleted.</p></div>
-                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Keep schedule</a><button type="submit" class="ms-danger-button">Delete schedule</button></div></form>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a><button type="submit" class="ms-danger-button">Delete schedule</button></div></form>
             }
-            else { <div class="ms-delete-warning">Only draft schedules can be deleted.</div><a class="ms-detail-link" asp-action="Details" asp-route-id="@Model.Id">Back to schedule details →</a> }
+            else { <div class="ms-delete-warning">Only draft schedules can be deleted.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a></div> }
         </section>
+    }
+    else
+    {
+        <div class="ms-form-actions"><a class="ms-reset" asp-action="Index">Cancel</a></div>
     }
 </div>

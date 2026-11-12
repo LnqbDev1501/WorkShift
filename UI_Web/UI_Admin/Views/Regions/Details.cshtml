@@ -12,43 +12,44 @@
     <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
 }
 
-<div class="flex flex-col w-full px-7 py-4">
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
     <partial name="_NotificationModal" />
 
-    <!-- Top Action & Title Bar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4 pb-unit-6">
-        <div class="flex items-center gap-3">
-            <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Regions">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-            </a>
-            <div class="flex flex-col gap-unit-1">
-                <div class="flex flex-wrap items-center gap-unit-3">
-                    <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.RegionName</h1>
-                    <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
-                        @Model.RegionCode
-                    </span>
-                    @if (isActive)
-                    {
-                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                            Active
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                            Inactive
-                        </span>
-                    }
-                </div>
-            </div>
-        </div>
+    <!-- Top Navigation Bar -->
+    <div class="flex items-center justify-between gap-unit-4 pb-unit-4">
+        <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Regions</span>
+        </a>
         <div class="flex items-center gap-3">
             <a asp-action="Edit" asp-route-id="@Model.RegionId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-sm shadow-sm transition-colors">
                 <span class="material-symbols-outlined text-[18px]">edit</span>
                 <span>Edit Region</span>
             </a>
+        </div>
+    </div>
+
+    <!-- Title & Status Bar -->
+    <div class="flex flex-col gap-unit-1 pb-unit-6">
+        <div class="flex flex-wrap items-center gap-unit-3">
+            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.RegionName</h1>
+            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
+                @Model.RegionCode
+            </span>
+            @if (isActive)
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Active
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    Inactive
+                </span>
+            }
         </div>
     </div>
 

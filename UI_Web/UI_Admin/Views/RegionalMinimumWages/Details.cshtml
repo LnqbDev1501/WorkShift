@@ -5,18 +5,45 @@
     var statusUpper = Model.Status?.ToUpperInvariant() ?? "DRAFT";
 }
 
-<div class="flex flex-col w-full px-7 py-4">
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
     <partial name="_NotificationModal" />
 
-    <!-- Navigation Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6">
+    <!-- Top Back & Action Row -->
+    <div class="flex flex-wrap items-center justify-between gap-4 pb-4">
+        <a asp-controller="RegionalMinimumWages" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Minimum Wages</span>
+        </a>
         <div class="flex items-center gap-3">
-            <a asp-controller="RegionalMinimumWages" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Minimum Wages">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-            </a>
-            <div>
-                <div class="flex items-center gap-2">
-                    <h1 class="text-display-md text-display-lg font-bold tracking-tight text-on-surface">@Model.WageName Details</h1>
+            @if (statusUpper == "DRAFT")
+            {
+                <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit Draft</span>
+                </a>
+                <button type="button" onclick="openPublishModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">publish</span>
+                    <span>Publish</span>
+                </button>
+                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">block</span>
+                    <span>Cancel Wage</span>
+                </button>
+            }
+            else if (statusUpper == "PUBLISH")
+            {
+                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">block</span>
+                    <span>Cancel Minimum Wage</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <div class="pb-6">
+        <div class="flex items-center gap-2">
+            <h1 class="text-display-md text-display-lg font-bold tracking-tight text-on-surface">@Model.WageName Details</h1>
                     @switch (statusUpper)
                     {
                         case "DRAFT":
@@ -47,34 +74,6 @@
                     }
                 </div>
                 <p class="text-body-md text-secondary mt-0.5">Comprehensive regional minimum wage specification and status details.</p>
-            </div>
-        </div>
-
-        <!-- Header Action Buttons by Status -->
-        <div class="flex items-center gap-3">
-            @if (statusUpper == "DRAFT")
-            {
-                <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">edit</span>
-                    <span>Edit Draft</span>
-                </a>
-                <button type="button" onclick="openPublishModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">publish</span>
-                    <span>Publish</span>
-                </button>
-                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">block</span>
-                    <span>Cancel</span>
-                </button>
-            }
-            else if (statusUpper == "PUBLISH")
-            {
-                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">block</span>
-                    <span>Cancel Minimum Wage</span>
-                </button>
-            }
-        </div>
     </div>
 
     <!-- Status Banner Callout -->
@@ -240,12 +239,7 @@
     </div>
 
     <!-- Action Bar Footer by Status -->
-    <div class="mt-8 pt-5 border-t border-surface-container-high/60 flex items-center justify-between">
-        <a asp-controller="RegionalMinimumWages" asp-action="Index" class="h-10 px-5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs flex items-center gap-2 transition-colors">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            <span>Back to List</span>
-        </a>
-
+    <div class="mt-8 pt-5 border-t border-surface-container-high/60 flex items-center justify-end">
         <div class="flex items-center gap-3">
             @if (statusUpper == "DRAFT")
             {
@@ -259,7 +253,7 @@
                 </button>
                 <button type="button" onclick="openCancelModal()" class="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer">
                     <span class="material-symbols-outlined text-[16px]">block</span>
-                    <span>Cancel</span>
+                    <span>Cancel Wage</span>
                 </button>
             }
             else if (statusUpper == "PUBLISH")

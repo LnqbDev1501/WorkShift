@@ -6,8 +6,15 @@
     Layout = admin ? "_AdminLayout" : "_ManagerLayout";
     ViewData["Title"] = $"Salary Increase Request #{row.SalaryChangeRequestId}";
 }
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1><p>Request #@row.SalaryChangeRequestId · @row.BranchName</p></div><div class="flex items-center gap-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@row.Status</span><a asp-action="Index" class="btn btn-secondary">Back to requests</a></div></div>
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex items-center justify-between gap-3">
+        <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to requests</span>
+        </a>
+        <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.Status)">@row.Status</span>
+    </div>
+    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1><p>Request #@row.SalaryChangeRequestId · @row.BranchName</p></div></div>
     <partial name="~/Views/Shared/SalaryChanges/_Messages.cshtml" />
     <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {

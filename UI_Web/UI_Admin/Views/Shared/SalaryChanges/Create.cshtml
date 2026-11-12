@@ -1,8 +1,8 @@
 @model UI_Admin.Models.SalaryChanges.CreateSalaryChangeViewModel
 @using D = UI_Admin.Models.SalaryChanges.SalaryChangeDisplay
 @{ Layout = "_ManagerLayout"; ViewData["Title"] = "Create Salary Increase Request"; }
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">Create Salary Increase Request</h1><p>Send a salary increase proposal to Admin for approval.</p></div><a asp-action="Index" class="btn btn-secondary inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">close</span>Cancel</a></div>
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">Create Salary Increase Request</h1><p>Send a salary increase proposal to Admin for approval.</p></div></div>
     <form asp-action="Create" method="post" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4" data-salary-form>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-red-700" role="alert"></div>

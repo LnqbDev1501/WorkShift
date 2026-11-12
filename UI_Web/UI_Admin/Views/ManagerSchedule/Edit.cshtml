@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
 }
-<div class="ws-form-page px-4 sm:px-6 py-6">
-    <div class="accountant-dashboard schedule-page ms-workspace ws-form-container-wide mx-auto p-0" style="max-width: 1440px;">
+<div class="accountant-dashboard schedule-page ms-workspace mx-auto" style="max-width: 1496px;">
         <header class="ad-heading w-full mb-6">
             <div>
                 <span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span>
@@ -18,9 +17,6 @@
             </div>
             <div class="flex items-center gap-3">
                 <span class="ad-badge muted">Draft</span>
-                <a class="ms-back inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors shadow-2xs" asp-action="Index" title="Cancel">
-                    <span class="material-symbols-outlined text-[16px]">close</span> Cancel
-                </a>
             </div>
         </header>
 
@@ -84,7 +80,6 @@
                 </aside>
             </div>
         }
-    </div>
 </div>
 
 @section Scripts { <script src="~/js/manager-schedules.js" asp-append-version="true"></script> }
