@@ -4,26 +4,28 @@
     ViewData["Title"] = "Order Details";
 }
 
-<div class="flex flex-col gap-6 px-4 sm:px-7 py-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900">@Model.OrderNumber</h1>
-            <p class="text-slate-500 text-sm mt-0.5">Order details and invoice.</p>
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4 pb-2">
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0 shadow-sm" title="Back to Orders">
+                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
+            </a>
+            <div class="flex flex-col">
+                <div class="list-eyebrow">Order Management</div>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.OrderNumber</h1>
+                <p class="font-body-md text-secondary mt-0.5">Order details and invoice.</p>
+            </div>
         </div>
         <div class="flex items-center gap-2">
             <a asp-action="Invoice" asp-route-id="@Model.OrderId" target="_blank"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-primary text-white text-sm font-semibold transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-[18px]">receipt_long</span>
                 View Invoice
             </a>
             <a asp-action="ExportInvoice" asp-route-id="@Model.OrderId"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors">
+                class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors shadow-sm">
                 <span class="material-symbols-outlined text-[18px]">download</span>
                 Export PDF
-            </a>
-            <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
-                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-                Back
             </a>
         </div>
     </div>
