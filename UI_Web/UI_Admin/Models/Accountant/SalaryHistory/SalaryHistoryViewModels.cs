@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 namespace UI_Admin.Models.Accountant.SalaryHistory;
 
