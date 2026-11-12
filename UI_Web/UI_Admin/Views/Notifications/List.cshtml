@@ -1,46 +1,132 @@
-﻿@model UI_Admin.Models.NotificationListPageViewModel
+@model UI_Admin.Models.NotificationListPageViewModel
 @{
     ViewData["Title"] = "Notifications";
 }
-@section Styles { <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" /> }
 
-<section class="notifications-page">
-    <header class="notification-header">
+<div class="px-7 py-4 mx-auto space-y-4">
+    <!-- Header Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-            <span class="list-eyebrow">OPERATIONS ENGINE / COMMS HUB</span>
-            <h1>Notifications</h1>
-            <p>Review notification history and send operational announcements.</p>
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    ADMIN COMMS HUB
+                </span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-50 text-gray-600 border border-gray-200">
+                    Global History
+                </span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Notification History</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Review all sent notifications, broadcast announcements, and targeted dispatches.</p>
         </div>
-        <div class="header-actions"><span class="history-chip">◷ History</span><a asp-action="Send" class="btn-primary">✦ Send Notification</a></div>
-    </header>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+                My Notifications
+            </a>
+            <a asp-action="History" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                Refresh
+            </a>
+            <a asp-action="Send" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-primary-container hover:bg-primary rounded-xl transition-colors shadow-sm">
+                <span class="material-symbols-outlined text-[16px]">send</span>
+                Send Notification
+            </a>
+        </div>
+    </div>
 
-    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching notifications", Model.TotalCount.ToString("N0"), "Matching current filters", "notifications", "#4f46e5"),
-        new("Shown", Model.Items.Count.ToString("N0"), "On this page", "view_list", "#4f46e5"),
-        new("In-app", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("InApp")).ToString("N0"), "On this page", "campaign", "#0891b2"),
-        new("Email", Model.Items.Count(x => x.Channels != null && x.Channels.Contains("Email")).ToString("N0"), "On this page", "mail", "#0891b2")
-    })' />
+    <!-- KPI Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">notifications</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Matching Notifications</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-gray-900">@Model.TotalCount</span>
+                    <span class="text-xs text-gray-400">total</span>
+                </div>
+            </div>
+        </div>
 
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">view_list</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Shown</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-gray-900">@Model.Items.Count</span>
+                    <span class="text-xs text-gray-400">on page</span>
+                </div>
+            </div>
+        </div>
 
-    <form method="get" class="ws-list-filter" role="search">
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">devices</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">In-App Channels</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-cyan-700">@Model.Items.Count(x => x.Channels != null && x.Channels.Contains("InApp"))</span>
+                    <span class="text-xs text-gray-400">on page</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">mark_email_read</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Email Channels</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-emerald-700">@Model.Items.Count(x => x.Channels != null && x.Channels.Contains("Email"))</span>
+                    <span class="text-xs text-gray-400">on page</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <form method="get" asp-action="History" class="ws-list-filter" role="search">
         <input type="hidden" name="SortBy" value="CreatedAt" />
         <div class="ws-filter-row">
-            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" name="Search" value="@Model.Search" placeholder="Search notification title or message..." /></label>
-            <div class="ws-filter-field"><select aria-label="Notification type" name="Type">
-                <option value="">All types</option>
-                <option value="Broadcast" selected="@(Model.Type == "Broadcast")">Broadcast</option>
-            </select></div>
-            <div class="ws-filter-field"><select aria-label="Sort order" name="SortOrder">
-                <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
-                <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
-            </select></div>
+            <label class="ws-filter-field ws-filter-keyword">
+                <span class="material-symbols-outlined" aria-hidden="true">search</span>
+                <input aria-label="Search" type="text" name="Search" value="@Model.Search" placeholder="Search notification title or message..." />
+            </label>
+            <div class="ws-filter-field">
+                <select aria-label="Notification type" name="Type">
+                    <option value="">All types</option>
+                    <option value="Broadcast" selected="@(Model.Type == "Broadcast")">Broadcast</option>
+                </select>
+            </div>
+            <div class="ws-filter-field">
+                <select aria-label="Sort order" name="SortOrder">
+                    <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
+                    <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
+                </select>
+            </div>
             <details class="ws-filter-advanced">
-                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
-                    @if (Context.Request.Query.Any(q => new[] { "DateFrom", "DateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                <summary title="Advanced filters" aria-label="Advanced filters">
+                    <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "DateFrom", "DateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString())))
+                    {
+                        <span class="ws-filter-indicator" aria-label="Advanced filters active"></span>
+                    }
                 </summary>
                 <div class="ws-filter-panel">
-                    <label class="ws-filter-field"><span>Created from</span><input aria-label="Created from" name="DateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" type="date" /></label>
-                    <label class="ws-filter-field"><span>Created to</span><input aria-label="Created to" name="DateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" type="date" /></label>
+                    <label class="ws-filter-field">
+                        <span>Created from</span>
+                        <input aria-label="Created from" name="DateFrom" value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))" type="date" />
+                    </label>
+                    <label class="ws-filter-field">
+                        <span>Created to</span>
+                        <input aria-label="Created to" name="DateTo" value="@(Model.DateTo?.ToString("yyyy-MM-dd"))" type="date" />
+                    </label>
                     <button type="submit" class="ws-filter-apply">Apply filters</button>
                 </div>
             </details>
@@ -48,28 +134,82 @@
         </div>
     </form>
 
-    @if (!string.IsNullOrEmpty(Model.ErrorMessage)) { <div class="notice-error">@Model.ErrorMessage</div> }
-    <div class="notification-table-card">
-        @if (Model.Items.Count == 0)
-        {
-            <div class="notification-empty">No notifications match the selected filters.</div>
-        }
-        else
-        {
-            <div class="table-scroll"><table class="notification-table"><thead><tr><th>Title</th><th>Type</th><th>Audience</th><th>Channels</th><th>Created</th><th></th></tr></thead><tbody>
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">@Model.ErrorMessage</div>
+    }
+
+    <!-- Notification Cards List -->
+    @if (Model.Items.Count == 0)
+    {
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-500 mx-auto flex items-center justify-center mb-3">
+                <span class="material-symbols-outlined text-[32px]">notifications_off</span>
+            </div>
+            <h3 class="text-base font-bold text-gray-900">No notifications found</h3>
+            <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">No notifications match your active search or filters.</p>
+        </div>
+    }
+    else
+    {
+        <div class="space-y-3">
             @foreach (var item in Model.Items)
             {
-                <tr><td><div class="title-cell"><span class="title-icon">✉</span><div><strong>@item.Title</strong><span class="subline">Notification #@item.NotificationId</span></div></div></td><td><span class="type-pill">@item.NotificationType</span></td><td><span class="audience-cell">◉ @item.Audience</span></td><td><div class="channel-list">@foreach (var channel in item.Channels ?? Enumerable.Empty<string>()) { <span>@(channel == "InApp" ? "▣ In-App" : "✉ Email")</span> }</div></td><td>@item.CreatedAt.ToLocalTime().ToString("dd MMM yyyy HH:mm")</td><td><a asp-action="Detail" asp-route-id="@item.NotificationId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a></td></tr>
-            }
-            </tbody></table></div>
+                <div class="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-gray-200 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4 min-w-0">
+                        <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                            <span class="material-symbols-outlined text-[22px]">notifications</span>
+                        </div>
 
-        }
-        <partial name="_ListPagination" model="@(new ListPaginationViewModel
-        {
-            PageNumber = Model.Page,
-            PageSize = Model.PageSize,
-            TotalItems = Model.TotalCount,
-            ItemLabel = "notifications",
-        })" />
-    </div>
-</section>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 uppercase tracking-wider">
+                                    @(string.IsNullOrWhiteSpace(item.NotificationType) ? "NOTIFICATION" : item.NotificationType)
+                                </span>
+                                <span class="inline-flex items-center gap-1 text-[11px] text-gray-400">
+                                    <span class="material-symbols-outlined text-[13px]">schedule</span>
+                                    @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                </span>
+                            </div>
+
+                            <h3 class="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
+                                @item.Title
+                            </h3>
+
+                            <div class="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-500">
+                                @if (item.Channels != null && item.Channels.Count > 0)
+                                {
+                                    <span class="inline-flex items-center gap-1">
+                                        <span class="material-symbols-outlined text-[14px] text-gray-400">cell_tower</span>
+                                        @string.Join(", ", item.Channels.Select(c => c == "InApp" ? "In-App" : c))
+                                    </span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.Audience))
+                                {
+                                    <span>• Audience: @item.Audience</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 self-end sm:self-center flex-shrink-0">
+                        <a asp-action="Detail" asp-route-id="@item.NotificationId" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl transition-colors">
+                            <span>Details</span>
+                            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <partial name="_ListPagination" model="@(new ListPaginationViewModel
+            {
+                PageNumber = Model.Page,
+                PageSize = Model.PageSize,
+                TotalItems = Model.TotalCount,
+                ItemLabel = "notifications"
+            })" />
+        </div>
+    }
+</div>

@@ -20,11 +20,6 @@ public sealed class NotificationsController : Controller
     [HttpGet]
     public IActionResult Index()
     {
-        if (User.IsInRole("ADMIN"))
-        {
-            return RedirectToAction(nameof(History));
-        }
-
         return RedirectToAction(nameof(Personal));
     }
 

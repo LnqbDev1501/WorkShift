@@ -3,10 +3,16 @@
     ViewData["Title"] = "Branch Sales Report";
 }
 
-<div class="flex flex-col gap-6 px-4 sm:px-7 py-6">
-    <div>
-        <h1 class="text-2xl font-bold text-slate-900">Branch Sales Report</h1>
-        <p class="text-slate-500 text-sm mt-0.5">Export sales data for your assigned branch by date range.</p>
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Reports & Analytics</div>
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Branch Sales Report</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">Export sales data for your assigned branch by date range.</p>
+        </div>
     </div>
 
     @if (TempData["ErrorMessage"] != null)
