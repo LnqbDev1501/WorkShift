@@ -27,7 +27,7 @@ public class CreateContractViewModel : IValidatableObject
     public string EmployeePosition { get; set; } = string.Empty;
 
     [Range(0, 100000000, ErrorMessage = "Hourly rate must be a positive number.")]
-    [Display(Name = "Hourly Rate (VND/h)")]
+    [Display(Name = "Hourly Rate (₫/h)")]
     public decimal? HourlyRate { get; set; }
 
     public string? ContractTerms { get; set; }

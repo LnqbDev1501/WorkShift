@@ -239,7 +239,7 @@
                 <div>
                     <div class="text-xs text-gray-500">Hourly Wage:</div>
                     <div class="text-xl font-black text-emerald-700 mt-0.5">
-                        @Model.HourlyRate.ToString("#,##0") <span class="text-xs font-semibold text-gray-500">VND/hr</span>
+                        @CurrencyHelper.FormatNumber(Model.HourlyRate) <span class="text-xs font-semibold text-gray-500">₫/hr</span>
                     </div>
                 </div>
             </div>
@@ -492,7 +492,7 @@
             </div>
             <div>
                 <span class="text-gray-400 block text-[11px]">Hourly Rate:</span>
-                <span class="font-bold text-emerald-700">@Model.HourlyRate.ToString("#,##0") VND/h</span>
+                <span class="font-bold text-emerald-700">@CurrencyHelper.FormatVnd(Model.HourlyRate)/h</span>
             </div>
             <div>
                 <span class="text-gray-400 block text-[11px]">Start Date:</span>

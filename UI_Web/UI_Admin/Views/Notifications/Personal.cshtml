@@ -203,13 +203,13 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700">
                                     @(item.NotificationType switch
                                     {
-                                        "SYSTEM" => "Hệ thống",
-                                        "PAYROLL" => "Bảng lương",
-                                        "ShiftAssignment" => "Phân ca làm",
-                                        "EmployeeRequest" => "Yêu cầu",
-                                        "SalaryChange" => "Đề xuất lương",
-                                        "Broadcast" => "Thông báo chung",
-                                        "CONTRACT" or "Contract" => "Hợp đồng",
+                                        "SYSTEM" => "System",
+                                        "PAYROLL" => "Payroll",
+                                        "ShiftAssignment" => "Shift Assignment",
+                                        "EmployeeRequest" => "Request",
+                                        "SalaryChange" => "Salary Proposal",
+                                        "Broadcast" => "Broadcast",
+                                        "CONTRACT" or "Contract" => "Contract",
                                         _ => item.NotificationType
                                     })
                                 </span>
@@ -231,13 +231,13 @@
                                 {
                                     <span class="inline-flex items-center gap-1 text-gray-400">
                                         <span class="material-symbols-outlined text-[13px]">devices</span>
-                                        @string.Join(", ", item.Channels.Select(c => c == "InApp" ? "Trong ứng dụng" : c == "Email" ? "Email" : c))
+                                        @string.Join(", ", item.Channels.Select(c => c == "InApp" ? "In-App" : c == "Email" ? "Email" : c))
                                     </span>
                                 }
                                 @if (item.IsRead && item.ReadAt.HasValue)
                                 {
                                     <span class="text-gray-400 italic">
-                                        (Đã xem lúc @item.ReadAt.Value.ToLocalTime().ToString("HH:mm dd/MM"))
+                                        (Viewed at @item.ReadAt.Value.ToLocalTime().ToString("HH:mm dd/MM"))
                                     </span>
                                 }
                             </div>

@@ -11,50 +11,15 @@
         : "No GPS";
 }
 
-<div class="flex flex-col w-full px-7 py-4">
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
     <partial name="_NotificationModal" />
 
-    <!-- Top Action & Title Bar -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4 pb-unit-6">
-        <div class="flex items-center gap-3">
-            <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0" title="Back to Branches">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-            </a>
-            <div class="flex flex-col gap-unit-1">
-                <div class="flex flex-wrap items-center gap-unit-3">
-                    <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.BranchName</h1>
-                    <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
-                        @Model.BranchCode
-                    </span>
-                    @if (isBranchActive)
-                    {
-                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                            Active
-                        </span>
-                    }
-                    else if (Model.IsInactive)
-                    {
-                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-                            Inactive
-                        </span>
-                    }
-                    else
-                    {
-                        <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-amber-50 text-amber-700 font-label-md text-label-md font-medium">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                            @Model.Status
-                        </span>
-                    }
-                </div>
-                <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-unit-2">
-                    <span>Operational Node</span>
-                    <span class="text-outline-variant">•</span>
-                    <span>@Model.RegionName jurisdiction</span>
-                </p>
-            </div>
-        </div>
+    <!-- Top Back & Action Row -->
+    <div class="flex flex-wrap items-center justify-between gap-unit-4 pb-unit-4">
+        <a asp-controller="Branches" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Branches</span>
+        </a>
 
         <div class="flex items-center gap-unit-3 shrink-0">
             <a asp-controller="Branches" asp-action="Edit" asp-route-id="@Model.BranchId" class="h-input-height px-unit-4 bg-surface-container-lowest text-on-surface hover:bg-surface-container-low shadow-sm rounded-xl font-body-md-medium text-body-md-medium inline-flex items-center gap-unit-2 transition-colors border border-surface-container-high">
@@ -85,10 +50,6 @@
                     <span class="material-symbols-outlined text-[20px]">more_vert</span>
                 </button>
                 <div class="hidden absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-xl py-unit-1 z-30 border border-surface-container-high" id="overflowMenu">
-                    <a class="flex items-center gap-unit-2 px-unit-4 py-unit-2 font-body-md text-body-sm text-on-surface hover:bg-surface-container-low" asp-controller="Branches" asp-action="Index">
-                        <span class="material-symbols-outlined text-[16px] text-on-surface-variant">arrow_back</span>
-                        Back to List
-                    </a>
                     <a class="flex items-center gap-unit-2 px-unit-4 py-unit-2 font-body-md text-body-sm text-on-surface hover:bg-surface-container-low" asp-controller="User" asp-action="List">
                         <span class="material-symbols-outlined text-[16px] text-on-surface-variant">group</span>
                         User Accounts
@@ -96,6 +57,42 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Title Bar -->
+    <div class="flex flex-col gap-unit-1 pb-unit-6">
+        <div class="flex flex-wrap items-center gap-unit-3">
+            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.BranchName</h1>
+            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
+                @Model.BranchCode
+            </span>
+            @if (isBranchActive)
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Active
+                </span>
+            }
+            else if (Model.IsInactive)
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    Inactive
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-amber-50 text-amber-700 font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                    @Model.Status
+                </span>
+            }
+        </div>
+        <p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-unit-2">
+            <span>Operational Node</span>
+            <span class="text-outline-variant">•</span>
+            <span>@Model.RegionName jurisdiction</span>
+        </p>
     </div>
 
     <!-- Operational Lifecycle Notice Banner -->

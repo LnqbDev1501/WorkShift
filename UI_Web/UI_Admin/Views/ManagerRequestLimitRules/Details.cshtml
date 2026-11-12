@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/request-limit-rules.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page rule-page"><a class="ms-back" asp-action="Index">← Back to request limit rules</a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / REQUEST POLICIES</span><h1>Request Limit Rule Details</h1><p>Review limits, effective dates, and version history.</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
+<div class="accountant-dashboard schedule-page rule-page" style="max-width: 1496px;"><a class="ms-back" asp-action="Index"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span>Back to request limit rules</span></a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / REQUEST POLICIES</span><h1>Request Limit Rule Details</h1><p>Review limits, effective dates, and version history.</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
     @if (TempData["RuleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Rule is { } rule)

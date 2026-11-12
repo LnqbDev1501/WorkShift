@@ -12,7 +12,7 @@
     bool isEarlyExcused = Model.TotalEarlyLeaveMinutes > 0 && Model.ChargeableEarlyLeaveMinutes == 0;
 }
 
-<div class="px-7 py-6 max-w-[1280px] mx-auto space-y-6">
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
     <!-- Top Bar & Breadcrumb -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -726,7 +726,7 @@
 
                         <div class="text-right">
                             <span class="font-mono font-bold text-sm @(isApplied ? "text-rose-700" : "text-slate-400 line-through")">
-                                -@p.PenaltyAmount.ToString("N0") VND
+                                -@CurrencyHelper.FormatVnd(p.PenaltyAmount)
                             </span>
                             @if (!isApplied)
                             {

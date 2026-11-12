@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.EmploymentContracts.EmploymentContractListViewModel
+@model UI_Admin.Models.EmploymentContracts.EmploymentContractListViewModel
 
 @{
     ViewData["Title"] = "Employment Contracts";
@@ -142,7 +142,7 @@
                                 </td>
                                 <!-- Hourly Rate -->
                                 <td class="px-unit-3 py-3 whitespace-nowrap align-middle">
-                                    <span class="text-sm font-semibold text-on-surface tabular-nums">@contract.HourlyRate.ToString("N0")&nbsp;₫/h</span>
+                                    <span class="text-sm font-semibold text-on-surface tabular-nums">@($"{CurrencyHelper.FormatVnd(contract.HourlyRate)}/h")</span>
                                 </td>
                                 <!-- Status Badge -->
                                 <td class="px-unit-3 py-3 whitespace-nowrap align-middle">

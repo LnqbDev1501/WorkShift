@@ -431,7 +431,7 @@
         const phoneRegex = /^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$/;
         if (!phoneRegex.test(val)) {
             if (err) {
-                err.innerText = 'Số điện thoại không hợp lệ. Vui lòng nhập 10 chữ số với đầu số hợp lệ (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
+                err.innerText = 'Invalid phone number. Please enter 10 digits with a valid Vietnamese prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
                 err.classList.remove('hidden');
             }
             input.focus();

@@ -186,7 +186,7 @@
         }
         if (isNaN(rate) || rate <= 0) {
             const msg = regionalWage > 0
-                ? `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`
+                ? `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h).`
                 : 'Please enter a valid positive hourly rate.';
             if (hourlyRateGuidanceNote) {
                 hourlyRateGuidanceNote.textContent = `⚠️ ${msg}`;
@@ -194,9 +194,9 @@
             }
             hourlyRateInput.setCustomValidity(msg);
         } else if (regionalWage > 0 && rate < regionalWage) {
-            const msg = `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+            const msg = `Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h).`;
             if (hourlyRateGuidanceNote) {
-                hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`;
+                hourlyRateGuidanceNote.textContent = `⚠️ Rate cannot be lower than regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h).`;
                 hourlyRateGuidanceNote.className = 'text-[11px] text-rose-600 font-medium mt-1';
             }
             hourlyRateInput.setCustomValidity(msg);
@@ -232,7 +232,7 @@
                     wageSourceBadge.className = 'text-[11px] text-emerald-600 font-medium';
                 }
                 if (hourlyRateGuidanceNote) {
-                    hourlyRateGuidanceNote.textContent = `Auto-filled from staff salary history (${Number(historyRate).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.textContent = `Auto-filled from staff salary history (${Number(historyRate).toLocaleString('vi-VN')} ₫/h, can be adjusted).`;
                     hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
                 }
                 hourlyRateInput.setCustomValidity('');
@@ -242,7 +242,7 @@
                     wageSourceBadge.className = 'text-[11px] text-indigo-600 font-medium';
                 }
                 if (hourlyRateGuidanceNote) {
-                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h, can be adjusted).`;
                     hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
                 }
                 hourlyRateInput.setCustomValidity('');
@@ -256,7 +256,7 @@
                     wageSourceBadge.className = 'text-[11px] text-indigo-600 font-medium';
                 }
                 if (hourlyRateGuidanceNote) {
-                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h, can be adjusted).`;
+                    hourlyRateGuidanceNote.textContent = `Auto-filled with regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h, can be adjusted).`;
                     hourlyRateGuidanceNote.className = 'text-[11px] text-slate-500 mt-1';
                 }
                 hourlyRateInput.setCustomValidity('');
@@ -314,7 +314,7 @@
                 el.dataset.position = opt.currentPosition || '';
                 el.dataset.startDate = opt.currentStartDate || '';
                 el.dataset.endDate = opt.currentEndDate || '';
-                el.dataset.hourlyRate = opt.currentHourlyRate != null ? Number(opt.currentHourlyRate).toLocaleString('en-US') : '';
+                el.dataset.hourlyRate = opt.currentHourlyRate != null ? Number(opt.currentHourlyRate).toLocaleString('vi-VN') : '';
                 el.dataset.hourlyRateRaw = opt.currentHourlyRate != null ? opt.currentHourlyRate : '';
                 el.dataset.contractTerms = opt.currentContractTerms || '';
                 el.dataset.daysLeft = opt.daysUntilExpiration != null ? opt.daysUntilExpiration : '';
@@ -408,7 +408,7 @@
 
         const contractNum = opt.dataset.contractNumber || 'N/A';
         const pos = opt.dataset.position || 'N/A';
-        const wage = opt.dataset.hourlyRate ? `${opt.dataset.hourlyRate} VND/h` : 'N/A';
+        const wage = opt.dataset.hourlyRate ? `${opt.dataset.hourlyRate} ₫/h` : 'N/A';
         const startDate = opt.dataset.startDate || '';
         const endDate = opt.dataset.endDate || '';
         const daysLeft = opt.dataset.daysLeft !== '' ? Number.parseInt(opt.dataset.daysLeft, 10) : null;
@@ -649,7 +649,7 @@
             if (!rate || isNaN(rate)) {
                 hourlyRateInput.setCustomValidity('Please enter an hourly rate.');
             } else if (rate < regionalWage) {
-                hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('en-US')} VND/h).`);
+                hourlyRateInput.setCustomValidity(`Hourly rate cannot be lower than the regional minimum wage (${Number(regionalWage).toLocaleString('vi-VN')} ₫/h).`);
             } else {
                 hourlyRateInput.setCustomValidity('');
             }

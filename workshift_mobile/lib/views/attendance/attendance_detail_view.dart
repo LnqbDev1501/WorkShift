@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/attendance/attendance_history_model.dart';
 import '../../services/home/home_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 
 class AttendanceDetailView extends StatefulWidget {
   final int assignmentId;
@@ -76,15 +77,7 @@ class _AttendanceDetailViewState extends State<AttendanceDetailView> {
     return '${m}m';
   }
 
-  String _formatCurrency(double amount) {
-    final formatted = amount
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-    return '$formatted VND';
-  }
+  String _formatCurrency(double amount) => formatCurrency(amount);
 
   @override
   Widget build(BuildContext context) {

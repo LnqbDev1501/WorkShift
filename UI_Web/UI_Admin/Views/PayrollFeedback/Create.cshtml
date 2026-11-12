@@ -5,8 +5,8 @@
     ViewData["Title"] = "Submit Payroll Feedback";
 }
 
-<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
-    <!-- Header Title & Action Bar -->
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
@@ -18,17 +18,10 @@
                 Payslip #@Model.Payslip.PayslipId • Version V@(Model.Payslip.VersionNo) • Period @Model.Payslip.PeriodCode • Deadline (UTC+7): <strong class="text-slate-700">@D.Time(Model.Payslip.FeedbackDeadlineAt)</strong>
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a asp-controller="StaffPayslips" asp-action="Details" asp-route-id="@Model.Payslip.PayslipId"
-               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
-                <span class="material-symbols-outlined text-lg">close</span>
-                <span>Cancel</span>
-            </a>
-        </div>
     </div>
 
     <!-- Feedback Submission Form Card (Manager Style) -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-2xl">
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <form asp-action="Create" asp-route-id="@Model.Payslip.PayslipId" method="post" class="space-y-5" data-feedback-deadline="@Model.Payslip.FeedbackDeadlineAt.ToString("O")">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="All" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm" role="alert"></div>

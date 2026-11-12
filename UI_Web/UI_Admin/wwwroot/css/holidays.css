@@ -82,9 +82,9 @@
 }
 
 .holiday-page {
-    max-width: 1440px;
+    max-width: 1496px;
     margin: auto;
-    padding: 24px 32px 28px;
+    padding: 20px 28px 36px;
 }
 
 .holiday-alert {
@@ -762,7 +762,7 @@
 }
 
 .holiday-form-page form {
-    max-width: 1120px;
+    max-width: 100%;
 }
 
 .holiday-validation:empty,
@@ -936,7 +936,7 @@
 }
 
 .holiday-form-note {
-    max-width: 1120px;
+    max-width: 100%;
     margin-top: 16px;
     padding: 16px 20px;
     display: flex;
@@ -971,7 +971,7 @@
 }
 
 .form-actions {
-    max-width: 1120px;
+    max-width: 100%;
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
@@ -979,7 +979,7 @@
 }
 
 .edit-card {
-    max-width: 880px;
+    max-width: 100%;
 }
 
 .edit-fields {
@@ -990,7 +990,7 @@
 }
 
 .holiday-detail-card {
-    max-width: 900px;
+    max-width: 100%;
 }
 
 .holiday-detail-card>header {
@@ -1203,11 +1203,11 @@
 
 /* Full-screen holiday workspaces */
 .holiday-form-page {
-    max-width: 1440px;
+    max-width: 1496px;
     margin: 0 auto;
     width: 100%;
     min-height: 100vh;
-    padding: 26px 28px 34px;
+    padding: 20px 28px 36px;
 }
 
 .holiday-form-page .holiday-form-full {

@@ -6,13 +6,13 @@ String formatWorkHours(num hours) {
 }
 
 String formatCurrency(num amount) {
-  if (amount.abs() < 0.0001) return '0 VND';
+  if (amount.abs() < 0.0001) return '0 ₫';
   final isNegative = amount < 0;
   final formatted = amount.abs().toStringAsFixed(0).replaceAllMapped(
     RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-    (m) => '${m[1]},',
+    (m) => '${m[1]}.',
   );
-  return '${isNegative ? '-' : ''}$formatted VND';
+  return '${isNegative ? '-' : ''}$formatted ₫';
 }
 
 String formatDate(DateTime date) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 
 /// Model tóm tắt hợp đồng lao động trong danh sách (GET /api/staff/contracts)
 class StaffContractListItemModel {
@@ -118,15 +119,7 @@ class StaffContractListItemModel {
     }
   }
 
-  String get formattedHourlyRate {
-    final formatted = hourlyRate
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-    return '$formatted VND/hr';
-  }
+  String get formattedHourlyRate => '${formatCurrency(hourlyRate)}/hr';
 }
 
 /// Model chi tiết hợp đồng lao động (GET /api/staff/contracts/{id})
@@ -275,15 +268,7 @@ class StaffContractDetailModel {
     }
   }
 
-  String get formattedHourlyRate {
-    final formatted = hourlyRate
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-    return '$formatted VND/hr';
-  }
+  String get formattedHourlyRate => '${formatCurrency(hourlyRate)}/hr';
 }
 
 /// Model chi tiết từng trường yêu cầu thay đổi

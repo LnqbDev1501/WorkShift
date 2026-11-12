@@ -1,4 +1,5 @@
 import 'dart:developer';
+import '../../utils/format_utils.dart';
 
 class StaffWeeklyTimesheetModel {
   final int scheduleWeekId;
@@ -275,15 +276,8 @@ class StaffShiftAttendanceModel {
       penalties.where((p) => p.isCancelled).toList();
   double get totalActivePenaltyAmount =>
       activePenalties.fold(0.0, (sum, p) => sum + p.penaltyAmount);
-  String get formattedTotalActivePenaltyAmount {
-    final formatted = totalActivePenaltyAmount
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-    return '$formatted VND';
-  }
+  String get formattedTotalActivePenaltyAmount =>
+      formatCurrency(totalActivePenaltyAmount);
 
   final List<StaffShiftPenaltyModel> penalties;
 
@@ -388,15 +382,7 @@ class StaffShiftPenaltyModel {
     }
   }
 
-  String get formattedPenaltyAmount {
-    final formatted = penaltyAmount
-        .toStringAsFixed(0)
-        .replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]},',
-        );
-    return '$formatted VND';
-  }
+  String get formattedPenaltyAmount => formatCurrency(penaltyAmount);
 
   factory StaffShiftPenaltyModel.fromJson(Map<String, dynamic> json) {
     return StaffShiftPenaltyModel(

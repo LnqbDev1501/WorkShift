@@ -17,12 +17,6 @@
                 <h1>Add Pay Rule</h1>
                 <p>Save a draft, then publish it when ready. Published rules are locked and scheduled.</p>
             </div>
-            <div class="heading-actions">
-                <a asp-action="List" class="secondary-button">
-                    <span class="material-symbols-outlined text-[18px]">close</span>
-                    <span>Cancel</span>
-                </a>
-            </div>
         </div>
 
         <!-- Create Form -->
@@ -59,11 +53,11 @@
             </section>
 
             <div class="form-actions flex items-center gap-3">
+                <a asp-action="List" class="secondary-button">Cancel</a>
                 <button class="primary-button flex items-center gap-1.5" type="submit">
                     <span class="material-symbols-outlined text-[18px]">save</span>
                     <span>Save draft</span>
                 </button>
-                <a asp-action="List" class="secondary-button">Cancel</a>
             </div>
         </form>
     </main>

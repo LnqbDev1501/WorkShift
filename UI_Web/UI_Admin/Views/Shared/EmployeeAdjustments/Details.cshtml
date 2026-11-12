@@ -11,23 +11,26 @@
     var labelLower = label.ToLowerInvariant();
     ViewData["Title"] = $"Employee {label} #{row.RewardPenaltyId}";
 }
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex items-center justify-between gap-3">
+        <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to list</span>
+        </a>
+        <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span>
+    </div>
     <div class="flex flex-wrap justify-between items-center gap-3">
         <div class="form-heading">
             <div class="list-eyebrow">People · Compensation</div>
             <h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1>
             <p>@label #@row.RewardPenaltyId · @row.BranchName</p>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span>
-            <a asp-action="Index" class="btn btn-secondary">Back to list</a>
-        </div>
     </div>
     <partial name="~/Views/Shared/EmployeeAdjustments/_Messages.cshtml" />
     <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
         new("Amount", D.Money(row.Amount), label + " value", row.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "gavel" : "workspace_premium", "#f59e0b"),
-        new("Ngày áp dụng", row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : D.Date(row.PeriodStart), row.PeriodCode != "N/A" ? row.PeriodCode : "Tuần hiện tại", "event", "#0891b2"),
+        new("Applicable date", row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : D.Date(row.PeriodStart), row.PeriodCode != "N/A" ? row.PeriodCode : "Current week", "event", "#0891b2"),
         new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range", "#0891b2"),
         new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule", "#4f46e5")
     })' />
@@ -37,7 +40,7 @@
             <div><dt class="text-secondary">Employee</dt><dd>@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
             <div><dt class="text-secondary">Branch</dt><dd>@row.BranchName · #@row.BranchId</dd></div>
             <div><dt class="text-secondary">Item name</dt><dd>@row.AdjustmentName</dd></div>
-            <div><dt class="text-secondary">Ngày áp dụng</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
+            <div><dt class="text-secondary">Applicable date</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
             <div><dt class="text-secondary">Payroll period</dt><dd>@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
             <div><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
             <div><dt class="text-secondary">Created by</dt><dd>@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>

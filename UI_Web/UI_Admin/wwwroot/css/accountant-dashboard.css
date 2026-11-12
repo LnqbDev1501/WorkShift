@@ -39,7 +39,7 @@
     gap: 6px;
 }
 
-.ad-heading h1 {
+.accountant-dashboard .ad-heading h1 {
     font-size: 26px;
     font-weight: 700;
     letter-spacing: -.025em;
@@ -218,7 +218,7 @@
     letter-spacing: .12em;
 }
 
-.ad-payment h2 {
+.accountant-dashboard .ad-payment h2 {
     font-size: 32px;
     font-weight: 800;
     letter-spacing: -.02em;
@@ -259,7 +259,7 @@
     margin-bottom: 4px;
 }
 
-.ad-panel-heading h2 {
+.accountant-dashboard .ad-panel-heading h2 {
     font-size: 17px;
     font-weight: 700;
     color: #0f172a;
@@ -658,13 +658,13 @@
 @media (max-width: 600px) {
     .accountant-dashboard { padding: 16px; }
     .ad-heading { align-items: flex-start; flex-direction: column; }
-    .ad-heading h1 { font-size: 23px; }
+    .accountant-dashboard .ad-heading h1 { font-size: 23px; }
     .ad-scope > span:last-child { margin-left: 0; width: 100%; }
     .ad-stats { gap: 12px; }
     .ad-stat { padding: 16px; }
     .ad-stat > strong { font-size: 26px; }
     .ad-payment { padding: 22px; }
-    .ad-payment h2 { font-size: 24px; }
+    .accountant-dashboard .ad-payment h2 { font-size: 24px; }
     .ad-payment > .material-symbols-outlined { display: none; }
     .ad-period-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .ad-pie-layout { gap: 18px; }
