@@ -50,5 +50,7 @@ public class ManagerEmploymentContractDetailResponse
     // Termination Warnings
     public int TerminationWarningCount { get; set; }
     public bool CanTerminateEarly { get; set; }
+    public bool IsStaffCurrentlyInShift { get; set; }
+    public string? StaffInShiftMessage { get; set; }
     public List<ContractTerminationWarningDto> TerminationWarnings { get; set; } = new();
 }

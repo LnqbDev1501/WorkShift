@@ -19,7 +19,9 @@ public class ContractTerminationPageViewModel
 
     public int WarningCount { get; set; }
     public int NextWarningNo => Math.Min(3, WarningCount + 1);
-    public bool CanTerminate => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && WarningCount >= 3;
+    public bool IsStaffCurrentlyInShift { get; set; }
+    public string? StaffInShiftMessage { get; set; }
+    public bool CanTerminate => string.Equals(Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && WarningCount >= 3 && !IsStaffCurrentlyInShift;
 
     public List<ContractTerminationWarningViewModel> Warnings { get; set; } = [];
 
