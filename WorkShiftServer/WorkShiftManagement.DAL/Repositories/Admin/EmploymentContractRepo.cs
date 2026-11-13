@@ -568,7 +568,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             CreatedAt = now
         });
 
-        // Revoke active biometric face profile upon contract termination
+        // Revoke active biometric face profile upon contract termination and purge biometric vector
         var activeFaceProfiles = await _context.FaceProfiles
             .Where(f => f.UserId == existing.UserId && f.Status == "ACTIVE")
             .ToListAsync(cancellationToken);
@@ -579,6 +579,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Permanently nullify biometric face embedding vector to comply with Personal Data Protection regulations
+        if (activeFaceProfiles.Count > 0)
+        {
+            var profileIds = activeFaceProfiles.Select(p => p.FaceProfileId).ToList();
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id IN ({string.Join(",", profileIds)});",
+                cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -1428,7 +1438,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             });
         }
 
-        // Revoke active biometric face profiles for staff whose contracts have expired
+        // Revoke active biometric face profiles for staff whose contracts have expired and purge biometric vectors
         var expiredUserIds = expiredContracts.Select(c => c.UserId).Distinct().ToList();
         var expiredActiveFaceProfiles = await _context.FaceProfiles
             .Where(f => expiredUserIds.Contains(f.UserId) && f.Status == "ACTIVE")
@@ -1440,6 +1450,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Permanently nullify biometric face embedding vectors to comply with Personal Data Protection regulations
+        if (expiredActiveFaceProfiles.Count > 0)
+        {
+            var profileIds = expiredActiveFaceProfiles.Select(p => p.FaceProfileId).ToList();
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id IN ({string.Join(",", profileIds)});",
+                cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
         return expiredContracts.Count;
     }

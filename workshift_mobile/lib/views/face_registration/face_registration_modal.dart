@@ -5,7 +5,22 @@ import '../../controllers/attendance/face_registration_controller.dart';
 import '../../theme/app_colors.dart';
 
 /// Function to open Face Registration Modal from anywhere in the app
-Future<bool?> showFaceRegistrationModal({required BuildContext context}) {
+Future<bool?> showFaceRegistrationModal({required BuildContext context}) async {
+  // Step 1: Request biometric consent from user prior to camera initialization
+  final consentGiven = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogCtx) => const _BiometricConsentDialog(),
+  );
+
+  // If user declined or dismissed, do not proceed with camera opening
+  if (consentGiven != true) {
+    return false;
+  }
+
+  if (!context.mounted) return null;
+
+  // Step 2: Open Face Registration Camera Modal
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -14,6 +29,323 @@ Future<bool?> showFaceRegistrationModal({required BuildContext context}) {
     backgroundColor: Colors.transparent,
     builder: (ctx) => const FaceRegistrationModalPopup(),
   );
+}
+
+/// Dialog asking for user's explicit consent to collect biometric face data
+class _BiometricConsentDialog extends StatefulWidget {
+  const _BiometricConsentDialog();
+
+  @override
+  State<_BiometricConsentDialog> createState() =>
+      _BiometricConsentDialogState();
+}
+
+class _BiometricConsentDialogState extends State<_BiometricConsentDialog> {
+  bool _isExpanded = false;
+  bool _isConsentChecked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 12,
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header icon + Title
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: AppColors.primary,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Biometric Data Consent',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                            height: 1.25,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          'Compliance with Personal Data Protection Law',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Core statement
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Text(
+                  'WorkShift only extracts facial features in mathematical vector form for internal attendance purposes in compliance with the Personal Data Protection Law. This data will be automatically and permanently deleted upon employment contract termination or expiration.',
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Expandable "Read more" / "Show less"
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 2,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _isExpanded ? 'Show less' : 'Read more details',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _isExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              if (_isExpanded) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '1. Sensitive Biometric Data Notice:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Your facial image is converted into a 512-dimensional vector. Raw portrait images are not retained permanently in public storage.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                          height: 1.35,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '2. Purpose Limitation:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Used strictly for identity verification during shift check-in and check-out at your assigned store branch.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                          height: 1.35,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        '3. Right to Erasure (Offboarding):',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Upon termination or expiry of your employment contract, all facial vector embeddings are irreversibly set to NULL.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // Confirmation Checkbox (explicit opt-in)
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isConsentChecked = !_isConsentChecked;
+                  });
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 6,
+                    horizontal: 2,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: _isConsentChecked,
+                          activeColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _isConsentChecked = val ?? false;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text(
+                          'I have read, understood, and agree to the biometric data collection terms above.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textPrimary,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Action buttons (Cancel & Agree & Continue)
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _isConsentChecked
+                          ? () => Navigator.of(context).pop(true)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        disabledBackgroundColor: AppColors.border,
+                        foregroundColor: Colors.white,
+                        disabledForegroundColor: AppColors.textMuted,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Agree & Continue',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class FaceRegistrationModalPopup extends StatefulWidget {

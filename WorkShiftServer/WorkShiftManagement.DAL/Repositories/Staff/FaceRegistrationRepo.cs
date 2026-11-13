@@ -227,6 +227,11 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
             profile.Status = "REVOKED";
             profile.RevokedAt = revokedAt;
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Nullify old vector embedding upon revocation/re-registration
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id = {faceProfileId};",
+                cancellationToken);
         }
     }
 
