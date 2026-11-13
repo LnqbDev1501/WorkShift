@@ -105,12 +105,24 @@
                     <span class="material-symbols-outlined text-[18px]">edit</span>
                     <span>Edit</span>
                 </a>
-                <button type="button"
-                        onclick="openCancelModal()"
-                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl transition-all cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">cancel</span>
-                    <span>Cancel Draft</span>
-                </button>
+                @if (Model.IsStaffCurrentlyInShift)
+                {
+                    <button type="button" disabled
+                            title="Cannot cancel draft while employee is in shift (@Model.StaffInShiftMessage)"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 text-slate-400 border border-slate-200 text-sm font-semibold rounded-xl cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">lock</span>
+                        <span>Cancel Draft</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            onclick="openCancelModal()"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">cancel</span>
+                        <span>Cancel Draft</span>
+                    </button>
+                }
             }
             else
             {
@@ -126,20 +138,32 @@
                 </a>
                 @if (isCancellable)
                 {
-                    <button type="button"
-                            onclick="openCancelModal()"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
-                            title="Cancel Contract Before Effective Date">
-                        <span class="material-symbols-outlined text-[18px]">cancel</span>
-                        <span>Cancel Contract</span>
-                    </button>
+                    @if (Model.IsStaffCurrentlyInShift)
+                    {
+                        <button type="button" disabled
+                                title="Cannot cancel contract while employee is in shift (@Model.StaffInShiftMessage)"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-400 border border-slate-200 text-sm font-semibold rounded-xl cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Cancel Contract</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                onclick="openCancelModal()"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+                                title="Cancel Contract Before Effective Date">
+                            <span class="material-symbols-outlined text-[18px]">cancel</span>
+                            <span>Cancel Contract</span>
+                        </button>
+                    }
                 }
                 else if (statusUpper == "ACTIVE")
                 {
                     <a asp-action="Terminate" asp-route-id="@Model.ContractId"
                        class="inline-flex items-center gap-1.5 px-4 py-2 @(Model.CanTerminateEarly ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200" : "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200") text-sm font-semibold rounded-xl shadow-sm transition-all"
-                       title="@(Model.CanTerminateEarly ? "Terminate contract early (3/3 warnings sent)" : "Warnings & termination (Current: " + Model.TerminationWarningCount + "/3)")">
-                        <span class="material-symbols-outlined text-[18px]">gavel</span>
+                       title="@(Model.IsStaffCurrentlyInShift ? "Employee is currently in shift (" + Model.StaffInShiftMessage + "). Termination locked until shift ends." : (Model.CanTerminateEarly ? "Terminate contract early (3/3 warnings sent)" : "Warnings & termination (Current: " + Model.TerminationWarningCount + "/3)"))">
+                        <span class="material-symbols-outlined text-[18px]">@(Model.IsStaffCurrentlyInShift ? "lock_clock" : "gavel")</span>
                         <span>Terminate Contract</span>
                         <span class="text-xs px-1.5 py-0.5 rounded @(Model.CanTerminateEarly ? "bg-rose-100 text-rose-800" : "bg-amber-100 text-amber-800") font-mono font-bold">@Model.TerminationWarningCount/3</span>
                     </a>
@@ -147,6 +171,20 @@
             }
         </div>
     </div>
+
+    @if (Model.IsStaffCurrentlyInShift)
+    {
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-amber-600 text-[22px] shrink-0 mt-0.5">lock_clock</span>
+            <div class="space-y-1">
+                <h4 class="font-bold text-amber-950">Employee Currently in Shift &bull; Contract Termination/Cancellation Locked</h4>
+                <p class="text-xs text-amber-800 leading-relaxed">
+                    Employee <strong>@Model.EmployeeFullName</strong> is currently working in shift: <strong>@Model.StaffInShiftMessage</strong>.
+                    You cannot cancel or terminate this contract until the employee finishes their shift and completes check-out.
+                </p>
+            </div>
+        </div>
+    }
 
     <!-- Cancellation / Rejection Banner -->
     @if (statusUpper == "CANCELLED")
@@ -1032,6 +1070,16 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.ContractId" />
 
+                @if (Model.IsStaffCurrentlyInShift)
+                {
+                    <div class="p-3.5 mb-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-800">
+                        <span class="material-symbols-outlined text-amber-600 text-[18px] shrink-0 mt-0.5">lock_clock</span>
+                        <span>
+                            <strong>Cancellation Locked:</strong> Employee is currently working in shift (@Model.StaffInShiftMessage). Contract can only be cancelled after the employee finishes their shift.
+                        </span>
+                    </div>
+                }
+
                 <div class="mb-5">
                     <label for="cancel-reason" class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1.5">
                         Cancellation Reason <span class="text-rose-600">*</span>
@@ -1052,11 +1100,23 @@
                             class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors cursor-pointer">
                         Close
                     </button>
-                    <button type="submit" id="confirm-cancel-btn"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
-                        <span class="material-symbols-outlined text-[18px]">cancel</span>
-                        <span>Confirm Cancel</span>
-                    </button>
+                    @if (Model.IsStaffCurrentlyInShift)
+                    {
+                        <button type="button" disabled
+                                title="Employee is currently working in a shift"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-200 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Locked (Staff In Shift)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" id="confirm-cancel-btn"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">cancel</span>
+                            <span>Confirm Cancel</span>
+                        </button>
+                    }
                 </div>
             </form>
         </div>
@@ -1169,6 +1229,16 @@
                 </span>
             </div>
 
+            @if (Model.IsStaffCurrentlyInShift)
+            {
+                <div class="p-3.5 mb-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2.5 text-xs text-rose-800">
+                    <span class="material-symbols-outlined text-rose-600 text-[18px] shrink-0 mt-0.5">lock_clock</span>
+                    <span>
+                        <strong>Termination Locked:</strong> Employee is currently working in shift (@Model.StaffInShiftMessage). Contract can only be terminated after the employee finishes their shift and completes check-out.
+                    </span>
+                </div>
+            }
+
             <form method="post" asp-action="Terminate" onsubmit="disableTerminateBtn(this)">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.ContractId" />
@@ -1209,11 +1279,23 @@
                             class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-sm font-medium transition-colors cursor-pointer">
                         Close
                     </button>
-                    <button type="submit" id="confirm-terminate-btn"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
-                        <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Confirm Termination</span>
-                    </button>
+                    @if (Model.IsStaffCurrentlyInShift)
+                    {
+                        <button type="button" disabled
+                                title="Employee is currently working in a shift"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-200 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Locked (Staff In Shift)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" id="confirm-terminate-btn"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">gavel</span>
+                            <span>Confirm Termination</span>
+                        </button>
+                    }
                 </div>
             </form>
         </div>

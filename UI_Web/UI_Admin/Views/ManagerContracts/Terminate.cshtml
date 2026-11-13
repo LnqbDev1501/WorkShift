@@ -47,6 +47,20 @@
         </div>
     }
 
+    @if (Model.IsStaffCurrentlyInShift)
+    {
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-amber-600 text-[22px] shrink-0 mt-0.5">lock_clock</span>
+            <div class="space-y-1">
+                <h4 class="font-bold text-amber-950">Termination Locked: Employee Currently Working in Shift</h4>
+                <p class="text-xs text-amber-800 leading-relaxed">
+                    Employee <strong>@Model.EmployeeFullName</strong> is currently working in shift: <strong>@Model.StaffInShiftMessage</strong>.
+                    You cannot terminate this contract until the employee has finished their shift and completed check-out.
+                </p>
+            </div>
+        </div>
+    }
+
     <!-- Main Container Card -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
 
@@ -298,11 +312,23 @@
                        class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
                         Cancel
                     </a>
-                    <button type="submit" id="btn-submit-terminate"
-                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
-                        <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Confirm termination</span>
-                    </button>
+                    @if (Model.IsStaffCurrentlyInShift)
+                    {
+                        <button type="button" disabled
+                                title="Employee is currently working in a shift. You cannot terminate until they check out."
+                                class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-200 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed shadow-none">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Locked (Staff In Shift)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" id="btn-submit-terminate"
+                                class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">gavel</span>
+                            <span>Confirm termination</span>
+                        </button>
+                    }
                 </div>
             </form>
         }

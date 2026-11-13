@@ -322,9 +322,14 @@ public class ManagerEmploymentContractService(
             throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
 
         var warnings = await repository.GetTerminationWarningsByContractIdAsync(contractId, cancellationToken);
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
         var detail = MapToDetailResponse(contract);
         detail.TerminationWarningCount = warnings.Count;
-        detail.CanTerminateEarly = string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && warnings.Count >= 3;
+        detail.IsStaffCurrentlyInShift = inShiftCheck.IsInShift;
+        detail.StaffInShiftMessage = inShiftCheck.ShiftInfo;
+        detail.CanTerminateEarly = string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+            && warnings.Count >= 3
+            && !inShiftCheck.IsInShift;
         detail.TerminationWarnings = warnings.Select(w => new ContractTerminationWarningDto
         {
             NotificationId = w.NotificationId,
@@ -404,6 +409,10 @@ public class ManagerEmploymentContractService(
 
         var reason = request.Reason.Trim();
         var wasSent = !string.Equals(contract.Status, "DRAFT", StringComparison.OrdinalIgnoreCase);
+
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
+        if (inShiftCheck.IsInShift)
+            throw new InvalidOperationException($"Cannot cancel contract {contract.ContractNumber}. The employee is currently working in shift {inShiftCheck.ShiftInfo}. The contract can only be cancelled after the employee finishes their shift.");
 
         await repository.CancelContractAsync(contractId, managerId, reason, cancellationToken);
 
@@ -606,6 +615,10 @@ public class ManagerEmploymentContractService(
         var nowUtc = DateTime.UtcNow;
         var effectiveDateTimeUtc = effectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var reason = request.Reason.Trim();
+
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
+        if (inShiftCheck.IsInShift)
+            throw new InvalidOperationException($"Cannot terminate contract {contract.ContractNumber}. The employee is currently working in shift {inShiftCheck.ShiftInfo}. The contract can only be terminated after the employee finishes their shift.");
 
         await repository.TerminateContractAsync(contractId, managerId, reason, effectiveDateTimeUtc, cancellationToken);
 
