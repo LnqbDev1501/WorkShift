@@ -135,39 +135,41 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you have verified all work hours, late minutes, and attendance records for this week? Once confirmed, this timesheet will be ready for final payroll locking.',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: noteController,
-              decoration: InputDecoration(
-                hintText: 'Optional confirmation note...',
-                hintStyle: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you have verified all work hours, late minutes, and attendance records for this week? Once confirmed, this timesheet will be ready for final payroll locking.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
                 ),
               ),
-              maxLines: 2,
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: noteController,
+                decoration: InputDecoration(
+                  hintText: 'Optional confirmation note...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(

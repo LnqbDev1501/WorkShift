@@ -34,9 +34,10 @@ class HomeService {
         final data = response.data as Map<String, dynamic>;
         return data['hasRegisteredFace'] == true;
       }
-      return false;
+      return true;
     } catch (_) {
-      return false;
+      // Khi gặp lỗi mạng, server bận hoặc timeout, không coi là chưa đăng ký để tránh hiện popup sai
+      return true;
     }
   }
 
