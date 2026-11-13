@@ -321,6 +321,15 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         try
         {
+            var contract = await api.GetByIdAsync(id, cancellationToken);
+            if (contract.IsStaffCurrentlyInShift)
+            {
+                TempData["ErrorMessage"] = $"Cannot cancel contract {contract.ContractNumber}. The employee is currently working in shift {contract.StaffInShiftMessage}. The contract can only be cancelled after the employee finishes their shift.";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             await api.CancelAsync(id, reason.Trim(), cancellationToken);
             TempData["SuccessMessage"] = "Contract has been cancelled successfully.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
@@ -383,6 +392,8 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
                 HourlyRate = contract.HourlyRate,
                 WarningCount = warningCount,
                 Warnings = warnings,
+                IsStaffCurrentlyInShift = contract.IsStaffCurrentlyInShift,
+                StaffInShiftMessage = contract.StaffInShiftMessage,
                 WarningTitle = $"Violation warning {nextWarningNo}",
                 WarningContent = $"Repeated unauthorized absences have been recorded. This is warning {nextWarningNo}/3. Further violations may result in termination under company policy.",
                 TerminationEffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7))
@@ -424,6 +435,15 @@ public class ManagerContractsController(ManagerContractApiService api, IMemoryCa
 
         try
         {
+            var contract = await api.GetByIdAsync(id, cancellationToken);
+            if (contract.IsStaffCurrentlyInShift)
+            {
+                TempData["ErrorMessage"] = $"Cannot terminate contract {contract.ContractNumber}. The employee is currently working in shift {contract.StaffInShiftMessage}. The contract can only be terminated after the employee finishes their shift.";
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                    return Redirect(returnUrl);
+                return RedirectToAction(nameof(Terminate), new { id });
+            }
+
             await api.TerminateAsync(id, reason.Trim(), terminationEffectiveDate, cancellationToken);
             TempData["SuccessMessage"] = "Contract has been terminated successfully.";
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))

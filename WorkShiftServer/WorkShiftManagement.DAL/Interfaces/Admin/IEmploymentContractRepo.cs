@@ -64,6 +64,7 @@ public interface IEmploymentContractRepo
     Task<int> ExpireDueContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<CancelOverdueContractsResult> CancelOverduePendingContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<bool> HasActiveContractForShiftRegistrationAsync(Guid staffUserId, int branchId, DateTime scheduledStartAtUtc, DateTime scheduledEndAtUtc, CancellationToken cancellationToken = default);
+    Task<(bool IsInShift, string? ShiftInfo)> IsStaffCurrentlyInShiftAsync(Guid staffUserId, DateTime? currentUtc = null, CancellationToken cancellationToken = default);
 
     // Contract Change Requests
     Task<ContractChangeRequest?> GetOpenChangeRequestByContractIdAsync(int contractId, CancellationToken cancellationToken = default);

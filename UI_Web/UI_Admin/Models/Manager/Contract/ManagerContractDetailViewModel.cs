@@ -46,6 +46,8 @@ public class ManagerContractDetailViewModel
     public bool HasPdf { get; set; }
     public int TerminationWarningCount { get; set; }
     public bool CanTerminateEarly { get; set; }
+    public bool IsStaffCurrentlyInShift { get; set; }
+    public string? StaffInShiftMessage { get; set; }
     public List<ContractTerminationWarningViewModel> TerminationWarnings { get; set; } = [];
 
     // History
