@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -9,14 +9,14 @@ namespace WorkShiftServer.API.Controllers.Catalog;
 
 /// <summary>
 /// Product category management. Readable by Admin, Manager and Accountant.
-/// Modifications require Admin or Manager.
+/// Modifications require Admin.
 /// </summary>
 [Route("api/categories")]
 [ApiController]
 [Authorize(Roles = "ADMIN,MANAGER,ACCOUNTANT,STAFF")]
 public class CategoryController : ControllerBase
 {
-    private const string WriteRoles = "ADMIN,MANAGER";
+    private const string WriteRoles = "ADMIN";
     private readonly ICategoryService _categoryService;
     private readonly ILogger<CategoryController> _logger;
 

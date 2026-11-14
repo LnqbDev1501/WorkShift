@@ -1,4 +1,4 @@
-@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
+﻿@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
 @using UI_Admin.Models.EmployeeAdjustments
 @{
     var label = EmployeeAdjustmentTypes.Label(Model.AdjustmentType);
@@ -36,7 +36,7 @@
     </div>
     <div>
         <label asp-for="Amount" class="block text-label-md text-secondary mb-2">Amount (₫) *</label>
-        <input asp-for="Amount" type="number" min="0.01" max="9999999999999999.99" step="0.01" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl" />
+        <input asp-for="Amount" type="number" min="1000" max="9999999999999999.99" step="0.01" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl" />
         <span asp-validation-for="Amount" class="text-red-700 text-sm"></span>
     </div>
 </div>

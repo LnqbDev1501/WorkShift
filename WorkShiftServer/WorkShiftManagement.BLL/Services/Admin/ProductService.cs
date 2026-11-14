@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -242,8 +242,8 @@ public class ProductService : IProductService
         if (trimmedName.Length > 150)
             throw new ArgumentException("Product name cannot exceed 150 characters.");
 
-        if (price < 0)
-            throw new ArgumentException("Price cannot be negative.");
+        if (price < 1000m)
+            throw new ArgumentException("Price must be at least 1,000 VND.");
         if (decimal.Round(price, 2) != price)
             throw new ArgumentException("Price cannot have more than 2 decimal places.");
 

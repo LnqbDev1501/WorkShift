@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -122,8 +122,8 @@ public sealed class SaveEmployeeAdjustmentViewModel : IValidatableObject
         if (string.IsNullOrWhiteSpace(AdjustmentName)) yield return new("Please enter the item name.", [nameof(AdjustmentName)]);
         if (AdjustmentName.Trim().Length > 100) yield return new("Item name must be at most 100 characters.", [nameof(AdjustmentName)]);
         if (Amount is null) yield return new("Please enter the amount.", [nameof(Amount)]);
-        else if (Amount <= 0 || Amount > 9999999999999999.99m || Amount != decimal.Truncate(Amount.Value * 100) / 100)
-            yield return new("Amount must be greater than 0 with at most two decimal places (max 16 integer digits).", [nameof(Amount)]);
+        else if (Amount < 1000m || Amount > 9999999999999999.99m || Amount != decimal.Truncate(Amount.Value * 100) / 100)
+            yield return new("Amount must be at least 1,000 VND with at most two decimal places (max 16 integer digits).", [nameof(Amount)]);
         if (string.IsNullOrWhiteSpace(Reason)) yield return new("Please enter a reason.", [nameof(Reason)]);
         if (Reason.Trim().Length > 500) yield return new("Reason must be at most 500 characters.", [nameof(Reason)]);
     }

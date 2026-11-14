@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -63,8 +63,8 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             throw new ArgumentException("KhÃ´ng thá»ƒ táº¡o Ä‘Æ¡n thÆ°á»Ÿng/pháº¡t cho ngÃ y trong tÆ°Æ¡ng lai.");
 
         // Existing source column is NUMERIC(18,2); reject unsupported precision rather than silently round money.
-        if (r.Amount <= 0 || r.Amount > 9999999999999999.99m || r.Amount != decimal.Truncate(r.Amount * 100) / 100)
-            throw new ArgumentException("Sá»‘ tiá»n pháº£i lá»›n hÆ¡n 0, tá»‘i Ä‘a 16 chá»¯ sá»‘ nguyÃªn vÃ  2 chá»¯ sá»‘ tháº­p phÃ¢n; há»‡ thá»‘ng khÃ´ng tá»± lÃ m trÃ²n.");
+        if (r.Amount < 1000m || r.Amount > 9999999999999999.99m || r.Amount != decimal.Truncate(r.Amount * 100) / 100)
+            throw new ArgumentException("Sá»‘ tiá»n pháº£i tá»« 1.000Ä‘ trá»Ÿ lÃªn, tá»‘i Ä‘a 16 chá»¯ sá»‘ nguyÃªn vÃ  2 chá»¯ sá»‘ tháº­p phÃ¢n; há»‡ thá»‘ng khÃ´ng tá»± lÃ m trÃ²n.");
     }
     
     private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, CancellationToken ct)

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace UI_Admin.Models.Catalog;
 
@@ -59,7 +59,7 @@ public class CreateProductViewModel
     public string ProductName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Price is required.")]
-    [Range(0, 999999999999999999.99, ErrorMessage = "Price cannot be negative.")]
+    [Range(1000, 999999999999999999.99, ErrorMessage = "Price must be at least 1,000 VND.")]
     public decimal Price { get; set; }
 
     [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
@@ -88,7 +88,7 @@ public class EditProductViewModel
     public string ProductName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Price is required.")]
-    [Range(0, 999999999999999999.99, ErrorMessage = "Price cannot be negative.")]
+    [Range(1000, 999999999999999999.99, ErrorMessage = "Price must be at least 1,000 VND.")]
     public decimal Price { get; set; }
 
     [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters.")]
