@@ -32,12 +32,6 @@ public partial class AppDbContext : DbContext
 
     public virtual DbSet<Branch> Branches { get; set; }
 
-    public virtual DbSet<Checklist> Checklists { get; set; }
-
-    public virtual DbSet<ChecklistItem> ChecklistItems { get; set; }
-
-    public virtual DbSet<ChecklistResult> ChecklistResults { get; set; }
-
     public virtual DbSet<ContractChangeRequest> ContractChangeRequests { get; set; }
 
     public virtual DbSet<ContractChangeRequestItem> ContractChangeRequestItems { get; set; }
@@ -63,8 +57,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
-
-    public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<Payroll> Payrolls { get; set; }
 
@@ -609,119 +601,9 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("branches_region_id_fkey");
         });
 
-        modelBuilder.Entity<Checklist>(entity =>
-        {
-            entity.HasKey(e => e.ChecklistId).HasName("checklists_pkey");
-
-            entity.ToTable("checklists");
-
-            entity.HasIndex(e => e.ShiftId, "ix_checklists_shift").HasFilter("(is_deleted = false)");
-
-            entity.Property(e => e.ChecklistId).HasColumnName("checklist_id");
-            entity.Property(e => e.ChecklistName)
-                .HasMaxLength(150)
-                .HasColumnName("checklist_name");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.Description)
-                .HasMaxLength(500)
-                .HasColumnName("description");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Checklists)
-                .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklists_created_by_fkey");
-
-            entity.HasOne(d => d.Shift).WithMany(p => p.Checklists)
-                .HasForeignKey(d => d.ShiftId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklists_shift_id_fkey");
-        });
-
-        modelBuilder.Entity<ChecklistItem>(entity =>
-        {
-            entity.HasKey(e => e.ChecklistItemId).HasName("checklist_items_pkey");
-
-            entity.ToTable("checklist_items");
-
-            entity.HasIndex(e => new { e.ChecklistId, e.DisplayOrder }, "uq_checklist_item_order").IsUnique();
-
-            entity.Property(e => e.ChecklistItemId).HasColumnName("checklist_item_id");
-            entity.Property(e => e.ChecklistId).HasColumnName("checklist_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.DisplayOrder)
-                .HasDefaultValue(0)
-                .HasColumnName("display_order");
-            entity.Property(e => e.IsRequired)
-                .HasDefaultValue(true)
-                .HasColumnName("is_required");
-            entity.Property(e => e.ItemName)
-                .HasMaxLength(255)
-                .HasColumnName("item_name");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.Checklist).WithMany(p => p.ChecklistItems)
-                .HasForeignKey(d => d.ChecklistId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_items_checklist_id_fkey");
-        });
-
-        modelBuilder.Entity<ChecklistResult>(entity =>
-        {
-            entity.HasKey(e => e.ResultId).HasName("checklist_results_pkey");
-
-            entity.ToTable("checklist_results");
-
-            entity.HasIndex(e => e.UserId, "ix_checklist_results_user").HasFilter("(is_deleted = false)");
-
-            entity.HasIndex(e => new { e.ChecklistItemId, e.UserId }, "uq_checklist_result_user_item").IsUnique();
-
-            entity.Property(e => e.ResultId).HasColumnName("result_id");
-            entity.Property(e => e.ChecklistItemId).HasColumnName("checklist_item_id");
-            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.IsCompleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_completed");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.Note)
-                .HasMaxLength(500)
-                .HasColumnName("note");
-            entity.Property(e => e.PhotoUrl)
-                .HasMaxLength(500)
-                .HasColumnName("photo_url");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.ChecklistItem).WithMany(p => p.ChecklistResults)
-                .HasForeignKey(d => d.ChecklistItemId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_results_checklist_item_id_fkey");
-
-            entity.HasOne(d => d.User).WithMany(p => p.ChecklistResults)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_results_user_id_fkey");
-        });
+        modelBuilder.Ignore<Checklist>();
+        modelBuilder.Ignore<ChecklistItem>();
+        modelBuilder.Ignore<ChecklistResult>();
 
         modelBuilder.Entity<ContractChangeRequest>(entity =>
         {
@@ -1450,42 +1332,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("order_items_product_id_fkey");
         });
 
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.HasKey(e => e.PaymentId).HasName("payments_pkey");
-
-            entity.ToTable("payments");
-
-            entity.HasIndex(e => e.OrderId, "ix_payments_order_id");
-
-            entity.HasIndex(e => e.RecordedBy, "ix_payments_recorded_by");
-
-            entity.Property(e => e.PaymentId).HasColumnName("payment_id");
-            entity.Property(e => e.Amount)
-                .HasPrecision(18, 2)
-                .HasColumnName("amount");
-            entity.Property(e => e.Note).HasColumnName("note");
-            entity.Property(e => e.OrderId).HasColumnName("order_id");
-            entity.Property(e => e.PaymentMethod)
-                .HasMaxLength(50)
-                .HasColumnName("payment_method");
-            entity.Property(e => e.RecordedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("recorded_at");
-            entity.Property(e => e.RecordedBy).HasColumnName("recorded_by");
-            entity.Property(e => e.ReferenceNumber)
-                .HasMaxLength(100)
-                .HasColumnName("reference_number");
-
-            entity.HasOne(d => d.Order).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("fk_payments_order");
-
-            entity.HasOne(d => d.RecordedByNavigation).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.RecordedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_payments_recorded_by");
-        });
+        modelBuilder.Ignore<Payment>();
 
         modelBuilder.Entity<Payroll>(entity =>
         {

@@ -37,8 +37,6 @@ public partial class WorkShift
 
     public virtual User? CancelledByNavigation { get; set; }
 
-    public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
-
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual WorkScheduleWeek ScheduleWeek { get; set; } = null!;

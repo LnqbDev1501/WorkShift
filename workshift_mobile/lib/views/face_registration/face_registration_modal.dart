@@ -46,14 +46,16 @@ class _BiometricConsentDialogState extends State<_BiometricConsentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.85;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 12,
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: SingleChildScrollView(
+        constraints: BoxConstraints(maxWidth: 440, maxHeight: maxHeight),
+        child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -104,140 +106,152 @@ class _BiometricConsentDialogState extends State<_BiometricConsentDialog> {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-
-              // Core statement
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: const Text(
-                  'WorkShift only extracts facial features in mathematical vector form for internal attendance purposes in compliance with the Personal Data Protection Law. This data will be automatically and permanently deleted upon employment contract termination or expiration.',
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    height: 1.45,
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Expandable "Read more" / "Show less"
-              InkWell(
-                onTap: () {
-                  setState(() {
-                    _isExpanded = !_isExpanded;
-                  });
-                },
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 4,
-                    horizontal: 2,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _isExpanded ? 'Show less' : 'Read more details',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _isExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        size: 18,
-                        color: AppColors.primary,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              if (_isExpanded) ...[
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '1. Sensitive Biometric Data Notice:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Your facial image is converted into a 512-dimensional vector. Raw portrait images are not retained permanently in public storage.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.textSecondary,
-                          height: 1.35,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '2. Purpose Limitation:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Used strictly for identity verification during shift check-in and check-out at your assigned store branch.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.textSecondary,
-                          height: 1.35,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        '3. Right to Erasure (Offboarding):',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Upon termination or expiry of your employment contract, all facial vector embeddings are irreversibly set to NULL.',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.textSecondary,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-
               const SizedBox(height: 16),
 
-              // Confirmation Checkbox (explicit opt-in)
+              // Scrollable Legal Statements area
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Core statement
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Text(
+                          'WorkShift only extracts facial features in mathematical vector form for internal attendance purposes in compliance with the Personal Data Protection Law. This data will be automatically and permanently deleted upon employment contract termination or expiration.',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            height: 1.45,
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Expandable "Read more" / "Show less"
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 2,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _isExpanded ? 'Show less' : 'Read more details',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _isExpanded
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      if (_isExpanded) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '1. Sensitive Biometric Data Notice:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Your facial image is converted into a 512-dimensional vector. Raw portrait images are not retained permanently in public storage.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '2. Purpose Limitation:',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Used strictly for identity verification during shift check-in and check-out at your assigned store branch.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                '3. Right to Erasure (Offboarding):',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Upon termination or expiry of your employment contract, all facial vector embeddings are irreversibly set to NULL.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: AppColors.textSecondary,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 14),
+              const Divider(height: 1, color: AppColors.border),
+              const SizedBox(height: 14),
+
+              // Confirmation Checkbox (explicit opt-in) - ALWAYS PINNED AT BOTTOM
               InkWell(
                 onTap: () {
                   setState(() {
@@ -286,9 +300,9 @@ class _BiometricConsentDialogState extends State<_BiometricConsentDialog> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-              // Action buttons (Cancel & Agree & Continue)
+              // Action buttons (Cancel & Agree & Continue) - ALWAYS PINNED AT BOTTOM
               Row(
                 children: [
                   Expanded(
