@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -49,6 +49,12 @@ namespace UI_Admin.Controllers
             try
             {
                 var login = await _authService.LoginAsync(model.Email, model.Password);
+
+                if (string.Equals(login.Role, "STAFF", StringComparison.OrdinalIgnoreCase))
+                {
+                    ModelState.AddModelError(string.Empty, "Employees need to log in via the mobile app.");
+                    return View(model);
+                }
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.Name, login.FullName),
