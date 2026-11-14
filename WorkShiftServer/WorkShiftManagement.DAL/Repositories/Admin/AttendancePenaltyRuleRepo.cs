@@ -60,6 +60,16 @@ public class AttendancePenaltyRuleRepo : IAttendancePenaltyRuleRepo
                 cancellationToken);
     }
 
+    public Task<AttendancePenaltyRule?> GetRuleByEffectiveDateAsync(DateOnly effectiveFrom, int? excludeId, CancellationToken cancellationToken) =>
+        _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.EffectiveFrom == effectiveFrom
+                     && (!excludeId.HasValue || r.PenaltyRuleId != excludeId.Value)
+                     && r.Status != StatusCancelled
+                     && r.Status != "INACTIVE",
+                cancellationToken);
+
 
     public async Task<(IReadOnlyList<AttendancePenaltyRule> Items, int TotalItems)> GetPagedAsync(
         int pageNumber,

@@ -460,10 +460,10 @@ public class UserService : IUserService
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                TargetType = "Custom",
+                TargetType = isAdmin ? "All" : "Custom",
                 TargetBranchId = null,
                 Channels = new List<string> { "InApp" },
-                TargetRoles = new List<string> { targetRoleName }
+                TargetRoles = isAdmin ? new List<string>() : new List<string> { targetRoleName }
             };
 
             notification.UserNotifications.Add(new UserNotification
@@ -537,6 +537,7 @@ public class UserService : IUserService
         {
             await transaction.RollbackAsync();
             var innerMessage = exception.InnerException?.Message ?? "";
+            _logger.LogError(exception, "Database error updating user {UserId}. Inner: {InnerMessage}", userId, innerMessage);
             if (innerMessage.Contains("23503")) // Foreign key violation
             {
                 throw new ArgumentException("The provided BranchId or RoleId does not exist.");
@@ -557,7 +558,11 @@ public class UserService : IUserService
             {
                 throw new InvalidOperationException("Email is already in use by another user.");
             }
-            throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
+            if (innerMessage.Contains("23505")) // PostgreSQL unique_violation
+            {
+                throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
+            }
+            throw new InvalidOperationException($"Unable to update account due to a system constraint: {exception.InnerException?.Message ?? exception.Message}", exception);
         }
         catch (Exception)
         {

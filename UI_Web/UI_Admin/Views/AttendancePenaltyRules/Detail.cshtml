@@ -14,12 +14,12 @@
     .pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
     .status.active { color: #065f46; background: #d1fae5; }
     .status.scheduled { color: #5b21b6; background: #ede9fe; }
-    .status.draft { color: #92400e; background: #fef3c7; }
+    .status.draft, .pill.status.draft { color: #92400e !important; background: #fef3c7 !important; }
     .status.cancelled { color: #596071; background: #e8e9ed; }
     .dot { width: 6px; height: 6px; border-radius: 50%; }
     .status.active .dot { background: #10b981; }
     .status.scheduled .dot { background: #8b5cf6; }
-    .status.draft .dot { background: #f59e0b; }
+    .status.draft .dot, .pill.status.draft .dot { background: #f59e0b !important; }
     .status.cancelled .dot { background: #89909d; }
 </style>
 }

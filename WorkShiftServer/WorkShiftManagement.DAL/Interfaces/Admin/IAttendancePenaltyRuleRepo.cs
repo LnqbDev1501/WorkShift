@@ -18,6 +18,7 @@ public interface IAttendancePenaltyRuleRepo
         List<AttendancePenaltyLevel> newLevels,
         CancellationToken cancellationToken);
     Task<bool> ExistsByNameAsync(string ruleName, int? excludeId, CancellationToken cancellationToken);
+    Task<AttendancePenaltyRule?> GetRuleByEffectiveDateAsync(DateOnly effectiveFrom, int? excludeId, CancellationToken cancellationToken);
 
     Task<AttendancePenaltyRule?> GetByIdAsync(int id, CancellationToken cancellationToken);
     Task<AttendancePenaltyRule?> GetByIdForUpdateAsync(int id, CancellationToken cancellationToken);

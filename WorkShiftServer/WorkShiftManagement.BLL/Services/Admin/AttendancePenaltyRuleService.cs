@@ -108,6 +108,12 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException($"An attendance penalty rule with the name '{request.RuleName.Trim()}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendancePenaltyRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, null, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance penalty rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var now = DateTime.UtcNow;
         var rule = new AttendancePenaltyRule
         {
@@ -166,6 +172,12 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException($"An attendance penalty rule with the name '{request.RuleName.Trim()}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendancePenaltyRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, id, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance penalty rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var now = DateTime.UtcNow;
         rule.RuleName = request.RuleName.Trim();
         rule.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
@@ -217,9 +229,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed. Please update EffectiveFrom to today or a future date before publishing.");
         }
 
         if (rule.AttendancePenaltyLevels.Count == 0)
@@ -277,6 +289,11 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         await SendPublishNotificationAsync(rule, adminUserId);
+
+        if (rule.EffectiveFrom.Value <= today)
+        {
+            await ActivateDueAsync(cancellationToken);
+        }
 
         return await GetByIdAsync(id, cancellationToken);
     }
@@ -608,9 +625,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
 
         if (request.PenaltyLevels is null || request.PenaltyLevels.Count == 0)
@@ -709,9 +726,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
 
         if (request.PenaltyLevels is null || request.PenaltyLevels.Count == 0)

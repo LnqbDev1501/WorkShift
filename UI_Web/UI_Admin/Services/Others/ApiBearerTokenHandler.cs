@@ -9,6 +9,8 @@ public sealed class ApiBearerTokenHandler(
     IHttpContextAccessor httpContextAccessor,
     IServiceProvider serviceProvider) : DelegatingHandler
 {
+    private static readonly SemaphoreSlim _refreshTokenLock = new(1, 1);
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
@@ -26,38 +28,56 @@ public sealed class ApiBearerTokenHandler(
         if (DateTimeOffset.TryParse(expiresAt, out var expiration) &&
             expiration <= DateTimeOffset.UtcNow.AddMinutes(1))
         {
-            var refreshToken = await context.GetTokenAsync("refresh_token");
+            await _refreshTokenLock.WaitAsync(cancellationToken);
             try
             {
-                var authApiService = serviceProvider.GetRequiredService<AuthApiService>();
-                var refreshed = await authApiService.RefreshAsync(refreshToken ?? string.Empty);
-                var now = DateTimeOffset.UtcNow;
-                var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                var properties = authResult.Properties ?? new AuthenticationProperties();
-                properties.IssuedUtc = now;
-                properties.ExpiresUtc = now.AddDays(7);
-                properties.StoreTokens(new[]
+                // Double-checked locking: kiểm tra lại xem request chạy trước đã kịp refresh chưa
+                expiresAt = await context.GetTokenAsync("access_token_expires_at");
+                if (DateTimeOffset.TryParse(expiresAt, out var currentExp) &&
+                    currentExp > DateTimeOffset.UtcNow.AddMinutes(1))
                 {
-                    new AuthenticationToken { Name = "access_token", Value = refreshed.AccessToken },
-                    new AuthenticationToken { Name = "refresh_token", Value = refreshed.RefreshToken },
-                    new AuthenticationToken { Name = "access_token_expires_at", Value = now.AddSeconds(refreshed.ExpiresIn).ToString("O") }
-                });
-                var claims = new[]
+                    accessToken = await context.GetTokenAsync("access_token");
+                }
+                else
                 {
-                    new Claim(ClaimTypes.Name, refreshed.FullName),
-                    new Claim(ClaimTypes.Email, refreshed.Email),
-                    new Claim(ClaimTypes.Role, refreshed.Role)
-                };
-                await context.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
-                    properties);
-                accessToken = refreshed.AccessToken;
+                    var refreshToken = await context.GetTokenAsync("refresh_token");
+                    try
+                    {
+                        var authApiService = serviceProvider.GetRequiredService<AuthApiService>();
+                        var refreshed = await authApiService.RefreshAsync(refreshToken ?? string.Empty);
+                        var now = DateTimeOffset.UtcNow;
+                        var authResult = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                        var properties = authResult.Properties ?? new AuthenticationProperties();
+                        properties.IssuedUtc = now;
+                        properties.ExpiresUtc = now.AddDays(7);
+                        properties.StoreTokens(new[]
+                        {
+                            new AuthenticationToken { Name = "access_token", Value = refreshed.AccessToken },
+                            new AuthenticationToken { Name = "refresh_token", Value = refreshed.RefreshToken },
+                            new AuthenticationToken { Name = "access_token_expires_at", Value = now.AddSeconds(refreshed.ExpiresIn).ToString("O") }
+                        });
+                        var claims = new[]
+                        {
+                            new Claim(ClaimTypes.Name, refreshed.FullName),
+                            new Claim(ClaimTypes.Email, refreshed.Email),
+                            new Claim(ClaimTypes.Role, refreshed.Role)
+                        };
+                        await context.SignInAsync(
+                            CookieAuthenticationDefaults.AuthenticationScheme,
+                            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+                            properties);
+                        accessToken = refreshed.AccessToken;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                        return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
+                    }
+                }
             }
-            catch (InvalidOperationException)
+            finally
             {
-                await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                return new HttpResponseMessage(System.Net.HttpStatusCode.Unauthorized);
+                _refreshTokenLock.Release();
             }
         }
 

@@ -99,6 +99,12 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException($"An attendance rule with the name '{normalizedName}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendanceRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, null, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var rule = new AttendanceRule
         {
             RuleName = normalizedName,
@@ -145,6 +151,12 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException($"An attendance rule with the name '{normalizedName}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendanceRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, id, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         rule.RuleName = normalizedName;
         rule.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         rule.CheckInBeforeMinutes = request.CheckInBeforeMinutes!.Value;
@@ -181,9 +193,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed. Please update EffectiveFrom to today or a future date before publishing.");
         }
 
         var existingScheduled = await _attendanceRuleRepo.GetScheduledRuleAsync(cancellationToken);
@@ -235,6 +247,12 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         await SendPublishNotificationAsync(rule, adminUserId);
+
+        if (rule.EffectiveFrom.Value <= today)
+        {
+            await ActivateDueAsync(cancellationToken);
+            updated = await _attendanceRuleRepo.GetByIdAsync(id, cancellationToken) ?? updated;
+        }
 
         return Map(updated);
     }
@@ -570,9 +588,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
     }
 
@@ -630,9 +648,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
     }
 
