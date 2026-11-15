@@ -72,4 +72,6 @@ public interface IManagerTimesheetRepo
         CancellationToken cancellationToken = default);
 
     Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default);
+    Task<string?> GetUserNameByIdAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<string?> GetDefaultDirectorNameAsync(CancellationToken cancellationToken = default);
 }

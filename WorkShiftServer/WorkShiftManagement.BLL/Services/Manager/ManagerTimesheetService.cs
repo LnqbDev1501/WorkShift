@@ -482,6 +482,43 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             lockEligibilityMessage = "Timesheet has not been generated yet.";
         }
 
+        string? reviewedByName = timesheets
+            .FirstOrDefault(t => t.ReviewedByNavigation != null)?.ReviewedByNavigation?.FullName;
+
+        if (string.IsNullOrWhiteSpace(reviewedByName))
+        {
+            var reviewerId = timesheets.FirstOrDefault(t => t.ReviewedBy.HasValue)?.ReviewedBy;
+            if (reviewerId.HasValue)
+            {
+                reviewedByName = await _timesheetRepo.GetUserNameByIdAsync(reviewerId.Value, cancellationToken);
+            }
+        }
+
+        string? lockedByName = timesheets
+            .FirstOrDefault(t => string.Equals(t.LockedByNavigation?.Role?.RoleName, "ADMIN", StringComparison.OrdinalIgnoreCase))?.LockedByNavigation?.FullName
+            ?? (string.Equals(week.PayrollPeriod?.ApprovedByNavigation?.Role?.RoleName, "ADMIN", StringComparison.OrdinalIgnoreCase)
+                ? week.PayrollPeriod?.ApprovedByNavigation?.FullName
+                : null);
+
+        if (string.IsNullOrWhiteSpace(lockedByName))
+        {
+            var lockerId = timesheets.FirstOrDefault(t => t.LockedBy.HasValue)?.LockedBy
+                ?? week.PayrollPeriod?.ApprovedBy;
+            if (lockerId.HasValue)
+            {
+                var userName = await _timesheetRepo.GetUserNameByIdAsync(lockerId.Value, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(userName) && !string.Equals(userName, reviewedByName, StringComparison.OrdinalIgnoreCase))
+                {
+                    lockedByName = userName;
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(lockedByName) && string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+        {
+            lockedByName = await _timesheetRepo.GetDefaultDirectorNameAsync(cancellationToken);
+        }
+
         return new ManagerWeeklyTimesheetDetailResponse
         {
             ScheduleWeekId = week.ScheduleWeekId,
@@ -506,6 +543,8 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             TotalWorkMinutes = totalWorkMinutes,
             TotalLateMinutes = totalLateMinutes,
             TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
+            ReviewedByName = reviewedByName,
+            LockedByName = lockedByName,
             StaffTimesheets = staffItems
         };
     }

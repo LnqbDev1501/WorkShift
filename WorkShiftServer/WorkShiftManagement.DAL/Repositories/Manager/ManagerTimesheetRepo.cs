@@ -93,6 +93,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .AsSplitQuery()
             .Include(w => w.Branch)
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
@@ -123,7 +124,11 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
     {
         var week = await _context.WorkScheduleWeeks
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(w => w.Branch)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.ApprovedByNavigation)
+                    .ThenInclude(u => u!.Role)
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
                     .ThenInclude(t => t.User)
@@ -131,6 +136,14 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
                     .ThenInclude(t => t.TimesheetAdjustmentRequests)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.LockedByNavigation)
+                        .ThenInclude(u => u!.Role)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.ReviewedByNavigation)
+                        .ThenInclude(u => u!.Role)
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.User)
@@ -1771,6 +1784,25 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             timesheet.ReviewedBy = managerId;
         }
         timesheet.UpdatedAt = now;
+    }
+
+    public async Task<string?> GetUserNameByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.UserId == userId)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<string?> GetDefaultDirectorNameAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null && u.Status == "ACTIVE")
+            .OrderBy(u => u.CreatedAt)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
 

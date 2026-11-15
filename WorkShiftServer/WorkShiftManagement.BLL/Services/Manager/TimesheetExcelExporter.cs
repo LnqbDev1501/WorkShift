@@ -263,8 +263,9 @@ public static class TimesheetExcelExporter
 
         if (isReviewed || isLocked)
         {
+            string reviewerName = !string.IsNullOrWhiteSpace(data.ReviewedByName) ? data.ReviewedByName : exportedBy;
             worksheet.Range(sigRow + 5, 10, sigRow + 5, 14).Merge();
-            worksheet.Cell(sigRow + 5, 10).Value = exportedBy;
+            worksheet.Cell(sigRow + 5, 10).Value = reviewerName;
             worksheet.Cell(sigRow + 5, 10).Style.Font.Bold = true;
             worksheet.Cell(sigRow + 5, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         }
@@ -283,6 +284,15 @@ public static class TimesheetExcelExporter
             worksheet.Cell(sigRow + 1, 18).Style.Font.FontSize = 9;
             worksheet.Cell(sigRow + 1, 18).Style.Font.FontColor = XLColor.FromHtml("#64748B");
             worksheet.Cell(sigRow + 1, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            string approvedByName = !string.IsNullOrWhiteSpace(data.LockedByName) ? data.LockedByName : "";
+            if (!string.IsNullOrWhiteSpace(approvedByName))
+            {
+                worksheet.Range(sigRow + 5, 18, sigRow + 5, 22).Merge();
+                worksheet.Cell(sigRow + 5, 18).Value = approvedByName;
+                worksheet.Cell(sigRow + 5, 18).Style.Font.Bold = true;
+                worksheet.Cell(sigRow + 5, 18).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
         }
 
         // 6. Set Column Widths
