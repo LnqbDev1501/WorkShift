@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -321,8 +321,8 @@ public class OrderService : IOrderService
 
                 page.Header().Column(col =>
                 {
-                    col.Item().Text("HÓA ĐƠN THANH TOÁN").Bold().FontSize(18).FontColor(Colors.Indigo.Darken3).AlignCenter();
-                    col.Item().Text($"Mã đơn: {order.OrderNumber}").FontSize(9).FontColor(Colors.Grey.Darken1).AlignCenter();
+                    col.Item().Text("CUSTOMER ORDER INVOICE").Bold().FontSize(18).FontColor(Colors.Indigo.Darken3).AlignCenter();
+                    col.Item().Text($"Order #: {order.OrderNumber}").FontSize(9).FontColor(Colors.Grey.Darken1).AlignCenter();
                     col.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Medium);
                 });
 
@@ -338,10 +338,10 @@ public class OrderService : IOrderService
                             cols.RelativeColumn();
                         });
 
-                        AddInfoRow(table, "Chi nhánh:", order.BranchName);
-                        AddInfoRow(table, "Ngày:", order.OrderDate.ToString("dd/MM/yyyy HH:mm"));
-                        AddInfoRow(table, "Nhân viên:", order.CreatedByName);
-                        AddInfoRow(table, "Trạng thái:", order.Status);
+                        AddInfoRow(table, "Branch:", order.BranchName);
+                        AddInfoRow(table, "Date:", order.OrderDate.ToString("dd/MM/yyyy HH:mm"));
+                        AddInfoRow(table, "Staff:", order.CreatedByName);
+                        AddInfoRow(table, "Status:", order.Status);
                     });
 
                     col.Item().PaddingTop(16).Table(table =>
@@ -357,11 +357,11 @@ public class OrderService : IOrderService
 
                         table.Header(header =>
                         {
-                            header.Cell().Element(HeaderCell).Text("Sản phẩm").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Đơn giá").Bold();
+                            header.Cell().Element(HeaderCell).Text("Product").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").Bold();
                             header.Cell().Element(HeaderCell).AlignCenter().Text("SL").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Giảm giá").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Thành tiền").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Discount").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Total Amount").Bold();
                         });
 
                         foreach (var item in order.Items)
@@ -376,17 +376,17 @@ public class OrderService : IOrderService
 
                     col.Item().PaddingTop(10).AlignRight().Column(totals =>
                     {
-                        totals.Item().Text($"Tạm tính: {order.Subtotal:N0} VNĐ").FontSize(10);
-                        totals.Item().Text($"Tổng cộng: {order.TotalAmount:N0} VNĐ").Bold().FontSize(13).FontColor(Colors.Indigo.Darken3);
+                        totals.Item().Text($"Subtotal: {order.Subtotal:N0} VND").FontSize(10);
+                        totals.Item().Text($"Total: {order.TotalAmount:N0} VND").Bold().FontSize(13).FontColor(Colors.Indigo.Darken3);
                     });
 
                     if (!string.IsNullOrWhiteSpace(order.Note))
                     {
-                        col.Item().PaddingTop(14).Text("Ghi chú:").Bold().FontSize(10);
+                        col.Item().PaddingTop(14).Text("Note:").Bold().FontSize(10);
                         col.Item().PaddingTop(3).Background(Colors.Grey.Lighten4).Padding(8).Text(order.Note).FontSize(9);
                     }
 
-                    col.Item().PaddingTop(20).Text("Cảm ơn quý khách đã sử dụng dịch vụ!").Italic().FontSize(9).FontColor(Colors.Grey.Darken1);
+                    col.Item().PaddingTop(20).Text("Thank you for your business!").Italic().FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
 
                 page.Footer().AlignCenter().Text(x =>
