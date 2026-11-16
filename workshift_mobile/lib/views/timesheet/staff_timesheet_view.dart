@@ -978,31 +978,38 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             ),
                           ),
                           if (shift.totalLateMinutes > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: shift.isLateExcused
-                                    ? const Color(0xFFE0F2FE)
-                                    : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(6),
-                                border: shift.isLateExcused
-                                    ? Border.all(color: const Color(0xFFBAE6FD))
-                                    : null,
-                              ),
-                              child: Text(
-                                shift.isLateExcused
-                                    ? 'Late ${shift.lateDisplay} (Excused)'
-                                    : 'Late ${shift.lateDisplay}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
                                   color: shift.isLateExcused
-                                      ? const Color(0xFF0284C7)
-                                      : const Color(0xFFB45309),
+                                      ? const Color(0xFFE0F2FE)
+                                      : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: shift.isLateExcused
+                                      ? Border.all(
+                                          color: const Color(0xFFBAE6FD),
+                                        )
+                                      : null,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    shift.isLateExcused
+                                        ? 'Late ${shift.lateDisplay} (Excused)'
+                                        : 'Late ${shift.lateDisplay}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: shift.isLateExcused
+                                        ? const Color(0xFF0284C7)
+                                        : const Color(0xFFB45309),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1012,6 +1019,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1035,31 +1043,38 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             ),
                           ),
                           if (shift.totalEarlyLeaveMinutes > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: shift.isEarlyLeaveExcused
-                                    ? const Color(0xFFE0F2FE)
-                                    : const Color(0xFFFFEDD5),
-                                borderRadius: BorderRadius.circular(6),
-                                border: shift.isEarlyLeaveExcused
-                                    ? Border.all(color: const Color(0xFFBAE6FD))
-                                    : null,
-                              ),
-                              child: Text(
-                                shift.isEarlyLeaveExcused
-                                    ? 'Early ${shift.earlyLeaveDisplay} (Excused)'
-                                    : 'Early ${shift.earlyLeaveDisplay}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
                                   color: shift.isEarlyLeaveExcused
-                                      ? const Color(0xFF0284C7)
-                                      : const Color(0xFFC2410C),
+                                      ? const Color(0xFFE0F2FE)
+                                      : const Color(0xFFFFEDD5),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: shift.isEarlyLeaveExcused
+                                      ? Border.all(
+                                          color: const Color(0xFFBAE6FD),
+                                        )
+                                      : null,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    shift.isEarlyLeaveExcused
+                                        ? 'Early ${shift.earlyLeaveDisplay} (Excused)'
+                                        : 'Early ${shift.earlyLeaveDisplay}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: shift.isEarlyLeaveExcused
+                                        ? const Color(0xFF0284C7)
+                                        : const Color(0xFFC2410C),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
