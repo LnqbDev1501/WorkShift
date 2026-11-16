@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Manager.ManagerCreateProductViewModel
+@model UI_Admin.Models.Manager.ManagerCreateProductViewModel
 
 @{
     ViewData["Title"] = "Create Product";
@@ -36,7 +36,7 @@
                     </div>
                     <div class="flex flex-col gap-unit-2">
                         <label asp-for="Price" class="font-label-md text-label-md text-on-surface font-semibold">Price <span class="text-error">*</span></label>
-                        <input asp-for="Price" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" type="number" step="0.01" min="1000" />
+                        <input asp-for="Price" asp-format="{0:0}" class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container" type="number" step="1" min="1000" placeholder="e.g. 20000" value="@(Model.Price > 0 ? Model.Price.ToString("0") : "")" />
                         <span asp-validation-for="Price" class="text-error font-body-sm text-body-sm"></span>
                     </div>
                 </div>
