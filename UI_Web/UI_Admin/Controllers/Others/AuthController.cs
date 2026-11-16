@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -481,6 +481,12 @@ namespace UI_Admin.Controllers
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToRoleLanding();
 
+            if (!Request.Cookies.ContainsKey("StaffSetupDone"))
+            {
+                return RedirectToAction(nameof(Login));
+            }
+
+            Response.Cookies.Delete("StaffSetupDone");
             return View();
         }
     }
