@@ -962,12 +962,14 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                     size: 22,
                   ),
                   SizedBox(width: 8),
-                  Text(
-                    'Contract Pending Your Acceptance',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF92400E),
+                  Expanded(
+                    child: Text(
+                      'Contract Pending Your Acceptance',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF92400E),
+                      ),
                     ),
                   ),
                 ],
@@ -2126,26 +2128,33 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
-              children: [
-                Icon(
-                  Icons.picture_as_pdf_rounded,
-                  size: 16,
-                  color: Color(0xFFE11D48),
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'FULL CONTRACT DOCUMENT & SIGNATURE',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textMuted,
-                    letterSpacing: 0.5,
+            const Expanded(
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.picture_as_pdf_rounded,
+                    size: 16,
+                    color: Color(0xFFE11D48),
                   ),
-                ),
-              ],
+                  SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'FULL CONTRACT DOCUMENT & SIGNATURE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            if (contract.hasPdf)
+            if (contract.hasPdf) ...[
+              const SizedBox(width: 8),
               TextButton.icon(
                 onPressed: () => _showPdfPreviewDialog(contract),
                 icon: const Icon(Icons.fullscreen_rounded, size: 16),
@@ -2155,6 +2164,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                 ),
               ),
+            ],
           ],
         ),
         const SizedBox(height: 8),
@@ -2324,13 +2334,17 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                         color: Color(0xFF4F46E5),
                       ),
                       SizedBox(width: 6),
-                      Text(
-                        'CONTRACT CHANGE REQUESTS',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textMuted,
-                          letterSpacing: 0.5,
+                      Flexible(
+                        child: Text(
+                          'CONTRACT CHANGE REQUESTS',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textMuted,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -2343,7 +2357,8 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                 ],
               ),
             ),
-            if (contract.isPendingStaff && contract.canSubmitChangeRequest)
+            if (contract.isPendingStaff && contract.canSubmitChangeRequest) ...[
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: () async {
                   final res = await Navigator.push(
@@ -2373,6 +2388,7 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                   ),
                 ),
               ),
+            ],
           ],
         ),
         const SizedBox(height: 10),
@@ -2414,14 +2430,19 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Request #${cr.changeRequestId}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  'Request #${cr.changeRequestId}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
+              const SizedBox(width: 8),
               StatusBadge.forChangeRequestStatus(cr.status),
             ],
           ),
