@@ -60,6 +60,36 @@ class ProfileController extends ChangeNotifier {
       return false;
     }
 
+    if (dateOfBirth != null && dateOfBirth.trim().isNotEmpty) {
+      final dobRegex = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+      if (!dobRegex.hasMatch(dateOfBirth.trim())) {
+        _errorMessage = 'Invalid date of birth format. Expected YYYY-MM-DD.';
+        notifyListeners();
+        return false;
+      }
+      final dob = DateTime.tryParse(dateOfBirth.trim());
+      if (dob == null) {
+        _errorMessage = 'Invalid date of birth. Please enter a valid calendar date.';
+        notifyListeners();
+        return false;
+      }
+      if (dob.isBefore(DateTime(1900, 1, 1))) {
+        _errorMessage = 'Date of birth must be on or after January 1, 1900.';
+        notifyListeners();
+        return false;
+      }
+      final now = DateTime.now();
+      var age = now.year - dob.year;
+      if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+        age--;
+      }
+      if (age < 18) {
+        _errorMessage = 'User must be at least 18 years old.';
+        notifyListeners();
+        return false;
+      }
+    }
+
     _isUpdatingProfile = true;
     _errorMessage = null;
     notifyListeners();

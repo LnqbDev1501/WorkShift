@@ -94,6 +94,120 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     }
   }
 
+  DateTime? _parseDate(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Check YYYY-MM-DD
+    final isoRegex = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})$');
+    final isoMatch = isoRegex.firstMatch(trimmed);
+    if (isoMatch != null) {
+      final y = int.tryParse(isoMatch.group(1)!);
+      final m = int.tryParse(isoMatch.group(2)!);
+      final d = int.tryParse(isoMatch.group(3)!);
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          try {
+            final dt = DateTime(y, m, d);
+            if (dt.year == y && dt.month == m && dt.day == d) {
+              return dt;
+            }
+          } catch (_) {}
+        }
+      }
+      return null;
+    }
+
+    // Check DD/MM/YYYY
+    final dmyRegex = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{4})$');
+    final dmyMatch = dmyRegex.firstMatch(trimmed);
+    if (dmyMatch != null) {
+      final d = int.tryParse(dmyMatch.group(1)!);
+      final m = int.tryParse(dmyMatch.group(2)!);
+      final y = int.tryParse(dmyMatch.group(3)!);
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          try {
+            final dt = DateTime(y, m, d);
+            if (dt.year == y && dt.month == m && dt.day == d) {
+              return dt;
+            }
+          } catch (_) {}
+        }
+      }
+      return null;
+    }
+
+    return null;
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final minDate = DateTime(1900, 1, 1);
+    final adultDate = DateTime(now.year - 18, now.month, now.day);
+
+    DateTime initialDate = adultDate;
+    final text = _dobController.text.trim();
+    final parsed = _parseDate(text);
+    if (parsed != null) {
+      if (parsed.isBefore(minDate)) {
+        initialDate = minDate;
+      } else if (parsed.isAfter(now)) {
+        initialDate = adultDate;
+      } else {
+        initialDate = parsed;
+      }
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: minDate,
+      lastDate: now,
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'SELECT DATE OF BIRTH',
+      fieldLabelText: 'Date of Birth (YYYY-MM-DD)',
+      errorFormatText: 'Invalid date of birth format.',
+      errorInvalidText: 'Please enter a valid date of birth.',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      var age = now.year - picked.year;
+      if (now.month < picked.month || (now.month == picked.month && now.day < picked.day)) {
+        age--;
+      }
+      if (age < 18) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User must be at least 18 years old.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _dobController.text =
+            '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
   Future<void> _handleUpdateProfile() async {
     final phone = _phoneController.text.trim();
     final phoneRegex = RegExp(r'^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$');
@@ -110,11 +224,67 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       return;
     }
 
+    final dobText = _dobController.text.trim();
+    if (dobText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Date of birth is required. Please select your date of birth.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final parsedDob = _parseDate(dobText);
+    if (parsedDob == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid date of birth format. Please select a valid date (YYYY-MM-DD).',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (parsedDob.isBefore(DateTime(1900, 1, 1))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Date of birth must be on or after January 1, 1900.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    var age = now.year - parsedDob.year;
+    if (now.month < parsedDob.month || (now.month == parsedDob.month && now.day < parsedDob.day)) {
+      age--;
+    }
+    if (age < 18) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User must be at least 18 years old.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final formattedDob =
+        '${parsedDob.year.toString().padLeft(4, '0')}-${parsedDob.month.toString().padLeft(2, '0')}-${parsedDob.day.toString().padLeft(2, '0')}';
+
     final success = await _controller.updateProfile(
       fullName: _fullNameController.text,
       phone: _phoneController.text,
       gender: _genderController.text,
-      dateOfBirth: _dobController.text.isEmpty ? null : _dobController.text,
+      dateOfBirth: formattedDob,
       address: _addressController.text,
     );
 
@@ -124,6 +294,16 @@ class _StaffProfileViewState extends State<StaffProfileView> {
         const SnackBar(
           content: Text('Personal information updated successfully.'),
           backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _controller.errorMessage ?? 'Failed to update personal information.',
+          ),
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -639,12 +819,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                       isLocked: true,
                     ),
                     _buildGenderEditField(),
-                    _buildEditTextField(
-                      label: 'DATE OF BIRTH',
-                      hint: 'DD/MM/YYYY',
-                      controller: _dobController,
-                      keyboardType: TextInputType.datetime,
-                    ),
+                    _buildDateOfBirthEditField(),
                     _buildEditTextField(
                       label: 'RESIDENTIAL ADDRESS',
                       hint: 'Enter address',
@@ -721,7 +896,16 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     child: OutlinedButton(
                       onPressed: _controller.isUpdatingProfile
                           ? null
-                          : () => setState(() => _isEditingPersonal = false),
+                          : () {
+                              if (user != null) {
+                                _fullNameController.text = user.fullName;
+                                _phoneController.text = user.phone;
+                                _genderController.text = user.gender;
+                                _dobController.text = user.dateOfBirth ?? '';
+                                _addressController.text = user.address;
+                              }
+                              setState(() => _isEditingPersonal = false);
+                            },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
                         side: const BorderSide(color: AppColors.border),
@@ -941,6 +1125,69 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                   _genderController.text = val ?? '';
                 });
               },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateOfBirthEditField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'DATE OF BIRTH',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _pickDateOfBirth,
+          borderRadius: BorderRadius.circular(12),
+          child: IgnorePointer(
+            child: TextFormField(
+              controller: _dobController,
+              readOnly: true,
+              showCursor: false,
+              enableInteractiveSelection: false,
+              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Select date of birth (YYYY-MM-DD)',
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                ),
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                suffixIcon: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
             ),
           ),
         ),

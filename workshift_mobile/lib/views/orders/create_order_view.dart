@@ -257,17 +257,62 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                                       color: AppColors.textMuted,
                                     ),
                                   ] else ...[
-                                    const Icon(
-                                      Icons.check_circle_outline,
-                                      color: AppColors.success,
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.borderLight,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: (item.product!.imageUrl != null &&
+                                                item.product!.imageUrl!.trim().isNotEmpty)
+                                            ? Image.network(
+                                                item.product!.imageUrl!,
+                                                width: 44,
+                                                height: 44,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) =>
+                                                    const Center(
+                                                  child: Icon(
+                                                    Icons.fastfood_rounded,
+                                                    color: AppColors.textMuted,
+                                                    size: 20,
+                                                  ),
+                                                ),
+                                              )
+                                            : const Center(
+                                                child: Icon(
+                                                  Icons.fastfood_rounded,
+                                                  color: AppColors.textMuted,
+                                                  size: 20,
+                                                ),
+                                              ),
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: Text(
-                                        item.product!.productName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.product!.productName,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          if (item.product!.categoryName.isNotEmpty)
+                                            Text(
+                                              item.product!.categoryName,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     ),
                                     Text(
@@ -276,6 +321,12 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.primary,
                                       ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.swap_horiz_rounded,
+                                      color: AppColors.textMuted,
+                                      size: 20,
                                     ),
                                   ],
                                 ],
@@ -507,7 +558,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
       _error = null;
     });
     try {
-      final response = await widget.productService.getProducts();
+      final response = await widget.productService.getProducts(pageSize: 100);
       if (mounted) {
         setState(() {
           _products = response.items;
@@ -590,46 +641,101 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                       ],
                     ),
                   )
-                : ListView.builder(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _products.length,
-                    itemBuilder: (_, index) {
-                      final product = _products[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.shopping_bag_outlined,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          title: Text(
-                            product.productName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            product.categoryName,
-                            style: TextStyle(color: AppColors.textSecondary),
-                          ),
-                          trailing: Text(
-                            formatCurrency(product.price),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+                : Builder(
+                    builder: (context) {
+                      final query = _searchController.text.trim().toLowerCase();
+                      final displayedProducts = query.isEmpty
+                          ? _products
+                          : _products
+                              .where((p) =>
+                                  p.productName.toLowerCase().contains(query) ||
+                                  p.productCode.toLowerCase().contains(query) ||
+                                  p.categoryName.toLowerCase().contains(query))
+                              .toList();
+
+                      if (displayedProducts.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              _products.isEmpty
+                                  ? 'No products available for your branch.'
+                                  : 'No products matching "$query".',
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
                           ),
-                          onTap: () => Navigator.pop(context, product),
-                        ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: displayedProducts.length,
+                        itemBuilder: (_, index) {
+                          final product = displayedProducts[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 4,
+                              ),
+                              leading: Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: AppColors.borderLight,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: (product.imageUrl != null &&
+                                          product.imageUrl!.trim().isNotEmpty)
+                                      ? Image.network(
+                                          product.imageUrl!,
+                                          width: 50,
+                                          height: 50,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) =>
+                                              const Center(
+                                            child: Icon(
+                                              Icons.fastfood_rounded,
+                                              color: AppColors.textMuted,
+                                              size: 24,
+                                            ),
+                                          ),
+                                        )
+                                      : const Center(
+                                          child: Icon(
+                                            Icons.fastfood_rounded,
+                                            color: AppColors.textMuted,
+                                            size: 24,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              title: Text(
+                                product.productName,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: Text(
+                                product.categoryName,
+                                style: TextStyle(color: AppColors.textSecondary),
+                              ),
+                              trailing: Text(
+                                formatCurrency(product.price),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              onTap: () => Navigator.pop(context, product),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
