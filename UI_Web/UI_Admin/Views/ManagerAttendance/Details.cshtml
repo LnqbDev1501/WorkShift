@@ -611,7 +611,7 @@
             <span>Working Time &amp; Penalties Breakdown</span>
         </h3>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- 1. Actual Work -->
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-150">
                 <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Actual Work</span>
@@ -653,28 +653,6 @@
                     <div>Excused: <strong class="text-emerald-700">@Model.ExcusedEarlyLeaveMinutes m</strong></div>
                     <div>Chargeable: <strong class="@(Model.ChargeableEarlyLeaveMinutes > 0 ? "text-rose-700" : "text-slate-700")">@Model.ChargeableEarlyLeaveMinutes m</strong></div>
                 </div>
-            </div>
-
-            <!-- 4. Leave / Absent Status -->
-            <div class="p-4 rounded-xl @(Model.IsExcusedLeave ? "bg-blue-50 border border-blue-200" : "bg-slate-50 border border-slate-150")">
-                <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Leave Status</span>
-                @if (Model.IsExcusedLeave)
-                {
-                    <span class="text-base font-bold text-blue-700 mt-1 block">Excused Leave</span>
-                    <span class="text-xs text-blue-900 mt-0.5 block truncate" title="@Model.LeaveReason">
-                        @(string.IsNullOrWhiteSpace(Model.LeaveReason) ? "Approved leave request" : Model.LeaveReason)
-                    </span>
-                }
-                else if (status is "ABSENT" or "NOT_CHECKED_IN")
-                {
-                    <span class="text-base font-bold text-rose-700 mt-1 block">Unexcused</span>
-                    <span class="text-xs text-rose-600 mt-0.5 block">Staff did not attend shift</span>
-                }
-                else
-                {
-                    <span class="text-base font-bold text-emerald-700 mt-1 block">Normal Shift</span>
-                    <span class="text-xs text-slate-500 mt-0.5 block">No full-day leave taken</span>
-                }
             </div>
         </div>
     </div>

@@ -53,6 +53,12 @@
             </div>
             <div class="flex items-center gap-3">
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@staff.FullName</h1>
+                @if (staff.TimesheetId.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Weekly Timesheet ID">
+                        TS-#@staff.TimesheetId.Value
+                    </span>
+                }
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                     @(staff.RoleName ?? "Staff")
                 </span>
@@ -302,7 +308,12 @@
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
-                                        <span class="text-xs text-slate-500 mt-0.5">@shift.ShiftName</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs text-slate-600 font-medium">@shift.ShiftName</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Assignment ID: @shift.AssignmentId, Shift ID: @shift.ShiftId">
+                                                Assignment #@shift.AssignmentId
+                                            </span>
+                                        </div>
                                         <div class="mt-1.5 flex flex-wrap gap-1">
                                             @if (isLateExcused)
                                             {

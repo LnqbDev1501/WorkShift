@@ -70,7 +70,7 @@
         new("Scheduled shifts", Model.Summary.TotalScheduled.ToString("N0"), $"{Model.Summary.LateCount} late · {Model.Summary.EarlyLeaveCount} early departure", "schedule"),
         new("In progress", Model.Summary.InProgressCount.ToString("N0"), "In selected scope", "timer"),
         new("Completed", Model.Summary.CompletedCount.ToString("N0"), $"{Model.Summary.PresentCount} present", "task_alt"),
-        new("Absent / On leave", (Model.Summary.AbsentCount + Model.Summary.OnLeaveCount).ToString("N0"), $"{Model.Summary.AbsentCount} absent · {Model.Summary.OnLeaveCount} on leave", "person_off")
+        new("Absent", Model.Summary.AbsentCount.ToString("N0"), $"{Model.Summary.AbsentCount} absent", "person_off")
     })' />
 
     <!-- Search & Filter Controls -->
@@ -78,7 +78,6 @@
         <div class="ws-filter-row">
             <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="search" value="@Model.Search" placeholder="Search by staff name, email, shift..." /></label>
             <div class="ws-filter-field"><select aria-label="Weekly period" name="scheduleWeekId" onchange="this.form.submit()">
-                            <option value="">All Weeks</option>
                             @foreach (var w in Model.AvailableWeeks)
                             {
                                 var isSelected = Model.SelectedScheduleWeekId == w.ScheduleWeekId;
@@ -105,7 +104,6 @@
                             <option value="LATE" selected="@(Model.Status == "LATE")">Late Arrival (@Model.Summary.LateCount)</option>
                             <option value="EARLY_LEAVE" selected="@(Model.Status == "EARLY_LEAVE")">Early Leave (@Model.Summary.EarlyLeaveCount)</option>
                             <option value="ABSENT" selected="@(Model.Status == "ABSENT")">Absent / Pending (@Model.Summary.AbsentCount)</option>
-                            <option value="LEAVE" selected="@(Model.Status == "LEAVE")">On Leave (@Model.Summary.OnLeaveCount)</option>
                         </select></div>
             <details class="ws-filter-advanced">
                 <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>

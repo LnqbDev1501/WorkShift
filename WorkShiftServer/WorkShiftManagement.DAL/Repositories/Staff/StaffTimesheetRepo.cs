@@ -33,7 +33,11 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
     {
         return _context.WorkScheduleWeeks.AsNoTracking()
             .Where(w => w.BranchId == branchId && w.Status != "CANCELLED" &&
-                (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED"))
+                (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED") &&
+                (
+                    (w.PayrollPeriod != null && w.PayrollPeriod.Timesheets.Any(t => t.UserId == staffId)) ||
+                    w.WorkShifts.Any(ws => ws.ShiftAssignments.Any(sa => sa.UserId == staffId && sa.Status != "CANCELLED"))
+                ))
             .OrderByDescending(w => w.WeekStartDate).ThenByDescending(w => w.ScheduleWeekId)
             .Select(w => new StaffTimesheetWeekOptionReadModel
             {

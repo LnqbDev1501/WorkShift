@@ -384,10 +384,75 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
     final timesheet = _controller.timesheet;
     if (timesheet == null) {
-      return const Center(
-        child: Text(
-          'No timesheet records available.',
-          style: TextStyle(color: AppColors.textSecondary),
+      return RefreshIndicator(
+        onRefresh: () async {
+          _clearSelection();
+          await _controller.loadTimesheet();
+        },
+        color: AppColors.primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_outlined,
+                    size: 36,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Chưa có lịch tuần làm việc',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bạn chưa được xếp ca làm việc hoặc chưa có bảng chấm công trong hệ thống. Lịch tuần sẽ hiển thị khi bạn có ca làm việc.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: () => _controller.loadTimesheet(),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Làm mới'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }

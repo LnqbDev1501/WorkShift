@@ -1889,84 +1889,279 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left: Employee Representative
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'EMPLOYEE REPRESENTATIVE',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E3A8A),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Text(
-                        '(Signature and Full Name)',
-                        style: TextStyle(
-                          fontSize: 8.5,
-                          fontStyle: FontStyle.italic,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: isSigned
-                              ? const Color(0xFFEFF6FF)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: isSigned
-                                ? const Color(0xFF2563EB)
-                                : const Color(0xFFCBD5E1),
-                            width: isSigned ? 1.5 : 1,
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Left: Employee Representative
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'EMPLOYEE REPRESENTATIVE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A8A),
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            if (isSigned) ...[
-                              const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.verified_rounded,
-                                    size: 14,
-                                    color: Color(0xFF2563EB),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    '✓ DIGITALLY SIGNED',
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1D4ED8),
+                        const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '(Signature and Full Name)',
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSigned
+                                  ? const Color(0xFFEFF6FF)
+                                  : Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSigned
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFCBD5E1),
+                                width: isSigned ? 1.5 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (isSigned) ...[
+                                  const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          size: 13,
+                                          color: Color(0xFF2563EB),
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'DIGITALLY SIGNED',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF1D4ED8),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
+                                  const SizedBox(height: 4),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      _getEmployeeDisplayName(contract),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF1E3A8A),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  if (contract.staffAcceptedAt != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 3),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          'Signed at: ${_formatDateTime(contract.staffAcceptedAt)}',
+                                          style: const TextStyle(
+                                            fontSize: 8.5,
+                                            color: Color(0xFF475569),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  const SizedBox(height: 3),
+                                  const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      'Verified securely via Staff account',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontStyle: FontStyle.italic,
+                                        color: Color(0xFF2563EB),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ] else ...[
+                                  const SizedBox(height: 6),
+                                  const FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '(Pending employee electronic acceptance)',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontStyle: FontStyle.italic,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      _getEmployeeDisplayName(contract),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF475569),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  if (contract.canAccept)
+                                    SizedBox(
+                                      height: 28,
+                                      child: ElevatedButton(
+                                        onPressed: () =>
+                                            _showAcceptContractModal(contract),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF2563EB),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Sign Now',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                 ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Right: WorkShift Company with Certified Red Seal
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'WORKSHIFT COMPANY',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF991B1B),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '(Authorized Signature & Official Seal)',
+                            style: TextStyle(
+                              fontSize: 8.5,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFDC2626),
+                                width: 1.5,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _getEmployeeDisplayName(contract),
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1E3A8A),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Official WorkShift Stamp Image
+                                Image.asset(
+                                  'assets/images/workshift_stamp.png',
+                                  height: 48,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: Colors.red,
+                                            width: 2,
+                                          ),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Text(
+                                          'WorkShift\nSeal',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 8,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              if (contract.staffAcceptedAt != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 3),
+                                const SizedBox(height: 4),
+                                const FittedBox(
+                                  fit: BoxFit.scaleDown,
                                   child: Text(
-                                    'Signed at: ${_formatDateTime(contract.staffAcceptedAt)}',
+                                    '✓ VERIFIED BY SYSTEM',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFB91C1C),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Branch: ${contract.branchName}',
                                     style: const TextStyle(
                                       fontSize: 8.5,
                                       color: Color(0xFF475569),
@@ -1974,170 +2169,26 @@ class _StaffContractDetailViewState extends State<StaffContractDetailView> {
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                              const SizedBox(height: 3),
-                              const Text(
-                                'Verified securely via Staff account',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  fontStyle: FontStyle.italic,
-                                  color: Color(0xFF2563EB),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ] else ...[
-                              const SizedBox(height: 6),
-                              const Text(
-                                '(Pending employee electronic acceptance)',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontStyle: FontStyle.italic,
-                                  color: AppColors.textMuted,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _getEmployeeDisplayName(contract),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF475569),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              if (contract.canAccept)
-                                SizedBox(
-                                  height: 28,
-                                  child: ElevatedButton(
-                                    onPressed: () =>
-                                        _showAcceptContractModal(contract),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2563EB),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'Contract No.: ${contract.contractNumber}',
+                                    style: const TextStyle(
+                                      fontSize: 7.5,
+                                      color: Color(0xFF64748B),
                                     ),
-                                    child: const Text(
-                                      'Sign Now',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-
-                // Right: WorkShift Company with Certified Red Seal
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'WORKSHIFT COMPANY',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF991B1B),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Text(
-                        '(Authorized Signature & Official Seal)',
-                        style: TextStyle(
-                          fontSize: 8.5,
-                          fontStyle: FontStyle.italic,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFEF2F2),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: const Color(0xFFDC2626),
-                            width: 1.5,
+                              ],
+                            ),
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            // Official WorkShift Stamp Image
-                            Image.asset(
-                              'assets/images/workshift_stamp.png',
-                              height: 52,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.red,
-                                        width: 2,
-                                      ),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Text(
-                                      'WorkShift\nSeal',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              '✓ VERIFIED BY SYSTEM',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFB91C1C),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Branch: ${contract.branchName}',
-                              style: const TextStyle(
-                                fontSize: 8.5,
-                                color: Color(0xFF475569),
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              'Contract No.: ${contract.contractNumber}',
-                              style: const TextStyle(
-                                fontSize: 7.5,
-                                color: Color(0xFF64748B),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
