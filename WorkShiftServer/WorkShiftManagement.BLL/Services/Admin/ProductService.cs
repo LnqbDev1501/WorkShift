@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
@@ -273,6 +273,7 @@ public class ProductService : IProductService
         ProductCode = data.ProductCode,
         ProductName = data.ProductName,
         Price = data.Price,
+        ImageUrl = data.ImageUrl,
         Status = data.Status,
         CreatedAt = data.CreatedAt,
         UpdatedAt = data.UpdatedAt

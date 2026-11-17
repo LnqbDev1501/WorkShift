@@ -62,6 +62,30 @@ class _CreateOrderViewState extends State<CreateOrderView> {
       setState(() {
         _items[itemIndex].product = result;
       });
+
+      if (result.imageUrl == null || result.imageUrl!.trim().isEmpty) {
+        _productService.getProductDetail(result.productId).then((detail) {
+          if (mounted && detail.imageUrl != null && detail.imageUrl!.trim().isNotEmpty) {
+            setState(() {
+              if (_items[itemIndex].product?.productId == result.productId) {
+                _items[itemIndex].product = ProductModel(
+                  productId: result.productId,
+                  branchId: result.branchId,
+                  branchName: result.branchName,
+                  categoryId: result.categoryId,
+                  categoryName: result.categoryName,
+                  productCode: result.productCode,
+                  productName: result.productName,
+                  price: result.price,
+                  description: detail.description ?? result.description,
+                  imageUrl: detail.imageUrl,
+                  status: result.status,
+                );
+              }
+            });
+          }
+        }).catchError((_) {});
+      }
     }
   }
 
@@ -273,6 +297,19 @@ class _CreateOrderViewState extends State<CreateOrderView> {
                                                 width: 44,
                                                 height: 44,
                                                 fit: BoxFit.cover,
+                                                loadingBuilder: (context, child, loadingProgress) {
+                                                  if (loadingProgress == null) return child;
+                                                  return Container(
+                                                    color: AppColors.borderLight,
+                                                    child: const Center(
+                                                      child: SizedBox(
+                                                        width: 14,
+                                                        height: 14,
+                                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
                                                 errorBuilder: (context, error, stackTrace) =>
                                                     const Center(
                                                   child: Icon(
@@ -564,6 +601,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           _products = response.items;
           _isLoading = false;
         });
+        _fetchMissingImages(response.items);
       }
     } catch (e) {
       if (mounted) {
@@ -571,6 +609,35 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           _error = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  void _fetchMissingImages(List<ProductModel> items) {
+    for (final p in items) {
+      if (p.imageUrl == null || p.imageUrl!.trim().isEmpty) {
+        widget.productService.getProductDetail(p.productId).then((detail) {
+          if (mounted && detail.imageUrl != null && detail.imageUrl!.trim().isNotEmpty) {
+            setState(() {
+              final index = _products.indexWhere((prod) => prod.productId == p.productId);
+              if (index != -1) {
+                _products[index] = ProductModel(
+                  productId: p.productId,
+                  branchId: p.branchId,
+                  branchName: p.branchName,
+                  categoryId: p.categoryId,
+                  categoryName: p.categoryName,
+                  productCode: p.productCode,
+                  productName: p.productName,
+                  price: p.price,
+                  description: detail.description ?? p.description,
+                  imageUrl: detail.imageUrl,
+                  status: p.status,
+                );
+              }
+            });
+          }
+        }).catchError((_) {});
       }
     }
   }
@@ -699,6 +766,19 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                                           width: 50,
                                           height: 50,
                                           fit: BoxFit.cover,
+                                          loadingBuilder: (context, child, loadingProgress) {
+                                            if (loadingProgress == null) return child;
+                                            return Container(
+                                              color: AppColors.borderLight,
+                                              child: const Center(
+                                                child: SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                                ),
+                                              ),
+                                            );
+                                          },
                                           errorBuilder: (context, error, stackTrace) =>
                                               const Center(
                                             child: Icon(

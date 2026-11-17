@@ -76,6 +76,7 @@ public class CategoryRepo : ICategoryRepo
                         ProductCode = product.ProductCode,
                         ProductName = product.ProductName,
                         Price = product.Price,
+                        ImageUrl = product.ImageUrl,
                         Status = product.Status
                     })
                     .ToList()
