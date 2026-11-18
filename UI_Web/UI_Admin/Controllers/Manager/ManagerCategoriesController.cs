@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -77,103 +77,6 @@ public class ManagerCategoriesController(ManagerCategoryApiService api) : Contro
             TempData["ErrorMessage"] = ex.Message;
             return RedirectToAction(nameof(Index));
         }
-    }
-
-    [HttpGet]
-    public IActionResult Create() => View(new ManagerCreateCategoryViewModel());
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(ManagerCreateCategoryViewModel model, CancellationToken cancellationToken = default)
-    {
-        if (!ModelState.IsValid)
-            return View(model);
-
-        var (success, errorMessage) = await api.CreateAsync(model, cancellationToken);
-        if (success)
-        {
-            TempData["SuccessMessage"] = $"Category '{model.CategoryName.Trim()}' created successfully.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to create category.");
-        return View(model);
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken = default)
-    {
-        if (id <= 0) return NotFound();
-
-        try
-        {
-            var detail = await api.GetByIdAsync(id, cancellationToken);
-            if (detail == null)
-            {
-                TempData["ErrorMessage"] = "Category not found.";
-                return RedirectToAction(nameof(Index));
-            }
-
-            return View(new ManagerEditCategoryViewModel
-            {
-                CategoryId = detail.CategoryId,
-                CategoryName = detail.CategoryName,
-                Description = detail.Description,
-                Status = detail.Status,
-                ProductCount = detail.ProductCount
-            });
-        }
-        catch (HttpRequestException)
-        {
-            TempData["ErrorMessage"] = "Category could not be loaded. Please try again.";
-            return RedirectToAction(nameof(Index));
-        }
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, ManagerEditCategoryViewModel model, CancellationToken cancellationToken = default)
-    {
-        if (id != model.CategoryId) return BadRequest();
-
-        if (!ModelState.IsValid)
-            return View(model);
-
-        var (success, errorMessage) = await api.UpdateAsync(id, model, cancellationToken);
-        if (success)
-        {
-            TempData["SuccessMessage"] = $"Category '{model.CategoryName.Trim()}' updated successfully.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to update category.");
-        return View(model);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Deactivate(int id, CancellationToken cancellationToken = default)
-    {
-        if (id <= 0) return BadRequest();
-
-        var (success, errorMessage) = await api.DeactivateAsync(id, cancellationToken);
-        TempData[success ? "SuccessMessage" : "ErrorMessage"] =
-            success ? "Category deactivated successfully." : (errorMessage ?? "Failed to deactivate category.");
-
-        return RedirectToAction(nameof(Index));
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Restore(int id, CancellationToken cancellationToken = default)
-    {
-        if (id <= 0) return BadRequest();
-
-        var (success, errorMessage) = await api.RestoreAsync(id, cancellationToken);
-        TempData[success ? "SuccessMessage" : "ErrorMessage"] =
-            success ? "Category restored successfully." : (errorMessage ?? "Failed to restore category.");
-
-        return RedirectToAction(nameof(Index));
     }
 
     private async Task<IActionResult> ExpiredAsync()

@@ -16,18 +16,15 @@ public class NotificationService : INotificationService
     private readonly INotificationRepo _notificationRepo;
     private readonly INotificationEmailSender _emailSender;
     private readonly INotificationRealtimePublisher _realtimePublisher;
-    private readonly string? _createdByEmail;
 
     public NotificationService(
         INotificationRepo notificationRepo,
         INotificationEmailSender emailSender,
-        INotificationRealtimePublisher realtimePublisher,
-        IConfiguration configuration)
+        INotificationRealtimePublisher realtimePublisher)
     {
         _notificationRepo = notificationRepo;
         _emailSender = emailSender;
         _realtimePublisher = realtimePublisher;
-        _createdByEmail = configuration["AdminNotification:CreatedByEmail"];
     }
 
     public async Task<PagedResponse<NotificationListResponse>> GetPagedAsync(NotificationListQuery query)
@@ -93,7 +90,7 @@ public class NotificationService : INotificationService
         };
     }
 
-    public async Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request)
+    public async Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request, Guid? senderUserId = null, string? senderEmail = null)
     {
         if (string.IsNullOrWhiteSpace(request.Title))
         {
@@ -110,15 +107,25 @@ public class NotificationService : INotificationService
         var channels = NormalizeChannels(request.Channels);
         await ValidateTargetIsActiveAsync(request.RegionId, request.BranchId);
 
-        if (string.IsNullOrWhiteSpace(_createdByEmail))
+        User? createdBy = null;
+        if (senderUserId.HasValue && senderUserId.Value != Guid.Empty)
         {
-            throw new InvalidOperationException("AdminNotification:CreatedByEmail is not configured.");
+            createdBy = await _notificationRepo.GetActiveAdminByIdAsync(senderUserId.Value);
         }
 
-        var createdBy = await _notificationRepo.GetActiveAdminByEmailAsync(_createdByEmail);
+        if (createdBy == null && !string.IsNullOrWhiteSpace(senderEmail))
+        {
+            createdBy = await _notificationRepo.GetActiveAdminByEmailAsync(senderEmail);
+        }
+
         if (createdBy == null)
         {
-            throw new InvalidOperationException("The configured notification admin was not found or is not active.");
+            createdBy = await _notificationRepo.GetAnyActiveAdminAsync();
+        }
+
+        if (createdBy == null)
+        {
+            throw new InvalidOperationException("No active administrator account was found to dispatch the broadcast.");
         }
 
         var recipients = await _notificationRepo.GetRecipientsAsync(targetRoles, request.RegionId, request.BranchId);

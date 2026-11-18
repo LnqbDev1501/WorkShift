@@ -287,11 +287,11 @@ class FaceRegistrationController extends ChangeNotifier {
       case 'BLINK':
         if (leftEye != null &&
             rightEye != null &&
-            (leftEye < 0.35 || rightEye < 0.35)) {
+            (leftEye < 0.20 && rightEye < 0.20)) {
           isPassed = true;
           // Score: how closed the eyes are (more closed = more confident blink)
-          final closedLeft = leftEye < 0.35 ? (1.0 - leftEye) : 0.0;
-          final closedRight = rightEye < 0.35 ? (1.0 - rightEye) : 0.0;
+          final closedLeft = 1.0 - leftEye;
+          final closedRight = 1.0 - rightEye;
           challengeConfidence = ((closedLeft + closedRight) / 2).clamp(0.0, 1.0);
         } else {
           detectionStatus = 'Please blink your eyes';

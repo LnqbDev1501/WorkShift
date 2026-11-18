@@ -4,8 +4,8 @@
     ViewData["Title"] = "Create Payroll Correction";
 }
 
-<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
-    <!-- Header Title & Action Bar -->
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
@@ -17,17 +17,10 @@
                 @Model.Payroll.EmployeeName • Payroll #@Model.Payroll.PayrollId • Version V@(Model.Payroll.VersionNo)
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a asp-action="Review" asp-route-id="@Model.Payroll.PayrollId"
-               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
-                <span class="material-symbols-outlined text-lg">close</span>
-                <span>Cancel</span>
-            </a>
-        </div>
     </div>
 
     <!-- Correction Form Card (Manager Style) -->
-    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm max-w-3xl space-y-5">
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
         <form asp-action="@(Model.FromFeedback ? "CorrectFeedback" : "Correct")" asp-route-id="@Model.SourceId" method="post" class="space-y-5" onsubmit="return handleCorrectionSubmit(this)">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="All" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm" role="alert"></div>

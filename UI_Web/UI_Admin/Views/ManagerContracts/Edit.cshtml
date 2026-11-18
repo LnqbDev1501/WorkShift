@@ -4,15 +4,10 @@
     ViewData["Title"] = $"Edit Contract {Model.ContractNumber}";
 }
 
-<div class="ws-form-page px-4 sm:px-6 py-6"><div class="flex flex-col gap-6 max-w-4xl mx-auto w-full">
+<div class="w-full px-7 py-6"><div class="flex flex-col gap-6 max-w-[1440px] mx-auto w-full">
 
     <!-- Top Navigation Header -->
     <div class="flex items-center gap-3">
-        <a asp-action="Details" asp-route-id="@Model.ContractId"
-           class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
-           title="Back to details">
-            <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-        </a>
         <div>
             <div class="flex items-center gap-2">
                 <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Edit Draft Contract</h1>
@@ -36,7 +31,7 @@
         </div>
         <div>
             <span class="text-slate-400 uppercase font-semibold text-[10px] tracking-wider block">Current Hourly Rate</span>
-            <span class="text-sm font-bold text-indigo-600 mt-0.5 block tabular-nums">@Model.CurrentHourlyRate.ToString("N0") VND/hr</span>
+            <span class="text-sm font-bold text-indigo-600 mt-0.5 block tabular-nums">@CurrencyHelper.FormatVnd(Model.CurrentHourlyRate)/hr</span>
         </div>
     </div>
 
@@ -116,4 +111,4 @@
         </div>
     </form>
 
-</div>
+</div></div>

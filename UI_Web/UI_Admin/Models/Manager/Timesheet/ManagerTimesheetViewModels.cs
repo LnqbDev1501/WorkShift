@@ -173,6 +173,9 @@ public sealed class ManagerWeeklyTimesheetDetailViewModel
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
 
+    public string? ReviewedByName { get; set; }
+    public string? LockedByName { get; set; }
+
     public string TotalWorkTimeDisplay => $"{TotalWorkMinutes / 60}h {TotalWorkMinutes % 60}m";
     public string TotalLateDisplay => $"{TotalLateMinutes / 60}h {TotalLateMinutes % 60}m";
     public string TotalEarlyLeaveDisplay => $"{TotalEarlyLeaveMinutes / 60}h {TotalEarlyLeaveMinutes % 60}m";

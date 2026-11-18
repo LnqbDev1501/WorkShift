@@ -73,8 +73,14 @@ body.workshift-theme {
 .workshift-theme .ws-form-page {
     padding: 20px 28px 36px;
     max-width: 1536px;
+    width: 100%;
     margin-inline: auto;
     box-sizing: border-box;
+}
+
+.workshift-theme .ws-form-page > :is(.accountant-dashboard, .schedule-page, .ws-form-container, .ws-form-container-wide) {
+    padding: 0;
+    max-width: 1440px;
 }
 
 .workshift-theme :is(.dashboard-heading, .notification-header, .holiday-heading, .form-heading, .shift-heading) {
@@ -594,20 +600,55 @@ body.workshift-theme {
 }
 
 .status-badge.primary,
-.pill.status:not(.inactive):not(.pending) {
+.pill.status.active,
+.status-badge.active,
+.pill.status:not(.inactive):not(.pending):not(.draft):not(.scheduled):not(.cancelled):not(.archived) {
     background: #ecfdf5;
     color: #047857;
 }
 
 .status-badge.primary .dot,
-.pill.status:not(.inactive):not(.pending) .dot {
+.pill.status.active .dot,
+.status-badge.active .dot,
+.pill.status:not(.inactive):not(.pending):not(.draft):not(.scheduled):not(.cancelled):not(.archived) .dot {
     background: #10b981;
 }
 
+.status-badge.warning,
+.pill.status.draft,
+.status-badge.draft {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.warning .dot,
+.pill.status.draft .dot,
+.status-badge.draft .dot {
+    background: #f59e0b;
+}
+
+.status-badge.scheduled,
+.pill.status.scheduled {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.status-badge.scheduled .dot,
+.pill.status.scheduled .dot {
+    background: #8b5cf6;
+}
+
 .status-badge.danger,
-.pill.status.inactive {
+.pill.status.inactive,
+.status-badge.inactive {
     background: #fef2f2;
     color: #b91c1c;
+}
+
+.status-badge.danger .dot,
+.pill.status.inactive .dot,
+.status-badge.inactive .dot {
+    background: #ef4444;
 }
 
 .status-badge.pending,
@@ -619,6 +660,21 @@ body.workshift-theme {
 .status-badge.pending .dot,
 .pill.status.pending .dot {
     background: #f59e0b;
+}
+
+.status-badge.cancelled,
+.pill.status.cancelled,
+.status-badge.archived,
+.pill.status.archived {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-badge.cancelled .dot,
+.pill.status.cancelled .dot,
+.status-badge.archived .dot,
+.pill.status.archived .dot {
+    background: #94a3b8;
 }
 
 /* Scrollbars */
@@ -677,20 +733,21 @@ div[asp-validation-summary].validation-summary-valid,
    ======================================================== */
 .ws-form-page {
     width: 100%;
-    padding: 24px 20px 48px;
+    max-width: 1536px;
+    padding: 20px 28px 36px;
     margin: 0 auto;
     box-sizing: border-box;
 }
 
 .ws-form-container {
-    max-width: 860px;
+    max-width: 1440px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;
 }
 
 .ws-form-container-wide {
-    max-width: 1040px;
+    max-width: 1440px;
     margin-left: auto;
     margin-right: auto;
     width: 100%;

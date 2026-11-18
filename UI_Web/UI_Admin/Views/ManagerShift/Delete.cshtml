@@ -5,10 +5,14 @@
     <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace"><a class="ms-back" asp-action="Details" asp-route-id="@Model.Id">← Back to shift</a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFT</span><h1>Delete Shift</h1><p>Review this draft shift before deleting it.</p></div></header>
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;"><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFT</span><h1>Delete Shift</h1><p>Review this draft shift before deleting it.</p></div></header>
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (Model.Shift is { } shift) { <section class="ad-card ms-edit-form"><h2 class="ms-delete-dates">@shift.ShiftName</h2><p>@S.Time(shift.ScheduledStartAt) – @S.Time(shift.ScheduledEndAt) · UTC+7</p><p>@shift.RequiredEmployees required slots</p>
-        @if (Model.CanEdit) { <div class="ms-delete-warning"><strong>This action cannot be undone.</strong><p>The shift and its employee requirements will be deleted. Shifts with assignments, checklists, or adjustment requests cannot be deleted.</p></div><form asp-action="Delete" asp-route-id="@Model.Id" method="post"><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Keep shift</a><button class="ms-danger-button" type="submit">Delete shift</button></div></form> }
-        else { <div class="ms-delete-warning">Only draft shifts in draft schedules without assignments can be deleted.</div> }
+        @if (Model.CanEdit) { <div class="ms-delete-warning"><strong>This action cannot be undone.</strong><p>The shift and its employee requirements will be deleted. Shifts with assignments, checklists, or adjustment requests cannot be deleted.</p></div><form asp-action="Delete" asp-route-id="@Model.Id" method="post"><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a><button class="ms-danger-button" type="submit">Delete shift</button></div></form> }
+        else { <div class="ms-delete-warning">Only draft shifts in draft schedules without assignments can be deleted.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a></div> }
     </section> }
+    else
+    {
+        <div class="ms-form-actions"><a class="ms-reset" asp-controller="ManagerSchedule" asp-action="Index">Cancel</a></div>
+    }
 </div>

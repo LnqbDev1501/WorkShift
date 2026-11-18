@@ -20,9 +20,8 @@
             <!-- Full Header View -->
             <div class="sidebar-header-full flex items-center justify-between w-full px-1">
                 <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white shadow-md flex-shrink-0 cursor-pointer overflow-hidden transition-all duration-150 hover:scale-105 active:scale-95 hover:shadow-indigo-500/30 hover:shadow-lg"
-                         title="Click to play with the fox!">
-                        <canvas id="sidebar-mascot" class="w-full h-full object-contain pointer-events-none"></canvas>
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-[#4f46e5] to-[#7c3aed] flex items-center justify-center text-white shadow-md flex-shrink-0">
+                        <span class="material-symbols-outlined text-[18px]">access_time_filled</span>
                     </div>
                     <div class="flex flex-col min-w-0">
 
@@ -213,12 +212,11 @@
                                         <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Penalties</span>
                                     </a>
                                     <partial name="_PayrollDocumentNavigation" model='"Admin"' />
-                                    <a asp-controller="Notifications" asp-action="Personal"
+                                    <a asp-controller="Notifications" asp-action="BroadcastHistory"
                                        class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                                       title="Notifications">
-                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
-                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
-                                        @await Component.InvokeAsync("NotificationBadge")
+                                       title="Broadcast History">
+                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">campaign</span>
+                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Broadcast History</span>
                                     </a>
                                     <a asp-controller="Categories" asp-action="Index"
                                        class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Categories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"

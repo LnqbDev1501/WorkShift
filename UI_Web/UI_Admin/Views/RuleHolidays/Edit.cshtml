@@ -17,12 +17,6 @@
                 <h1>Edit Pay Rule Draft</h1>
                 <p>Modify draft details before publishing. Once published, the rule is locked.</p>
             </div>
-            <div class="heading-actions">
-                <a asp-action="Detail" asp-route-id="@Model.HolidayPayRuleId" class="secondary-button">
-                    <span class="material-symbols-outlined text-[18px]">close</span>
-                    <span>Cancel</span>
-                </a>
-            </div>
         </div>
 
         <!-- Edit Form -->
@@ -61,11 +55,11 @@
             </section>
 
             <div class="form-actions flex items-center gap-3">
+                <a asp-action="Detail" asp-route-id="@Model.HolidayPayRuleId" class="secondary-button">Cancel</a>
                 <button class="primary-button flex items-center gap-1.5" type="submit">
                     <span class="material-symbols-outlined text-[18px]">save</span>
                     <span>Save changes</span>
                 </button>
-                <a asp-action="Detail" asp-route-id="@Model.HolidayPayRuleId" class="secondary-button">Cancel</a>
             </div>
         </form>
     </main>

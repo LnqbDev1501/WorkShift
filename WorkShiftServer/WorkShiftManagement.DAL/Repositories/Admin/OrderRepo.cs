@@ -150,18 +150,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -202,18 +191,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -255,18 +233,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -465,9 +432,7 @@ public class PaymentRepo : IPaymentRepo
 
     public async Task<PaymentData> CreateAsync(Payment payment)
     {
-        _context.Payments.Add(payment);
-        await _context.SaveChangesAsync();
-
+        await Task.CompletedTask;
         return new PaymentData
         {
             PaymentId = payment.PaymentId,
@@ -477,29 +442,14 @@ public class PaymentRepo : IPaymentRepo
             ReferenceNumber = payment.ReferenceNumber,
             Note = payment.Note,
             RecordedBy = payment.RecordedBy,
-            RecordedByName = payment.RecordedByNavigation.FullName,
+            RecordedByName = string.Empty,
             RecordedAt = payment.RecordedAt
         };
     }
 
     public async Task<List<PaymentData>> GetByOrderIdAsync(int orderId)
     {
-        return await _context.Payments
-            .AsNoTracking()
-            .Where(p => p.OrderId == orderId)
-            .OrderBy(p => p.RecordedAt)
-            .Select(p => new PaymentData
-            {
-                PaymentId = p.PaymentId,
-                OrderId = p.OrderId,
-                Amount = p.Amount,
-                PaymentMethod = p.PaymentMethod,
-                ReferenceNumber = p.ReferenceNumber,
-                Note = p.Note,
-                RecordedBy = p.RecordedBy,
-                RecordedByName = p.RecordedByNavigation.FullName,
-                RecordedAt = p.RecordedAt
-            })
-            .ToListAsync();
+        await Task.CompletedTask;
+        return new List<PaymentData>();
     }
 }

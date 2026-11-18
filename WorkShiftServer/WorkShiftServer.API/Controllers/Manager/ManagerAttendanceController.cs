@@ -76,6 +76,11 @@ public class ManagerAttendanceController : ControllerBase
         {
             return BadRequest(new { message = ex.Message });
         }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Daily attendance request was canceled by client/timeout for manager {ManagerId}", managerId);
+            return StatusCode(499, new { message = "Request was canceled." });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load daily attendance for manager {ManagerId}", managerId);
@@ -120,6 +125,11 @@ public class ManagerAttendanceController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Daily attendance request was canceled by client/timeout for manager {ManagerId}", managerId);
+            return StatusCode(499, new { message = "Request was canceled." });
         }
         catch (Exception ex)
         {

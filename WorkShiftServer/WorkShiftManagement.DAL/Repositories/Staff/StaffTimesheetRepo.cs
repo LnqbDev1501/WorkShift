@@ -33,7 +33,11 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
     {
         return _context.WorkScheduleWeeks.AsNoTracking()
             .Where(w => w.BranchId == branchId && w.Status != "CANCELLED" &&
-                (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED"))
+                (w.PayrollPeriod != null || w.Status == "REGISTRATION_CLOSED" || w.Status == "COMPLETED") &&
+                (
+                    (w.PayrollPeriod != null && w.PayrollPeriod.Timesheets.Any(t => t.UserId == staffId)) ||
+                    w.WorkShifts.Any(ws => ws.ShiftAssignments.Any(sa => sa.UserId == staffId && sa.Status != "CANCELLED"))
+                ))
             .OrderByDescending(w => w.WeekStartDate).ThenByDescending(w => w.ScheduleWeekId)
             .Select(w => new StaffTimesheetWeekOptionReadModel
             {
@@ -362,6 +366,11 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
 
         if (assignmentsNeedingAttendance.Any())
         {
+            if (activeRule == null)
+            {
+                throw new InvalidOperationException("No active attendance rule is configured in the system. Please contact the Administrator.");
+            }
+
             var branch = await _context.Branches.FindAsync(new object[] { week.BranchId }, cancellationToken);
 
             var activePenaltyRule = await _context.AttendancePenaltyRules
@@ -371,45 +380,41 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                 .ThenByDescending(r => r.EffectiveFrom)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            string initialRuleSnapshot = "{}";
-            if (activeRule != null)
+            var snapshotObj = new
             {
-                var snapshotObj = new
+                AttendanceRule = new
                 {
-                    AttendanceRule = new
+                    activeRule.AttendanceRuleId,
+                    activeRule.RuleName,
+                    activeRule.CheckInBeforeMinutes,
+                    activeRule.CheckInGraceMinutes,
+                    activeRule.CheckOutGraceMinutes,
+                    activeRule.CheckOutAfterMinutes,
+                    activeRule.MaxAttendanceDistanceMeters
+                },
+                AttendancePenaltyRule = activePenaltyRule != null ? new
+                {
+                    activePenaltyRule.PenaltyRuleId,
+                    activePenaltyRule.RuleName,
+                    PenaltyLevels = activePenaltyRule.AttendancePenaltyLevels.Select(l => new
                     {
-                        activeRule.AttendanceRuleId,
-                        activeRule.RuleName,
-                        activeRule.CheckInBeforeMinutes,
-                        activeRule.CheckInGraceMinutes,
-                        activeRule.CheckOutGraceMinutes,
-                        activeRule.CheckOutAfterMinutes,
-                        activeRule.MaxAttendanceDistanceMeters
-                    },
-                    AttendancePenaltyRule = activePenaltyRule != null ? new
-                    {
-                        activePenaltyRule.PenaltyRuleId,
-                        activePenaltyRule.RuleName,
-                        PenaltyLevels = activePenaltyRule.AttendancePenaltyLevels.Select(l => new
-                        {
-                            l.PenaltyLevelId,
-                            l.ViolationType,
-                            l.FromMinutes,
-                            l.ToMinutes,
-                            l.PenaltyAmount
-                        }).ToList()
-                    } : null,
-                    SnapshottedAt = now
-                };
-                initialRuleSnapshot = JsonSerializer.Serialize(snapshotObj);
-            }
+                        l.PenaltyLevelId,
+                        l.ViolationType,
+                        l.FromMinutes,
+                        l.ToMinutes,
+                        l.PenaltyAmount
+                    }).ToList()
+                } : null,
+                SnapshottedAt = now
+            };
+            string initialRuleSnapshot = JsonSerializer.Serialize(snapshotObj);
 
             foreach (var a in assignmentsNeedingAttendance)
             {
                 var newAttendance = new Attendance
                 {
                     AssignmentId = a.AssignmentId,
-                    AttendanceRuleId = activeRule?.AttendanceRuleId ?? 1,
+                    AttendanceRuleId = activeRule.AttendanceRuleId,
                     RuleSnapshotJson = initialRuleSnapshot,
                     EmployeeFullNameSnapshot = staffUser?.FullName ?? "Staff",
                     ShiftStartAtSnapshot = a.Shift.ScheduledStartAt,
@@ -426,6 +431,7 @@ public sealed class StaffTimesheetRepo : IStaffTimesheetRepo
                     TotalEarlyLeaveMinutes = 0,
                     ExcusedEarlyLeaveMinutes = 0,
                     ChargeableEarlyLeaveMinutes = 0,
+                    CompletedAt = now,
                     CreatedAt = now,
                     UpdatedAt = now
                 };

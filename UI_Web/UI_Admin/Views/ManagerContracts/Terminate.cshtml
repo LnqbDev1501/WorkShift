@@ -7,16 +7,12 @@
     var isReadyToTerminate = Model.CanTerminate;
 }
 
-<div class="flex flex-col gap-6 max-w-3xl mx-auto">
+<div class="w-full px-7 py-6">
+<div class="flex flex-col gap-6 max-w-[1440px] mx-auto">
 
     <!-- Top Navigation Header -->
     <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-            <a asp-action="Details" asp-route-id="@Model.ContractId"
-               class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shrink-0"
-               title="Back to contract details">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-            </a>
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Termination Warning</h1>
@@ -48,6 +44,20 @@
         <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
             <span class="material-symbols-outlined text-rose-600 text-[22px] shrink-0">error</span>
             <span class="font-medium">@TempData["ErrorMessage"]</span>
+        </div>
+    }
+
+    @if (Model.IsStaffCurrentlyInShift)
+    {
+        <div class="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-sm flex items-start gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-amber-600 text-[22px] shrink-0 mt-0.5">lock_clock</span>
+            <div class="space-y-1">
+                <h4 class="font-bold text-amber-950">Termination Locked: Employee Currently Working in Shift</h4>
+                <p class="text-xs text-amber-800 leading-relaxed">
+                    Employee <strong>@Model.EmployeeFullName</strong> is currently working in shift: <strong>@Model.StaffInShiftMessage</strong>.
+                    You cannot terminate this contract until the employee has finished their shift and completed check-out.
+                </p>
+            </div>
         </div>
     }
 
@@ -300,18 +310,31 @@
                 <div class="flex items-center justify-between gap-4 pt-4 border-t border-slate-100">
                     <a asp-action="Details" asp-route-id="@Model.ContractId"
                        class="px-5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
-                        Back
+                        Cancel
                     </a>
-                    <button type="submit" id="btn-submit-terminate"
-                            class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
-                        <span class="material-symbols-outlined text-[18px]">gavel</span>
-                        <span>Confirm termination</span>
-                    </button>
+                    @if (Model.IsStaffCurrentlyInShift)
+                    {
+                        <button type="button" disabled
+                                title="Employee is currently working in a shift. You cannot terminate until they check out."
+                                class="inline-flex items-center gap-2 px-6 py-2.5 bg-slate-200 text-slate-500 rounded-xl text-sm font-semibold cursor-not-allowed shadow-none">
+                            <span class="material-symbols-outlined text-[18px]">lock</span>
+                            <span>Locked (Staff In Shift)</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" id="btn-submit-terminate"
+                                class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">gavel</span>
+                            <span>Confirm termination</span>
+                        </button>
+                    }
                 </div>
             </form>
         }
     </div>
 
+</div>
 </div>
 
 @section Scripts {

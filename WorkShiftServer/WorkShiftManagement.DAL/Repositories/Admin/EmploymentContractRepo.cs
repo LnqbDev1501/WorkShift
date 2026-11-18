@@ -429,6 +429,11 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
+
+        var inShift = await IsStaffCurrentlyInShiftAsync(existing.UserId, now, cancellationToken);
+        if (inShift.IsInShift)
+            throw new InvalidOperationException($"Cannot cancel contract {existing.ContractNumber}. The employee is currently working in shift {inShift.ShiftInfo}. The contract can only be cancelled after the employee finishes their shift.");
+
         existing.Status = "CANCELLED";
         await CancelIncompleteAssignmentsAsync(existing, managerId, now, cancellationToken);
         existing.CancellationReason = reason;
@@ -502,6 +507,11 @@ public class EmploymentContractRepo : IEmploymentContractRepo
 
         var oldStatus = existing.Status;
         var now = DateTime.UtcNow;
+
+        var inShift = await IsStaffCurrentlyInShiftAsync(existing.UserId, now, cancellationToken);
+        if (inShift.IsInShift)
+            throw new InvalidOperationException($"Cannot terminate contract {existing.ContractNumber}. The employee is currently working in shift {inShift.ShiftInfo}. The contract can only be terminated after the employee finishes their shift.");
+
         existing.Status = "TERMINATED";
         await CancelIncompleteAssignmentsAsync(existing, managerId, now, cancellationToken);
         existing.TerminationReason = reason;
@@ -558,7 +568,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             CreatedAt = now
         });
 
-        // Revoke active biometric face profile upon contract termination
+        // Revoke active biometric face profile upon contract termination and purge biometric vector
         var activeFaceProfiles = await _context.FaceProfiles
             .Where(f => f.UserId == existing.UserId && f.Status == "ACTIVE")
             .ToListAsync(cancellationToken);
@@ -569,6 +579,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Permanently nullify biometric face embedding vector to comply with Personal Data Protection regulations
+        if (activeFaceProfiles.Count > 0)
+        {
+            var profileIds = activeFaceProfiles.Select(p => p.FaceProfileId).ToList();
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id IN ({string.Join(",", profileIds)});",
+                cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
     }
 
@@ -1418,7 +1438,7 @@ public class EmploymentContractRepo : IEmploymentContractRepo
             });
         }
 
-        // Revoke active biometric face profiles for staff whose contracts have expired
+        // Revoke active biometric face profiles for staff whose contracts have expired and purge biometric vectors
         var expiredUserIds = expiredContracts.Select(c => c.UserId).Distinct().ToList();
         var expiredActiveFaceProfiles = await _context.FaceProfiles
             .Where(f => expiredUserIds.Contains(f.UserId) && f.Status == "ACTIVE")
@@ -1430,6 +1450,16 @@ public class EmploymentContractRepo : IEmploymentContractRepo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Permanently nullify biometric face embedding vectors to comply with Personal Data Protection regulations
+        if (expiredActiveFaceProfiles.Count > 0)
+        {
+            var profileIds = expiredActiveFaceProfiles.Select(p => p.FaceProfileId).ToList();
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id IN ({string.Join(",", profileIds)});",
+                cancellationToken);
+        }
+
         await transaction.CommitAsync(cancellationToken);
         return expiredContracts.Count;
     }
@@ -1708,6 +1738,79 @@ public class EmploymentContractRepo : IEmploymentContractRepo
                            c.StartDate <= shiftEndVnDate &&
                            (c.EndDate == null || (shiftStartVnDate <= c.EndDate.Value && shiftEndVnDate <= c.EndDate.Value)),
                       cancellationToken);
+    }
+
+    public async Task<(bool IsInShift, string? ShiftInfo)> IsStaffCurrentlyInShiftAsync(
+        Guid staffUserId,
+        DateTime? currentUtc = null,
+        CancellationToken cancellationToken = default)
+    {
+        var nowUtc = currentUtc ?? DateTime.UtcNow;
+
+        var windowStart = nowUtc.AddHours(-24);
+        var windowEnd = nowUtc.AddHours(4);
+
+        var candidateAssignments = await _context.ShiftAssignments
+            .AsNoTracking()
+            .Include(sa => sa.Shift)
+                .ThenInclude(s => s.ScheduleWeek)
+                    .ThenInclude(sw => sw.Branch)
+            .Include(sa => sa.Attendance)
+            .Include(sa => sa.LeaveRequestAssignments)
+                .ThenInclude(lra => lra.Request)
+            .Where(sa => sa.UserId == staffUserId
+                && sa.Status != "CANCELLED"
+                && sa.Shift.Status != "CANCELLED"
+                && sa.Shift.ScheduledStartAt <= windowEnd
+                && sa.Shift.ScheduledEndAt >= windowStart)
+            .ToListAsync(cancellationToken);
+
+        foreach (var sa in candidateAssignments)
+        {
+            bool hasApprovedLeave = sa.LeaveRequestAssignments != null &&
+                sa.LeaveRequestAssignments.Any(lra =>
+                    lra.Request != null &&
+                    string.Equals(lra.Request.RequestType, "LEAVE", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(lra.Request.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
+
+            if (hasApprovedLeave)
+                continue;
+
+            var shift = sa.Shift;
+            var att = sa.Attendance;
+
+            if (att != null && att.CheckOutTime.HasValue)
+                continue;
+
+            bool isCurrentlyWorking = false;
+
+            if (att != null && att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+            {
+                if (nowUtc <= shift.ScheduledEndAt.AddHours(4) && att.CheckInTime.Value >= nowUtc.AddHours(-24))
+                {
+                    isCurrentlyWorking = true;
+                }
+            }
+            else if (shift.ScheduledStartAt <= nowUtc && nowUtc <= shift.ScheduledEndAt)
+            {
+                isCurrentlyWorking = true;
+            }
+
+            if (isCurrentlyWorking)
+            {
+                var startVn = shift.ScheduledStartAt.AddHours(7);
+                var endVn = shift.ScheduledEndAt.AddHours(7);
+                var shiftName = !string.IsNullOrWhiteSpace(shift.ShiftNameSnapshot)
+                    ? shift.ShiftNameSnapshot
+                    : "Work Shift";
+                var branchName = shift.ScheduleWeek?.Branch?.BranchName;
+                var branchStr = !string.IsNullOrWhiteSpace(branchName) ? $" at {branchName}" : "";
+                var shiftInfo = $"'{shiftName}' ({startVn:HH:mm} - {endVn:HH:mm}, {startVn:dd/MM/yyyy}){branchStr}";
+                return (true, shiftInfo);
+            }
+        }
+
+        return (false, null);
     }
 
     public Task<ContractChangeRequest?> GetOpenChangeRequestByContractIdAsync(int contractId, CancellationToken cancellationToken = default)

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
@@ -106,7 +106,7 @@ public sealed class SaveEmployeeAdjustmentViewModel : IValidatableObject
         if (UserId == Guid.Empty) yield return new("Please select an employee.", [nameof(UserId)]);
         if (!AdjustmentDate.HasValue)
         {
-            yield return new("Vui lÃ²ng chá»n ngÃ y Ã¡p dá»¥ng trong tuáº§n hiá»‡n táº¡i.", [nameof(AdjustmentDate)]);
+            yield return new("Please select an applicable date in the current week.", [nameof(AdjustmentDate)]);
         }
         else
         {
@@ -116,14 +116,14 @@ public sealed class SaveEmployeeAdjustmentViewModel : IValidatableObject
             var monday = today.AddDays(-diff);
             if (AdjustmentDate.Value < monday || AdjustmentDate.Value > today)
             {
-                yield return new("NgÃ y Ã¡p dá»¥ng pháº£i náº±m trong tuáº§n hiá»‡n táº¡i (tá»« thá»© Hai Ä‘áº¿n hÃ´m nay).", [nameof(AdjustmentDate)]);
+                yield return new("Applicable date must be within the current week (from Monday to today).", [nameof(AdjustmentDate)]);
             }
         }
         if (string.IsNullOrWhiteSpace(AdjustmentName)) yield return new("Please enter the item name.", [nameof(AdjustmentName)]);
         if (AdjustmentName.Trim().Length > 100) yield return new("Item name must be at most 100 characters.", [nameof(AdjustmentName)]);
         if (Amount is null) yield return new("Please enter the amount.", [nameof(Amount)]);
-        else if (Amount <= 0 || Amount > 9999999999999999.99m || Amount != decimal.Truncate(Amount.Value * 100) / 100)
-            yield return new("Amount must be greater than 0 with at most two decimal places (max 16 integer digits).", [nameof(Amount)]);
+        else if (Amount < 1000m || Amount > 9999999999999999.99m || Amount != decimal.Truncate(Amount.Value * 100) / 100)
+            yield return new("Amount must be at least 1,000 VND with at most two decimal places (max 16 integer digits).", [nameof(Amount)]);
         if (string.IsNullOrWhiteSpace(Reason)) yield return new("Please enter a reason.", [nameof(Reason)]);
         if (Reason.Trim().Length > 500) yield return new("Reason must be at most 500 characters.", [nameof(Reason)]);
     }

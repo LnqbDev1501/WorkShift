@@ -32,17 +32,17 @@
     {
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px]">schedule</span>
-            <span>Bạn hiện không trong ca làm việc được phân công. Nút <strong>Complete</strong> đã bị vô hiệu hóa.</span>
+            <span>You are currently outside your assigned shift. The <strong>Complete</strong> button is disabled.</span>
         </div>
     }
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
-        <div class="flex items-center gap-unit-3">
-            <a asp-controller="StaffOrders" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm">
+        <div class="flex items-center gap-unit-3 min-w-0 flex-1">
+            <a asp-controller="StaffOrders" asp-action="Index" class="inline-flex items-center justify-center h-9 w-9 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary hover:text-on-surface transition-colors shadow-sm shrink-0">
                 <span class="material-symbols-outlined text-[20px]">arrow_back</span>
             </a>
-            <div class="flex flex-col">
+            <div class="flex flex-col min-w-0">
                 <div class="list-eyebrow">Order Management</div>
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.OrderNumber</h1>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words break-all [overflow-wrap:anywhere]">@Model.OrderNumber</h1>
             </div>
             @if (isCompleted)
             {
@@ -167,11 +167,11 @@
                     @foreach (var item in Model.Items)
                     {
                         <tr class="h-[56px] hover:bg-surface-container-low transition-colors">
-                            <td class="px-unit-5 py-2 font-body-md-medium text-body-md-medium text-on-surface">
-                                @item.ProductName
+                            <td class="px-unit-5 py-2 font-body-md-medium text-body-md-medium text-on-surface break-words max-w-xs" title="@item.ProductName">
+                                @(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)
                                 @if (!string.IsNullOrEmpty(item.Note))
                                 {
-                                    <div class="mt-1 text-xs text-secondary font-normal">
+                                    <div class="mt-1 text-xs text-secondary font-normal break-words break-all">
                                         <span class="material-symbols-outlined text-[14px] align-middle mr-1">note</span>
                                         @item.Note
                                     </div>

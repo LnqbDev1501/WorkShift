@@ -365,10 +365,10 @@ class AttendanceController extends ChangeNotifier {
 
     switch (action) {
       case 'BLINK':
-        // Blink detected when eyes are closed or squinted (< 0.35)
+        // Blink detected when both eyes are closed (< 0.20)
         if (leftEye != null &&
             rightEye != null &&
-            (leftEye < 0.35 || rightEye < 0.35)) {
+            (leftEye < 0.20 && rightEye < 0.20)) {
           isPassed = true;
         } else {
           detectionStatus = 'Please blink your eyes';

@@ -121,11 +121,11 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 
 var myCnn = builder.Configuration.GetConnectionString("MyCnn")
     ?? throw new InvalidOperationException("Missing MyCnn connection string.");
-// The Supabase pooler allows only 15 session clients: bound client-side pooling
-// and Hangfire workers so background jobs cannot starve web requests or hit EMAXCONNSESSION.
+// EF Core pool: Hangfire now uses its own "Hangfire" connection string (appsettings.json),
+// so EF Core can use up to 10 connections without competing with background jobs.
 var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
 {
-    MaxPoolSize = 8,
+    MaxPoolSize = 10,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
@@ -145,9 +145,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
+// Hangfire uses its own "Hangfire" connection string from appsettings.json,
+// keeping background job connections isolated from EF Core web request connections.
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = 5,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
@@ -362,23 +364,25 @@ builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePubli
 
 var app = builder.Build();
 
+// shift-swap-expiry: 1 phút → 5 phút (swap expire theo giờ/ngày, không cần check mỗi phút)
 try
 {
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IStaffShiftSwapService>("shift-swap-expiry",
-            service => service.ExpireDueAsync(CancellationToken.None), Cron.Minutely());
+            service => service.ExpireDueAsync(CancellationToken.None), "*/5 * * * *");
 }
 catch (Exception ex)
 {
     app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'shift-swap-expiry'.");
 }
 
+// salary-change-activation: 1 phút → 5 phút (effective date theo ngày, độ trễ 5 phút không ảnh hưởng)
 // Register independently: another recurring job's lock timeout must not skip salary activation.
 try
 {
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<ISalaryChangeService>("salary-change-activation",
-            service => service.ActivateDueAsync(CancellationToken.None), Cron.Minutely());
+            service => service.ActivateDueAsync(CancellationToken.None), "*/5 * * * *");
 }
 catch (Exception ex)
 {
@@ -389,7 +393,8 @@ foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
 {
     jobs => jobs.AddOrUpdate<IPayrollFeedbackService>("payroll-preview-expiry", service => service.ExpireDueAsync(CancellationToken.None), "*/5 * * * *"),
     jobs => jobs.AddOrUpdate<PayrollSystemNotificationJob>("payroll-system-notifications", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"),
-    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"); }
+    // approved-payslip-recovery: 5 phút → 1 giờ (recovery/backup job, không cần chạy gấp)
+    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), "0 * * * *"); }
 })
 {
     try { registerPayrollJob(app.Services.GetRequiredService<IRecurringJobManager>()); }
@@ -398,29 +403,33 @@ foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
 
 try
 {
+    // payroll-closure-notification-recovery: 5 phút → 1 giờ (recovery job, không cần gấp)
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<PayrollClosureNotificationJob>(
             "payroll-closure-notification-recovery",
             job => job.SendPendingAsync(CancellationToken.None),
-            "*/5 * * * *");
+            "0 * * * *");
 
+    // working-time-rules-activation: 30 phút → 1 giờ (activate theo ngày cụ thể, trễ 1 giờ không ảnh hưởng)
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
+    // attendance-rules-activation: 30 phút → 1 giờ
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendanceRuleService>(
             "attendance-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
+    // attendance-penalty-rules-activation: 30 phút → 1 giờ
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendancePenaltyRuleService>(
             "attendance-penalty-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(

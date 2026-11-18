@@ -131,6 +131,15 @@
                                             <span class="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">
                                                 Week @item.Period
                                             </span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Schedule Week ID">
+                                                Week #@item.ScheduleWeekId
+                                            </span>
+                                            @if (item.PayrollPeriodId.HasValue)
+                                            {
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Payroll Period ID">
+                                                    PR-#@item.PayrollPeriodId.Value
+                                                </span>
+                                            }
                                             <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600">
                                                 Mon – Sun
                                             </span>

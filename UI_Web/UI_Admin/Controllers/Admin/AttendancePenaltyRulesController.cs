@@ -92,10 +92,10 @@ public class AttendancePenaltyRulesController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7).AddDays(1));
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var model = new CreateAttendancePenaltyRuleViewModel
         {
-            EffectiveFrom = tomorrow,
+            EffectiveFrom = today,
             PenaltyLevels = new List<CreateAttendancePenaltyLevelViewModel>
             {
                 // Only 1 default row for Late and 1 default row for Early Leave
@@ -128,6 +128,11 @@ public class AttendancePenaltyRulesController : Controller
         {
             _logger.LogError(exception, "Failed to create attendance penalty rule via API.");
             ModelState.AddModelError(string.Empty, exception.Message);
+            if (exception.Message.Contains("effective date", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Effective From", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("EffectiveFrom", exception.Message);
+            }
             return View(model);
         }
         catch (Exception exception)
@@ -210,6 +215,11 @@ public class AttendancePenaltyRulesController : Controller
         {
             _logger.LogError(exception, "Failed to update attendance penalty rule {Id} via API.", id);
             ModelState.AddModelError(string.Empty, exception.Message);
+            if (exception.Message.Contains("effective date", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Effective From", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("EffectiveFrom", exception.Message);
+            }
             ViewBag.PenaltyRuleId = id;
             return View(model);
         }

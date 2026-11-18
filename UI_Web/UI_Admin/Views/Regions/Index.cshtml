@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Regions.RegionListPagedViewModel
+@model UI_Admin.Models.Regions.RegionListPagedViewModel
 
 @{
     ViewData["Title"] = "WorkShift Control";
@@ -89,7 +89,7 @@ new("Branch Deployment", Model.Items.Sum(x => x.BranchCount).ToString("N0"), "Ac
                                     {
                                         <div class="flex flex-col">
                                             <span class="font-semibold text-on-surface text-body-md-medium">@item.WageName</span>
-                                            <span class="text-xs text-secondary font-code-num">@item.MinimumHourlyRate?.ToString("N0") VND/hour</span>
+                                            <span class="text-xs text-secondary font-code-num">@(item.MinimumHourlyRate.HasValue ? $"{CurrencyHelper.FormatVnd(item.MinimumHourlyRate.Value)}/hour" : "—")</span>
                                         </div>
                                     }
                                     else

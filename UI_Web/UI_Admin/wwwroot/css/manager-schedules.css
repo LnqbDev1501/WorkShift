@@ -71,7 +71,7 @@
 .ms-requirements small { background:#f5f2ea; padding:3px 6px; border-radius:5px; font-weight:500; }
 .ms-filled small { background:#eaf6ef; }
 .ms-note { background:#f8f9fc; padding:13px 15px; border:1px solid #eff0f5; }
-.ms-edit-form { max-width:800px; padding:34px; margin-top:24px; }
+.ms-edit-form { max-width:100%; padding:34px; margin-top:24px; }
 .ms-form-section-title { display:flex; align-items:center; gap:13px; padding-bottom:24px; margin-bottom:26px; border-bottom:1px solid #eceef5; }
 .ms-form-section-title>.material-symbols-outlined { display:grid; place-items:center; background:#f1eeff; color:#6756d2; width:44px; height:44px; border-radius:12px; flex-shrink:0; }
 .ms-form-section-title h2 { font-size:17px; font-weight:600; }
@@ -145,11 +145,54 @@
 .schedule-page:has(.ms-editor-layout),
 .schedule-page:has(.rl-editor-layout),
 .rule-page:has(.rl-editor-layout) {
-    max-width: 1440px;
+    max-width: 1496px;
     margin: 0 auto;
     padding: 20px 28px 36px;
     width: 100%;
     box-sizing: border-box;
+}
+
+.ms-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-decoration: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.ms-back:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.ms-form-actions .ms-reset {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ms-form-actions .ms-reset:hover {
+    background: #f1f5f9;
+    color: #0f172a;
 }
 
 .schedule-page.ws-form-page .ad-heading,

@@ -436,7 +436,7 @@ class _StaffNotificationDetailViewState
                                 )
                                 .replaceAll(
                                   'NOT_ACCEPTED_BY_START_DATE',
-                                  'Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận',
+                                  'Past start date without employee confirmation',
                                 )
                           : 'No detailed content.',
                       style: const TextStyle(

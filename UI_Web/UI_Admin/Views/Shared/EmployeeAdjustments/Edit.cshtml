@@ -1,18 +1,17 @@
-﻿@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
+@model UI_Admin.Models.EmployeeAdjustments.SaveEmployeeAdjustmentViewModel
 @using UI_Admin.Models.EmployeeAdjustments
 @{
     Layout = "_ManagerLayout";
     var label = EmployeeAdjustmentTypes.Label(Model.AdjustmentType);
     ViewData["Title"] = $"Edit Employee {label}";
 }
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
     <div class="flex flex-wrap justify-between items-center gap-3">
         <div class="form-heading">
             <div class="list-eyebrow">People · Compensation</div>
             <h1 class="text-display-lg font-display-lg text-on-surface">Edit Employee @label</h1>
             <p>Change a pending @label.ToLowerInvariant(). Only pending items in your branch can be edited.</p>
         </div>
-        <a asp-action="Index" class="btn btn-secondary inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">close</span>Cancel</a>
     </div>
     <form asp-action="Edit" asp-route-id="@Context.Request.RouteValues["id"]" method="post" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
         @Html.AntiForgeryToken()

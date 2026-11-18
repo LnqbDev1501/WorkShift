@@ -61,10 +61,6 @@ public partial class User
 
     public virtual Branch? Branch { get; set; }
 
-    public virtual ICollection<ChecklistResult> ChecklistResults { get; set; } = new List<ChecklistResult>();
-
-    public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
-
     public virtual ICollection<ContractChangeRequest> ContractChangeRequestRequestedByNavigations { get; set; } = new List<ContractChangeRequest>();
 
     public virtual ICollection<ContractChangeRequest> ContractChangeRequestReviewedByNavigations { get; set; } = new List<ContractChangeRequest>();
@@ -106,8 +102,6 @@ public partial class User
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-
-    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual ICollection<Payroll> PayrollApprovedByNavigations { get; set; } = new List<Payroll>();
 

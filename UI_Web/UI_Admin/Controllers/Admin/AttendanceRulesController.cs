@@ -86,7 +86,7 @@ public class AttendanceRulesController : Controller
     [HttpGet]
     public IActionResult Create()
     {
-        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7).AddDays(1));
+        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var model = new CreateAttendanceRuleViewModel
         {
             CheckInBeforeMinutes = 30,
@@ -94,7 +94,7 @@ public class AttendanceRulesController : Controller
             CheckOutGraceMinutes = 5,
             CheckOutAfterMinutes = 30,
             MaxAttendanceDistanceMeters = 20,
-            EffectiveFrom = tomorrow
+            EffectiveFrom = today
         };
         return View(model);
     }
@@ -120,6 +120,11 @@ public class AttendanceRulesController : Controller
         catch (HttpRequestException exception)
         {
             ModelState.AddModelError(string.Empty, exception.Message);
+            if (exception.Message.Contains("effective date", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Effective From", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("EffectiveFrom", exception.Message);
+            }
             return View(model);
         }
         catch (Exception exception)
@@ -204,6 +209,11 @@ public class AttendanceRulesController : Controller
         catch (HttpRequestException exception)
         {
             ModelState.AddModelError(string.Empty, exception.Message);
+            if (exception.Message.Contains("effective date", StringComparison.OrdinalIgnoreCase) ||
+                exception.Message.Contains("Effective From", StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("EffectiveFrom", exception.Message);
+            }
             model.AttendanceRuleId = id;
             return View(model);
         }

@@ -423,7 +423,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
 
               // 2. Nội dung theo loại yêu cầu
               if (_selectedRequestType == 'SALARY_INCREASE') ...[
-                _buildSectionTitle('2. Proposed Hourly Rate (VND/hour)'),
+                _buildSectionTitle('2. Proposed Hourly Rate (₫/hour)'),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -443,7 +443,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                             Icons.monetization_on_outlined,
                             color: AppColors.primary,
                           ),
-                          suffixText: 'VND / hour',
+                          suffixText: '₫ / hour',
                           suffixStyle: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.textPrimary,
@@ -543,6 +543,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                   )
                 else if (eligibleShifts.isEmpty)
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -907,14 +908,18 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
               ),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.primary
-                      : AppColors.textSecondary,
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -939,6 +944,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         });
       },
       child: Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -1022,6 +1028,7 @@ class _SubmitRequestViewState extends State<SubmitRequestView> {
         });
       },
       child: Container(
+        width: double.infinity,
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(

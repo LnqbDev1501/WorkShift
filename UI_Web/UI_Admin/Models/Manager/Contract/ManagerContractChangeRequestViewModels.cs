@@ -93,7 +93,7 @@ public class ManagerContractChangeRequestItemDetailViewModel
     {
         "startdate" => "Contract Start Date",
         "enddate" => "Contract End Date",
-        "hourlyrate" => "Hourly Rate (VND/hr)",
+        "hourlyrate" => "Hourly Rate (₫/hr)",
         "employeeposition" or "position" => "Position / Title",
         "contractterms" or "terms" => "Contract Terms",
         _ => FieldName

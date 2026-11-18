@@ -9,17 +9,13 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
 }
-<div class="ws-form-page px-4 sm:px-6 py-6">
-    <div class="accountant-dashboard schedule-page ms-workspace ws-form-container-wide mx-auto p-0" style="max-width: 1440px;">
+<div class="accountant-dashboard schedule-page ms-workspace mx-auto" style="max-width: 1496px;">
         <header class="ad-heading w-full mb-6">
             <div>
                 <span class="ad-eyebrow">MANAGER / SHIFTS</span>
                 <h1>@ViewData["Title"]</h1>
                 <p>Choose a template and define staffing requirements for schedule #@Model.WeekId.</p>
             </div>
-            <a class="ms-back inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors shadow-2xs" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@Model.WeekId" title="Cancel">
-                <span class="material-symbols-outlined text-[16px]">close</span> Cancel
-            </a>
         </header>
 
         @if (Model.ErrorMessage is not null) { <div class="ad-error mb-4" role="alert">@Model.ErrorMessage</div> }
@@ -139,6 +135,5 @@
                 </aside>
             </div>
         }
-    </div>
 </div>
 @section Scripts { <script src="~/js/manager-shifts.js" asp-append-version="true"></script> }

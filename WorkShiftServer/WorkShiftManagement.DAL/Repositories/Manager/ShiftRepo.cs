@@ -46,7 +46,7 @@ public sealed class ShiftRepo(AppDbContext context) : IShiftRepo
 
     public Task<bool> HasDependenciesAsync(int shiftId, CancellationToken ct) =>
         context.WorkShifts.AnyAsync(x => x.ShiftId == shiftId &&
-            (x.ShiftAssignments.Any() || x.Checklists.Any()), ct);
+            x.ShiftAssignments.Any(), ct);
 
     public void Add(WorkShift shift) => context.WorkShifts.Add(shift);
     public void Remove(WorkShift shift) => context.WorkShifts.Remove(shift);

@@ -10,9 +10,9 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace">
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;">
     @if (TempData["ScheduleSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
-    <a asp-action="Index" class="ms-back">← Back to weekly schedules</a>
+    <a asp-action="Index" class="ms-back"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span>Back to weekly schedules</span></a>
     <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>Weekly Schedule Details</h1><p>@(week is null ? $"Schedule #{Model.Id}" : $"{S.Date(week.WeekStartDate)} – {S.Date(week.WeekEndDate)}")</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id"><span class="material-symbols-outlined" aria-hidden="true">refresh</span>Refresh</a></header>
     @if (TempData["ScheduleError"] is string registrationError) { <div class="ad-error" role="alert">@registrationError</div> }
     @if (Model.ErrorMessage is not null) { <section class="ad-error" role="alert"><div><h2>Schedule unavailable</h2><p>@Model.ErrorMessage</p><a asp-action="Details" asp-route-id="@Model.Id">Try again</a></div></section> }

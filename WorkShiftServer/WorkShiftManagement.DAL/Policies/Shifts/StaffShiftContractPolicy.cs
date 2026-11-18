@@ -4,7 +4,7 @@ namespace WorkShiftManagement.DAL.Policies.Shifts;
 
 public static class StaffShiftContractPolicy
 {
-    public const string AccessBlockedReason = "Bạn chưa có hợp đồng đang ACTIVE. Hãy kiểm tra hợp đồng hoặc liên hệ với Manager.";
+    public const string AccessBlockedReason = "You do not have an ACTIVE employment contract. Please check your contract or contact your Manager.";
 
     public static IQueryable<EmploymentContract> ActiveContracts(
         IQueryable<EmploymentContract> contracts, int branchId, DateTime now)

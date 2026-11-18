@@ -31,6 +31,9 @@ public sealed class ManagerWeeklyTimesheetDetailResponse
     public int TotalLateMinutes { get; set; }
     public int TotalEarlyLeaveMinutes { get; set; }
 
+    public string? ReviewedByName { get; set; }
+    public string? LockedByName { get; set; }
+
     public List<ManagerStaffTimesheetItemDto> StaffTimesheets { get; set; } = new();
 }
 

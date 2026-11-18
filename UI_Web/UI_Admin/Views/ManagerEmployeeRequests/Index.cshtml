@@ -1,4 +1,4 @@
-﻿@model UI_Admin.Models.Manager.Requests.ManagerEmployeeRequestListViewModel
+@model UI_Admin.Models.Manager.Requests.ManagerEmployeeRequestListViewModel
 @using UI_Admin.Helpers
 
 @{
@@ -206,12 +206,12 @@
                                         <div class="flex flex-col gap-0.5">
                                             <div class="flex items-center gap-1 text-xs font-bold text-blue-700">
                                                 <span class="material-symbols-outlined text-[15px]">trending_up</span>
-                                                <span>@string.Format("{0:N0} VND/hr", sid.ProposedHourlyRate)</span>
+                                                <span>@($"{CurrencyHelper.FormatVnd(sid.ProposedHourlyRate)}/hr")</span>
                                             </div>
                                             @if (sid.CurrentHourlyRate > 0)
                                             {
                                                 <div class="text-[11px] text-secondary">
-                                                    Current: @string.Format("{0:N0} VND/hr", sid.CurrentHourlyRate)
+                                                    Current: @($"{CurrencyHelper.FormatVnd(sid.CurrentHourlyRate)}/hr")
                                                 </div>
                                             }
                                         </div>

@@ -109,8 +109,8 @@
 
     <div class="w-full max-w-[1440px] mx-auto space-y-unit-6">
         <!-- User Profile Master Header Card -->
-        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5">
-            <div class="flex items-start sm:items-center gap-unit-5">
+        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5 min-w-0">
+            <div class="flex items-start sm:items-center gap-unit-5 min-w-0 flex-1">
                 <div class="relative flex-shrink-0">
                     @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
                     {
@@ -142,9 +142,9 @@
                         </span>
                     }
                 </div>
-                <div class="flex flex-col space-y-1">
+                <div class="flex flex-col space-y-1 min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-unit-3">
-                        <h1 class="font-display-md text-display-md text-on-surface">@Model.FullName</h1>
+                        <h1 class="font-display-md text-display-md text-on-surface break-words break-all [overflow-wrap:anywhere]">@Model.FullName</h1>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#6d28d9] text-label-sm font-label-sm border border-[#ddd6fe]">
                             <span class="material-symbols-outlined text-[14px]">account_balance</span>
                             @Model.RoleName.ToUpperInvariant()

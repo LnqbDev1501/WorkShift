@@ -53,7 +53,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         }
 
         int targetWeekId;
-        if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
+        if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0 && availableWeeks.Any(w => w.ScheduleWeekId == scheduleWeekId.Value))
         {
             targetWeekId = scheduleWeekId.Value;
         }

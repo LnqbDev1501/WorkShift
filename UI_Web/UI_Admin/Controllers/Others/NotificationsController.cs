@@ -20,12 +20,22 @@ public sealed class NotificationsController : Controller
     [HttpGet]
     public IActionResult Index()
     {
+        if (User.IsInRole("ADMIN"))
+        {
+            return RedirectToAction(nameof(BroadcastHistory));
+        }
+
         return RedirectToAction(nameof(Personal));
     }
 
     [HttpGet]
     public async Task<IActionResult> Personal([FromQuery] PersonalNotificationListPageViewModel query, CancellationToken cancellationToken)
     {
+        if (User.IsInRole("ADMIN"))
+        {
+            return RedirectToAction(nameof(BroadcastHistory));
+        }
+
         try
         {
             query.Page = Math.Max(query.Page, 1);
@@ -122,70 +132,37 @@ public sealed class NotificationsController : Controller
         }
     }
 
-    [HttpGet]
-    public async Task<IActionResult> BroadcastHistory([FromQuery] BroadcastHistoryPageViewModel query, CancellationToken cancellationToken)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkAllAsRead(string? returnUrl, CancellationToken cancellationToken)
     {
         try
         {
-            query.Page = Math.Max(query.Page, 1);
-            query.PageSize = ListPaginationViewModel.DefaultPageSize;
-            var result = await _notificationApiService.GetBroadcastHistoryAsync(query, cancellationToken);
-            result.Search = query.Search;
-            result.Type = query.Type;
-            result.DateFrom = query.DateFrom;
-            result.DateTo = query.DateTo;
-            result.SortBy = query.SortBy;
-            result.SortOrder = query.SortOrder;
-            return View(result);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogError(exception, "Unable to retrieve broadcast history");
-            query.ErrorMessage = "Broadcast history is temporarily unavailable.";
-            return View(query);
-        }
-    }
+            await _notificationApiService.MarkAllAsReadAsync(cancellationToken);
 
-    [HttpGet]
-    public async Task<IActionResult> BroadcastDetail(int id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var notification = await _notificationApiService.GetBroadcastByIdAsync(id, cancellationToken);
-            if (notification == null)
-                return NotFound("Broadcast notification not found.");
-
-            if (!notification.IsRead && notification.UserNotificationId > 0)
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+                Request.Headers.Accept.ToString().Contains("application/json"))
             {
-                await _notificationApiService.MarkAsReadAsync(notification.UserNotificationId, cancellationToken);
-                notification.IsRead = true;
-                notification.ReadAt = DateTime.UtcNow;
+                return Json(new { success = true });
             }
 
-            return View("BroadcastDetail", notification);
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            return RedirectToAction("Login", "Auth");
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            return Forbid();
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return NotFound("Broadcast notification not found.");
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction(nameof(Personal));
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Unable to retrieve broadcast notification {NotificationId}", id);
-            return Problem(detail: $"Broadcast notification detail is temporarily unavailable. [DIAG {exception.GetType().Name}: {exception.Message}]");
+            _logger.LogError(exception, "Unable to mark all notifications as read");
+            return Problem("Unable to mark all notifications as read.");
         }
     }
 
     [HttpGet]
     [Authorize(Roles = "ADMIN")]
-    public async Task<IActionResult> History([FromQuery] NotificationListPageViewModel query, CancellationToken cancellationToken)
+    public async Task<IActionResult> BroadcastHistory([FromQuery] NotificationListPageViewModel query, CancellationToken cancellationToken)
     {
         try
         {
@@ -193,19 +170,34 @@ public sealed class NotificationsController : Controller
             query.PageSize = ListPaginationViewModel.DefaultPageSize;
             var result = await _notificationApiService.GetPagedAsync(query, cancellationToken);
             result.Search = query.Search;
-            result.Type = query.Type;
             result.DateFrom = query.DateFrom;
             result.DateTo = query.DateTo;
             result.SortBy = query.SortBy;
             result.SortOrder = query.SortOrder;
-            return View("List", result);
+            return View("BroadcastHistory", result);
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Unable to retrieve notification history");
-            query.ErrorMessage = "Notification history is temporarily unavailable.";
-            return View("List", query);
+            _logger.LogError(exception, "Unable to retrieve broadcast history");
+            query.ErrorMessage = !string.IsNullOrWhiteSpace(exception.Message)
+                ? exception.Message
+                : "Broadcast history is temporarily unavailable.";
+            return View("BroadcastHistory", query);
         }
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "ADMIN")]
+    public IActionResult History([FromQuery] NotificationListPageViewModel query)
+    {
+        return RedirectToAction(nameof(BroadcastHistory), new
+        {
+            query.Page,
+            query.Search,
+            query.SortOrder,
+            query.DateFrom,
+            query.DateTo
+        });
     }
 
     [HttpGet]
@@ -249,12 +241,14 @@ public sealed class NotificationsController : Controller
             var result = await _notificationApiService.BroadcastAsync(request, cancellationToken);
             TempData["NotificationSuccess"] =
                 $"Notification #{result.NotificationId} sent to {result.RecipientCount} recipient(s).";
-            return RedirectToAction(nameof(Send));
+            return RedirectToAction(nameof(BroadcastHistory));
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to broadcast notification");
-            request.ErrorMessage = "The notification could not be sent. Verify the selected recipients and try again.";
+            request.ErrorMessage = !string.IsNullOrWhiteSpace(exception.Message)
+                ? exception.Message
+                : "The notification could not be sent. Verify the selected recipients and try again.";
             await PopulateAudienceOptionsAsync(request, cancellationToken);
             return View(request);
         }

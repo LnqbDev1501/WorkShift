@@ -9,7 +9,7 @@
     var isPending = string.Equals(staff.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
 }
 
-<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
         <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
@@ -53,6 +53,12 @@
             </div>
             <div class="flex items-center gap-3">
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@staff.FullName</h1>
+                @if (staff.TimesheetId.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Weekly Timesheet ID">
+                        TS-#@staff.TimesheetId.Value
+                    </span>
+                }
                 <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                     @(staff.RoleName ?? "Staff")
                 </span>
@@ -302,7 +308,12 @@
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
                                         <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
-                                        <span class="text-xs text-slate-500 mt-0.5">@shift.ShiftName</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs text-slate-600 font-medium">@shift.ShiftName</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Assignment ID: @shift.AssignmentId, Shift ID: @shift.ShiftId">
+                                                Assignment #@shift.AssignmentId
+                                            </span>
+                                        </div>
                                         <div class="mt-1.5 flex flex-wrap gap-1">
                                             @if (isLateExcused)
                                             {
@@ -330,15 +341,15 @@
                                                     };
                                                     if (isApplied)
                                                     {
-                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @p.PenaltyAmount.ToString("N0") VND (@p.ViolationMinutes mins)">
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @CurrencyHelper.FormatVnd(p.PenaltyAmount) (@p.ViolationMinutes mins)">
                                                             <span class="material-symbols-outlined text-[11px]">gavel</span>
-                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0") VND</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
                                                         </span>
                                                     }
                                                     else
                                                     {
                                                         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-400 border border-slate-200 line-through" title="Waived violation @vType (@p.ViolationMinutes mins)">
-                                                            <span>@vType @(p.ViolationMinutes)m: -@p.PenaltyAmount.ToString("N0") VND</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
                                                             <span class="text-[9px] no-underline font-semibold text-slate-500">(Waived)</span>
                                                         </span>
                                                     }

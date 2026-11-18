@@ -3,12 +3,12 @@
     ViewData["Title"] = "Notification Detail";
 }
 
-<div class="p-6 max-w-[1000px] mx-auto space-y-6">
+<div class="w-full px-7 py-6 mx-auto space-y-6" style="max-width: 1496px;">
     <!-- Top Nav / Back Action -->
     <div class="flex items-center justify-between gap-4">
-        <a asp-action="History" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Notification List
+        <a asp-action="BroadcastHistory" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Broadcast History</span>
         </a>
 
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -34,7 +34,7 @@
                 }
             </div>
 
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug break-words break-all [overflow-wrap:anywhere]">
                 @Model.Title
             </h1>
 
@@ -42,7 +42,7 @@
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-gray-400 text-[18px]">calendar_today</span>
                     <div>
-                        <p class="text-gray-400 text-[10px]">Thời gian gửi</p>
+                        <p class="text-gray-400 text-[10px]">Sent At</p>
                         <p class="font-semibold text-gray-800">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
                     </div>
                 </div>
@@ -50,7 +50,7 @@
                 <div class="flex items-center gap-2">
                     <span class="material-symbols-outlined text-gray-400 text-[18px]">person</span>
                     <div>
-                        <p class="text-gray-400 text-[10px]">Người gửi</p>
+                        <p class="text-gray-400 text-[10px]">Sender</p>
                         <p class="font-semibold text-gray-800">@(string.IsNullOrWhiteSpace(Model.CreatedByName) ? "Admin System" : Model.CreatedByName)</p>
                     </div>
                 </div>
@@ -84,21 +84,13 @@
                     <span class="material-symbols-outlined text-[16px]">mail</span>
                 </div>
                 <h2 class="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Nội dung thông báo
+                    Notification Content
                 </h2>
             </div>
 
-            <div class="p-4 sm:p-5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-line font-normal">
+            <div class="p-4 sm:p-5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-line font-normal break-words break-all [overflow-wrap:anywhere]">
                 @Model.Message
             </div>
         </div>
-    </div>
-
-    <!-- Bottom Back Action -->
-    <div class="flex items-center justify-start pt-2">
-        <a asp-action="History" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-all shadow-sm">
-            <span class="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Notification List
-        </a>
     </div>
 </div>

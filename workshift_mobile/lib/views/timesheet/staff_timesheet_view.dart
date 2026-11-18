@@ -135,39 +135,41 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Are you sure you have verified all work hours, late minutes, and attendance records for this week? Once confirmed, this timesheet will be ready for final payroll locking.',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: noteController,
-              decoration: InputDecoration(
-                hintText: 'Optional confirmation note...',
-                hintStyle: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textMuted,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Are you sure you have verified all work hours, late minutes, and attendance records for this week? Once confirmed, this timesheet will be ready for final payroll locking.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                  height: 1.4,
                 ),
               ),
-              maxLines: 2,
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: noteController,
+                decoration: InputDecoration(
+                  hintText: 'Optional confirmation note...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                ),
+                maxLines: 2,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -382,10 +384,75 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
 
     final timesheet = _controller.timesheet;
     if (timesheet == null) {
-      return const Center(
-        child: Text(
-          'No timesheet records available.',
-          style: TextStyle(color: AppColors.textSecondary),
+      return RefreshIndicator(
+        onRefresh: () async {
+          _clearSelection();
+          await _controller.loadTimesheet();
+        },
+        color: AppColors.primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height * 0.7,
+            ),
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_outlined,
+                    size: 36,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Chưa có lịch tuần làm việc',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Bạn chưa được xếp ca làm việc hoặc chưa có bảng chấm công trong hệ thống. Lịch tuần sẽ hiển thị khi bạn có ca làm việc.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: () => _controller.loadTimesheet(),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Làm mới'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -976,31 +1043,38 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             ),
                           ),
                           if (shift.totalLateMinutes > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: shift.isLateExcused
-                                    ? const Color(0xFFE0F2FE)
-                                    : const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(6),
-                                border: shift.isLateExcused
-                                    ? Border.all(color: const Color(0xFFBAE6FD))
-                                    : null,
-                              ),
-                              child: Text(
-                                shift.isLateExcused
-                                    ? 'Late ${shift.lateDisplay} (Excused)'
-                                    : 'Late ${shift.lateDisplay}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
                                   color: shift.isLateExcused
-                                      ? const Color(0xFF0284C7)
-                                      : const Color(0xFFB45309),
+                                      ? const Color(0xFFE0F2FE)
+                                      : const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: shift.isLateExcused
+                                      ? Border.all(
+                                          color: const Color(0xFFBAE6FD),
+                                        )
+                                      : null,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    shift.isLateExcused
+                                        ? 'Late ${shift.lateDisplay} (Excused)'
+                                        : 'Late ${shift.lateDisplay}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: shift.isLateExcused
+                                        ? const Color(0xFF0284C7)
+                                        : const Color(0xFFB45309),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1010,6 +1084,7 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                     ],
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1033,31 +1108,38 @@ class _StaffTimesheetViewState extends State<StaffTimesheetView> {
                             ),
                           ),
                           if (shift.totalEarlyLeaveMinutes > 0) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: shift.isEarlyLeaveExcused
-                                    ? const Color(0xFFE0F2FE)
-                                    : const Color(0xFFFFEDD5),
-                                borderRadius: BorderRadius.circular(6),
-                                border: shift.isEarlyLeaveExcused
-                                    ? Border.all(color: const Color(0xFFBAE6FD))
-                                    : null,
-                              ),
-                              child: Text(
-                                shift.isEarlyLeaveExcused
-                                    ? 'Early ${shift.earlyLeaveDisplay} (Excused)'
-                                    : 'Early ${shift.earlyLeaveDisplay}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                            const SizedBox(width: 5),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
                                   color: shift.isEarlyLeaveExcused
-                                      ? const Color(0xFF0284C7)
-                                      : const Color(0xFFC2410C),
+                                      ? const Color(0xFFE0F2FE)
+                                      : const Color(0xFFFFEDD5),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: shift.isEarlyLeaveExcused
+                                      ? Border.all(
+                                          color: const Color(0xFFBAE6FD),
+                                        )
+                                      : null,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    shift.isEarlyLeaveExcused
+                                        ? 'Early ${shift.earlyLeaveDisplay} (Excused)'
+                                        : 'Early ${shift.earlyLeaveDisplay}',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: shift.isEarlyLeaveExcused
+                                        ? const Color(0xFF0284C7)
+                                        : const Color(0xFFC2410C),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

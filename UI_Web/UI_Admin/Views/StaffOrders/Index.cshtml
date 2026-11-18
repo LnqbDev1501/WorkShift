@@ -11,7 +11,7 @@
     {
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px]">schedule</span>
-            <span>Bạn hiện đang ngoài ca làm việc. Chức năng tạo đơn hàng và hoàn thành đơn (Complete) sẽ bị vô hiệu hóa cho đến khi vào ca làm việc.</span>
+            <span>You are currently outside your shift hours. Creating and completing orders will remain disabled until your shift starts.</span>
         </div>
     }
 
@@ -60,7 +60,6 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                     <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All Statuses</option>
                     <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                     <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
-                    <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
                 </select>
                 <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
             </div>
@@ -120,7 +119,9 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
 
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isCompleted && !isCancelled ? "" : "bg-surface-container-lowest/70")">
                                 <td class="px-unit-5 py-2">
-                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded">@item.OrderNumber</span>
+                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded break-words" title="@item.OrderNumber">
+                                        @(item.OrderNumber != null && item.OrderNumber.Length > 50 ? item.OrderNumber.Substring(0, 50) + "..." : item.OrderNumber)
+                                    </span>
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
                                     @item.OrderDate.ToString("dd/MM/yyyy HH:mm")

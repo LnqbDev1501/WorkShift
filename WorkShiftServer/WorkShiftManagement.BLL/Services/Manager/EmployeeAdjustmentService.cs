@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -18,7 +18,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             || actor.Role.RoleName is not ("ADMIN" or "MANAGER" or "ACCOUNTANT")
             || requiredRole != null && actor.Role.RoleName != requiredRole
             || actor.Role.RoleName != "ADMIN" && !actor.BranchId.HasValue)
-            throw new UnauthorizedAccessException("TÃ i khoáº£n khÃ´ng cÃ³ quyá»n xá»­ lÃ½ thÆ°á»Ÿng/pháº¡t.");
+            throw new UnauthorizedAccessException("You are not authorized to manage employee rewards/penalties.");
         return actor;
     }
     
@@ -30,7 +30,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     private static readonly string[] MutablePeriodStatuses = ["DRAFT", "OPEN"];
     private static bool MutablePeriod(PayrollPeriod? p) => p == null || MutablePeriodStatuses.Contains(p.Status);
     private static void CheckPeriod(PayrollPeriod? p)
-    { if (p != null && !MutablePeriod(p)) throw new InvalidOperationException("Ká»³ Ä‘Ã£ quyáº¿t toÃ¡n/Ä‘Ã³ng hoáº·c khÃ´ng há»£p lá»‡; chá»‰ Ä‘Æ°á»£c xem thÆ°á»Ÿng/pháº¡t."); }
+    { if (p != null && !MutablePeriod(p)) throw new InvalidOperationException("The payroll period is settled/closed or invalid; reward/penalty is read-only."); }
 
     public static (DateOnly WeekStart, DateOnly Today) GetCurrentWeekBounds()
     {
@@ -43,9 +43,9 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     private async Task<EmployeeRewardsPenalty> Item(int id, string type, User actor, bool tracking, CancellationToken ct)
     {
         Type(type);
-        if (id <= 0) throw new ArgumentException("ID thÆ°á»Ÿng/pháº¡t khÃ´ng há»£p lá»‡.");
+        if (id <= 0) throw new ArgumentException("Invalid reward/penalty ID.");
         return await repo.FindAsync(id, type, Scope(actor), tracking, ct)
-            ?? throw new KeyNotFoundException("KhÃ´ng tÃ¬m tháº¥y khoáº£n Ä‘Ãºng loáº¡i thÆ°á»Ÿng/pháº¡t trong pháº¡m vi Ä‘Æ°á»£c phÃ©p.");
+            ?? throw new KeyNotFoundException("Employee reward/penalty record not found within your authorized scope.");
     }
     
     private static void Validate(SaveEmployeeAdjustmentRequest r)
@@ -53,18 +53,18 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         if (r == null || r.UserId == Guid.Empty
             || string.IsNullOrWhiteSpace(r.AdjustmentName) || r.AdjustmentName.Trim().Length > 100
             || string.IsNullOrWhiteSpace(r.Reason) || r.Reason.Trim().Length > 500)
-            throw new ArgumentException("Cáº§n chá»n nhÃ¢n viÃªn, nháº­p tÃªn khoáº£n (tá»‘i Ä‘a 100 kÃ½ tá»±) vÃ  lÃ½ do (tá»‘i Ä‘a 500 kÃ½ tá»±).");
+            throw new ArgumentException("Please select an employee, enter an item name (max 100 chars), and enter a reason (max 500 chars).");
 
         var (weekStart, today) = GetCurrentWeekBounds();
         var date = r.AdjustmentDate ?? today;
         if (date < weekStart)
-            throw new ArgumentException("Chá»‰ Ä‘Æ°á»£c táº¡o Ä‘Æ¡n thÆ°á»Ÿng/pháº¡t cho cÃ¡c ngÃ y trong tuáº§n hiá»‡n táº¡i (tá»« thá»© Hai Ä‘áº¿n hÃ´m nay).");
+            throw new ArgumentException("Applicable date must be within the current week (from Monday to today).");
         if (date > today)
-            throw new ArgumentException("KhÃ´ng thá»ƒ táº¡o Ä‘Æ¡n thÆ°á»Ÿng/pháº¡t cho ngÃ y trong tÆ°Æ¡ng lai.");
+            throw new ArgumentException("Cannot create employee reward/penalty for a future date.");
 
         // Existing source column is NUMERIC(18,2); reject unsupported precision rather than silently round money.
-        if (r.Amount <= 0 || r.Amount > 9999999999999999.99m || r.Amount != decimal.Truncate(r.Amount * 100) / 100)
-            throw new ArgumentException("Sá»‘ tiá»n pháº£i lá»›n hÆ¡n 0, tá»‘i Ä‘a 16 chá»¯ sá»‘ nguyÃªn vÃ  2 chá»¯ sá»‘ tháº­p phÃ¢n; há»‡ thá»‘ng khÃ´ng tá»± lÃ m trÃ²n.");
+        if (r.Amount < 1000m || r.Amount > 9999999999999999.99m || r.Amount != decimal.Truncate(r.Amount * 100) / 100)
+            throw new ArgumentException("Amount must be at least 1,000 VND, max 16 integer digits and 2 decimal places.");
     }
     
     private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, CancellationToken ct)
@@ -73,11 +73,11 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         var effectiveBranchId = branchId ?? (actor.BranchId ?? 0);
         var staff = await repo.StaffAsync(r.UserId, effectiveBranchId, ct);
         if (staff == null || staff.DeletedAt != null || staff.Status != "ACTIVE" || staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE")
-            throw new ArgumentException("Nhân viên phải là Staff đang hoạt động thuộc chi nhánh của Manager.");
+            throw new ArgumentException("Employee must be an active staff member in the manager's branch.");
 
         var hasContract = await repo.StaffHasContractAsync(r.UserId, effectiveBranchId, ct);
         if (!hasContract)
-            throw new ArgumentException("Chỉ được tạo thưởng/phạt cho nhân viên đã có hợp đồng.");
+            throw new ArgumentException("Reward/penalty can only be created for employees with an active contract.");
 
         if (r.PayrollPeriodId.HasValue && r.PayrollPeriodId.Value > 0)
         {
@@ -89,7 +89,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     private async Task Pending(EmployeeRewardsPenalty item, CancellationToken ct)
     {
         if (item.PayrollPeriod != null) CheckPeriod(item.PayrollPeriod);
-        if (item.ApprovalStatus != "PENDING") throw new InvalidOperationException("Chá»‰ xá»­ lÃ½ khoáº£n Ä‘ang PENDING; khoáº£n Ä‘Ã£ duyá»‡t/tá»« chá»‘i khÃ´ng Ä‘Æ°á»£c sá»­a, xÃ³a hoáº·c duyá»‡t láº¡i.");
+        if (item.ApprovalStatus != "PENDING") throw new InvalidOperationException("Only PENDING items can be processed; approved/rejected items cannot be edited, deleted, or re-evaluated.");
         if (item.PayrollId != null || await repo.HasPayrollSourceAsync(item.RewardPenaltyId, ct))
             throw new InvalidOperationException("Adjustment item is linked to Payroll data; direct source modification prohibited.");
     }
@@ -108,7 +108,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         {
             RewardPenaltyId = a.RewardPenaltyId, AdjustmentType = a.AdjustmentType, UserId = a.UserId,
             EmployeeName = a.User?.FullName ?? "", BranchId = branchId, BranchName = a.PayrollPeriod?.BranchNameSnapshot ?? a.User?.Branch?.BranchName ?? "",
-            PayrollPeriodId = a.PayrollPeriodId ?? 0, PeriodCode = a.PayrollPeriod?.PeriodCode ?? "N/A", PeriodName = a.PayrollPeriod?.PeriodName ?? "Theo ngày",
+            PayrollPeriodId = a.PayrollPeriodId ?? 0, PeriodCode = a.PayrollPeriod?.PeriodCode ?? "N/A", PeriodName = a.PayrollPeriod?.PeriodName ?? "Daily",
             PeriodStart = a.PayrollPeriod?.StartDate ?? (a.AdjustmentDate ?? DateOnly.MinValue), PeriodEnd = a.PayrollPeriod?.EndDate ?? (a.AdjustmentDate ?? DateOnly.MinValue),
             PeriodStatus = a.PayrollPeriod?.Status ?? "", AdjustmentDate = a.AdjustmentDate,
             AdjustmentName = a.AdjustmentName, Amount = a.Amount, Reason = a.Reason, ApprovalStatus = a.ApprovalStatus ?? "",
@@ -128,11 +128,11 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         if (q == null || q.Page < 1 || q.PageSize is < 1 or > 100 || (long)(q.Page - 1) * q.PageSize > int.MaxValue
             || q.UserId == Guid.Empty || q.PayrollPeriodId <= 0 || q.BranchId <= 0 || q.Keyword?.Length > 200
             || q.CreatedFrom > q.CreatedTo || q.CreatedFrom == DateOnly.MinValue || q.CreatedTo == DateOnly.MaxValue)
-            throw new ArgumentException("Bá»™ lá»c hoáº·c phÃ¢n trang khÃ´ng há»£p lá»‡.");
+            throw new ArgumentException("Invalid filter or pagination parameters.");
         var status = string.IsNullOrWhiteSpace(q.ApprovalStatus) ? null : q.ApprovalStatus.Trim().ToUpperInvariant();
-        if (status != null && status is not ("PENDING" or "APPROVED" or "REJECTED")) throw new ArgumentException("Tráº¡ng thÃ¡i duyá»‡t khÃ´ng há»£p lá»‡.");
+        if (status != null && status is not ("PENDING" or "APPROVED" or "REJECTED")) throw new ArgumentException("Invalid approval status.");
         var scope = Scope(actor);
-        if (scope.HasValue && q.BranchId.HasValue && q.BranchId != scope) throw new UnauthorizedAccessException("KhÃ´ng Ä‘Æ°á»£c xem thÆ°á»Ÿng/pháº¡t cá»§a chi nhÃ¡nh khÃ¡c.");
+        if (scope.HasValue && q.BranchId.HasValue && q.BranchId != scope) throw new UnauthorizedAccessException("Cannot access employee rewards/penalties from another branch.");
         var from = q.CreatedFrom.HasValue ? DateTime.SpecifyKind(q.CreatedFrom.Value.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc) : (DateTime?)null;
         var to = q.CreatedTo.HasValue ? DateTime.SpecifyKind(q.CreatedTo.Value.AddDays(1).ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc) : (DateTime?)null;
         var (items, count) = await repo.ListAsync(type, new(string.IsNullOrWhiteSpace(q.Keyword) ? null : q.Keyword.Trim(), q.UserId,
@@ -207,7 +207,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "MANAGER", ct); var item = await Item(itemId, type, actor, true, ct);
         await Pending(item, ct); var old = Snapshot(item);
-        item.IsDeleted = true; item.DeletedBy = id; item.DeletedAt = DateTime.UtcNow; item.DeletionReason = "Manager xÃ³a khoáº£n Ä‘ang chá» duyá»‡t.";
+        item.IsDeleted = true; item.DeletedBy = id; item.DeletedAt = DateTime.UtcNow; item.DeletionReason = "Deleted pending item by manager.";
         repo.Audit(id, "DELETE_EMPLOYEE_" + type, item, old); await repo.SaveAsync(ct); await tx.CommitAsync(ct);
     }
     
@@ -225,7 +225,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     public async Task<EmployeeAdjustmentResponse> ReviewAsync(Guid id, string type, int itemId, bool approve, ReviewEmployeeAdjustmentRequest r, CancellationToken ct)
     {
         if (r == null || r.ReviewNote?.Length > 1000 || !approve && string.IsNullOrWhiteSpace(r.ReviewNote))
-            throw new ArgumentException("Reject báº¯t buá»™c lÃ½ do; ghi chÃº duyá»‡t/tá»« chá»‘i tá»‘i Ä‘a 1000 kÃ½ tá»±.");
+            throw new ArgumentException("Rejection reason is required; review note cannot exceed 1000 characters.");
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "ADMIN", ct); var item = await Item(itemId, type, actor, true, ct);
         await Pending(item, ct); var old = Snapshot(item); var now = DateTime.UtcNow;
@@ -235,12 +235,12 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             if (staff == null || staff.DeletedAt != null || staff.Status != "ACTIVE"
                 || staff.Role == null || staff.Role.RoleName != "STAFF" || staff.Role.Status != "ACTIVE"
                 || !staff.BranchId.HasValue || staff.BranchId.Value <= 0)
-                throw new ArgumentException("Nhân viên phải là Staff đang hoạt động thuộc chi nhánh hợp lệ.");
+                throw new ArgumentException("Employee must be an active staff member in a valid branch.");
 
             var staffBranchId = staff.BranchId.Value;
             var hasContract = await repo.StaffHasContractAsync(item.UserId, staffBranchId, ct);
             if (!hasContract)
-                throw new ArgumentException("Chỉ được duyệt thưởng/phạt cho nhân viên đã có hợp đồng.");
+                throw new ArgumentException("Reward/penalty can only be approved for employees with an active contract.");
 
             if (item.PayrollPeriodId.HasValue && item.PayrollPeriodId.Value > 0)
             {
@@ -249,7 +249,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
                 {
                     CheckPeriod(period);
                     if (period.BranchId != staffBranchId)
-                        throw new ArgumentException("Kỳ lương không thuộc chi nhánh của nhân viên.");
+                        throw new ArgumentException("The payroll period does not belong to the employee's branch.");
                 }
             }
         }

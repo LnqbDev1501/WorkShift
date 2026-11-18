@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace">
-    @if (shift is not null) { <a class="ms-back" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@shift.ScheduleWeekId">← Back to weekly schedule</a> }
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;">
+    @if (shift is not null) { <a class="ms-back" asp-controller="ManagerSchedule" asp-action="Details" asp-route-id="@shift.ScheduleWeekId"><span class="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span><span>Back to weekly schedule</span></a> }
     <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / SHIFT #@Model.Id</span><h1>@(shift?.ShiftName ?? "Shift Details")</h1><p>Review shift requirements and manage employee assignments.</p></div><a class="ad-refresh" asp-action="Details" asp-route-id="@Model.Id">Refresh</a></header>
     @if (TempData["ShiftSuccess"] is string success) { <div class="ms-success" role="status">@success</div> }
     @if (TempData["ShiftError"] is string error) { <div class="ad-error" role="alert">@error</div> }

@@ -102,13 +102,7 @@ class HomeController extends ChangeNotifier {
   EligibleShiftModel? get unCheckedOutPreviousShift =>
       _todayShift?.unfinishedPreviousShift;
 
-  bool get isFaceNotRegistered =>
-      !_hasRegisteredFace ||
-      (_shiftErrorMessage != null &&
-          (_shiftErrorMessage!.toLowerCase().contains('face profile') ||
-              _shiftErrorMessage!.toLowerCase().contains(
-                'register your face',
-              )));
+  bool get isFaceNotRegistered => !_hasRegisteredFace;
 
   // Lấy tên hiển thị
   String get displayName {
@@ -214,10 +208,6 @@ class HomeController extends ChangeNotifier {
       } catch (shiftErr) {
         _shiftErrorMessage = shiftErr.toString();
         _todayShift = null;
-        if (_shiftErrorMessage!.toLowerCase().contains('face profile') ||
-            _shiftErrorMessage!.toLowerCase().contains('register your face')) {
-          _hasRegisteredFace = false;
-        }
       }
 
       _isLoading = false;

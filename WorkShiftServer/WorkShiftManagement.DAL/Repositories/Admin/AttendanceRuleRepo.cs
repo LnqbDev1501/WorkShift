@@ -43,6 +43,16 @@ public class AttendanceRuleRepo : IAttendanceRuleRepo
                 cancellationToken);
     }
 
+    public Task<AttendanceRule?> GetRuleByEffectiveDateAsync(DateOnly effectiveFrom, int? excludeId, CancellationToken cancellationToken) =>
+        _context.AttendanceRules
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                r => r.EffectiveFrom == effectiveFrom
+                     && (!excludeId.HasValue || r.AttendanceRuleId != excludeId.Value)
+                     && r.Status != StatusCancelled
+                     && r.Status != "INACTIVE",
+                cancellationToken);
+
     public Task<AttendanceRule?> GetByIdAsync(int id, CancellationToken cancellationToken) =>
         _context.AttendanceRules
             .AsNoTracking()

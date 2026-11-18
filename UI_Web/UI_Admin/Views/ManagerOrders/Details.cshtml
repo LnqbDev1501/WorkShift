@@ -4,15 +4,18 @@
     ViewData["Title"] = "Order Details";
 }
 
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex items-center">
+        <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Orders</span>
+        </a>
+    </div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4 pb-2">
-        <div class="flex items-center gap-3">
-            <a asp-action="Index" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface transition-colors shrink-0 shadow-sm" title="Back to Orders">
-                <span class="material-symbols-outlined text-[20px]">arrow_back</span>
-            </a>
-            <div class="flex flex-col">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex flex-col min-w-0">
                 <div class="list-eyebrow">Order Management</div>
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.OrderNumber</h1>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words break-all [overflow-wrap:anywhere]">@Model.OrderNumber</h1>
                 <p class="font-body-md text-secondary mt-0.5">Order details and payment management.</p>
             </div>
         </div>
@@ -67,11 +70,11 @@
                             @foreach (var item in Model.Items)
                             {
                                 <tr class="hover:bg-slate-50/50">
-                                    <td class="px-5 py-3.5 font-medium text-slate-900">@item.ProductName</td>
-                                    <td class="px-4 py-3.5 text-slate-600">@item.UnitPrice.ToString("N0") VND</td>
+                                    <td class="px-5 py-3.5 font-medium text-slate-900 break-words max-w-xs" title="@item.ProductName">@(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)</td>
+                                    <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@item.Quantity</td>
-                                    <td class="px-4 py-3.5 text-slate-600">@item.DiscountAmount.ToString("N0") VND</td>
-                                    <td class="px-5 py-3.5 text-right font-semibold text-slate-900">@item.TotalAmount.ToString("N0") VND</td>
+                                    <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>
+                                    <td class="px-5 py-3.5 text-right font-semibold text-slate-900">@CurrencyHelper.FormatVnd(item.TotalAmount)</td>
                                 </tr>
                             }
                         </tbody>
@@ -80,11 +83,11 @@
                 <div class="px-5 py-4 border-t border-slate-100 bg-slate-50/50 space-y-2">
                     <div class="flex justify-between text-sm">
                         <span class="text-slate-600">Subtotal</span>
-                        <span class="font-medium">@Model.Subtotal.ToString("N0") VND</span>
+                        <span class="font-medium">@CurrencyHelper.FormatVnd(Model.Subtotal)</span>
                     </div>
                     <div class="flex justify-between text-base font-bold">
                         <span>Total</span>
-                        <span class="text-indigo-600">@Model.TotalAmount.ToString("N0") VND</span>
+                        <span class="text-indigo-600">@CurrencyHelper.FormatVnd(Model.TotalAmount)</span>
                     </div>
                 </div>
             </div>
@@ -103,7 +106,7 @@
                                     <p class="font-medium text-slate-900">@payment.PaymentMethod</p>
                                     <p class="text-xs text-slate-500">@payment.RecordedAt.ToString("dd/MM/yyyy HH:mm") — @payment.RecordedByName</p>
                                 </div>
-                                <span class="font-semibold text-emerald-600">@payment.Amount.ToString("N0") VND</span>
+                                <span class="font-semibold text-emerald-600">@CurrencyHelper.FormatVnd(payment.Amount)</span>
                             </div>
                         }
                     </div>
@@ -146,33 +149,6 @@
                     }
                 </div>
             </div>
-
-            @if (Model.Status == "PENDING")
-            {
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-100">
-                        <h2 class="font-semibold text-slate-900">Actions</h2>
-                    </div>
-                    <div class="px-5 py-4">
-                        <div class="grid grid-cols-2 gap-2">
-                            <form asp-action="Complete" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.OrderId" />
-                                <button type="submit" class="w-full h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
-                                    Complete
-                                </button>
-                            </form>
-                            <form asp-action="Cancel" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.OrderId" />
-                                <button type="submit" class="w-full h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors cursor-pointer">
-                                    Cancel
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            }
         </div>
     </div>
 </div>

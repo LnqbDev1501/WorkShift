@@ -10,10 +10,14 @@
     <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/manager-shifts.css" asp-append-version="true" />
 }
-<div class="accountant-dashboard schedule-page ms-workspace"><a class="ms-back" asp-action="Details" asp-route-id="@Model.Id">← Back to shift</a><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / ASSIGNMENTS</span><h1>Cancel Shift Assignment</h1><p>Provide a reason for removing the employee from this shift.</p></div></header>
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;"><header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / ASSIGNMENTS</span><h1>Cancel Shift Assignment</h1><p>Provide a reason for removing the employee from this shift.</p></div></header>
     @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
     @if (assignment is not null && Model.Shift is { } shift) { <section class="ad-card ms-edit-form"><h2 class="ms-delete-dates">@assignment.FullName</h2><p>@shift.ShiftName · Assignment #@assignmentId</p><p>@S.Time(shift.ScheduledStartAt) – @S.Time(shift.ScheduledEndAt) · UTC+7</p>
-        @if (Model.CanChangeAssignments && assignment.Status == "ASSIGNED") { <form asp-action="CancelAssignment" asp-route-id="@Model.Id" asp-route-assignmentId="@assignmentId" method="post"><div asp-validation-summary="All" class="ms-validation" role="alert"></div><div class="ms-form-field sh-cancel-reason"><label for="Reason">Cancellation reason</label>@Html.TextArea("Reason", null, new { rows = 4, maxlength = 500, required = "required" })<p>Required · Up to 500 characters.</p></div><div class="ms-delete-warning">The employee will receive a cancellation notification. Related pending swap requests may also be cancelled.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Keep assignment</a><button class="ms-danger-button" type="submit">Cancel assignment</button></div></form> }
-        else { <div class="ms-delete-warning">This assignment cannot be cancelled in its current state.</div> }
+        @if (Model.CanChangeAssignments && assignment.Status == "ASSIGNED") { <form asp-action="CancelAssignment" asp-route-id="@Model.Id" asp-route-assignmentId="@assignmentId" method="post"><div asp-validation-summary="All" class="ms-validation" role="alert"></div><div class="ms-form-field sh-cancel-reason"><label for="Reason">Cancellation reason</label>@Html.TextArea("Reason", null, new { rows = 4, maxlength = 500, required = "required" })<p>Required · Up to 500 characters.</p></div><div class="ms-delete-warning">The employee will receive a cancellation notification. Related pending swap requests may also be cancelled.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a><button class="ms-danger-button" type="submit">Cancel assignment</button></div></form> }
+        else { <div class="ms-delete-warning">This assignment cannot be cancelled in its current state.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a></div> }
     </section> }
+    else
+    {
+        <div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a></div>
+    }
 </div>

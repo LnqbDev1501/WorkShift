@@ -1,8 +1,8 @@
 @model UI_Admin.Models.SalaryChanges.CreateSalaryChangeViewModel
 @using D = UI_Admin.Models.SalaryChanges.SalaryChangeDisplay
 @{ Layout = "_ManagerLayout"; ViewData["Title"] = "Create Salary Increase Request"; }
-<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
-    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">Create Salary Increase Request</h1><p>Send a salary increase proposal to Admin for approval.</p></div><a asp-action="Index" class="btn btn-secondary inline-flex items-center gap-1.5"><span class="material-symbols-outlined text-[18px]">close</span>Cancel</a></div>
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex flex-wrap justify-between items-center gap-3"><div class="form-heading"><div class="list-eyebrow">People · Compensation</div><h1 class="text-display-lg font-display-lg text-on-surface">Create Salary Increase Request</h1><p>Send a salary increase proposal to Admin for approval.</p></div></div>
     <form asp-action="Create" method="post" class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4" data-salary-form>
         @Html.AntiForgeryToken()
         <div asp-validation-summary="All" class="text-red-700" role="alert"></div>
@@ -11,7 +11,7 @@
         @if (Model.PreviousRequestId.HasValue) { <p class="rounded-xl bg-blue-50 text-blue-700 p-unit-3">New proposal following request #@Model.PreviousRequestId. The previous record is kept.</p> }
         <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-4">
             <div><label asp-for="UserId" class="block text-label-md text-secondary mb-2">Employee *</label><select asp-for="UserId" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl"><option value="">Select employee</option>@foreach (var row in Model.StaffOptions) { <option value="@row.UserId">@row.FullName · @row.Email</option> }</select><span asp-validation-for="UserId" class="text-red-700 text-sm"></span></div>
-            <div><label asp-for="ProposedHourlyRate" class="block text-label-md text-secondary mb-2">Proposed hourly rate (VND/hour) *</label><input asp-for="ProposedHourlyRate" type="number" min="0.01" max="9999999999999999.99" step="0.01" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl" /><span asp-validation-for="ProposedHourlyRate" class="text-red-700 text-sm"></span></div>
+            <div><label asp-for="ProposedHourlyRate" class="block text-label-md text-secondary mb-2">Proposed hourly rate (₫/hour) *</label><input asp-for="ProposedHourlyRate" type="number" min="0.01" max="9999999999999999.99" step="0.01" required class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl" /><span asp-validation-for="ProposedHourlyRate" class="text-red-700 text-sm"></span></div>
             <div><label asp-for="ProposedEffectiveFrom" class="block text-label-md text-secondary mb-2">Proposed effective date *</label><input asp-for="ProposedEffectiveFrom" type="date" min="@D.NextMonday.ToString("yyyy-MM-dd")" required data-monday class="w-full h-[44px] px-3 border border-surface-container-high rounded-xl" /><p class="text-xs text-secondary mt-2">Select Monday from @D.Date(D.NextMonday) onward.</p><span asp-validation-for="ProposedEffectiveFrom" class="text-red-700 text-sm"></span></div>
         </div>
         <div><label asp-for="Reason" class="block text-label-md text-secondary mb-2">Reason *</label><textarea asp-for="Reason" rows="4" maxlength="1000" required class="w-full px-3 py-3 border border-surface-container-high rounded-xl"></textarea><span asp-validation-for="Reason" class="text-red-700 text-sm"></span></div>

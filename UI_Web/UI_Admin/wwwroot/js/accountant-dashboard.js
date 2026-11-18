@@ -5,7 +5,7 @@
     const currentMonth = Number(chart.dataset.currentMonth);
     const rows = [...chart.querySelectorAll('[data-salary-month]')];
     const tabs = [...chart.querySelectorAll('[data-metric]')];
-    const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
+    const money = value => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const labels = { GrossSalary: 'Gross Salary', TotalDeduction: 'Deductions', NetSalary: 'Net Salary' };
     const keys = { GrossSalary: 'grossSalary', TotalDeduction: 'totalDeduction', NetSalary: 'netSalary' };
