@@ -16,7 +16,11 @@ public interface INotificationRepo
 
     Task<WorkShiftManagement.DAL.Entities.Notification?> GetByIdAsync(int notificationId);
 
+    Task<User?> GetActiveAdminByIdAsync(Guid userId);
+
     Task<User?> GetActiveAdminByEmailAsync(string email);
+
+    Task<User?> GetAnyActiveAdminAsync();
 
     Task<bool> IsActiveRegionAsync(int regionId);
 

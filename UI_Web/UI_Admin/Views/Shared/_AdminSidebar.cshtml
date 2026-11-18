@@ -212,12 +212,11 @@
                                         <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Employee Penalties</span>
                                     </a>
                                     <partial name="_PayrollDocumentNavigation" model='"Admin"' />
-                                    <a asp-controller="Notifications" asp-action="Personal"
+                                    <a asp-controller="Notifications" asp-action="BroadcastHistory"
                                        class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Notifications" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
-                                       title="Notifications">
-                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">notifications</span>
-                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Notifications</span>
-                                        @await Component.InvokeAsync("NotificationBadge")
+                                       title="Broadcast History">
+                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">campaign</span>
+                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Broadcast History</span>
                                     </a>
                                     <a asp-controller="Categories" asp-action="Index"
                                        class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController == "Categories" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"

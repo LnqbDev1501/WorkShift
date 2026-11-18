@@ -28,8 +28,8 @@ public sealed class NotificationApiService
 
         AddParameter(parameters, "search", query.Search);
         AddParameter(parameters, "type", query.Type);
-        AddParameter(parameters, "dateFrom", query.DateFrom?.ToString("O"));
-        AddParameter(parameters, "dateTo", query.DateTo?.ToString("O"));
+        AddParameter(parameters, "dateFrom", query.DateFrom?.ToString("yyyy-MM-dd"));
+        AddParameter(parameters, "dateTo", query.DateTo?.ToString("yyyy-MM-dd"));
 
         using var response = await _httpClient.GetAsync(
             $"{_apiBaseUrl}/api/admin/notifications?{string.Join('&', parameters)}",
@@ -71,7 +71,12 @@ public sealed class NotificationApiService
             $"{_apiBaseUrl}/api/admin/notifications/broadcast",
             request,
             cancellationToken);
-        response.EnsureSuccessStatusCode();
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+            throw new InvalidOperationException(error ?? "Unable to broadcast notification.");
+        }
 
         return await response.Content.ReadFromJsonAsync<BroadcastResultViewModel>(cancellationToken)
             ?? throw new InvalidOperationException("The notification API returned an empty response.");
@@ -139,6 +144,17 @@ public sealed class NotificationApiService
         return true;
     }
 
+    public async Task<bool> MarkAllAsReadAsync(CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.PostAsync(
+            $"{_apiBaseUrl}/api/notifications/personal/read-all",
+            null,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+        return true;
+    }
+
     public async Task<BroadcastHistoryPageViewModel> GetBroadcastHistoryAsync(
         BroadcastHistoryPageViewModel query,
         CancellationToken cancellationToken)
@@ -153,8 +169,8 @@ public sealed class NotificationApiService
 
         AddParameter(parameters, "search", query.Search);
         AddParameter(parameters, "type", query.Type);
-        AddParameter(parameters, "dateFrom", query.DateFrom?.ToString("O"));
-        AddParameter(parameters, "dateTo", query.DateTo?.ToString("O"));
+        AddParameter(parameters, "dateFrom", query.DateFrom?.ToString("yyyy-MM-dd"));
+        AddParameter(parameters, "dateTo", query.DateTo?.ToString("yyyy-MM-dd"));
 
         using var response = await _httpClient.GetAsync(
             $"{_apiBaseUrl}/api/notifications/broadcast?{string.Join('&', parameters)}",

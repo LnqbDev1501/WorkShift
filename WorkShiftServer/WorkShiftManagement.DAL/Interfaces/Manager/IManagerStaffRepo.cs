@@ -23,7 +23,7 @@ public interface IManagerStaffRepo
 
     Task<User> CreateStaffAsync(User staff, Guid managerId);
 
-    Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string identityNo, string gender, DateOnly? dateOfBirth, string? address);
+    Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string gender, DateOnly? dateOfBirth, string? address);
 
     Task<bool> SoftDeleteStaffAsync(Guid staffId, int managerBranchId);
 

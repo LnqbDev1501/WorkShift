@@ -60,7 +60,6 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                     <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All Statuses</option>
                     <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                     <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
-                    <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
                 </select>
                 <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
             </div>

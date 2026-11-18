@@ -12,6 +12,8 @@ public interface IPersonalNotificationService
 
     Task<bool> MarkAsReadAsync(Guid userId, int userNotificationId);
 
+    Task<int> MarkAllAsReadAsync(Guid userId);
+
     Task<int> GetUnreadCountAsync(Guid userId);
 }
 

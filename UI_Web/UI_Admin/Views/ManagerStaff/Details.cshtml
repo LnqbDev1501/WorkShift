@@ -31,6 +31,13 @@
                 <span class="w-2 h-2 rounded-full @(isPending ? "bg-amber-500" : isActive ? "bg-emerald-500" : "bg-gray-400")"></span>
                 @(isPending ? "PENDING" : Model.Status)
             </span>
+            @if (isActive || isPending)
+            {
+                <a asp-controller="ManagerStaff" asp-action="Edit" asp-route-id="@Model.UserId" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-on-primary hover:bg-primary-container text-sm font-medium transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit</span>
+                </a>
+            }
         </div>
     </div>
 
@@ -164,6 +171,10 @@
             }
             @if (isActive || isPending)
             {
+                <a asp-controller="ManagerStaff" asp-action="Edit" asp-route-id="@Model.UserId" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit Staff</span>
+                </a>
                 <form asp-controller="ManagerStaff" asp-action="Deactivate" method="post">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@Model.UserId" />

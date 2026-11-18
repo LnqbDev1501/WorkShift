@@ -112,25 +112,17 @@ public sealed class ManagerStaffApiService
         return (false, await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken));
     }
 
-        public async Task<(bool Success, string? ErrorMessage)> UpdateStaffAsync(
+    public async Task<(bool Success, string? ErrorMessage)> UpdateStaffAsync(
         Guid staffId,
         EditStaffAccountViewModel model,
         CancellationToken cancellationToken = default)
     {
         var content = new MultipartFormDataContent();
-        content.Add(new StringContent(model.FullName ?? ""), "fullName");
-        content.Add(new StringContent(model.Phone ?? ""), "phone");
-        content.Add(new StringContent(model.IdentityNo ?? ""), "identityNo");
-        content.Add(new StringContent(model.Gender ?? ""), "gender");
+        content.Add(new StringContent(model.FullName?.Trim() ?? ""), "fullName");
+        content.Add(new StringContent(model.Phone?.Trim() ?? ""), "phone");
+        content.Add(new StringContent(model.Gender?.Trim() ?? ""), "gender");
         content.Add(new StringContent(model.DateOfBirth?.ToString("yyyy-MM-dd") ?? ""), "dateOfBirth");
-        content.Add(new StringContent(model.Address ?? ""), "address");
-
-        if (model.ImageFile != null && model.ImageFile.Length > 0)
-        {
-            var fileContent = new StreamContent(model.ImageFile.OpenReadStream());
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(model.ImageFile.ContentType ?? "application/octet-stream");
-            content.Add(fileContent, "imageFile", model.ImageFile.FileName);
-        }
+        content.Add(new StringContent(model.Address?.Trim() ?? ""), "address");
 
         using var response = await _httpClient.PutAsync(
             $"{_apiBaseUrl}/api/manager/staff/{staffId}",

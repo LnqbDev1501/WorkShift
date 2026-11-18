@@ -181,7 +181,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Request body cannot be null.");
         }
 
-        var (fullName, phone, identityNo, gender, dateOfBirth, address) = ValidateUpdateFields(request);
+        var (fullName, phone, gender, dateOfBirth, address) = ValidateUpdateFields(request);
 
         var staff = await _staffRepo.GetStaffByIdAsync(staffId, branchId);
         if (staff == null || staff.BranchId != branchId)
@@ -194,14 +194,13 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Deactivated staff cannot be edited. Restore the account first.");
         }
 
-        await ValidateUpdateFieldsAsync(phone, identityNo, branchId, staff.UserId);
+        await ValidateUpdateFieldsAsync(phone, branchId, staff.UserId);
 
         var updated = await _staffRepo.UpdateStaffAsync(
             staffId,
             branchId,
             fullName,
             phone,
-            identityNo,
             gender,
             dateOfBirth,
             address);
@@ -360,7 +359,7 @@ public class ManagerStaffService : IManagerStaffService
         return normalized;
     }
 
-    private static (string FullName, string Phone, string IdentityNo, string Gender, DateOnly? DateOfBirth, string? Address)
+    private static (string FullName, string Phone, string Gender, DateOnly? DateOfBirth, string? Address)
         ValidateUpdateFields(UpdateStaffAccountRequest request)
     {
         var fullName = request.FullName?.Trim();
@@ -373,12 +372,6 @@ public class ManagerStaffService : IManagerStaffService
         if (!Regex.IsMatch(phone ?? string.Empty, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
         {
             throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, valid prefix: 032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
-        }
-
-        var identityNo = request.IdentityNo?.Trim();
-        if (!Regex.IsMatch(identityNo ?? string.Empty, IdentityNoPattern))
-        {
-            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         }
 
         var gender = request.Gender?.Trim().ToUpperInvariant();
@@ -400,7 +393,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
 
-        return (fullName!, phone!, identityNo!, gender!, request.DateOfBirth, address);
+        return (fullName!, phone!, gender!, request.DateOfBirth, address);
     }
 
     private async Task ValidateStaffFieldsAsync(CreateStaffAccountRequest request, int branchId)
@@ -484,6 +477,10 @@ public class ManagerStaffService : IManagerStaffService
         {
             throw new ArgumentException("Date of birth cannot be in the future.");
         }
+        if (dateOfBirth < new DateOnly(1900, 1, 1))
+        {
+            throw new ArgumentException("Date of birth must be on or after January 1, 1900.");
+        }
         if (dateOfBirth > today.AddYears(-18))
         {
             throw new ArgumentException("Staff must be at least 18 years old.");
@@ -494,18 +491,12 @@ public class ManagerStaffService : IManagerStaffService
         }
     }
 
-    private async Task ValidateUpdateFieldsAsync(string phone, string identityNo, int branchId, Guid excludeUserId)
+    private async Task ValidateUpdateFieldsAsync(string phone, int branchId, Guid excludeUserId)
     {
         var trimmedPhone = phone.Trim();
         if (await _context.Users.AsNoTracking().AnyAsync(u => u.Phone == trimmedPhone && u.UserId != excludeUserId && u.DeletedAt == null))
         {
-            throw new ArgumentException("Phone number is already in use.");
-        }
-
-        var trimmedIdentity = identityNo.Trim();
-        if (await _staffRepo.ExistsByIdentityNoAsync(trimmedIdentity, excludeUserId))
-        {
-            throw new ArgumentException("Identity number is already in use.");
+            throw new InvalidOperationException("Phone number is already in use.");
         }
     }
 

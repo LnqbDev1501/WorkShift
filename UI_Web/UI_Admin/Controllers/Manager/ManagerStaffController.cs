@@ -114,6 +114,12 @@ public class ManagerStaffController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        if (detail.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["ErrorMessage"] = "Deactivated staff cannot be edited. Restore the account first.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         return View(new EditStaffAccountViewModel
         {
             UserId = detail.UserId,
@@ -125,7 +131,9 @@ public class ManagerStaffController : Controller
             DateOfBirth = detail.DateOfBirth,
             Address = detail.Address ?? string.Empty,
             Status = detail.Status,
-            Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken)
+            AvatarUrl = detail.AvatarUrl,
+            BranchName = detail.BranchName,
+            BranchCode = detail.BranchCode
         });
     }
 
@@ -135,20 +143,45 @@ public class ManagerStaffController : Controller
     {
         if (id != model.UserId) return BadRequest();
 
+        var phoneRegex = new System.Text.RegularExpressions.Regex(@"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$");
+        if (string.IsNullOrWhiteSpace(model.Phone) || !phoneRegex.IsMatch(model.Phone.Trim()))
+        {
+            ModelState.AddModelError(nameof(model.Phone), "Phone number must be a valid 10-digit Vietnamese mobile number (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
+        }
+
+        if (!model.DateOfBirth.HasValue)
+        {
+            ModelState.AddModelError(nameof(model.DateOfBirth), "Date of birth is required.");
+        }
+        else
+        {
+            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (model.DateOfBirth.Value < new DateOnly(1900, 1, 1))
+            {
+                ModelState.AddModelError(nameof(model.DateOfBirth), "Date of birth must be on or after January 1, 1900.");
+            }
+            else if (model.DateOfBirth.Value > today)
+            {
+                ModelState.AddModelError(nameof(model.DateOfBirth), "Date of birth cannot be in the future.");
+            }
+            else if (model.DateOfBirth.Value > today.AddYears(-18))
+            {
+                ModelState.AddModelError(nameof(model.DateOfBirth), "Staff must be at least 18 years old.");
+            }
+        }
+
         if (!ModelState.IsValid)
         {
-            model.Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
             return View(model);
         }
 
         var (success, errorMessage) = await _managerStaffApiService.UpdateStaffAsync(id, model, cancellationToken);
         if (success)
         {
-            TempData["SuccessMessage"] = $"Staff account '{model.Email}' updated successfully.";
-            return RedirectToAction(nameof(Index));
+            TempData["SuccessMessage"] = $"Staff account '{model.FullName}' updated successfully.";
+            return RedirectToAction(nameof(Details), new { id });
         }
 
-        model.Categories = await _categoryApiService.GetActiveOptionsAsync(cancellationToken);
         ModelState.AddModelError(string.Empty, errorMessage ?? "Failed to update staff account.");
         return View(model);
     }

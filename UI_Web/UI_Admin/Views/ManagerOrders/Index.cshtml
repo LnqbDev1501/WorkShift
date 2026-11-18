@@ -31,13 +31,6 @@
                         <option value="all">All Statuses</option>
                         <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                         <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
-                        <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
-                    </select></div>
-            <div class="ws-filter-field"><select aria-label="Payment status" name="paymentStatus">
-                        <option value="all">All Payment</option>
-                        <option value="PAID" selected="@(Model.PaymentStatusFilter == "PAID")">Paid</option>
-                        <option value="PARTIAL" selected="@(Model.PaymentStatusFilter == "PARTIAL")">Partial</option>
-                        <option value="UNPAID" selected="@(Model.PaymentStatusFilter == "UNPAID")">Unpaid</option>
                     </select></div>
             <details class="ws-filter-advanced">
                 <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>

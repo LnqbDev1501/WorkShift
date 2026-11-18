@@ -130,6 +130,7 @@ new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N
                                         <a asp-controller="ManagerStaff" asp-action="Details" asp-route-id="@item.UserId" class="ws-icon-action" title="View details" aria-label="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
                                         @if (isActive || isPending)
                                         {
+                                            <a asp-controller="ManagerStaff" asp-action="Edit" asp-route-id="@item.UserId" class="ws-icon-action" title="Edit staff account" aria-label="Edit staff account"><span class="material-symbols-outlined" aria-hidden="true">edit</span></a>
                                             <button type="button"
                                                     data-id="@item.UserId"
                                                     data-name="@item.FullName"
