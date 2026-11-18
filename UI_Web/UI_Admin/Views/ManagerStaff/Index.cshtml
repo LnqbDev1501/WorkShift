@@ -89,8 +89,8 @@ new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N
                                         @item.FullName.Split(' ').TakeLast(2).Select(w => char.ToUpperInvariant(w[0])).Select(c => c.ToString()).Aggregate((a, b) => a + b)
                                     </div>
                                 </td>
-                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary") truncate max-w-[200px]">
-                                    @item.FullName
+                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary") truncate max-w-[200px]" title="@item.FullName">
+                                    @(item.FullName != null && item.FullName.Length > 50 ? item.FullName.Substring(0, 50) + "..." : item.FullName)
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary break-all">@item.Email</td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">@item.Phone</td>
@@ -169,7 +169,7 @@ new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N
                 </div>
                 <div class="flex-1">
                     <h2 class="font-title-lg text-title-lg text-on-surface">Deactivate Staff</h2>
-                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface" id="deactivate-target-name">this staff</strong>?</p>
+                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface break-words break-all" id="deactivate-target-name">this staff</strong>?</p>
                 </div>
                 <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button" onclick="closeStaffModal('deactivate-staff-modal')">
                     <span class="material-symbols-outlined text-[20px]">close</span>
@@ -197,7 +197,7 @@ new("Inactive Staff", Model.Items.Count(x => x.Status == "INACTIVE").ToString("N
                 </div>
                 <div class="flex-1">
                     <h2 class="font-title-lg text-title-lg text-on-surface">Restore Staff</h2>
-                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface" id="restore-target-name">this staff</strong>?</p>
+                    <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface break-words break-all" id="restore-target-name">this staff</strong>?</p>
                 </div>
                 <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button" onclick="closeStaffModal('restore-staff-modal')">
                     <span class="material-symbols-outlined text-[20px]">close</span>

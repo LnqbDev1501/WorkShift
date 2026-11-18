@@ -86,7 +86,32 @@
             <h2>Welcome back</h2>
             <p class="ws-auth-sub">Sign in to your WorkShift workspace to manage shifts, people and payroll.</p>
             <form asp-action="Login" method="post" novalidate>
-                <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+                @{
+                    var modelErrors = ViewData.ModelState.ContainsKey(string.Empty)
+                        ? ViewData.ModelState[string.Empty]!.Errors.Select(e => e.ErrorMessage).ToList()
+                        : new List<string>();
+                }
+                @if (modelErrors.Count > 0)
+                {
+                    <div class="validation-summary-errors" id="login-error-alert" role="alert">
+                        <ul>
+                            @foreach (var error in modelErrors)
+                            {
+                                <li>@error</li>
+                            }
+                        </ul>
+                        <button type="button" class="ws-alert-close" id="close-error-alert" aria-label="Close" title="Close notification">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors" style="display:none;"></div>
+                }
                 <input asp-for="ReturnUrl" type="hidden" />
                 <div class="ws-field">
                     <label asp-for="Email">Work email</label>
@@ -148,6 +173,33 @@
                 });
             });
             input?.addEventListener('blur', function () { caps.classList.remove('show'); });
+
+            // Dismiss error alert on close button click
+            var closeBtn = document.getElementById('close-error-alert');
+            closeBtn?.addEventListener('click', function () {
+                var alert = document.getElementById('login-error-alert') || this.closest('.validation-summary-errors');
+                if (alert) {
+                    alert.style.transition = 'opacity .2s ease, transform .2s ease';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'scale(0.95)';
+                    setTimeout(function () {
+                        alert.remove();
+                    }, 200);
+                }
+            });
+
+            // If user reloaded the page (F5 / browser refresh), ensure error notification disappears
+            try {
+                var navEntries = window.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation') : null;
+                var isReload = (navEntries && navEntries.length > 0 && navEntries[0].type === 'reload') ||
+                               (window.performance && performance.navigation && performance.navigation.type === 1);
+                if (isReload) {
+                    var alertEl = document.getElementById('login-error-alert');
+                    if (alertEl) alertEl.remove();
+                    var summaryEls = document.querySelectorAll('.validation-summary-errors');
+                    summaryEls.forEach(function (el) { el.remove(); });
+                }
+            } catch (_) {}
         })();
     </script>
 }

@@ -220,9 +220,9 @@
                                 </span>
                             </div>
 
-                            <h3 class="text-sm sm:text-base @(item.IsRead ? "font-medium text-gray-500" : "font-bold text-gray-900") hover:text-blue-600 transition-colors line-clamp-2">
+                            <h3 class="text-sm sm:text-base @(item.IsRead ? "font-medium text-gray-500" : "font-bold text-gray-900") hover:text-blue-600 transition-colors line-clamp-2 break-words break-all" title="@item.Title">
                                 <a asp-action="PersonalDetail" asp-route-id="@item.UserNotificationId">
-                                    @item.Title
+                                    @(item.Title != null && item.Title.Length > 50 ? item.Title.Substring(0, 50) + "..." : item.Title)
                                 </a>
                             </h3>
 

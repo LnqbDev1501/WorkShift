@@ -180,8 +180,8 @@
                                 </span>
                             </div>
 
-                            <h3 class="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                                @item.Title
+                            <h3 class="text-[15px] font-bold text-gray-900 group-hover:text-blue-600 transition-colors truncate" title="@item.Title">
+                                @(item.Title != null && item.Title.Length > 50 ? item.Title.Substring(0, 50) + "..." : item.Title)
                             </h3>
 
                             <div class="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-gray-500">

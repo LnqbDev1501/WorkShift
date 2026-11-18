@@ -35,7 +35,13 @@ namespace UI_Admin.Controllers
             if (User.Identity?.IsAuthenticated == true)
                 return RedirectToRoleLanding();
 
-            return View(new LoginViewModel { ReturnUrl = returnUrl });
+            var email = TempData["LoginEmail"] as string ?? string.Empty;
+            if (TempData["LoginError"] is string error && !string.IsNullOrWhiteSpace(error))
+            {
+                ModelState.AddModelError(string.Empty, error);
+            }
+
+            return View(new LoginViewModel { ReturnUrl = returnUrl, Email = email });
         }
 
         [HttpPost]
@@ -44,7 +50,15 @@ namespace UI_Admin.Controllers
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
-                return View(model);
+            {
+                var firstError = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .FirstOrDefault(msg => !string.IsNullOrWhiteSpace(msg));
+                TempData["LoginError"] = firstError ?? "Please fill in all required fields.";
+                TempData["LoginEmail"] = model.Email;
+                return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
+            }
 
             try
             {
@@ -52,8 +66,9 @@ namespace UI_Admin.Controllers
 
                 if (string.Equals(login.Role, "STAFF", StringComparison.OrdinalIgnoreCase))
                 {
-                    ModelState.AddModelError(string.Empty, "Employees need to log in via the mobile app.");
-                    return View(model);
+                    TempData["LoginError"] = "Employees need to log in via the mobile app.";
+                    TempData["LoginEmail"] = model.Email;
+                    return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
                 }
                 var claims = new[]
                 {
@@ -90,13 +105,15 @@ namespace UI_Admin.Controllers
             }
             catch (InvalidOperationException exception)
             {
-                ModelState.AddModelError(string.Empty, exception.Message);
-                return View(model);
+                TempData["LoginError"] = exception.Message;
+                TempData["LoginEmail"] = model.Email;
+                return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
             }
             catch (HttpRequestException)
             {
-                ModelState.AddModelError(string.Empty, "The authentication service is temporarily unavailable. Please try again.");
-                return View(model);
+                TempData["LoginError"] = "The authentication service is temporarily unavailable. Please try again.";
+                TempData["LoginEmail"] = model.Email;
+                return RedirectToAction(nameof(Login), new { returnUrl = model.ReturnUrl });
             }
         }
 

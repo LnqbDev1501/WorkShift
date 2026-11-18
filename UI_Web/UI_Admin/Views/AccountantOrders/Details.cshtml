@@ -12,10 +12,10 @@
         </a>
     </div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4 pb-2">
-        <div class="flex items-center gap-3">
-            <div class="flex flex-col">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex flex-col min-w-0">
                 <div class="list-eyebrow">Order Management</div>
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.OrderNumber</h1>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words break-all [overflow-wrap:anywhere]">@Model.OrderNumber</h1>
                 <p class="font-body-md text-secondary mt-0.5">Order details and invoice.</p>
             </div>
         </div>
@@ -62,7 +62,7 @@
                             @foreach (var item in Model.Items)
                             {
                                 <tr class="hover:bg-slate-50/50">
-                                    <td class="px-5 py-3.5 font-medium text-slate-900">@item.ProductName</td>
+                                    <td class="px-5 py-3.5 font-medium text-slate-900 break-words max-w-xs" title="@item.ProductName">@(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@item.Quantity</td>
                                     <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>

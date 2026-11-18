@@ -272,7 +272,7 @@
         <div class="space-y-1">
             <h3 class="text-[18px] font-semibold text-[#191c2a]">Deactivate User Account?</h3>
             <p class="text-[14px] text-[#5b6074]">
-                Are you sure you want to deactivate <strong id="deactivateUserNameText" class="text-[#191c2a] font-semibold"></strong>? This will revoke system access and mark the account as Inactive.
+                Are you sure you want to deactivate <strong id="deactivateUserNameText" class="text-[#191c2a] font-semibold break-words break-all"></strong>? This will revoke system access and mark the account as Inactive.
             </p>
         </div>
         <form asp-action="Delete" method="post" id="deactivateUserForm" class="w-full space-y-2">
@@ -322,7 +322,7 @@
                     var isInactive = user.Status.Equals("INACTIVE", StringComparison.OrdinalIgnoreCase);
                     var isPending = user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase);
                     <tr class="@(isInactive ? "deleted-row" : null)">
-                        <td><div class="user-cell">@if (!string.IsNullOrWhiteSpace(user.AvatarUrl)) { <img class="avatar-image" src="@user.AvatarUrl" alt="" /> } else { <span class="initials @(isInactive ? "muted" : null)">@user.Initials</span> }<div><div class="user-name">@user.FullName @if (user.DeletedAt.HasValue) { <span class="deleted-label">Deleted</span> }</div><div class="user-email">@user.Email</div></div></div></td>
+                        <td><div class="user-cell">@if (!string.IsNullOrWhiteSpace(user.AvatarUrl)) { <img class="avatar-image" src="@user.AvatarUrl" alt="" /> } else { <span class="initials @(isInactive ? "muted" : null)">@user.Initials</span> }<div><div class="user-name" title="@user.FullName">@(user.FullName != null && user.FullName.Length > 50 ? user.FullName.Substring(0, 50) + "..." : user.FullName) @if (user.DeletedAt.HasValue) { <span class="deleted-label">Deleted</span> }</div><div class="user-email break-all">@user.Email</div></div></div></td>
                         <td>@user.Phone</td><td><span class="pill">@DisplayName(user.RoleName)</span></td>
                         <td>@(user.BranchName ?? "�") @if (!string.IsNullOrWhiteSpace(user.PreviousBranchName)) { <span class="previous">Prev: @user.PreviousBranchName</span> }</td>
                         <td><span class="pill status @(isPending ? "pending" : isInactive ? "inactive" : null)"><i class="dot"></i>@(isPending ? "Pending Activation" : DisplayName(user.Status))</span></td>

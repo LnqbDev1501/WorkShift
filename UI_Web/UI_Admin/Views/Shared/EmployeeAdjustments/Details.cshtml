@@ -20,10 +20,10 @@
         <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span>
     </div>
     <div class="flex flex-wrap justify-between items-center gap-3">
-        <div class="form-heading">
+        <div class="form-heading min-w-0 flex-1">
             <div class="list-eyebrow">People · Compensation</div>
-            <h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1>
-            <p>@label #@row.RewardPenaltyId · @row.BranchName</p>
+            <h1 class="text-display-lg font-display-lg text-on-surface break-words break-all [overflow-wrap:anywhere]">@row.EmployeeName</h1>
+            <p class="break-words break-all">@label #@row.RewardPenaltyId · @row.BranchName</p>
         </div>
     </div>
     <partial name="~/Views/Shared/EmployeeAdjustments/_Messages.cshtml" />
@@ -34,26 +34,26 @@
         new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range", "#0891b2"),
         new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule", "#4f46e5")
     })' />
-    <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
+    <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4 min-w-0">
         <h2 class="text-title-lg font-semibold">Item information</h2>
         <dl class="grid grid-cols-1 md:grid-cols-3 gap-unit-4 text-body-md">
-            <div><dt class="text-secondary">Employee</dt><dd>@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
-            <div><dt class="text-secondary">Branch</dt><dd>@row.BranchName · #@row.BranchId</dd></div>
-            <div><dt class="text-secondary">Item name</dt><dd>@row.AdjustmentName</dd></div>
-            <div><dt class="text-secondary">Applicable date</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
-            <div><dt class="text-secondary">Payroll period</dt><dd>@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
-            <div><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
-            <div><dt class="text-secondary">Created by</dt><dd>@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Employee</dt><dd class="break-words break-all">@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Branch</dt><dd class="break-words break-all">@row.BranchName · #@row.BranchId</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Item name</dt><dd class="break-words break-all [overflow-wrap:anywhere]">@row.AdjustmentName</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Applicable date</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Payroll period</dt><dd class="break-words break-all">@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Created by</dt><dd class="break-words break-all">@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>
         </dl>
-        <div><h3 class="text-label-md text-secondary mb-1">Reason</h3><p class="whitespace-pre-wrap break-words">@row.Reason</p></div>
+        <div class="min-w-0"><h3 class="text-label-md text-secondary mb-1">Reason</h3><p class="whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere]">@row.Reason</p></div>
     </section>
     @if (row.ApprovalStatus is "APPROVED" or "REJECTED")
     {
-        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3">
+        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3 min-w-0">
             <h2 class="text-title-lg font-semibold">Admin decision</h2>
             <p>Reviewed: @D.Time(row.ApprovedAt ?? row.RejectedAt) (UTC+7)</p>
             <p class="text-sm break-all text-secondary">Reviewed by: @(row.ApprovedByName ?? row.RejectedByName ?? "—")</p>
-            <p class="whitespace-pre-wrap break-words">@(row.ReviewNote ?? "No review note.")</p>
+            <p class="whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere]">@(row.ReviewNote ?? "No review note.")</p>
         </section>
     }
     @if (canReview)

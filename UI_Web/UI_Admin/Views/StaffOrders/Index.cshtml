@@ -120,7 +120,9 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
 
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isCompleted && !isCancelled ? "" : "bg-surface-container-lowest/70")">
                                 <td class="px-unit-5 py-2">
-                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded">@item.OrderNumber</span>
+                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded break-words" title="@item.OrderNumber">
+                                        @(item.OrderNumber != null && item.OrderNumber.Length > 50 ? item.OrderNumber.Substring(0, 50) + "..." : item.OrderNumber)
+                                    </span>
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
                                     @item.OrderDate.ToString("dd/MM/yyyy HH:mm")
