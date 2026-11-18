@@ -562,13 +562,8 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             }
         }
     }
-    public async Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)
+    private async Task<List<PayrollFeedbackResponse>> LoadReviewRowsAsync(User u, Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)
     {
-        var u = await Actor(actor, ct, "ACCOUNTANT", "STAFF");
-        if (q.Page < 1 || q.PageSize is < 1 or > 100 || (long)(q.Page - 1) * q.PageSize > int.MaxValue || q.Keyword?.Length > 200
-            || q.UserId == Guid.Empty || q.PayrollPeriodId <= 0 || q.Status != null && q.Status is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "EXPLAINED")
-            || q.ReviewStatus != null && q.ReviewStatus is not ("PENDING" or "CONFIRMED" or "FEEDBACK_PENDING" or "SUPERSEDED" or "EXPIRED")) throw new ArgumentException("Invalid filter or pagination parameters.");
-        if (u.Role.RoleName == "STAFF" && q.UserId.HasValue && q.UserId != actor) throw new UnauthorizedAccessException("Staff members can only query their own records.");
         var ids = await repo.ReviewPeriodIdsAsync(u.Role.RoleName == "ACCOUNTANT" ? u.BranchId : null, u.Role.RoleName == "STAFF" ? actor : null, ct);
         var rows = new List<PayrollFeedbackResponse>();
         foreach (var id in ids.Where(id => !q.PayrollPeriodId.HasValue || id == q.PayrollPeriodId))
@@ -577,11 +572,42 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             rows.AddRange(d.Reviews.Where(f => (u.Role.RoleName != "STAFF" || f.EmployeeId == actor) && (!q.UserId.HasValue || f.EmployeeId == q.UserId))
                 .Select(f => Map(d, f, u)));
         }
+        return rows;
+    }
+
+    private static void ValidateListQuery(PayrollFeedbackListRequest q, User u, Guid actor)
+    {
+        if (q.Page < 1 || q.PageSize is < 1 or > 100 || (long)(q.Page - 1) * q.PageSize > int.MaxValue || q.Keyword?.Length > 200
+            || q.UserId == Guid.Empty || q.PayrollPeriodId <= 0 || q.Status != null && q.Status is not ("SUBMITTED" or "APPROVED" or "REJECTED" or "EXPLAINED")
+            || q.ReviewStatus != null && q.ReviewStatus is not ("PENDING" or "CONFIRMED" or "FEEDBACK_PENDING" or "SUPERSEDED" or "EXPIRED")) throw new ArgumentException("Invalid filter or pagination parameters.");
+        if (u.Role.RoleName == "STAFF" && q.UserId.HasValue && q.UserId != actor) throw new UnauthorizedAccessException("Staff members can only query their own records.");
+    }
+
+    public async Task<PagedResponse<PayrollFeedbackResponse>> ListPreviewsAsync(Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)
+    {
+        var u = await Actor(actor, ct, "ACCOUNTANT", "STAFF");
+        ValidateListQuery(q, u, actor);
+        var rows = await LoadReviewRowsAsync(u, actor, q, ct);
         var filtered = rows.Where(f => (q.Status == null || f.Status == q.Status) && (q.ReviewStatus == null || f.ReviewStatus == q.ReviewStatus)
             && (string.IsNullOrWhiteSpace(q.Keyword) || f.EmployeeName.Contains(q.Keyword.Trim(), StringComparison.OrdinalIgnoreCase) || (f.Description ?? "").Contains(q.Keyword.Trim(), StringComparison.OrdinalIgnoreCase)))
             .OrderByDescending(f => f.CreatedAt).ThenByDescending(f => f.FeedbackId).ToList();
         return new() { PageNumber = q.Page, PageSize = q.PageSize, TotalItems = filtered.Count, Items = filtered.Skip((q.Page - 1) * q.PageSize).Take(q.PageSize).ToList() };
     }
+
+    public async Task<PagedResponse<PayrollFeedbackResponse>> ListFeedbacksAsync(Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)
+    {
+        var u = await Actor(actor, ct, "ACCOUNTANT", "STAFF");
+        ValidateListQuery(q, u, actor);
+        var rows = await LoadReviewRowsAsync(u, actor, q, ct);
+        var filtered = rows.Where(f => !string.IsNullOrEmpty(f.Status)
+            && (q.Status == null || f.Status == q.Status) && (q.ReviewStatus == null || f.ReviewStatus == q.ReviewStatus)
+            && (string.IsNullOrWhiteSpace(q.Keyword) || f.EmployeeName.Contains(q.Keyword.Trim(), StringComparison.OrdinalIgnoreCase) || (f.Description ?? "").Contains(q.Keyword.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .OrderByDescending(f => f.CreatedAt).ThenByDescending(f => f.FeedbackId).ToList();
+        return new() { PageNumber = q.Page, PageSize = q.PageSize, TotalItems = filtered.Count, Items = filtered.Skip((q.Page - 1) * q.PageSize).Take(q.PageSize).ToList() };
+    }
+
+    public Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest q, CancellationToken ct)
+        => ListPreviewsAsync(actor, q, ct);
     public async Task<PayrollFeedbackDetailsResponse> GetAsync(Guid actor, int id, CancellationToken ct)
     {
         var u = await Actor(actor, ct, "ACCOUNTANT", "STAFF"); var d = await Data(u, await repo.PeriodForReviewAsync(id, ct), ct); var f = Review(d, id, u);
@@ -633,6 +659,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var root = PayrollPreviewPolicy.Root(d, f);
         var prev = f.PreviousFeedbackId.HasValue ? d.Reviews.FirstOrDefault(r => r.FeedbackId == f.PreviousFeedbackId.Value) : null;
         return new() { FeedbackId = f.FeedbackId, PayrollId = f.PayrollId, PayrollVersionNo = f.Payroll.VersionNo, PayrollPeriodId = d.Period.PayrollPeriodId,
+            PeriodCode = d.Period.PeriodCode, BranchName = d.Period.Branch?.BranchName,
             EmployeeId = f.EmployeeId, EmployeeName = f.Payroll.EmployeeFullNameSnapshot, PreviousFeedbackId = f.PreviousFeedbackId, RoundNo = f.RoundNo,
             ReviewStatus = expired ? "EXPIRED" : f.ReviewStatus, Status = f.Status, Description = f.Description, CreatedAt = f.CreatedAt, SentBy = f.SentBy,
             ReviewDeadlineAt = f.ReviewDeadlineAt, StaffRespondedAt = f.StaffRespondedAt, ProcessedAt = f.ProcessedAt, ProcessedBy = f.ProcessedBy,

@@ -99,8 +99,8 @@
                     <thead>
                         <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                             <th class="py-3.5 px-6">Employee</th>
-                            <th class="py-3.5 px-6">Period &amp; Payslip</th>
-                            <th class="py-3.5 px-6">Reason Code</th>
+                            <th class="py-3.5 px-6">Period &amp; Payroll</th>
+                            <th class="py-3.5 px-6">Feedback Remarks</th>
                             <th class="py-3.5 px-6">Status</th>
                             <th class="py-3.5 px-6">Correction</th>
                             <th class="py-3.5 px-6">Created (UTC+7)</th>
@@ -115,11 +115,11 @@
                                     @f.EmployeeName
                                 </td>
                                 <td class="py-4 px-6">
-                                    <div class="font-medium text-slate-800">@f.PeriodCode • @f.BranchName</div>
-                                    <div class="text-xs text-slate-400 mt-0.5">Payslip #@f.PayslipId · V@(f.PayslipVersionNo)</div>
+                                    <div class="font-medium text-slate-800">@(string.IsNullOrEmpty(f.PeriodCode) ? $"Period #{f.PayrollPeriodId}" : f.PeriodCode)@(string.IsNullOrEmpty(f.BranchName) ? "" : $" • {f.BranchName}")</div>
+                                    <div class="text-xs text-slate-500 mt-0.5 font-medium">Payroll #@f.PayrollId · V@(f.PayrollVersionNo)</div>
                                 </td>
-                                <td class="py-4 px-6 text-xs font-semibold text-slate-700">
-                                    @f.ReasonCode
+                                <td class="py-4 px-6 text-xs text-slate-800 max-w-xs break-words">
+                                    @(string.IsNullOrWhiteSpace(f.Description) ? "—" : f.Description)
                                 </td>
                                 <td class="py-4 px-6">
                                     @if (f.Status == "SUBMITTED")

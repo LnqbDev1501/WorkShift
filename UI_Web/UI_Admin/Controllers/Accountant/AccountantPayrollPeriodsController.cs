@@ -84,7 +84,7 @@ public sealed class AccountantPayrollPeriodsController(
 
             try
             {
-                var feedbackPage = await docs.Get<PayrollFeedbackListResponse>($"/payroll-feedback-requests?payrollPeriodId={id}&pageSize=100", ct);
+                var feedbackPage = await docs.Get<PayrollFeedbackListResponse>($"/payroll-previews?payrollPeriodId={id}&pageSize=100", ct);
                 period.Feedbacks = feedbackPage.Items;
             }
             catch { /* non-blocking optional fetch */ }

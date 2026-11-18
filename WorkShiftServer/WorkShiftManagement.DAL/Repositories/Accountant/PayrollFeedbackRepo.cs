@@ -15,7 +15,7 @@ public sealed class PayrollFeedbackRepo(AppDbContext db, ILogger<PayrollFeedback
 
     public async Task<PayrollReviewData?> LoadAsync(int periodId, CancellationToken ct)
     {
-        var period = await db.PayrollPeriods.SingleOrDefaultAsync(p => p.PayrollPeriodId == periodId, ct);
+        var period = await db.PayrollPeriods.Include(p => p.Branch).SingleOrDefaultAsync(p => p.PayrollPeriodId == periodId, ct);
         if (period == null) return null;
         return new() {
             Period = period,
