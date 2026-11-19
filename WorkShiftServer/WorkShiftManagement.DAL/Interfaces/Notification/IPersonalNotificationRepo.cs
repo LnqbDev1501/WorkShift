@@ -21,6 +21,8 @@ public interface IPersonalNotificationRepo
 
     Task<bool> MarkAsReadAsync(Guid userId, int userNotificationId);
 
+    Task<int> MarkAllAsReadAsync(Guid userId);
+
     Task<int> GetUnreadCountAsync(Guid userId);
 
     Task<(List<WorkShiftManagement.DAL.Entities.Notification> Items, int TotalCount)> GetBroadcastHistoryAsync(

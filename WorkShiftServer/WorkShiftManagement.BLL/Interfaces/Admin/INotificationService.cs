@@ -11,5 +11,5 @@ public interface INotificationService
 
     Task<NotificationAudienceOptionsResponse> GetAudienceOptionsAsync();
 
-    Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request);
+    Task<BroadcastNotificationResponse> BroadcastAsync(BroadcastNotificationRequest request, Guid? senderUserId = null, string? senderEmail = null);
 }

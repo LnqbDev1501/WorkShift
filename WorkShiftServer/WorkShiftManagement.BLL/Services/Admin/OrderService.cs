@@ -107,7 +107,7 @@ public class OrderService : IOrderService
         {
             var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
             if (!inShift)
-                throw new InvalidOperationException("Employees who are off-duty cannot perform this action.");
+                throw new InvalidOperationException("You must be in your shift and checked in to perform this action.");
         }
 
         if (request == null)
@@ -266,7 +266,7 @@ public class OrderService : IOrderService
         {
             var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
             if (!inShift)
-                throw new InvalidOperationException("Employees who are off-duty cannot perform this action.");
+                throw new InvalidOperationException("You must be in your shift and checked in to perform this action.");
         }
 
         if (normalizedStatus == "COMPLETED" && existing.PaymentStatus != "PAID")
@@ -352,7 +352,6 @@ public class OrderService : IOrderService
                             cols.RelativeColumn(2);
                             cols.RelativeColumn();
                             cols.RelativeColumn(2);
-                            cols.RelativeColumn(2);
                         });
 
                         table.Header(header =>
@@ -360,7 +359,6 @@ public class OrderService : IOrderService
                             header.Cell().Element(HeaderCell).Text("Product").Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").Bold();
                             header.Cell().Element(HeaderCell).AlignCenter().Text("SL").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Discount").Bold();
                             header.Cell().Element(HeaderCell).AlignRight().Text("Total Amount").Bold();
                         });
 
@@ -369,7 +367,6 @@ public class OrderService : IOrderService
                             table.Cell().Element(BodyCell).Text(item.ProductName);
                             table.Cell().Element(BodyCell).AlignRight().Text($"{item.UnitPrice:N0}");
                             table.Cell().Element(BodyCell).AlignCenter().Text(item.Quantity.ToString());
-                            table.Cell().Element(BodyCell).AlignRight().Text($"{item.DiscountAmount:N0}");
                             table.Cell().Element(BodyCell).AlignRight().Text($"{item.TotalAmount:N0}");
                         }
                     });

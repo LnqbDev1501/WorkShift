@@ -28,8 +28,8 @@
         }
 
         <!-- Profile Master Header Card -->
-        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5">
-            <div class="flex items-start sm:items-center gap-unit-5">
+        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5 min-w-0">
+            <div class="flex items-start sm:items-center gap-unit-5 min-w-0 flex-1">
                 <div class="relative flex-shrink-0 group">
                     <button type="button" onclick="document.getElementById('avatar-file-input').click()" class="relative block w-20 h-20 rounded-full cursor-pointer" title="Change avatar">
                         @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
@@ -73,9 +73,9 @@
                         </span>
                     }
                 </div>
-                <div class="flex flex-col space-y-1">
+                <div class="flex flex-col space-y-1 min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-unit-3">
-                        <h1 class="font-display-md text-display-md text-on-surface">@Model.FullName</h1>
+                        <h1 class="font-display-md text-display-md text-on-surface break-words break-all [overflow-wrap:anywhere]">@Model.FullName</h1>
                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#6d28d9] text-label-sm font-label-sm border border-[#ddd6fe]">
                             <span class="material-symbols-outlined text-[14px]">account_balance</span>
                             @Model.RoleName.ToUpperInvariant()
@@ -229,9 +229,9 @@
                     <form asp-controller="Auth" asp-action="UpdateProfile" method="post" onsubmit="return validateProfileForm()">
                         @Html.AntiForgeryToken()
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
-                            <div class="flex flex-col gap-unit-2">
+                            <div class="flex flex-col gap-unit-2 min-w-0">
                                 <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Full Name</span>
-                                <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold">@Model.FullName</span>
+                                <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold break-words break-all [overflow-wrap:anywhere]">@Model.FullName</span>
                                 <input name="FullName" type="text" value="@Model.FullName" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
                             </div>
                             <div class="flex flex-col">
@@ -279,11 +279,11 @@
                                 <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5">@(Model.DateOfBirth == default ? "—" : Model.DateOfBirth.ToString("dd/MM/yyyy"))</span>
                                 <input name="DateOfBirth" type="date" value="@(Model.DateOfBirth == default ? "" : Model.DateOfBirth.ToString("yyyy-MM-dd"))" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
                             </div>
-                            <div class="flex flex-col gap-unit-2 sm:col-span-2">
+                            <div class="flex flex-col gap-unit-2 sm:col-span-2 min-w-0">
                                 <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Residential Address</span>
                                 <div class="view-only flex items-center gap-1.5 mt-0.5 text-on-surface">
-                                    <span class="material-symbols-outlined text-[16px] text-secondary">location_on</span>
-                                    <span class="font-body-md-medium text-body-md">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address recorded" : Model.Address)</span>
+                                    <span class="material-symbols-outlined text-[16px] text-secondary shrink-0">location_on</span>
+                                    <span class="font-body-md-medium text-body-md break-words break-all [overflow-wrap:anywhere]">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address recorded" : Model.Address)</span>
                                 </div>
                                 <input name="Address" type="text" value="@Model.Address" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
                             </div>

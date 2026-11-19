@@ -11,7 +11,7 @@
     {
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px]">schedule</span>
-            <span>You are currently outside your shift hours. Creating and completing orders will remain disabled until your shift starts.</span>
+            <span>You are currently outside your shift hours or have not checked in. Creating and completing orders will remain disabled until you check in to your active shift.</span>
         </div>
     }
 
@@ -60,7 +60,6 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                     <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All Statuses</option>
                     <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                     <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
-                    <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
                 </select>
                 <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
             </div>
@@ -120,7 +119,9 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
 
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isCompleted && !isCancelled ? "" : "bg-surface-container-lowest/70")">
                                 <td class="px-unit-5 py-2">
-                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded">@item.OrderNumber</span>
+                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded break-words" title="@item.OrderNumber">
+                                        @(item.OrderNumber != null && item.OrderNumber.Length > 50 ? item.OrderNumber.Substring(0, 50) + "..." : item.OrderNumber)
+                                    </span>
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
                                     @item.OrderDate.ToString("dd/MM/yyyy HH:mm")
@@ -176,7 +177,7 @@ new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"),
                                         @if (!isCompleted && !isCancelled)
                                         {
                                             <form method="post" asp-controller="StaffOrders" asp-action="Complete" asp-route-id="@item.OrderId" class="inline">
-                                                <button type="submit" disabled="@(!isInShift)" title="@(!isInShift ? "Employees who are off-duty cannot perform this action." : "Complete order")" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-body-md-medium text-body-sm transition-colors" onclick="return confirm('Mark this order as completed?');">Complete</button>
+                                                <button type="submit" disabled="@(!isInShift)" title="@(!isInShift ? "You must be in your shift and checked in to perform this action." : "Complete order")" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-body-md-medium text-body-sm transition-colors" onclick="return confirm('Mark this order as completed?');">Complete</button>
                                             </form>
                                             <form method="post" asp-controller="StaffOrders" asp-action="Cancel" asp-route-id="@item.OrderId" class="inline">
                                                 <button type="submit" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-red-700 hover:bg-red-50 font-body-md-medium text-body-sm transition-colors" onclick="return confirm('Cancel this order?');">Cancel</button>

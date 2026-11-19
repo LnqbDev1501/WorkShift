@@ -357,21 +357,28 @@ class _QuickActionsState extends State<QuickActions> {
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
         isGrayedOut: !_isInShift,
-        onTap: () {
-          if (!_isInShift) {
+        onTap: () async {
+          final inShift = await _staffOrderService.getShiftStatus();
+          if (!mounted) return;
+          setState(() => _isInShift = inShift);
+          if (!context.mounted) return;
+          if (!inShift) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Employees who are off-duty cannot perform this action.',
+                  'You must be in your shift and checked in to perform this action.',
                 ),
                 backgroundColor: AppColors.error,
               ),
             );
             return;
           }
-          Navigator.of(
+          await Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
+          if (mounted) {
+            _checkShiftStatus();
+          }
         },
       ),
       // --- Extended actions when expanded ---

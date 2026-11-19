@@ -55,6 +55,7 @@ public class ProductRepo : IProductRepo
                 ProductCode = product.ProductCode,
                 ProductName = product.ProductName,
                 Price = product.Price,
+                ImageUrl = product.ImageUrl,
                 Status = product.Status,
                 CreatedAt = product.CreatedAt,
                 UpdatedAt = product.UpdatedAt
@@ -133,11 +134,13 @@ public class ProductRepo : IProductRepo
         return new ProductData
         {
             ProductId = product.ProductId,
+            BranchId = product.BranchId,
             CategoryId = product.CategoryId,
             CategoryName = categoryName,
             ProductCode = product.ProductCode,
             ProductName = product.ProductName,
             Price = product.Price,
+            ImageUrl = product.ImageUrl,
             Status = product.Status,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt
@@ -167,11 +170,13 @@ public class ProductRepo : IProductRepo
         return new ProductData
         {
             ProductId = product.ProductId,
+            BranchId = product.BranchId,
             CategoryId = product.CategoryId,
             CategoryName = categoryName,
             ProductCode = product.ProductCode,
             ProductName = product.ProductName,
             Price = product.Price,
+            ImageUrl = product.ImageUrl,
             Status = product.Status,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt

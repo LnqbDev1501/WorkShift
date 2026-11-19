@@ -60,8 +60,13 @@
                 @foreach (var row in Model.Items)
                 {
                     <tr class="h-[64px] hover:bg-surface-container-low border-b border-surface-container-low">
-                        <td class="px-5 py-3"><strong>@row.EmployeeName</strong><div class="text-xs text-secondary">@row.BranchName · #@row.RewardPenaltyId</div></td>
-                        <td class="px-4 py-3">@row.AdjustmentName</td>
+                        <td class="px-5 py-3 min-w-0 max-w-[200px]">
+                            <strong class="truncate block" title="@row.EmployeeName">@(row.EmployeeName != null && row.EmployeeName.Length > 50 ? row.EmployeeName.Substring(0, 50) + "..." : row.EmployeeName)</strong>
+                            <div class="text-xs text-secondary truncate">@row.BranchName · #@row.RewardPenaltyId</div>
+                        </td>
+                        <td class="px-4 py-3 max-w-xs break-words" title="@row.AdjustmentName">
+                            @(row.AdjustmentName != null && row.AdjustmentName.Length > 50 ? row.AdjustmentName.Substring(0, 50) + "..." : row.AdjustmentName)
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap font-semibold @(Model.AdjustmentType == EmployeeAdjustmentTypes.Penalty ? "text-red-600" : "text-emerald-600")">@D.Money(row.Amount)</td>
                         <td class="px-4 py-3 whitespace-nowrap font-medium">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : D.Date(row.PeriodStart))<div class="text-xs text-secondary">@(row.PeriodCode != "N/A" && !string.IsNullOrEmpty(row.PeriodCode) ? row.PeriodCode : "Current week")</div></td>
                         <td class="px-4 py-3"><span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span></td>

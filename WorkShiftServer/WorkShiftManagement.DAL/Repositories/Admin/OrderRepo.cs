@@ -384,6 +384,10 @@ public class OrderRepo : IOrderRepo
 
     public async Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, int branchId, DateTime currentUtcTime, CancellationToken cancellationToken = default)
     {
+        var utcNow = currentUtcTime.Kind == DateTimeKind.Utc ? currentUtcTime : DateTime.SpecifyKind(currentUtcTime, DateTimeKind.Utc);
+        var windowStartUtc = utcNow.AddMinutes(-60);
+        var windowEndUtc = utcNow.AddMinutes(60);
+
         return await _context.ShiftAssignments
             .AsNoTracking()
             .AnyAsync(sa =>
@@ -391,10 +395,15 @@ public class OrderRepo : IOrderRepo
                 sa.Status != "CANCELLED" &&
                 sa.Shift.Status != "CANCELLED" &&
                 sa.Shift.ScheduleWeek.BranchId == branchId &&
-                sa.Shift.ScheduledStartAt <= currentUtcTime &&
-                currentUtcTime <= sa.Shift.ScheduledEndAt &&
+                sa.Shift.ScheduledStartAt <= windowEndUtc &&
+                sa.Shift.ScheduledEndAt >= windowStartUtc &&
                 !sa.LeaveRequestAssignments.Any(l => l.Request.RequestType == "LEAVE" && l.Request.Status == "APPROVED") &&
-                (sa.Attendance == null || sa.Attendance.CheckOutTime == null),
+                sa.Attendance != null &&
+                sa.Attendance.CheckInTime != null &&
+                sa.Attendance.CheckInTime <= utcNow &&
+                sa.Attendance.CheckOutTime == null &&
+                sa.Attendance.Status != "ABSENT" &&
+                sa.Attendance.Status != "CANCELLED",
                 cancellationToken);
     }
 

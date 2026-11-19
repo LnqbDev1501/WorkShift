@@ -39,13 +39,6 @@
                         <option value="all">All Statuses</option>
                         <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
                         <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
-                        <option value="CANCELLED" selected="@(Model.StatusFilter == "CANCELLED")">Cancelled</option>
-                    </select></div>
-            <div class="ws-filter-field"><select aria-label="Payment status" name="paymentStatus">
-                        <option value="all">All Payment</option>
-                        <option value="PAID" selected="@(Model.PaymentStatusFilter == "PAID")">Paid</option>
-                        <option value="PARTIAL" selected="@(Model.PaymentStatusFilter == "PARTIAL")">Partial</option>
-                        <option value="UNPAID" selected="@(Model.PaymentStatusFilter == "UNPAID")">Unpaid</option>
                     </select></div>
             <details class="ws-filter-advanced">
                 <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
@@ -101,9 +94,9 @@
                         @foreach (var order in Model.Items)
                         {
                             <tr class="hover:bg-slate-50/80 transition-colors">
-                                <td class="px-5 py-4 font-medium text-slate-900">@order.OrderNumber</td>
-                                <td class="px-4 py-4 text-slate-600">@order.BranchName</td>
-                                <td class="px-4 py-4 text-slate-600">@order.CreatedByName</td>
+                                <td class="px-5 py-4 font-medium text-slate-900 break-words max-w-[180px]" title="@order.OrderNumber">@(order.OrderNumber != null && order.OrderNumber.Length > 50 ? order.OrderNumber.Substring(0, 50) + "..." : order.OrderNumber)</td>
+                                <td class="px-4 py-4 text-slate-600 truncate max-w-[150px]" title="@order.BranchName">@(order.BranchName != null && order.BranchName.Length > 50 ? order.BranchName.Substring(0, 50) + "..." : order.BranchName)</td>
+                                <td class="px-4 py-4 text-slate-600 truncate max-w-[150px]" title="@order.CreatedByName">@(order.CreatedByName != null && order.CreatedByName.Length > 50 ? order.CreatedByName.Substring(0, 50) + "..." : order.CreatedByName)</td>
                                 <td class="px-4 py-4 text-slate-600">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
                                 <td class="px-4 py-4 text-slate-600">@order.ItemCount</td>
                                 <td class="px-4 py-4 font-semibold text-slate-900">@CurrencyHelper.FormatVnd(order.TotalAmount)</td>

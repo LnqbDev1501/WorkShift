@@ -42,9 +42,9 @@
                     }
                     else
                     {
-                        <div class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm flex items-center gap-2">
+                        <div class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
                             <span class="material-symbols-outlined text-[18px] text-slate-400">store</span>
-                            <span>Your Assigned Branch</span>
+                            <span id="branchNameDisplay" class="font-medium text-slate-900">@(string.IsNullOrWhiteSpace(Model.BranchName) ? (ViewBag.BranchName ?? "Your Assigned Branch") : Model.BranchName)</span>
                         </div>
                     }
                 </div>
@@ -57,8 +57,18 @@
                     <input type="date" name="dateTo" value="@Model.DateTo?.ToString("yyyy-MM-dd")" class="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm" />
                 </div>
             </div>
-            <div>
-                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors cursor-pointer">
+
+            <div id="totalOrdersAlert" class="hidden p-4 rounded-xl border text-sm flex items-center gap-2 transition-all">
+                <span class="material-symbols-outlined text-[20px]" id="totalOrdersIcon">info</span>
+                <span id="totalOrdersText" class="font-medium"></span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" id="btnTotalOrders" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold transition-colors cursor-pointer border border-slate-300 shadow-sm">
+                    <span class="material-symbols-outlined text-[18px] text-indigo-600">receipt_long</span>
+                    Total Orders
+                </button>
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors cursor-pointer shadow-sm">
                     <span class="material-symbols-outlined text-[18px]">download</span>
                     Export Excel
                 </button>
@@ -66,3 +76,72 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.getElementById('btnTotalOrders').addEventListener('click', async function () {
+            const dateFrom = document.querySelector('input[name="dateFrom"]').value;
+            const dateTo = document.querySelector('input[name="dateTo"]').value;
+            const branchSelect = document.querySelector('select[name="branchId"]');
+            const branchId = branchSelect ? branchSelect.value : null;
+
+            const btn = this;
+            const alertBox = document.getElementById('totalOrdersAlert');
+            const alertText = document.getElementById('totalOrdersText');
+            const alertIcon = document.getElementById('totalOrdersIcon');
+
+            if (branchSelect && !branchId) {
+                alertBox.className = 'p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-center gap-2';
+                alertIcon.textContent = 'error';
+                alertText.textContent = 'Please select a branch first.';
+                alertBox.classList.remove('hidden');
+                return;
+            }
+
+            if (dateFrom && dateTo && dateFrom > dateTo) {
+                alertBox.className = 'p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-center gap-2';
+                alertIcon.textContent = 'error';
+                alertText.textContent = 'The start date cannot be after the end date.';
+                alertBox.classList.remove('hidden');
+                return;
+            }
+
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="inline-block animate-spin mr-1">↻</span> Counting...';
+
+            try {
+                const params = new URLSearchParams();
+                if (branchId) params.append('branchId', branchId);
+                if (dateFrom) params.append('dateFrom', dateFrom);
+                if (dateTo) params.append('dateTo', dateTo);
+
+                const res = await fetch(`@Url.Action("CountOrders", "AccountantReports")?${params.toString()}`);
+                const data = await res.json();
+                if (data.success) {
+                    alertBox.className = 'p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-center gap-2';
+                    alertIcon.textContent = 'check_circle';
+                    alertText.textContent = data.message || `${data.totalOrders} orders have been found.`;
+                    alertBox.classList.remove('hidden');
+                    if (data.branchName) {
+                        const bDisplay = document.getElementById('branchNameDisplay');
+                        if (bDisplay) bDisplay.textContent = data.branchName;
+                    }
+                } else {
+                    alertBox.className = 'p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-center gap-2';
+                    alertIcon.textContent = 'error';
+                    alertText.textContent = data.message || 'Could not fetch order count.';
+                    alertBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                alertBox.className = 'p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-center gap-2';
+                alertIcon.textContent = 'error';
+                alertText.textContent = 'An error occurred while counting orders.';
+                alertBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    </script>
+}

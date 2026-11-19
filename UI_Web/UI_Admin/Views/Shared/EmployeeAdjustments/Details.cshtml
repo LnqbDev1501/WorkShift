@@ -20,10 +20,10 @@
         <span class="rounded-full px-3 py-1 text-xs font-semibold @D.Badge(row.ApprovalStatus)">@row.ApprovalStatus</span>
     </div>
     <div class="flex flex-wrap justify-between items-center gap-3">
-        <div class="form-heading">
+        <div class="form-heading min-w-0 flex-1">
             <div class="list-eyebrow">People · Compensation</div>
-            <h1 class="text-display-lg font-display-lg text-on-surface">@row.EmployeeName</h1>
-            <p>@label #@row.RewardPenaltyId · @row.BranchName</p>
+            <h1 class="text-display-lg font-display-lg text-on-surface break-words break-all [overflow-wrap:anywhere]">@row.EmployeeName</h1>
+            <p class="break-words break-all">@label #@row.RewardPenaltyId · @row.BranchName</p>
         </div>
     </div>
     <partial name="~/Views/Shared/EmployeeAdjustments/_Messages.cshtml" />
@@ -34,49 +34,61 @@
         new("Period range", D.Date(row.PeriodStart) + " → " + D.Date(row.PeriodEnd), "Payroll window", "date_range", "#0891b2"),
         new("Created", D.Time(row.CreatedAt), "UTC+7", "schedule", "#4f46e5")
     })' />
-    <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
+    <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4 min-w-0">
         <h2 class="text-title-lg font-semibold">Item information</h2>
         <dl class="grid grid-cols-1 md:grid-cols-3 gap-unit-4 text-body-md">
-            <div><dt class="text-secondary">Employee</dt><dd>@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
-            <div><dt class="text-secondary">Branch</dt><dd>@row.BranchName · #@row.BranchId</dd></div>
-            <div><dt class="text-secondary">Item name</dt><dd>@row.AdjustmentName</dd></div>
-            <div><dt class="text-secondary">Applicable date</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
-            <div><dt class="text-secondary">Payroll period</dt><dd>@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
-            <div><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
-            <div><dt class="text-secondary">Created by</dt><dd>@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Employee</dt><dd class="break-words break-all">@row.EmployeeName<div class="text-xs break-all text-secondary">@row.UserId</div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Branch</dt><dd class="break-words break-all">@row.BranchName · #@row.BranchId</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Item name</dt><dd class="break-words break-all [overflow-wrap:anywhere]">@row.AdjustmentName</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Applicable date</dt><dd class="font-semibold text-primary">@(row.AdjustmentDate.HasValue ? D.Date(row.AdjustmentDate) : "—")</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Payroll period</dt><dd class="break-words break-all">@row.PeriodName · #@row.PayrollPeriodId<div class="text-xs text-secondary">@row.PeriodCode · <span class="rounded-full px-2 py-0.5 text-[11px] font-semibold @D.PeriodStatusBadge(row.PeriodStatus)">@row.PeriodStatus</span></div></dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Created (UTC+7)</dt><dd>@D.Time(row.CreatedAt)</dd></div>
+            <div class="min-w-0"><dt class="text-secondary">Created by</dt><dd class="break-words break-all">@(row.CreatedByName ?? "—")<div class="text-xs break-all text-secondary">@row.CreatedBy</div></dd></div>
         </dl>
-        <div><h3 class="text-label-md text-secondary mb-1">Reason</h3><p class="whitespace-pre-wrap break-words">@row.Reason</p></div>
+        <div class="min-w-0"><h3 class="text-label-md text-secondary mb-1">Reason</h3><p class="whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere]">@row.Reason</p></div>
     </section>
     @if (row.ApprovalStatus is "APPROVED" or "REJECTED")
     {
-        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3">
+        <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-3 min-w-0">
             <h2 class="text-title-lg font-semibold">Admin decision</h2>
             <p>Reviewed: @D.Time(row.ApprovedAt ?? row.RejectedAt) (UTC+7)</p>
             <p class="text-sm break-all text-secondary">Reviewed by: @(row.ApprovedByName ?? row.RejectedByName ?? "—")</p>
-            <p class="whitespace-pre-wrap break-words">@(row.ReviewNote ?? "No review note.")</p>
+            <p class="whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere]">@(row.ReviewNote ?? "No review note.")</p>
         </section>
     }
     @if (canReview)
     {
         <section class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-5 flex flex-col gap-unit-4">
             <h2 class="text-title-lg font-semibold">Review @labelLower</h2>
-            @if (!row.CanApprove) { <div role="alert" class="rounded-xl bg-amber-50 text-amber-800 p-unit-3">This @labelLower can no longer be approved (the payroll period is no longer DRAFT/OPEN or the item is linked to payroll).</div> }
-            @if (row.CanApprove)
+            @if (!row.CanApprove)
             {
-                <form asp-action="Approve" asp-route-id="@row.RewardPenaltyId" method="post" class="flex flex-col gap-unit-3">
-                    @Html.AntiForgeryToken()
-                    <div><label for="ApprovalNote" class="block text-label-md text-secondary mb-2">Approval note (optional)</label><textarea id="ApprovalNote" name="Decision.ReviewNote" rows="3" maxlength="1000" class="w-full p-3 border border-surface-container-high rounded-xl">@Model.Decision.ReviewNote</textarea></div>
-                    <div><button type="submit" class="btn btn-primary">Approve @labelLower</button></div>
-                </form>
+                <div role="alert" class="rounded-xl bg-amber-50 text-amber-800 p-unit-3">This @labelLower can no longer be approved (the payroll period is no longer DRAFT/OPEN or the item is linked to payroll).</div>
             }
-            @if (row.CanReject)
-            {
-                <form asp-action="Reject" asp-route-id="@row.RewardPenaltyId" method="post" class="border-t border-surface-container-low pt-4 flex flex-col gap-unit-3">
-                    @Html.AntiForgeryToken()
-                    <div><label for="RejectionNote" class="block text-label-md text-secondary mb-2">Rejection reason *</label><textarea id="RejectionNote" name="Decision.ReviewNote" rows="3" required maxlength="1000" class="w-full p-3 border border-surface-container-high rounded-xl">@Model.Decision.ReviewNote</textarea><span asp-validation-for="Decision.ReviewNote" class="text-red-700"></span></div>
-                    <div><button type="submit" class="btn btn-secondary text-red-700">Reject @labelLower</button></div>
-                </form>
-            }
+
+            <form method="post" id="review-form" class="flex flex-col gap-unit-4">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label for="ReviewNote" class="block text-label-md text-secondary mb-2">Review note <span class="text-xs text-secondary font-normal">(optional for approve, required for reject)</span></label>
+                    <textarea id="ReviewNote" name="Decision.ReviewNote" rows="3" maxlength="1000" placeholder="Enter review note or rejection reason..." class="w-full p-3 border border-surface-container-high rounded-xl bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-1 focus:ring-primary-container">@Model.Decision.ReviewNote</textarea>
+                    <span id="review-note-error" class="hidden text-error font-body-sm text-body-sm text-xs text-red-500 mt-1 block">A rejection reason is required when rejecting.</span>
+                    <span asp-validation-for="Decision.ReviewNote" class="text-red-700 text-xs mt-1 block"></span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    @if (row.CanApprove)
+                    {
+                        <button type="submit" asp-action="Approve" asp-route-id="@row.RewardPenaltyId" onclick="return handleApprove()" class="btn btn-primary cursor-pointer inline-flex items-center gap-2">
+                            <span>Approve @labelLower</span>
+                        </button>
+                    }
+                    @if (row.CanReject)
+                    {
+                        <button type="submit" asp-action="Reject" asp-route-id="@row.RewardPenaltyId" onclick="return validateReject()" class="btn btn-secondary text-red-700 cursor-pointer inline-flex items-center gap-2">
+                            <span>Reject @labelLower</span>
+                        </button>
+                    }
+                </div>
+            </form>
         </section>
     }
     @if (manager && row.CanUpdate)
@@ -86,11 +98,117 @@
             <p class="text-secondary">Only a pending @label.ToLowerInvariant() in your branch can be changed before Admin decides.</p>
             <div class="flex flex-wrap gap-3">
                 <a asp-action="Edit" asp-route-id="@row.RewardPenaltyId" class="btn btn-secondary">Edit</a>
-                <form asp-action="Delete" asp-route-id="@row.RewardPenaltyId" method="post" onsubmit="return confirm('Delete this @label.ToLowerInvariant()? This cannot be undone.');">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-secondary text-red-700">Delete</button>
-                </form>
+                <button type="button" id="open-delete-modal-btn" class="btn btn-secondary text-red-700 cursor-pointer">Delete</button>
             </div>
         </section>
+
+        <!-- Delete Confirmation Modal Dialog -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs transition-opacity duration-200 hidden" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+            <div class="relative w-full max-w-lg bg-surface-container-lowest rounded-xl shadow-xl overflow-hidden p-unit-6 flex flex-col gap-unit-4">
+                <div class="flex items-start gap-unit-3">
+                    <div class="w-10 h-10 rounded-xl bg-error-container text-error flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[24px]">warning</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="font-title-lg text-title-lg text-on-surface" id="delete-modal-title">Delete @label</h2>
+                        <p class="font-body-sm text-body-sm text-secondary mt-1">
+                            Are you sure you want to delete <strong class="text-on-surface break-words break-all">@(string.IsNullOrWhiteSpace(row.AdjustmentName) ? $"{label} #{row.RewardPenaltyId}" : row.AdjustmentName)</strong>?
+                        </p>
+                    </div>
+                    <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors cursor-pointer" id="close-delete-modal-btn" type="button" aria-label="Close">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                </div>
+                <div class="p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                    <p>Deleting this @labelLower will permanently remove it from the system.</p>
+                    <p>This action cannot be undone.</p>
+                </div>
+                <form method="post" asp-action="Delete" asp-route-id="@row.RewardPenaltyId" id="delete-form" class="flex items-center justify-end gap-unit-3 pt-unit-2">
+                    @Html.AntiForgeryToken()
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors cursor-pointer" id="cancel-delete-modal-btn" type="button">Cancel</button>
+                    <button class="h-[40px] px-unit-4 rounded-xl bg-error hover:bg-error-container hover:text-on-error-container text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" id="confirm-delete-btn" type="submit">Delete @label</button>
+                </form>
+            </div>
+        </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        function validateReject() {
+            const note = document.getElementById('ReviewNote');
+            const err = document.getElementById('review-note-error');
+            if (!note || !note.value.trim()) {
+                if (err) {
+                    err.innerText = 'A rejection reason is required when rejecting.';
+                    err.classList.remove('hidden');
+                }
+                if (note) {
+                    note.focus();
+                    note.classList.add('border-red-500');
+                }
+                return false;
+            }
+            if (err) err.classList.add('hidden');
+            if (note) note.classList.remove('border-red-500');
+            return true;
+        }
+
+        function handleApprove() {
+            const err = document.getElementById('review-note-error');
+            const note = document.getElementById('ReviewNote');
+            if (err) err.classList.add('hidden');
+            if (note) note.classList.remove('border-red-500');
+            return true;
+        }
+
+        (function () {
+            const reviewNote = document.getElementById('ReviewNote');
+            if (reviewNote) {
+                reviewNote.addEventListener('input', function () {
+                    if (this.value.trim()) {
+                        const err = document.getElementById('review-note-error');
+                        if (err) err.classList.add('hidden');
+                        this.classList.remove('border-red-500');
+                    }
+                });
+            }
+
+            const deleteModal = document.getElementById('delete-modal');
+            const openDeleteBtn = document.getElementById('open-delete-modal-btn');
+            const closeDeleteBtn = document.getElementById('close-delete-modal-btn');
+            const cancelDeleteBtn = document.getElementById('cancel-delete-modal-btn');
+
+            const toggleDeleteModal = (show) => {
+                if (!deleteModal) return;
+                if (show) {
+                    deleteModal.classList.remove('hidden');
+                } else {
+                    deleteModal.classList.add('hidden');
+                }
+            };
+
+            if (openDeleteBtn) {
+                openDeleteBtn.addEventListener('click', () => toggleDeleteModal(true));
+            }
+            if (closeDeleteBtn) {
+                closeDeleteBtn.addEventListener('click', () => toggleDeleteModal(false));
+            }
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', () => toggleDeleteModal(false));
+            }
+
+            if (deleteModal) {
+                deleteModal.addEventListener('click', (e) => {
+                    if (e.target === deleteModal) toggleDeleteModal(false);
+                });
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && deleteModal && !deleteModal.classList.contains('hidden')) {
+                    toggleDeleteModal(false);
+                }
+            });
+        })();
+    </script>
+}

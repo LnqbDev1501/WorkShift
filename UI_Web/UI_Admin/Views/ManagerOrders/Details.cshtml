@@ -12,10 +12,10 @@
         </a>
     </div>
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-unit-4 pb-2">
-        <div class="flex items-center gap-3">
-            <div class="flex flex-col">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+            <div class="flex flex-col min-w-0">
                 <div class="list-eyebrow">Order Management</div>
-                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.OrderNumber</h1>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words break-all [overflow-wrap:anywhere]">@Model.OrderNumber</h1>
                 <p class="font-body-md text-secondary mt-0.5">Order details and payment management.</p>
             </div>
         </div>
@@ -62,7 +62,6 @@
                                 <th class="px-5 py-3">Product</th>
                                 <th class="px-4 py-3">Unit Price</th>
                                 <th class="px-4 py-3">Qty</th>
-                                <th class="px-4 py-3">Discount</th>
                                 <th class="px-5 py-3 text-right">Total</th>
                             </tr>
                         </thead>
@@ -70,10 +69,9 @@
                             @foreach (var item in Model.Items)
                             {
                                 <tr class="hover:bg-slate-50/50">
-                                    <td class="px-5 py-3.5 font-medium text-slate-900">@item.ProductName</td>
+                                    <td class="px-5 py-3.5 font-medium text-slate-900 break-words max-w-xs" title="@item.ProductName">@(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                                     <td class="px-4 py-3.5 text-slate-600">@item.Quantity</td>
-                                    <td class="px-4 py-3.5 text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>
                                     <td class="px-5 py-3.5 text-right font-semibold text-slate-900">@CurrencyHelper.FormatVnd(item.TotalAmount)</td>
                                 </tr>
                             }
@@ -149,33 +147,6 @@
                     }
                 </div>
             </div>
-
-            @if (Model.Status == "PENDING")
-            {
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="px-5 py-4 border-b border-slate-100">
-                        <h2 class="font-semibold text-slate-900">Actions</h2>
-                    </div>
-                    <div class="px-5 py-4">
-                        <div class="grid grid-cols-2 gap-2">
-                            <form asp-action="Complete" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.OrderId" />
-                                <button type="submit" class="w-full h-10 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors cursor-pointer">
-                                    Complete
-                                </button>
-                            </form>
-                            <form asp-action="Cancel" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@Model.OrderId" />
-                                <button type="submit" class="w-full h-10 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors cursor-pointer">
-                                    Cancel
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            }
         </div>
     </div>
 </div>

@@ -55,6 +55,14 @@ public sealed class PersonalNotificationController : ControllerBase
         return result ? Ok(new { success = true }) : NotFound();
     }
 
+    [HttpPost("read-all")]
+    public async Task<IActionResult> MarkAllAsRead()
+    {
+        var userId = GetCurrentUserId();
+        var count = await _service.MarkAllAsReadAsync(userId);
+        return Ok(new { success = true, count });
+    }
+
     private Guid GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst("sub")?.Value

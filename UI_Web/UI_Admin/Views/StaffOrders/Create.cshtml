@@ -26,8 +26,8 @@
                 <div class="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-center gap-3 text-amber-800">
                     <span class="material-symbols-outlined text-[24px] text-amber-600">warning</span>
                     <div>
-                        <p class="font-body-md-medium">You are currently outside your assigned shift hours.</p>
-                        <p class="font-body-sm text-amber-700">By policy, staff members can only create orders during their assigned shift hours.</p>
+                        <p class="font-body-md-medium">You are currently outside your assigned shift hours or have not checked in.</p>
+                        <p class="font-body-sm text-amber-700">By policy, staff members can only create orders during their assigned shift after checking in.</p>
                     </div>
                 </div>
             }
@@ -108,7 +108,7 @@
                 <a asp-controller="StaffOrders" asp-action="Index" class="inline-flex items-center justify-center h-[40px] px-unit-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-body-md-medium transition-colors">Cancel</a>
                                 @if (ViewBag.IsInShift == false)
                 {
-                    <button type="submit" disabled class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container text-secondary font-body-md-medium opacity-50 cursor-not-allowed" title="Employees who are off-duty cannot perform this action.">
+                    <button type="submit" disabled class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container text-secondary font-body-md-medium opacity-50 cursor-not-allowed" title="You must be in your shift and checked in to perform this action.">
                         <span class="material-symbols-outlined text-[20px]">block</span>
                         <span>Create Order</span>
                     </button>

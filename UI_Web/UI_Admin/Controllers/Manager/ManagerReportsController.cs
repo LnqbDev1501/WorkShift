@@ -12,9 +12,36 @@ namespace UI_Admin.Controllers;
 public class ManagerReportsController(ManagerReportApiService api) : Controller
 {
     [HttpGet]
-    public IActionResult BranchSales()
+    public async Task<IActionResult> BranchSales(CancellationToken ct = default)
     {
+        try
+        {
+            var summary = await api.GetBranchSalesSummaryAsync(null, null, ct);
+            ViewBag.BranchName = summary.BranchName;
+        }
+        catch
+        {
+            ViewBag.BranchName = "Assigned Branch";
+        }
         return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CountOrders(DateTime? dateFrom, DateTime? dateTo, CancellationToken ct = default)
+    {
+        try
+        {
+            var summary = await api.GetBranchSalesSummaryAsync(dateFrom, dateTo, ct);
+            return Json(new { success = true, totalOrders = summary.TotalOrders, branchName = summary.BranchName, message = $"{summary.TotalOrders} orders have been found." });
+        }
+        catch (HttpRequestException ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
     }
 
     [HttpGet]

@@ -153,7 +153,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         return staff;
     }
 
-    public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string identityNo, string gender, DateOnly? dateOfBirth, string? address)
+    public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string gender, DateOnly? dateOfBirth, string? address)
     {
         var staff = await _context.Users
             .FirstOrDefaultAsync(u =>
@@ -172,13 +172,12 @@ public class ManagerStaffRepo : IManagerStaffRepo
 
         staff.FullName = fullName.Trim();
         staff.Phone = phone.Trim();
-        staff.IdentityNo = identityNo.Trim();
+        // IdentityNo is preserved and not modified by manager
         staff.Gender = gender.Trim().ToUpperInvariant();
         staff.DateOfBirth = dateOfBirth ?? default;
         staff.Address = string.IsNullOrWhiteSpace(address) ? string.Empty : address.Trim();
         staff.UpdatedAt = DateTime.UtcNow;
 
-        _context.Entry(staff).Property(u => u.IdentityNo).IsModified = true;
         await _context.SaveChangesAsync();
         return staff;
     }

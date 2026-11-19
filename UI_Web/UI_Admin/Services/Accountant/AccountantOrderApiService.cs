@@ -51,6 +51,20 @@ public class AccountantOrderApiService(HttpClient client, IConfiguration configu
         return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
+    public async Task<BranchSalesSummaryModel> GetBranchSalesSummaryAsync(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct)
+    {
+        var queryParams = new List<string>();
+        if (branchId.HasValue) queryParams.Add($"branchId={branchId.Value}");
+        if (dateFrom.HasValue) queryParams.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+        if (dateTo.HasValue) queryParams.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+
+        var url = $"{baseUrl}/api/accountant/reports/branch-sales/summary{(queryParams.Any() ? "?" + string.Join("&", queryParams) : "")}";
+        using var response = await client.GetAsync(url, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<BranchSalesSummaryModel>(cancellationToken: ct)
+            ?? new BranchSalesSummaryModel();
+    }
+
     public async Task<byte[]> ExportBranchSalesReportAsync(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct)
     {
         var queryParams = new List<string>();

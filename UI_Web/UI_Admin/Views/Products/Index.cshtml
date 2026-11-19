@@ -100,14 +100,14 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                                 <td class="px-unit-5 py-2">
                                     <span class="font-code-num text-code-num @(isActive ? "text-primary" : "text-secondary") font-semibold bg-surface-container px-2 py-1 rounded">@item.ProductCode</span>
                                 </td>
-                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary")">
-                                    @item.ProductName
+                                <td class="px-unit-4 py-2 font-body-md-medium text-body-md-medium max-w-xs break-words @(isActive ? "text-on-surface" : "text-secondary")" title="@item.ProductName">
+                                    @(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
                                     @item.BranchName
                                 </td>
-                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
-                                    @item.CategoryName
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap max-w-xs truncate" title="@item.CategoryName">
+                                    @(item.CategoryName != null && item.CategoryName.Length > 50 ? item.CategoryName.Substring(0, 50) + "..." : item.CategoryName)
                                 </td>
                                 <td class="px-unit-4 py-2 font-code-num text-code-num @(isActive ? "text-on-surface" : "text-secondary") text-right whitespace-nowrap">
                                     @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.Price)
@@ -176,7 +176,7 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                     </div>
                     <div class="flex-1">
                         <h2 class="font-title-lg text-title-lg text-on-surface">Deactivate Product</h2>
-                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface" id="deactivate-target-name">this product</strong>?</p>
+                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to deactivate <strong class="text-on-surface break-words break-all" id="deactivate-target-name">this product</strong>?</p>
                     </div>
                     <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-deactivate-modal" type="button">
                         <span class="material-symbols-outlined text-[20px]">close</span>
@@ -204,7 +204,7 @@ new("Categories", Model.Categories.Count.ToString("N0"), "Available for filterin
                     </div>
                     <div class="flex-1">
                         <h2 class="font-title-lg text-title-lg text-on-surface">Restore Product</h2>
-                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface" id="restore-target-name">this product</strong>?</p>
+                        <p class="font-body-sm text-body-sm text-secondary mt-1">Are you sure you want to restore <strong class="text-on-surface break-words break-all" id="restore-target-name">this product</strong>?</p>
                     </div>
                     <button class="text-secondary hover:text-on-surface p-1 rounded-lg hover:bg-surface-container transition-colors" id="close-restore-modal" type="button">
                         <span class="material-symbols-outlined text-[20px]">close</span>

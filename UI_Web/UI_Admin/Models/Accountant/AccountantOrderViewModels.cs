@@ -76,6 +76,15 @@ public class BranchSalesReportViewModel
 {
     public List<BranchOptionViewModel> Branches { get; set; } = [];
     public int? SelectedBranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
+}
+
+public class BranchSalesSummaryModel
+{
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public string Message { get; set; } = string.Empty;
 }

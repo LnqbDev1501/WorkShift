@@ -83,12 +83,42 @@ class _ProductListViewState extends State<ProductListView> {
         _products = response.items;
         _isLoading = false;
       });
+      _fetchMissingImages(response.items);
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Unable to load products. Please try again.';
         _isLoading = false;
       });
+    }
+  }
+
+  void _fetchMissingImages(List<ProductModel> items) {
+    for (final p in items) {
+      if (p.imageUrl == null || p.imageUrl!.trim().isEmpty) {
+        _productService.getProductDetail(p.productId).then((detail) {
+          if (mounted && detail.imageUrl != null && detail.imageUrl!.trim().isNotEmpty) {
+            setState(() {
+              final index = _products.indexWhere((prod) => prod.productId == p.productId);
+              if (index != -1) {
+                _products[index] = ProductModel(
+                  productId: p.productId,
+                  branchId: p.branchId,
+                  branchName: p.branchName,
+                  categoryId: p.categoryId,
+                  categoryName: p.categoryName,
+                  productCode: p.productCode,
+                  productName: p.productName,
+                  price: p.price,
+                  description: detail.description ?? p.description,
+                  imageUrl: detail.imageUrl,
+                  status: p.status,
+                );
+              }
+            });
+          }
+        }).catchError((_) {});
+      }
     }
   }
 

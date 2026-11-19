@@ -88,7 +88,7 @@
                 }
             </div>
 
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug break-words break-all [overflow-wrap:anywhere]">
                 @Model.Title
             </h1>
 
@@ -134,7 +134,7 @@
                         var cleanMessage = Model.Message?
                             .Replace("NOT_ACCEPTED_BY_START_DATE", "The employee did not accept before the start date", StringComparison.OrdinalIgnoreCase);
                     }
-                    <div class="text-sm sm:text-base text-gray-800 font-normal leading-relaxed whitespace-pre-line bg-gray-50/70 p-5 rounded-2xl border border-gray-100">
+                    <div class="text-sm sm:text-base text-gray-800 font-normal leading-relaxed whitespace-pre-line bg-gray-50/70 p-5 rounded-2xl border border-gray-100 break-words break-all [overflow-wrap:anywhere]">
                         @cleanMessage
                     </div>
                 </div>

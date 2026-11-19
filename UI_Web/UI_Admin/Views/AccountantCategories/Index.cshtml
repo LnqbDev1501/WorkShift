@@ -66,8 +66,8 @@ new("Products", Model.Items.Sum(x => x.ProductCount).ToString("N0"), "Across cat
                         {
                             var isActive = item.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
                             <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isActive ? "bg-surface-container-lowest/70" : "")">
-                                <td class="px-unit-5 py-2 font-body-md-medium text-body-md-medium @(isActive ? "text-on-surface" : "text-secondary")">
-                                    @item.CategoryName
+                                <td class="px-unit-5 py-2 font-body-md-medium text-body-md-medium max-w-xs break-words @(isActive ? "text-on-surface" : "text-secondary")" title="@item.CategoryName">
+                                    @(item.CategoryName != null && item.CategoryName.Length > 50 ? item.CategoryName.Substring(0, 50) + "..." : item.CategoryName)
                                 </td>
                                 <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary max-w-sm truncate">
                                     @(string.IsNullOrWhiteSpace(item.Description) ? "No description provided." : item.Description)
