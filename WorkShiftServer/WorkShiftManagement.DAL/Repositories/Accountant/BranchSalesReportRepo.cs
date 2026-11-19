@@ -60,4 +60,36 @@ public class BranchSalesReportRepo : IBranchSalesReportRepo
             .Select(u => u.BranchId)
             .SingleOrDefaultAsync(cancellationToken);
     }
+
+    public async Task<Branch?> GetUserBranchAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.UserId == userId && u.Status == "ACTIVE" && u.DeletedAt == null && u.BranchId != null)
+            .Select(u => u.Branch)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<int> CountBranchOrdersAsync(
+        int branchId,
+        DateTime? fromUtc,
+        DateTime? toUtcExclusive,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Orders
+            .AsNoTracking()
+            .Where(o => o.BranchId == branchId && o.Status != "CANCELLED");
+
+        if (fromUtc.HasValue)
+        {
+            query = query.Where(o => o.OrderDate >= fromUtc.Value);
+        }
+
+        if (toUtcExclusive.HasValue)
+        {
+            query = query.Where(o => o.OrderDate < toUtcExclusive.Value);
+        }
+
+        return await query.CountAsync(cancellationToken);
+    }
 }

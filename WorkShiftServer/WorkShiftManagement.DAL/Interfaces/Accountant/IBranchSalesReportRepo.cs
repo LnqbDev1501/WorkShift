@@ -20,4 +20,12 @@ public interface IBranchSalesReportRepo
         CancellationToken cancellationToken = default);
 
     Task<int?> GetManagerBranchIdAsync(Guid managerId, CancellationToken cancellationToken = default);
+
+    Task<Branch?> GetUserBranchAsync(Guid userId, CancellationToken cancellationToken = default);
+
+    Task<int> CountBranchOrdersAsync(
+        int branchId,
+        DateTime? fromUtc,
+        DateTime? toUtcExclusive,
+        CancellationToken cancellationToken = default);
 }

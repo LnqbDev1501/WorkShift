@@ -32,7 +32,7 @@
     {
         <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
             <span class="material-symbols-outlined text-[20px]">schedule</span>
-            <span>You are currently outside your assigned shift. The <strong>Complete</strong> button is disabled.</span>
+            <span>You are currently outside your assigned shift or have not checked in. The <strong>Complete</strong> button is disabled.</span>
         </div>
     }
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
@@ -61,7 +61,7 @@
             @if (canComplete)
             {
                 <form method="post" asp-controller="StaffOrders" asp-action="Complete" asp-route-id="@Model.OrderId" class="inline">
-                    <button type="submit" disabled="@(!isInShift)" title="@(!isInShift ? "Employees who are off-duty cannot perform this action." : "Mark this order as completed")" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" onclick="return confirm('Mark this order as completed?');">
+                    <button type="submit" disabled="@(!isInShift)" title="@(!isInShift ? "You must be in your shift and checked in to perform this action." : "Mark this order as completed")" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-emerald-600 text-white font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer" onclick="return confirm('Mark this order as completed?');">
                         <span class="material-symbols-outlined text-[20px]">check_circle</span>
                         <span>Complete</span>
                     </button>
@@ -159,7 +159,6 @@
                         <th class="px-unit-5 py-2" scope="col">Product</th>
                         <th class="px-unit-4 py-2 text-right" scope="col">Unit Price</th>
                         <th class="px-unit-4 py-2 text-right" scope="col">Qty</th>
-                        <th class="px-unit-4 py-2 text-right" scope="col">Discount</th>
                         <th class="px-unit-5 py-2 text-right" scope="col">Total</th>
                     </tr>
                 </thead>
@@ -182,9 +181,6 @@
                             </td>
                             <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary text-right whitespace-nowrap">
                                 @item.Quantity
-                            </td>
-                            <td class="px-unit-4 py-2 font-code-num text-code-num text-amber-700 text-right">
-                                @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.DiscountAmount)
                             </td>
                             <td class="px-unit-5 py-2 font-code-num text-code-num text-primary font-semibold text-right">
                                 @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.TotalAmount)

@@ -348,11 +348,15 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
                 icon: Icons.add_rounded,
                 backgroundColor: _isInShift ? null : Colors.grey.shade400,
                 onPressed: () async {
-                  if (!_isInShift) {
+                  final inShift = await _orderService.getShiftStatus();
+                  if (!mounted) return;
+                  setState(() => _isInShift = inShift);
+                  if (!context.mounted) return;
+                  if (!inShift) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
-                          'Employees who are off-duty cannot perform this action.',
+                          'You must be in your shift and checked in to perform this action.',
                         ),
                         backgroundColor: AppColors.error,
                       ),
@@ -363,7 +367,10 @@ class _StaffOrderListViewState extends State<StaffOrderListView> {
                     context,
                     MaterialPageRoute(builder: (_) => const CreateOrderView()),
                   );
-                  _fetchOrders(refresh: true);
+                  if (mounted) {
+                    _fetchOrders(refresh: true);
+                    _checkShiftStatus();
+                  }
                 },
               ),
             ),

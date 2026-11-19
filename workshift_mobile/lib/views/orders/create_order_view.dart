@@ -20,7 +20,7 @@ class _CreateOrderViewState extends State<CreateOrderView> {
   final _productService = ProductService();
   bool _isLoading = false;
   String? _errorMessage;
-  bool _isInShift = true;
+  bool _isInShift = false;
   final List<_ItemBuilder> _items = [];
 
   @override
@@ -90,11 +90,14 @@ class _CreateOrderViewState extends State<CreateOrderView> {
   }
 
   Future<void> _submit() async {
-    if (!_isInShift) {
+    final inShift = await _orderService.getShiftStatus();
+    if (!mounted) return;
+    setState(() => _isInShift = inShift);
+    if (!inShift) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Employees who are off-duty cannot perform this action.',
+            'You must be in your shift and checked in to perform this action.',
           ),
           backgroundColor: AppColors.error,
         ),

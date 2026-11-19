@@ -147,7 +147,7 @@ public class StaffOrdersController(StaffOrderApiService api) : Controller
             var inShift = await api.GetShiftStatusAsync(ct);
             if (!inShift)
             {
-                TempData["ErrorMessage"] = "Employees who are off-duty cannot perform this action.";
+                TempData["ErrorMessage"] = "You must be in your shift and checked in to perform this action.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 

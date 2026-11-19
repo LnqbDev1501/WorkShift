@@ -21,7 +21,41 @@ public class AccountantReportsController(AccountantOrderApiService api, BranchAp
         {
             Branches = branches.Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name }).ToList()
         };
+
+        if (!User.IsInRole("ADMIN"))
+        {
+            try
+            {
+                var summary = await api.GetBranchSalesSummaryAsync(null, null, null, ct);
+                model.BranchName = summary.BranchName;
+                ViewBag.BranchName = summary.BranchName;
+            }
+            catch
+            {
+                model.BranchName = "Assigned Branch";
+                ViewBag.BranchName = "Assigned Branch";
+            }
+        }
+
         return View(model);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CountOrders(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct = default)
+    {
+        try
+        {
+            var summary = await api.GetBranchSalesSummaryAsync(branchId, dateFrom, dateTo, ct);
+            return Json(new { success = true, totalOrders = summary.TotalOrders, branchName = summary.BranchName, message = $"{summary.TotalOrders} orders have been found." });
+        }
+        catch (HttpRequestException ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
     }
 
     [HttpGet]

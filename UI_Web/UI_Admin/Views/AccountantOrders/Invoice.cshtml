@@ -60,7 +60,6 @@
                     <th class="py-2.5">Products</th>
                     <th class="py-2.5 text-right">Unit price</th>
                     <th class="py-2.5 text-center">Qty</th>
-                    <th class="py-2.5 text-right">Discount</th>
                     <th class="py-2.5 text-right">Amount</th>
                 </tr>
             </thead>
@@ -71,7 +70,6 @@
                         <td class="py-3 font-medium text-slate-900 break-words max-w-xs" title="@item.ProductName">@(item.ProductName != null && item.ProductName.Length > 50 ? item.ProductName.Substring(0, 50) + "..." : item.ProductName)</td>
                         <td class="py-3 text-right text-slate-600">@CurrencyHelper.FormatVnd(item.UnitPrice)</td>
                         <td class="py-3 text-center text-slate-600">@item.Quantity</td>
-                        <td class="py-3 text-right text-slate-600">@CurrencyHelper.FormatVnd(item.DiscountAmount)</td>
                         <td class="py-3 text-right font-semibold text-slate-900">@CurrencyHelper.FormatVnd(item.TotalAmount)</td>
                     </tr>
                 }

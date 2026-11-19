@@ -76,4 +76,57 @@ public class ManagerReportController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Gets sales report summary and total orders count for the manager's assigned branch.
+    /// </summary>
+    [HttpGet("branch-sales/summary")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetBranchSalesSummary(
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = GetActorId();
+        if (actor == null)
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
+
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = "The start date cannot be after the end date."
+            });
+
+        try
+        {
+            var (branchId, branchName, count) = await _branchSalesReportService.GetManagerBranchSalesSummaryAsync(
+                actor.Value, dateFrom, dateTo, cancellationToken);
+
+            return Ok(new
+            {
+                branchId,
+                branchName,
+                totalOrders = count,
+                message = $"{count} orders have been found."
+            });
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+    }
 }

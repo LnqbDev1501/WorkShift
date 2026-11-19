@@ -207,13 +207,6 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
                             '${item.quantity} × ${formatCurrency(item.unitPrice)}',
                             style: TextStyle(color: AppColors.textSecondary),
                           ),
-                          if (item.discountAmount > 0) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              '- ${formatCurrency(item.discountAmount)}',
-                              style: const TextStyle(color: AppColors.success),
-                            ),
-                          ],
                           const Spacer(),
                           Text(
                             formatCurrency(item.totalAmount),
@@ -275,12 +268,6 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
               }),
               const Divider(height: 24),
               buildTotalRow('Subtotal', formatCurrency(order.subtotal)),
-              if (items.any((i) => i.discountAmount > 0))
-                buildTotalRow(
-                  'Discount',
-                  '- ${formatCurrency(items.fold(0.0, (s, i) => s + i.discountAmount))}',
-                  color: AppColors.success,
-                ),
               const Divider(height: 16),
               buildTotalRow(
                 'Total',
@@ -429,12 +416,15 @@ class _StaffOrderDetailViewState extends State<StaffOrderDetailView> {
           icon: Icons.check_circle_rounded,
           backgroundColor: _isInShift ? null : Colors.grey.shade400,
           isLoading: _controller.isLoading,
-          onPressed: () {
-            if (!_isInShift) {
+          onPressed: () async {
+            final inShift = await _orderService.getShiftStatus();
+            if (!mounted) return;
+            setState(() => _isInShift = inShift);
+            if (!inShift) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text(
-                    'Employees who are off-duty cannot perform this action.',
+                    'You must be in your shift and checked in to perform this action.',
                   ),
                   backgroundColor: AppColors.error,
                 ),

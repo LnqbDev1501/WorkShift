@@ -20,6 +20,49 @@ public class BranchSalesReportService : IBranchSalesReportService
         return _repo.GetManagerBranchIdAsync(userId, cancellationToken);
     }
 
+    public async Task<(int BranchId, string BranchName, int TotalOrders)> GetManagerBranchSalesSummaryAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetUserBranchAsync(managerId, cancellationToken);
+        if (branch == null)
+            throw new UnauthorizedAccessException("Manager is not assigned to any branch.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        var count = await _repo.CountBranchOrdersAsync(branch.BranchId, fromUtc, toUtcExclusive, cancellationToken);
+        return (branch.BranchId, branch.BranchName, count);
+    }
+
+    public async Task<(int BranchId, string BranchName, int TotalOrders)> GetBranchSalesSummaryAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetBranchByIdAsync(branchId, cancellationToken)
+            ?? throw new ArgumentException("Branch not found.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        var count = await _repo.CountBranchOrdersAsync(branchId, fromUtc, toUtcExclusive, cancellationToken);
+        return (branch.BranchId, branch.BranchName, count);
+    }
+
     public async Task<byte[]> GenerateManagerBranchSalesReportAsync(
         Guid managerId,
         DateTime? dateFrom,
