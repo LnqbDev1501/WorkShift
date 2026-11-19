@@ -61,44 +61,26 @@
                         <section class="danger-zone">
                             <div><strong>Deactivate holiday</strong>
                                 <p>The record becomes read-only and its date remains permanently reserved.</p>
-                            </div><button type="button" data-delete-open data-id="@Model.PublicHolidayId"
-                                          data-name="@Model.HolidayName"><span class="material-symbols-outlined">delete</span>Deactivate</button>
+                            </div>
+                            <button type="button" class="cursor-pointer"
+                                    data-holiday-id="@Model.PublicHolidayId"
+                                    data-holiday-name="@Model.HolidayName"
+                                    onclick="openDeactivateHolidayModal(this)">
+                                <span class="material-symbols-outlined">pause_circle</span>Deactivate
+                            </button>
                         </section>
                     }
                     else if (Model.CanRestore)
                     {
-                        <form asp-action="Restore" asp-route-id="@Model.PublicHolidayId" method="post"
-                              onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
-                            <button type="submit" class="primary-button">Restore holiday</button>
-                        </form>
+                        <button type="button" class="primary-button cursor-pointer"
+                                data-holiday-id="@Model.PublicHolidayId"
+                                data-holiday-name="@Model.HolidayName"
+                                onclick="openRestoreHolidayModal(this)">
+                            Restore holiday
+                        </button>
                     }
                 </main>
             </div>
-            <div class="holiday-modal" id="holiday-delete-modal" role="dialog" aria-modal="true"
-                 aria-labelledby="delete-modal-title" hidden>
-                <div class="holiday-modal-card delete-modal-card">
-                    <div class="delete-modal-copy">
-                        <div class="modal-icon danger"><span class="material-symbols-outlined">warning</span></div>
-                        <div>
-                            <h2 id="delete-modal-title">Deactivate @Model.HolidayName?</h2>
-                            <p id="delete-modal-description">Only this holiday will become inactive. Its date remains permanently
-                                reserved.</p>
-                            </div>
-                        </div>
-                        <div class="modal-reservation-note"><span class="material-symbols-outlined">lock</span>
-                            <div><strong>Payroll and calendar protection</strong>
-                                <p>Only future holidays not locked by payroll can be deactivated or restored.</p>
-                            </div>
-                        </div>
-                        <form asp-action="Delete" method="post" id="holiday-delete-form" class="modal-actions">
-                            @Html.AntiForgeryToken()<input type="hidden" name="id" id="delete-holiday-id"
-                                                           value="@Model.PublicHolidayId" /><button type="button" class="secondary-button"
-                                                                     data-delete-close>Cancel</button><button type="submit" class="danger-button">Confirm
-                            Deactivation</button></form>
-                        </div>
-                    </div>
 
-                    @section Scripts {
-                        <script src="~/js/holidays.js" asp-append-version="true"></script>
-                    }
+            <partial name="_HolidayActionModals" />
 

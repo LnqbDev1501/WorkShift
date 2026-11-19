@@ -81,33 +81,28 @@
                                                                 </a>
 
                                                                 <!-- Deactivate -->
-                                                                <form asp-action="Delete" asp-route-id="@item.PublicHolidayId" method="post"
-                                                                      class="action-form"
-                                                                      onsubmit="return confirm('Change this holiday status? Affected unfinalized payroll periods will require recalculation.');">
-
-                                                                    @Html.AntiForgeryToken()
-
-                                                                    <button type="submit" class="ws-icon-action action-icon action-deactivate" title="Deactivate"
-                                                                            aria-label="Deactivate">
-                                                                        <span class="material-symbols-outlined">
-                                                                            pause_circle
-                                                                        </span>
-                                                                    </button>
-                                                                </form>
+                                                                <button type="button" class="ws-icon-action action-icon action-deactivate cursor-pointer"
+                                                                        title="Deactivate" aria-label="Deactivate"
+                                                                        data-holiday-id="@item.PublicHolidayId"
+                                                                        data-holiday-name="@item.HolidayName"
+                                                                        onclick="openDeactivateHolidayModal(this)">
+                                                                    <span class="material-symbols-outlined">
+                                                                        pause_circle
+                                                                    </span>
+                                                                </button>
                                                             }
                                                             else if (item.CanRestore)
                                                             {
-                                                                <!-- Inactive -->
-                                                                <form asp-action="Restore" asp-route-id="@item.PublicHolidayId" method="post"
-                                                                      class="action-form"
-                                                                      onsubmit="return confirm('Restore this holiday? Affected unfinalized payroll periods will require recalculation.');">
-                                                                    <button type="submit" class="ws-icon-action action-icon action-inactive" title="Restore"
-                                                                            aria-label="Restore">
-                                                                        <span class="material-symbols-outlined">
-                                                                            history
-                                                                        </span>
-                                                                    </button>
-                                                                </form>
+                                                                <!-- Inactive / Restore -->
+                                                                <button type="button" class="ws-icon-action action-icon action-inactive cursor-pointer"
+                                                                        title="Restore" aria-label="Restore"
+                                                                        data-holiday-id="@item.PublicHolidayId"
+                                                                        data-holiday-name="@item.HolidayName"
+                                                                        onclick="openRestoreHolidayModal(this)">
+                                                                    <span class="material-symbols-outlined">
+                                                                        history
+                                                                    </span>
+                                                                </button>
                                                             }
                                                             else
                                                             {
@@ -150,3 +145,5 @@
                                 </section>
                             </main>
                         </div>
+
+<partial name="_HolidayActionModals" />
