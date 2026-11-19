@@ -273,6 +273,79 @@
         });
     }
 
+    const btnFillTermsVi = document.getElementById('btn-fill-terms-vi');
+    const btnFillTermsEn = document.getElementById('btn-fill-terms-en');
+
+    const defaultTermsVi = `ĐIỀU KHOẢN VÀ ĐIỀU KIỆN LÀM VIỆC THEO HỆ THỐNG WORKSHIFT:
+
+1. Chế độ làm việc và Phân ca (Working Schedule & Shifts):
+- Người lao động (NLĐ) làm việc theo chế độ ca linh hoạt được sắp xếp, công bố và quản lý tập trung thông qua nền tảng WorkShift.
+- Lịch làm việc tuần được Người quản lý (Manager) công bố định kỳ. NLĐ có trách nhiệm chủ động theo dõi lịch ca, thực hiện đăng ký ca hoặc gửi yêu cầu đổi ca (Shift Swap) qua ứng dụng WorkShift Mobile.
+- Mọi yêu cầu xin nghỉ phép (Leave Request), đến muộn (Late Arrival) hoặc về sớm (Early Leave) phải được gửi trên hệ thống và được Quản lý phê duyệt trước thời điểm bắt đầu ca làm việc theo quy chế phân ca.
+
+2. Chấm công sinh trắc học và Bảo vệ dữ liệu cá nhân (Attendance & Data Privacy):
+- NLĐ thực hiện Check-in khi bắt đầu ca và Check-out khi kết thúc ca làm việc trực tiếp trên ứng dụng WorkShift Mobile.
+- Dữ liệu chấm công được xác thực bằng công nghệ nhận diện khuôn mặt AI kết hợp định vị vệ tinh GPS tại bán kính chi nhánh được phân công.
+- Tuân thủ Nghị định 13/2023/NĐ-CP, NLĐ đồng ý cung cấp dữ liệu hình ảnh khuôn mặt và vị trí GPS phục vụ duy nhất cho mục đích quản lý chấm công, tính lương và an ninh ca làm. Hệ thống WorkShift cam kết mã hóa và bảo mật tuyệt đối thông tin sinh trắc học của NLĐ.
+- Nghiêm cấm mọi hành vi điểm danh hộ, giả mạo vị trí GPS hoặc can thiệp kỹ thuật vào dữ liệu chấm công.
+
+3. Tiền lương và Hình thức thanh toán (Compensation & Payroll):
+- Tiền lương được tính theo đơn giá giờ làm việc (Hourly Rate) đã thỏa thuận, đảm bảo tuân thủ mức lương tối thiểu vùng theo quy định pháp luật hiện hành.
+- Tiền lương hàng tháng được chi trả căn cứ vào số giờ làm việc thực tế hợp lệ ghi nhận trên Bảng chấm công (Timesheet). Thời gian đi muộn, về sớm không làm việc sẽ không được tính lương.
+- Các khoản thưởng năng suất/chuyên cần hoặc điều chỉnh giảm thưởng do vi phạm quy chế chấm công (nếu có) được thực hiện theo Quy chế tiền lương và khen thưởng nội bộ của doanh nghiệp, không khấu trừ vào mức lương tối thiểu theo luật định.
+- Tiền lương được quyết toán và chi trả định kỳ hằng tháng sau khi hoàn tất chốt Phiếu lương điện tử (Payslip) trên hệ thống.
+
+4. Kỷ luật lao động và Xử lý vi phạm (Discipline & Compliance):
+- NLĐ có nghĩa vụ tuân thủ nội quy lao động, quy trình an toàn vệ sinh và tiêu chuẩn nghiệp vụ tại chi nhánh.
+- Các thông báo cảnh báo vi phạm chuyên cần (Termination Warnings) trên hệ thống là cơ sở để đánh giá mức độ hoàn thành công việc định kỳ. Khi NLĐ nhận đủ 03 thông báo cảnh báo vi phạm, Quản lý sẽ tiến hành quy trình xem xét kỷ luật hoặc chấm dứt hợp đồng lao động theo quy định tại Điều 36 Bộ luật Lao động và Nội quy lao động của công ty.
+- Về quy trình kỹ thuật: Để bảo đảm tính chính xác của dữ liệu chấm công và quyền lợi tính lương cho NLĐ, các thủ tục chấm dứt hợp đồng trên hệ thống sẽ được hoàn tất ngay sau khi ca làm việc hiện tại kết thúc và NLĐ đã hoàn tất Check-out.
+
+5. Giao kết điện tử và Hiệu lực pháp lý (Electronic Contract Validity):
+- Hai bên cam kết thực hiện đúng và đầy đủ các nội dung thỏa thuận trong hợp đồng này.
+- Hợp đồng lao động này được khởi tạo, gửi duyệt và xác thực điện tử dưới hình thức thông điệp dữ liệu thông qua tài khoản định danh trên hệ thống WorkShift, tuân thủ quy định của Bộ luật Lao động và Luật Giao dịch điện tử.`;
+
+    const defaultTermsEn = `TERMS AND CONDITIONS OF EMPLOYMENT UNDER WORKSHIFT SYSTEM:
+
+1. Working Schedule & Shift Assignment:
+- The Employee works on a flexible shift-based schedule coordinated and managed through the WorkShift platform.
+- Weekly shift rosters are officially published by Branch Management. The Employee is responsible for reviewing their assignments, registering shifts, or submitting shift swap requests via WorkShift Mobile.
+- Any request for leave, late arrival, or early departure must be submitted through the application and approved by Management prior to the shift start.
+
+2. Biometric Attendance & Personal Data Protection:
+- The Employee shall Check-in at the start of each shift and Check-out upon shift completion using the WorkShift Mobile application.
+- Attendance verification is conducted using AI facial recognition combined with GPS location matching within the authorized branch radius.
+- In accordance with personal data protection regulations, the Employee consents to the processing of biometric facial data and GPS coordinates solely for attendance verification, payroll calculation, and branch security. WorkShift guarantees that all biometric templates are encrypted and securely stored.
+- Punching in for others, GPS spoofing, or any unauthorized system interference is strictly prohibited.
+
+3. Compensation & Payroll:
+- Compensation is based on an agreed Hourly Rate, strictly adhering to the statutory regional minimum wage.
+- Monthly wages are calculated based on actual validated working hours recorded on the digital Timesheet. Unworked periods due to tardiness or early departures are not remunerated.
+- Any performance bonuses or attendance-related adjustments are administered under internal company policies without violating statutory wage protection laws.
+- Salaries are disbursed on a monthly basis following the closure of official electronic Payslips on the WorkShift system.
+
+4. Labor Discipline & Compliance:
+- The Employee shall adhere to branch regulations, occupational health and safety rules, and operational guidelines.
+- Violation notices (Termination Warnings) logged by the system serve as objective records for periodic performance evaluation. Accumulating three (3) violation warnings provides grounds for Management to initiate disciplinary proceedings or contract termination in accordance with Article 36 of the Labor Code and internal company regulations.
+- Operational Rule: To protect timesheet integrity and payroll accuracy, contract termination procedures on the system will be executed immediately after the Employee completes their active shift and checks out.
+
+5. Electronic Acceptance & Legal Validity:
+- Both parties commit to strictly abiding by the terms herein.
+- This contract is executed in the form of an electronic data message via authenticated credentials on the WorkShift platform, carrying full validity under the Labor Code and the Law on Electronic Transactions.`;
+
+    if (btnFillTermsVi && contractTermsInput) {
+        btnFillTermsVi.addEventListener('click', () => {
+            contractTermsInput.value = defaultTermsVi;
+            contractTermsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    }
+
+    if (btnFillTermsEn && contractTermsInput) {
+        btnFillTermsEn.addEventListener('click', () => {
+            contractTermsInput.value = defaultTermsEn;
+            contractTermsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    }
+
     async function loadStaffOptions(mode) {
         if (cache[mode]) {
             renderOptions(cache[mode], mode);
