@@ -129,4 +129,51 @@ public class ManagerReportController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Gets sales report analytics and charts for the manager's assigned branch.
+    /// </summary>
+    [HttpGet("branch-sales/analytics")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetBranchSalesAnalytics(
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = GetActorId();
+        if (actor == null)
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
+
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = "The start date cannot be after the end date."
+            });
+
+        try
+        {
+            var data = await _branchSalesReportService.GetManagerBranchSalesAnalyticsAsync(
+                actor.Value, dateFrom, dateTo, cancellationToken);
+
+            return Ok(data);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: exception.Message);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+    }
 }

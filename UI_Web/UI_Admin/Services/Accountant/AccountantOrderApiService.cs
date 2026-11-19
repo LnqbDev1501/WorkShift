@@ -11,6 +11,9 @@ public class AccountantOrderListResponse
     public int PageSize { get; set; }
     public int TotalItems { get; set; }
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalItems / (double)PageSize) : 0;
+    public int? PaidCount { get; set; }
+    public int? CompletedCount { get; set; }
+    public decimal? TotalOrderValue { get; set; }
 }
 
 public class AccountantOrderApiService(HttpClient client, IConfiguration configuration)
@@ -63,6 +66,20 @@ public class AccountantOrderApiService(HttpClient client, IConfiguration configu
         await EnsureSuccessAsync(response, ct);
         return await response.Content.ReadFromJsonAsync<BranchSalesSummaryModel>(cancellationToken: ct)
             ?? new BranchSalesSummaryModel();
+    }
+
+    public async Task<BranchSalesAnalyticsModel> GetBranchSalesAnalyticsAsync(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct)
+    {
+        var queryParams = new List<string>();
+        if (branchId.HasValue) queryParams.Add($"branchId={branchId.Value}");
+        if (dateFrom.HasValue) queryParams.Add($"dateFrom={dateFrom.Value:yyyy-MM-dd}");
+        if (dateTo.HasValue) queryParams.Add($"dateTo={dateTo.Value:yyyy-MM-dd}");
+
+        var url = $"{baseUrl}/api/accountant/reports/branch-sales/analytics{(queryParams.Any() ? "?" + string.Join("&", queryParams) : "")}";
+        using var response = await client.GetAsync(url, ct);
+        await EnsureSuccessAsync(response, ct);
+        return await response.Content.ReadFromJsonAsync<BranchSalesAnalyticsModel>(cancellationToken: ct)
+            ?? new BranchSalesAnalyticsModel();
     }
 
     public async Task<byte[]> ExportBranchSalesReportAsync(int? branchId, DateTime? dateFrom, DateTime? dateTo, CancellationToken ct)

@@ -63,6 +63,39 @@ public class BranchSalesReportService : IBranchSalesReportService
         return (branch.BranchId, branch.BranchName, count);
     }
 
+    public async Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetManagerBranchSalesAnalyticsAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branchId = await _repo.GetManagerBranchIdAsync(managerId, cancellationToken);
+        if (!branchId.HasValue)
+            throw new UnauthorizedAccessException("Manager is not assigned to any branch.");
+
+        return await GetBranchSalesAnalyticsAsync(branchId.Value, dateFrom, dateTo, cancellationToken);
+    }
+
+    public async Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetBranchSalesAnalyticsAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetBranchByIdAsync(branchId, cancellationToken)
+            ?? throw new ArgumentException("Branch not found.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        return await _repo.GetBranchSalesAnalyticsAsync(branchId, fromUtc, toUtcExclusive, cancellationToken);
+    }
+
     public async Task<byte[]> GenerateManagerBranchSalesReportAsync(
         Guid managerId,
         DateTime? dateFrom,

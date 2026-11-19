@@ -62,4 +62,7 @@ public class ManagerOrderListViewModel
     public string? PaymentStatusFilter { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
+    public int? PaidCount { get; set; }
+    public int? CompletedCount { get; set; }
+    public decimal? TotalOrderValue { get; set; }
 }

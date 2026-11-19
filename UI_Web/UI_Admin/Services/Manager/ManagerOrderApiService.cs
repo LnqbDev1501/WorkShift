@@ -11,6 +11,9 @@ public class ManagerOrderListResponse
     public int PageSize { get; set; }
     public int TotalItems { get; set; }
     public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(TotalItems / (double)PageSize) : 0;
+    public int? PaidCount { get; set; }
+    public int? CompletedCount { get; set; }
+    public decimal? TotalOrderValue { get; set; }
 }
 
 public class ManagerOrderApiService(HttpClient client, IConfiguration configuration)

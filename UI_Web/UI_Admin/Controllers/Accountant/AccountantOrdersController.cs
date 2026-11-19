@@ -25,6 +25,22 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
             branchId = null;
         }
 
+        // Default to current week (Monday - Sunday, VN time UTC+7) when date range is not specified
+        if (!dateFrom.HasValue && !dateTo.HasValue)
+        {
+            var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+            int diff = (7 + (int)todayVn.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+            var currentMonday = todayVn.AddDays(-diff);
+            var currentSunday = currentMonday.AddDays(6);
+            dateFrom = currentMonday.ToDateTime(TimeOnly.MinValue);
+            dateTo = currentSunday.ToDateTime(TimeOnly.MinValue);
+        }
+        else if (dateFrom.HasValue && !dateTo.HasValue)
+        {
+            var start = DateOnly.FromDateTime(dateFrom.Value);
+            dateTo = start.AddDays(6).ToDateTime(TimeOnly.MinValue);
+        }
+
         var model = new AccountantOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
@@ -47,6 +63,9 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
             model.TotalItems = paged.TotalItems;
             model.PageNumber = paged.PageNumber;
             model.PageSize = paged.PageSize;
+            model.PaidCount = paged.PaidCount;
+            model.CompletedCount = paged.CompletedCount;
+            model.TotalOrderValue = paged.TotalOrderValue;
         }
         catch (HttpRequestException ex)
         {

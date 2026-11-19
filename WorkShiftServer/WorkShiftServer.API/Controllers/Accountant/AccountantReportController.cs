@@ -173,4 +173,73 @@ public class AccountantReportController : ControllerBase
             });
         }
     }
+
+    /// <summary>
+    /// Gets sales report analytics and charts for a single branch within an optional date range.
+    /// </summary>
+    [HttpGet("branch-sales/analytics")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetBranchSalesAnalytics(
+        [FromQuery] int? branchId,
+        [FromQuery] DateTime? dateFrom,
+        [FromQuery] DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var actor = GetActorId();
+        if (actor == null)
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
+
+        int targetBranchId;
+        if (User.IsInRole("ACCOUNTANT"))
+        {
+            var userBranchId = await _branchSalesReportService.GetUserBranchIdAsync(actor.Value, cancellationToken);
+            if (!userBranchId.HasValue)
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "Accountant is not assigned to any branch.");
+
+            if (branchId.HasValue && branchId.Value > 0 && branchId.Value != userBranchId.Value)
+                return Problem(statusCode: StatusCodes.Status403Forbidden, detail: "You are not authorized to access reports for another branch.");
+
+            targetBranchId = userBranchId.Value;
+        }
+        else
+        {
+            if (!branchId.HasValue || branchId.Value <= 0)
+                return BadRequest(new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Bad Request",
+                    Detail = "Branch ID is required."
+                });
+
+            targetBranchId = branchId.Value;
+        }
+
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value.Date > dateTo.Value.Date)
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = "The start date cannot be after the end date."
+            });
+
+        try
+        {
+            var data = await _branchSalesReportService.GetBranchSalesAnalyticsAsync(
+                targetBranchId, dateFrom, dateTo, cancellationToken);
+
+            return Ok(data);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Bad Request",
+                Detail = exception.Message
+            });
+        }
+    }
 }

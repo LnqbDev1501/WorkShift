@@ -64,6 +64,9 @@ public class AccountantOrderListViewModel
     public string? PaymentStatusFilter { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
+    public int? PaidCount { get; set; }
+    public int? CompletedCount { get; set; }
+    public decimal? TotalOrderValue { get; set; }
 }
 
 public class BranchOptionViewModel
@@ -87,4 +90,32 @@ public class BranchSalesSummaryModel
     public string BranchName { get; set; } = string.Empty;
     public int TotalOrders { get; set; }
     public string Message { get; set; } = string.Empty;
+}
+
+public class BranchSalesAnalyticsModel
+{
+    public int BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public int TotalOrders { get; set; }
+    public decimal TotalRevenue { get; set; }
+    public int CompletedOrders { get; set; }
+    public decimal AverageOrderValue { get; set; }
+    public double RevenueGrowthPercent { get; set; }
+    public double OrdersGrowthPercent { get; set; }
+    public List<BranchSalesTimelinePointModel> Timeline { get; set; } = [];
+    public List<BranchSalesCategoryPointModel> Categories { get; set; } = [];
+}
+
+public class BranchSalesTimelinePointModel
+{
+    public string DateLabel { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
+    public int Orders { get; set; }
+}
+
+public class BranchSalesCategoryPointModel
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
+    public int Quantity { get; set; }
 }

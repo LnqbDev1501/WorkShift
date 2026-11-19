@@ -29,4 +29,16 @@ public interface IBranchSalesReportService
         DateTime? dateFrom,
         DateTime? dateTo,
         CancellationToken cancellationToken = default);
+
+    Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetManagerBranchSalesAnalyticsAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
+
+    Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetBranchSalesAnalyticsAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
 }

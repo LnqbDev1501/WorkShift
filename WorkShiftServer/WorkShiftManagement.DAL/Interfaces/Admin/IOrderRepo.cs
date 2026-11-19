@@ -5,7 +5,7 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface IOrderRepo
 {
-    Task<(List<OrderData> Items, int TotalCount)> GetPagedAsync(
+    Task<(List<OrderData> Items, int TotalCount, int PaidCount, int CompletedCount, decimal TotalOrderValue)> GetPagedAsync(
         string? search,
         int? branchId,
         string? status,

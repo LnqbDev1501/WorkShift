@@ -57,7 +57,7 @@ public class OrderService : IOrderService
             ? (actor.BranchId.HasValue ? actor.BranchId.Value : -1)
             : query.BranchId is > 0 ? query.BranchId : null;
 
-        var (items, totalCount) = await _orderRepo.GetPagedAsync(
+        var (items, totalCount, paidCount, completedCount, totalOrderValue) = await _orderRepo.GetPagedAsync(
             query.Search,
             branchId,
             status,
@@ -72,7 +72,10 @@ public class OrderService : IOrderService
             Items = items.Select(Map).ToList(),
             PageNumber = pageNumber,
             PageSize = pageSize,
-            TotalItems = totalCount
+            TotalItems = totalCount,
+            PaidCount = paidCount,
+            CompletedCount = completedCount,
+            TotalOrderValue = totalOrderValue
         };
     }
 

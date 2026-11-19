@@ -11,7 +11,7 @@
             <div class="flex items-center gap-unit-3">
                 <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Branch Sales Report</h1>
             </div>
-            <p class="font-body-md text-body-md text-secondary mt-1">Export sales data for your assigned branch by date range.</p>
+            <p class="font-body-md text-body-md text-secondary mt-1">Export sales data and review performance for your assigned branch.</p>
         </div>
     </div>
 
@@ -23,9 +23,10 @@
         </div>
     }
 
+    <!-- Filter & Action Card -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-        <form method="get" asp-action="ExportBranchSales" class="flex flex-col gap-4">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <form method="get" asp-action="ExportBranchSales" id="salesReportForm" class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-slate-700 mb-1">Branch</label>
                     <div class="w-full h-10 px-3 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-sm flex items-center gap-2">
@@ -34,12 +35,17 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">From Date</label>
-                    <input type="date" name="dateFrom" class="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm" />
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">To Date</label>
-                    <input type="date" name="dateTo" class="w-full h-10 px-3 rounded-lg border border-slate-300 text-sm" />
+                    <label class="block text-xs font-medium text-slate-700 mb-1">Select Week (7 days)</label>
+                    <div class="relative flex items-center">
+                        <select id="selectWeek" class="w-full h-10 pl-3 pr-10 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer">
+                        </select>
+                        <button type="button" id="btnCalendarPicker" title="Click to pick a date from calendar" class="absolute right-1 top-1 bottom-1 px-2.5 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-md transition-colors cursor-pointer">
+                            <span class="material-symbols-outlined text-[20px]">calendar_month</span>
+                        </button>
+                        <input type="date" id="calendarDateInput" class="sr-only" tabindex="-1" aria-hidden="true" />
+                        <input type="hidden" name="dateFrom" id="inputDateFrom" />
+                        <input type="hidden" name="dateTo" id="inputDateTo" />
+                    </div>
                 </div>
             </div>
 
@@ -60,13 +66,433 @@
             </div>
         </form>
     </div>
+
+    <!-- KPI Metric Cards (Matching Image 4) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <!-- Revenue Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-500">Revenue</span>
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">payments</span>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div id="kpiRevenue" class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">0 đ</div>
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 mt-2" id="kpiRevenueTrendBox">
+                    <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                    <span id="kpiRevenueTrend">0%</span>
+                    <span class="text-slate-400 font-normal">Since last period</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers / Total Orders Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-500">Total Orders</span>
+                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">shopping_bag</span>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div id="kpiOrders" class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">0</div>
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 mt-2" id="kpiOrdersTrendBox">
+                    <span class="material-symbols-outlined text-[16px]">trending_up</span>
+                    <span id="kpiOrdersTrend">0%</span>
+                    <span class="text-slate-400 font-normal">Since last period</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Orders / Avg Order Value Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-slate-500">Completed Orders</span>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">task_alt</span>
+                </div>
+            </div>
+            <div class="mt-3">
+                <div id="kpiCompleted" class="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">0</div>
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 mt-2">
+                    <span class="material-symbols-outlined text-[16px]">receipt</span>
+                    <span id="kpiAvgValue">0 đ</span>
+                    <span class="text-slate-400 font-normal">Avg / order</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row (Matching Image 4) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Line Chart: Recent Sales Trend -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">Recent Sales Trend</h2>
+                    <p class="text-xs text-slate-500">Revenue over timeline</p>
+                </div>
+                <span id="badgeRevenueTrend" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span class="material-symbols-outlined text-[14px]">trending_up</span>
+                    <span id="txtRevenueGrowth">0%</span>
+                </span>
+            </div>
+            <div class="relative h-[280px] w-full">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Bar Chart: Category Breakdown -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900">Sales Breakdown by Category</h2>
+                    <p class="text-xs text-slate-500">Top revenue generating categories</p>
+                </div>
+                <span id="badgeOrdersTrend" class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <span class="material-symbols-outlined text-[14px]">trending_up</span>
+                    <span id="txtOrdersGrowth">0%</span>
+                </span>
+            </div>
+            <div class="relative h-[280px] w-full">
+                <canvas id="categorySalesChart"></canvas>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let salesTrendChartInstance = null;
+        let categorySalesChartInstance = null;
+
+        function formatVnd(val) {
+            return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+        }
+
+        function formatNumber(val) {
+            return new Intl.NumberFormat('vi-VN').format(val || 0);
+        }
+
+        function getMonday(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = (day === 0 ? -6 : 1 - day); // Sunday is 0, Monday is 1
+            d.setDate(d.getDate() + diff);
+            d.setHours(0, 0, 0, 0);
+            return d;
+        }
+
+        function formatDateIso(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatDateDisplay(d) {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function initWeekSelector() {
+            const selectWeek = document.getElementById('selectWeek');
+            const calendarInput = document.getElementById('calendarDateInput');
+            const btnCalendar = document.getElementById('btnCalendarPicker');
+            const inputFrom = document.getElementById('inputDateFrom');
+            const inputTo = document.getElementById('inputDateTo');
+
+            const today = new Date();
+            const currentMonday = getMonday(today);
+
+            selectWeek.innerHTML = '';
+
+            // Generate weeks: 2 weeks ahead down to 12 weeks in past
+            for (let i = 2; i >= -12; i--) {
+                const mon = new Date(currentMonday);
+                mon.setDate(currentMonday.getDate() + (i * 7));
+                const sun = new Date(mon);
+                sun.setDate(mon.getDate() + 6);
+
+                const valKey = `${formatDateIso(mon)}|${formatDateIso(sun)}`;
+                let label = `Tuần (${formatDateDisplay(mon)} – ${formatDateDisplay(sun)})`;
+                if (i === 0) {
+                    label = `Tuần hiện tại (${formatDateDisplay(mon)} – ${formatDateDisplay(sun)})`;
+                } else if (i === -1) {
+                    label = `Tuần trước (${formatDateDisplay(mon)} – ${formatDateDisplay(sun)})`;
+                }
+
+                const opt = document.createElement('option');
+                opt.value = valKey;
+                opt.textContent = label;
+                if (i === 0) opt.selected = true;
+                selectWeek.appendChild(opt);
+            }
+
+            // Set initial hidden dates to current week
+            const currentSunday = new Date(currentMonday);
+            currentSunday.setDate(currentMonday.getDate() + 6);
+            inputFrom.value = formatDateIso(currentMonday);
+            inputTo.value = formatDateIso(currentSunday);
+
+            // Dropdown change
+            selectWeek.addEventListener('change', function () {
+                const parts = this.value.split('|');
+                if (parts.length === 2) {
+                    inputFrom.value = parts[0];
+                    inputTo.value = parts[1];
+                    document.getElementById('totalOrdersAlert').classList.add('hidden');
+                    fetchAnalytics();
+                }
+            });
+
+            // Calendar picker button
+            btnCalendar.addEventListener('click', function () {
+                if (typeof calendarInput.showPicker === 'function') {
+                    calendarInput.showPicker();
+                } else {
+                    calendarInput.focus();
+                    calendarInput.click();
+                }
+            });
+
+            // Date picker change (automatically calculates 7 days: Monday - Sunday)
+            calendarInput.addEventListener('change', function () {
+                if (!this.value) return;
+                const picked = new Date(this.value + 'T00:00:00');
+                const pickedMon = getMonday(picked);
+                const pickedSun = new Date(pickedMon);
+                pickedSun.setDate(pickedMon.getDate() + 6);
+
+                const fromStr = formatDateIso(pickedMon);
+                const toStr = formatDateIso(pickedSun);
+                const valKey = `${fromStr}|${toStr}`;
+
+                let existingOpt = Array.from(selectWeek.options).find(o => o.value === valKey);
+                if (!existingOpt) {
+                    existingOpt = document.createElement('option');
+                    existingOpt.value = valKey;
+                    existingOpt.textContent = `Tuần (${formatDateDisplay(pickedMon)} – ${formatDateDisplay(pickedSun)})`;
+                    selectWeek.insertBefore(existingOpt, selectWeek.firstChild);
+                }
+                existingOpt.selected = true;
+                inputFrom.value = fromStr;
+                inputTo.value = toStr;
+                document.getElementById('totalOrdersAlert').classList.add('hidden');
+                fetchAnalytics();
+            });
+        }
+
+        function initCharts() {
+            const ctxLine = document.getElementById('salesTrendChart').getContext('2d');
+            const gradientLine = ctxLine.createLinearGradient(0, 0, 0, 260);
+            gradientLine.addColorStop(0, 'rgba(99, 102, 241, 0.25)');
+            gradientLine.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+            salesTrendChartInstance = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [],
+                        borderColor: '#6366f1',
+                        backgroundColor: gradientLine,
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#6366f1',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Revenue: ' + formatVnd(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 11 }, color: '#64748b' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { size: 11 },
+                                color: '#64748b',
+                                callback: val => formatNumber(val) + ' đ'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctxBar = document.getElementById('categorySalesChart').getContext('2d');
+            categorySalesChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Revenue',
+                        data: [],
+                        backgroundColor: '#6366f1',
+                        borderRadius: 6,
+                        maxBarThickness: 36
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Revenue: ' + formatVnd(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 11 }, color: '#64748b' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { size: 11 },
+                                color: '#64748b',
+                                callback: val => formatNumber(val) + ' đ'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTrendUI(boxId, textId, badgeId, badgeTextId, val) {
+            const isNegative = val < 0;
+            const isPositive = val > 0;
+            const sign = isPositive ? '+' : '';
+            const textStr = `${sign}${val}%`;
+            const iconName = isNegative ? 'trending_down' : 'trending_up';
+            const textColor = isNegative ? 'text-red-600' : 'text-emerald-600';
+            const badgeBg = isNegative ? 'bg-red-50' : 'bg-emerald-50';
+            const badgeBorder = isNegative ? 'border-red-200' : 'border-emerald-200';
+
+            const box = document.getElementById(boxId);
+            if (box) {
+                box.className = `flex items-center gap-1.5 text-xs font-semibold ${textColor} mt-2`;
+                const icon = box.querySelector('.material-symbols-outlined');
+                if (icon) icon.textContent = iconName;
+            }
+            const txt = document.getElementById(textId);
+            if (txt) txt.textContent = textStr;
+
+            if (badgeId) {
+                const badge = document.getElementById(badgeId);
+                if (badge) {
+                    badge.className = `inline-flex items-center gap-1 text-xs font-semibold ${textColor} ${badgeBg} px-2.5 py-1 rounded-full border ${badgeBorder}`;
+                    const icon = badge.querySelector('.material-symbols-outlined');
+                    if (icon) icon.textContent = iconName;
+                }
+            }
+            if (badgeTextId) {
+                const bTxt = document.getElementById(badgeTextId);
+                if (bTxt) bTxt.textContent = textStr;
+            }
+        }
+
+        async function fetchAnalytics() {
+            const dateFrom = document.getElementById('inputDateFrom').value;
+            const dateTo = document.getElementById('inputDateTo').value;
+
+            const params = new URLSearchParams();
+            if (dateFrom) params.append('dateFrom', dateFrom);
+            if (dateTo) params.append('dateTo', dateTo);
+
+            try {
+                const res = await fetch(`@Url.Action("GetAnalytics", "ManagerReports")?${params.toString()}`);
+                const result = await res.json();
+                console.log("Analytics response:", result);
+
+                if (result.success && result.data) {
+                    const d = result.data;
+                    const totalRevenue = d.totalRevenue ?? d.TotalRevenue ?? 0;
+                    const totalOrders = d.totalOrders ?? d.TotalOrders ?? 0;
+                    const completedOrders = d.completedOrders ?? d.CompletedOrders ?? 0;
+                    const averageOrderValue = d.averageOrderValue ?? d.AverageOrderValue ?? 0;
+                    const revGrowth = d.revenueGrowthPercent ?? d.RevenueGrowthPercent ?? 0;
+                    const ordGrowth = d.ordersGrowthPercent ?? d.OrdersGrowthPercent ?? 0;
+                    const branchName = d.branchName ?? d.BranchName;
+                    const timeline = d.timeline ?? d.Timeline ?? [];
+                    const categories = d.categories ?? d.Categories ?? [];
+
+                    document.getElementById('kpiRevenue').textContent = formatVnd(totalRevenue);
+                    document.getElementById('kpiOrders').textContent = formatNumber(totalOrders);
+                    document.getElementById('kpiCompleted').textContent = formatNumber(completedOrders);
+                    document.getElementById('kpiAvgValue').textContent = formatVnd(averageOrderValue);
+
+                    updateTrendUI('kpiRevenueTrendBox', 'kpiRevenueTrend', 'badgeRevenueTrend', 'txtRevenueGrowth', revGrowth);
+                    updateTrendUI('kpiOrdersTrendBox', 'kpiOrdersTrend', 'badgeOrdersTrend', 'txtOrdersGrowth', ordGrowth);
+
+                    if (branchName) {
+                        const bDisplay = document.getElementById('branchNameDisplay');
+                        if (bDisplay) bDisplay.textContent = branchName;
+                    }
+
+                    // Update Line Chart
+                    if (salesTrendChartInstance) {
+                        if (timeline && timeline.length > 0) {
+                            salesTrendChartInstance.data.labels = timeline.map(p => p.dateLabel ?? p.DateLabel);
+                            salesTrendChartInstance.data.datasets[0].data = timeline.map(p => p.revenue ?? p.Revenue ?? 0);
+                        } else {
+                            salesTrendChartInstance.data.labels = [];
+                            salesTrendChartInstance.data.datasets[0].data = [];
+                        }
+                        salesTrendChartInstance.update();
+                    }
+
+                    // Update Bar Chart
+                    if (categorySalesChartInstance) {
+                        if (categories && categories.length > 0) {
+                            categorySalesChartInstance.data.labels = categories.map(c => c.categoryName ?? c.CategoryName);
+                            categorySalesChartInstance.data.datasets[0].data = categories.map(c => c.revenue ?? c.Revenue ?? 0);
+                        } else {
+                            categorySalesChartInstance.data.labels = ['Chưa có dữ liệu'];
+                            categorySalesChartInstance.data.datasets[0].data = [0];
+                        }
+                        categorySalesChartInstance.update();
+                    }
+                } else {
+                    console.error("Analytics returned unsuccessful:", result ? result.message : "Unknown error");
+                }
+            } catch (err) {
+                console.error("Error loading analytics:", err);
+            }
+        }
+
         document.getElementById('btnTotalOrders').addEventListener('click', async function () {
-            const dateFrom = document.querySelector('input[name="dateFrom"]').value;
-            const dateTo = document.querySelector('input[name="dateTo"]').value;
+            const dateFrom = document.getElementById('inputDateFrom').value;
+            const dateTo = document.getElementById('inputDateTo').value;
             const btn = this;
             const alertBox = document.getElementById('totalOrdersAlert');
             const alertText = document.getElementById('totalOrdersText');
@@ -106,6 +532,9 @@
                     alertText.textContent = data.message || 'Could not fetch order count.';
                     alertBox.classList.remove('hidden');
                 }
+
+                // Also refresh charts and cards
+                await fetchAnalytics();
             } catch (err) {
                 alertBox.className = 'p-4 rounded-xl border border-red-200 bg-red-50 text-red-800 text-sm flex items-center gap-2';
                 alertIcon.textContent = 'error';
@@ -115,6 +544,13 @@
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
             }
+        });
+
+        // Initialize week selector, charts and load data on page load
+        document.addEventListener('DOMContentLoaded', function () {
+            initCharts();
+            initWeekSelector();
+            fetchAnalytics();
         });
     </script>
 }

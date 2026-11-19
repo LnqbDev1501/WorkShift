@@ -45,6 +45,24 @@ public class ManagerReportsController(ManagerReportApiService api) : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> GetAnalytics(DateTime? dateFrom, DateTime? dateTo, CancellationToken ct = default)
+    {
+        try
+        {
+            var analytics = await api.GetBranchSalesAnalyticsAsync(dateFrom, dateTo, ct);
+            return Json(new { success = true, data = analytics });
+        }
+        catch (HttpRequestException ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpGet]
     public async Task<IActionResult> ExportBranchSales(
         DateTime? dateFrom, DateTime? dateTo,
         CancellationToken cancellationToken = default)

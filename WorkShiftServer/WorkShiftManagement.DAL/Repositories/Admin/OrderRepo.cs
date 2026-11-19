@@ -12,7 +12,7 @@ public class OrderRepo : IOrderRepo
 
     public OrderRepo(AppDbContext context) => _context = context;
 
-    public async Task<(List<OrderData> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(List<OrderData> Items, int TotalCount, int PaidCount, int CompletedCount, decimal TotalOrderValue)> GetPagedAsync(
         string? search,
         int? branchId,
         string? status,
@@ -64,6 +64,9 @@ public class OrderRepo : IOrderRepo
         }
 
         var totalCount = await query.CountAsync();
+        var paidCount = await query.CountAsync(order => order.PaymentStatus == "PAID");
+        var completedCount = await query.CountAsync(order => order.Status == "COMPLETED");
+        var totalOrderValue = await query.SumAsync(order => (decimal?)order.TotalAmount) ?? 0m;
 
         IOrderedQueryable<Order> orderedQuery;
         if (string.Equals(sortBy, "oldest_pending_first", StringComparison.OrdinalIgnoreCase))
@@ -111,7 +114,7 @@ public class OrderRepo : IOrderRepo
             })
             .ToListAsync();
 
-        return (items, totalCount);
+        return (items, totalCount, paidCount, completedCount, totalOrderValue);
     }
 
     public async Task<OrderDetailData?> GetByIdAsync(int id)
