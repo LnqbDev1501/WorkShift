@@ -324,7 +324,20 @@
                     <tr class="@(isInactive ? "deleted-row" : null)">
                         <td><div class="user-cell">@if (!string.IsNullOrWhiteSpace(user.AvatarUrl)) { <img class="avatar-image" src="@user.AvatarUrl" alt="" /> } else { <span class="initials @(isInactive ? "muted" : null)">@user.Initials</span> }<div><div class="user-name">@user.FullName @if (user.DeletedAt.HasValue) { <span class="deleted-label">Deleted</span> }</div><div class="user-email">@user.Email</div></div></div></td>
                         <td>@user.Phone</td><td><span class="pill">@DisplayName(user.RoleName)</span></td>
-                        <td>@(user.BranchName ?? "�") @if (!string.IsNullOrWhiteSpace(user.PreviousBranchName)) { <span class="previous">Prev: @user.PreviousBranchName</span> }</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(user.BranchName))
+                            {
+                                <span>@user.BranchName</span>
+                            }
+                            else
+                            {
+                                <span class="pill" style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:500;padding:3px 9px;">Unassigned</span>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(user.PreviousBranchName))
+                            {
+                                <span class="previous">Prev: @user.PreviousBranchName</span>
+                            }
+                        </td>
                         <td><span class="pill status @(isPending ? "pending" : isInactive ? "inactive" : null)"><i class="dot"></i>@(isPending ? "Pending Activation" : DisplayName(user.Status))</span></td>
                         <td>@user.CreatedAt.ToString("dd MMM yyyy")</td>
                         <td><div class="actions">
