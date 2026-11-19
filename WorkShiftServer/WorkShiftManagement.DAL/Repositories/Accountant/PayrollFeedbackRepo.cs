@@ -20,8 +20,7 @@ public sealed class PayrollFeedbackRepo(AppDbContext db, ILogger<PayrollFeedback
         return new() {
             Period = period,
             Payrolls = await db.Payrolls.Where(p => p.PayrollPeriodId == periodId)
-                .Include(p => p.PayrollPeriod).Include(p => p.PayrollDetails).Include(p => p.Payslip)
-                .Include(p => p.Timesheet).ThenInclude(t => t.User).AsSplitQuery().ToListAsync(ct),
+                .Include(p => p.PayrollPeriod).Include(p => p.Payslip).ToListAsync(ct),
             Reviews = await db.PayrollFeedbackRequests.Where(f => f.Payroll.PayrollPeriodId == periodId)
                 .Include(f => f.Payroll).OrderBy(f => f.FeedbackId).ToListAsync(ct),
             Corrections = await db.PayrollCorrectionRequests.Where(r => r.Payroll.PayrollPeriodId == periodId)
@@ -32,7 +31,7 @@ public sealed class PayrollFeedbackRepo(AppDbContext db, ILogger<PayrollFeedback
     public Task<int?> PeriodForCorrectionAsync(int id, CancellationToken ct) => db.PayrollCorrectionRequests.Where(f => f.CorrectionRequestId == id).Select(f => (int?)f.Payroll.PayrollPeriodId).SingleOrDefaultAsync(ct);
     public Task<int?> PeriodForPayrollAsync(int id, CancellationToken ct) => db.Payrolls.Where(p => p.PayrollId == id).Select(p => (int?)p.PayrollPeriodId).SingleOrDefaultAsync(ct);
     public Task<List<int>> ReviewPeriodIdsAsync(int? branch, Guid? employee, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
-        .Where(p => (!branch.HasValue || p.BranchId == branch) && (!employee.HasValue || p.Payrolls.Any(w => w.UserId == employee && w.PayrollFeedbackRequests.Any())))
+        .Where(p => (!branch.HasValue || p.BranchId == branch) && p.Payrolls.Any(w => (!employee.HasValue || w.UserId == employee) && w.PayrollFeedbackRequests.Any()))
         .OrderByDescending(p => p.StartDate).Select(p => p.PayrollPeriodId).ToListAsync(ct);
     public async Task<List<int>> DueReviewPeriodsAsync(DateTime now, CancellationToken ct)
     {

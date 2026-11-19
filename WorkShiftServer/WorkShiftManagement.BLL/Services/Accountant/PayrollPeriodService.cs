@@ -184,9 +184,15 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             .UtcDateTime;
     }
 
+    private Task<PayrollPeriodManagementResponse> MapAsync(
+        PayrollPeriod p,
+        bool includePayrolls,
+        CancellationToken ct) => MapAsync(p, includePayrolls, null, ct);
+
     private async Task<PayrollPeriodManagementResponse> MapAsync(
         PayrollPeriod p,
         bool includePayrolls,
+        int? expectedEmployeeCount,
         CancellationToken ct)
     {
         var current = PayrollVersionPolicy.Current(p.Payrolls, p.Status);
@@ -217,7 +223,7 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             ClosedAt = p.ClosedAt,
 
             ExpectedEmployeeCount =
-                await repo.ExpectedEmployeeCountAsync(p, ct),
+                expectedEmployeeCount ?? await repo.ExpectedEmployeeCountAsync(p, ct),
 
             LockedTimesheetCount = p.Timesheets
                 .Where(t => t.Status == "LOCKED")
@@ -329,10 +335,12 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
             TotalItems = count
         };
 
+        var expectedCounts = await repo.GetExpectedEmployeeCountsAsync(items, ct);
+
         foreach (var item in items)
         {
             result.Items.Add(
-                await MapAsync(item, false, ct));
+                await MapAsync(item, false, expectedCounts.GetValueOrDefault(item.PayrollPeriodId, 0), ct));
         }
 
         return result;
@@ -348,6 +356,7 @@ public sealed class PayrollPeriodService(IPayrollPeriodRepo repo) : IPayrollPeri
         return await MapAsync(
             await PeriodAsync(id, user.BranchId, false, ct),
             true,
+            null,
             ct);
     }
 

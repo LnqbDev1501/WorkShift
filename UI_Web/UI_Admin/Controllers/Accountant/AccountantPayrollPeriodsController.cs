@@ -34,6 +34,10 @@ public sealed class AccountantPayrollPeriodsController(
     private string Error(Exception ex)
     {
         logger.LogWarning(ex, "Payroll period UI request failed.");
+        if (ex is OperationCanceledException or TimeoutException)
+            return "The request timed out while loading payroll periods. Please refresh to try again.";
+        if (ex is HttpRequestException { StatusCode: null })
+            return "Unable to connect to the payroll service. Please check your network connection and ensure the backend API is reachable.";
         return ex is PayrollPeriodApiException || ex is HttpRequestException { StatusCode: HttpStatusCode.BadRequest or HttpStatusCode.Conflict }
             ? ex.Message : "Unable to confirm operation result. Please refresh the payroll period to verify before retrying.";
     }

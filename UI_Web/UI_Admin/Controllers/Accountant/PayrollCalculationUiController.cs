@@ -10,7 +10,15 @@ public abstract class PayrollCalculationUiController(PayrollCalculationApiServic
     protected const string ListView = "~/Views/PayrollCalculation/Index.cshtml", DetailView = "~/Views/PayrollCalculation/Details.cshtml";
     protected static bool Handled(Exception ex) => ex is CalculationApiException or HttpRequestException or JsonException or InvalidOperationException or OperationCanceledException;
     protected IActionResult? Access(Exception ex) => (ex as CalculationApiException)?.Status switch { HttpStatusCode.Unauthorized => Challenge(), HttpStatusCode.Forbidden => Forbid(), HttpStatusCode.NotFound => NotFound(), _ => null };
-    protected string Error(Exception ex) { logger.LogWarning(ex, "Payroll calculation UI failed."); return ex is CalculationApiException ? ex.Message : "Unable to confirm operation result. Please refresh the data before retrying."; }
+    protected string Error(Exception ex)
+    {
+        logger.LogWarning(ex, "Payroll calculation UI failed.");
+        if (ex is OperationCanceledException or TimeoutException)
+            return "The request timed out while loading payroll calculation data. Please refresh to try again.";
+        if (ex is HttpRequestException { StatusCode: null })
+            return "Unable to connect to the payroll service. Please check your network connection and ensure the backend API is reachable.";
+        return ex is CalculationApiException ? ex.Message : "Unable to confirm operation result. Please refresh the data before retrying.";
+    }
     protected CalculationViewModel Model(int id, CalculationQuery query, bool accountant)
     {
         query.Status = query.Status?.Trim().ToUpperInvariant();
