@@ -13,6 +13,7 @@ public interface IOrderService
     Task<OrderDetailResponse?> GetByOrderNumberAsync(string orderNumber, Guid actorId);
     Task<byte[]> GenerateInvoicePdfAsync(int id, Guid actorId);
     Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, Guid actorId, CancellationToken cancellationToken = default);
+    Task<int> AutoCompletePastPendingOrdersAsync(CancellationToken cancellationToken = default);
 }
 
 public interface IPaymentService

@@ -27,6 +27,8 @@ public class BranchSalesReportRepo : IBranchSalesReportRepo
         DateTime? toUtcExclusive,
         CancellationToken cancellationToken = default)
     {
+        await EnsurePastPendingOrdersCompletedAsync(cancellationToken);
+
         var query = _context.Orders
             .AsNoTracking()
             .Where(o => o.BranchId == branchId && o.Status != "CANCELLED");
@@ -76,6 +78,8 @@ public class BranchSalesReportRepo : IBranchSalesReportRepo
         DateTime? toUtcExclusive,
         CancellationToken cancellationToken = default)
     {
+        await EnsurePastPendingOrdersCompletedAsync(cancellationToken);
+
         var query = _context.Orders
             .AsNoTracking()
             .Where(o => o.BranchId == branchId && o.Status != "CANCELLED");
@@ -99,6 +103,8 @@ public class BranchSalesReportRepo : IBranchSalesReportRepo
         DateTime? toUtcExclusive,
         CancellationToken cancellationToken = default)
     {
+        await EnsurePastPendingOrdersCompletedAsync(cancellationToken);
+
         var branch = await GetBranchByIdAsync(branchId, cancellationToken);
         var branchName = branch?.BranchName ?? "Your Branch";
 
@@ -247,5 +253,42 @@ public class BranchSalesReportRepo : IBranchSalesReportRepo
             timeline,
             categoryBreakdown
         );
+    }
+
+    private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
+
+    private static DateTime GetStartOfTodayVnInUtc()
+    {
+        var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, VietnamTimeZone);
+        var todayVn = DateOnly.FromDateTime(vnNow);
+        var vnDateTime = todayVn.ToDateTime(TimeOnly.MinValue);
+        return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(vnDateTime, DateTimeKind.Unspecified), VietnamTimeZone);
+    }
+
+    private async Task EnsurePastPendingOrdersCompletedAsync(CancellationToken cancellationToken = default)
+    {
+        var startOfTodayUtc = GetStartOfTodayVnInUtc();
+        await _context.Orders
+            .Where(o => o.Status == "PENDING" && o.OrderDate < startOfTodayUtc)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(o => o.Status, "COMPLETED")
+                .SetProperty(o => o.UpdatedAt, DateTime.UtcNow),
+                cancellationToken);
+    }
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch (InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
     }
 }

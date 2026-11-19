@@ -23,6 +23,9 @@ public class OrderRepo : IOrderRepo
         int pageSize,
         string? sortBy = null)
     {
+        var startOfTodayUtc = GetStartOfTodayVnInUtc();
+        await AutoCompletePastPendingOrdersAsync(startOfTodayUtc);
+
         var query = _context.Orders.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -122,6 +125,8 @@ public class OrderRepo : IOrderRepo
         if (id <= 0)
             return null;
 
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
+
         return await _context.Orders
             .AsNoTracking()
             .Where(order => order.OrderId == id)
@@ -163,6 +168,8 @@ public class OrderRepo : IOrderRepo
         if (id <= 0)
             return null;
 
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
+
         return await _context.Orders
             .AsNoTracking()
             .Where(order => order.OrderId == id && order.BranchId == branchId)
@@ -203,6 +210,8 @@ public class OrderRepo : IOrderRepo
     {
         if (string.IsNullOrWhiteSpace(orderNumber))
             return null;
+
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
 
         var trimmed = orderNumber.Trim();
         return await _context.Orders
@@ -408,6 +417,23 @@ public class OrderRepo : IOrderRepo
                 sa.Attendance.Status != "ABSENT" &&
                 sa.Attendance.Status != "CANCELLED",
                 cancellationToken);
+    }
+
+    public async Task<int> AutoCompletePastPendingOrdersAsync(DateTime beforeUtc, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders
+            .Where(order => order.Status == "PENDING" && order.OrderDate < beforeUtc)
+            .ExecuteUpdateAsync(setter => setter
+                .SetProperty(order => order.Status, "COMPLETED")
+                .SetProperty(order => order.UpdatedAt, DateTime.UtcNow),
+                cancellationToken);
+    }
+
+    public DateTime GetStartOfTodayVnInUtc()
+    {
+        var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, VietnamTimeZone);
+        var todayVn = DateOnly.FromDateTime(vnNow);
+        return ConvertVnDateToUtcStartOfDay(todayVn);
     }
 
     private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)

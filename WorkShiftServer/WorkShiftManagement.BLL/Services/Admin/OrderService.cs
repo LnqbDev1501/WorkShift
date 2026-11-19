@@ -544,4 +544,10 @@ public class OrderService : IOrderService
 
         return await _orderRepo.IsStaffInWorkingShiftAsync(staffId, actor.BranchId.Value, DateTime.UtcNow, cancellationToken);
     }
+
+    public async Task<int> AutoCompletePastPendingOrdersAsync(CancellationToken cancellationToken = default)
+    {
+        var startOfTodayUtc = _orderRepo.GetStartOfTodayVnInUtc();
+        return await _orderRepo.AutoCompletePastPendingOrdersAsync(startOfTodayUtc, cancellationToken);
+    }
 }
