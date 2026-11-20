@@ -31,8 +31,8 @@ public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : 
             .GroupBy(x => x.PayrollPeriod.EndDate.Month)
             .Select(g => new AccountantDashboardMonthlySalaryResponse
             {
-                Month = g.Key, PayrollCount = g.Count(), GrossSalary = g.Sum(x => x.GrossSalary),
-                TotalDeduction = g.Sum(x => x.TotalDeduction), NetSalary = g.Sum(x => x.NetSalary)
+                Month = g.Key, PayrollCount = g.Count(), GrossSalary = Math.Round(g.Sum(x => x.GrossSalary), 2),
+                TotalDeduction = Math.Round(g.Sum(x => x.TotalDeduction), 2), NetSalary = Math.Round(g.Sum(x => x.NetSalary), 2)
             }).OrderBy(x => x.Month).ToListAsync(ct);
         var periods = await scopedPeriods.GroupBy(x => x.Status)
             .Select(g => new AccountantDashboardPeriodStatusResponse { Status = g.Key, Count = g.Count() })
@@ -40,8 +40,8 @@ public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : 
         var payrolls = await scopedPayrolls.GroupBy(x => x.Status)
             .Select(g => new AccountantDashboardPayrollStatusResponse
             {
-                Status = g.Key, Count = g.Count(), GrossSalary = g.Sum(x => x.GrossSalary),
-                TotalDeduction = g.Sum(x => x.TotalDeduction), NetSalary = g.Sum(x => x.NetSalary)
+                Status = g.Key, Count = g.Count(), GrossSalary = Math.Round(g.Sum(x => x.GrossSalary), 2),
+                TotalDeduction = Math.Round(g.Sum(x => x.TotalDeduction), 2), NetSalary = Math.Round(g.Sum(x => x.NetSalary), 2)
             }).OrderBy(x => x.Status).ToListAsync(ct);
         var recent = await scopedPeriods.Where(x => x.Status != "CANCELLED")
             .OrderByDescending(x => x.EndDate).ThenByDescending(x => x.PayrollPeriodId).Take(5)
@@ -51,8 +51,8 @@ public sealed class AccountantDashboardService(IAccountantDashboardRepo repo) : 
                 PeriodCode = x.PeriodCode, PeriodName = x.PeriodName, StartDate = x.StartDate, EndDate = x.EndDate,
                 Status = x.Status,
                 TotalPayrolls = x.Payrolls.Count(p => p.BranchId == branchId.Value && p.ReplacedAt == null && p.InversePreviousPayroll == null),
-                TotalNetSalary = x.Payrolls.Where(p => p.BranchId == branchId.Value && p.ReplacedAt == null && p.InversePreviousPayroll == null)
-                    .Sum(p => (decimal?)p.NetSalary) ?? 0m
+                TotalNetSalary = Math.Round(x.Payrolls.Where(p => p.BranchId == branchId.Value && p.ReplacedAt == null && p.InversePreviousPayroll == null)
+                    .Sum(p => (decimal?)p.NetSalary) ?? 0m, 2)
             }).ToListAsync(ct);
 
         return new AccountantDashboardResponse
