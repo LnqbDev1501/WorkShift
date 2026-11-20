@@ -270,6 +270,7 @@ builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddHostedService<OrderAutoCompletionWorker>();
 builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Accountant.IBranchSalesReportRepo,
     WorkShiftManagement.DAL.Repositories.Accountant.BranchSalesReportRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
@@ -465,6 +466,12 @@ try
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService>(
             "attendance-absent-finalizer",
             service => service.FinalizeExpiredAttendancesAsync(CancellationToken.None),
+            "*/5 * * * *");
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IOrderService>(
+            "auto-complete-past-pending-orders",
+            service => service.AutoCompletePastPendingOrdersAsync(CancellationToken.None),
             "*/5 * * * *");
 }
 
