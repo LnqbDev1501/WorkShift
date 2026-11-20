@@ -1,0 +1,190 @@
+<!-- Deactivate Confirmation Modal -->
+<div id="deactivateHolidayModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="deactivateHolidayTitle">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-error-container text-error flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[26px]">pause_circle</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface font-bold text-lg" id="deactivateHolidayTitle">Deactivate Public Holiday?</h3>
+                <p class="font-label-sm text-on-surface-variant text-xs text-gray-500">Public Holidays</p>
+            </div>
+        </div>
+
+        <p class="font-body-md text-on-surface-variant text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to deactivate <strong id="deactivateHolidayName" class="text-on-surface font-semibold text-gray-900"></strong>? Only this holiday will become inactive. Its date remains reserved.
+        </p>
+
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5 text-amber-600">warning</span>
+            <div class="leading-relaxed">
+                <strong>Payroll Notice:</strong> Affected unfinalized payroll periods will require recalculation.
+            </div>
+        </div>
+
+        <form id="deactivateHolidayForm" method="post" asp-controller="Holidays" asp-action="Delete" class="mt-2 flex items-center justify-end gap-3" onsubmit="disableHolidaySubmitButton(this)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="deactivateHolidayId" value="0" />
+            <button type="button" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer" onclick="closeDeactivateHolidayModal()">
+                Cancel
+            </button>
+            <button type="submit" class="h-10 px-5 rounded-xl bg-error hover:bg-red-700 text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">pause_circle</span>
+                <span>Confirm Deactivate</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Restore Confirmation Modal -->
+<div id="restoreHolidayModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-4 animate-fadeIn" role="dialog" aria-modal="true" aria-labelledby="restoreHolidayTitle">
+    <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-4 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-start gap-3">
+            <div class="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[26px]">restart_alt</span>
+            </div>
+            <div>
+                <h3 class="font-title-lg text-on-surface font-bold text-lg" id="restoreHolidayTitle">Restore Public Holiday?</h3>
+                <p class="font-label-sm text-on-surface-variant text-xs text-gray-500">Public Holidays</p>
+            </div>
+        </div>
+
+        <p class="font-body-md text-on-surface-variant text-sm text-gray-600 leading-relaxed">
+            Are you sure you want to restore <strong id="restoreHolidayName" class="text-on-surface font-semibold text-gray-900"></strong> back to ACTIVE status?
+        </p>
+
+        <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5">
+            <span class="material-symbols-outlined text-[18px] shrink-0 mt-0.5 text-amber-600">warning</span>
+            <div class="leading-relaxed">
+                <strong>Payroll Notice:</strong> Affected unfinalized payroll periods will require recalculation.
+            </div>
+        </div>
+
+        <form id="restoreHolidayForm" method="post" asp-controller="Holidays" asp-action="Restore" class="mt-2 flex items-center justify-end gap-3" onsubmit="disableHolidaySubmitButton(this)">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" id="restoreHolidayId" value="0" />
+            <button type="button" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer" onclick="closeRestoreHolidayModal()">
+                Cancel
+            </button>
+            <button type="submit" class="h-10 px-5 rounded-xl bg-primary hover:bg-primary-container text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                <span class="material-symbols-outlined text-[18px]">restart_alt</span>
+                <span>Confirm Restore</span>
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+    var lastFocusedHolidayElement = null;
+
+    function openDeactivateHolidayModal(buttonOrId, holidayName) {
+        lastFocusedHolidayElement = document.activeElement;
+        var id, name;
+        if (typeof buttonOrId === 'object' && buttonOrId !== null) {
+            id = buttonOrId.getAttribute('data-holiday-id');
+            name = buttonOrId.getAttribute('data-holiday-name');
+        } else {
+            id = buttonOrId;
+            name = holidayName;
+        }
+
+        var idInput = document.getElementById('deactivateHolidayId');
+        var nameSpan = document.getElementById('deactivateHolidayName');
+        var form = document.getElementById('deactivateHolidayForm');
+        var modal = document.getElementById('deactivateHolidayModal');
+
+        if (idInput) idInput.value = id;
+        if (form) form.action = '/Holidays/Delete/' + id;
+        if (nameSpan) nameSpan.textContent = '"' + name + '"';
+        if (modal) {
+            var submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            var cancelBtn = modal.querySelector('button[type="button"]');
+            if (cancelBtn) cancelBtn.focus();
+        }
+    }
+
+    function closeDeactivateHolidayModal() {
+        var modal = document.getElementById('deactivateHolidayModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        if (lastFocusedHolidayElement) {
+            lastFocusedHolidayElement.focus();
+            lastFocusedHolidayElement = null;
+        }
+    }
+
+    function openRestoreHolidayModal(buttonOrId, holidayName) {
+        lastFocusedHolidayElement = document.activeElement;
+        var id, name;
+        if (typeof buttonOrId === 'object' && buttonOrId !== null) {
+            id = buttonOrId.getAttribute('data-holiday-id');
+            name = buttonOrId.getAttribute('data-holiday-name');
+        } else {
+            id = buttonOrId;
+            name = holidayName;
+        }
+
+        var idInput = document.getElementById('restoreHolidayId');
+        var nameSpan = document.getElementById('restoreHolidayName');
+        var form = document.getElementById('restoreHolidayForm');
+        var modal = document.getElementById('restoreHolidayModal');
+
+        if (idInput) idInput.value = id;
+        if (form) form.action = '/Holidays/Restore/' + id;
+        if (nameSpan) nameSpan.textContent = '"' + name + '"';
+        if (modal) {
+            var submitBtn = modal.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            var cancelBtn = modal.querySelector('button[type="button"]');
+            if (cancelBtn) cancelBtn.focus();
+        }
+    }
+
+    function closeRestoreHolidayModal() {
+        var modal = document.getElementById('restoreHolidayModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        if (lastFocusedHolidayElement) {
+            lastFocusedHolidayElement.focus();
+            lastFocusedHolidayElement = null;
+        }
+    }
+
+    function disableHolidaySubmitButton(form) {
+        var submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+    }
+
+    document.getElementById('deactivateHolidayModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeDeactivateHolidayModal();
+    });
+
+    document.getElementById('restoreHolidayModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeRestoreHolidayModal();
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeDeactivateHolidayModal();
+            closeRestoreHolidayModal();
+        }
+    });
+</script>

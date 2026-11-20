@@ -42,6 +42,8 @@ public interface IPayrollPeriodRepo
         int id, CancellationToken ct);
     Task<int> ExpectedEmployeeCountAsync(
         PayrollPeriod period, CancellationToken ct);
+    Task<Dictionary<int, int>> GetExpectedEmployeeCountsAsync(
+        IReadOnlyList<PayrollPeriod> periods, CancellationToken ct);
     Task<IDbContextTransaction> BeginWriteAsync(CancellationToken ct);
     void Add(PayrollPeriod period);
     void Remove(PayrollPeriod period);

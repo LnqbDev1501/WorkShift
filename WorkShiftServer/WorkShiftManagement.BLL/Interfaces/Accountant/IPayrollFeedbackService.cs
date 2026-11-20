@@ -7,6 +7,8 @@ public interface IPayrollFeedbackService
     Task<List<PayrollFeedbackResponse>> SendPreviewsAsync(Guid actor, int periodId, SendPayrollPreviewsRequest? request, CancellationToken ct);
     Task<PayrollFeedbackResponse> ConfirmAsync(Guid actor, int id, CancellationToken ct);
     Task<PayrollFeedbackResponse> SubmitAsync(Guid actor, int id, SubmitPayrollFeedbackRequest request, CancellationToken ct);
+    Task<PagedResponse<PayrollFeedbackResponse>> ListPreviewsAsync(Guid actor, PayrollFeedbackListRequest query, CancellationToken ct);
+    Task<PagedResponse<PayrollFeedbackResponse>> ListFeedbacksAsync(Guid actor, PayrollFeedbackListRequest query, CancellationToken ct);
     Task<PagedResponse<PayrollFeedbackResponse>> ListAsync(Guid actor, PayrollFeedbackListRequest query, CancellationToken ct);
     Task<PayrollFeedbackDetailsResponse> GetAsync(Guid actor, int id, CancellationToken ct);
     Task<PayrollFeedbackResponse> ApproveAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct);

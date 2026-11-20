@@ -68,6 +68,8 @@ public sealed class PayrollFeedbackResponse
     public bool CanSubmitFeedback => CanRespond;
     public string? PreviousResolutionNote { get; set; }
     public string? PreviousFeedbackDescription { get; set; }
+    public string? PeriodCode { get; set; }
+    public string? BranchName { get; set; }
     public List<PayrollIssueResponse> Corrections { get; set; } = [];
 }
 public sealed class ExplainPayrollFeedbackRequest

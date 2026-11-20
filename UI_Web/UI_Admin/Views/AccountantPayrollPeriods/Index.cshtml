@@ -41,10 +41,10 @@
     }
 
     <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
-        new("Matching periods", Model.Page.TotalItems.ToString("N0"), "Matching current filters", "calendar_month"),
-        new("Open", Model.Page.Items.Count(x => x.Status == "OPEN").ToString("N0"), "On this page", "lock_open"),
-        new("Submitted", Model.Page.Items.Count(x => x.Status == "SUBMITTED").ToString("N0"), "On this page", "pending_actions"),
-        new("Closed", Model.Page.Items.Count(x => x.Status == "CLOSED").ToString("N0"), "On this page", "task_alt")
+        new("Matching periods", Model.Error != null ? "—" : Model.Page.TotalItems.ToString("N0"), "Matching current filters", "calendar_month"),
+        new("Open", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "OPEN").ToString("N0"), "On this page", "lock_open"),
+        new("Submitted", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "SUBMITTED").ToString("N0"), "On this page", "pending_actions"),
+        new("Closed", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "CLOSED").ToString("N0"), "On this page", "task_alt")
     })' />
 
     <!-- Search & Filter Card (Manager Style) -->
@@ -79,12 +79,28 @@
                 <span class="material-symbols-outlined text-indigo-600 text-xl">calendar_view_week</span>
                 <h2 class="text-sm font-bold text-slate-900">Payroll Periods</h2>
                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                    @Model.Page.TotalItems @(Model.Page.TotalItems == 1 ? "Period" : "Periods")
+                    @(Model.Error != null ? "—" : $"{Model.Page.TotalItems} {(Model.Page.TotalItems == 1 ? "Period" : "Periods")}")
                 </span>
             </div>
         </div>
 
-        @if (Model.Page.Items.Count == 0)
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-500">
+                    <span class="material-symbols-outlined text-3xl">cloud_off</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Unable to Load Payroll Periods</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">@Model.Error</p>
+                <div class="mt-4">
+                    <a href="javascript:location.reload()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-all">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        <span>Reload Periods</span>
+                    </a>
+                </div>
+            </div>
+        }
+        else if (Model.Page.Items.Count == 0)
         {
             <div class="p-12 text-center">
                 <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
