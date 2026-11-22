@@ -197,13 +197,6 @@ public sealed class UserApiService
             content.Add(new StringContent(model.DateOfBirth.Value.ToString("yyyy-MM-dd")), nameof(model.DateOfBirth));
         }
 
-        if (model.AvatarFile != null && model.AvatarFile.Length > 0)
-        {
-            var streamContent = new StreamContent(model.AvatarFile.OpenReadStream());
-            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(model.AvatarFile.ContentType ?? "image/jpeg");
-            content.Add(streamContent, nameof(model.AvatarFile), model.AvatarFile.FileName);
-        }
-
         using var response = await _httpClient.PutAsync(
             BuildUrl($"api/admin/users/{userId}"),
             content,
