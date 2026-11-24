@@ -210,44 +210,30 @@
                         <span class="material-symbols-outlined text-primary text-[22px]">badge</span>
                         <div>
                             <h2 class="font-title-lg text-title-lg text-on-surface">Personal Information & Profile</h2>
-                            <p class="font-label-sm text-secondary">Update personal bio, legal identification, and official avatar</p>
+                            <p class="font-label-sm text-secondary">Update personal bio and legal identification</p>
                         </div>
                     </div>
                     <span class="font-label-sm text-label-sm uppercase tracking-wider text-secondary bg-surface-container px-2.5 py-1 rounded font-semibold">Core Bio</span>
                 </div>
 
-                <!-- Avatar Uploader Component -->
+                <!-- Avatar View (Read-only for Admin) -->
                 <div class="p-unit-4 rounded-xl bg-surface-container-low flex flex-col sm:flex-row items-start sm:items-center gap-unit-5 border border-[#e2e8f0]">
-                    <div class="relative group">
+                    <div>
                         @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
                         {
-                            <img id="avatarPreview" alt="@Model.FullName Avatar" class="w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="@Model.AvatarUrl" />
+                            <img alt="@Model.FullName Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" src="@Model.AvatarUrl" />
                         }
                         else
                         {
-                            <div id="avatarPlaceholder" class="w-24 h-24 rounded-full bg-[#5146e5] text-white text-2xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm ring-2 ring-primary/20">
+                            <div class="w-20 h-20 rounded-full bg-[#5146e5] text-white text-xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm ring-2 ring-primary/20">
                                 @Model.Initials
                             </div>
-                            <img id="avatarPreview" alt="Preview" class="hidden w-24 h-24 rounded-full object-cover border-2 border-surface-container shadow-sm ring-2 ring-primary/20" />
                         }
-                        <label for="avatarFileInput" class="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                            <span class="material-symbols-outlined text-[24px]">photo_camera</span>
-                        </label>
                     </div>
                     
-                    <div class="flex flex-col gap-unit-2 flex-1">
-                        <div>
-                            <h4 class="font-title-md text-title-md text-on-surface">Profile Avatar Photo</h4>
-                            <p class="font-body-sm text-body-sm text-secondary">Upload a square image (JPG, PNG, or WEBP, max 5MB). Stored securely via Cloudinary.</p>
-                        </div>
-                        
-                        <div class="flex items-center gap-unit-3 flex-wrap">
-                            <input type="file" asp-for="AvatarFile" id="avatarFileInput" accept="image/*" class="hidden" onchange="previewAvatar(event)" />
-                            <button type="button" onclick="document.getElementById('avatarFileInput').click()" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-surface-container-lowest border border-[#cbd5e1] hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors shadow-sm cursor-pointer">
-                                <span class="material-symbols-outlined text-[16px] text-primary">upload</span>
-                                <span>Change Photo</span>
-                            </button>
-                        </div>
+                    <div class="flex flex-col gap-1 flex-1">
+                        <h4 class="font-title-md text-title-md text-on-surface">Profile Avatar Photo</h4>
+                        <p class="font-body-sm text-body-sm text-secondary">Profile avatar is personal information and is managed by the user in their personal profile settings.</p>
                     </div>
                 </div>
 
@@ -269,8 +255,29 @@
                         </label>
                         <div class="relative flex items-center">
                             <span class="absolute left-3 material-symbols-outlined text-secondary text-[18px]">mail</span>
-                            <input asp-for="Email" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="254" placeholder="user@workshift.vn" type="email" />
+                            @if (isActive)
+                            {
+                                <input asp-for="Email" readonly class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container text-secondary font-body-md text-body-md border border-surface-container-high cursor-not-allowed outline-none select-none" maxlength="254" type="email" title="Email cannot be changed once the account is active." />
+                            }
+                            else
+                            {
+                                <input asp-for="Email" class="w-full h-input-height pl-10 pr-unit-3 rounded-xl bg-surface-container-low text-on-surface font-body-md text-body-md border border-transparent focus:border-primary focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/20 outline-none transition-all" maxlength="254" placeholder="user@workshift.vn" type="email" />
+                            }
                         </div>
+                        @if (isActive)
+                        {
+                            <span class="text-[12px] text-secondary flex items-center gap-1 mt-0.5">
+                                <span class="material-symbols-outlined text-[14px]">lock</span>
+                                Email cannot be changed once the account is active.
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="text-[12px] text-primary flex items-center gap-1 mt-0.5">
+                                <span class="material-symbols-outlined text-[14px]">info</span>
+                                Changing email will automatically resend the account setup link.
+                            </span>
+                        }
                         <span asp-validation-for="Email" class="field-validation-error"></span>
                     </div>
 
@@ -433,25 +440,6 @@
 @section Scripts {
 <partial name="_ValidationScriptsPartial" />
 <script>
-    function previewAvatar(event) {
-        const input = event.target;
-        if (input.files && input.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const previewImg = document.getElementById('avatarPreview');
-                const placeholder = document.getElementById('avatarPlaceholder');
-                if (previewImg) {
-                    previewImg.src = e.target.result;
-                    previewImg.classList.remove('hidden');
-                }
-                if (placeholder) {
-                    placeholder.classList.add('hidden');
-                }
-            };
-            reader.readAsDataURL(input.files[0]);
-        }
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('editUserForm');
         if (form) {

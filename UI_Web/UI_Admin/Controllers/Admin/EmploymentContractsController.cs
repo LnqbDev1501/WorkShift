@@ -120,4 +120,53 @@ public class EmploymentContractsController : Controller
 
         return View(detail);
     }
+
+    /// <summary>
+    /// GET /EmploymentContracts/Pdf/{id} — inline PDF viewer
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Pdf(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(Index));
+        try
+        {
+            var (bytes, contentType, fileName) = await _apiService.GetPdfFileAsync(id, isDownload: false, cancellationToken);
+            Response.Headers.Append("Content-Disposition", $"inline; filename=\"{fileName}\"");
+            return File(bytes, contentType);
+        }
+        catch (HttpRequestException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { contractId = id });
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "Unable to open the contract PDF.";
+            return RedirectToAction(nameof(Details), new { contractId = id });
+        }
+    }
+
+    /// <summary>
+    /// GET /EmploymentContracts/DownloadPdf/{id} — download PDF
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> DownloadPdf(int id, CancellationToken cancellationToken = default)
+    {
+        if (id <= 0) return RedirectToAction(nameof(Index));
+        try
+        {
+            var (bytes, contentType, fileName) = await _apiService.GetPdfFileAsync(id, isDownload: true, cancellationToken);
+            return File(bytes, contentType, fileName);
+        }
+        catch (HttpRequestException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+            return RedirectToAction(nameof(Details), new { contractId = id });
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "Unable to download the contract PDF.";
+            return RedirectToAction(nameof(Details), new { contractId = id });
+        }
+    }
 }

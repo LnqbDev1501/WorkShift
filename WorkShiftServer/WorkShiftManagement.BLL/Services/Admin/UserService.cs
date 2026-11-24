@@ -414,14 +414,13 @@ public class UserService : IUserService
         if (user.RoleId != request.RoleId)
             changedFields.Add("Role");
 
-        if (request.AvatarFile is not null && request.AvatarFile.Length > 0)
-        {
-            user.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, request.AvatarFile);
-            changedFields.Add("Avatar");
-        }
-
         var originalEmail = user.Email;
         var emailChanged = !string.Equals(originalEmail, request.Email, StringComparison.OrdinalIgnoreCase);
+
+        if (emailChanged && user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Email cannot be changed once the account is active.");
+        }
 
         user.FullName = request.FullName;
         user.Phone = request.Phone;

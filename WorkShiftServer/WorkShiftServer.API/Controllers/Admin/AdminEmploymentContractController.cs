@@ -124,4 +124,65 @@ public class AdminEmploymentContractController : ControllerBase
                 new { message = "Could not retrieve contract history. Please try again later." });
         }
     }
+
+    /// <summary>
+    /// Streams the contract PDF for inline browser viewing.
+    /// </summary>
+    [HttpGet("{contractId:int}/pdf")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetPdf([FromRoute] int contractId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (bytes, contentType, fileName) = await _contractService.GetPdfFileAsync(contractId, isDownload: false, cancellationToken);
+            Response.Headers.Append("Content-Disposition", $"inline; filename=\"{fileName}\"");
+            return File(bytes, contentType);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to retrieve PDF for contract {ContractId}", contractId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "The contract PDF could not be retrieved." });
+        }
+    }
+
+    /// <summary>
+    /// Downloads the contract PDF as an attachment.
+    /// </summary>
+    [HttpGet("{contractId:int}/pdf/download")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DownloadPdf([FromRoute] int contractId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var (bytes, contentType, fileName) = await _contractService.GetPdfFileAsync(contractId, isDownload: true, cancellationToken);
+            return File(bytes, contentType, fileName);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new { message = exception.Message });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to download PDF for contract {ContractId}", contractId);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "The contract PDF could not be downloaded." });
+        }
+    }
 }
