@@ -202,7 +202,11 @@
                                 <td class="px-unit-2 py-3 whitespace-nowrap text-center align-middle">
                                     @if (contract.HasPdf)
                                     {
-                                        <span class="material-symbols-outlined text-[20px] text-emerald-600" title="PDF available">picture_as_pdf</span>
+                                        <a asp-action="Pdf" asp-route-id="@contract.ContractId" target="_blank"
+                                           class="inline-flex items-center justify-center p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                                           title="View PDF">
+                                            <span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                                        </a>
                                     }
                                     else
                                     {
@@ -211,9 +215,18 @@
                                 </td>
                                 <!-- Action -->
                                 <td class="px-unit-4 py-3 whitespace-nowrap text-right align-middle sticky right-0 bg-surface-container-lowest group-hover:bg-surface-container-low/80 backdrop-blur-sm transition-colors shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)]">
-                                    <a asp-controller="EmploymentContracts" asp-action="Details"
-                                       asp-route-contractId="@contract.ContractId"
-                                       title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                    <div class="flex items-center justify-end gap-1">
+                                        @if (contract.HasPdf)
+                                        {
+                                            <a asp-action="Pdf" asp-route-id="@contract.ContractId" target="_blank"
+                                               title="View PDF" aria-label="View PDF" class="ws-icon-action text-emerald-600 hover:text-emerald-700">
+                                                <span class="material-symbols-outlined text-[18px]" aria-hidden="true">picture_as_pdf</span>
+                                            </a>
+                                        }
+                                        <a asp-controller="EmploymentContracts" asp-action="Details"
+                                           asp-route-contractId="@contract.ContractId"
+                                           title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                    </div>
                                 </td>
                             </tr>
                         }
