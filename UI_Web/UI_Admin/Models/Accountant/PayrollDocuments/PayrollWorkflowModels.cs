@@ -65,7 +65,10 @@ public sealed class PayrollReview
     public string PeriodStatus { get; set; } = "";
     public bool Latest => History.LatestCandidatePayrollId == Payroll.PayrollId;
     public List<PayrollIssueResponse> Issues { get; set; } = [];
-    public PayrollIssueResponse? ActiveIssue => Issues.LastOrDefault(i => i.Status is "OPEN" or "RESPONDED" or "EXPIRED");
+    public int? SelectedIssueId { get; set; }
+    public PayrollIssueResponse? ActiveIssue =>
+        (SelectedIssueId.HasValue ? Issues.FirstOrDefault(i => i.CorrectionRequestId == SelectedIssueId.Value) : null)
+        ?? Issues.LastOrDefault(i => i.Status is "OPEN" or "RESPONDED" or "EXPIRED");
     public int? LatestFeedbackId { get; set; }
 }
 public sealed class PayslipListViewModel

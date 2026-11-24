@@ -20,7 +20,7 @@ public sealed class PayrollFeedbackRepo(AppDbContext db, ILogger<PayrollFeedback
         return new() {
             Period = period,
             Payrolls = await db.Payrolls.Where(p => p.PayrollPeriodId == periodId)
-                .Include(p => p.PayrollPeriod).Include(p => p.Payslip).Include(p => p.PayrollDetails).ToListAsync(ct),
+                .Include(p => p.PayrollPeriod).Include(p => p.Payslip).Include(p => p.PayrollDetails).Include(p => p.Timesheet).ToListAsync(ct),
             Reviews = await db.PayrollFeedbackRequests.Where(f => f.Payroll.PayrollPeriodId == periodId)
                 .Include(f => f.Payroll).OrderBy(f => f.FeedbackId).ToListAsync(ct),
             Corrections = await db.PayrollCorrectionRequests.Where(r => r.Payroll.PayrollPeriodId == periodId)
