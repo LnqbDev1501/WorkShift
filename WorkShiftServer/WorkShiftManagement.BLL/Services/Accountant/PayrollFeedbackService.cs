@@ -235,14 +235,26 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
     }
     public async Task<PayrollFeedbackResponse> ExplainAsync(Guid actor, int id, ReviewPayrollFeedbackRequest request, CancellationToken ct)
     {
-        var note = Text(request.ResolutionNote); var u = await Actor(actor, ct, "ACCOUNTANT"); await using var tx = await calculation.BeginCalculationAsync(ct);
-        var d = await Data(u, await repo.PeriodForReviewAsync(id, ct), ct); Editable(d); var f = Review(d, id, u);
-        if (f.Status != "SUBMITTED" || f.ReviewStatus != "FEEDBACK_PENDING" || !PayrollPreviewPolicy.Leaf(d, f)) throw new InvalidOperationException("Feedback is no longer pending Accountant review.");
-        f.Status = "EXPLAINED"; f.ProcessedBy = actor; f.ProcessedAt = Now; f.ResolutionNote = note; f.UpdatedAt = Now;
-        d.Period.Status = "REVISION_REQUIRED"; d.Period.UpdatedAt = Now;
+        var note = Text(request.ResolutionNote);
+        var u = await Actor(actor, ct, "ACCOUNTANT");
+        await using var tx = await calculation.BeginCalculationAsync(ct);
+        var d = await Data(u, await repo.PeriodForReviewAsync(id, ct), ct);
+        Editable(d);
+        var f = Review(d, id, u);
+        if (f.Status != "SUBMITTED" || f.ReviewStatus != "FEEDBACK_PENDING" || !PayrollPreviewPolicy.Leaf(d, f) || d.Reviews.Any(r => r.PreviousFeedbackId == f.FeedbackId))
+            throw new InvalidOperationException("Feedback is no longer pending Accountant review.");
+        f.Status = "EXPLAINED";
+        f.ProcessedBy = actor;
+        f.ProcessedAt = Now;
+        f.ResolutionNote = note;
+        f.UpdatedAt = Now;
+        d.Period.Status = "REVISION_REQUIRED";
+        d.Period.UpdatedAt = Now;
         Notify(d, "STAFF", f.EmployeeId, "Payroll Feedback Explanation", $"Accountant provided an explanation for your feedback in period {d.Period.PeriodCode}: {note}", actor);
-        await calculation.SaveAsync(ct); Audit(actor, "EXPLAIN_PAYROLL_FEEDBACK", d, new { id, f.Status, note });
-        await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
+        Audit(actor, "EXPLAIN_PAYROLL_FEEDBACK", d, new { id, f.Status, note });
+        var next = DispatchNextRound(d, f, actor, note, autoResend: true);
+        await calculation.SaveAsync(ct);
+        await tx.CommitAsync(ct);
         await DispatchRealtimeNotificationsAsync();
         return Map(d, f, u);
     }
@@ -337,7 +349,12 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         {
             if (r.ResponseAction != "EXPLAIN") throw new InvalidOperationException("CORRECT action requires recalculation; cannot keep existing Payroll via explanation acceptance.");
             var rebuilt = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), p.UserId, actor, Now, true);
-            if (PayrollPreviewPolicy.Changed(p, rebuilt)) throw new InvalidOperationException("Sources have changed; must request CORRECT and calculate a new version.");
+            if (PayrollPreviewPolicy.Changed(p, rebuilt))
+            {
+                var changeCategories = PayrollSourceImpactPolicy.Changes(p, rebuilt);
+                var detail = changeCategories.Count > 0 ? $" ({string.Join(", ", changeCategories)})" : "";
+                throw new InvalidOperationException($"Sources have changed{detail}; must request CORRECT and calculate a new version.");
+            }
             p.Status = "CALCULATED"; p.UpdatedAt = Now; Complete(d, r, p, actor, note);
         }
         await calculation.SaveAsync(ct); Audit(actor, "REVIEW_PAYROLL_CORRECTION_REQUEST", d, new { id, request.Decision, note }); await calculation.SaveAsync(ct); await tx.CommitAsync(ct);
@@ -358,7 +375,8 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         var next = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), old.UserId, actor, Now, true);
         if (!PayrollPreviewPolicy.Changed(old, next))
         {
-            if (old.PayrollId != original.PayrollId) { await tx.CommitAsync(ct); return PayrollCalculationService.Map(old); }
+            if (old.PayrollId != original.PayrollId)
+                throw new InvalidOperationException($"Payroll V{old.VersionNo} has already been recalculated and matches current sources. Please verify figures and complete the correction request.");
             throw new InvalidOperationException("Sources and results have not changed; new version cannot be created solely to update notes.");
         }
         // Register only shared-source changes captured at the Manager's CORRECT response.
@@ -476,18 +494,8 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         await DispatchRealtimeNotificationsAsync();
         return MapIssue(d, next);
     }
-    public async Task<PayrollFeedbackResponse> ResendPreviewAsync(Guid actor, int feedbackId, ResendPayrollPreviewRequest request, CancellationToken ct)
+    private PayrollFeedbackRequest DispatchNextRound(PayrollReviewData d, PayrollFeedbackRequest old, Guid actor, string note, bool autoResend = false)
     {
-        var reason = Text(request.Reason);
-        var u = await Actor(actor, ct, "ACCOUNTANT");
-        await using var tx = await calculation.BeginCalculationAsync(ct);
-        var d = await Data(u, await repo.PeriodForReviewAsync(feedbackId, ct), ct);
-        Editable(d);
-        var old = Review(d, feedbackId, u);
-        if (!PayrollPreviewPolicy.Leaf(d, old))
-            throw new InvalidOperationException("Can only redispatch from the employee's latest review round.");
-        if (old.Status == "SUBMITTED")
-            throw new InvalidOperationException("Feedback has not been resolved yet (Accountant must approve correction or provide explanation first).");
         if (d.Corrections.Any(r => r.Payroll.UserId == old.EmployeeId && r.Status is "OPEN" or "RESPONDED"))
             throw new InvalidOperationException("A correction request is already in progress for this employee.");
         var p = PayrollPreviewPolicy.Current(d).SingleOrDefault(p => p.UserId == old.EmployeeId)
@@ -517,7 +525,7 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             UpdatedAt = Now,
             ReviewDeadlineAt = deadline,
             ReviewStatus = "PENDING",
-            ResultNote = reason
+            ResultNote = note
         };
         repo.Add(next);
         d.Reviews.Add(next);
@@ -525,13 +533,29 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
         Audit(actor, "RESEND_PAYROLL_PREVIEW", d, new {
             oldFeedbackId = old.FeedbackId,
             newFeedbackId = next.FeedbackId,
-            reason,
+            reason = note,
             oldDeadline = old.ReviewDeadlineAt,
             newDeadline = next.ReviewDeadlineAt,
             payrollId = p.PayrollId,
-            payrollVersionNo = p.VersionNo
+            payrollVersionNo = p.VersionNo,
+            autoResend
         });
-        Notify(d, "STAFF", p.UserId, "Payroll Preview Resent for Review", $"{d.Period.PeriodCode}: Payroll preview round {next.RoundNo} has been resent. Reason: {reason}", actor);
+        Notify(d, "STAFF", p.UserId, "Payroll Preview Resent for Review", $"{d.Period.PeriodCode}: Payroll preview round {next.RoundNo} has been resent. Reason: {note}", actor);
+        return next;
+    }
+    public async Task<PayrollFeedbackResponse> ResendPreviewAsync(Guid actor, int feedbackId, ResendPayrollPreviewRequest request, CancellationToken ct)
+    {
+        var reason = Text(request.Reason);
+        var u = await Actor(actor, ct, "ACCOUNTANT");
+        await using var tx = await calculation.BeginCalculationAsync(ct);
+        var d = await Data(u, await repo.PeriodForReviewAsync(feedbackId, ct), ct);
+        Editable(d);
+        var old = Review(d, feedbackId, u);
+        if (!PayrollPreviewPolicy.Leaf(d, old) || old.ReviewStatus == "SUPERSEDED")
+            throw new InvalidOperationException("The next review round has already been dispatched for this feedback.");
+        if (old.Status == "SUBMITTED")
+            throw new InvalidOperationException("Feedback has not been resolved yet (Accountant must approve correction or provide explanation first).");
+        var next = DispatchNextRound(d, old, actor, reason, autoResend: false);
         await calculation.SaveAsync(ct);
         await tx.CommitAsync(ct);
         await DispatchRealtimeNotificationsAsync();

@@ -216,21 +216,28 @@ public sealed class AccountantPayrollPeriodsController(
         return View("Form", form);
     }
 
-    [HttpGet] public Task<IActionResult> Open(int id, CancellationToken ct) => Confirm(id, false, ct);
-    [HttpGet] public Task<IActionResult> Delete(int id, CancellationToken ct) => Confirm(id, true, ct);
+    [HttpGet] public Task<IActionResult> Open(int id, CancellationToken ct) => Confirm(id, ct);
+    [HttpGet]
+    public IActionResult Delete(int id)
+    {
+        // Obsolete standalone Delete Draft confirmation page removed.
+        // Safely redirect to Details where the confirmation modal is used.
+        if (id <= 0) return NotFound();
+        return RedirectToAction(nameof(Details), new { id });
+    }
 
-    private async Task<IActionResult> Confirm(int id, bool delete, CancellationToken ct)
+    private async Task<IActionResult> Confirm(int id, CancellationToken ct)
     {
         if (id <= 0) return NotFound();
         try
         {
             var p = await api.DetailAsync(id, ct);
-            if (!(delete ? p.CanDelete : p.CanOpen))
+            if (!p.CanOpen)
             {
                 TempData["PeriodError"] = "Payroll period is no longer eligible for this operation.";
                 return RedirectToAction(nameof(Details), new { id });
             }
-            return View("Confirm", new PeriodConfirmation(p, delete));
+            return View("Confirm", new PeriodConfirmation(p, false));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (Handled(ex))

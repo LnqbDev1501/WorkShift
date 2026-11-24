@@ -38,7 +38,7 @@ public sealed class ManagerPayrollCorrectionController(PayrollDocumentsApiServic
         ViewBag.Search = search;
         ViewBag.PeriodId = periodId;
         ViewBag.CurrentStatus = string.IsNullOrWhiteSpace(status) ? "ALL" : status.ToUpperInvariant();
-        ViewBag.PendingCount = requests.Count(r => r.Status is "OPEN" or "RETURNED");
+        ViewBag.PendingCount = requests.Count(r => r.CanRespond);
         return View(requests);
     }
 
