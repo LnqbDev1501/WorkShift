@@ -21,4 +21,9 @@ public interface IAdminEmploymentContractService
         int pageSize = 20,
         string? sortOrder = "desc",
         CancellationToken cancellationToken = default);
+
+    Task<(byte[] Bytes, string ContentType, string FileName)> GetPdfFileAsync(
+        int contractId,
+        bool isDownload,
+        CancellationToken cancellationToken = default);
 }
