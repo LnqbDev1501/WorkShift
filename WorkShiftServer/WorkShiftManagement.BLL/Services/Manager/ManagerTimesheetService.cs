@@ -1,6 +1,8 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -8,26 +10,34 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Timesheet.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Timesheet.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
 public sealed class ManagerTimesheetService : IManagerTimesheetService
 {
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly IManagerTimesheetRepo _timesheetRepo;
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly ILogger<ManagerTimesheetService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public ManagerTimesheetService(
         IManagerTimesheetRepo timesheetRepo,
         INotificationRealtimePublisher realtimePublisher,
-        ILogger<ManagerTimesheetService> logger)
+        ILogger<ManagerTimesheetService> logger,
+        IAdminRealtimePublisher? adminRealtimePublisher = null,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _timesheetRepo = timesheetRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<ManagerTimesheetPagedResponse<ManagerWeeklyTimesheetSummaryResponse>> GetWeeklyTimesheetsAsync(
@@ -198,6 +208,10 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             return null;
         }
 
+        var activeRule = await _timesheetRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int defaultCheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
+        var nowUtc = DateTime.UtcNow;
+
         var timesheets = week.PayrollPeriod?.Timesheets.ToList() ?? new List<Timesheet>();
         var (totalStaff, confirmedStaff, noResponseStaff, totalWorkMinutes, totalLateMinutes, totalEarlyLeaveMinutes, status) =
             ComputeSummaryMetrics(week, timesheets);
@@ -205,8 +219,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         var staffItems = new List<ManagerStaffTimesheetItemDto>();
 
         var assignmentsByUser = (week.WorkShifts ?? Enumerable.Empty<WorkShift>())
+            .Where(s => !string.Equals(s.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
             .SelectMany(s => (s.ShiftAssignments ?? Enumerable.Empty<ShiftAssignment>()).Select(a => new { Shift = s, Assignment = a }))
-            .Where(x => x.Assignment.Status != "CANCELLED")
+            .Where(x => !string.Equals(x.Assignment.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
             .GroupBy(x => x.Assignment.UserId)
             .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Shift.ScheduledStartAt).ToList());
 
@@ -218,15 +233,47 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             return userItems.Select(x =>
             {
                 var att = x.Assignment.Attendance;
-                string attStatus = att?.Status
-                    ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
-
                 var approvedLeave = x.Assignment.LeaveRequestAssignments
                     ?.Select(l => l.Request)
                     ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
 
-                bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
+                bool isExcusedLeave = approvedLeave != null || string.Equals(att?.Status, "LEAVE", StringComparison.OrdinalIgnoreCase);
                 string? leaveReason = approvedLeave?.Reason;
+
+                string attStatus;
+                if (isExcusedLeave)
+                {
+                    attStatus = "LEAVE";
+                }
+                else if (att != null)
+                {
+                    if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
+                    {
+                        attStatus = string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)
+                            ? "ABSENT"
+                            : (att.Status ?? "COMPLETED");
+                    }
+                    else if (string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                             string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        attStatus = "ABSENT";
+                    }
+                    else if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+                    {
+                        var checkOutCutoffUtc = x.Shift.ScheduledEndAt.AddMinutes(GetCheckOutAfterMinutes(att, defaultCheckOutAfterMinutes));
+                        attStatus = nowUtc > checkOutCutoffUtc ? "ABSENT" : (att.Status ?? "IN_PROGRESS");
+                    }
+                    else
+                    {
+                        attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : (att.Status ?? "SCHEDULED");
+                    }
+                }
+                else
+                {
+                    attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
+                }
+
+                bool isAbsentStatus = !isExcusedLeave && string.Equals(attStatus, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
                 return new ManagerStaffShiftAttendanceDto
                 {
@@ -237,16 +284,16 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     ScheduledEndAt = x.Shift.ScheduledEndAt,
                     CheckInTime = att?.CheckInTime,
                     CheckOutTime = att?.CheckOutTime,
-                    ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-                    TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-                    ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
-                    ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
-                    TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                    ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
-                    ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+                    ActualWorkingMinutes = isAbsentStatus ? 0 : (att?.ActualWorkingMinutes ?? 0),
+                    TotalLateMinutes = isAbsentStatus ? 0 : (att?.TotalLateMinutes ?? 0),
+                    ExcusedLateMinutes = isAbsentStatus ? 0 : (att?.ExcusedLateMinutes ?? 0),
+                    ChargeableLateMinutes = isAbsentStatus ? 0 : (att?.ChargeableLateMinutes ?? 0),
+                    TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.TotalEarlyLeaveMinutes ?? 0),
+                    ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ExcusedEarlyLeaveMinutes ?? 0),
+                    ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ChargeableEarlyLeaveMinutes ?? 0),
                     HasApprovedLateArrival = att?.LateArrivalRequestId.HasValue ?? false,
                     HasApprovedEarlyLeave = att?.EarlyLeaveRequestId.HasValue ?? false,
-                    AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
+                    AttendanceStatus = attStatus,
                     AssignmentStatus = x.Assignment.Status,
                     IsExcusedLeave = isExcusedLeave,
                     LeaveReason = leaveReason,
@@ -270,10 +317,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             foreach (var t in timesheets.OrderBy(t => t.User.FullName))
             {
                 var userShifts = MapUserShifts(t.UserId);
-                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
-                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int lateCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
-                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && s.AttendanceStatus == "ABSENT");
+                int incompleteCount = 0;
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -293,6 +341,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     EarlyLeaveCount = earlyLeaveCount,
                     ExcusedLeaveCount = excusedLeaveCount,
                     UnexcusedAbsentCount = unexcusedAbsentCount,
+                    IncompleteCount = incompleteCount,
                     StaffReviewStatus = t.StaffReviewStatus ?? "PENDING",
                     Status = t.Status ?? status,
                     ReviewDeadline = t.ReviewDeadline,
@@ -310,10 +359,11 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             foreach (var u in ungeneratedUsers)
             {
                 var userShifts = MapUserShifts(u.UserId);
-                int lateCount = userShifts.Count(s => s.TotalLateMinutes > 0);
-                int earlyLeaveCount = userShifts.Count(s => s.TotalEarlyLeaveMinutes > 0);
+                int lateCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalLateMinutes > 0);
+                int earlyLeaveCount = userShifts.Count(s => s.AttendanceStatus != "ABSENT" && s.TotalEarlyLeaveMinutes > 0);
                 int excusedLeaveCount = userShifts.Count(s => s.IsExcusedLeave);
-                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && (s.AttendanceStatus == "ABSENT" || (s.CheckInTime == null && DateTime.UtcNow > s.ScheduledEndAt)));
+                int unexcusedAbsentCount = userShifts.Count(s => !s.IsExcusedLeave && s.AttendanceStatus == "ABSENT");
+                int incompleteCount = 0;
 
                 staffItems.Add(new ManagerStaffTimesheetItemDto
                 {
@@ -333,6 +383,7 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
                     EarlyLeaveCount = earlyLeaveCount,
                     ExcusedLeaveCount = excusedLeaveCount,
                     UnexcusedAbsentCount = unexcusedAbsentCount,
+                    IncompleteCount = incompleteCount,
                     StaffReviewStatus = "-",
                     Status = "NOT GENERATED",
                     Shifts = userShifts
@@ -431,6 +482,43 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             lockEligibilityMessage = "Timesheet has not been generated yet.";
         }
 
+        string? reviewedByName = timesheets
+            .FirstOrDefault(t => t.ReviewedByNavigation != null)?.ReviewedByNavigation?.FullName;
+
+        if (string.IsNullOrWhiteSpace(reviewedByName))
+        {
+            var reviewerId = timesheets.FirstOrDefault(t => t.ReviewedBy.HasValue)?.ReviewedBy;
+            if (reviewerId.HasValue)
+            {
+                reviewedByName = await _timesheetRepo.GetUserNameByIdAsync(reviewerId.Value, cancellationToken);
+            }
+        }
+
+        string? lockedByName = timesheets
+            .FirstOrDefault(t => string.Equals(t.LockedByNavigation?.Role?.RoleName, "ADMIN", StringComparison.OrdinalIgnoreCase))?.LockedByNavigation?.FullName
+            ?? (string.Equals(week.PayrollPeriod?.ApprovedByNavigation?.Role?.RoleName, "ADMIN", StringComparison.OrdinalIgnoreCase)
+                ? week.PayrollPeriod?.ApprovedByNavigation?.FullName
+                : null);
+
+        if (string.IsNullOrWhiteSpace(lockedByName))
+        {
+            var lockerId = timesheets.FirstOrDefault(t => t.LockedBy.HasValue)?.LockedBy
+                ?? week.PayrollPeriod?.ApprovedBy;
+            if (lockerId.HasValue)
+            {
+                var userName = await _timesheetRepo.GetUserNameByIdAsync(lockerId.Value, cancellationToken);
+                if (!string.IsNullOrWhiteSpace(userName) && !string.Equals(userName, reviewedByName, StringComparison.OrdinalIgnoreCase))
+                {
+                    lockedByName = userName;
+                }
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(lockedByName) && string.Equals(status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+        {
+            lockedByName = await _timesheetRepo.GetDefaultDirectorNameAsync(cancellationToken);
+        }
+
         return new ManagerWeeklyTimesheetDetailResponse
         {
             ScheduleWeekId = week.ScheduleWeekId,
@@ -455,6 +543,8 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
             TotalWorkMinutes = totalWorkMinutes,
             TotalLateMinutes = totalLateMinutes,
             TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes,
+            ReviewedByName = reviewedByName,
+            LockedByName = lockedByName,
             StaffTimesheets = staffItems
         };
     }
@@ -481,8 +571,29 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         int branchId = manager.BranchId
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
-        var (_, _, staffUserIds, notificationId, notificationContent) =
+        var (week, generatedTimesheets, staffUserIds, notificationId, notificationContent) =
             await _timesheetRepo.GenerateWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, request?.ReviewDeadline, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            var periodId = week.PayrollPeriod?.PayrollPeriodId;
+            await _auditLogHelper.LogAsync(
+                action: "GENERATE_BRANCH_TIMESHEET",
+                tableName: periodId.HasValue ? "payroll_periods" : "timesheets",
+                recordId: (periodId ?? scheduleWeekId).ToString(),
+                oldValue: null,
+                newValue: new
+                {
+                    week.ScheduleWeekId,
+                    PayrollPeriodId = periodId,
+                    week.BranchId,
+                    TimesheetCount = generatedTimesheets.Count,
+                    StaffCount = staffUserIds.Count,
+                    ApprovalDeadlineAt = week.PayrollPeriod?.ApprovalDeadlineAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         if (notificationId > 0 && staffUserIds.Any())
         {
@@ -530,8 +641,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         int branchId = manager.BranchId
             ?? throw new InvalidOperationException("Manager is not currently assigned to any branch.");
 
-        var (_, _, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent) =
+        var (week, lockedTimesheets, staffUserIds, accountantUserIds, notificationId, accountantNotificationId, notificationContent, accountantNotificationContent) =
             await _timesheetRepo.LockWeeklyTimesheetAsync(scheduleWeekId, branchId, managerId, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            var periodId = week.PayrollPeriod?.PayrollPeriodId;
+            await _auditLogHelper.LogAsync(
+                action: "REVIEW_BRANCH_TIMESHEET",
+                tableName: periodId.HasValue ? "payroll_periods" : "timesheets",
+                recordId: (periodId ?? scheduleWeekId).ToString(),
+                oldValue: new { Status = "GENERATED" },
+                newValue: new
+                {
+                    week.ScheduleWeekId,
+                    PayrollPeriodId = periodId,
+                    week.BranchId,
+                    Status = "REVIEWED",
+                    ReviewedCount = lockedTimesheets.Count
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         if (notificationId > 0 && staffUserIds.Any())
         {
@@ -706,6 +837,36 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         var approved = await _timesheetRepo.ApproveAdjustmentRequestAsync(
             adjustmentRequestId, branchId, managerId, cancellationToken);
 
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "APPROVE_TIMESHEET_ADJUSTMENT",
+                tableName: "timesheet_adjustment_requests",
+                recordId: approved.AdjustmentRequestId.ToString(),
+                oldValue: new
+                {
+                    Status = "PENDING",
+                    OldCheckInTime = approved.CurrentCheckInSnapshot,
+                    OldCheckOutTime = approved.CurrentCheckOutSnapshot
+                },
+                newValue: new
+                {
+                    approved.AdjustmentRequestId,
+                    approved.TimesheetId,
+                    approved.AttendanceId,
+                    StaffId = approved.UserId,
+                    approved.Status,
+                    approved.AdjustCheckIn,
+                    approved.RequestedCheckInTime,
+                    approved.AdjustCheckOut,
+                    approved.RequestedCheckOutTime,
+                    approved.ReviewedBy,
+                    approved.ReviewedAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
+
         try
         {
             var shiftName = approved.Attendance?.Assignment?.Shift?.ShiftNameSnapshot ?? "Shift";
@@ -744,6 +905,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         var rejected = await _timesheetRepo.RejectAdjustmentRequestAsync(
             adjustmentRequestId, branchId, managerId, dto.ManagerNote.Trim(), cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "REJECT_TIMESHEET_ADJUSTMENT",
+                tableName: "timesheet_adjustment_requests",
+                recordId: rejected.AdjustmentRequestId.ToString(),
+                oldValue: new { Status = "PENDING" },
+                newValue: new
+                {
+                    rejected.AdjustmentRequestId,
+                    rejected.TimesheetId,
+                    rejected.AttendanceId,
+                    StaffId = rejected.UserId,
+                    rejected.Status,
+                    rejected.ManagerNote,
+                    rejected.ReviewedBy,
+                    rejected.ReviewedAt
+                },
+                actorUserId: managerId,
+                cancellationToken: cancellationToken);
+        }
 
         try
         {
@@ -833,6 +1016,9 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
         try
         {
             var lockedResults = await _timesheetRepo.AutoLockExpiredTimesheetsAsync(cancellationToken);
+            if (lockedResults.Any(item => item.LockedTimesheets.Count > 0) && _adminRealtimePublisher != null)
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                    new { resource = "Timesheets", action = "AUTO_LOCKED" });
 
             foreach (var item in lockedResults)
             {
@@ -893,6 +1079,28 @@ public sealed class ManagerTimesheetService : IManagerTimesheetService
 
         string exportedByName = string.IsNullOrWhiteSpace(manager.FullName) ? "Branch Manager" : manager.FullName;
         return TimesheetExcelExporter.GenerateWeeklyTimesheetExcel(detail, exportedByName);
+    }
+
+    private static int GetCheckOutAfterMinutes(Attendance? att, int fallbackMinutes)
+    {
+        if (att != null && !string.IsNullOrWhiteSpace(att.RuleSnapshotJson))
+        {
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(
+                    att.RuleSnapshotJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (snapshot?.AttendanceRule != null && snapshot.AttendanceRule.CheckOutAfterMinutes > 0)
+                {
+                    return snapshot.AttendanceRule.CheckOutAfterMinutes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed snapshot and fallback to active rule
+            }
+        }
+        return fallbackMinutes;
     }
 }
 

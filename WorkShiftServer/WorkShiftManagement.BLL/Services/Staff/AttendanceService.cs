@@ -8,7 +8,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Attendance.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.FaceRegistration.Response;
@@ -27,6 +29,18 @@ public class AttendanceService : IAttendanceService
     private const string ActionTypeCheckOut = "CHECK_OUT";
     private const int MaxImageSizeBytes = 10 * 1024 * 1024; // 10MB
 
+    private static readonly TimeSpan VietnamTimeOffset = TimeSpan.FromHours(7);
+
+    /// <summary>
+    /// Converts a UTC DateTime to Vietnam Local Time (UTC+7).
+    /// </summary>
+    private static DateTime ToVietnamTime(DateTime utcTime) => utcTime.Add(VietnamTimeOffset);
+
+    /// <summary>
+    /// Converts a UTC DateTime to Vietnam DateOnly.
+    /// </summary>
+    private static DateOnly ToVietnamDate(DateTime utcTime) => DateOnly.FromDateTime(ToVietnamTime(utcTime));
+
     private static readonly (string Action, string Instruction)[] PossibleChallenges =
     {
         ("BLINK", "Please blink your eyes"),
@@ -44,15 +58,363 @@ public class AttendanceService : IAttendanceService
     private readonly IAttendanceRepo _attendanceRepo;
     private readonly IFaceBiometricService _faceBiometricService;
     private readonly ILogger<AttendanceService> _logger;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendanceService(
         IAttendanceRepo attendanceRepo,
         IFaceBiometricService faceBiometricService,
-        ILogger<AttendanceService> logger)
+        ILogger<AttendanceService> logger,
+        IMemoryCache? memoryCache = null)
     {
         _attendanceRepo = attendanceRepo;
         _faceBiometricService = faceBiometricService;
         _logger = logger;
+        _memoryCache = memoryCache;
+    }
+
+    private async Task<CachedAttendanceRule?> GetCachedActiveAttendanceRuleAsync(CancellationToken cancellationToken)
+    {
+        if (_memoryCache != null &&
+            _memoryCache.TryGetValue(WorkShiftCacheKeys.ActiveAttendanceRule, out CachedAttendanceRule? cached) &&
+            cached != null)
+        {
+            return cached;
+        }
+
+        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        if (rule == null)
+        {
+            return null;
+        }
+
+        var snapshot = new CachedAttendanceRule(
+            rule.AttendanceRuleId,
+            rule.RuleName,
+            rule.CheckInBeforeMinutes,
+            rule.CheckInGraceMinutes,
+            rule.CheckOutGraceMinutes,
+            rule.CheckOutAfterMinutes,
+            rule.MaxAttendanceDistanceMeters,
+            rule.EffectiveFrom,
+            rule.EffectiveTo,
+            rule.Status);
+
+        _memoryCache?.Set(WorkShiftCacheKeys.ActiveAttendanceRule, snapshot, WorkShiftCacheKeys.DefaultTtl);
+        return snapshot;
+    }
+
+    private async Task<CachedAttendancePenaltyRule?> GetCachedActiveAttendancePenaltyRuleAsync(CancellationToken cancellationToken)
+    {
+        if (_memoryCache != null &&
+            _memoryCache.TryGetValue(WorkShiftCacheKeys.ActiveAttendancePenaltyRule, out CachedAttendancePenaltyRule? cached) &&
+            cached != null)
+        {
+            return cached;
+        }
+
+        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+        if (penaltyRule == null)
+        {
+            return null;
+        }
+
+        var levels = Array.AsReadOnly(penaltyRule.AttendancePenaltyLevels
+            .Select(l => new CachedAttendancePenaltyLevel(
+                l.PenaltyLevelId,
+                l.ViolationType,
+                l.FromMinutes,
+                l.ToMinutes,
+                l.PenaltyAmount))
+            .ToArray());
+
+        var snapshot = new CachedAttendancePenaltyRule(
+            penaltyRule.PenaltyRuleId,
+            penaltyRule.RuleName,
+            penaltyRule.EffectiveFrom,
+            penaltyRule.EffectiveTo,
+            penaltyRule.Status,
+            levels);
+
+        _memoryCache?.Set(WorkShiftCacheKeys.ActiveAttendancePenaltyRule, snapshot, WorkShiftCacheKeys.DefaultTtl);
+        return snapshot;
+    }
+
+    private static string BuildRuleSnapshotJson(
+        CachedAttendanceRule rule,
+        CachedAttendancePenaltyRule? penaltyRule,
+        DateTime snapshottedAt)
+    {
+        var ruleSnapshotObj = new
+        {
+            AttendanceRule = new
+            {
+                rule.AttendanceRuleId,
+                rule.RuleName,
+                rule.CheckInBeforeMinutes,
+                rule.CheckInGraceMinutes,
+                rule.CheckOutGraceMinutes,
+                rule.CheckOutAfterMinutes,
+                rule.MaxAttendanceDistanceMeters,
+                rule.EffectiveFrom,
+                rule.EffectiveTo,
+                rule.Status
+            },
+            AttendancePenaltyRule = penaltyRule != null ? new
+            {
+                penaltyRule.PenaltyRuleId,
+                penaltyRule.RuleName,
+                penaltyRule.EffectiveFrom,
+                penaltyRule.EffectiveTo,
+                penaltyRule.Status,
+                PenaltyLevels = penaltyRule.Levels.Select(l => new
+                {
+                    l.PenaltyLevelId,
+                    l.ViolationType,
+                    l.FromMinutes,
+                    l.ToMinutes,
+                    l.PenaltyAmount
+                }).ToList()
+            } : null,
+            SnapshottedAt = snapshottedAt
+        };
+        return JsonSerializer.Serialize(ruleSnapshotObj);
+    }
+
+    private static int GetCheckOutAfterMinutes(Attendance? attendance, int fallbackMinutes)
+    {
+        if (attendance != null && !string.IsNullOrWhiteSpace(attendance.RuleSnapshotJson))
+        {
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(
+                    attendance.RuleSnapshotJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (snapshot?.AttendanceRule != null && snapshot.AttendanceRule.CheckOutAfterMinutes > 0)
+                {
+                    return snapshot.AttendanceRule.CheckOutAfterMinutes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed snapshot and fallback to active rule
+            }
+        }
+        return fallbackMinutes;
+    }
+
+    private static DateTime ComputeCheckInCutoffUtc(
+        DateTime shiftStartUtc,
+        DateTime shiftEndUtc,
+        int checkInGraceMinutes,
+        TimeAdjustmentRequestDetail? approvedLate)
+    {
+        int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
+        int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
+        var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
+
+        if (approvedLate != null)
+        {
+            var lateCutoff = approvedLate.RequestedTime.AddMinutes(checkInGraceMinutes);
+            if (lateCutoff > cutoffTimeUtc)
+            {
+                cutoffTimeUtc = lateCutoff;
+            }
+        }
+
+        return cutoffTimeUtc;
+    }
+
+    private static Attendance CreateAbsentAttendance(
+        ShiftAssignment assignment,
+        CachedAttendanceRule rule,
+        string ruleSnapshotJson,
+        DateTime nowUtc)
+    {
+        var shift = assignment.Shift;
+        var branch = shift.ScheduleWeek?.Branch;
+
+        return new Attendance
+        {
+            AssignmentId = assignment.AssignmentId,
+            AttendanceRuleId = rule.AttendanceRuleId,
+            RuleSnapshotJson = ruleSnapshotJson,
+            EmployeeFullNameSnapshot = assignment.User?.FullName ?? "Staff",
+            ShiftStartAtSnapshot = shift.ScheduledStartAt,
+            ShiftEndAtSnapshot = shift.ScheduledEndAt,
+            BranchNameSnapshot = branch?.BranchName ?? $"Branch {shift.ScheduleWeek?.BranchId ?? 0}",
+            BranchAddressSnapshot = branch?.Address,
+            BranchLatitudeSnapshot = branch?.Latitude,
+            BranchLongitudeSnapshot = branch?.Longitude,
+            Status = "ABSENT",
+            ActualWorkingMinutes = 0,
+            TotalLateMinutes = 0,
+            ExcusedLateMinutes = 0,
+            ChargeableLateMinutes = 0,
+            TotalEarlyLeaveMinutes = 0,
+            ExcusedEarlyLeaveMinutes = 0,
+            ChargeableEarlyLeaveMinutes = 0,
+            CompletedAt = null,
+            CreatedAt = nowUtc,
+            UpdatedAt = nowUtc
+        };
+    }
+
+    private static bool ApplyAbsentState(Attendance attendance, DateTime nowUtc)
+    {
+        bool changed = false;
+
+        if (!string.Equals(attendance.Status, "ABSENT", StringComparison.Ordinal))
+        {
+            attendance.Status = "ABSENT";
+            changed = true;
+        }
+        if (attendance.ActualWorkingMinutes != 0) { attendance.ActualWorkingMinutes = 0; changed = true; }
+        if (attendance.TotalLateMinutes != 0) { attendance.TotalLateMinutes = 0; changed = true; }
+        if (attendance.ExcusedLateMinutes != 0) { attendance.ExcusedLateMinutes = 0; changed = true; }
+        if (attendance.ChargeableLateMinutes != 0) { attendance.ChargeableLateMinutes = 0; changed = true; }
+        if (attendance.TotalEarlyLeaveMinutes != 0) { attendance.TotalEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.ExcusedEarlyLeaveMinutes != 0) { attendance.ExcusedEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.ChargeableEarlyLeaveMinutes != 0) { attendance.ChargeableEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.CompletedAt.HasValue) { attendance.CompletedAt = null; changed = true; }
+
+        if (attendance.AttendancePenaltyRecords != null)
+        {
+            foreach (var penalty in attendance.AttendancePenaltyRecords)
+            {
+                if (string.Equals(penalty.Status, "APPLIED", StringComparison.OrdinalIgnoreCase))
+                {
+                    penalty.Status = "CANCELLED";
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed)
+        {
+            attendance.UpdatedAt = nowUtc;
+        }
+
+        return changed;
+    }
+
+    public async Task<int> FinalizeExpiredAttendancesAsync(CancellationToken cancellationToken = default)
+    {
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken);
+        if (rule == null)
+        {
+            _logger.LogWarning("Skipping expired attendance finalization: no active attendance rule is configured.");
+            return 0;
+        }
+
+        var penaltyRule = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
+        var nowUtc = DateTime.UtcNow;
+        var candidates = await _attendanceRepo.GetExpiredAssignmentsPendingFinalizationAsync(nowUtc, cancellationToken);
+        if (candidates.Count == 0)
+        {
+            return 0;
+        }
+
+        var assignmentIds = candidates.Select(c => c.AssignmentId).Distinct().ToList();
+        var approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+        var ruleSnapshotJson = BuildRuleSnapshotJson(rule, penaltyRule, nowUtc);
+
+        int ProcessBatch(
+            List<ShiftAssignment> items,
+            HashSet<(int ScheduleWeekId, Guid UserId)> targetSheetKeys)
+        {
+            int count = 0;
+            foreach (var assignment in items)
+            {
+                var shift = assignment.Shift;
+                var approvedLate = approvedLates.GetValueOrDefault(assignment.AssignmentId);
+                var checkInCutoffUtc = ComputeCheckInCutoffUtc(
+                    shift.ScheduledStartAt,
+                    shift.ScheduledEndAt,
+                    rule.CheckInGraceMinutes,
+                    approvedLate);
+
+                if (assignment.Attendance == null)
+                {
+                    if (nowUtc > shift.ScheduledEndAt && nowUtc > checkInCutoffUtc)
+                    {
+                        var absentAtt = CreateAbsentAttendance(assignment, rule, ruleSnapshotJson, nowUtc);
+                        _attendanceRepo.AddAttendance(absentAtt);
+                        assignment.Attendance = absentAtt;
+                        targetSheetKeys.Add((shift.ScheduleWeekId, assignment.UserId));
+                        count++;
+                    }
+                    continue;
+                }
+
+                var att = assignment.Attendance;
+                if (!att.CheckInTime.HasValue)
+                {
+                    if (nowUtc > shift.ScheduledEndAt && nowUtc > checkInCutoffUtc && ApplyAbsentState(att, nowUtc))
+                    {
+                        targetSheetKeys.Add((shift.ScheduleWeekId, assignment.UserId));
+                        count++;
+                    }
+                }
+                else if (!att.CheckOutTime.HasValue)
+                {
+                    int checkOutAfterMins = GetCheckOutAfterMinutes(att, rule.CheckOutAfterMinutes);
+                    var checkOutCutoffUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMins);
+
+                    if (string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                        nowUtc > checkOutCutoffUtc)
+                    {
+                        if (ApplyAbsentState(att, nowUtc))
+                        {
+                            targetSheetKeys.Add((shift.ScheduleWeekId, assignment.UserId));
+                            count++;
+                        }
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        var affectedSheetKeys = new HashSet<(int ScheduleWeekId, Guid UserId)>();
+        int finalizedCount = ProcessBatch(candidates, affectedSheetKeys);
+
+        if (finalizedCount > 0)
+        {
+            bool saved = await _attendanceRepo.SaveChangesIgnoreDuplicateAttendanceAsync(cancellationToken);
+            if (!saved)
+            {
+                // A concurrent GET endpoint inserted one of the rows; re-fetch and finish remaining rows cleanly.
+                nowUtc = DateTime.UtcNow;
+                candidates = await _attendanceRepo.GetExpiredAssignmentsPendingFinalizationAsync(nowUtc, cancellationToken);
+                if (candidates.Count > 0)
+                {
+                    assignmentIds = candidates.Select(c => c.AssignmentId).Distinct().ToList();
+                    approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+                    finalizedCount = ProcessBatch(candidates, affectedSheetKeys);
+                    if (finalizedCount > 0)
+                    {
+                        await _attendanceRepo.SaveChangesIgnoreDuplicateAttendanceAsync(cancellationToken);
+                    }
+                }
+                else
+                {
+                    finalizedCount = 0;
+                }
+            }
+
+            if (affectedSheetKeys.Count > 0)
+            {
+                await _attendanceRepo.RecalculateGeneratedTimesheetsAsync(affectedSheetKeys, nowUtc, cancellationToken);
+            }
+        }
+
+        if (finalizedCount > 0)
+        {
+            _logger.LogInformation("Finalized {Count} expired shift attendance record(s) to ABSENT.", finalizedCount);
+        }
+
+        return finalizedCount;
     }
 
     private async Task<List<EligibleShiftResponse>> GetTodayShiftsAsync(Guid userId, CancellationToken cancellationToken = default)
@@ -66,22 +428,33 @@ public class AttendanceService : IAttendanceService
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
-        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayVn = ToVietnamDate(nowUtc);
 
-        var assignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayVn, cancellationToken);
+        var assignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayVn, trackChanges: true, cancellationToken);
         if (assignments.Count == 0)
         {
             return new List<EligibleShiftResponse>();
         }
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+        var penaltyRule = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
+
+        var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
+        var approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+        var approvedLeaves = await _attendanceRepo.GetApprovedLeavesForAssignmentsAsync(assignmentIds, cancellationToken);
+        var reviewedOrLockedWeeks = await _attendanceRepo.GetReviewedOrLockedScheduleWeekIdsForUserAsync(
+            userId,
+            assignments.Select(a => a.Shift.ScheduleWeekId),
+            cancellationToken);
 
         int checkInBeforeMins = rule.CheckInBeforeMinutes;
         int checkInGraceMins = rule.CheckInGraceMinutes;
         int maxDistanceMeters = rule.MaxAttendanceDistanceMeters;
+        string? ruleSnapshotJson = null;
 
         var results = new List<EligibleShiftResponse>();
+        var affectedSheetKeys = new HashSet<(int ScheduleWeekId, Guid UserId)>();
         bool hasChanges = false;
 
         foreach (var assignment in assignments)
@@ -91,21 +464,9 @@ public class AttendanceService : IAttendanceService
             var shiftEndUtc = shift.ScheduledEndAt;
 
             var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMins);
-            int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
-            int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
-            var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
-
-            var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-            var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-
-            if (approvedLate != null)
-            {
-                var lateCutoff = approvedLate.RequestedTime.AddMinutes(checkInGraceMins);
-                if (lateCutoff > cutoffTimeUtc)
-                {
-                    cutoffTimeUtc = lateCutoff;
-                }
-            }
+            var approvedLate = approvedLates.GetValueOrDefault(assignment.AssignmentId);
+            var approvedLeave = approvedLeaves.GetValueOrDefault(assignment.AssignmentId);
+            var cutoffTimeUtc = ComputeCheckInCutoffUtc(shiftStartUtc, shiftEndUtc, checkInGraceMins, approvedLate);
 
             bool hasApprovedLeave = approvedLeave != null;
             bool hasApprovedLate = approvedLate != null;
@@ -113,13 +474,21 @@ public class AttendanceService : IAttendanceService
                 ? Math.Max(0, (int)(approvedLate!.RequestedTime - shiftStartUtc).TotalMinutes)
                 : null;
 
+            bool isWeekReviewedOrLocked = reviewedOrLockedWeeks.Contains(shift.ScheduleWeekId);
+            bool canMutateDb = !isWeekReviewedOrLocked &&
+                               !hasApprovedLeave &&
+                               !string.Equals(assignment.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
+                               !string.Equals(shift.ScheduleWeek.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase);
+
+            int shiftCheckOutAfterMins = GetCheckOutAfterMinutes(assignment.Attendance, rule.CheckOutAfterMinutes);
+            var checkOutCutoffUtc = shiftEndUtc.AddMinutes(shiftCheckOutAfterMins);
+
             bool hasCheckedIn = assignment.Attendance != null && assignment.Attendance.CheckInTime.HasValue;
             bool hasCheckedOut = assignment.Attendance != null && assignment.Attendance.CheckOutTime.HasValue;
             bool canCheckIn = true;
             string? cannotCheckInReason = null;
             bool canCheckOut = false;
             string? cannotCheckOutReason = null;
-            var checkOutCutoffUtc = shiftEndUtc.AddMinutes(rule.CheckOutAfterMinutes);
 
             string? attendanceStatus = assignment.Attendance?.Status;
 
@@ -128,9 +497,18 @@ public class AttendanceService : IAttendanceService
                 canCheckOut = false;
                 cannotCheckOutReason = "You have not checked in for this shift yet.";
 
-                if (nowUtc > checkOutCutoffUtc)
+                if (string.Equals(assignment.Attendance?.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(assignment.Attendance?.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Ca đã qua giờ checkout luôn rồi mà không checkin: ABSENT
+                    attendanceStatus = "ABSENT";
+                    if (canMutateDb && assignment.Attendance != null && ApplyAbsentState(assignment.Attendance, nowUtc))
+                    {
+                        hasChanges = true;
+                        affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                    }
+                }
+                else if (nowUtc > checkOutCutoffUtc)
+                {
                     attendanceStatus = "ABSENT";
                 }
             }
@@ -143,33 +521,30 @@ public class AttendanceService : IAttendanceService
             else
             {
                 // Has checked in but not checked out
-                // Anti-accidental click (at least 2 minutes)
-                if (nowUtc < assignment.Attendance!.CheckInTime!.Value.AddMinutes(2))
+                if (string.Equals(assignment.Attendance!.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(assignment.Attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase) ||
+                    nowUtc > checkOutCutoffUtc)
                 {
+                    canCheckOut = false;
+                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {ToVietnamTime(checkOutCutoffUtc):HH:mm}.";
+                    attendanceStatus = "ABSENT";
+                    if (canMutateDb && ApplyAbsentState(assignment.Attendance, nowUtc))
+                    {
+                        hasChanges = true;
+                        affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                    }
+                }
+                else if (nowUtc < assignment.Attendance.CheckInTime!.Value.AddMinutes(2))
+                {
+                    // Anti-accidental click (at least 2 minutes)
                     canCheckOut = false;
                     cannotCheckOutReason = "Please wait at least 2 minutes after check-in before checking out.";
                     attendanceStatus = "IN_PROGRESS";
                 }
                 else
                 {
-                    if (nowUtc > checkOutCutoffUtc)
-                    {
-                        // Ca đã qua giờ checkout mà có checkin nhưng không checkout: INCOMPLETE
-                        canCheckOut = false;
-                        cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
-                        attendanceStatus = "INCOMPLETE";
-                        if (assignment.Attendance!.Status == "IN_PROGRESS")
-                        {
-                            assignment.Attendance.Status = "INCOMPLETE";
-                            assignment.Attendance.UpdatedAt = DateTime.UtcNow;
-                            hasChanges = true;
-                        }
-                    }
-                    else
-                    {
-                        canCheckOut = true;
-                        attendanceStatus = "IN_PROGRESS";
-                    }
+                    canCheckOut = true;
+                    attendanceStatus = "IN_PROGRESS";
                 }
             }
 
@@ -183,22 +558,35 @@ public class AttendanceService : IAttendanceService
                 canCheckIn = false;
                 cannotCheckInReason = "You have an approved leave request for this shift.";
             }
+            else if (string.Equals(assignment.Attendance?.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(assignment.Attendance?.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+            {
+                canCheckIn = false;
+                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm}.";
+                attendanceStatus = "ABSENT";
+            }
             else if (nowUtc < windowOpensAtUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {windowOpensAtUtc.AddHours(7):HH:mm}.";
+                cannotCheckInReason = $"Check-in window has not opened yet. Opens at {ToVietnamTime(windowOpensAtUtc):HH:mm}.";
             }
-            else if (nowUtc > checkOutCutoffUtc)
+            else if (nowUtc > checkOutCutoffUtc || nowUtc > cutoffTimeUtc)
             {
                 canCheckIn = false;
-                cannotCheckInReason = $"Check-out window has closed for this shift. Cut-off was {checkOutCutoffUtc.AddHours(7):HH:mm}.";
+                cannotCheckInReason = nowUtc > checkOutCutoffUtc
+                    ? $"Check-out window has closed for this shift. Cut-off was {ToVietnamTime(checkOutCutoffUtc):HH:mm}."
+                    : $"Check-in window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm}.";
                 attendanceStatus = "ABSENT";
-            }
-            else if (nowUtc > cutoffTimeUtc)
-            {
-                canCheckIn = false;
-                cannotCheckInReason = $"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm}.";
-                attendanceStatus = "ABSENT";
+
+                if (canMutateDb && assignment.Attendance == null && nowUtc > shiftEndUtc && nowUtc > cutoffTimeUtc)
+                {
+                    ruleSnapshotJson ??= BuildRuleSnapshotJson(rule, penaltyRule, nowUtc);
+                    var absentAtt = CreateAbsentAttendance(assignment, rule, ruleSnapshotJson, nowUtc);
+                    _attendanceRepo.AddAttendance(absentAtt);
+                    assignment.Attendance = absentAtt;
+                    hasChanges = true;
+                    affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                }
             }
 
             results.Add(new EligibleShiftResponse
@@ -237,7 +625,11 @@ public class AttendanceService : IAttendanceService
 
         if (hasChanges)
         {
-            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+            bool saved = await _attendanceRepo.SaveChangesIgnoreDuplicateAttendanceAsync(cancellationToken);
+            if (saved && affectedSheetKeys.Count > 0)
+            {
+                await _attendanceRepo.RecalculateGeneratedTimesheetsAsync(affectedSheetKeys, nowUtc, cancellationToken);
+            }
         }
 
         return results;
@@ -254,7 +646,7 @@ public class AttendanceService : IAttendanceService
         await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
-        var todayVn = DateOnly.FromDateTime(nowUtc.AddHours(7));
+        var todayVn = ToVietnamDate(nowUtc);
 
         var effectiveToDate = toDate ?? todayVn;
         var effectiveFromDate = fromDate ?? todayVn.AddDays(-30);
@@ -262,14 +654,26 @@ public class AttendanceService : IAttendanceService
         var assignments = await _attendanceRepo.GetShiftAssignmentsByDateRangeAsync(
             userId, effectiveFromDate, effectiveToDate, cancellationToken);
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
+        var penaltyRule = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
+
+        var assignmentIds = assignments.Select(a => a.AssignmentId).Distinct().ToList();
+        var approvedLates = await _attendanceRepo.GetApprovedLateArrivalsForAssignmentsAsync(assignmentIds, cancellationToken);
+        var approvedLeaves = await _attendanceRepo.GetApprovedLeavesForAssignmentsAsync(assignmentIds, cancellationToken);
+        var reviewedOrLockedWeeks = await _attendanceRepo.GetReviewedOrLockedScheduleWeekIdsForUserAsync(
+            userId,
+            assignments.Select(a => a.Shift.ScheduleWeekId),
+            cancellationToken);
+
         int checkOutAfterMinutes = rule.CheckOutAfterMinutes;
         int checkInBeforeMinutes = rule.CheckInBeforeMinutes;
         int checkInGraceMinutes = rule.CheckInGraceMinutes;
         int maxDistance = rule.MaxAttendanceDistanceMeters;
+        string? ruleSnapshotJson = null;
 
         var results = new List<StaffAttendanceHistoryResponse>();
+        var affectedSheetKeys = new HashSet<(int ScheduleWeekId, Guid UserId)>();
         bool hasChanges = false;
 
         foreach (var assignment in assignments)
@@ -278,11 +682,19 @@ public class AttendanceService : IAttendanceService
             var shiftStartUtc = shift.ScheduledStartAt;
             var shiftEndUtc = shift.ScheduledEndAt;
 
-            var checkoutCutoffUtc = shiftEndUtc.AddMinutes(checkOutAfterMinutes);
-
             var attendance = assignment.Attendance;
+            int shiftCheckOutAfterMinutes = GetCheckOutAfterMinutes(attendance, checkOutAfterMinutes);
+            var checkoutCutoffUtc = shiftEndUtc.AddMinutes(shiftCheckOutAfterMinutes);
+
             bool hasCheckedIn = attendance != null && attendance.CheckInTime.HasValue;
             bool hasCheckedOut = attendance != null && attendance.CheckOutTime.HasValue;
+            var approvedLeave = approvedLeaves.GetValueOrDefault(assignment.AssignmentId);
+            bool hasApprovedLeave = approvedLeave != null;
+            bool isCancelled = string.Equals(assignment.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+                               string.Equals(shift.ScheduleWeek.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase);
+            bool canMutateDb = !reviewedOrLockedWeeks.Contains(shift.ScheduleWeekId) &&
+                               !hasApprovedLeave &&
+                               !isCancelled;
 
             string status;
             bool canCheckIn = false;
@@ -303,13 +715,25 @@ public class AttendanceService : IAttendanceService
                 canCheckIn = false;
                 cannotCheckInReason = "Already checked in for this shift.";
 
-                // Has checked in but not checked out
-                if (nowUtc <= checkoutCutoffUtc)
+                if (string.Equals(attendance!.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase) ||
+                    nowUtc > checkoutCutoffUtc)
                 {
-                    // Still within checkout window
+                    // Checkout window has closed without check-out -> Absent
+                    status = "ABSENT";
+                    canCheckOut = false;
+                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {ToVietnamTime(checkoutCutoffUtc):HH:mm dd/MM/yyyy}.";
+
+                    if (canMutateDb && ApplyAbsentState(attendance, nowUtc))
+                    {
+                        hasChanges = true;
+                        affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                    }
+                }
+                else
+                {
                     status = "IN_PROGRESS";
-                    // Anti-accidental click
-                    if (nowUtc < attendance!.CheckInTime!.Value.AddMinutes(2))
+                    if (nowUtc < attendance.CheckInTime!.Value.AddMinutes(2))
                     {
                         canCheckOut = false;
                         cannotCheckOutReason = "Please wait at least 2 minutes after check-in before checking out.";
@@ -319,20 +743,6 @@ public class AttendanceService : IAttendanceService
                         canCheckOut = true;
                     }
                 }
-                else
-                {
-                    // Checkout window has closed! Mark as INCOMPLETE
-                    status = "INCOMPLETE";
-                    canCheckOut = false;
-                    cannotCheckOutReason = $"Check-out window has closed. Cut-off was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
-
-                    if (attendance!.Status == "IN_PROGRESS")
-                    {
-                        attendance.Status = "INCOMPLETE";
-                        attendance.UpdatedAt = DateTime.UtcNow;
-                        hasChanges = true;
-                    }
-                }
             }
             else
             {
@@ -340,62 +750,76 @@ public class AttendanceService : IAttendanceService
                 canCheckOut = false;
                 cannotCheckOutReason = "You have not checked in for this shift.";
 
-                if (nowUtc > checkoutCutoffUtc)
+                if (hasApprovedLeave)
+                {
+                    canCheckIn = false;
+                    cannotCheckInReason = "You have an approved leave request for this shift.";
+                    status = "ON_LEAVE";
+                }
+                else if (isCancelled)
+                {
+                    canCheckIn = false;
+                    cannotCheckInReason = "This shift assignment has been cancelled.";
+                    status = "CANCELLED";
+                }
+                else if (attendance != null &&
+                         (string.Equals(attendance.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                          string.Equals(attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)))
                 {
                     status = "ABSENT";
                     canCheckIn = false;
-                    cannotCheckInReason = $"Shift is closed. Cut-off time was {checkoutCutoffUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
+                    cannotCheckInReason = $"Shift is closed. Cut-off time was {ToVietnamTime(checkoutCutoffUtc):HH:mm dd/MM/yyyy}.";
+
+                    if (canMutateDb && ApplyAbsentState(attendance, nowUtc))
+                    {
+                        hasChanges = true;
+                        affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                    }
                 }
                 else
                 {
-                    var approvedLeave = await _attendanceRepo.GetApprovedLeaveForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-                    if (approvedLeave != null)
+                    var approvedLate = approvedLates.GetValueOrDefault(assignment.AssignmentId);
+                    var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMinutes);
+                    var cutoffTimeUtc = ComputeCheckInCutoffUtc(shiftStartUtc, shiftEndUtc, checkInGraceMinutes, approvedLate);
+
+                    if (nowUtc > checkoutCutoffUtc || nowUtc > cutoffTimeUtc)
                     {
                         canCheckIn = false;
-                        cannotCheckInReason = "You have an approved leave request for this shift.";
-                        status = "ON_LEAVE";
+                        cannotCheckInReason = nowUtc > checkoutCutoffUtc
+                            ? $"Shift is closed. Cut-off time was {ToVietnamTime(checkoutCutoffUtc):HH:mm dd/MM/yyyy}."
+                            : $"Check-in window closed at {ToVietnamTime(cutoffTimeUtc):HH:mm dd/MM/yyyy}. Shift recorded as Absent.";
+                        status = "ABSENT";
+
+                        if (canMutateDb && attendance == null && nowUtc > shiftEndUtc && nowUtc > cutoffTimeUtc)
+                        {
+                            ruleSnapshotJson ??= BuildRuleSnapshotJson(rule, penaltyRule, nowUtc);
+                            var absentAtt = CreateAbsentAttendance(assignment, rule, ruleSnapshotJson, nowUtc);
+                            _attendanceRepo.AddAttendance(absentAtt);
+                            assignment.Attendance = absentAtt;
+                            attendance = absentAtt;
+                            hasChanges = true;
+                            affectedSheetKeys.Add((shift.ScheduleWeekId, userId));
+                        }
+                    }
+                    else if (nowUtc < windowOpensAtUtc)
+                    {
+                        canCheckIn = false;
+                        cannotCheckInReason = $"Too early to check in. Check-in window opens at {ToVietnamTime(windowOpensAtUtc):HH:mm dd/MM/yyyy}.";
+                        status = "UPCOMING";
                     }
                     else
                     {
-                        var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(assignment.AssignmentId, cancellationToken);
-                        var windowOpensAtUtc = shiftStartUtc.AddMinutes(-checkInBeforeMinutes);
-                        int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
-                        int standardCutoffMinutes = Math.Min(120, shiftDurationMinutes / 2);
-                        var cutoffTimeUtc = shiftStartUtc.AddMinutes(standardCutoffMinutes);
-
-                        if (approvedLate != null)
-                        {
-                            var lateCutoff = approvedLate.RequestedTime.AddMinutes(checkInGraceMinutes);
-                            if (lateCutoff > cutoffTimeUtc)
-                            {
-                                cutoffTimeUtc = lateCutoff;
-                            }
-                        }
-
-                        if (nowUtc < windowOpensAtUtc)
-                        {
-                            canCheckIn = false;
-                            cannotCheckInReason = $"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm dd/MM/yyyy}.";
-                            status = "UPCOMING";
-                        }
-                        else if (nowUtc > cutoffTimeUtc)
-                        {
-                            canCheckIn = false;
-                            cannotCheckInReason = $"Check-in window closed at {cutoffTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Shift recorded as Absent.";
-                            status = "ABSENT";
-                        }
-                        else
-                        {
-                            canCheckIn = true;
-                            status = "READY_TO_CHECK_IN";
-                        }
+                        canCheckIn = true;
+                        status = "READY_TO_CHECK_IN";
                     }
                 }
             }
 
-            results.Add(new StaffAttendanceHistoryResponse
+            bool isAbsentStatus = string.Equals(status, "ABSENT", StringComparison.OrdinalIgnoreCase);
+
+            var dto = new StaffAttendanceHistoryResponse
             {
-                AttendanceId = attendance?.AttendanceId,
+                AttendanceId = attendance != null && attendance.AttendanceId > 0 ? attendance.AttendanceId : null,
                 AssignmentId = assignment.AssignmentId,
                 ShiftId = shift.ShiftId,
                 ShiftName = shift.ShiftNameSnapshot,
@@ -405,10 +829,10 @@ public class AttendanceService : IAttendanceService
                 BranchAddress = shift.ScheduleWeek.Branch.Address,
                 CheckInTime = attendance?.CheckInTime,
                 CheckOutTime = attendance?.CheckOutTime,
-                ActualWorkingMinutes = attendance?.ActualWorkingMinutes ?? 0,
+                ActualWorkingMinutes = isAbsentStatus ? 0 : (attendance?.ActualWorkingMinutes ?? 0),
                 Status = status,
-                TotalLateMinutes = attendance?.TotalLateMinutes ?? 0,
-                TotalEarlyLeaveMinutes = attendance?.TotalEarlyLeaveMinutes ?? 0,
+                TotalLateMinutes = isAbsentStatus ? 0 : (attendance?.TotalLateMinutes ?? 0),
+                TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (attendance?.TotalEarlyLeaveMinutes ?? 0),
                 CanCheckInNow = canCheckIn,
                 CanNotCheckInReason = cannotCheckInReason,
                 CanCheckOutNow = canCheckOut,
@@ -417,12 +841,32 @@ public class AttendanceService : IAttendanceService
                 MaxAttendanceDistanceMeters = maxDistance,
                 BranchLatitude = shift.ScheduleWeek.Branch.Latitude,
                 BranchLongitude = shift.ScheduleWeek.Branch.Longitude
-            });
+            };
+            results.Add(dto);
         }
 
         if (hasChanges)
         {
-            await _attendanceRepo.SaveChangesAsync(cancellationToken);
+            bool saved = await _attendanceRepo.SaveChangesIgnoreDuplicateAttendanceAsync(cancellationToken);
+            if (saved)
+            {
+                var assignmentById = assignments.ToDictionary(a => a.AssignmentId);
+                foreach (var dto in results)
+                {
+                    if (!dto.AttendanceId.HasValue &&
+                        assignmentById.TryGetValue(dto.AssignmentId, out var sa) &&
+                        sa.Attendance != null &&
+                        sa.Attendance.AttendanceId > 0)
+                    {
+                        dto.AttendanceId = sa.Attendance.AttendanceId;
+                    }
+                }
+
+                if (affectedSheetKeys.Count > 0)
+                {
+                    await _attendanceRepo.RecalculateGeneratedTimesheetsAsync(affectedSheetKeys, nowUtc, cancellationToken);
+                }
+            }
         }
 
         return results;
@@ -517,6 +961,11 @@ public class AttendanceService : IAttendanceService
             };
         }
 
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken);
+        int maxDistance = rule?.MaxAttendanceDistanceMeters ?? 20;
+        int checkOutAfterMinutes = GetCheckOutAfterMinutes(att, rule?.CheckOutAfterMinutes ?? 60);
+        var checkOutCutoffUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMinutes);
+
         var nowUtc = DateTime.UtcNow;
         string status;
         if (isExcusedLeave)
@@ -525,17 +974,24 @@ public class AttendanceService : IAttendanceService
         }
         else if (att != null)
         {
-            if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
-            {
-                status = att.TotalLateMinutes > 0 ? "LATE" : "IN_PROGRESS";
-            }
-            else if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
+            if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
             {
                 status = "COMPLETED";
             }
+            else if (string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "ABSENT";
+            }
+            else if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+            {
+                status = nowUtc > checkOutCutoffUtc
+                    ? "ABSENT"
+                    : (att.TotalLateMinutes > 0 ? "LATE" : "IN_PROGRESS");
+            }
             else
             {
-                status = att.Status ?? "SCHEDULED";
+                status = nowUtc > shift.ScheduledEndAt ? "ABSENT" : (att.Status ?? "SCHEDULED");
             }
         }
         else
@@ -543,8 +999,7 @@ public class AttendanceService : IAttendanceService
             status = nowUtc > shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
         }
 
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
-        int maxDistance = rule?.MaxAttendanceDistanceMeters ?? 20;
+        bool isAbsentStatus = string.Equals(status, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
         return new StaffAttendanceDetailResponse
         {
@@ -574,13 +1029,13 @@ public class AttendanceService : IAttendanceService
             CheckOutAccuracyMeters = att?.CheckOutAccuracyMeters,
             CheckOutFaceVerified = att?.CheckOutFaceVerified,
             CheckOutFaceConfidence = att?.CheckOutFaceConfidence,
-            ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-            TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-            ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
-            ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
-            TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-            ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
-            ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+            ActualWorkingMinutes = isAbsentStatus ? 0 : (att?.ActualWorkingMinutes ?? 0),
+            TotalLateMinutes = isAbsentStatus ? 0 : (att?.TotalLateMinutes ?? 0),
+            ExcusedLateMinutes = isAbsentStatus ? 0 : (att?.ExcusedLateMinutes ?? 0),
+            ChargeableLateMinutes = isAbsentStatus ? 0 : (att?.ChargeableLateMinutes ?? 0),
+            TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.TotalEarlyLeaveMinutes ?? 0),
+            ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ExcusedEarlyLeaveMinutes ?? 0),
+            ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ChargeableEarlyLeaveMinutes ?? 0),
             IsExcusedLeave = isExcusedLeave,
             LeaveReason = leaveReason,
             LateArrivalRequest = lateReqSummary,
@@ -678,8 +1133,6 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Authenticated user identity is required.");
         }
 
-        await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
-
         EligibleShiftResponse targetShift;
         if (assignmentId.HasValue && assignmentId.Value > 0)
         {
@@ -701,8 +1154,8 @@ public class AttendanceService : IAttendanceService
         if (targetShift.UnfinishedPreviousShift != null)
         {
             var prev = targetShift.UnfinishedPreviousShift;
-            var startVn = prev.ScheduledStartAt.AddHours(7);
-            var endVn = prev.ScheduledEndAt.AddHours(7);
+            var startVn = ToVietnamTime(prev.ScheduledStartAt);
+            var endVn = ToVietnamTime(prev.ScheduledEndAt);
             throw new InvalidOperationException($"You have an unfinished shift: '{prev.ShiftName}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
@@ -764,8 +1217,8 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Check-in request payload is required.");
         }
 
-        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile + Embedding)
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesWithEmbeddingAsync(userId, cancellationToken);
 
         // 2. Validate Assignment
         var assignment = await _attendanceRepo.GetAssignmentWithDetailsAsync(request.AssignmentId, cancellationToken)
@@ -774,6 +1227,13 @@ public class AttendanceService : IAttendanceService
         if (assignment.UserId != userId)
         {
             throw new UnauthorizedAccessException("This shift assignment does not belong to your account.");
+        }
+
+        if (assignment.Attendance != null &&
+            (string.Equals(assignment.Attendance.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(assignment.Attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Check-in window has closed and this shift has been marked as Absent.");
         }
 
         if (assignment.Status == "IN_PROGRESS" || assignment.Attendance != null)
@@ -802,24 +1262,28 @@ public class AttendanceService : IAttendanceService
         var approvedLate = await _attendanceRepo.GetApprovedLateArrivalForAssignmentAsync(request.AssignmentId, cancellationToken);
 
         // 4. Validate Time Window & Cut-off
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
-        var penaltyRule = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+        var penaltyRule = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
 
         var nowUtc = DateTime.UtcNow;
         var shiftStartUtc = shift.ScheduledStartAt;
         var shiftEndUtc = shift.ScheduledEndAt;
 
         // Prevent concurrent check-ins: User cannot check in if actively working in another shift whose checkout window hasn't expired
-        var todayDate = DateOnly.FromDateTime(nowUtc.AddHours(7));
-        var todayAssignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayDate, cancellationToken);
-        var activeAttendance = todayAssignments.FirstOrDefault(a => 
+        var todayDate = ToVietnamDate(nowUtc);
+        var todayAssignments = await _attendanceRepo.GetEligibleShiftAssignmentsForDateAsync(userId, todayDate, trackChanges: false, cancellationToken);
+        var activeAttendance = todayAssignments.FirstOrDefault(a =>
         {
             if (a.AssignmentId == request.AssignmentId || a.Attendance == null || !a.Attendance.CheckInTime.HasValue || a.Attendance.CheckOutTime.HasValue)
                 return false;
 
-            var otherCheckoutCutoffUtc = a.Shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+            if (string.Equals(a.Attendance.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(a.Attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var otherCheckoutCutoffUtc = a.Shift.ScheduledEndAt.AddMinutes(GetCheckOutAfterMinutes(a.Attendance, rule.CheckOutAfterMinutes));
 
             // Blocks only if the other shift is actively running right now (checkout window still open)
             return nowUtc <= otherCheckoutCutoffUtc;
@@ -828,15 +1292,15 @@ public class AttendanceService : IAttendanceService
         if (activeAttendance != null)
         {
             var otherShift = activeAttendance.Shift;
-            var startVn = otherShift.ScheduledStartAt.AddHours(7);
-            var endVn = otherShift.ScheduledEndAt.AddHours(7);
+            var startVn = ToVietnamTime(otherShift.ScheduledStartAt);
+            var endVn = ToVietnamTime(otherShift.ScheduledEndAt);
             throw new InvalidOperationException($"You have an unfinished shift: '{otherShift.ShiftNameSnapshot}' ({startVn:HH:mm} – {endVn:HH:mm}) that has not been checked out. Please complete check-out in Attendance History before checking in for a new shift.");
         }
 
         var windowOpensAtUtc = shiftStartUtc.AddMinutes(-rule.CheckInBeforeMinutes);
         if (nowUtc < windowOpensAtUtc)
         {
-            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {windowOpensAtUtc.AddHours(7):HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
+            throw new InvalidOperationException($"Too early to check in. Check-in window opens at {ToVietnamTime(windowOpensAtUtc):HH:mm:ss dd/MM/yyyy} ({rule.CheckInBeforeMinutes} mins before shift start).");
         }
 
         int shiftDurationMinutes = Math.Max(1, (int)(shiftEndUtc - shiftStartUtc).TotalMinutes);
@@ -854,7 +1318,7 @@ public class AttendanceService : IAttendanceService
 
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}.");
+            throw new InvalidOperationException($"Check-in window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}.");
         }
 
         // Calculate Late Minutes
@@ -962,43 +1426,12 @@ public class AttendanceService : IAttendanceService
         }
 
         decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
-        decimal livenessScore = 1.0000m;
+        decimal livenessScore = request.LivenessScore.HasValue
+            ? Math.Round(request.LivenessScore.Value, 4)
+            : 1.0000m;
 
         // 7. Serialize Rule Snapshot JSON
-        var ruleSnapshotObj = new
-        {
-            AttendanceRule = new
-            {
-                rule.AttendanceRuleId,
-                rule.RuleName,
-                rule.CheckInBeforeMinutes,
-                rule.CheckInGraceMinutes,
-                rule.CheckOutGraceMinutes,
-                rule.CheckOutAfterMinutes,
-                rule.MaxAttendanceDistanceMeters,
-                rule.EffectiveFrom,
-                rule.EffectiveTo,
-                rule.Status
-            },
-            AttendancePenaltyRule = penaltyRule != null ? new
-            {
-                penaltyRule.PenaltyRuleId,
-                penaltyRule.RuleName,
-                penaltyRule.EffectiveFrom,
-                penaltyRule.EffectiveTo,
-                penaltyRule.Status,
-                PenaltyLevels = penaltyRule.AttendancePenaltyLevels.Select(l => new
-                {
-                    l.PenaltyLevelId,
-                    l.ViolationType,
-                    l.FromMinutes,
-                    l.ToMinutes,
-                    l.PenaltyAmount
-                }).ToList()
-            } : null,
-            SnapshottedAt = DateTime.UtcNow
-        };
-        string ruleSnapshotJson = JsonSerializer.Serialize(ruleSnapshotObj);
+        string ruleSnapshotJson = BuildRuleSnapshotJson(rule, penaltyRule, DateTime.UtcNow);
 
         // 8. Execute DB Transaction
         await using var transaction = await _attendanceRepo.BeginTransactionAsync(cancellationToken);
@@ -1048,7 +1481,7 @@ public class AttendanceService : IAttendanceService
 
             if (chargeableLateMinutes > 0 && penaltyRule != null)
             {
-                var matchedLevel = penaltyRule.AttendancePenaltyLevels
+                var matchedLevel = penaltyRule.Levels
                     .FirstOrDefault(l => l.ViolationType == "LATE" &&
                                          chargeableLateMinutes >= l.FromMinutes &&
                                          (!l.ToMinutes.HasValue || chargeableLateMinutes <= l.ToMinutes.Value));
@@ -1132,7 +1565,18 @@ public class AttendanceService : IAttendanceService
             throw new UnauthorizedAccessException("This shift assignment does not belong to your account.");
         }
 
-        if (attendance.CheckOutTime.HasValue || attendance.Status != "IN_PROGRESS")
+        if (attendance.CheckOutTime.HasValue)
+        {
+            throw new InvalidOperationException("You have already completed check-out for this shift.");
+        }
+
+        if (string.Equals(attendance.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Check-out window has closed for this shift. Please contact your Manager.");
+        }
+
+        if (attendance.Status != "IN_PROGRESS")
         {
             throw new InvalidOperationException("You have already completed check-out for this shift.");
         }
@@ -1143,7 +1587,7 @@ public class AttendanceService : IAttendanceService
         }
 
         var shift = attendance.Assignment.Shift;
-        var rule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken)
+        var rule = await GetCachedActiveAttendanceRuleAsync(cancellationToken)
             ?? throw new InvalidOperationException("No active attendance rule is configured in the system.");
 
         var nowUtc = DateTime.UtcNow;
@@ -1155,10 +1599,11 @@ public class AttendanceService : IAttendanceService
         }
 
         // Cut-off deadline validation
-        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(rule.CheckOutAfterMinutes);
+        int checkOutAfterMinutes = GetCheckOutAfterMinutes(attendance, rule.CheckOutAfterMinutes);
+        var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMinutes);
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // Invalidate any active pending check-out session for this user
@@ -1219,8 +1664,8 @@ public class AttendanceService : IAttendanceService
             throw new ArgumentException("Check-out request payload is required.");
         }
 
-        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile)
-        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesAsync(userId, cancellationToken);
+        // 1. Validate Staff Prerequisites (Active User, Contract, Face Profile + Embedding)
+        var (user, contract, faceProfile, faceEmbedding) = await ValidateStaffPrerequisitesWithEmbeddingAsync(userId, cancellationToken);
 
         // 2. Validate Attendance Session
         var attendance = await _attendanceRepo.GetAttendanceWithDetailsByAssignmentIdAsync(request.AssignmentId, cancellationToken)
@@ -1232,7 +1677,18 @@ public class AttendanceService : IAttendanceService
             throw new UnauthorizedAccessException("This attendance record does not belong to your account.");
         }
 
-        if (attendance.CheckOutTime.HasValue || attendance.Status != "IN_PROGRESS")
+        if (attendance.CheckOutTime.HasValue)
+        {
+            throw new InvalidOperationException("You have already checked out for this shift.");
+        }
+
+        if (string.Equals(attendance.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Check-out window has closed for this shift. Please contact your Manager.");
+        }
+
+        if (attendance.Status != "IN_PROGRESS")
         {
             throw new InvalidOperationException("You have already checked out for this shift.");
         }
@@ -1263,7 +1719,9 @@ public class AttendanceService : IAttendanceService
         }
 
         // Active rule fallbacks if snapshot is missing
-        var fallbackRule = await _attendanceRepo.GetActiveAttendanceRuleAsync(cancellationToken);
+        var fallbackRule = snapshot?.AttendanceRule == null
+            ? await GetCachedActiveAttendanceRuleAsync(cancellationToken)
+            : null;
         int checkOutAfterMinutes = snapshot?.AttendanceRule?.CheckOutAfterMinutes ?? fallbackRule?.CheckOutAfterMinutes
             ?? throw new InvalidOperationException("No attendance rule configuration available for check-out.");
         int checkOutGraceMinutes = snapshot?.AttendanceRule?.CheckOutGraceMinutes ?? fallbackRule?.CheckOutGraceMinutes ?? 0;
@@ -1275,11 +1733,11 @@ public class AttendanceService : IAttendanceService
         // If snapshot had no penalty rule, fallback to current active penalty rule
         if (penaltyRuleId == null || penaltyLevels == null)
         {
-            var fallbackPenalty = await _attendanceRepo.GetActiveAttendancePenaltyRuleWithLevelsAsync(cancellationToken);
+            var fallbackPenalty = await GetCachedActiveAttendancePenaltyRuleAsync(cancellationToken);
             if (fallbackPenalty != null)
             {
                 penaltyRuleId = fallbackPenalty.PenaltyRuleId;
-                penaltyLevels = fallbackPenalty.AttendancePenaltyLevels.Select(l => new AttendancePenaltyLevelSnapshotItem
+                penaltyLevels = fallbackPenalty.Levels.Select(l => new AttendancePenaltyLevelSnapshotItem
                 {
                     PenaltyLevelId = l.PenaltyLevelId,
                     ViolationType = l.ViolationType,
@@ -1302,7 +1760,7 @@ public class AttendanceService : IAttendanceService
         var cutoffTimeUtc = shift.ScheduledEndAt.AddMinutes(checkOutAfterMinutes);
         if (nowUtc > cutoffTimeUtc)
         {
-            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {cutoffTimeUtc.AddHours(7):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
+            throw new InvalidOperationException($"Check-out window has closed for this shift. Cut-off time was {ToVietnamTime(cutoffTimeUtc):HH:mm:ss dd/MM/yyyy}. Please contact your Manager.");
         }
 
         // 3. Early Leave Calculation
@@ -1411,7 +1869,9 @@ public class AttendanceService : IAttendanceService
         }
 
         decimal qualityScore = Math.Round((decimal)faceConfidence, 4);
-        decimal livenessScore = 1.0000m;
+        decimal livenessScore = request.LivenessScore.HasValue
+            ? Math.Round(request.LivenessScore.Value, 4)
+            : 1.0000m;
 
         // 6. Calculate Actual Working Time
         int actualWorkingMinutes = Math.Max(0, (int)Math.Floor((nowUtc - attendance.CheckInTime.Value).TotalMinutes));
@@ -1528,7 +1988,7 @@ public class AttendanceService : IAttendanceService
         }
     }
 
-    private async Task<(User user, EmploymentContract contract, FaceProfile profile, float[] embedding)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<(User user, EmploymentContract contract)> ValidateUserAndContractPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
     {
         var user = await _attendanceRepo.GetUserByIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("Your user account is not active or was not found.");
@@ -1536,7 +1996,7 @@ public class AttendanceService : IAttendanceService
         var contract = await _attendanceRepo.GetLatestContractByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You do not have an employment contract registered in the system.");
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+        var today = ToVietnamDate(DateTime.UtcNow);
 
         if (string.Equals(contract.Status, "TERMINATED", StringComparison.OrdinalIgnoreCase))
         {
@@ -1558,6 +2018,23 @@ public class AttendanceService : IAttendanceService
         {
             throw new InvalidOperationException($"Your employment contract has not started yet (Start date: {contract.StartDate:yyyy-MM-dd}). Please contact HR / Management.");
         }
+
+        return (user, contract);
+    }
+
+    private async Task<(User user, EmploymentContract contract, FaceProfile profile)> ValidateStaffPrerequisitesAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var (user, contract) = await ValidateUserAndContractPrerequisitesAsync(userId, cancellationToken);
+
+        var faceProfile = await _attendanceRepo.GetActiveFaceProfileByUserIdAsync(userId, cancellationToken)
+            ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");
+
+        return (user, contract, faceProfile);
+    }
+
+    private async Task<(User user, EmploymentContract contract, FaceProfile profile, float[] embedding)> ValidateStaffPrerequisitesWithEmbeddingAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var (user, contract) = await ValidateUserAndContractPrerequisitesAsync(userId, cancellationToken);
 
         var faceProfileData = await _attendanceRepo.GetActiveFaceProfileWithEmbeddingByUserIdAsync(userId, cancellationToken)
             ?? throw new InvalidOperationException("You must register your face profile before performing attendance check-in.");

@@ -13,7 +13,7 @@ public abstract class AdminEmployeeAdjustmentControllerBase(IEmployeeAdjustmentS
     private async Task<IActionResult> Review(int id, ReviewEmployeeAdjustmentRequest request, bool approve, CancellationToken ct)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
-        if (!Guid.TryParse(subject, out var actor) || actor == Guid.Empty) return Unauthorized(new { message = "Tài khoản không hợp lệ." });
+        if (!Guid.TryParse(subject, out var actor) || actor == Guid.Empty) return Unauthorized(new { message = "Invalid account." });
         try { return Ok(await service.ReviewAsync(actor, AdjustmentType, id, approve, request, ct)); }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
@@ -24,12 +24,12 @@ public abstract class AdminEmployeeAdjustmentControllerBase(IEmployeeAdjustmentS
         catch (DbUpdateException ex)
         {
             logger.LogError(ex, "Employee adjustment review persistence failed.");
-            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "Không thể lưu quyết định duyệt do ràng buộc dữ liệu. Hãy tải lại trạng thái trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(409, new ProblemDetails { Status = 409, Detail = "The approval could not be saved due to a data constraint. Refresh before trying again.", Instance = Request.Path });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Employee adjustment review failed.");
-            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Không xác nhận được kết quả duyệt. Vui lòng tải lại trạng thái trước khi thử lại.", Instance = Request.Path });
+            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "The approval result could not be confirmed. Refresh before trying again.", Instance = Request.Path });
         }
     }
     [HttpPost("{id:int}/approve")]

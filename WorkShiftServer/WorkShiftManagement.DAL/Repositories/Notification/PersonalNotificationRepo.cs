@@ -55,12 +55,14 @@ public class PersonalNotificationRepo : IPersonalNotificationRepo
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(un => un.CreatedAt >= dateFrom.Value);
+            var fromUtc = ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value));
+            query = query.Where(un => un.CreatedAt >= fromUtc);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(un => un.CreatedAt < dateTo.Value.Date.AddDays(1));
+            var toUtcExclusive = ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value));
+            query = query.Where(un => un.CreatedAt < toUtcExclusive);
         }
 
         query = (sortBy, sortOrder) switch
@@ -118,6 +120,28 @@ public class PersonalNotificationRepo : IPersonalNotificationRepo
         return true;
     }
 
+    public async Task<int> MarkAllAsReadAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        var unreadNotifications = await _context.UserNotifications
+            .Where(un => un.UserId == userId && !un.IsDeleted && !un.IsRead)
+            .ToListAsync();
+
+        if (unreadNotifications.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var un in unreadNotifications)
+        {
+            un.IsRead = true;
+            un.ReadAt = now;
+        }
+
+        await _context.SaveChangesAsync();
+        return unreadNotifications.Count;
+    }
+
     public async Task<int> GetUnreadCountAsync(Guid userId)
     {
         return await _context.UserNotifications
@@ -164,12 +188,14 @@ public class PersonalNotificationRepo : IPersonalNotificationRepo
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(n => n.CreatedAt >= dateFrom.Value);
+            var fromUtc = ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value));
+            query = query.Where(n => n.CreatedAt >= fromUtc);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(n => n.CreatedAt < dateTo.Value.Date.AddDays(1));
+            var toUtcExclusive = ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value));
+            query = query.Where(n => n.CreatedAt < toUtcExclusive);
         }
 
         query = (sortBy, sortOrder) switch
@@ -204,5 +230,35 @@ public class PersonalNotificationRepo : IPersonalNotificationRepo
             .Include(n => n.CreatedByNavigation)
             .Include(n => n.UserNotifications)
             .FirstOrDefaultAsync(n => n.NotificationId == notificationId && !n.IsDeleted);
+    }
+
+    private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
+
+    private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)
+    {
+        var vnDateTime = date.ToDateTime(TimeOnly.MinValue);
+        return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(vnDateTime, DateTimeKind.Unspecified), VietnamTimeZone);
+    }
+
+    private static DateTime ConvertVnDateToUtcStartOfNextDay(DateOnly date) =>
+        ConvertVnDateToUtcStartOfDay(date.AddDays(1));
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            catch
+            {
+                return TimeZoneInfo.CreateCustomTimeZone("UTC+07:00", TimeSpan.FromHours(7), "Vietnam Standard Time", "Vietnam Standard Time");
+            }
+        }
     }
 }

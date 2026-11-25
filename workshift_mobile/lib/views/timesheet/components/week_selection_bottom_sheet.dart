@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/staff_timesheet_model.dart';
+import '../../../models/timesheet/staff_timesheet_model.dart';
 import '../../../theme/app_colors.dart';
 
 class WeekSelectionBottomSheet extends StatefulWidget {
@@ -32,7 +32,8 @@ class WeekSelectionBottomSheet extends StatefulWidget {
   }
 
   @override
-  State<WeekSelectionBottomSheet> createState() => _WeekSelectionBottomSheetState();
+  State<WeekSelectionBottomSheet> createState() =>
+      _WeekSelectionBottomSheetState();
 }
 
 class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
@@ -92,7 +93,8 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
       if (_searchQuery.isEmpty) return true;
 
       final periodText = 'week ${item.period}'.toLowerCase();
-      final dateText = '${item.weekStartDate} ${item.weekEndDate}'.toLowerCase();
+      final dateText = '${item.weekStartDate} ${item.weekEndDate}'
+          .toLowerCase();
       final statusText = item.status.toLowerCase();
 
       return periodText.contains(_searchQuery) ||
@@ -107,7 +109,9 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
       final s = w.status.toUpperCase();
       if (filter == 'LOCKED') return s == 'LOCKED';
       if (filter == 'GENERATED') return s == 'GENERATED';
-      if (filter == 'NOT GENERATED') return s == 'NOT GENERATED' || s == 'NOT_GENERATED';
+      if (filter == 'NOT GENERATED') {
+        return s == 'NOT GENERATED' || s == 'NOT_GENERATED';
+      }
       return false;
     }).length;
   }
@@ -178,17 +182,24 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Select Schedule Week',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
+                            const Flexible(
+                              child: Text(
+                                'Select Schedule Week',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(10),
@@ -243,17 +254,25 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                   color: const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: _searchFocusNode.hasFocus ? AppColors.primary : AppColors.border,
+                    color: _searchFocusNode.hasFocus
+                        ? AppColors.primary
+                        : AppColors.border,
                     width: _searchFocusNode.hasFocus ? 1.5 : 1.0,
                   ),
                 ),
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
-                  style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'Search week, date (e.g. 12/10, Oct, 2026)...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                    hintStyle: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textMuted,
+                    ),
                     prefixIcon: const Icon(
                       Icons.search_rounded,
                       color: AppColors.textSecondary,
@@ -261,7 +280,11 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                     ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.cancel_rounded, size: 18, color: AppColors.textMuted),
+                            icon: const Icon(
+                              Icons.cancel_rounded,
+                              size: 18,
+                              color: AppColors.textMuted,
+                            ),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -270,7 +293,10 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                         : null,
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
@@ -310,7 +336,8 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                       physics: const BouncingScrollPhysics(),
                       itemBuilder: (context, index) {
                         final item = filtered[index];
-                        final isSelected = item.scheduleWeekId == widget.selectedWeekId;
+                        final isSelected =
+                            item.scheduleWeekId == widget.selectedWeekId;
                         final isCurrent = _isCurrentWeek(item);
 
                         return _buildWeekItemCard(item, isSelected, isCurrent);
@@ -365,7 +392,9 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0x40FFFFFF) : const Color(0xFFE2E8F0),
+                color: isSelected
+                    ? const Color(0x40FFFFFF)
+                    : const Color(0xFFE2E8F0),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
@@ -419,33 +448,39 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
           onTap: () => Navigator.pop(context, item.scheduleWeekId),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
               children: [
                 // Icon Box
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.primary
-                        : (isCurrent ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC)),
+                        : (isCurrent
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFF8FAFC)),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isSelected
                           ? AppColors.primary
-                          : (isCurrent ? const Color(0xFFA7F3D0) : AppColors.borderLight),
+                          : (isCurrent
+                                ? const Color(0xFFA7F3D0)
+                                : AppColors.borderLight),
                     ),
                   ),
                   child: Icon(
                     isCurrent ? Icons.today_rounded : Icons.date_range_rounded,
                     color: isSelected
                         ? Colors.white
-                        : (isCurrent ? const Color(0xFF059669) : AppColors.textSecondary),
-                    size: 22,
+                        : (isCurrent
+                              ? const Color(0xFF059669)
+                              : AppColors.textSecondary),
+                    size: 21,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
                 // Week info
                 Expanded(
@@ -454,27 +489,38 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                     children: [
                       Row(
                         children: [
-                          Text(
-                            'Week ${item.period}',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          Flexible(
+                            child: Text(
+                              'Week ${item.period}',
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.textPrimary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (isCurrent) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFECFDF5),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: const Color(0xFFA7F3D0)),
+                                border: Border.all(
+                                  color: const Color(0xFFA7F3D0),
+                                ),
                               ),
                               child: const Text(
                                 'THIS WEEK',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 8.5,
                                   fontWeight: FontWeight.bold,
                                   color: Color(0xFF059669),
                                 ),
@@ -488,15 +534,19 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                         children: [
                           const Icon(
                             Icons.calendar_today_outlined,
-                            size: 12,
+                            size: 11,
                             color: AppColors.textMuted,
                           ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '${item.weekStartDate} – ${item.weekEndDate}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${item.weekStartDate} – ${item.weekEndDate}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -505,7 +555,7 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                   ),
                 ),
 
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
 
                 // Status pill and checkmark
                 Column(
@@ -517,7 +567,7 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                       const Icon(
                         Icons.check_circle_rounded,
                         color: AppColors.primary,
-                        size: 22,
+                        size: 20,
                       )
                     else
                       Container(
@@ -525,7 +575,10 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
                         height: 18,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          border: Border.all(color: AppColors.border, width: 1.5),
+                          border: Border.all(
+                            color: AppColors.border,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                   ],
@@ -563,7 +616,7 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(6),
@@ -571,12 +624,12 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10, color: text),
-          const SizedBox(width: 4),
+          Icon(icon, size: 9.5, color: text),
+          const SizedBox(width: 3.5),
           Text(
             label,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 9.5,
               fontWeight: FontWeight.bold,
               color: text,
             ),
@@ -641,8 +694,13 @@ class _WeekSelectionBottomSheetState extends State<WeekSelectionBottomSheet> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
               ),
             ),
           ],

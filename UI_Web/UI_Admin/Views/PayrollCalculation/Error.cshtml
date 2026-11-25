@@ -1,0 +1,13 @@
+@model string
+@{ ViewData["Title"] = "Payroll unavailable"; Layout = User.IsInRole("STAFF") ? "_StaffLayout" : User.IsInRole("ACCOUNTANT") ? "_AccountantLayout" : "_AdminLayout"; }
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-5">
+    <div>
+        <a asp-controller="@(User.IsInRole("STAFF") ? "StaffPayslips" : User.IsInRole("ACCOUNTANT") ? "AccountantPayrollPeriods" : "Payroll")" asp-action="@(User.IsInRole("ADMIN") ? "List" : "Index")"
+           class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            <span>Back to Payroll Records</span>
+        </a>
+    </div>
+    <h1 class="text-display-lg font-display-lg">Payroll unavailable</h1>
+    <div class="bg-red-50 text-red-700 rounded-xl p-4" role="alert">@Model</div>
+</div>

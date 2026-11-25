@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Helpers;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Interfaces.Upload;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -28,10 +31,20 @@ public class AdminEmploymentContractService : IAdminEmploymentContractService
     };
 
     private readonly IEmploymentContractRepo _contractRepo;
+    private readonly ICloudinaryService? _cloudinaryService;
+    private readonly IContractPdfGenerator? _pdfGenerator;
+    private readonly ILogger<AdminEmploymentContractService>? _logger;
 
-    public AdminEmploymentContractService(IEmploymentContractRepo contractRepo)
+    public AdminEmploymentContractService(
+        IEmploymentContractRepo contractRepo,
+        ICloudinaryService? cloudinaryService = null,
+        IContractPdfGenerator? pdfGenerator = null,
+        ILogger<AdminEmploymentContractService>? logger = null)
     {
         _contractRepo = contractRepo;
+        _cloudinaryService = cloudinaryService;
+        _pdfGenerator = pdfGenerator;
+        _logger = logger;
     }
 
     public async Task<PagedResponse<AdminEmploymentContractListItemResponse>> GetPagedAsync(
@@ -310,5 +323,51 @@ public class AdminEmploymentContractService : IAdminEmploymentContractService
             ContractTemplateVersion = c.ContractTemplateVersion,
             PdfGeneratedAt = c.PdfGeneratedAt
         };
+    }
+
+    public async Task<(byte[] Bytes, string ContentType, string FileName)> GetPdfFileAsync(
+        int contractId,
+        bool isDownload,
+        CancellationToken cancellationToken = default)
+    {
+        if (contractId <= 0)
+        {
+            throw new ArgumentException("ContractId must be greater than 0.");
+        }
+
+        var contract = await _contractRepo.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+        {
+            throw new KeyNotFoundException("Employment contract was not found.");
+        }
+
+        byte[]? bytes = null;
+
+        // 1. Try downloading official PDF from Cloudinary if path exists
+        if (!string.IsNullOrWhiteSpace(contract.ContractFilePath) && _cloudinaryService != null)
+        {
+            try
+            {
+                bytes = await _cloudinaryService.DownloadRawFileAsync(contract.ContractFilePath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to download contract PDF from Cloudinary for contract {ContractId}. Falling back to dynamic generator.", contractId);
+            }
+        }
+
+        // 2. Fallback to generating on-the-fly if file not on Cloudinary or download failed
+        if (bytes == null || bytes.Length == 0)
+        {
+            if (_pdfGenerator == null)
+            {
+                throw new KeyNotFoundException("The requested contract PDF file was not found.");
+            }
+
+            bytes = _pdfGenerator.GeneratePdf(contract, false);
+        }
+
+        var fileName = $"{contract.ContractNumber}.pdf";
+        return (bytes, "application/pdf", fileName);
     }
 }

@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendancePenaltyRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -21,19 +24,25 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendancePenaltyRuleService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendancePenaltyRuleService(
         IAttendancePenaltyRuleRepo attendancePenaltyRuleRepo,
         INotificationRepo notificationRepo,
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
-        ILogger<AttendancePenaltyRuleService> logger)
+        ILogger<AttendancePenaltyRuleService> logger,
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _attendancePenaltyRuleRepo = attendancePenaltyRuleRepo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AttendancePenaltyRuleListResponse> GetAttendancePenaltyRulesAsync(
@@ -99,6 +108,12 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException($"An attendance penalty rule with the name '{request.RuleName.Trim()}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendancePenaltyRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, null, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance penalty rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var now = DateTime.UtcNow;
         var rule = new AttendancePenaltyRule
         {
@@ -157,6 +172,12 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException($"An attendance penalty rule with the name '{request.RuleName.Trim()}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendancePenaltyRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, id, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance penalty rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var now = DateTime.UtcNow;
         rule.RuleName = request.RuleName.Trim();
         rule.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
@@ -208,9 +229,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed. Please update EffectiveFrom to today or a future date before publishing.");
         }
 
         if (rule.AttendancePenaltyLevels.Count == 0)
@@ -230,6 +251,13 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             throw new InvalidOperationException("The effective date must be after the current active version.");
         }
 
+        var oldSnapshot = new
+        {
+            rule.Status,
+            rule.PublishedBy,
+            rule.PublishedAt,
+            rule.EffectiveFrom
+        };
         var now = DateTime.UtcNow;
         rule.Status = "SCHEDULED";
         rule.PublishedBy = adminUserId;
@@ -237,8 +265,35 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.UpdateAsync(rule, cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "PUBLISH_ATTENDANCE_PENALTY_RULE",
+                tableName: "attendance_penalty_rules",
+                recordId: rule.PenaltyRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.PenaltyRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.EffectiveFrom,
+                    rule.PublishedBy,
+                    rule.PublishedAt,
+                    LevelCount = rule.AttendancePenaltyLevels.Count
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         await SendPublishNotificationAsync(rule, adminUserId);
+
+        if (rule.EffectiveFrom.Value <= today)
+        {
+            await ActivateDueAsync(cancellationToken);
+        }
 
         return await GetByIdAsync(id, cancellationToken);
     }
@@ -331,6 +386,7 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
             nextRule.UpdatedAt = now;
 
             await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+            _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
 
             await SendActiveNotificationAsync(nextRule);
             await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
@@ -414,6 +470,13 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var previousStatus = rule.Status;
+        var oldSnapshot = new
+        {
+            Status = previousStatus,
+            rule.CancelledBy,
+            rule.CancelledAt,
+            rule.CancellationReason
+        };
         var now = DateTime.UtcNow;
 
         rule.Status = "CANCELLED";
@@ -423,6 +486,27 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         rule.UpdatedAt = now;
 
         await _attendancePenaltyRuleRepo.SaveChangesAsync(cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendancePenaltyRule);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CANCEL_ATTENDANCE_PENALTY_RULE",
+                tableName: "attendance_penalty_rules",
+                recordId: rule.PenaltyRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.PenaltyRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.CancelledBy,
+                    rule.CancelledAt,
+                    rule.CancellationReason
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         if (string.Equals(previousStatus, "SCHEDULED", StringComparison.OrdinalIgnoreCase))
         {
@@ -541,9 +625,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
 
         if (request.PenaltyLevels is null || request.PenaltyLevels.Count == 0)
@@ -642,9 +726,9 @@ public class AttendancePenaltyRuleService : IAttendancePenaltyRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
 
         if (request.PenaltyLevels is null || request.PenaltyLevels.Count == 0)

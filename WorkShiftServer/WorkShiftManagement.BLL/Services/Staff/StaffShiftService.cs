@@ -1,4 +1,5 @@
 using System.Text.Json;
+using WorkShiftManagement.DAL.ReadModels.Staff;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
 using WorkShiftManagement.BLL.DTOs.Staff.Response;
@@ -8,11 +9,19 @@ using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Policies.Shifts;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo assignments) : IStaffShiftService
 {
+    public async Task<StaffShiftAccessResponse> GetAccessAsync(Guid staffId, CancellationToken ct = default)
+    {
+        var staff = await GetStaffAsync(staffId, ct);
+        var allowed = await repo.HasActiveContractAsync(staffId, staff.BranchId!.Value, DateTime.UtcNow, ct);
+        return new() { CanManageShifts = allowed, BlockedReason = allowed ? null : StaffShiftContractPolicy.AccessBlockedReason };
+    }
+
     public Task<PagedResponse<StaffShiftResponse>> GetAvailableAsync(Guid staffId, StaffShiftListQuery query,
         CancellationToken ct = default) => GetPagedAsync(staffId, query, true, ct);
 
@@ -29,7 +38,12 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
         if (query.FromDate > query.ToDate || query.ToDate == DateOnly.MaxValue || query.FromDate == DateOnly.MinValue)
             throw new ArgumentException("Invalid date range.");
         var staff = await GetStaffAsync(staffId, ct);
-        if (availableOnly) ValidateEmployeeType(staff);
+        if (availableOnly)
+        {
+            ValidateEmployeeType(staff);
+            if (!await repo.HasActiveContractAsync(staffId, staff.BranchId!.Value, DateTime.UtcNow, ct))
+                throw new InvalidOperationException(StaffShiftContractPolicy.AccessBlockedReason);
+        }
         var (items, total) = await repo.GetPagedAsync(staffId, staff.BranchId!.Value,
             staff.EmployeeTypeId, availableOnly,
             query.FromDate.HasValue ? ToUtc(query.FromDate.Value) : null,
@@ -37,7 +51,7 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
             query.PageNumber, query.PageSize, DateTime.UtcNow, ct);
         return new PagedResponse<StaffShiftResponse>
         {
-            Items = items.Select(s => Map(s, staffId, staff.BranchId!.Value)).ToList(), TotalItems = total,
+            Items = items.Select(s => Map(s, staff.BranchId!.Value)).ToList(), TotalItems = total,
             PageNumber = query.PageNumber, PageSize = query.PageSize
         };
     }
@@ -48,7 +62,7 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
         var staff = await GetStaffAsync(staffId, ct);
         var shift = await repo.GetDetailAsync(shiftId, staffId, staff.BranchId!.Value, ct)
             ?? throw new KeyNotFoundException("Shift not found.");
-        return Map(shift, staffId, staff.BranchId!.Value);
+        return Map(shift, staff.BranchId!.Value);
     }
 
     public async Task<StaffShiftRegistrationResponse> RegisterAsync(Guid staffId, int shiftId, CancellationToken ct = default)
@@ -190,30 +204,54 @@ public sealed class StaffShiftService(IStaffShiftRepo repo, IShiftAssignmentRepo
         catch (InvalidOperationException ex) { return ex.Message; }
     }
 
-    private static StaffShiftResponse Map(WorkShift shift, Guid staffId, int branchId)
+    private static string? GetReadCancellationBlockedReason(StaffShiftReadModel shift,
+        StaffRegistrationReadModel? assignment, int branchId)
     {
-        var own = shift.ShiftAssignments.FirstOrDefault(a => a.UserId == staffId);
-        var blockedReason = GetCancellationBlockedReason(shift, own, branchId);
+        if (assignment == null) return "You have not registered for this shift.";
+        if (assignment.AssignmentSource != "SELF_REGISTRATION")
+            return "Only shifts you registered for yourself can be cancelled. Contact your manager for other assignments.";
+        if (assignment.Status != "ASSIGNED") return "Only active registrations can be cancelled.";
+        if (shift.BranchId != branchId) return "This registration belongs to your previous branch. Contact your manager.";
+        var now = DateTime.UtcNow;
+        if (shift.Status != "SCHEDULED" || shift.ScheduledStartAt <= now || shift.ScheduledEndAt <= shift.ScheduledStartAt)
+            return "Registration is closed, the shift has already started, or the shift is no longer available.";
+        if (shift.ScheduleWeekStatus != "OPEN_REGISTRATION" || shift.RegistrationDeadline <= now)
+            return "Shift registration and cancellation are only allowed during OPEN_REGISTRATION and before the registration deadline.";
+        if (assignment.HasAttendanceOrPayroll) return "The assignment has attendance or payroll data.";
+        if (assignment.HasBlockingRequest)
+            return "Resolve the linked employee request before changing this assignment; assignments with request history cannot be restored.";
+        return null;
+    }
+
+    private static StaffShiftResponse Map(StaffShiftReadModel shift, int branchId)
+    {
+        var own = shift.Registrations.FirstOrDefault();
+        var blockedReason = GetReadCancellationBlockedReason(shift, own, branchId);
         return new()
         {
             ShiftId = shift.ShiftId, ScheduleWeekId = shift.ScheduleWeekId,
-            BranchId = shift.ScheduleWeek.BranchId, BranchName = shift.ScheduleWeek.Branch.BranchName,
+            BranchId = shift.BranchId, BranchName = shift.BranchName,
             ShiftName = shift.ShiftNameSnapshot, ScheduledStartAt = shift.ScheduledStartAt,
             ScheduledEndAt = shift.ScheduledEndAt, Status = shift.Status,
-            ScheduleWeekStatus = shift.ScheduleWeek.Status, RegistrationDeadline = shift.ScheduleWeek.RegistrationDeadline,
+            ScheduleWeekStatus = shift.ScheduleWeekStatus, RegistrationDeadline = shift.RegistrationDeadline,
             Note = shift.Note,
-            MyRegistration = own == null ? null : MapRegistration(own),
+            MyRegistration = own == null ? null : new StaffShiftRegistrationResponse
+            {
+                AssignmentId = own.AssignmentId, ShiftId = own.ShiftId,
+                ShiftRequirementId = own.ShiftRequirementId, AssignmentSource = own.AssignmentSource,
+                Status = own.Status, AssignedAt = own.AssignedAt,
+                CancelledAt = own.CancelledAt, CancelReason = own.CancelReason
+            },
             CanCancelRegistration = blockedReason == null,
             CancellationBlockedReason = blockedReason,
             IsOpenShift = false,
-            EmployeeRequirements = shift.ShiftEmployeeRequirements.OrderBy(r => r.EmployeeTypeId).Select(r =>
+            EmployeeRequirements = shift.EmployeeRequirements.Select(r =>
             {
-                var count = shift.ShiftAssignments.Count(a => a.ShiftRequirementId == r.ShiftRequirementId &&
-                    a.Status is "ASSIGNED" or "COMPLETED");
+                var count = r.AssignedCount;
                 return new StaffShiftRequirementResponse
                 {
                     ShiftRequirementId = r.ShiftRequirementId, EmployeeTypeId = r.EmployeeTypeId,
-                    EmployeeTypeName = r.EmployeeType.TypeName, RequiredCount = r.RequiredCount,
+                    EmployeeTypeName = r.EmployeeTypeName, RequiredCount = r.RequiredCount,
                     AssignedCount = count, RemainingCount = shift.Status == "CANCELLED" ? 0 : Math.Max(0, r.RequiredCount - count)
                 };
             }).ToList()

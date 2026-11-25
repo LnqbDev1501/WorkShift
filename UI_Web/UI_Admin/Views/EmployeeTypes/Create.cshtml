@@ -1,0 +1,27 @@
+@model UI_Admin.Models.EmployeeTypes.EmployeeTypeFormViewModel
+@{ ViewData["Title"] = "Create Employee Type"; }
+<div class="flex flex-col w-full px-7 py-6 gap-6 mx-auto" style="max-width: 1496px;">
+    <partial name="_NotificationModal" />
+    <div class="flex items-center gap-3">
+        <div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Employee Type</h1><p class="text-body-md text-secondary mt-0.5">Add a new employee classification to your workforce directory.</p></div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8">
+            <div class="mb-7"><span class="text-label-sm uppercase tracking-widest text-primary font-bold">Employee Classification</span><h2 class="text-title-lg font-title-lg text-on-surface mt-1">Employee Type Information</h2><p class="text-body-sm text-secondary mt-1">Enter the name and description. New employee types are automatically Active.</p></div>
+            <form asp-action="Create" method="post" data-employee-type-form class="flex flex-col gap-6">
+                <partial name="_FormFields" model="Model" />
+                <div class="flex items-center justify-end gap-3 pt-5 border-t border-surface-container-high">
+                    <a asp-action="Index" class="h-10 px-5 inline-flex items-center rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium">Cancel</a>
+                    <button type="submit" class="h-10 px-5 inline-flex items-center gap-2 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium shadow-sm"><span class="material-symbols-outlined text-[18px]">add</span>Create Employee Type</button>
+                </div>
+            </form>
+        </div>
+        <aside class="lg:col-span-4 bg-surface-container-low rounded-xl p-6 flex flex-col gap-3">
+            <span class="material-symbols-outlined text-primary text-[28px]">badge</span><h2 class="text-title-md font-title-md text-on-surface">Classification Guidelines</h2><p class="text-body-sm text-secondary leading-relaxed">Employee types describe employment categories, such as full-time or part-time. Choose a clear name that is easy to identify.</p><p class="text-body-sm text-secondary leading-relaxed">New types default to Active. You can deactivate or restore a type later without removing existing employee records.</p>
+        </aside>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/employee-type-form.js" asp-append-version="true"></script>
+}

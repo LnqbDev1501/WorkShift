@@ -26,4 +26,6 @@ public interface IManagerAttendanceRepo
         int assignmentId,
         int branchId,
         CancellationToken cancellationToken = default);
+
+    Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default);
 }

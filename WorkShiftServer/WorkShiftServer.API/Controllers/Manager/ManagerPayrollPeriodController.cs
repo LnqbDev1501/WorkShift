@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Manager.EmployeeAdjustments;
@@ -15,7 +15,7 @@ public sealed class ManagerPayrollPeriodController(IEmployeeAdjustmentService se
     public async Task<IActionResult> Get(CancellationToken ct)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? User.FindFirstValue("user_id");
-        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Tài khoản không hợp lệ." });
+        if (!Guid.TryParse(subject, out var id) || id == Guid.Empty) return Unauthorized(new { message = "Invalid user account." });
         try { return Ok(await service.PeriodsAsync(id, ct)); }
         catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested) { throw; }
         catch (Exception ex) when (ex is ArgumentException or UnauthorizedAccessException or KeyNotFoundException or InvalidOperationException)
@@ -26,7 +26,7 @@ public sealed class ManagerPayrollPeriodController(IEmployeeAdjustmentService se
         catch (Exception ex)
         {
             logger.LogError(ex, "Manager payroll period list failed.");
-            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Không thể tải danh sách kỳ lương.", Instance = Request.Path });
+            return StatusCode(500, new ProblemDetails { Status = 500, Detail = "Unable to load payroll period list.", Instance = Request.Path });
         }
     }
 }

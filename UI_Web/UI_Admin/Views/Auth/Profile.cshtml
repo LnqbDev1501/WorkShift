@@ -1,0 +1,467 @@
+@using UI_Admin.Models.Admin.UserAdmin
+@model UserDetailViewModel
+@{
+    Layout = User.IsInRole("ACCOUNTANT") ? "_AccountantLayout" : "_AdminLayout";
+    ViewData["Title"] = "My Profile";
+    var isPending = Model.IsPending;
+    var isActive = Model.IsActive;
+
+    string FormatDateTime(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm:ss");
+    string FormatDateShort(DateTimeOffset dt) => dt.ToString("dd/MM/yyyy HH:mm");
+}
+
+<div class="flex flex-col w-full px-7 py-6">
+    <div class="w-full max-w-[1440px] mx-auto space-y-unit-6">
+        @if (TempData["AvatarUpdated"] is true or "true")
+        {
+            <div class="p-3 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] font-body-md-medium text-body-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                <span>Your avatar has been updated.</span>
+            </div>
+        }
+        @if (TempData["AvatarError"] is string avatarError && !string.IsNullOrWhiteSpace(avatarError))
+        {
+            <div class="p-3 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium text-body-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-[18px]">error</span>
+                <span>@avatarError</span>
+            </div>
+        }
+
+        <!-- Profile Master Header Card -->
+        <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-unit-5 min-w-0">
+            <div class="flex items-start sm:items-center gap-unit-5 min-w-0 flex-1">
+                <div class="relative flex-shrink-0 group">
+                    <button type="button" onclick="document.getElementById('avatar-file-input').click()" class="relative block w-20 h-20 rounded-full cursor-pointer" title="Change avatar">
+                        @if (!string.IsNullOrWhiteSpace(Model.AvatarUrl))
+                        {
+                            <img alt="@Model.FullName Avatar" class="w-20 h-20 rounded-full object-cover border-2 border-surface-container shadow-sm" src="@Model.AvatarUrl" />
+                        }
+                        else
+                        {
+                            <span class="w-20 h-20 rounded-full bg-[#5146e5] text-white text-2xl font-bold flex items-center justify-center border-2 border-surface-container shadow-sm">
+                                @Model.Initials
+                            </span>
+                        }
+                        <span class="absolute inset-0 rounded-full bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="material-symbols-outlined text-[22px]">photo_camera</span>
+                        </span>
+                        <span class="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center border-2 border-surface-container-lowest shadow-sm">
+                            <span class="material-symbols-outlined text-[14px]">photo_camera</span>
+                        </span>
+                    </button>
+                    <form id="avatar-form" asp-controller="Auth" asp-action="UpdateAvatar" method="post" enctype="multipart/form-data" class="hidden">
+                        @Html.AntiForgeryToken()
+                        <input id="avatar-file-input" name="AvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp" onchange="if(this.files.length){document.getElementById('avatar-form').submit();}" />
+                    </form>
+
+                    @if (isPending)
+                    {
+                        <span class="absolute top-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Pending Verification">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#f59e0b]"></span>
+                        </span>
+                    }
+                    else if (isActive)
+                    {
+                        <span class="absolute top-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Active Account">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#059669]"></span>
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="absolute top-0 right-0 w-5 h-5 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm" title="Inactive Account">
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#6b7280]"></span>
+                        </span>
+                    }
+                </div>
+                <div class="flex flex-col space-y-1 min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-unit-3">
+                        <h1 class="font-display-md text-display-md text-on-surface break-words break-all [overflow-wrap:anywhere]">@Model.FullName</h1>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ede9fe] text-[#6d28d9] text-label-sm font-label-sm border border-[#ddd6fe]">
+                            <span class="material-symbols-outlined text-[14px]">account_balance</span>
+                            @Model.RoleName.ToUpperInvariant()
+                        </span>
+
+                        @if (isPending)
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#fef3c7] text-[#b45309] text-label-sm font-label-sm border border-[#fde68a]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                PENDING
+                            </span>
+                        }
+                        else if (isActive)
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ecfdf5] text-[#059669] text-label-sm font-label-sm border border-[#a7f3d0]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>
+                                ACTIVE
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#f3f4f6] text-[#4b5563] text-label-sm font-label-sm border border-[#e5e7eb]">
+                                <span class="w-1.5 h-1.5 rounded-full bg-[#9ca3af]"></span>
+                                INACTIVE
+                            </span>
+                        }
+                    </div>
+                    <p class="font-body-md text-secondary flex items-center gap-unit-2 flex-wrap text-[13px]">
+                        <span>@Model.RoleName</span>
+                        <span class="text-outline-variant">•</span>
+                        <span class="font-body-md-medium text-on-surface">@(Model.BranchName ?? "Unassigned Branch") @(string.IsNullOrWhiteSpace(Model.BranchCode) ? "" : $"({Model.BranchCode})")</span>
+                        <span class="text-outline-variant">•</span>
+                        <span class="text-secondary">Joined @FormatDateShort(Model.CreatedAt)</span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-unit-3 flex-shrink-0">
+                <form asp-controller="Auth" asp-action="Logout" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-on-surface font-body-md-medium text-body-sm transition-colors border border-[#e2e8f0] shadow-sm cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                        <span>Sign Out</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Key Summary Stats (4 metric panels) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-unit-5">
+            <!-- Card 1: Account Status -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Account Status</span>
+                    <span class="p-2 rounded-lg @(isPending ? "bg-[#fef3c7] text-[#b45309]" : isActive ? "bg-[#ecfdf5] text-[#059669]" : "bg-[#f3f4f6] text-[#4b5563]") flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">@(isPending ? "pending" : isActive ? "check_circle" : "cancel")</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md @(isPending ? "text-[#b45309]" : isActive ? "text-[#059669]" : "text-[#4b5563]") flex items-center gap-2">
+                        <span>@Model.Status</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-1.5 h-1.5 rounded-full @(isPending ? "bg-[#f59e0b]" : isActive ? "bg-[#059669]" : "bg-[#9ca3af]")"></span>
+                        <span class="font-label-sm text-secondary text-[12px]">
+                            @(isPending ? "Awaiting password setup" : isActive ? "Active and operational" : "Account deactivated")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Assigned Role -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Assigned Role</span>
+                    <span class="p-2 rounded-lg bg-[#ede9fe] text-[#6d28d9] flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">badge</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface flex items-center gap-2">
+                        <span>@Model.RoleName.ToUpperInvariant()</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="font-label-sm text-secondary truncate">
+                            @(Model.RoleName.Equals("Manager", StringComparison.OrdinalIgnoreCase) ? "Branch Operations & Staffing" : Model.RoleName.Equals("Accountant", StringComparison.OrdinalIgnoreCase) ? "Financial & Payroll Ops" : "System Administration")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Primary Branch -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Primary Branch</span>
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">storefront</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface truncate" title="@Model.BranchName">
+                        @(Model.BranchName ?? "Unassigned Branch")
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1 truncate">
+                        @if (!string.IsNullOrWhiteSpace(Model.BranchCode))
+                        {
+                            <span class="px-1.5 py-0.5 rounded bg-surface-container font-code-num text-[11px] text-secondary font-medium">Code: @Model.BranchCode</span>
+                        }
+                        else
+                        {
+                            <span class="font-label-sm text-secondary">No branch assigned</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4: Employee Type -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 border border-[#e2e8f0] shadow-sm flex flex-col justify-between space-y-unit-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-label-md text-secondary uppercase tracking-wider text-[11px]">Employee Type</span>
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">work</span>
+                    </span>
+                </div>
+                <div>
+                    <div class="font-display-md text-display-md text-on-surface truncate">
+                        @(string.IsNullOrWhiteSpace(Model.EmployeeTypeName) ? "Not assigned" : Model.EmployeeTypeName)
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="font-label-sm text-secondary text-[12px]">Joined @FormatDateShort(Model.CreatedAt)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-unit-6">
+            <!-- CARD 1: Personal & Identity Information -->
+            <div id="personal-info-card" class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">person</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Personal &amp; Identity Information</h2>
+                                <p class="font-label-sm text-secondary">Your personal records</p>
+                            </div>
+                        </div>
+                    </div>
+                    <form asp-controller="Auth" asp-action="UpdateProfile" method="post" onsubmit="return validateProfileForm()">
+                        @Html.AntiForgeryToken()
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
+                            <div class="flex flex-col gap-unit-2 min-w-0">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Full Name</span>
+                                <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold break-words break-all [overflow-wrap:anywhere]">@Model.FullName</span>
+                                <input name="FullName" type="text" value="@Model.FullName" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Email</span>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="font-body-md-medium text-on-surface text-body-md break-all">@Model.Email</span>
+                                    @if (isActive)
+                                    {
+                                        <span class="material-symbols-outlined text-[15px] text-[#059669]" title="Verified Email">check_circle</span>
+                                    }
+                                    <span class="material-symbols-outlined text-[15px] text-secondary" title="Locked">lock</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-unit-2">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Mobile Phone</span>
+                                <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5 font-code-num">@(string.IsNullOrWhiteSpace(Model.Phone) ? "—" : Model.Phone)</span>
+                                <input name="Phone" id="profile-phone-input" type="tel" inputmode="numeric" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="@Model.Phone" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                                <span id="profile-phone-error" class="edit-only hidden text-error font-body-sm text-body-sm text-xs text-red-500 mt-1"></span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">National Citizen ID</span>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <span class="px-2 py-0.5 rounded bg-surface-container font-code-num text-code-num text-on-surface font-semibold tracking-wide">
+                                        @(string.IsNullOrWhiteSpace(Model.IdentityNo) ? "—" : Model.IdentityNo)
+                                    </span>
+                                    <span class="material-symbols-outlined text-[15px] text-secondary" title="Locked">lock</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-unit-2">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Gender</span>
+                                <div class="view-only flex items-center gap-1.5 mt-0.5">
+                                    <span class="material-symbols-outlined text-[16px] text-primary">
+                                        @(Model.Gender.Equals("MALE", StringComparison.OrdinalIgnoreCase) || Model.Gender.Equals("NAM", StringComparison.OrdinalIgnoreCase) ? "male" : "female")
+                                    </span>
+                                    <span class="font-body-md-medium text-on-surface text-body-md">@Model.GenderDisplay</span>
+                                </div>
+                                <select name="Gender" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container cursor-pointer">
+                                    <option value="MALE" selected="@(Model.Gender.Equals("MALE", StringComparison.OrdinalIgnoreCase))">Male</option>
+                                    <option value="FEMALE" selected="@(Model.Gender.Equals("FEMALE", StringComparison.OrdinalIgnoreCase))">Female</option>
+                                    <option value="OTHER" selected="@(Model.Gender.Equals("OTHER", StringComparison.OrdinalIgnoreCase))">Other</option>
+                                </select>
+                            </div>
+                            <div class="flex flex-col gap-unit-2">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Date of Birth</span>
+                                <span class="view-only font-body-md-medium text-on-surface text-body-md mt-0.5">@(Model.DateOfBirth == default ? "—" : Model.DateOfBirth.ToString("dd/MM/yyyy"))</span>
+                                <input name="DateOfBirth" type="date" value="@(Model.DateOfBirth == default ? "" : Model.DateOfBirth.ToString("yyyy-MM-dd"))" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                            </div>
+                            <div class="flex flex-col gap-unit-2 sm:col-span-2 min-w-0">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Residential Address</span>
+                                <div class="view-only flex items-center gap-1.5 mt-0.5 text-on-surface">
+                                    <span class="material-symbols-outlined text-[16px] text-secondary shrink-0">location_on</span>
+                                    <span class="font-body-md-medium text-body-md break-words break-all [overflow-wrap:anywhere]">@(string.IsNullOrWhiteSpace(Model.Address) ? "No address recorded" : Model.Address)</span>
+                                </div>
+                                <input name="Address" type="text" value="@Model.Address" class="edit-only hidden w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container" />
+                            </div>
+                        </div>
+
+                        @if (TempData["ProfileUpdated"] is true or "true")
+                        {
+                            <div class="mt-unit-4 p-3 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] text-[#059669] font-body-md-medium text-body-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                                <span>Your personal information has been updated.</span>
+                            </div>
+                        }
+                        @if (TempData["ProfileError"] is string profileError && !string.IsNullOrWhiteSpace(profileError))
+                        {
+                            <div class="mt-unit-4 p-3 rounded-xl bg-[#fee2e2] border border-[#fecaca] text-[#991b1b] font-body-md-medium text-body-sm flex items-center gap-2">
+                                <span class="material-symbols-outlined text-[18px]">error</span>
+                                <span>@profileError</span>
+                            </div>
+                        }
+
+                        <div class="pt-unit-5">
+                            <button type="button" onclick="togglePersonalEdit()" class="view-only w-full inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-primary border border-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                                <span class="material-symbols-outlined text-[20px]">edit</span>
+                                <span>Update Personal Information</span>
+                            </button>
+                            <div class="edit-only hidden items-center justify-end gap-unit-3">
+                                <button type="button" onclick="togglePersonalEdit()" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-secondary border border-[#e2e8f0] font-body-md-medium text-body-md-medium transition-colors cursor-pointer">
+                                    Cancel
+                                </button>
+                                <button type="submit" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm cursor-pointer">
+                                    <span class="material-symbols-outlined text-[20px]">save</span>
+                                    <span>Save Changes</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CARD 2: Account & System Info -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                        <div class="flex items-center gap-2.5">
+                            <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                                <span class="material-symbols-outlined text-[20px]">database</span>
+                            </span>
+                            <div>
+                                <h2 class="font-title-md text-title-md text-on-surface">Account &amp; System Info</h2>
+                                <p class="font-label-sm text-secondary">System record details</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-unit-4 pt-unit-4">
+                        <div class="flex flex-col">
+                            <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">User ID</span>
+                            <div class="flex items-center justify-between mt-1 p-2 bg-surface-container-low rounded-lg border border-surface-container-highest">
+                                <span class="font-code-num text-[12px] text-on-surface font-semibold break-all" id="account-uuid">@Model.UserId</span>
+                                <button class="text-secondary hover:text-primary transition-colors p-1 flex-shrink-0 cursor-pointer" onclick="copyUUID()" title="Copy User ID" type="button">
+                                    <span class="material-symbols-outlined text-[18px]" id="copy-icon">content_copy</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-unit-4">
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">System Role</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="material-symbols-outlined text-[18px] text-primary">account_balance</span>
+                                    <span class="font-body-md-medium text-on-surface text-body-md font-semibold">@Model.RoleName.ToUpperInvariant()</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Current Status</span>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="w-2 h-2 rounded-full @(isPending ? "bg-[#f59e0b]" : isActive ? "bg-[#059669]" : "bg-[#9ca3af]")"></span>
+                                    <span class="font-body-md-medium @(isPending ? "text-[#b45309]" : isActive ? "text-[#059669]" : "text-[#4b5563]") text-body-md font-semibold">@Model.Status</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Joined</span>
+                                <span class="font-body-md-medium text-on-surface text-body-sm mt-0.5 block">@FormatDateTime(Model.CreatedAt)</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Last Updated</span>
+                                <span class="font-body-md-medium text-on-surface text-body-sm mt-0.5 block">@FormatDateTime(Model.UpdatedAt)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-unit-5 mt-unit-4 border-t border-surface-container-high">
+                    <div class="flex items-center justify-between text-secondary font-label-sm">
+                        <span>Record Integrity:</span>
+                        <span class="font-body-md-medium text-[#059669] flex items-center gap-1">
+                            <span class="material-symbols-outlined text-[14px]">verified</span> Synchronized
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 3: Account Settings -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 border border-[#e2e8f0] shadow-sm lg:col-span-2">
+                <div class="flex items-center gap-2.5 pb-unit-4 border-b border-surface-container-highest">
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[20px]">settings</span>
+                    </span>
+                    <div>
+                        <h2 class="font-title-md text-title-md text-on-surface">Account Settings</h2>
+                        <p class="font-label-sm text-secondary">Manage your email and password.</p>
+                    </div>
+                </div>
+                <div class="divide-y divide-surface-container-highest">
+                    <a asp-controller="Auth" asp-action="ChangeEmail" class="flex items-center gap-unit-4 py-unit-4 no-underline group">
+                        <span class="p-2.5 rounded-lg bg-primary-fixed text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]">mail</span>
+                        </span>
+                        <span class="flex flex-col flex-1 min-w-0">
+                            <span class="font-body-md-medium text-on-surface text-body-md font-semibold">Change Email</span>
+                            <span class="font-label-sm text-secondary truncate">@Model.Email</span>
+                        </span>
+                        <span class="material-symbols-outlined text-secondary group-hover:text-primary transition-colors">chevron_right</span>
+                    </a>
+                    <a asp-controller="Auth" asp-action="ChangePassword" class="flex items-center gap-unit-4 py-unit-4 no-underline group">
+                        <span class="p-2.5 rounded-lg bg-primary-fixed text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]">lock_reset</span>
+                        </span>
+                        <span class="flex flex-col flex-1 min-w-0">
+                            <span class="font-body-md-medium text-on-surface text-body-md font-semibold">Change Password</span>
+                            <span class="font-label-sm text-secondary truncate">Update your login password</span>
+                        </span>
+                        <span class="material-symbols-outlined text-secondary group-hover:text-primary transition-colors">chevron_right</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function validateProfileForm() {
+        const input = document.getElementById('profile-phone-input');
+        const err = document.getElementById('profile-phone-error');
+        if (!input) return true;
+        const val = input.value.trim();
+        const phoneRegex = /^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$/;
+        if (!phoneRegex.test(val)) {
+            if (err) {
+                err.innerText = 'Invalid phone number. Please enter 10 digits with a valid Vietnamese prefix (032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).';
+                err.classList.remove('hidden');
+            }
+            input.focus();
+            return false;
+        }
+        if (err) err.classList.add('hidden');
+        return true;
+    }
+
+    function togglePersonalEdit() {
+        const card = document.getElementById('personal-info-card');
+        if (!card) return;
+        const editing = card.classList.toggle('editing');
+        card.querySelectorAll('.edit-only').forEach((el) => el.classList.toggle('hidden', !editing));
+        card.querySelectorAll('.view-only').forEach((el) => el.classList.toggle('hidden', editing));
+    }
+
+    function copyUUID() {
+        const text = document.getElementById('account-uuid').innerText.trim();
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = document.getElementById('copy-icon');
+            if (icon) {
+                icon.innerText = 'check';
+                icon.classList.add('text-[#059669]');
+                setTimeout(() => {
+                    icon.innerText = 'content_copy';
+                    icon.classList.remove('text-[#059669]');
+                }, 1500);
+            }
+        });
+    }
+</script>
+}

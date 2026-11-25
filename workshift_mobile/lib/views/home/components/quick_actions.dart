@@ -12,8 +12,13 @@ import '../../orders/staff_order_list_view.dart';
 import '../../orders/create_order_view.dart';
 import '../../timesheet/staff_timesheet_view.dart';
 import '../../payroll/payroll_home_view.dart';
-import '../../../models/face_registration_model.dart';
-import '../../../services/face_registration_service.dart';
+import '../../catalog/product_list_view.dart';
+import '../../adjustments/staff_reward_list_view.dart';
+import '../../adjustments/staff_penalty_list_view.dart';
+import '../../../models/attendance/face_registration_model.dart';
+import '../../../services/attendance/face_registration_service.dart';
+import '../../../services/orders/staff_order_service.dart';
+import '../../../models/shifts/shift_registration_model.dart';
 
 /// Quick Action model definition
 class _QuickActionData {
@@ -23,6 +28,7 @@ class _QuickActionData {
   final Color iconColor;
   final Color iconBgColor;
   final VoidCallback onTap;
+  final bool isGrayedOut;
 
   const _QuickActionData({
     required this.title,
@@ -31,6 +37,7 @@ class _QuickActionData {
     required this.iconColor,
     required this.iconBgColor,
     required this.onTap,
+    this.isGrayedOut = false,
   });
 }
 
@@ -41,6 +48,8 @@ class QuickActions extends StatefulWidget {
   final VoidCallback? onNavigateToTimesheet;
   final VoidCallback? onNavigateToSchedule;
   final VoidCallback? onNavigateToPayroll;
+  final ShiftAccessModel shiftAccess;
+  final VoidCallback? onContractsChanged;
 
   const QuickActions({
     super.key,
@@ -49,6 +58,8 @@ class QuickActions extends StatefulWidget {
     this.onNavigateToTimesheet,
     this.onNavigateToSchedule,
     this.onNavigateToPayroll,
+    this.shiftAccess = ShiftAccessModel.checking,
+    this.onContractsChanged,
   });
 
   @override
@@ -57,6 +68,50 @@ class QuickActions extends StatefulWidget {
 
 class _QuickActionsState extends State<QuickActions> {
   bool _isExpanded = false;
+  final StaffOrderService _staffOrderService = StaffOrderService();
+  bool _isInShift = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkShiftStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuickActions oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _checkShiftStatus();
+  }
+
+  Future<void> _checkShiftStatus() async {
+    final inShift = await _staffOrderService.getShiftStatus();
+    if (mounted) {
+      setState(() {
+        _isInShift = inShift;
+      });
+    }
+  }
+
+  bool _canOpenShiftActions() {
+    if (widget.shiftAccess.canManageShifts) return true;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Shift actions unavailable'),
+        content: Text(
+          widget.shiftAccess.blockedReason ??
+              ShiftAccessModel.unavailable.blockedReason!,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+    return false;
+  }
 
   Future<void> _handleFaceBiometrics() async {
     final faceService = FaceRegistrationService();
@@ -74,7 +129,10 @@ class _QuickActionsState extends State<QuickActions> {
               children: [
                 CircularProgressIndicator(strokeWidth: 2.5),
                 SizedBox(width: 16),
-                Text('Checking biometric status...', style: TextStyle(fontSize: 14)),
+                Text(
+                  'Checking biometric status...',
+                  style: TextStyle(fontSize: 14),
+                ),
               ],
             ),
           ),
@@ -122,18 +180,27 @@ class _QuickActionsState extends State<QuickActions> {
       await showDialog<void>(
         context: context,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.calendar_month_rounded, color: Color(0xFFF59E0B)),
               SizedBox(width: 8),
-              Text('Monthly Limit Reached', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(
+                'Monthly Limit Reached',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           content: Text(
             status.message ??
                 'You have already updated your biometric face profile this month. Re-registration is only allowed once per calendar month.',
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
           actions: [
             ElevatedButton(
@@ -141,7 +208,9 @@ class _QuickActionsState extends State<QuickActions> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               child: const Text('Got It'),
             ),
@@ -160,24 +229,36 @@ class _QuickActionsState extends State<QuickActions> {
           children: [
             Icon(Icons.face_unlock_rounded, color: Color(0xFF7C3AED)),
             SizedBox(width: 8),
-            Text('Update Face Profile', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            Text(
+              'Update Face Profile',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: const Text(
           'You have already registered your face profile. You are eligible to update it once this month. The new face scan will replace your existing biometric profile for shift attendance.\n\nDo you want to re-register now?',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7C3AED),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('Proceed'),
           ),
@@ -191,7 +272,9 @@ class _QuickActionsState extends State<QuickActions> {
       widget.onFaceRegistrationSuccess?.call();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Biometric face profile updated successfully for this month!'),
+          content: Text(
+            'Biometric face profile updated successfully for this month!',
+          ),
           backgroundColor: Color(0xFF10B981),
         ),
       );
@@ -212,7 +295,7 @@ class _QuickActionsState extends State<QuickActions> {
       ),
       _QuickActionData(
         title: 'Submit Request',
-        subtitle: 'Leave, late, early',
+        subtitle: 'Leave, late, salary',
         icon: Icons.edit_note_rounded,
         iconColor: AppColors.actionLeaveIcon,
         iconBgColor: AppColors.actionLeaveBg,
@@ -230,7 +313,9 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.event_note_rounded,
         iconColor: AppColors.actionRegisterIcon,
         iconBgColor: AppColors.actionRegisterBg,
+        isGrayedOut: !widget.shiftAccess.canManageShifts,
         onTap: () async {
+          if (!_canOpenShiftActions()) return;
           await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const AvailableShiftsView()),
           );
@@ -243,7 +328,9 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.swap_horiz_rounded,
         iconColor: AppColors.actionSwapIcon,
         iconBgColor: AppColors.actionSwapBg,
+        isGrayedOut: !widget.shiftAccess.canManageShifts,
         onTap: () async {
+          if (!_canOpenShiftActions()) return;
           await Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const ShiftSwapListView()));
@@ -256,10 +343,11 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.verified_user_rounded,
         iconColor: AppColors.actionContractIcon,
         iconBgColor: AppColors.actionContractBg,
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const StaffContractListView()),
           );
+          if (mounted) widget.onContractsChanged?.call();
         },
       ),
       _QuickActionData(
@@ -268,10 +356,29 @@ class _QuickActionsState extends State<QuickActions> {
         icon: Icons.point_of_sale_rounded,
         iconColor: AppColors.actionOrderIcon,
         iconBgColor: AppColors.actionOrderBg,
-        onTap: () {
-          Navigator.of(
+        isGrayedOut: !_isInShift,
+        onTap: () async {
+          final inShift = await _staffOrderService.getShiftStatus();
+          if (!mounted) return;
+          setState(() => _isInShift = inShift);
+          if (!context.mounted) return;
+          if (!inShift) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'You must be in your shift and checked in to perform this action.',
+                ),
+                backgroundColor: AppColors.error,
+              ),
+            );
+            return;
+          }
+          await Navigator.of(
             context,
           ).push(MaterialPageRoute(builder: (_) => const CreateOrderView()));
+          if (mounted) {
+            _checkShiftStatus();
+          }
         },
       ),
       // --- Extended actions when expanded ---
@@ -297,9 +404,9 @@ class _QuickActionsState extends State<QuickActions> {
           if (widget.onNavigateToTimesheet != null) {
             widget.onNavigateToTimesheet!();
           } else {
-            Navigator.of(
-              context,
-            ).push(MaterialPageRoute(builder: (_) => const StaffTimesheetView()));
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const StaffTimesheetView()),
+            );
           }
         },
       ),
@@ -330,10 +437,46 @@ class _QuickActionsState extends State<QuickActions> {
           if (widget.onNavigateToPayroll != null) {
             widget.onNavigateToPayroll!();
           } else {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PayrollHomeView()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const PayrollHomeView()));
           }
+        },
+      ),
+      _QuickActionData(
+        title: 'Products',
+        subtitle: 'Branch menu & catalog',
+        icon: Icons.fastfood_rounded,
+        iconColor: AppColors.primary,
+        iconBgColor: AppColors.primaryLight,
+        onTap: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const ProductListView()));
+        },
+      ),
+      _QuickActionData(
+        title: 'My Rewards',
+        subtitle: 'Bonuses & praise',
+        icon: Icons.workspace_premium_rounded,
+        iconColor: AppColors.success,
+        iconBgColor: AppColors.successBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffRewardListView()),
+          );
+        },
+      ),
+      _QuickActionData(
+        title: 'My Penalties',
+        subtitle: 'Infractions & deduction',
+        icon: Icons.gavel_rounded,
+        iconColor: AppColors.error,
+        iconBgColor: AppColors.errorBg,
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const StaffPenaltyListView()),
+          );
         },
       ),
     ];
@@ -373,6 +516,7 @@ class _QuickActionsState extends State<QuickActions> {
                   icon: displayedActions[i].icon,
                   iconColor: displayedActions[i].iconColor,
                   iconBgColor: displayedActions[i].iconBgColor,
+                  isGrayedOut: displayedActions[i].isGrayedOut,
                   onTap: displayedActions[i].onTap,
                 ),
               ),
@@ -385,6 +529,7 @@ class _QuickActionsState extends State<QuickActions> {
                     icon: displayedActions[i + 1].icon,
                     iconColor: displayedActions[i + 1].iconColor,
                     iconBgColor: displayedActions[i + 1].iconBgColor,
+                    isGrayedOut: displayedActions[i + 1].isGrayedOut,
                     onTap: displayedActions[i + 1].onTap,
                   ),
                 )

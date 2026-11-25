@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
@@ -77,15 +78,24 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         var livenessScore = faceProfile.LivenessScore;
 
         var connection = _context.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open)
+        var currentTransaction = _context.Database.CurrentTransaction;
+        bool openedHere = currentTransaction == null && connection.State != ConnectionState.Open;
+        if (openedHere)
         {
-            await connection.OpenAsync(cancellationToken);
+            await _context.Database.OpenConnectionAsync(cancellationToken);
         }
 
         string embeddingString = "[" + string.Join(",", embedding.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
-        await using var command = connection.CreateCommand();
-        command.CommandText = @"
+        try
+        {
+            await using var command = connection.CreateCommand();
+            if (currentTransaction != null)
+            {
+                command.Transaction = currentTransaction.GetDbTransaction();
+            }
+
+            command.CommandText = @"
             INSERT INTO public.face_profiles (
                 user_id,
                 registration_session_id,
@@ -108,28 +118,36 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
                 @registeredAt
             ) RETURNING face_profile_id;";
 
-        void AddParam(string name, object value)
-        {
-            var param = command.CreateParameter();
-            param.ParameterName = name;
-            param.Value = value;
-            command.Parameters.Add(param);
+            void AddParam(string name, object value)
+            {
+                var param = command.CreateParameter();
+                param.ParameterName = name;
+                param.Value = value;
+                command.Parameters.Add(param);
+            }
+
+            AddParam("@userId", faceProfile.UserId);
+            AddParam("@sessionId", faceProfile.RegistrationSessionId);
+            AddParam("@embeddingStr", embeddingString);
+            AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "ArcFace-512");
+            AddParam("@regType", faceProfile.RegistrationType ?? "INITIAL");
+            AddParam("@qualityScore", qualityScore);
+            AddParam("@livenessScore", livenessScore);
+            AddParam("@status", faceProfile.Status ?? "ACTIVE");
+            AddParam("@registeredAt", faceProfile.RegisteredAt);
+
+            var scalar = await command.ExecuteScalarAsync(cancellationToken);
+            if (scalar != null && int.TryParse(scalar.ToString(), out var profileId))
+            {
+                faceProfile.FaceProfileId = profileId;
+            }
         }
-
-        AddParam("@userId", faceProfile.UserId);
-        AddParam("@sessionId", faceProfile.RegistrationSessionId);
-        AddParam("@embeddingStr", embeddingString);
-        AddParam("@embeddingVersion", faceProfile.EmbeddingVersion ?? "ArcFace-512");
-        AddParam("@regType", faceProfile.RegistrationType ?? "INITIAL");
-        AddParam("@qualityScore", qualityScore);
-        AddParam("@livenessScore", livenessScore);
-        AddParam("@status", faceProfile.Status ?? "ACTIVE");
-        AddParam("@registeredAt", faceProfile.RegisteredAt);
-
-        var scalar = await command.ExecuteScalarAsync(cancellationToken);
-        if (scalar != null && int.TryParse(scalar.ToString(), out var profileId))
+        finally
         {
-            faceProfile.FaceProfileId = profileId;
+            if (openedHere)
+            {
+                await _context.Database.CloseConnectionAsync();
+            }
         }
     }
 
@@ -140,46 +158,65 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
         CancellationToken cancellationToken = default)
     {
         var connection = _context.Database.GetDbConnection();
-        if (connection.State != ConnectionState.Open)
+        var currentTransaction = _context.Database.CurrentTransaction;
+        bool openedHere = currentTransaction == null && connection.State != ConnectionState.Open;
+        if (openedHere)
         {
-            await connection.OpenAsync(cancellationToken);
+            await _context.Database.OpenConnectionAsync(cancellationToken);
         }
 
         string embeddingString = "[" + string.Join(",", embedding.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]";
 
-        await using var command = connection.CreateCommand();
-        command.CommandText = @"
+        try
+        {
+            await using var command = connection.CreateCommand();
+            if (currentTransaction != null)
+            {
+                command.Transaction = currentTransaction.GetDbTransaction();
+            }
+
+            command.CommandText = @"
             SELECT fp.face_profile_id, fp.user_id, u.full_name, (1 - (fp.face_embedding <=> @embeddingStr::vector)) AS similarity
             FROM public.face_profiles fp
             JOIN public.users u ON u.user_id = fp.user_id
             WHERE fp.status = 'ACTIVE'
               AND fp.user_id != @userId
               AND fp.face_embedding IS NOT NULL
+              AND u.deleted_at IS NULL
+              AND u.status = 'ACTIVE'
             ORDER BY fp.face_embedding <=> @embeddingStr::vector ASC
             LIMIT 1;";
 
-        var pEmbedding = command.CreateParameter();
-        pEmbedding.ParameterName = "@embeddingStr";
-        pEmbedding.Value = embeddingString;
-        command.Parameters.Add(pEmbedding);
+            var pEmbedding = command.CreateParameter();
+            pEmbedding.ParameterName = "@embeddingStr";
+            pEmbedding.Value = embeddingString;
+            command.Parameters.Add(pEmbedding);
 
-        var pUserId = command.CreateParameter();
-        pUserId.ParameterName = "@userId";
-        pUserId.Value = currentUserId;
-        command.Parameters.Add(pUserId);
+            var pUserId = command.CreateParameter();
+            pUserId.ParameterName = "@userId";
+            pUserId.Value = currentUserId;
+            command.Parameters.Add(pUserId);
 
-        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        if (await reader.ReadAsync(cancellationToken))
-        {
-            var similarity = Convert.ToSingle(reader["similarity"]);
-            if (similarity >= threshold)
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (await reader.ReadAsync(cancellationToken))
             {
-                var matchedName = reader["full_name"]?.ToString();
-                return (true, matchedName, similarity);
+                var similarity = Convert.ToSingle(reader["similarity"]);
+                if (similarity >= threshold)
+                {
+                    var matchedName = reader["full_name"]?.ToString();
+                    return (true, matchedName, similarity);
+                }
+            }
+
+            return (false, null, 0f);
+        }
+        finally
+        {
+            if (openedHere)
+            {
+                await _context.Database.CloseConnectionAsync();
             }
         }
-
-        return (false, null, 0f);
     }
 
     public async Task RevokeFaceProfileAsync(int faceProfileId, DateTime revokedAt, CancellationToken cancellationToken = default)
@@ -190,6 +227,11 @@ public class FaceRegistrationRepo : IFaceRegistrationRepo
             profile.Status = "REVOKED";
             profile.RevokedAt = revokedAt;
             await _context.SaveChangesAsync(cancellationToken);
+
+            // Nullify old vector embedding upon revocation/re-registration
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE public.face_profiles SET face_embedding = NULL WHERE face_profile_id = {faceProfileId};",
+                cancellationToken);
         }
     }
 

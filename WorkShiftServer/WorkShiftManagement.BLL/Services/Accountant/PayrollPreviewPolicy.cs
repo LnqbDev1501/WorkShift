@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+﻿using System.Text.Json.Nodes;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
 using WorkShiftManagement.BLL.Services.Admin;
@@ -6,19 +6,19 @@ namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public static class PayrollPreviewPolicy
 {
-    // Store the exclusive midnight boundary; UI may describe this as through 23:59 of the preceding day.
-    public static DateTime EndOfLocalDay(DateTime utc) => new DateTimeOffset(
-        DateOnly.FromDateTime(utc.AddHours(7)).AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).UtcDateTime;
+    // Standard 24-hour review/response window from actual UTC send timestamp.
+    public static DateTime StandardDeadline(DateTime utc) => utc.AddHours(24);
+
     public static bool Mutable(PayrollPeriod p) => p.Status is "CALCULATED" or "REVISION_REQUIRED";
     public static PayrollFeedbackRequest Root(PayrollReviewData d, PayrollFeedbackRequest row)
     {
         var seen = new HashSet<int>();
         while (row.PreviousFeedbackId.HasValue)
         {
-            if (!seen.Add(row.FeedbackId)) throw new InvalidOperationException("Chuỗi review có vòng lặp.");
+            if (!seen.Add(row.FeedbackId)) throw new InvalidOperationException("Cycle detected in review chain.");
             var previous = d.Reviews.SingleOrDefault(f => f.FeedbackId == row.PreviousFeedbackId)
-                ?? throw new InvalidOperationException("Thiếu lượt review trước.");
-            if (previous.EmployeeId != row.EmployeeId) throw new InvalidOperationException("Chuỗi review sai nhân viên.");
+                ?? throw new InvalidOperationException("Missing previous review round.");
+            if (previous.EmployeeId != row.EmployeeId) throw new InvalidOperationException("Review chain belongs to wrong employee.");
             row = previous;
         }
         return row;
@@ -38,14 +38,14 @@ public static class PayrollPreviewPolicy
     {
         var leafCorrections = d.Corrections.Where(r => Leaf(d, r)).ToList();
         if (leafCorrections.Any(r => r.Status is "OPEN" or "RESPONDED" or "EXPIRED" or "RETURNED"))
-            throw new InvalidOperationException("Còn Correction Request chưa hoàn tất.");
+            throw new InvalidOperationException("Pending Correction Request has not been completed.");
         if (d.Reviews.Any(r => r.ReviewStatus == "FEEDBACK_PENDING"))
-            throw new InvalidOperationException("Còn phản hồi Staff chưa hoàn tất.");
+            throw new InvalidOperationException("Pending staff feedback has not been resolved.");
         foreach (var p in Current(d))
         {
             var leaf = d.Reviews.Where(f => f.EmployeeId == p.UserId && Leaf(d, f)).OrderByDescending(f => f.FeedbackId).FirstOrDefault();
             if (leaf == null || leaf.PayrollId != p.PayrollId || leaf.ReviewStatus is not ("CONFIRMED" or "EXPIRED"))
-                throw new InvalidOperationException($"{p.EmployeeFullNameSnapshot}: chưa hoàn tất review bản Payroll hiện hành.");
+                throw new InvalidOperationException($"{p.EmployeeFullNameSnapshot}: review round for the current Payroll version has not been completed.");
         }
     }
 }

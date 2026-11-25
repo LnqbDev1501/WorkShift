@@ -1,0 +1,620 @@
+@model UI_Admin.Models.Manager.Timesheet.ManagerStaffTimesheetDetailViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"{Model.Staff.FullName} - Week {Model.Period} Shifts";
+    var staff = Model.Staff;
+    var isConfirmed = string.Equals(staff.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+    var isNoResponse = string.Equals(staff.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
+    var isAdjustmentPending = string.Equals(staff.StaffReviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase);
+    var isPending = string.Equals(staff.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@Model.SuccessMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@Model.ErrorMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Header Title & Breadcrumb -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <a asp-action="Index" class="hover:underline flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                    <span>Weekly Timesheets</span>
+                </a>
+                <span>/</span>
+                <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId" class="hover:underline">
+                    <span>Week @Model.Period Details</span>
+                </a>
+                <span>/</span>
+                <span class="text-slate-400">@staff.FullName</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@staff.FullName</h1>
+                @if (staff.TimesheetId.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Weekly Timesheet ID">
+                        TS-#@staff.TimesheetId.Value
+                    </span>
+                }
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    @(staff.RoleName ?? "Staff")
+                </span>
+                
+                @if (isConfirmed)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>CONFIRMED</span>
+                    </span>
+                }
+                else if (isAdjustmentPending)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200" title="Staff submitted adjustment requests pending manager review">
+                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                        <span>DISPUTED</span>
+                    </span>
+                }
+                else if (isNoResponse)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Review deadline expired with no response">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                        <span>NO RESPONSE</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span>PENDING REVIEW</span>
+                    </span>
+                }
+            </div>
+            <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                <span>Week @Model.Period (@Model.WeekStartDate.ToString("dd/MM/yyyy") – @Model.WeekEndDate.ToString("dd/MM/yyyy")) • @Model.BranchName</span>
+                @if (staff.ReviewDeadline.HasValue)
+                {
+                    <span>•</span>
+                    <span class="inline-flex items-center gap-1 font-medium @(staff.IsPastDeadline ? "text-amber-700" : "text-slate-600")">
+                        <span class="material-symbols-outlined text-xs">schedule</span>
+                        <span>Review Deadline: <strong>@staff.ReviewDeadlineDisplay</strong></span>
+                        @if (staff.IsPastDeadline)
+                        {
+                            <span class="text-[10px] uppercase font-bold text-amber-600 px-1.5 py-0.5 rounded bg-amber-100 border border-amber-200">Expired</span>
+                        }
+                    </span>
+                }
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            @if (staff.CanReopenReview && !string.Equals(Model.WeekStatus, "LOCKED", StringComparison.OrdinalIgnoreCase) && !string.Equals(Model.WeekStatus, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+            {
+                <button type="button" onclick="openReopenModal()"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold transition-all shadow-xs cursor-pointer"
+                        title="Reopen timesheet review deadline for this staff member">
+                    <span class="material-symbols-outlined text-sm">replay</span>
+                    <span>Reopen Review</span>
+                </button>
+            }
+            <a asp-action="Details" asp-route-id="@Model.ScheduleWeekId"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <span>Back to Week Details</span>
+            </a>
+        </div>
+    </div>
+
+    @if (staff.ReviewDeadline.HasValue && !string.Equals(Model.WeekStatus, "LOCKED", StringComparison.OrdinalIgnoreCase) && !string.Equals(Model.WeekStatus, "REVIEWED", StringComparison.OrdinalIgnoreCase))
+    {
+        var isPast = staff.IsPastDeadline;
+        <!-- Review Window & Deadline Status Card -->
+        <div class="p-4 rounded-2xl @(isPast ? "bg-amber-50/80 border border-amber-200 text-amber-950" : "bg-sky-50/80 border border-sky-200 text-sky-950") text-sm flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl @(isPast ? "bg-amber-100 text-amber-700" : "bg-sky-100 text-sky-700") flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-xl">
+                        @(isPast ? "timer_off" : "schedule")
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-slate-900">
+                            @(isPast ? "Review Window Expired" : "Review Window in Progress")
+                        </p>
+                        @if (isConfirmed)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Confirmed by Staff
+                            </span>
+                        }
+                        else if (isAdjustmentPending)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                                Disputed (Adjustment Pending)
+                            </span>
+                        }
+                        else if (isNoResponse)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 text-slate-800 border border-slate-300">
+                                No Response
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                Awaiting Confirmation
+                            </span>
+                        }
+                    </div>
+                    <p class="text-xs @(isPast ? "text-amber-800" : "text-sky-800") mt-1">
+                        @if (isConfirmed)
+                        {
+                            <span>This staff member has confirmed their timesheet for this week.</span>
+                        }
+                        else if (isAdjustmentPending)
+                        {
+                            <span>This staff member submitted adjustment request(s). Please review the request(s) in the attendance table below.</span>
+                        }
+                        else if (isNoResponse)
+                        {
+                            <span>Review deadline has expired with no response from this staff. You can click <strong>Reopen Review</strong> to grant another 24 hours.</span>
+                        }
+                        else
+                        {
+                            <span>Waiting for staff confirmation or until review deadline expires (@staff.ReviewDeadlineDisplay).</span>
+                        }
+                    </p>
+                </div>
+            </div>
+            <div class="md:text-right shrink-0 bg-white/60 md:bg-transparent p-3 md:p-0 rounded-xl border md:border-0 border-slate-200/60">
+                <span class="text-[11px] font-semibold uppercase tracking-wider block text-slate-500">Review Deadline</span>
+                <span class="text-xs font-bold text-slate-800">@staff.ReviewDeadlineDisplay</span>
+                <span class="text-[11px] block mt-0.5 @(isPast ? "text-amber-700 font-semibold" : "text-slate-500")">
+                    @(isPast ? "(Expired at end of day)" : "(Until end of day)")
+                </span>
+            </div>
+        </div>
+    }
+
+    <!-- KPI Summary Grid (4 Cards) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Shift Completion -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">task_alt</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Assigned / Completed</span>
+                <span class="text-xl font-bold text-slate-900">@staff.CompletedShifts / @staff.TotalAssignedShifts</span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">Shifts attended</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Total Work Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">schedule</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Work Time</span>
+                <span class="text-xl font-bold text-slate-900">@staff.TotalWorkTimeDisplay</span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalWorkHours.ToString("N1") hrs compiled)</span>
+            </div>
+        </div>
+
+        <!-- Card 3: Total Late Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">alarm_off</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Late Time</span>
+                <span class="text-xl font-bold @(staff.TotalLateMinutes > 0 ? "text-amber-600" : "text-slate-900")">
+                    @staff.TotalLateDisplay
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalLateMinutes minutes total)</span>
+            </div>
+        </div>
+
+        <!-- Card 4: Total Early Leave -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">logout</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Early Leave</span>
+                <span class="text-xl font-bold @(staff.TotalEarlyLeaveMinutes > 0 ? "text-orange-600" : "text-slate-900")">
+                    @staff.TotalEarlyLeaveDisplay
+                </span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">(@staff.TotalEarlyLeaveMinutes minutes total)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shifts Breakdown Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-150 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">event_available</span>
+                <h2 class="text-sm font-bold text-slate-900">Weekly Shift Attendance Details</h2>
+                <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @staff.Shifts.Count Shifts
+                </span>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">Timezone: Vietnam (UTC+7)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5">Date & Shift</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Scheduled Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Actual Check-In</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Actual Check-Out</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Work Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Late Time</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Early Leave</th>
+                        <th scope="col" class="px-6 py-3.5 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium text-xs">
+                    @if (staff.Shifts == null || staff.Shifts.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="8" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-3xl">event_busy</span>
+                                    </div>
+                                    <div class="text-base font-semibold text-slate-700">No Shifts Scheduled</div>
+                                    <p class="text-xs text-slate-400 max-w-sm">No shift assignments found for this staff member in this week period.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var shift in staff.Shifts)
+                        {
+                            var status = (shift.AttendanceStatus ?? "SCHEDULED").ToUpper();
+                            bool isLateExcused = shift.TotalLateMinutes > 0 && shift.ChargeableLateMinutes == 0;
+                            bool isEarlyExcused = shift.TotalEarlyLeaveMinutes > 0 && shift.ChargeableEarlyLeaveMinutes == 0;
+
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Date & Shift -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-slate-900 text-sm">@shift.DateDisplay</span>
+                                        <div class="flex items-center gap-2 mt-0.5">
+                                            <span class="text-xs text-slate-600 font-medium">@shift.ShiftName</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200" title="Assignment ID: @shift.AssignmentId, Shift ID: @shift.ShiftId">
+                                                Assignment #@shift.AssignmentId
+                                            </span>
+                                        </div>
+                                        <div class="mt-1.5 flex flex-wrap gap-1">
+                                            @if (isLateExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Late arrival approved (@shift.TotalLateMinutes mins, penalty waived)">
+                                                    <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                    <span>Late @(shift.TotalLateMinutes)m: Excused (Approved)</span>
+                                                </span>
+                                            }
+                                            @if (isEarlyExcused)
+                                            {
+                                                <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Early departure approved (@shift.TotalEarlyLeaveMinutes mins, penalty waived)">
+                                                    <span class="material-symbols-outlined text-[11px]">verified</span>
+                                                    <span>Early @(shift.TotalEarlyLeaveMinutes)m: Excused (Approved)</span>
+                                                </span>
+                                            }
+                                            @if (shift.Penalties != null && shift.Penalties.Count > 0)
+                                            {
+                                                @foreach (var p in shift.Penalties)
+                                                {
+                                                    var isApplied = string.Equals(p.Status, "APPLIED", StringComparison.OrdinalIgnoreCase);
+                                                    var vType = p.ViolationType switch {
+                                                        "LATE" => "Late",
+                                                        "EARLY_LEAVE" => "Early",
+                                                        _ => p.ViolationType
+                                                    };
+                                                    if (isApplied)
+                                                    {
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title="Penalty @vType: @CurrencyHelper.FormatVnd(p.PenaltyAmount) (@p.ViolationMinutes mins)">
+                                                            <span class="material-symbols-outlined text-[11px]">gavel</span>
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-400 border border-slate-200 line-through" title="Waived violation @vType (@p.ViolationMinutes mins)">
+                                                            <span>@vType @(p.ViolationMinutes)m: -@CurrencyHelper.FormatVnd(p.PenaltyAmount)</span>
+                                                            <span class="text-[9px] no-underline font-semibold text-slate-500">(Waived)</span>
+                                                        </span>
+                                                    }
+                                                }
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Scheduled Time -->
+                                <td class="px-6 py-4 text-center text-slate-600 font-medium">
+                                    @shift.ScheduledRangeDisplay
+                                </td>
+
+                                <!-- Actual Check-In -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                    @shift.CheckInDisplay
+                                </td>
+
+                                <!-- Actual Check-Out -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-800">
+                                    @shift.CheckOutDisplay
+                                </td>
+
+                                <!-- Work Time -->
+                                <td class="px-6 py-4 text-center font-bold text-slate-900">
+                                    @shift.WorkTimeDisplay
+                                </td>
+
+                                <!-- Late Time (Xh Ym) -->
+                                <td class="px-6 py-4 text-center">
+                                    @if (isLateExcused)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused late arrival: @shift.TotalLateMinutes mins (Penalty waived)">
+                                            <span class="material-symbols-outlined text-[11px]">verified</span>
+                                            <span>@shift.LateDisplay</span>
+                                        </span>
+                                    }
+                                    else if (shift.TotalLateMinutes > 0)
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            @shift.LateDisplay
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-400 font-medium">@shift.LateDisplay</span>
+                                    }
+                                </td>
+
+                                <!-- Early Leave (Xh Ym) -->
+                                <td class="px-6 py-4 text-center">
+                                    @if (isEarlyExcused)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Excused early departure: @shift.TotalEarlyLeaveMinutes mins (Penalty waived)">
+                                            <span class="material-symbols-outlined text-[11px]">verified</span>
+                                            <span>@shift.EarlyLeaveDisplay</span>
+                                        </span>
+                                    }
+                                    else if (shift.TotalEarlyLeaveMinutes > 0)
+                                    {
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                            @shift.EarlyLeaveDisplay
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-slate-400 font-medium">@shift.EarlyLeaveDisplay</span>
+                                    }
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-6 py-4 text-right">
+                                    @if (status == "COMPLETED")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="material-symbols-outlined text-xs">check_circle</span>
+                                            <span>COMPLETED</span>
+                                        </span>
+                                    }
+                                    else if (status == "PRESENT")
+                                    {
+                                        bool isExcusedPresent = isLateExcused || isEarlyExcused;
+
+                                        if (isExcusedPresent)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200" title="Valid attendance: Late/Early departure fully excused by approved request">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>PRESENT (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <span class="material-symbols-outlined text-xs">timer</span>
+                                                <span>PRESENT</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "LATE")
+                                    {
+                                        if (isLateExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>LATE (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE ARRIVAL</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "EARLY_LEAVE")
+                                    {
+                                        if (isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">directions_walk</span>
+                                                <span>EARLY LEAVE</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "LATE_AND_EARLY_LEAVE")
+                                    {
+                                        if (isLateExcused && isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                                <span class="material-symbols-outlined text-xs">verified</span>
+                                                <span>LATE &amp; EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else if (isLateExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE (EXCUSED) &amp; EARLY</span>
+                                            </span>
+                                        }
+                                        else if (isEarlyExcused)
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE &amp; EARLY (EXCUSED)</span>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                                                <span class="material-symbols-outlined text-xs">warning</span>
+                                                <span>LATE &amp; EARLY</span>
+                                            </span>
+                                        }
+                                    }
+                                    else if (status == "ABSENT")
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="material-symbols-outlined text-xs">cancel</span>
+                                            <span>ABSENT</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                                            @status
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Form for Reopen Staff Review -->
+<form id="formReopenStaff" asp-action="ReopenStaff" asp-route-id="@Model.ScheduleWeekId" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="timesheetId" value="@staff.TimesheetId" />
+    <input type="hidden" name="userId" value="@staff.UserId" />
+    <input type="hidden" name="returnUrl" value="StaffDetail" />
+</form>
+
+<!-- Confirmation Modal: Reopen Staff Review -->
+<div id="modalReopenStaff" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-reopen-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeReopenModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">replay</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Reopen Timesheet Review</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Extend timesheet review deadline for staff</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Are you sure you want to reopen the timesheet review window for <strong class="text-slate-900">@staff.FullName</strong>? The review deadline will be extended for <strong>24 hours</strong>.
+                </p>
+
+                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Policy &amp; Effects</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>Staff review status will reset from <strong>NO RESPONSE</strong> to <strong>PENDING</strong>.</li>
+                        <li>The review window will be reopened for <strong>24 hours</strong> from now.</li>
+                        <li>An English notification will be sent, unlocking the timesheet on the mobile app for confirmation or disputes.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeReopenModal()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" id="btnConfirmReopen" onclick="confirmReopenModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmReopenText">Confirm Reopen</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openReopenModal() {
+            document.getElementById('modalReopenStaff').classList.remove('hidden');
+        }
+
+        function closeReopenModal() {
+            document.getElementById('modalReopenStaff').classList.add('hidden');
+        }
+
+        function confirmReopenModal() {
+            const btn = document.getElementById('btnConfirmReopen');
+            btn.disabled = true;
+            document.getElementById('btnConfirmReopenText').textContent = 'Processing...';
+            document.getElementById('formReopenStaff').submit();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const el = document.getElementById('modalReopenStaff');
+                if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
+            }
+        });
+    </script>
+}

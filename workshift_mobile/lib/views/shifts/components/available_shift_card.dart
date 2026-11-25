@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../models/available_shift_model.dart';
+import '../../../models/shifts/available_shift_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/app_button.dart';
 import '../../../widgets/status_badge.dart';
@@ -213,9 +213,7 @@ class AvailableShiftCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final register = AppButton(
-                text: isOpen
-                    ? 'Register for shift'
-                    : 'Registration closed',
+                text: isOpen ? 'Register for shift' : 'Registration closed',
                 height: 46,
                 borderRadius: 10,
                 width: double.infinity,

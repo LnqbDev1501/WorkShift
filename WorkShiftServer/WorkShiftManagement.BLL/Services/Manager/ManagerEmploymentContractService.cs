@@ -13,6 +13,8 @@ using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
@@ -20,10 +22,14 @@ namespace WorkShiftManagement.BLL.Services.Manager;
 public class ManagerEmploymentContractService(
     IEmploymentContractRepo repository,
     ICloudinaryService? cloudinaryService = null,
-    IContractPdfGenerator? pdfGenerator = null) : IManagerEmploymentContractService
+    IContractPdfGenerator? pdfGenerator = null,
+    INotificationRealtimePublisher? realtimePublisher = null,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IManagerEmploymentContractService
 {
     private readonly IContractPdfGenerator _pdfGenerator = pdfGenerator ?? new ContractPdfGenerator();
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
+    private readonly INotificationRealtimePublisher? _realtimePublisher = realtimePublisher;
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher = adminRealtimePublisher;
 
     private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
@@ -82,8 +88,12 @@ public class ManagerEmploymentContractService(
 
         if (!string.Equals(staff.Role?.RoleName, "STAFF", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("The selected user must have the STAFF role.");
-        if (staff.Status != "PENDING" && staff.Status != "ACTIVE")
-            throw new ArgumentException("Staff must be PENDING or ACTIVE.");
+        if (staff.Status != "ACTIVE")
+            throw new ArgumentException("Staff must be ACTIVE.");
+        if (staff.BranchId == null)
+            throw new ArgumentException("Staff must have an assigned branch.");
+        if (staff.BranchId != manager.BranchId)
+            throw new UnauthorizedAccessException("Staff does not belong to the Manager's branch.");
 
         bool isRenewal = string.Equals(request.ContractType, "RENEWAL", StringComparison.OrdinalIgnoreCase) ||
                          (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0);
@@ -91,8 +101,8 @@ public class ManagerEmploymentContractService(
         int? replacesContractId = null;
         if (isRenewal)
         {
-            if (staff.BranchId != manager.BranchId)
-                throw new UnauthorizedAccessException("Staff does not belong to the Manager's branch.");
+
+
 
             EmploymentContract? oldContract;
             if (request.ReplacesContractId.HasValue && request.ReplacesContractId.Value > 0)
@@ -132,7 +142,7 @@ public class ManagerEmploymentContractService(
         {
             if (request.HourlyRate.Value < minimumHourlyRate)
             {
-                throw new ArgumentException($"Hourly rate ({request.HourlyRate.Value:N0} VNĐ/h) cannot be lower than the regional minimum wage ({minimumHourlyRate:N0} VNĐ/h).");
+                throw new ArgumentException($"Hourly rate ({request.HourlyRate.Value:N0} VND/hour) cannot be lower than the regional minimum wage ({minimumHourlyRate:N0} VND/hour).");
             }
             finalHourlyRate = request.HourlyRate.Value;
         }
@@ -278,7 +288,17 @@ public class ManagerEmploymentContractService(
             request.PageSize,
             cancellationToken);
 
-        var mapped = items.Select(MapToListItemResponse).ToList();
+        var contractIds = items.Select(c => c.ContractId).ToList();
+        var warningCounts = await repository.GetTerminationWarningCountsAsync(contractIds, cancellationToken);
+
+        var mapped = items.Select(c =>
+        {
+            var item = MapToListItemResponse(c);
+            var count = warningCounts.TryGetValue(c.ContractId, out var cnt) ? cnt : 0;
+            item.TerminationWarningCount = count;
+            item.CanTerminateEarly = string.Equals(c.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) && count >= 3;
+            return item;
+        }).ToList();
         return new PagedResponse<ManagerEmploymentContractListItemResponse>
         {
             Items = mapped,
@@ -301,7 +321,28 @@ public class ManagerEmploymentContractService(
         if (contract.BranchId != manager.BranchId!.Value)
             throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
 
-        return MapToDetailResponse(contract);
+        var warnings = await repository.GetTerminationWarningsByContractIdAsync(contractId, cancellationToken);
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
+        var detail = MapToDetailResponse(contract);
+        detail.TerminationWarningCount = warnings.Count;
+        detail.IsStaffCurrentlyInShift = inShiftCheck.IsInShift;
+        detail.StaffInShiftMessage = inShiftCheck.ShiftInfo;
+        detail.CanTerminateEarly = string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)
+            && warnings.Count >= 3
+            && !inShiftCheck.IsInShift;
+        detail.TerminationWarnings = warnings.Select(w => new ContractTerminationWarningDto
+        {
+            NotificationId = w.NotificationId,
+            ContractId = contract.ContractId,
+            WarningNo = w.TerminationNoticeNo ?? 0,
+            Title = w.Title,
+            Content = w.Content,
+            SentAt = w.CreatedAt,
+            SentByManagerId = w.CreatedBy,
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Manager"
+        }).ToList();
+
+        return detail;
     }
 
     public async Task<ManagerEmploymentContractDetailResponse> UpdateDraftAsync(Guid managerId, int contractId,
@@ -369,6 +410,10 @@ public class ManagerEmploymentContractService(
         var reason = request.Reason.Trim();
         var wasSent = !string.Equals(contract.Status, "DRAFT", StringComparison.OrdinalIgnoreCase);
 
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
+        if (inShiftCheck.IsInShift)
+            throw new InvalidOperationException($"Cannot cancel contract {contract.ContractNumber}. The employee is currently working in shift {inShiftCheck.ShiftInfo}. The contract can only be cancelled after the employee finishes their shift.");
+
         await repository.CancelContractAsync(contractId, managerId, reason, cancellationToken);
 
         contract.Status = "CANCELLED";
@@ -384,8 +429,8 @@ public class ManagerEmploymentContractService(
                 var notification = new NotificationEntity
                 {
                     NotificationType = "SYSTEM",
-                    Title = "Hợp đồng lao động đã bị hủy",
-                    Content = $"Hợp đồng lao động {contract.ContractNumber} đã bị quản lý hủy trước ngày bắt đầu. Lý do: {reason}.",
+                    Title = "Employment Contract Cancelled",
+                    Content = $"Employment contract {contract.ContractNumber} was cancelled by your manager before the start date. Reason: {reason}.",
                     CreatedBy = managerId,
                     TargetBranchId = contract.BranchId,
                     TargetType = "Branch",
@@ -396,6 +441,38 @@ public class ManagerEmploymentContractService(
                     IsDeleted = false
                 };
                 await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+                if (_realtimePublisher != null)
+                {
+                    try
+                    {
+                        await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                        {
+                            NotificationId = notification.NotificationId,
+                            Title = notification.Title,
+                            Message = notification.Content,
+                            CreatedAt = notification.CreatedAt
+                        });
+                    }
+                    catch { }
+                }
+
+                if (_adminRealtimePublisher != null)
+                {
+                    try
+                    {
+                        await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                        {
+                            resource = "EmploymentContracts",
+                            action = "CancelContract",
+                            contractId = contract.ContractId,
+                            contractNumber = contract.ContractNumber,
+                            status = contract.Status,
+                            userId = contract.UserId
+                        });
+                    }
+                    catch { }
+                }
             }
             catch
             {
@@ -404,6 +481,108 @@ public class ManagerEmploymentContractService(
         }
 
         return MapToDetailResponse(contract);
+    }
+
+    public async Task<SendContractTerminationWarningResponse> SendTerminationWarningAsync(
+        Guid managerId, int contractId, SendContractTerminationWarningRequest request, CancellationToken cancellationToken = default)
+    {
+        var manager = await RequireManagerAsync(managerId, cancellationToken);
+        if (contractId <= 0)
+            throw new ArgumentException("ContractId must be greater than 0.");
+        if (string.IsNullOrWhiteSpace(request.Title) || request.Title.Trim().Length < 3 || request.Title.Trim().Length > 150)
+            throw new ArgumentException("Warning notification title must be between 3 and 150 characters.");
+        if (string.IsNullOrWhiteSpace(request.Content) || request.Content.Trim().Length < 5 || request.Content.Trim().Length > 1000)
+            throw new ArgumentException("Warning notification content must be between 5 and 1000 characters.");
+
+        var contract = await repository.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+        if (contract.BranchId != manager.BranchId!.Value)
+            throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
+
+        if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Termination warnings can only be sent for contracts with ACTIVE status.");
+
+        var currentWarningCount = await repository.GetTerminationWarningCountAsync(contractId, cancellationToken);
+        if (currentWarningCount >= 3)
+            throw new InvalidOperationException("This contract has already received all 3 violation warnings. No more warnings can be sent.");
+
+        short nextWarningNo = (short)(currentWarningCount + 1);
+
+        var warningNotification = await repository.AddTerminationWarningAsync(
+            contractId, managerId, request.Title.Trim(), request.Content.Trim(), nextWarningNo, cancellationToken);
+
+        if (_realtimePublisher != null)
+        {
+            try
+            {
+                await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                {
+                    NotificationId = warningNotification.NotificationId,
+                    Title = warningNotification.Title,
+                    Message = warningNotification.Content,
+                    CreatedAt = warningNotification.CreatedAt
+                });
+            }
+            catch { }
+        }
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmploymentContracts",
+                    action = "TerminationWarning",
+                    contractId = contract.ContractId,
+                    contractNumber = contract.ContractNumber,
+                    warningNo = nextWarningNo,
+                    userId = contract.UserId
+                });
+            }
+            catch { }
+        }
+
+        return new SendContractTerminationWarningResponse
+        {
+            NotificationId = warningNotification.NotificationId,
+            ContractId = contractId,
+            TerminationNoticeNo = nextWarningNo,
+            Title = warningNotification.Title,
+            Content = warningNotification.Content,
+            CreatedAt = warningNotification.CreatedAt,
+            SentWarningCount = nextWarningNo,
+            CanRequestTermination = nextWarningNo >= 3
+        };
+    }
+
+    public async Task<IReadOnlyList<ContractTerminationWarningDto>> GetTerminationWarningsAsync(
+        Guid managerId, int contractId, CancellationToken cancellationToken = default)
+    {
+        var manager = await RequireManagerAsync(managerId, cancellationToken);
+        if (contractId <= 0)
+            throw new ArgumentException("ContractId must be greater than 0.");
+
+        var contract = await repository.GetByIdAsync(contractId, cancellationToken);
+        if (contract == null)
+            throw new KeyNotFoundException("Employment contract was not found.");
+        if (contract.BranchId != manager.BranchId!.Value)
+            throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
+
+        var warnings = await repository.GetTerminationWarningsByContractIdAsync(contractId, cancellationToken);
+
+        return warnings.Select(w => new ContractTerminationWarningDto
+        {
+            NotificationId = w.NotificationId,
+            ContractId = contract.ContractId,
+            WarningNo = w.TerminationNoticeNo ?? 0,
+            Title = w.Title,
+            Content = w.Content,
+            SentAt = w.CreatedAt,
+            SentByManagerId = w.CreatedBy,
+            SentByManagerName = w.CreatedByNavigation?.FullName ?? "Manager"
+        }).ToList();
     }
 
     public async Task<ManagerEmploymentContractDetailResponse> TerminateContractAsync(Guid managerId, int contractId,
@@ -422,16 +601,24 @@ public class ManagerEmploymentContractService(
             throw new UnauthorizedAccessException("Contract does not belong to the Manager's branch.");
 
         if (!string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Chỉ có thể chấm dứt hợp đồng đang có hiệu lực (ACTIVE). Đối với hợp đồng chưa có hiệu lực, vui lòng sử dụng chức năng Hủy hợp đồng.");
+            throw new InvalidOperationException("Only ACTIVE contracts can be terminated. Use Cancel contract for contracts that are not yet active.");
+
+        var warningCount = await repository.GetTerminationWarningCountAsync(contractId, cancellationToken);
+        if (warningCount < 3)
+            throw new InvalidOperationException($"Three violation warnings are required before termination. Current warnings: {warningCount}/3.");
 
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
         var effectiveDate = request.TerminationEffectiveDate ?? todayVn;
         if (effectiveDate < contract.StartDate)
-            throw new ArgumentException("Ngày có hiệu lực chấm dứt hợp đồng không thể trước ngày bắt đầu hợp đồng.");
+            throw new ArgumentException("The termination date cannot precede the contract start date.");
 
         var nowUtc = DateTime.UtcNow;
         var effectiveDateTimeUtc = effectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var reason = request.Reason.Trim();
+
+        var inShiftCheck = await repository.IsStaffCurrentlyInShiftAsync(contract.UserId, cancellationToken: cancellationToken);
+        if (inShiftCheck.IsInShift)
+            throw new InvalidOperationException($"Cannot terminate contract {contract.ContractNumber}. The employee is currently working in shift {inShiftCheck.ShiftInfo}. The contract can only be terminated after the employee finishes their shift.");
 
         await repository.TerminateContractAsync(contractId, managerId, reason, effectiveDateTimeUtc, cancellationToken);
 
@@ -447,8 +634,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Hợp đồng lao động bị chấm dứt",
-                Content = $"Hợp đồng lao động {contract.ContractNumber} đã được quản lý chấm dứt có hiệu lực từ ngày {effectiveDate:yyyy-MM-dd}. Lý do: {reason}.",
+                Title = "Employment Contract Terminated",
+                Content = $"Employment contract {contract.ContractNumber} has been terminated by your manager. Effective date: {effectiveDate:dd/MM/yyyy}. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -459,6 +646,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "TerminateContract",
+                        contractId = contract.ContractId,
+                        contractNumber = contract.ContractNumber,
+                        status = contract.Status,
+                        userId = contract.UserId
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -499,7 +718,7 @@ public class ManagerEmploymentContractService(
 
         if (_cloudinaryService == null)
         {
-            throw new InvalidOperationException("Dịch vụ Cloudinary chưa được cấu hình. Gửi hợp đồng yêu cầu tạo PDF và lưu trữ trên Cloudinary thành công.");
+            throw new InvalidOperationException("Contract storage is not configured. The contract PDF must be generated and uploaded before sending.");
         }
 
         var now = DateTime.UtcNow;
@@ -512,7 +731,7 @@ public class ManagerEmploymentContractService(
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Tải lên file PDF hợp đồng lên Cloudinary thất bại: {ex.Message}", ex);
+            throw new InvalidOperationException($"Unable to upload the contract PDF: {ex.Message}", ex);
         }
 
         var templateVersion = string.IsNullOrWhiteSpace(contract.ContractTemplateVersion) ? "1.0" : IncrementVersion(contract.ContractTemplateVersion);
@@ -538,6 +757,10 @@ public class ManagerEmploymentContractService(
         contract.ContractTemplateVersion = templateVersion;
         contract.PdfGeneratedAt = now;
         contract.SentToStaffAt = now;
+        contract.ApprovedBy = managerId;
+        contract.ApprovedAt = now;
+        contract.StaffRespondedAt = null;
+        contract.StaffAcceptedAt = null;
         contract.Status = "PENDING_STAFF";
         contract.UpdatedAt = now;
 
@@ -546,8 +769,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Hợp đồng lao động mới",
-                Content = $"Bạn đã nhận được Hợp đồng lao động mới (Mã HĐ: {contract.ContractNumber}). Vui lòng xem chi tiết và phản hồi.",
+                Title = "New Employment Contract",
+                Content = $"You have received a new employment contract {contract.ContractNumber}. Please review and respond to accept.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -558,6 +781,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.UserId }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(contract.UserId, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "SendContract",
+                        contractId = contract.ContractId,
+                        contractNumber = contract.ContractNumber,
+                        status = contract.Status,
+                        userId = contract.UserId
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -621,9 +876,9 @@ public class ManagerEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
 
         return MapToManagerChangeRequestResponse(cr);
     }
@@ -637,18 +892,19 @@ public class ManagerEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
         if (cr.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể duyệt yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be approved.");
 
         var contract = cr.Contract;
         var now = DateTime.UtcNow;
 
         var managerItemOverrides = request.Items?
             .Where(i => !string.IsNullOrWhiteSpace(i.FieldName) && !string.IsNullOrWhiteSpace(i.FinalValue))
-            .ToDictionary(i => i.FieldName.Trim().ToLowerInvariant(), i => i.FinalValue.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(i => i.FieldName.Trim().ToLowerInvariant(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.Last().FinalValue.Trim(), StringComparer.OrdinalIgnoreCase)
             ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         var appliedValues = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -665,7 +921,7 @@ public class ManagerEmploymentContractService(
                     if (DateOnly.TryParse(finalValStr, out var newStartDate))
                     {
                         if (contract.EndDate.HasValue && contract.EndDate.Value <= newStartDate)
-                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                            throw new ArgumentException("The contract end date must be after the start date.");
                         contract.StartDate = newStartDate;
                         appliedValues["StartDate"] = newStartDate.ToString("yyyy-MM-dd");
                     }
@@ -680,7 +936,7 @@ public class ManagerEmploymentContractService(
                     else if (DateOnly.TryParse(finalValStr, out var newEndDate))
                     {
                         if (newEndDate <= contract.StartDate)
-                            throw new ArgumentException("Ngày kết thúc hợp đồng phải sau ngày bắt đầu.");
+                            throw new ArgumentException("The contract end date must be after the start date.");
                         contract.EndDate = newEndDate;
                         appliedValues["EndDate"] = newEndDate.ToString("yyyy-MM-dd");
                     }
@@ -690,11 +946,18 @@ public class ManagerEmploymentContractService(
                     if (decimal.TryParse(finalValStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var newRate) ||
                         decimal.TryParse(finalValStr, out newRate))
                     {
-                        if (contract.Region?.RegionalMinimumWage != null && contract.Region.RegionalMinimumWage.Status == "ACTIVE")
+                        var minWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+                            ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+
+                        if (!minWage.HasValue || minWage.Value <= 0)
                         {
-                            var minWage = contract.Region.RegionalMinimumWage.MinimumHourlyRate;
-                            if (minWage > 0 && newRate < minWage)
-                                throw new ArgumentException($"Mức lương ({newRate:#,##0} đ/giờ) không được thấp hơn lương tối thiểu vùng ({minWage:#,##0} đ/giờ).");
+                            minWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, contract.StartDate, cancellationToken)
+                                ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, contract.StartDate, cancellationToken);
+                        }
+
+                        if (minWage.HasValue && minWage.Value > 0 && newRate < minWage.Value)
+                        {
+                            throw new ArgumentException($"The hourly rate ({newRate:#,##0} VND/hour) cannot be below the regional minimum ({minWage.Value:#,##0} VND/hour).");
                         }
                         contract.HourlyRate = newRate;
                         appliedValues["HourlyRate"] = newRate;
@@ -705,7 +968,7 @@ public class ManagerEmploymentContractService(
                     if (!string.IsNullOrWhiteSpace(finalValStr))
                     {
                         if (finalValStr.Length > 100)
-                            throw new ArgumentException("Chức danh / vị trí không được vượt quá 100 ký tự.");
+                            throw new ArgumentException("The job title or position cannot exceed 100 characters.");
                         contract.EmployeePositionSnapshot = finalValStr.Trim();
                         appliedValues["EmployeePosition"] = finalValStr.Trim();
                     }
@@ -722,7 +985,7 @@ public class ManagerEmploymentContractService(
 
         var oldPdfPath = contract.ContractFilePath;
         var officialPdfBytes = _pdfGenerator.GeneratePdf(contract, isPreview: false);
-        string newPdfPublicId = oldPdfPath;
+        string? newPdfPublicId = oldPdfPath;
 
         if (_cloudinaryService != null)
         {
@@ -732,7 +995,7 @@ public class ManagerEmploymentContractService(
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Tải lên file PDF hợp đồng mới thất bại: {ex.Message}", ex);
+                throw new InvalidOperationException($"Unable to upload the revised contract PDF: {ex.Message}", ex);
             }
         }
 
@@ -740,6 +1003,9 @@ public class ManagerEmploymentContractService(
         contract.ContractTemplateVersion = templateVersion;
         contract.PdfGeneratedAt = now;
         contract.SentToStaffAt = now;
+        contract.ApprovedBy = managerId;
+        contract.ApprovedAt = now;
+        contract.StaffRespondedAt = null;
         contract.StaffAcceptedAt = null;
         contract.Status = "PENDING_STAFF";
         contract.UpdatedAt = now;
@@ -755,7 +1021,7 @@ public class ManagerEmploymentContractService(
             oldPdfPath = oldPdfPath,
             newPdfPath = newPdfPublicId,
             appliedFinalValues = appliedValues,
-            note = $"Quản lý đã duyệt yêu cầu thay đổi hợp đồng. Cập nhật phiên bản {templateVersion} và gửi cho nhân viên chấp thuận."
+            note = $"The manager approved the change request. Version {templateVersion} was sent to the employee for acceptance."
         };
 
         await repository.ApproveChangeRequestWithContractUpdateAsync(
@@ -771,8 +1037,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng đã được phê duyệt",
-                Content = $"Yêu cầu thay đổi hợp đồng {contract.ContractNumber} đã được quản lý phê duyệt. Hợp đồng phiên bản mới ({templateVersion}) đã được gửi cho bạn. Vui lòng xem xét và chấp thuận.",
+                Title = "Contract Change Request Approved",
+                Content = $"Your adjustment request for contract {contract.ContractNumber} has been approved. Please review and accept version {templateVersion}.",
                 CreatedBy = managerId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -783,6 +1049,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(cr.RequestedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "ApproveChangeRequest",
+                        contractId = contract.ContractId,
+                        changeRequestId = changeRequestId,
+                        contractNumber = contract.ContractNumber,
+                        requestedBy = cr.RequestedBy
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -799,15 +1097,15 @@ public class ManagerEmploymentContractService(
         if (changeRequestId <= 0)
             throw new ArgumentException("ChangeRequestId must be greater than 0.");
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new ArgumentException("Lý do từ chối yêu cầu là bắt buộc.");
+            throw new ArgumentException("A rejection reason is required.");
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
         if (cr.Contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Yêu cầu thay đổi không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The change request does not belong to your branch.");
         if (cr.Status != "SUBMITTED")
-            throw new InvalidOperationException("Chỉ có thể từ chối yêu cầu thay đổi ở trạng thái SUBMITTED.");
+            throw new InvalidOperationException("Only SUBMITTED change requests can be rejected.");
 
         var reason = request.Reason.Trim();
         await repository.RejectChangeRequestAsync(changeRequestId, managerId, reason, cancellationToken);
@@ -822,8 +1120,8 @@ public class ManagerEmploymentContractService(
             var notification = new NotificationEntity
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng đã bị từ chối",
-                Content = $"Yêu cầu thay đổi hợp đồng {cr.Contract.ContractNumber} đã bị quản lý từ chối. Lý do: {reason}.",
+                Title = "Contract Change Request Rejected",
+                Content = $"Your adjustment request for contract {cr.Contract.ContractNumber} has been rejected. Reason: {reason}.",
                 CreatedBy = managerId,
                 TargetBranchId = cr.Contract.BranchId,
                 TargetType = "Branch",
@@ -834,6 +1132,38 @@ public class ManagerEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { cr.RequestedBy }, cancellationToken);
+
+            if (_realtimePublisher != null)
+            {
+                try
+                {
+                    await _realtimePublisher.PublishAsync(cr.RequestedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (_adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "RejectChangeRequest",
+                        contractId = cr.Contract.ContractId,
+                        changeRequestId = changeRequestId,
+                        contractNumber = cr.Contract.ContractNumber,
+                        requestedBy = cr.RequestedBy
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -856,9 +1186,9 @@ public class ManagerEmploymentContractService(
 
         var contract = await repository.GetByIdAsync(contractId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại.");
+            throw new KeyNotFoundException("Employment contract not found.");
         if (contract.BranchId != manager.BranchId!.Value)
-            throw new UnauthorizedAccessException("Hợp đồng không thuộc chi nhánh của quản lý.");
+            throw new UnauthorizedAccessException("The contract does not belong to your branch.");
 
         var successor = await repository.GetSuccessorContractAsync(contractId, cancellationToken);
         EmploymentContract? predecessor = null;
@@ -973,8 +1303,12 @@ public class ManagerEmploymentContractService(
             HasPdf = !string.IsNullOrWhiteSpace(contract.ContractFilePath)
         };
 
-    private static ManagerEmploymentContractDetailResponse MapToDetailResponse(EmploymentContract contract) =>
-        new()
+    private static ManagerEmploymentContractDetailResponse MapToDetailResponse(EmploymentContract contract)
+    {
+        var isCrPending = contract.ContractChangeRequest != null &&
+                          string.Equals(contract.ContractChangeRequest.Status, "SUBMITTED", StringComparison.OrdinalIgnoreCase);
+
+        return new()
         {
             ContractId = contract.ContractId,
             ContractNumber = contract.ContractNumber,
@@ -1011,9 +1345,10 @@ public class ManagerEmploymentContractService(
             ManagerRejectionComment = contract.ManagerRejectionComment,
             HasPdf = !string.IsNullOrWhiteSpace(contract.ContractFilePath),
             ContractTemplateVersion = contract.ContractTemplateVersion,
-            OpenChangeRequestId = contract.ContractChangeRequest?.ChangeRequestId,
-            OpenChangeRequestStatus = contract.ContractChangeRequest?.Status
+            OpenChangeRequestId = isCrPending ? contract.ContractChangeRequest!.ChangeRequestId : null,
+            OpenChangeRequestStatus = isCrPending ? contract.ContractChangeRequest!.Status : null
         };
+    }
 
     private static ManagerContractChangeRequestResponse MapToManagerChangeRequestResponse(ContractChangeRequest cr)
     {
@@ -1041,15 +1376,32 @@ public class ManagerEmploymentContractService(
             CurrentContractTerms = cr.Contract?.ContractTerms,
             BranchName = cr.Contract?.Branch?.BranchName ?? cr.Contract?.BranchNameSnapshot,
             ContractTemplateVersion = cr.Contract?.ContractTemplateVersion,
+            RegionalMinimumWage = cr.Contract?.Region?.RegionalMinimumWage?.MinimumHourlyRate 
+                ?? cr.Contract?.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate,
             Items = cr.ContractChangeRequestItems.Select(i => new ContractChangeRequestItemDetailDto
             {
                 ChangeRequestItemId = i.ChangeRequestItemId,
                 FieldName = i.FieldName,
-                OriginalValue = DeserializeJsonString(i.OriginalValue),
-                ProposedValue = DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue,
+                OriginalValue = CleanRateString(i.FieldName, DeserializeJsonString(i.OriginalValue)),
+                ProposedValue = CleanRateString(i.FieldName, DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue) ?? string.Empty,
                 Reason = i.Reason
             }).ToList()
         };
+    }
+
+    private static string? CleanRateString(string? fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+        if (string.Equals(fieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fieldName, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ||
+                decimal.TryParse(value, out d))
+            {
+                return d % 1 == 0 ? d.ToString("0") : d.ToString("0.##");
+            }
+        }
+        return value;
     }
 
     private static string? DeserializeJsonString(string? json)

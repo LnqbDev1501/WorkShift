@@ -1,0 +1,221 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodListViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = "Payroll Periods";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">calendar_month</span>
+                <span>Payroll / Period Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Payroll Periods</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Manage weekly payroll periods, track source readiness, and submit periods for approval.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Create"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all">
+                <span class="material-symbols-outlined text-base">add</span>
+                <span>Create Draft Period</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (Model.Error != null || TempData["PeriodError"] is string)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+            <span class="font-medium">@(Model.Error ?? TempData["PeriodError"]?.ToString())</span>
+        </div>
+    }
+    @if (TempData["PeriodSuccess"] is string success)
+    {
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+            <span class="font-medium">@success</span>
+        </div>
+    }
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching periods", Model.Error != null ? "—" : Model.Page.TotalItems.ToString("N0"), "Matching current filters", "calendar_month"),
+        new("Open", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "OPEN").ToString("N0"), "On this page", "lock_open"),
+        new("Submitted", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "SUBMITTED").ToString("N0"), "On this page", "pending_actions"),
+        new("Closed", Model.Error != null ? "—" : Model.Page.Items.Count(x => x.Status == "CLOSED").ToString("N0"), "On this page", "task_alt")
+    })' />
+
+    <!-- Search & Filter Card (Manager Style) -->
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="search" name="Search" value="@Model.Query.Search" maxlength="200" placeholder="Search period code or name..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="Status">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
+                        @foreach (var s in D.Statuses)
+                        {
+                            <option value="@s" selected="@(Model.Query.Status == s)">@s.Replace('_', ' ')</option>
+                        }
+                    </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "StartDateFrom", "StartDateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Period starts from</span><input aria-label="Period starts from" type="date" id="startDateFrom" name="StartDateFrom" value="@Model.Query.StartDateFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Period starts to</span><input aria-label="Period starts to" type="date" id="startDateTo" name="StartDateTo" value="@Model.Query.StartDateTo?.ToString("yyyy-MM-dd")" /></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
+
+    <!-- Table Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">calendar_view_week</span>
+                <h2 class="text-sm font-bold text-slate-900">Payroll Periods</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @(Model.Error != null ? "—" : $"{Model.Page.TotalItems} {(Model.Page.TotalItems == 1 ? "Period" : "Periods")}")
+                </span>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-rose-500">
+                    <span class="material-symbols-outlined text-3xl">cloud_off</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Unable to Load Payroll Periods</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">@Model.Error</p>
+                <div class="mt-4">
+                    <a href="javascript:location.reload()" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm transition-all">
+                        <span class="material-symbols-outlined text-sm">refresh</span>
+                        <span>Reload Periods</span>
+                    </a>
+                </div>
+            </div>
+        }
+        else if (Model.Page.Items.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">calendar_today</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">No Payroll Periods Found</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">Try another search or create a new draft period to begin.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Period</th>
+                            <th class="py-3.5 px-6">Branch</th>
+                            <th class="py-3.5 px-6">Work Week</th>
+                            <th class="py-3.5 px-6">Staff / Timesheets</th>
+                            <th class="py-3.5 px-6 text-right">Net Salary</th>
+                            <th class="py-3.5 px-6">Status</th>
+                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var p in Model.Page.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Period -->
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-900">@p.PeriodCode</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">@p.PeriodName</div>
+                                </td>
+
+                                <!-- Branch -->
+                                <td class="py-4 px-6 font-medium text-slate-800">
+                                    @p.BranchName
+                                </td>
+
+                                <!-- Work Week -->
+                                <td class="py-4 px-6 text-xs text-slate-600">
+                                    @p.StartDate.ToString("dd/MM/yyyy") – @p.EndDate.ToString("dd/MM/yyyy")
+                                </td>
+
+                                <!-- Staff / Timesheets -->
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-slate-900">@p.ExpectedEmployeeCount Staff</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">@p.TotalPayrolls payrolls • @p.LockedTimesheetCount locked</div>
+                                </td>
+
+                                <!-- Net Salary -->
+                                <td class="py-4 px-6 text-right font-bold text-slate-900">
+                                    @D.Money(p.TotalNetSalary)
+                                </td>
+
+                                <!-- Status -->
+                                <td class="py-4 px-6">
+                                    @if (p.Status == "DRAFT")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            DRAFT
+                                        </span>
+                                    }
+                                    else if (p.Status == "OPEN")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            OPEN
+                                        </span>
+                                    }
+                                    else if (p.Status == "CALCULATED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                            CALCULATED
+                                        </span>
+                                    }
+                                    else if (p.Status == "SUBMITTED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            SUBMITTED
+                                        </span>
+                                    }
+                                    else if (p.Status == "APPROVED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            APPROVED
+                                        </span>
+                                    }
+                                    else if (p.Status == "PAID")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                            PAID
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            @p.Status.Replace('_', ' ')
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-4 px-6 text-right">
+                                    <a asp-action="Details" asp-route-id="@p.PayrollPeriodId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.Error == null && ViewData.ModelState.IsValid)
+        {
+            <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Page.PageNumber, PageSize = Model.Page.PageSize, TotalItems = Model.Page.TotalItems, PageParameter = "pageNumber", ItemLabel = "periods" })' />
+        }
+    </div>
+</div>

@@ -12,7 +12,7 @@ public class OrderRepo : IOrderRepo
 
     public OrderRepo(AppDbContext context) => _context = context;
 
-    public async Task<(List<OrderData> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(List<OrderData> Items, int TotalCount, int PaidCount, int CompletedCount, decimal TotalOrderValue)> GetPagedAsync(
         string? search,
         int? branchId,
         string? status,
@@ -20,8 +20,12 @@ public class OrderRepo : IOrderRepo
         DateTime? dateFrom,
         DateTime? dateTo,
         int pageNumber,
-        int pageSize)
+        int pageSize,
+        string? sortBy = null)
     {
+        var startOfTodayUtc = GetStartOfTodayVnInUtc();
+        await AutoCompletePastPendingOrdersAsync(startOfTodayUtc);
+
         var query = _context.Orders.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -63,8 +67,24 @@ public class OrderRepo : IOrderRepo
         }
 
         var totalCount = await query.CountAsync();
-        var items = await query
-            .OrderByDescending(order => order.OrderDate)
+        var paidCount = await query.CountAsync(order => order.PaymentStatus == "PAID");
+        var completedCount = await query.CountAsync(order => order.Status == "COMPLETED");
+        var totalOrderValue = await query.SumAsync(order => (decimal?)order.TotalAmount) ?? 0m;
+
+        IOrderedQueryable<Order> orderedQuery;
+        if (string.Equals(sortBy, "oldest_pending_first", StringComparison.OrdinalIgnoreCase))
+        {
+            orderedQuery = query
+                .OrderBy(order => order.Status == "PENDING" ? 0 : 1)
+                .ThenBy(order => order.Status == "PENDING" ? order.OrderDate : DateTime.MaxValue)
+                .ThenByDescending(order => order.OrderDate);
+        }
+        else
+        {
+            orderedQuery = query.OrderByDescending(order => order.OrderDate);
+        }
+
+        var items = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(order => new OrderData
@@ -97,13 +117,15 @@ public class OrderRepo : IOrderRepo
             })
             .ToListAsync();
 
-        return (items, totalCount);
+        return (items, totalCount, paidCount, completedCount, totalOrderValue);
     }
 
     public async Task<OrderDetailData?> GetByIdAsync(int id)
     {
         if (id <= 0)
             return null;
+
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
 
         return await _context.Orders
             .AsNoTracking()
@@ -136,18 +158,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -156,6 +167,8 @@ public class OrderRepo : IOrderRepo
     {
         if (id <= 0)
             return null;
+
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
 
         return await _context.Orders
             .AsNoTracking()
@@ -188,18 +201,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -208,6 +210,8 @@ public class OrderRepo : IOrderRepo
     {
         if (string.IsNullOrWhiteSpace(orderNumber))
             return null;
+
+        await AutoCompletePastPendingOrdersAsync(GetStartOfTodayVnInUtc());
 
         var trimmed = orderNumber.Trim();
         return await _context.Orders
@@ -241,18 +245,7 @@ public class OrderRepo : IOrderRepo
                     TotalAmount = oi.TotalAmount,
                     Note = oi.Note
                 }).ToList(),
-                Payments = order.Payments.Select(p => new PaymentData
-                {
-                    PaymentId = p.PaymentId,
-                    OrderId = p.OrderId,
-                    Amount = p.Amount,
-                    PaymentMethod = p.PaymentMethod,
-                    ReferenceNumber = p.ReferenceNumber,
-                    Note = p.Note,
-                    RecordedBy = p.RecordedBy,
-                    RecordedByName = p.RecordedByNavigation.FullName,
-                    RecordedAt = p.RecordedAt
-                }).ToList()
+                Payments = new List<PaymentData>()
             })
             .FirstOrDefaultAsync();
     }
@@ -401,6 +394,48 @@ public class OrderRepo : IOrderRepo
 
     private static TimeZoneInfo VietnamTimeZone { get; } = ResolveVietnamTimeZone();
 
+    public async Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, int branchId, DateTime currentUtcTime, CancellationToken cancellationToken = default)
+    {
+        var utcNow = currentUtcTime.Kind == DateTimeKind.Utc ? currentUtcTime : DateTime.SpecifyKind(currentUtcTime, DateTimeKind.Utc);
+        var windowStartUtc = utcNow.AddMinutes(-60);
+        var windowEndUtc = utcNow.AddMinutes(60);
+
+        return await _context.ShiftAssignments
+            .AsNoTracking()
+            .AnyAsync(sa =>
+                sa.UserId == staffId &&
+                sa.Status != "CANCELLED" &&
+                sa.Shift.Status != "CANCELLED" &&
+                sa.Shift.ScheduleWeek.BranchId == branchId &&
+                sa.Shift.ScheduledStartAt <= windowEndUtc &&
+                sa.Shift.ScheduledEndAt >= windowStartUtc &&
+                !sa.LeaveRequestAssignments.Any(l => l.Request.RequestType == "LEAVE" && l.Request.Status == "APPROVED") &&
+                sa.Attendance != null &&
+                sa.Attendance.CheckInTime != null &&
+                sa.Attendance.CheckInTime <= utcNow &&
+                sa.Attendance.CheckOutTime == null &&
+                sa.Attendance.Status != "ABSENT" &&
+                sa.Attendance.Status != "CANCELLED",
+                cancellationToken);
+    }
+
+    public async Task<int> AutoCompletePastPendingOrdersAsync(DateTime beforeUtc, CancellationToken cancellationToken = default)
+    {
+        return await _context.Orders
+            .Where(order => order.Status == "PENDING" && order.OrderDate < beforeUtc)
+            .ExecuteUpdateAsync(setter => setter
+                .SetProperty(order => order.Status, "COMPLETED")
+                .SetProperty(order => order.UpdatedAt, DateTime.UtcNow),
+                cancellationToken);
+    }
+
+    public DateTime GetStartOfTodayVnInUtc()
+    {
+        var vnNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, VietnamTimeZone);
+        var todayVn = DateOnly.FromDateTime(vnNow);
+        return ConvertVnDateToUtcStartOfDay(todayVn);
+    }
+
     private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)
     {
         var vnDateTime = date.ToDateTime(TimeOnly.MinValue);
@@ -435,9 +470,7 @@ public class PaymentRepo : IPaymentRepo
 
     public async Task<PaymentData> CreateAsync(Payment payment)
     {
-        _context.Payments.Add(payment);
-        await _context.SaveChangesAsync();
-
+        await Task.CompletedTask;
         return new PaymentData
         {
             PaymentId = payment.PaymentId,
@@ -447,29 +480,14 @@ public class PaymentRepo : IPaymentRepo
             ReferenceNumber = payment.ReferenceNumber,
             Note = payment.Note,
             RecordedBy = payment.RecordedBy,
-            RecordedByName = payment.RecordedByNavigation.FullName,
+            RecordedByName = string.Empty,
             RecordedAt = payment.RecordedAt
         };
     }
 
     public async Task<List<PaymentData>> GetByOrderIdAsync(int orderId)
     {
-        return await _context.Payments
-            .AsNoTracking()
-            .Where(p => p.OrderId == orderId)
-            .OrderBy(p => p.RecordedAt)
-            .Select(p => new PaymentData
-            {
-                PaymentId = p.PaymentId,
-                OrderId = p.OrderId,
-                Amount = p.Amount,
-                PaymentMethod = p.PaymentMethod,
-                ReferenceNumber = p.ReferenceNumber,
-                Note = p.Note,
-                RecordedBy = p.RecordedBy,
-                RecordedByName = p.RecordedByNavigation.FullName,
-                RecordedAt = p.RecordedAt
-            })
-            .ToListAsync();
+        await Task.CompletedTask;
+        return new List<PaymentData>();
     }
 }

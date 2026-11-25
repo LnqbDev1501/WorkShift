@@ -1,0 +1,28 @@
+@model UI_Admin.Models.EmployeeTypes.EditEmployeeTypeViewModel
+@{ ViewData["Title"] = "Edit Employee Type"; }
+<div class="flex flex-col w-full px-7 py-6 gap-6 mx-auto" style="max-width: 1496px;">
+    <partial name="_NotificationModal" />
+    <div class="flex items-center gap-3">
+        <div><h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Edit Employee Type</h1><p class="text-body-md text-secondary mt-0.5">Update the classification details for @Model.TypeName.</p></div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8">
+            <div class="mb-7"><span class="text-label-sm uppercase tracking-widest text-primary font-bold">Employee Classification</span><h2 class="text-title-lg font-title-lg text-on-surface mt-1">Employee Type Information</h2><p class="text-body-sm text-secondary mt-1">Keep your workforce directory accurate and up to date.</p></div>
+            <form asp-action="Edit" asp-route-id="@Model.EmployeeTypeId" method="post" data-employee-type-form class="flex flex-col gap-6">
+                <input asp-for="EmployeeTypeId" type="hidden" />
+                <partial name="_FormFields" model="Model" />
+                <div class="flex items-center justify-end gap-3 pt-5 border-t border-surface-container-high">
+                    <a asp-action="Index" class="h-10 px-5 inline-flex items-center rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium">Cancel</a>
+                    <button type="submit" class="h-10 px-5 inline-flex items-center gap-2 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium shadow-sm"><span class="material-symbols-outlined text-[18px]">save</span>Save Changes</button>
+                </div>
+            </form>
+        </div>
+        <aside class="lg:col-span-4 bg-surface-container-low rounded-xl p-6 flex flex-col gap-3">
+            <span class="material-symbols-outlined text-primary text-[28px]">info</span><h2 class="text-title-md font-title-md text-on-surface">Employee Records</h2><p class="text-body-sm text-secondary leading-relaxed">Updating this classification preserves its existing employee assignments.</p><p class="text-body-sm text-secondary leading-relaxed">Inactive types remain in the directory and can be restored when needed.</p>
+        </aside>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/employee-type-form.js" asp-append-version="true"></script>
+}

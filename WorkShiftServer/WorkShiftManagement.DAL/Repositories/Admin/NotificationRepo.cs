@@ -45,12 +45,14 @@ public class NotificationRepo : INotificationRepo
 
         if (dateFrom.HasValue)
         {
-            query = query.Where(notification => notification.CreatedAt >= dateFrom.Value);
+            var fromUtc = ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value));
+            query = query.Where(notification => notification.CreatedAt >= fromUtc);
         }
 
         if (dateTo.HasValue)
         {
-            query = query.Where(notification => notification.CreatedAt < dateTo.Value.Date.AddDays(1));
+            var toUtcExclusive = ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value));
+            query = query.Where(notification => notification.CreatedAt < toUtcExclusive);
         }
 
         query = (sortBy, sortOrder) switch
@@ -78,12 +80,33 @@ public class NotificationRepo : INotificationRepo
             .FirstOrDefaultAsync(notification => notification.NotificationId == notificationId && !notification.IsDeleted);
     }
 
+    public Task<User?> GetActiveAdminByIdAsync(Guid userId)
+    {
+        return _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(user =>
+                user.UserId == userId &&
+                user.Status == "ACTIVE" &&
+                user.DeletedAt == null &&
+                user.Role.RoleName == "ADMIN");
+    }
+
     public Task<User?> GetActiveAdminByEmailAsync(string email)
     {
         return _context.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(user =>
                 user.Email == email &&
+                user.Status == "ACTIVE" &&
+                user.DeletedAt == null &&
+                user.Role.RoleName == "ADMIN");
+    }
+
+    public Task<User?> GetAnyActiveAdminAsync()
+    {
+        return _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(user =>
                 user.Status == "ACTIVE" &&
                 user.DeletedAt == null &&
                 user.Role.RoleName == "ADMIN");
@@ -108,7 +131,8 @@ public class NotificationRepo : INotificationRepo
             .AsNoTracking()
             .Where(user => user.Status == "ACTIVE"
                         && user.DeletedAt == null
-                        && targetRoles.Contains(user.Role.RoleName));
+                        && targetRoles.Contains(user.Role.RoleName)
+                        && (user.Branch == null || (user.Branch.Status == "ACTIVE" && user.Branch.Region.IsActive)));
 
         if (regionId.HasValue)
         {
@@ -175,5 +199,35 @@ public class NotificationRepo : INotificationRepo
         }
 
         await transaction.CommitAsync();
+    }
+
+    private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
+
+    private static DateTime ConvertVnDateToUtcStartOfDay(DateOnly date)
+    {
+        var vnDateTime = date.ToDateTime(TimeOnly.MinValue);
+        return TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(vnDateTime, DateTimeKind.Unspecified), VietnamTimeZone);
+    }
+
+    private static DateTime ConvertVnDateToUtcStartOfNextDay(DateOnly date) =>
+        ConvertVnDateToUtcStartOfDay(date.AddDays(1));
+
+    private static TimeZoneInfo ResolveVietnamTimeZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            }
+            catch
+            {
+                return TimeZoneInfo.CreateCustomTimeZone("UTC+07:00", TimeSpan.FromHours(7), "Vietnam Standard Time", "Vietnam Standard Time");
+            }
+        }
     }
 }

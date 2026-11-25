@@ -31,6 +31,12 @@ public partial class Notification
 
     public List<string> TargetRoles { get; set; } = null!;
 
+    public int? ContractId { get; set; }
+
+    public short? TerminationNoticeNo { get; set; }
+
+    public virtual EmploymentContract? Contract { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual Branch? TargetBranch { get; set; }

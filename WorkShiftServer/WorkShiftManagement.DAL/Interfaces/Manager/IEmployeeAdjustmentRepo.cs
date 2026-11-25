@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore.Storage;
+﻿using Microsoft.EntityFrameworkCore.Storage;
 using WorkShiftManagement.DAL.Entities;
 namespace WorkShiftManagement.DAL.Interfaces.Manager;
 
@@ -8,7 +8,9 @@ public interface IEmployeeAdjustmentRepo
 {
     Task<User?> ActorAsync(Guid id, CancellationToken ct);
     Task<User?> StaffAsync(Guid id, int branchId, CancellationToken ct);
+    Task<bool> StaffHasContractAsync(Guid userId, int branchId, CancellationToken ct);
     Task<PayrollPeriod?> PeriodAsync(int id, int? branchId, CancellationToken ct);
+    Task<PayrollPeriod?> FindPeriodByDateAsync(int branchId, DateOnly date, CancellationToken ct);
     Task<List<PayrollPeriod>> PeriodsAsync(int branchId, IReadOnlyCollection<string> statuses, CancellationToken ct);
     Task<EmployeeRewardsPenalty?> FindAsync(int id, string type, int? branchId, bool tracking, CancellationToken ct);
     Task<(List<EmployeeRewardsPenalty> Items, int Count)> ListAsync(string type, EmployeeAdjustmentFilter filter, CancellationToken ct);

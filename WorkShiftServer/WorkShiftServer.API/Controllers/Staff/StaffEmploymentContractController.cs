@@ -156,12 +156,12 @@ public class StaffEmploymentContractController(
         catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
         {
             logger.LogError(ex, "Database update error submitting change request for contract {ContractId} by staff {StaffUserId}", id, staffUserId.Value);
-            return StatusCode(500, new { message = "Lỗi khi lưu yêu cầu thay đổi hợp đồng vào cơ sở dữ liệu." });
+            return StatusCode(500, new { message = "Unable to save the contract change request." });
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to submit change request for contract {ContractId} by staff {StaffUserId}", id, staffUserId.Value);
-            return StatusCode(500, new { message = "Không thể gửi yêu cầu thay đổi hợp đồng. Vui lòng thử lại sau." });
+            return StatusCode(500, new { message = "Unable to submit the contract change request. Please try again later." });
         }
     }
 

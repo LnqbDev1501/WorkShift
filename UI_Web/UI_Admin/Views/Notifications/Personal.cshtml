@@ -1,0 +1,358 @@
+@model UI_Admin.Models.PersonalNotificationListPageViewModel
+@{
+    if (User.IsInRole("STAFF"))
+    {
+        Layout = "_StaffLayout";
+    }
+    ViewData["Title"] = "My Notifications";
+    var unreadCount = ViewBag.UnreadCount as int? ?? 0;
+}
+
+<div class="px-7 py-4 mx-auto space-y-4">
+    <!-- Header Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div>
+            <div class="flex items-center gap-2 mb-1.5">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    @(User.IsInRole("STAFF") ? "STAFF PORTAL" : "NOTIFICATIONS")
+                </span>
+                @if (unreadCount > 0)
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-600 border border-rose-100">
+                        <span class="material-symbols-outlined text-[13px]">mark_chat_unread</span>
+                        @unreadCount unread
+                    </span>
+                }
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">My Notifications</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Track payroll reviews, correction requests, shift updates, and system notices.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5">
+            <form asp-action="MarkAllAsRead" method="post" class="inline-block">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                <button type="submit" @(unreadCount == 0 ? "disabled" : "")
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition-all @(unreadCount > 0 ? "text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 cursor-pointer shadow-sm hover:shadow" : "text-gray-400 bg-gray-50 border border-gray-200 cursor-not-allowed opacity-60")"
+                        title="@(unreadCount > 0 ? "Mark all notifications as read" : "No unread notifications")">
+                    <span class="material-symbols-outlined text-[16px]">done_all</span>
+                    <span>Mark all as read</span>
+                </button>
+            </form>
+            <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors">
+                <span class="material-symbols-outlined text-[16px]">refresh</span>
+                Refresh
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">notifications</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Total Notifications</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-gray-900">@Model.TotalCount</span>
+                    <span class="text-xs text-gray-400">messages</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">mark_email_unread</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Unread</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-rose-600">@unreadCount</span>
+                    <span class="text-xs text-rose-500 font-medium">action required</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
+                <span class="material-symbols-outlined text-[24px]">done_all</span>
+            </div>
+            <div>
+                <p class="text-xs font-medium text-gray-500">Read</p>
+                <div class="flex items-baseline gap-2 mt-0.5">
+                    <span class="text-2xl font-bold text-emerald-700">@(Math.Max(0, Model.TotalCount - unreadCount))</span>
+                    <span class="text-xs text-gray-400">messages</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <form method="get" asp-action="Personal" class="ws-list-filter" role="search">
+        <input type="hidden" name="SortBy" value="CreatedAt" />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="Search" value="@Model.Search" placeholder="Search notification title..." /></label>
+            <div class="ws-filter-field"><select aria-label="Read status" name="Filter">
+                        <option value="all" selected="@(Model.Filter == "all")">All notifications</option>
+                        <option value="unread" selected="@(Model.Filter == "unread")">Unread (@unreadCount)</option>
+                        <option value="read" selected="@(Model.Filter == "read")">Read</option>
+                    </select></div>
+            <div class="ws-filter-field"><select aria-label="Sort order" name="SortOrder">
+                        <option value="desc" selected="@(Model.SortOrder == "desc")">Newest first</option>
+                        <option value="asc" selected="@(Model.SortOrder == "asc")">Oldest first</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Personal"' />
+        </div>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-3 text-red-800">
+            <span class="material-symbols-outlined text-red-600 text-[20px]">error</span>
+            <span class="text-sm font-medium">@Model.ErrorMessage</span>
+        </div>
+    }
+
+    <!-- Notifications List -->
+    <div class="space-y-3">
+        @if (Model.Items.Count == 0)
+        {
+            <div class="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
+                <div class="w-16 h-16 rounded-2xl bg-gray-50 text-gray-400 flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                    <span class="material-symbols-outlined text-[32px]">notifications_off</span>
+                </div>
+                <h3 class="text-base font-bold text-gray-800">No notifications found</h3>
+                <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                    @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Filter != "all")
+                    {
+                        <span>No notifications match your current filter. Try adjusting your search query or status filter.</span>
+                    }
+                    else
+                    {
+                        <span>You have not received any notifications yet. Payroll, contract, and shift updates will appear here.</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Filter != "all")
+                {
+                    <a asp-action="Personal" class="inline-flex items-center gap-1.5 px-4 py-2 mt-4 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors">
+                        Clear Filters
+                    </a>
+                }
+            </div>
+        }
+        else
+        {
+            @foreach (var item in Model.Items)
+            {
+                var isContractRelated = (item.Title?.Contains("hợp đồng", StringComparison.OrdinalIgnoreCase) ?? false)
+                                     || (item.Title?.Contains("contract", StringComparison.OrdinalIgnoreCase) ?? false)
+                                     || (item.Title?.Contains("EC-", StringComparison.OrdinalIgnoreCase) ?? false)
+                                     || (item.NotificationType?.Contains("Contract", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isShiftRelated = (item.Title?.Contains("ca", StringComparison.OrdinalIgnoreCase) ?? false)
+                                  || (item.Title?.Contains("shift", StringComparison.OrdinalIgnoreCase) ?? false)
+                                  || (item.NotificationType?.Contains("Shift", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isRequestRelated = (item.Title?.Contains("yêu cầu", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("đơn", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("request", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.NotificationType?.Contains("Request", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isPayrollRelated = (item.NotificationType?.Equals("PAYROLL", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("payroll", StringComparison.OrdinalIgnoreCase) ?? false)
+                                    || (item.Title?.Contains("lương", StringComparison.OrdinalIgnoreCase) ?? false);
+                var isSalaryChangeRelated = (item.NotificationType?.Equals("SalaryChange", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Increase", StringComparison.OrdinalIgnoreCase) ?? false)
+                                         || (item.Title?.Contains("Salary Rate", StringComparison.OrdinalIgnoreCase) ?? false);
+
+                var iconName = isSalaryChangeRelated ? "trending_up" :
+                               isPayrollRelated ? "payments" :
+                               isContractRelated ? "description" :
+                               isRequestRelated ? "pending_actions" :
+                               isShiftRelated ? "schedule" :
+                               (item.NotificationType == "Broadcast" ? "campaign" : "notifications");
+                var iconBg = isSalaryChangeRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isPayrollRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isContractRelated ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                             isRequestRelated ? "bg-violet-50 text-violet-600 border-violet-100" :
+                             isShiftRelated ? "bg-indigo-50 text-indigo-600 border-indigo-100" :
+                             (item.NotificationType == "Broadcast" ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-blue-50 text-blue-600 border-blue-100");
+
+                <div class="notification-item bg-white rounded-2xl border @(item.IsRead ? "border-gray-100 opacity-90 hover:opacity-100" : "border-blue-200 bg-blue-50/20 shadow-sm") p-4 sm:p-5 transition-all hover:shadow-md hover:border-blue-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                     data-detail-url="@Url.Action("PersonalDetail", new { id = item.UserNotificationId })">
+                    
+                    <div class="flex items-start gap-4 flex-1 min-w-0">
+                        <!-- Icon Avatar -->
+                        <div class="w-11 h-11 rounded-xl @iconBg border flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <span class="material-symbols-outlined text-[22px]">@iconName</span>
+                        </div>
+
+                        <!-- Content Info -->
+                        <div class="space-y-1.5 min-w-0 flex-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                @if (!item.IsRead)
+                                {
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-600 text-white uppercase tracking-wider">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                        New
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-gray-100 text-gray-600">
+                                        <span class="material-symbols-outlined text-[12px]">done</span>
+                                        Read
+                                    </span>
+                                }
+
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-700">
+                                    @(item.NotificationType switch
+                                    {
+                                        "SYSTEM" => "System",
+                                        "PAYROLL" => "Payroll",
+                                        "ShiftAssignment" => "Shift Assignment",
+                                        "EmployeeRequest" => "Request",
+                                        "SalaryChange" => "Salary Proposal",
+                                        "Broadcast" => "Broadcast",
+                                        "CONTRACT" or "Contract" => "Contract",
+                                        _ => item.NotificationType
+                                    })
+                                </span>
+
+                                <span class="text-[11px] text-gray-400 flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-[13px]">schedule</span>
+                                    @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                </span>
+                            </div>
+
+                            <h3 class="text-sm sm:text-base @(item.IsRead ? "font-medium text-gray-500" : "font-bold text-gray-900") hover:text-blue-600 transition-colors line-clamp-2 break-words break-all" title="@item.Title">
+                                <a asp-action="PersonalDetail" asp-route-id="@item.UserNotificationId">
+                                    @(item.Title != null && item.Title.Length > 50 ? item.Title.Substring(0, 50) + "..." : item.Title)
+                                </a>
+                            </h3>
+
+                            <div class="flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                                @if (item.Channels != null && item.Channels.Count > 0)
+                                {
+                                    <span class="inline-flex items-center gap-1 text-gray-400">
+                                        <span class="material-symbols-outlined text-[13px]">devices</span>
+                                        @string.Join(", ", item.Channels.Select(c => c == "InApp" ? "In-App" : c == "Email" ? "Email" : c))
+                                    </span>
+                                }
+                                @if (item.IsRead && item.ReadAt.HasValue)
+                                {
+                                    <span class="text-gray-400 italic">
+                                        (Viewed at @item.ReadAt.Value.ToLocalTime().ToString("HH:mm dd/MM"))
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2 self-end sm:self-center flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100 w-full sm:w-auto justify-end">
+                        @if (isPayrollRelated)
+                        {
+                            if (User.IsInRole("ACCOUNTANT"))
+                            {
+                                var isCorrectionResponse = item.Title?.StartsWith("Correction Request Responded", StringComparison.OrdinalIgnoreCase) == true;
+                                if (isCorrectionResponse)
+                                {
+                                    <a asp-controller="Notifications" asp-action="CorrectionAction" asp-route-id="@item.UserNotificationId"
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                       title="Review Correction">
+                                        <span class="material-symbols-outlined text-[14px]">feedback</span>
+                                        <span>Feedback</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-controller="AccountantPayrollFeedback" asp-action="Index"
+                                       class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                       title="Go to Payroll Feedback">
+                                        <span class="material-symbols-outlined text-[14px]">feedback</span>
+                                        <span>Feedback</span>
+                                    </a>
+                                }
+                            }
+                            else if (User.IsInRole("MANAGER"))
+                            {
+                                <a asp-controller="ManagerPayrollCorrection" asp-action="Index"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                   title="Go to Payroll Corrections">
+                                    <span class="material-symbols-outlined text-[14px]">gavel</span>
+                                    <span>Corrections</span>
+                                </a>
+                            }
+                            else if (User.IsInRole("ADMIN"))
+                            {
+                                <a asp-controller="Payroll" asp-action="List"
+                                   class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                                   title="Go to Payroll Approvals">
+                                    <span class="material-symbols-outlined text-[14px]">payments</span>
+                                    <span>Approvals</span>
+                                </a>
+                            }
+                        }
+
+                        @if (isContractRelated)
+                        {
+                            var contractController = User.IsInRole("MANAGER")
+                                ? "ManagerContracts"
+                                : User.IsInRole("ADMIN")
+                                    ? "EmploymentContracts"
+                                    : "StaffContracts";
+                            <a asp-controller="@contractController" asp-action="Index"
+                               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl transition-colors"
+                               title="Go to Employment Contracts">
+                                <span class="material-symbols-outlined text-[14px]">description</span>
+                                <span>View Contract</span>
+                            </a>
+                        }
+
+                        @if (!item.IsRead)
+                        {
+                            <form asp-action="MarkAsRead" asp-route-id="@item.UserNotificationId" method="post" class="inline mark-read-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                <button type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-gray-600 bg-gray-50 hover:bg-gray-100 hover:text-gray-900 border border-gray-200 rounded-xl transition-colors"
+                                        title="Mark as read">
+                                    <span class="material-symbols-outlined text-[14px]">done</span>
+                                    <span>Read</span>
+                                </button>
+                            </form>
+                        }
+
+                        <a asp-action="PersonalDetail" asp-route-id="@item.UserNotificationId"
+                           class="inline-flex items-center gap-1 px-3.5 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors">
+                            <span>Details</span>
+                            <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                        </a>
+                    </div>
+                </div>
+            }
+
+            <div class="pt-4">
+                <partial name="_ListPagination" model="@(new ListPaginationViewModel
+                {
+                    PageNumber = Model.Page,
+                    PageSize = Model.PageSize,
+                    TotalItems = Model.TotalCount,
+                    ItemLabel = "notifications"
+                })" />
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Optional AJAX mark as read handler
+            document.querySelectorAll('.mark-read-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // Let regular form submit handle it cleanly with returnUrl
+                });
+            });
+        });
+    </script>
+}

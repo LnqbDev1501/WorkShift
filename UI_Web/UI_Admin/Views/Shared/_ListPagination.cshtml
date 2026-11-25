@@ -1,0 +1,55 @@
+@model UI_Admin.Models.ListPaginationViewModel
+@{
+    string PageUrl(int pageNumber)
+    {
+        var routes = new Microsoft.AspNetCore.Routing.RouteValueDictionary(ViewContext.RouteData.Values);
+        foreach (var query in Context.Request.Query)
+        {
+            if (!query.Key.Equals("page", StringComparison.OrdinalIgnoreCase) &&
+                !query.Key.Equals("pageNumber", StringComparison.OrdinalIgnoreCase) &&
+                !query.Key.Equals("pageIndex", StringComparison.OrdinalIgnoreCase) &&
+                !query.Key.Equals("pageSize", StringComparison.OrdinalIgnoreCase))
+            {
+                routes[query.Key] = query.Value.ToString();
+            }
+        }
+        routes[Model.PageParameter] = pageNumber;
+        routes["pageSize"] = Model.PageSize;
+        return Url.Action(null, routes) ?? "#";
+    }
+}
+<footer class="list-pagination">
+    <div>
+        Showing @Model.FirstItem to @Model.LastItem of @Model.TotalItems.ToString("N0") @Model.ItemLabel
+        <small>(Fixed @Model.PageSize / page)</small>
+    </div>
+    <nav class="list-pagination-pages" aria-label="@Model.ItemLabel pagination">
+        @if (Model.PageNumber > 1)
+        {
+            <a class="list-page-number" href="@PageUrl(Model.PageNumber - 1)" aria-label="Previous page">‹</a>
+        }
+        else
+        {
+            <span class="list-page-number disabled" aria-disabled="true" aria-label="Previous page">‹</span>
+        }
+        @for (var pageNumber = Math.Max(1, Model.PageNumber - 2); pageNumber <= Math.Min(Model.TotalPages, Model.PageNumber + 2); pageNumber++)
+        {
+            if (pageNumber == Model.PageNumber)
+            {
+                <span class="list-page-number active" aria-current="page" aria-label="Page @pageNumber">@pageNumber</span>
+            }
+            else
+            {
+                <a class="list-page-number" href="@PageUrl(pageNumber)" aria-label="Page @pageNumber">@pageNumber</a>
+            }
+        }
+        @if (Model.PageNumber < Model.TotalPages)
+        {
+            <a class="list-page-number" href="@PageUrl(Model.PageNumber + 1)" aria-label="Next page">›</a>
+        }
+        else
+        {
+            <span class="list-page-number disabled" aria-disabled="true" aria-label="Next page">›</span>
+        }
+    </nav>
+</footer>

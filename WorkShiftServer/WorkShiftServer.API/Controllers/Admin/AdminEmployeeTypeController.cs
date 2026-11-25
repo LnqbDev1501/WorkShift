@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftServer.API.Controllers.Admin;
 
@@ -47,11 +48,32 @@ public class AdminEmployeeTypeController : ControllerBase
 
     [HttpDelete("{id:int}")]
     public Task<IActionResult> Delete(int id) => ExecuteAsync(async () =>
-        await _employeeTypeService.DeleteAsync(id) ? Ok(new { message = "Employee type deactivated successfully." }) : Missing());
+        StatusResult(await _employeeTypeService.DeleteAsync(id), restore: false));
 
     [HttpPost("{id:int}/restore")]
     public Task<IActionResult> Restore(int id) => ExecuteAsync(async () =>
-        await _employeeTypeService.RestoreAsync(id) ? Ok(new { message = "Employee type restored successfully." }) : Missing());
+        StatusResult(await _employeeTypeService.RestoreAsync(id), restore: true));
+
+    private IActionResult StatusResult(EmployeeTypeStatusChangeResult result, bool restore)
+    {
+        if (result == EmployeeTypeStatusChangeResult.Changed)
+            return Ok(new
+            {
+                result = result.ToString(),
+                message = restore ? "Employee type restored successfully." : "Employee type deactivated successfully."
+            });
+
+        var response = Problem(
+            statusCode: result == EmployeeTypeStatusChangeResult.NotFound ? 404 : 409,
+            detail: result switch
+            {
+                EmployeeTypeStatusChangeResult.AlreadyInactive => "The employee type is already inactive.",
+                EmployeeTypeStatusChangeResult.AlreadyActive => "The employee type is already active.",
+                _ => "Employee type not found."
+            });
+        ((ProblemDetails)response.Value!).Extensions["result"] = result.ToString();
+        return response;
+    }
 
     private ObjectResult Missing() => Problem(statusCode: 404, detail: "Employee type not found.");
 

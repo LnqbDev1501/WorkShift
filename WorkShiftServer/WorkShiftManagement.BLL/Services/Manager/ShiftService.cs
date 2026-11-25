@@ -93,7 +93,7 @@ public sealed class ShiftService(IShiftRepo repo, IScheduleWeekRepo weekRepo) : 
         if (shift.Status != "DRAFT")
             throw new InvalidOperationException("Only draft shifts can be changed.");
         if (await repo.HasDependenciesAsync(shiftId, ct))
-            throw new InvalidOperationException("The shift has assignments, checklists or adjustment requests and cannot be changed.");
+            throw new InvalidOperationException("The shift has assignments or adjustment requests and cannot be changed.");
         return shift;
     }
 

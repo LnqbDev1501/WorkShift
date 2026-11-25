@@ -1,8 +1,11 @@
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.AttendanceRule.Response;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
@@ -23,19 +26,25 @@ public class AttendanceRuleService : IAttendanceRuleService
     private readonly INotificationRealtimePublisher _realtimePublisher;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly ILogger<AttendanceRuleService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public AttendanceRuleService(
         IAttendanceRuleRepo attendanceRuleRepo,
         INotificationRepo notificationRepo,
         INotificationRealtimePublisher realtimePublisher,
         IAdminRealtimePublisher adminRealtimePublisher,
-        ILogger<AttendanceRuleService> logger)
+        ILogger<AttendanceRuleService> logger,
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _attendanceRuleRepo = attendanceRuleRepo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _adminRealtimePublisher = adminRealtimePublisher;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AttendanceRuleListResponse> GetAttendanceRulesAsync(GetAttendanceRulesRequest request, CancellationToken cancellationToken)
@@ -90,6 +99,12 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException($"An attendance rule with the name '{normalizedName}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendanceRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, null, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         var rule = new AttendanceRule
         {
             RuleName = normalizedName,
@@ -136,6 +151,12 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException($"An attendance rule with the name '{normalizedName}' already exists.");
         }
 
+        var existingRuleOnDate = await _attendanceRuleRepo.GetRuleByEffectiveDateAsync(request.EffectiveFrom!.Value, id, cancellationToken);
+        if (existingRuleOnDate != null)
+        {
+            throw new InvalidOperationException($"An attendance rule '{existingRuleOnDate.RuleName}' ({existingRuleOnDate.Status}) already exists for effective date {request.EffectiveFrom.Value:dd/MM/yyyy}. Please choose a different date.");
+        }
+
         rule.RuleName = normalizedName;
         rule.Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim();
         rule.CheckInBeforeMinutes = request.CheckInBeforeMinutes!.Value;
@@ -172,9 +193,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value <= today)
+        if (!rule.EffectiveFrom.HasValue || rule.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed or is today. Please update EffectiveFrom to a future date before publishing.");
+            throw new ArgumentException($"The effective date ({(rule.EffectiveFrom.HasValue ? rule.EffectiveFrom.Value.ToString("yyyy-MM-dd") : "N/A")}) has already passed. Please update EffectiveFrom to today or a future date before publishing.");
         }
 
         var existingScheduled = await _attendanceRuleRepo.GetScheduledRuleAsync(cancellationToken);
@@ -189,14 +210,49 @@ public class AttendanceRuleService : IAttendanceRuleService
             throw new InvalidOperationException("The effective date must be after the current active version.");
         }
 
+        var oldSnapshot = new
+        {
+            rule.Status,
+            rule.PublishedBy,
+            rule.PublishedAt,
+            rule.EffectiveFrom
+        };
+
         rule.Status = StatusScheduled;
         rule.PublishedBy = adminUserId;
         rule.PublishedAt = DateTime.UtcNow;
         rule.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _attendanceRuleRepo.UpdateAsync(rule, cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "PUBLISH_ATTENDANCE_RULE",
+                tableName: "attendance_rules",
+                recordId: updated.AttendanceRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    updated.AttendanceRuleId,
+                    updated.RuleName,
+                    updated.Status,
+                    updated.EffectiveFrom,
+                    updated.PublishedBy,
+                    updated.PublishedAt
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         await SendPublishNotificationAsync(rule, adminUserId);
+
+        if (rule.EffectiveFrom.Value <= today)
+        {
+            await ActivateDueAsync(cancellationToken);
+            updated = await _attendanceRuleRepo.GetByIdAsync(id, cancellationToken) ?? updated;
+        }
 
         return Map(updated);
     }
@@ -222,6 +278,13 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var previousStatus = rule.Status;
+        var oldSnapshot = new
+        {
+            Status = previousStatus,
+            rule.CancelledBy,
+            rule.CancelledAt,
+            rule.CancellationReason
+        };
         var now = DateTime.UtcNow;
 
         rule.Status = StatusCancelled;
@@ -231,6 +294,27 @@ public class AttendanceRuleService : IAttendanceRuleService
         rule.UpdatedAt = now;
 
         await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+        _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CANCEL_ATTENDANCE_RULE",
+                tableName: "attendance_rules",
+                recordId: rule.AttendanceRuleId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    rule.AttendanceRuleId,
+                    rule.RuleName,
+                    rule.Status,
+                    rule.CancelledBy,
+                    rule.CancelledAt,
+                    rule.CancellationReason
+                },
+                actorUserId: adminUserId,
+                cancellationToken: cancellationToken);
+        }
 
         if (previousStatus == StatusScheduled)
         {
@@ -263,6 +347,7 @@ public class AttendanceRuleService : IAttendanceRuleService
             nextRule.UpdatedAt = now;
 
             await _attendanceRuleRepo.SaveChangesAsync(cancellationToken);
+            _memoryCache?.Remove(WorkShiftCacheKeys.ActiveAttendanceRule);
 
             await SendActiveNotificationAsync(nextRule);
             await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new { action = "ACTIVATED" });
@@ -491,9 +576,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 100)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 100.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom
@@ -503,9 +588,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
     }
 
@@ -551,9 +636,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         // 5. MaxAttendanceDistanceMeters
-        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 100)
+        if (!request.MaxAttendanceDistanceMeters.HasValue || request.MaxAttendanceDistanceMeters.Value < 1 || request.MaxAttendanceDistanceMeters.Value > 20)
         {
-            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 100.");
+            throw new ArgumentException("maxAttendanceDistanceMeters must be a valid integer number between 1 and 20.");
         }
 
         // 6. EffectiveFrom
@@ -563,9 +648,9 @@ public class AttendanceRuleService : IAttendanceRuleService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
-        if (request.EffectiveFrom.Value <= today)
+        if (request.EffectiveFrom.Value < today)
         {
-            throw new ArgumentException("Effective From date must be in the future (after today).");
+            throw new ArgumentException("Effective From date must not be in the past.");
         }
     }
 

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
@@ -19,17 +19,17 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
     {
         var user = await repo.GetActorAsync(actor, ct);
         if (user == null || user.DeletedAt != null || user.Status != "ACTIVE" || user.Role.Status != "ACTIVE")
-            throw new UnauthorizedAccessException("Tài khoản không có quyền xử lý lương.");
+            throw new UnauthorizedAccessException("User is not authorized to manage payroll.");
         if (!write && user.Role.RoleName == "ADMIN") return null;
         if (user.Role.RoleName != "ACCOUNTANT" || user.BranchId == null)
-            throw new UnauthorizedAccessException("Chỉ Accountant được tính lương tại chi nhánh được phân công.");
+            throw new UnauthorizedAccessException("Only Accountants can calculate payroll for their assigned branch.");
         return user.BranchId;
     }
 
     private async Task<PayrollPeriod> Period(int id, int? branchId, CancellationToken ct)
     {
-        if (id <= 0) throw new ArgumentException("Payroll Period ID không hợp lệ.");
-        return await repo.GetPeriodAsync(id, branchId, ct) ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương trong phạm vi được phép.");
+        if (id <= 0) throw new ArgumentException("Invalid Payroll Period ID.");
+        return await repo.GetPeriodAsync(id, branchId, ct) ?? throw new KeyNotFoundException("Payroll period not found within authorized scope.");
     }
 
     private static EmployeeCalculationReadiness Readiness(PayrollCalculationInputs inputs, Guid user, Guid actor)
@@ -44,7 +44,7 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
             TimesheetId = sheet?.TimesheetId, ExistingPayrollId = existing?.PayrollId, ExistingPayrollStatus = existing?.Status
         };
         if (inputs.Adjustments.Any(a => a.UserId == user && !a.IsDeleted && a.ApprovalStatus == "PENDING"))
-            result.Warnings.Add("Có thưởng/phạt PENDING; chỉ khoản APPROVED được đưa vào kết quả tính.");
+            result.Warnings.Add("Pending rewards/penalties exist; only APPROVED items are included in calculation results.");
         try { PayrollCalculationPolicy.Build(inputs, user, actor, DateTime.UtcNow); result.CanCalculate = true; }
         catch (InvalidOperationException ex) { result.BlockingReasons.Add(ex.Message); }
         return result;
@@ -61,16 +61,16 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
 
     public async Task<CalculationInputResponse> GetEmployeeInputsAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
     {
-        if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
+        if (userId == Guid.Empty) throw new ArgumentException("Invalid User ID.");
         var scope = await Scope(actor, true, ct);
         var period = await Period(periodId, scope, ct);
         var input = await repo.GetInputsAsync(period, ct);
-        if (!input.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
+        if (!input.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Staff member does not belong to this payroll period.");
         var result = new CalculationInputResponse { PayrollPeriodId = periodId, PeriodStatus = period.Status,
             BranchName = period.BranchNameSnapshot, Readiness = Readiness(input, userId, actor) };
         // Raw, available sources for inspection. They are not a successful Payroll calculation.
         foreach (var t in input.Timesheets.Where(t => t.UserId == userId))
-            result.Sources.Add(new() { Type = "TIMESHEET", SourceId = t.TimesheetId, Description = "Bảng công", Status = t.Status, Minutes = t.TotalWorkMinutes });
+            result.Sources.Add(new() { Type = "TIMESHEET", SourceId = t.TimesheetId, Description = "Timesheet", Status = t.Status, Minutes = t.TotalWorkMinutes });
         foreach (var a in input.Assignments.Where(a => a.UserId == userId).OrderBy(a => a.Shift.ScheduledStartAt))
         {
             result.Sources.Add(new() { Type = "WORK", SourceId = a.AssignmentId, Description = a.Shift.ShiftNameSnapshot,
@@ -83,7 +83,7 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
                     Description = penalty.ViolationType, Amount = penalty.PenaltyAmount, Status = penalty.Status });
         }
         foreach (var salary in input.Salaries.Where(s => s.UserId == userId).OrderBy(s => s.EffectiveFrom))
-            result.Sources.Add(new() { Type = "SALARY", SourceId = salary.SalaryHistoryId, Description = salary.Reason ?? "Mức lương theo giờ",
+            result.Sources.Add(new() { Type = "SALARY", SourceId = salary.SalaryHistoryId, Description = salary.Reason ?? "Hourly salary rate",
                 Rate = salary.HourlyRate, Status = salary.Status, EffectiveFrom = salary.EffectiveFrom, EffectiveTo = salary.EffectiveTo });
         foreach (var adjustment in input.Adjustments.Where(a => a.UserId == userId && !a.IsDeleted).OrderBy(a => a.CreatedAt))
             result.Sources.Add(new() { Type = adjustment.AdjustmentType, SourceId = adjustment.RewardPenaltyId,
@@ -103,11 +103,11 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
     // Use the same pure policy as persistence, without Add, Save, Audit or balance updates.
     public async Task<PayrollCalculationResponse> PreviewEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
     {
-        if (userId == Guid.Empty) throw new ArgumentException("User ID không hợp lệ.");
+        if (userId == Guid.Empty) throw new ArgumentException("Invalid User ID.");
         var scope = await Scope(actor, true, ct);
         var period = await Period(periodId, scope, ct);
         var inputs = await repo.GetInputsAsync(period, ct);
-        if (!inputs.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Nhân viên không thuộc kỳ lương.");
+        if (!inputs.EmployeeIds.Contains(userId)) throw new KeyNotFoundException("Staff member does not belong to this payroll period.");
         var ready = Readiness(inputs, userId, actor);
         if (!ready.CanCalculate) throw new PayrollCalculationBlockedException(ready);
         return Preview(PayrollCalculationPolicy.Build(inputs, userId, actor, DateTime.UtcNow));
@@ -117,7 +117,7 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
     {
         var scope = await Scope(actor, true, ct);
         var period = await Period(periodId, scope, ct);
-        if (period.Status is not ("OPEN" or "CALCULATED")) throw new InvalidOperationException("Kỳ phải OPEN hoặc CALCULATED.");
+        if (period.Status is not ("OPEN" or "CALCULATED")) throw new InvalidOperationException("Period must be in OPEN or CALCULATED status.");
         var inputs = await repo.GetInputsAsync(period, ct);
         var result = new CalculationBatchResponse { PayrollPeriodId = periodId, PeriodStatus = period.Status };
         foreach (var userId in inputs.EmployeeIds.Where(id => !inputs.Payrolls.Any(p => p.UserId == id)))
@@ -140,7 +140,7 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
     }
 
     public Task<PayrollCalculationResponse> CalculateEmployeeAsync(Guid actor, int periodId, Guid userId, CancellationToken ct)
-        => throw new InvalidOperationException("Lần đầu phải tính toàn kỳ. Payroll bị yêu cầu sửa sử dụng /payrolls/{id}/recalculate.");
+        => throw new InvalidOperationException("Initial calculation must cover the entire period. Rejected payrolls must use /payrolls/{id}/recalculate.");
 
     public async Task<CalculationBatchResponse> CalculatePeriodAsync(Guid actor, int periodId, CancellationToken ct)
     {
@@ -155,10 +155,10 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
                 && inputs.EmployeeIds.ToHashSet().SetEquals(inputs.Payrolls.Select(p => p.UserId))
                 && inputs.Payrolls.All(p => p.Status == "CALCULATED"))
                 return new() { PayrollPeriodId = periodId, PeriodStatus = period.Status, Payrolls = inputs.Payrolls.Select(Map).ToList() };
-            throw new InvalidOperationException("Chỉ tính lần đầu khi kỳ OPEN; bản sửa phải qua Correction Request.");
+            throw new InvalidOperationException("Initial whole-period calculation is only allowed when period is OPEN; revisions must go through Correction Request.");
         }
         if (inputs.EmployeeIds.Count == 0 || inputs.Payrolls.Count != 0)
-            throw new InvalidOperationException("Kỳ phải có nhân viên và chưa có Payroll trước lần tính toàn kỳ.");
+            throw new InvalidOperationException("Period must contain employees and have no existing Payroll records prior to initial full calculation.");
         // Build all results before persisting anything. Any source or storage failure rolls back the entire batch.
         var now = DateTime.UtcNow;
         var results = inputs.EmployeeIds.Select(id => PayrollCalculationPolicy.Build(inputs, id, actor, now)).ToList();
@@ -176,11 +176,11 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
         var scope = await Scope(actor, false, ct);
         await Period(periodId, scope, ct);
         if (query.Page < 1 || query.PageSize is < 1 or > 100 || (long)(query.Page - 1) * query.PageSize > int.MaxValue)
-            throw new ArgumentException("Page >= 1, PageSize từ 1 đến 100 và chỉ số trang không vượt giới hạn.");
-        if (query.UserId == Guid.Empty || query.Keyword?.Length > 200) throw new ArgumentException("UserId/Keyword không hợp lệ.");
+            throw new ArgumentException("Page must be >= 1, PageSize between 1 and 100, and page index within range.");
+        if (query.UserId == Guid.Empty || query.Keyword?.Length > 200) throw new ArgumentException("Invalid UserId or Keyword parameter.");
         var status = string.IsNullOrWhiteSpace(query.Status) ? null : query.Status.Trim().ToUpperInvariant();
         if (status != null && status is not ("CALCULATED" or "SUBMITTED" or "REJECTED" or "APPROVED" or "PAID" or "REPLACED"))
-            throw new ArgumentException("Trạng thái Payroll không hợp lệ.");
+            throw new ArgumentException("Invalid Payroll status.");
         var (items, count) = await repo.GetPayrollsAsync(periodId, query.Keyword, query.UserId, status, query.Page, query.PageSize, ct);
         return new PagedResponse<PayrollCalculationResponse> { Items = items.Select(Map).ToList(),
             PageNumber = query.Page, PageSize = query.PageSize, TotalItems = count };
@@ -189,9 +189,9 @@ public sealed class PayrollCalculationService(IPayrollCalculationRepo repo) : IP
     public async Task<PayrollCalculationResponse> GetPayrollAsync(Guid actor, int payrollId, CancellationToken ct)
     {
         var scope = await Scope(actor, false, ct);
-        if (payrollId <= 0) throw new ArgumentException("Payroll ID không hợp lệ.");
+        if (payrollId <= 0) throw new ArgumentException("Invalid Payroll ID.");
         var payroll = await repo.GetPayrollAsync(payrollId, scope, ct)
-            ?? throw new KeyNotFoundException("Không tìm thấy Payroll trong phạm vi được phép.");
+            ?? throw new KeyNotFoundException("Payroll record not found within authorized scope.");
         return Map(payroll);
     }
 

@@ -1,0 +1,100 @@
+﻿@model UI_Admin.Models.Manager.ManagerCategoryDetailViewModel
+
+@{
+    ViewData["Title"] = $"Category - {Model.CategoryName}";
+    var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex items-center">
+        <a asp-controller="ManagerCategories" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Categories</span>
+        </a>
+    </div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex items-center gap-unit-3 min-w-0 flex-1">
+            <div class="flex flex-col min-w-0">
+                <div class="list-eyebrow">Product Catalog</div>
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight break-words break-all [overflow-wrap:anywhere]">@Model.CategoryName</h1>
+            </div>
+            @if (isActive)
+            {
+                <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700 shrink-0">Active</span>
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary shrink-0">Inactive</span>
+            }
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-unit-4">
+        <!-- General Info -->
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-6 min-w-0">
+            <div class="flex items-center gap-2.5 pb-unit-4 border-b border-surface-container-highest">
+                <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[20px]">category</span>
+                </span>
+                <h2 class="font-title-md text-title-md text-on-surface">General Information</h2>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-unit-4 gap-x-unit-6 pt-unit-4">
+                <div class="flex flex-col min-w-0">
+                    <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Category Name</span>
+                    <span class="font-body-md-medium text-on-surface text-body-md mt-0.5 font-semibold break-words break-all [overflow-wrap:anywhere]">@Model.CategoryName</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                    <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Status</span>
+                    <span class="font-body-md-medium text-body-md mt-0.5 font-semibold @(isActive ? "text-emerald-700" : "text-secondary")">@Model.Status</span>
+                </div>
+                <div class="flex flex-col sm:col-span-2 min-w-0">
+                    <span class="font-label-sm text-secondary uppercase tracking-wider text-[11px]">Description</span>
+                    <span class="font-body-md text-on-surface text-body-md mt-0.5 break-words break-all [overflow-wrap:anywhere]">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products in Category -->
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm p-unit-6 min-w-0">
+            <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-highest">
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="p-2 rounded-lg bg-surface-container text-primary flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+                    </span>
+                    <h2 class="font-title-md text-title-md text-on-surface truncate">Products (@Model.ProductCount)</h2>
+                </div>
+                @if (isActive)
+                {
+                    <a asp-controller="ManagerProducts" asp-action="Create" class="inline-flex items-center gap-1 h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors shrink-0">
+                        <span class="material-symbols-outlined text-[16px]">add</span>
+                        <span>Add Product</span>
+                    </a>
+                }
+            </div>
+            <div class="pt-unit-4 space-y-unit-2 max-h-[420px] overflow-y-auto">
+                @if (Model.Products.Count == 0)
+                {
+                    <p class="font-body-md text-body-md text-secondary italic">No products in this category yet.</p>
+                }
+                else
+                {
+                    @foreach (var product in Model.Products)
+                    {
+                        var productActive = product.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                        <a asp-controller="ManagerProducts" asp-action="Details" asp-route-id="@product.ProductId" class="flex items-center justify-between gap-unit-3 p-unit-3 rounded-xl hover:bg-surface-container-low transition-colors border border-transparent hover:border-surface-container-high min-w-0">
+                            <div class="flex flex-col min-w-0 flex-1">
+                                <span class="font-body-md-medium text-body-md-medium @(productActive ? "text-on-surface" : "text-secondary") truncate" title="@product.ProductName">
+                                    @(product.ProductName != null && product.ProductName.Length > 50 ? product.ProductName.Substring(0, 50) + "..." : product.ProductName)
+                                </span>
+                                <span class="font-code-num text-[12px] text-secondary truncate">@product.ProductCode • @product.BranchName • @UI_Admin.Helpers.CurrencyHelper.FormatVnd(product.Price)</span>
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm shrink-0 @(productActive ? "bg-emerald-50 text-emerald-700" : "bg-surface-container text-secondary")">
+                                @(productActive ? "Active" : "Inactive")
+                            </span>
+                        </a>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

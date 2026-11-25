@@ -1,0 +1,391 @@
+@using UI_Admin.Helpers
+@using UI_Admin.Models.Staff.Requests
+
+@{
+    Layout = "_StaffLayout";
+    ViewData["Title"] = "Create New Request";
+    var requestType = (string)(ViewBag.RequestType ?? "LEAVE");
+    var eligibleShifts = (IReadOnlyList<StaffEligibleShiftViewModel>)(ViewBag.EligibleShifts ?? new List<StaffEligibleShiftViewModel>());
+}
+
+<div class="p-6 max-w-[1000px] mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex items-center justify-between bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <div class="flex items-center gap-3">
+            <a asp-controller="StaffEmployeeRequests" asp-action="Index"
+               class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors shrink-0 shadow-sm"
+               title="Cancel">
+                <span class="material-symbols-outlined text-[20px]">close</span>
+            </a>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900">Create New Request</h1>
+                <p class="text-xs text-gray-500 mt-0.5">Select request type, choose applicable shift(s), and state your reason for the branch manager.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error/Success Alerts -->
+    @if (TempData["ErrorMessage"] is string err)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
+            <span class="material-symbols-outlined text-rose-600 text-[20px]">error</span>
+            <span>@err</span>
+        </div>
+    }
+
+    <!-- Type Selection Tabs -->
+    <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-xl border border-gray-200/60 max-w-md">
+        <a asp-action="Create" asp-route-type="LEAVE"
+           class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all @(requestType == "LEAVE" ? "bg-white text-blue-700 shadow-sm" : "text-gray-600 hover:text-gray-900")">
+            Leave (LEAVE)
+        </a>
+        <a asp-action="Create" asp-route-type="LATE_ARRIVAL"
+           class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all @(requestType == "LATE_ARRIVAL" ? "bg-white text-amber-700 shadow-sm" : "text-gray-600 hover:text-gray-900")">
+            Late Arrival (LATE)
+        </a>
+        <a asp-action="Create" asp-route-type="EARLY_LEAVE"
+           class="flex-1 py-2 text-center text-xs font-semibold rounded-lg transition-all @(requestType == "EARLY_LEAVE" ? "bg-white text-purple-700 shadow-sm" : "text-gray-600 hover:text-gray-900")">
+            Early Leave (EARLY)
+        </a>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+
+        @if (requestType == "LEAVE")
+        {
+            <!-- Form Leave -->
+            <form method="post" asp-action="CreateLeave" class="space-y-6">
+                @Html.AntiForgeryToken()
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        1. Select shift(s) for leave <span class="text-rose-500">*</span>
+                    </label>
+
+                    @if (!eligibleShifts.Any())
+                    {
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                            You currently have no upcoming shifts eligible for leave requests.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                            @foreach (var shift in eligibleShifts)
+                            {
+                                <label class="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 hover:bg-gray-50/80 cursor-pointer transition-colors">
+                                    <input type="checkbox" name="assignmentIds" value="@shift.AssignmentId" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
+                                    <div class="flex-1 text-xs">
+                                        <div class="font-bold text-gray-900">@shift.ShiftName</div>
+                                        <div class="text-gray-500 mt-0.5">
+                                            Time: <strong class="text-gray-700">@DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)</strong>
+                                            &bull; Branch: @shift.BranchName
+                                        </div>
+                                    </div>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label for="leaveReason" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        2. Reason for leave <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="leaveReason" name="reason" rows="4" required maxlength="500"
+                              placeholder="State your reason for requesting leave..."
+                              class="w-full p-3.5 bg-gray-50 rounded-xl text-sm text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a asp-action="Index" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</a>
+                    <button type="submit" class="px-5 py-2.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-colors cursor-pointer">
+                        Submit Leave Request
+                    </button>
+                </div>
+            </form>
+        }
+        else if (requestType == "LATE_ARRIVAL")
+        {
+            <!-- Form Late Arrival -->
+            <form id="lateArrivalForm" method="post" asp-action="CreateLateArrival" class="space-y-6">
+                @Html.AntiForgeryToken()
+
+                <div>
+                    <label for="lateShiftSelect" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        1. Select shift for late arrival <span class="text-rose-500">*</span>
+                    </label>
+
+                    @if (!eligibleShifts.Any())
+                    {
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                            You currently have no upcoming shifts eligible for late arrival requests.
+                        </div>
+                    }
+                    else
+                    {
+                        <select id="lateShiftSelect" name="assignmentId" required class="w-full h-11 px-3 bg-gray-50 rounded-xl text-xs text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                            <option value="">-- Select a shift --</option>
+                            @foreach (var shift in eligibleShifts)
+                            {
+                                var vnStart = shift.ScheduledStartAt.ToUniversalTime().AddHours(7);
+                                var vnEnd = shift.ScheduledEndAt.ToUniversalTime().AddHours(7);
+                                <option value="@shift.AssignmentId"
+                                        data-start="@vnStart.ToString("yyyy-MM-ddTHH:mm")"
+                                        data-end="@vnEnd.ToString("yyyy-MM-ddTHH:mm")"
+                                        data-display-start="@vnStart.ToString("HH:mm dd/MM/yyyy")"
+                                        data-display-end="@vnEnd.ToString("HH:mm dd/MM/yyyy")"
+                                        data-shift-name="@shift.ShiftName">
+                                    @shift.ShiftName (@DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)) - @shift.BranchName
+                                </option>
+                            }
+                        </select>
+                        <div id="lateShiftInfoBox" class="hidden mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+                            <span class="material-symbols-outlined text-amber-600 text-base mt-0.5">schedule</span>
+                            <div>
+                                <div class="font-bold text-amber-950" id="lateShiftInfoName">Work Shift</div>
+                                <div class="text-amber-800 mt-0.5" id="lateShiftInfoTime">Shift hours: --</div>
+                                <div class="text-[11px] text-amber-700/90 mt-1">📌 Requested arrival time must be within the scheduled shift duration above.</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label for="requestedTimeLate" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        2. Requested Arrival Time (VN Time) <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="datetime-local" id="requestedTimeLate" name="requestedTime" required
+                           class="w-full sm:w-auto h-11 px-3.5 bg-gray-50 rounded-xl text-xs text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+                    <p id="lateTimeHint" class="text-[11px] text-gray-400 mt-1">Requested arrival time must be within the scheduled shift duration.</p>
+                    <div id="lateTimeError" class="hidden mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
+                        <span class="material-symbols-outlined text-rose-600 text-sm">error</span>
+                        <span id="lateTimeErrorMsg">Invalid time.</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="lateReason" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        3. Reason for late arrival <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="lateReason" name="reason" rows="4" required maxlength="500"
+                              placeholder="State your reason for late arrival..."
+                              class="w-full p-3.5 bg-gray-50 rounded-xl text-sm text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a asp-action="Index" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</a>
+                    <button type="submit" class="px-5 py-2.5 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-sm transition-colors cursor-pointer">
+                        Submit Late Arrival Request
+                    </button>
+                </div>
+            </form>
+        }
+        else if (requestType == "EARLY_LEAVE")
+        {
+            <!-- Form Early Leave -->
+            <form id="earlyLeaveForm" method="post" asp-action="CreateEarlyLeave" class="space-y-6">
+                @Html.AntiForgeryToken()
+
+                <div>
+                    <label for="earlyShiftSelect" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        1. Select shift for early leave <span class="text-rose-500">*</span>
+                    </label>
+
+                    @if (!eligibleShifts.Any())
+                    {
+                        <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs">
+                            You currently have no upcoming shifts eligible for early leave requests.
+                        </div>
+                    }
+                    else
+                    {
+                        <select id="earlyShiftSelect" name="assignmentId" required class="w-full h-11 px-3 bg-gray-50 rounded-xl text-xs text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                            <option value="">-- Select a shift --</option>
+                            @foreach (var shift in eligibleShifts)
+                            {
+                                var vnStart = shift.ScheduledStartAt.ToUniversalTime().AddHours(7);
+                                var vnEnd = shift.ScheduledEndAt.ToUniversalTime().AddHours(7);
+                                <option value="@shift.AssignmentId"
+                                        data-start="@vnStart.ToString("yyyy-MM-ddTHH:mm")"
+                                        data-end="@vnEnd.ToString("yyyy-MM-ddTHH:mm")"
+                                        data-display-start="@vnStart.ToString("HH:mm dd/MM/yyyy")"
+                                        data-display-end="@vnEnd.ToString("HH:mm dd/MM/yyyy")"
+                                        data-shift-name="@shift.ShiftName">
+                                    @shift.ShiftName (@DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)) - @shift.BranchName
+                                </option>
+                            }
+                        </select>
+                        <div id="earlyShiftInfoBox" class="hidden mt-2 p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-start gap-2.5">
+                            <span class="material-symbols-outlined text-purple-600 text-base mt-0.5">schedule</span>
+                            <div>
+                                <div class="font-bold text-purple-950" id="earlyShiftInfoName">Work Shift</div>
+                                <div class="text-purple-800 mt-0.5" id="earlyShiftInfoTime">Shift hours: --</div>
+                                <div class="text-[11px] text-purple-700/90 mt-1">📌 Requested departure time must be within the scheduled shift duration above.</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div>
+                    <label for="requestedTimeEarly" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        2. Requested Departure Time (VN Time) <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="datetime-local" id="requestedTimeEarly" name="requestedTime" required
+                           class="w-full sm:w-auto h-11 px-3.5 bg-gray-50 rounded-xl text-xs text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <p id="earlyTimeHint" class="text-[11px] text-gray-400 mt-1">Requested departure time must be within the scheduled shift duration.</p>
+                    <div id="earlyTimeError" class="hidden mt-2 p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium flex items-center gap-2">
+                        <span class="material-symbols-outlined text-rose-600 text-sm">error</span>
+                        <span id="earlyTimeErrorMsg">Invalid time.</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="earlyReason" class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        3. Reason for early leave <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="earlyReason" name="reason" rows="4" required maxlength="500"
+                              placeholder="State your reason for early leave..."
+                              class="w-full p-3.5 bg-gray-50 rounded-xl text-sm text-gray-800 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                    <a asp-action="Index" class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">Cancel</a>
+                    <button type="submit" class="px-5 py-2.5 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl shadow-sm transition-colors cursor-pointer">
+                        Submit Early Leave Request
+                    </button>
+                </div>
+            </form>
+        }
+
+    </div>
+
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function setupShiftValidation(selectId, inputId, infoBoxId, infoNameId, infoTimeId, hintId, errorBoxId, errorMsgId, formId, isLate) {
+                const select = document.getElementById(selectId);
+                const input = document.getElementById(inputId);
+                const infoBox = document.getElementById(infoBoxId);
+                const infoName = document.getElementById(infoNameId);
+                const infoTime = document.getElementById(infoTimeId);
+                const hint = document.getElementById(hintId);
+                const errorBox = document.getElementById(errorBoxId);
+                const errorMsg = document.getElementById(errorMsgId);
+                const form = document.getElementById(formId);
+
+                if (!select || !input || !form) return;
+
+                function updateBounds() {
+                    const option = select.options[select.selectedIndex];
+                    if (!option || !option.value) {
+                        if (infoBox) infoBox.classList.add('hidden');
+                        input.removeAttribute('min');
+                        input.removeAttribute('max');
+                        if (errorBox) errorBox.classList.add('hidden');
+                        return;
+                    }
+
+                    const start = option.getAttribute('data-start');
+                    const end = option.getAttribute('data-end');
+                    const displayStart = option.getAttribute('data-display-start');
+                    const displayEnd = option.getAttribute('data-display-end');
+                    const shiftName = option.getAttribute('data-shift-name');
+
+                    if (infoBox && displayStart && displayEnd) {
+                        infoName.textContent = shiftName || 'Work Shift';
+                        infoTime.textContent = 'Shift duration: ' + displayStart + ' to ' + displayEnd;
+                        infoBox.classList.remove('hidden');
+                    }
+
+                    if (start && end) {
+                        input.min = start;
+                        input.max = end;
+                        if (hint) {
+                            hint.textContent = 'Select time between: ' + displayStart + ' and ' + displayEnd;
+                        }
+                    }
+
+                    validateInput();
+                }
+
+                function validateInput() {
+                    const option = select.options[select.selectedIndex];
+                    if (!option || !option.value || !input.value) {
+                        if (errorBox) errorBox.classList.add('hidden');
+                        input.classList.remove('border-rose-500', 'focus:ring-rose-500');
+                        return true;
+                    }
+
+                    const start = option.getAttribute('data-start');
+                    const end = option.getAttribute('data-end');
+                    const displayStart = option.getAttribute('data-display-start');
+                    const displayEnd = option.getAttribute('data-display-end');
+
+                    if (!start || !end) return true;
+
+                    const val = input.value;
+                    const actionName = isLate ? 'late arrival' : 'early leave';
+
+                    if (val <= start || val >= end) {
+                        if (errorBox) {
+                            errorMsg.textContent = 'Requested ' + actionName + ' time must fall within the shift: after ' + displayStart + ' and before ' + displayEnd + '!';
+                            errorBox.classList.remove('hidden');
+                        }
+                        input.classList.add('border-rose-500', 'focus:ring-rose-500');
+                        return false;
+                    } else {
+                        if (errorBox) errorBox.classList.add('hidden');
+                        input.classList.remove('border-rose-500', 'focus:ring-rose-500');
+                        return true;
+                    }
+                }
+
+                select.addEventListener('change', updateBounds);
+                input.addEventListener('input', validateInput);
+                input.addEventListener('change', validateInput);
+
+                form.addEventListener('submit', function (e) {
+                    if (!validateInput()) {
+                        e.preventDefault();
+                        input.focus();
+                    }
+                });
+
+                if (select.value) {
+                    updateBounds();
+                }
+            }
+
+            setupShiftValidation(
+                'lateShiftSelect',
+                'requestedTimeLate',
+                'lateShiftInfoBox',
+                'lateShiftInfoName',
+                'lateShiftInfoTime',
+                'lateTimeHint',
+                'lateTimeError',
+                'lateTimeErrorMsg',
+                'lateArrivalForm',
+                true
+            );
+
+            setupShiftValidation(
+                'earlyShiftSelect',
+                'requestedTimeEarly',
+                'earlyShiftInfoBox',
+                'earlyShiftInfoName',
+                'earlyShiftInfoTime',
+                'earlyTimeHint',
+                'earlyTimeError',
+                'earlyTimeErrorMsg',
+                'earlyLeaveForm',
+                false
+            );
+        });
+    </script>
+}

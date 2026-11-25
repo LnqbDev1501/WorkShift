@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Accountant.PayrollCalculation;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
@@ -34,16 +34,16 @@ public static class PayrollRevisionPolicy
         {
             using var json = JsonDocument.Parse(previous.WorkInputSnapshot ?? "null");
             var rows = JsonSerializer.Deserialize<List<FrozenWork>>(json.RootElement.GetProperty("workDetails").GetRawText(),
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? throw new InvalidOperationException("Snapshot công rỗng.");
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? throw new InvalidOperationException("Attendance snapshot is empty.");
             if (json.RootElement.GetProperty("timesheetId").GetInt32() != previous.TimesheetId
                 || json.RootElement.GetProperty("totalPayableMinutes").GetInt32() != rows.Sum(w => w.PayableMinutes)
                 || rows.Any(w => w.WorkDate < previous.PayrollPeriod.StartDate || w.WorkDate > previous.PayrollPeriod.EndDate)
                 || rows.Any(w => w.SourceAssignmentId <= 0 || w.PayableMinutes < 0 || w.PayableMinutes != w.ActualWorkingMinutes)
                 || rows.Select(w => w.SourceAssignmentId).Distinct().Count() != rows.Count)
-                throw new InvalidOperationException("Snapshot công không hợp lệ.");
+                throw new InvalidOperationException("Attendance snapshot is invalid.");
             return rows;
         }
         catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException)
-        { throw new InvalidOperationException("Payroll cần snapshot công đầy đủ để tạo correction, không đọc lại Attendance hiện tại.", ex); }
+        { throw new InvalidOperationException("Payroll requires complete attendance snapshot to create correction; current Attendance table cannot be re-read.", ex); }
     }
 }

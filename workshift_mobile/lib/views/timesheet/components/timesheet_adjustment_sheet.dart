@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/staff_timesheet_model.dart';
+import '../../../models/timesheet/staff_timesheet_model.dart';
 import '../../../theme/app_colors.dart';
 
 class ShiftAdjustmentConfig {
@@ -37,7 +37,8 @@ class TimesheetAdjustmentSheet extends StatefulWidget {
   static Future<bool?> show(
     BuildContext context, {
     required List<StaffShiftAttendanceModel> selectedShifts,
-    required Future<String?> Function(List<ShiftAdjustmentItemInput> items) onSubmit,
+    required Future<String?> Function(List<ShiftAdjustmentItemInput> items)
+    onSubmit,
     int checkInBeforeMinutes = 30,
     int checkOutAfterMinutes = 60,
   }) {
@@ -55,7 +56,8 @@ class TimesheetAdjustmentSheet extends StatefulWidget {
   }
 
   @override
-  State<TimesheetAdjustmentSheet> createState() => _TimesheetAdjustmentSheetState();
+  State<TimesheetAdjustmentSheet> createState() =>
+      _TimesheetAdjustmentSheetState();
 }
 
 class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
@@ -70,8 +72,14 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
       final scheduledStart = s.scheduledStartAt.toLocal();
       final scheduledEnd = s.scheduledEndAt.toLocal();
 
-      final defaultIn = TimeOfDay(hour: scheduledStart.hour, minute: scheduledStart.minute);
-      final defaultOut = TimeOfDay(hour: scheduledEnd.hour, minute: scheduledEnd.minute);
+      final defaultIn = TimeOfDay(
+        hour: scheduledStart.hour,
+        minute: scheduledStart.minute,
+      );
+      final defaultOut = TimeOfDay(
+        hour: scheduledEnd.hour,
+        minute: scheduledEnd.minute,
+      );
 
       // Default checkbox heuristic considering granular locks:
       bool initAdjustIn = false;
@@ -85,7 +93,8 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
         initAdjustOut = false;
       } else if (!s.isCheckInLocked && !s.isCheckOutLocked) {
         final needCheckIn = s.checkInTime == null || s.totalLateMinutes > 0;
-        final needCheckOut = s.checkOutTime == null || s.totalEarlyLeaveMinutes > 0;
+        final needCheckOut =
+            s.checkOutTime == null || s.totalEarlyLeaveMinutes > 0;
         initAdjustIn = needCheckIn || !needCheckOut;
         initAdjustOut = needCheckOut;
       }
@@ -148,7 +157,13 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
 
   DateTime _resolveDateTime(DateTime reference, TimeOfDay tod) {
     final refLocal = reference.toLocal();
-    final c1 = DateTime(refLocal.year, refLocal.month, refLocal.day, tod.hour, tod.minute);
+    final c1 = DateTime(
+      refLocal.year,
+      refLocal.month,
+      refLocal.day,
+      tod.hour,
+      tod.minute,
+    );
     final c2 = c1.subtract(const Duration(days: 1));
     final c3 = c1.add(const Duration(days: 1));
 
@@ -176,21 +191,24 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
 
       if (!cfg.adjustCheckIn && !cfg.adjustCheckOut) {
         setState(() {
-          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Please select at least one time adjustment (Check-In or Check-Out).';
+          _errorMessage =
+              'Shift #${i + 1} (${shift.shiftName}): Please select at least one time adjustment (Check-In or Check-Out).';
         });
         return;
       }
 
       if (cfg.adjustCheckIn && shift.isCheckInLocked) {
         setState(() {
-          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-in adjustment is locked and cannot be resubmitted.';
+          _errorMessage =
+              'Shift #${i + 1} (${shift.shiftName}): Check-in adjustment is locked and cannot be resubmitted.';
         });
         return;
       }
 
       if (cfg.adjustCheckOut && shift.isCheckOutLocked) {
         setState(() {
-          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-out adjustment is locked and cannot be resubmitted.';
+          _errorMessage =
+              'Shift #${i + 1} (${shift.shiftName}): Check-out adjustment is locked and cannot be resubmitted.';
         });
         return;
       }
@@ -198,7 +216,8 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
       final reason = cfg.reasonController.text.trim();
       if (reason.isEmpty) {
         setState(() {
-          _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Please enter a reason for the adjustment.';
+          _errorMessage =
+              'Shift #${i + 1} (${shift.shiftName}): Please enter a reason for the adjustment.';
         });
         return;
       }
@@ -212,17 +231,21 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
 
       // 1. Validate Check-in bounds
       if (requestedIn != null) {
-        final earliestInUtc = shift.scheduledStartAt.subtract(Duration(minutes: widget.checkInBeforeMinutes));
+        final earliestInUtc = shift.scheduledStartAt.subtract(
+          Duration(minutes: widget.checkInBeforeMinutes),
+        );
         if (requestedIn.isBefore(earliestInUtc)) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Earliest allowed Check-in is ${_formatDateTimeTime(earliestInUtc)} (${widget.checkInBeforeMinutes}m before shift start).';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Earliest allowed Check-in is ${_formatDateTimeTime(earliestInUtc)} (${widget.checkInBeforeMinutes}m before shift start).';
           });
           return;
         }
 
         if (requestedIn.isAfter(nowUtc)) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-in time cannot be in the future.';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Check-in time cannot be in the future.';
           });
           return;
         }
@@ -230,17 +253,21 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
 
       // 2. Validate Check-out bounds
       if (requestedOut != null) {
-        final latestOutUtc = shift.scheduledEndAt.add(Duration(minutes: widget.checkOutAfterMinutes));
+        final latestOutUtc = shift.scheduledEndAt.add(
+          Duration(minutes: widget.checkOutAfterMinutes),
+        );
         if (requestedOut.isAfter(latestOutUtc)) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Latest allowed Check-out is ${_formatDateTimeTime(latestOutUtc)} (${widget.checkOutAfterMinutes}m after shift end).';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Latest allowed Check-out is ${_formatDateTimeTime(latestOutUtc)} (${widget.checkOutAfterMinutes}m after shift end).';
           });
           return;
         }
 
         if (requestedOut.isAfter(nowUtc)) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-out time cannot be in the future.';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Check-out time cannot be in the future.';
           });
           return;
         }
@@ -253,14 +280,16 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
       if (effectiveIn != null && effectiveOut != null) {
         if (!effectiveOut.isAfter(effectiveIn)) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Check-in time (${_formatDateTimeTime(effectiveIn)}) must be earlier than Check-out time (${_formatDateTimeTime(effectiveOut)}).';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Check-in time (${_formatDateTimeTime(effectiveIn)}) must be earlier than Check-out time (${_formatDateTimeTime(effectiveOut)}).';
           });
           return;
         }
 
         if (effectiveOut.difference(effectiveIn).inMinutes < 15) {
           setState(() {
-            _errorMessage = 'Shift #${i + 1} (${shift.shiftName}): Proposed working duration must be at least 15 minutes.';
+            _errorMessage =
+                'Shift #${i + 1} (${shift.shiftName}): Proposed working duration must be at least 15 minutes.';
           });
           return;
         }
@@ -355,7 +384,10 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                         const SizedBox(height: 2),
                         Text(
                           '${_configs.length} shift(s) selected for adjustment',
-                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -382,12 +414,20 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: AppColors.error,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(fontSize: 12, color: AppColors.error, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
@@ -423,19 +463,27 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.send_rounded, size: 18),
                   label: Text(
                     _isSubmitting
                         ? 'Submitting Request...'
                         : 'Submit Adjustment (${_configs.length} Shifts)',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                 ),
@@ -470,12 +518,19 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                   children: [
                     Text(
                       'Shift #${index + 1}: ${shift.shiftName}',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${shift.dateDisplay} (${shift.scheduledRangeDisplay})',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -488,7 +543,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 ),
                 child: Text(
                   shift.attendanceStatus,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -506,11 +565,18 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.history_rounded, size: 14, color: AppColors.textMuted),
+                const Icon(
+                  Icons.history_rounded,
+                  size: 14,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   'Recorded: Check-in: ${shift.checkInDisplay} • Check-out: ${shift.checkOutDisplay}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -524,7 +590,9 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
               Checkbox(
                 value: shift.isCheckInLocked ? false : cfg.adjustCheckIn,
                 activeColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
                 onChanged: shift.isCheckInLocked
                     ? null
                     : (val) {
@@ -536,7 +604,9 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: shift.isCheckInLocked ? AppColors.textMuted : AppColors.textPrimary,
+                  color: shift.isCheckInLocked
+                      ? AppColors.textMuted
+                      : AppColors.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -553,7 +623,10 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -562,7 +635,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _formatTimeOfDay(cfg.requestedCheckIn),
@@ -577,7 +654,10 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                   ),
                 )
               else
-                const Text('Keep current', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                const Text(
+                  'Keep current',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
             ],
           ),
 
@@ -588,9 +668,13 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 shift.checkInLockReason == 'APPROVED'
                     ? 'Check-in was already approved and cannot be adjusted again.'
                     : (shift.checkInLockReason == 'REJECTED'
-                        ? 'Check-in was rejected by manager and cannot be adjusted again.'
-                        : 'Check-in adjustment request is currently pending manager review.'),
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                          ? 'Check-in was rejected by manager and cannot be adjusted again.'
+                          : 'Check-in adjustment request is currently pending manager review.'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             )
           else if (cfg.adjustCheckIn)
@@ -598,7 +682,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
               padding: const EdgeInsets.only(left: 48, bottom: 6),
               child: Text(
                 'Earliest allowed: ${_formatDateTimeTime(shift.scheduledStartAt.subtract(Duration(minutes: widget.checkInBeforeMinutes)))} (${widget.checkInBeforeMinutes}m before shift)',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
 
@@ -608,7 +696,9 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
               Checkbox(
                 value: shift.isCheckOutLocked ? false : cfg.adjustCheckOut,
                 activeColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
                 onChanged: shift.isCheckOutLocked
                     ? null
                     : (val) {
@@ -620,7 +710,9 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: shift.isCheckOutLocked ? AppColors.textMuted : AppColors.textPrimary,
+                  color: shift.isCheckOutLocked
+                      ? AppColors.textMuted
+                      : AppColors.textPrimary,
                 ),
               ),
               const Spacer(),
@@ -637,7 +729,10 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                   },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -646,7 +741,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.access_time_rounded, size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _formatTimeOfDay(cfg.requestedCheckOut),
@@ -661,7 +760,10 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                   ),
                 )
               else
-                const Text('Keep current', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                const Text(
+                  'Keep current',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                ),
             ],
           ),
 
@@ -672,9 +774,13 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
                 shift.checkOutLockReason == 'APPROVED'
                     ? 'Check-out was already approved and cannot be adjusted again.'
                     : (shift.checkOutLockReason == 'REJECTED'
-                        ? 'Check-out was rejected by manager and cannot be adjusted again.'
-                        : 'Check-out adjustment request is currently pending manager review.'),
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                          ? 'Check-out was rejected by manager and cannot be adjusted again.'
+                          : 'Check-out adjustment request is currently pending manager review.'),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             )
           else if (cfg.adjustCheckOut)
@@ -682,7 +788,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
               padding: const EdgeInsets.only(left: 48, bottom: 6),
               child: Text(
                 'Latest allowed: ${_formatDateTimeTime(shift.scheduledEndAt.add(Duration(minutes: widget.checkOutAfterMinutes)))} (${widget.checkOutAfterMinutes}m after shift)',
-                style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
 
@@ -692,8 +802,12 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
           TextField(
             controller: cfg.reasonController,
             decoration: InputDecoration(
-              hintText: 'Reason for adjustment (e.g., Facial scan failed, forgot checkout)...',
-              hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+              hintText:
+                  'Reason for adjustment (e.g., Facial scan failed, forgot checkout)...',
+              hintStyle: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
@@ -706,9 +820,15 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
             maxLines: 2,
             style: const TextStyle(fontSize: 13),
@@ -730,11 +850,19 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF16A34A)),
+            Icon(
+              Icons.check_circle_rounded,
+              size: 12,
+              color: Color(0xFF16A34A),
+            ),
             SizedBox(width: 4),
             Text(
               'Approved (Locked)',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF15803D),
+              ),
             ),
           ],
         ),
@@ -754,7 +882,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
             SizedBox(width: 4),
             Text(
               'Rejected (Locked)',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB91C1C)),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB91C1C),
+              ),
             ),
           ],
         ),
@@ -770,11 +902,19 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFD97706)),
+            Icon(
+              Icons.hourglass_top_rounded,
+              size: 12,
+              color: Color(0xFFD97706),
+            ),
             SizedBox(width: 4),
             Text(
               'Pending Review',
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFFB45309)),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFB45309),
+              ),
             ),
           ],
         ),
@@ -794,7 +934,11 @@ class _TimesheetAdjustmentSheetState extends State<TimesheetAdjustmentSheet> {
           SizedBox(width: 4),
           Text(
             'Locked',
-            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF64748B),
+            ),
           ),
         ],
       ),

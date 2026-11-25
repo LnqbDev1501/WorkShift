@@ -1,0 +1,58 @@
+@model UI_Admin.Models.CreateShiftTemplateViewModel
+@{ ViewData["Title"] = "Create Shift Template"; }
+@section Styles {
+    <link rel="stylesheet" href="~/css/shift-templates.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/shift-template-create.css" asp-append-version="true" />
+}
+<div class="shift-page">
+    <section class="shift-content create-content" aria-labelledby="create-heading">
+        <div class="shift-heading create-heading">
+            <div><span class="create-module">Standard Schedule Module</span><h1 id="create-heading">Create Shift Template</h1><p>Define a standardized, reusable operational shift schedule with baseline start and end hours.</p></div>
+            <div class="create-default"><span class="shift-status is-active">● Default State: Active</span><small>Available for upcoming schedules</small></div>
+        </div>
+        <form asp-action="Create" method="post" id="template-form" class="create-grid">
+            <div class="create-inputs">
+                <div asp-validation-summary="All" class="create-errors" role="alert"></div>
+                <div class="shift-card create-card">
+                    <header><h2><span aria-hidden="true">▤</span> Identity &amp; Classification</h2><small>STEP 1 OF 2</small></header>
+                    <div class="create-field">
+                        <div class="create-label"><label asp-for="ShiftName">Shift Name <span class="required">*</span></label><small id="name-count">0 / 150</small></div>
+                        <input asp-for="ShiftName" maxlength="150" required placeholder="e.g., Morning Shift, Peak Lunch Coverage, Dispatch Wave A" aria-describedby="name-help name-error" />
+                        <small id="name-help">A recognizable name for scheduling supervisors.</small><span asp-validation-for="ShiftName" id="name-error"></span>
+                    </div>
+                    <div class="create-field">
+                        <div class="create-label"><label asp-for="Description">Description <small>(Optional)</small></label><small id="description-count">0 / 500</small></div>
+                        <textarea asp-for="Description" maxlength="500" rows="4" placeholder="Operational guidance, supervisor handover duties, or department tags..." aria-describedby="description-help description-error"></textarea>
+                        <small id="description-help">Additional context for the shift template.</small><span asp-validation-for="Description" id="description-error"></span>
+                    </div>
+                </div>
+                <div class="shift-card create-card">
+                    <header><h2><span aria-hidden="true">◷</span> Shift Timing</h2><small>STEP 2 OF 2 · 24H FORMAT</small></header>
+                    <div class="create-time-grid">
+                        <div class="create-field"><label asp-for="StartTime">Start Time (24h) <span class="required">*</span></label><input asp-for="StartTime" type="text" required maxlength="8" pattern="([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]" placeholder="HH:mm:ss" aria-describedby="start-help start-error" /><small id="start-help">Format: HH:mm:ss (e.g. 08:00:00)</small><span asp-validation-for="StartTime" id="start-error"></span></div>
+                        <div class="create-field"><label asp-for="EndTime">End Time (24h) <span class="required">*</span></label><input asp-for="EndTime" type="text" required maxlength="8" pattern="([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]" placeholder="HH:mm:ss" aria-describedby="end-help end-error" /><small id="end-help">Must be later than start time on the same day.</small><span asp-validation-for="EndTime" id="end-error"></span></div>
+                    </div>
+                    <div id="timing-error" class="create-timing-error" role="status" hidden></div>
+                </div>
+                <div class="create-actions"><a asp-action="List" class="create-cancel">Cancel</a><button type="submit" class="shift-primary" id="create-submit">Create Template</button></div>
+            </div>
+            <aside class="shift-card create-card create-preview" aria-labelledby="preview-heading">
+                <header><div><h2 id="preview-heading"><span aria-hidden="true">▥</span> Live Duration Preview</h2><small>Updates as you enter shift hours</small></div><span id="preview-status" class="shift-status">Awaiting input</span></header>
+                <div class="create-allocation"><span>Shift Duration</span><strong id="ratio">—</strong></div>
+                <div class="create-timeline" aria-hidden="true"><div id="work-bar"></div></div>
+                <div class="create-legend"><span>■ Working Time</span></div>
+                <div class="create-metrics" aria-live="polite" aria-atomic="true">
+                    <div><small>Working Duration</small><strong id="total-duration">—</strong><small id="total-minutes">—</small></div>
+                </div>
+                <div class="create-rules"><small>OPERATIONAL RULE GATES</small><p id="rule-time">○ Valid 24-hour times (HH:mm:ss)</p><p id="rule-day">○ End time later than start; no overnight shifts</p></div>
+                <div class="create-guidance"><strong>Reusable Schedule</strong><p>New templates start as Active. Working duration is the time between the start and end of the shift.</p></div>
+                <noscript><p>Enable JavaScript for the live preview. You can still submit this form; values will be validated when you save.</p></noscript>
+            </aside>
+        </form>
+    </section>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/shift-template-create.js" asp-append-version="true"></script>
+    <script src="~/js/shift-time-picker.js" asp-append-version="true"></script>
+}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -61,10 +61,6 @@ public partial class User
 
     public virtual Branch? Branch { get; set; }
 
-    public virtual ICollection<ChecklistResult> ChecklistResults { get; set; } = new List<ChecklistResult>();
-
-    public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
-
     public virtual ICollection<ContractChangeRequest> ContractChangeRequestRequestedByNavigations { get; set; } = new List<ContractChangeRequest>();
 
     public virtual ICollection<ContractChangeRequest> ContractChangeRequestReviewedByNavigations { get; set; } = new List<ContractChangeRequest>();
@@ -95,7 +91,7 @@ public partial class User
 
     public virtual ICollection<EmploymentContract> EmploymentContractTerminatedByNavigations { get; set; } = new List<EmploymentContract>();
 
-    public virtual EmploymentContract? EmploymentContractUser { get; set; }
+    public virtual ICollection<EmploymentContract> EmploymentContracts { get; set; } = new List<EmploymentContract>();
 
     public virtual FaceProfile? FaceProfile { get; set; }
 
@@ -106,8 +102,6 @@ public partial class User
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-
-    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     public virtual ICollection<Payroll> PayrollApprovedByNavigations { get; set; } = new List<Payroll>();
 
@@ -163,7 +157,7 @@ public partial class User
 
     public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestReviewedByNavigations { get; set; } = new List<SalaryChangeRequest>();
 
-    public virtual SalaryChangeRequest? SalaryChangeRequestUser { get; set; }
+    public virtual ICollection<SalaryChangeRequest> SalaryChangeRequestUsers { get; set; } = new List<SalaryChangeRequest>();
 
     public virtual ICollection<ShiftAssignment> ShiftAssignmentAssignedByNavigations { get; set; } = new List<ShiftAssignment>();
 
@@ -179,7 +173,7 @@ public partial class User
 
     public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryCreatedByNavigations { get; set; } = new List<StaffSalaryHistory>();
 
-    public virtual StaffSalaryHistory? StaffSalaryHistoryUser { get; set; }
+    public virtual ICollection<StaffSalaryHistory> StaffSalaryHistoryUsers { get; set; } = new List<StaffSalaryHistory>();
 
     public virtual ICollection<TimesheetAdjustmentRequest> TimesheetAdjustmentRequestReviewedByNavigations { get; set; } = new List<TimesheetAdjustmentRequest>();
 

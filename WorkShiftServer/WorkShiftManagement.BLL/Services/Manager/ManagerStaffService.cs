@@ -1,6 +1,8 @@
-using System.Net.Mail;
+﻿using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
@@ -22,6 +24,7 @@ public class ManagerStaffService : IManagerStaffService
     private readonly IEmployeeTypeService _employeeTypeService;
     private readonly AppDbContext _context;
     private readonly string _defaultAvatarUrl;
+    private readonly IMemoryCache? _memoryCache;
 
     public ManagerStaffService(
         IManagerStaffRepo staffRepo,
@@ -29,7 +32,8 @@ public class ManagerStaffService : IManagerStaffService
         ICloudinaryService cloudinaryService,
         IEmployeeTypeService employeeTypeService,
         AppDbContext context,
-        Microsoft.Extensions.Configuration.IConfiguration configuration)
+        Microsoft.Extensions.Configuration.IConfiguration configuration,
+        IMemoryCache? memoryCache = null)
     {
         _staffRepo = staffRepo;
         _authService = authService;
@@ -38,6 +42,7 @@ public class ManagerStaffService : IManagerStaffService
         _context = context;
         _defaultAvatarUrl = configuration["Cloudinary:DefaultAvatarUrl"]
             ?? throw new InvalidOperationException("Cloudinary:DefaultAvatarUrl is not configured.");
+        _memoryCache = memoryCache;
     }
 
     public async Task<StaffAccountPagedResponse> GetStaffListAsync(ManagerStaffListQuery query, Guid managerId)
@@ -55,18 +60,19 @@ public class ManagerStaffService : IManagerStaffService
         if (!string.IsNullOrWhiteSpace(query.Status))
         {
             status = query.Status.Trim().ToUpperInvariant();
-            if (status != "ACTIVE" && status != "INACTIVE")
+            if (status != "ACTIVE" && status != "INACTIVE" && status != "PENDING")
             {
-                throw new ArgumentException("Status filter only accepts 'ACTIVE' or 'INACTIVE'.");
+                throw new ArgumentException("Status filter only accepts 'ACTIVE', 'PENDING', or 'INACTIVE'.");
             }
         }
 
         var (items, totalCount) = await _staffRepo.GetPagedStaffAsync(
             branchId,
             query.Search,
-            query.Status,
+            status,
             pageNumber,
-            pageSize);
+            pageSize,
+            query.HasContract);
 
         return new StaffAccountPagedResponse
         {
@@ -139,11 +145,11 @@ public class ManagerStaffService : IManagerStaffService
             Phone = request.Phone.Trim(),
             IdentityNo = request.IdentityNo.Trim(),
             Gender = request.Gender.Trim().ToUpperInvariant(),
-            DateOfBirth = request.DateOfBirth.Value,
+            DateOfBirth = request.DateOfBirth!.Value,
             AvatarUrl = _defaultAvatarUrl,
             Address = request.Address?.Trim() ?? string.Empty,
             EmployeeTypeId = request.EmployeeTypeId,
-            Status = "ACTIVE",
+            Status = "PENDING",
             HasPassword = false,
             CreatedAt = now,
             UpdatedAt = now
@@ -175,7 +181,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Request body cannot be null.");
         }
 
-        var (fullName, phone, identityNo, gender, dateOfBirth, address) = ValidateUpdateFields(request);
+        var (fullName, phone, gender, dateOfBirth, address) = ValidateUpdateFields(request);
 
         var staff = await _staffRepo.GetStaffByIdAsync(staffId, branchId);
         if (staff == null || staff.BranchId != branchId)
@@ -183,19 +189,18 @@ public class ManagerStaffService : IManagerStaffService
             return null;
         }
 
-        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        if (staff.DeletedAt != null || (!staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) && !staff.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException("Deactivated staff cannot be edited. Restore the account first.");
         }
 
-        await ValidateUpdateFieldsAsync(phone, identityNo, branchId, staff.UserId);
+        await ValidateUpdateFieldsAsync(phone, branchId, staff.UserId);
 
         var updated = await _staffRepo.UpdateStaffAsync(
             staffId,
             branchId,
             fullName,
             phone,
-            identityNo,
             gender,
             dateOfBirth,
             address);
@@ -218,18 +223,24 @@ public class ManagerStaffService : IManagerStaffService
             return false;
         }
 
-        if (staff.DeletedAt != null || !staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+        if (staff.DeletedAt != null || (!staff.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase) && !staff.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase)))
         {
             throw new InvalidOperationException("Staff is already inactive.");
         }
 
-        var hasPendingTasks = await CheckPendingTasksAsync(staff.UserId, branchId);
-        if (hasPendingTasks)
+        var blockingReason = await GetDeactivationBlockingReasonAsync(staff.UserId, branchId);
+        if (blockingReason != null)
         {
-            throw new InvalidOperationException("Cannot deactivate staff with pending tasks (shifts, requests, etc.).");
+            throw new InvalidOperationException(blockingReason);
         }
 
-        return await _staffRepo.SoftDeleteStaffAsync(staffId, branchId);
+        var deactivated = await _staffRepo.SoftDeleteStaffAsync(staffId, branchId);
+        if (deactivated)
+        {
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(staffId));
+        }
+
+        return deactivated;
     }
 
     public async Task<bool> RestoreStaffAsync(Guid staffId, Guid managerId, int? branchId)
@@ -260,7 +271,13 @@ public class ManagerStaffService : IManagerStaffService
             }
         }
 
-        return await _staffRepo.RestoreStaffAsync(staffId, managerBranchId, null);
+        var restored = await _staffRepo.RestoreStaffAsync(staffId, managerBranchId, null);
+        if (restored)
+        {
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(staffId));
+        }
+
+        return restored;
     }
 
     public async Task<bool> ResendStaffSetupLinkAsync(Guid staffId, Guid managerId)
@@ -342,7 +359,7 @@ public class ManagerStaffService : IManagerStaffService
         return normalized;
     }
 
-    private static (string FullName, string Phone, string IdentityNo, string Gender, DateOnly? DateOfBirth, string? Address)
+    private static (string FullName, string Phone, string Gender, DateOnly? DateOfBirth, string? Address)
         ValidateUpdateFields(UpdateStaffAccountRequest request)
     {
         var fullName = request.FullName?.Trim();
@@ -352,15 +369,9 @@ public class ManagerStaffService : IManagerStaffService
         }
 
         var phone = request.Phone?.Trim();
-        if (!Regex.IsMatch(phone ?? string.Empty, @"^0[35789]\d{8}$"))
+        if (!Regex.IsMatch(phone ?? string.Empty, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
         {
-            throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, starting with 03/05/07/08/09).");
-        }
-
-        var identityNo = request.IdentityNo?.Trim();
-        if (!Regex.IsMatch(identityNo ?? string.Empty, IdentityNoPattern))
-        {
-            throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
+            throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, valid prefix: 032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
         }
 
         var gender = request.Gender?.Trim().ToUpperInvariant();
@@ -382,7 +393,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new ArgumentException("Address must contain between 1 and 500 characters.");
         }
 
-        return (request.FullName.Trim(), phone, identityNo, gender, request.DateOfBirth.Value, address);
+        return (fullName!, phone!, gender!, request.DateOfBirth, address);
     }
 
     private async Task ValidateStaffFieldsAsync(CreateStaffAccountRequest request, int branchId)
@@ -399,7 +410,7 @@ public class ManagerStaffService : IManagerStaffService
             throw new InvalidOperationException("Phone number is already in use.");
         }
 
-        if (await _context.Users.AnyAsync(u => u.IdentityNo == request.IdentityNo.Trim() && u.DeletedAt == null))
+        if (await _staffRepo.ExistsByIdentityNoAsync(request.IdentityNo))
         {
             throw new InvalidOperationException("Identity number is already in use.");
         }
@@ -416,9 +427,9 @@ public class ManagerStaffService : IManagerStaffService
         }
 
         var phone = request.Phone?.Trim();
-        if (!Regex.IsMatch(phone ?? string.Empty, @"^0[35789]\d{8}$"))
+        if (!Regex.IsMatch(phone ?? string.Empty, @"^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$"))
         {
-            throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, starting with 03/05/07/08/09).");
+            throw new ArgumentException("Phone number must be a valid Vietnamese mobile number (10 digits, valid prefix: 032-039, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090, 091, 093, 094, 096-098).");
         }
 
         if (!Regex.IsMatch(request.IdentityNo?.Trim() ?? string.Empty, IdentityNoPattern))
@@ -466,9 +477,13 @@ public class ManagerStaffService : IManagerStaffService
         {
             throw new ArgumentException("Date of birth cannot be in the future.");
         }
-        if (dateOfBirth > today.AddYears(-16))
+        if (dateOfBirth < new DateOnly(1900, 1, 1))
         {
-            throw new ArgumentException("Staff must be at least 16 years old.");
+            throw new ArgumentException("Date of birth must be on or after January 1, 1900.");
+        }
+        if (dateOfBirth > today.AddYears(-18))
+        {
+            throw new ArgumentException("Staff must be at least 18 years old.");
         }
         if (dateOfBirth < today.AddYears(-99))
         {
@@ -476,33 +491,103 @@ public class ManagerStaffService : IManagerStaffService
         }
     }
 
-    private async Task ValidateUpdateFieldsAsync(string phone, string identityNo, int branchId, Guid excludeUserId)
+    private async Task ValidateUpdateFieldsAsync(string phone, int branchId, Guid excludeUserId)
     {
         var trimmedPhone = phone.Trim();
         if (await _context.Users.AsNoTracking().AnyAsync(u => u.Phone == trimmedPhone && u.UserId != excludeUserId && u.DeletedAt == null))
         {
-            throw new ArgumentException("Phone number is already in use.");
-        }
-
-        var trimmedIdentity = identityNo.Trim();
-        if (await _context.Users.AsNoTracking().AnyAsync(u => u.IdentityNo == trimmedIdentity && u.UserId != excludeUserId && u.DeletedAt == null))
-        {
-            throw new ArgumentException("Identity number is already in use.");
+            throw new InvalidOperationException("Phone number is already in use.");
         }
     }
 
-    private async Task<bool> CheckPendingTasksAsync(Guid staffUserId, int branchId)
+    private async Task<string?> GetDeactivationBlockingReasonAsync(Guid staffUserId, int branchId)
     {
         var hasShiftAssignments = await _context.ShiftAssignments
-            .AnyAsync(sa => sa.UserId == staffUserId && sa.Status == "ASSIGNED");
+            .AnyAsync(sa => sa.UserId == staffUserId && (sa.Status == "ASSIGNED" || sa.Status == "IN_PROGRESS"));
+        if (hasShiftAssignments)
+        {
+            return "Cannot deactivate staff with assigned upcoming or ongoing shifts. Please reassign, complete, or cancel those shifts first.";
+        }
+
+        var hasActiveAttendance = await _context.Attendances
+            .AnyAsync(a => a.Assignment.UserId == staffUserId && a.Status == "IN_PROGRESS");
+        if (hasActiveAttendance)
+        {
+            return "Cannot deactivate staff currently clocked into an active shift. Please ensure the shift is completed and checked out first.";
+        }
 
         var hasPendingRequests = await _context.EmployeeRequests
             .AnyAsync(er => er.UserId == staffUserId && er.Status == "PENDING");
+        if (hasPendingRequests)
+        {
+            return "Cannot deactivate staff with pending requests (leave, overtime, etc.). Please review them first.";
+        }
 
         var hasSwapRequests = await _context.ShiftSwapRequests
             .AnyAsync(sr => (sr.SourceAssignment.UserId == staffUserId || sr.TargetAssignment.UserId == staffUserId) && sr.Status == "PENDING");
+        if (hasSwapRequests)
+        {
+            return "Cannot deactivate staff with pending shift swap requests. Please review them first.";
+        }
 
-        return hasShiftAssignments || hasPendingRequests || hasSwapRequests;
+        var hasPendingTimesheetAdjustments = await _context.TimesheetAdjustmentRequests
+            .AnyAsync(tar => tar.UserId == staffUserId && tar.Status == "PENDING");
+        if (hasPendingTimesheetAdjustments)
+        {
+            return "Cannot deactivate staff with pending timesheet adjustment requests. Please review all timesheet disputes first.";
+        }
+
+        var hasPendingPayrollCorrections = await _context.PayrollCorrectionRequests
+            .AnyAsync(pcr => pcr.Payroll.UserId == staffUserId && (pcr.Status == "OPEN" || pcr.Status == "RESPONDED"));
+        if (hasPendingPayrollCorrections)
+        {
+            return "Cannot deactivate staff with open payroll correction requests. Please resolve all payroll disputes first.";
+        }
+
+        var hasPendingPayrollFeedback = await _context.PayrollFeedbackRequests
+            .AnyAsync(pfr => pfr.EmployeeId == staffUserId && pfr.ReviewStatus == "PENDING");
+        if (hasPendingPayrollFeedback)
+        {
+            return "Cannot deactivate staff with pending payroll preview reviews. Please wait for the employee to review their payroll.";
+        }
+
+        var hasPendingAdjustments = await _context.EmployeeRewardsPenalties
+            .AnyAsync(erp => erp.UserId == staffUserId && !erp.IsDeleted && erp.ApprovalStatus == "PENDING");
+        if (hasPendingAdjustments)
+        {
+            return "Cannot deactivate staff with pending bonus/penalty adjustments. Please review all adjustments first.";
+        }
+
+        var hasPendingSalaryChanges = await _context.SalaryChangeRequests
+            .AnyAsync(scr => scr.UserId == staffUserId && scr.Status == "PENDING");
+        if (hasPendingSalaryChanges)
+        {
+            return "Cannot deactivate staff with pending salary change proposals. Please resolve the salary change request first.";
+        }
+
+        var hasPendingContractChanges = await _context.ContractChangeRequests
+            .AnyAsync(ccr => ccr.Contract.UserId == staffUserId && ccr.Status == "SUBMITTED");
+        if (hasPendingContractChanges)
+        {
+            return "Cannot deactivate staff with pending contract change requests. Please review the contract changes first.";
+        }
+
+        var hasUnsettledPayroll = await _context.Timesheets
+            .AnyAsync(t => t.UserId == staffUserId
+                        && t.PayrollPeriod.Status != "PAID"
+                        && t.PayrollPeriod.Status != "CLOSED"
+                        && t.PayrollPeriod.Status != "CANCELLED")
+            || await _context.Payrolls
+            .AnyAsync(p => p.UserId == staffUserId
+                        && p.PayrollPeriod.Status != "PAID"
+                        && p.PayrollPeriod.Status != "CLOSED"
+                        && p.PayrollPeriod.Status != "CANCELLED");
+        if (hasUnsettledPayroll)
+        {
+            return "Cannot deactivate staff with records in an unsettled payroll period. Please wait until the payroll period is settled and closed.";
+        }
+
+        return null;
     }
 
     private async Task<StaffAccountDetailResponse> MapToDetailResponse(User staff)
@@ -535,6 +620,10 @@ public class ManagerStaffService : IManagerStaffService
 
     private static StaffAccountListItemResponse MapToListItem(User staff)
     {
+        var hasContract = staff.EmploymentContracts?.Any(c =>
+            c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+            c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL") ?? false;
+
         return new StaffAccountListItemResponse
         {
             UserId = staff.UserId,
@@ -545,7 +634,8 @@ public class ManagerStaffService : IManagerStaffService
             RoleName = staff.Role?.RoleName ?? "STAFF",
             BranchName = staff.Branch?.BranchName ?? string.Empty,
             CreatedAt = staff.CreatedAt,
-            HasPassword = staff.HasPassword
+            HasPassword = staff.HasPassword,
+            HasContract = hasContract
         };
     }
 }

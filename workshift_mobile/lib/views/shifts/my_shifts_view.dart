@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../controllers/my_shifts_controller.dart';
-import '../../models/available_shift_model.dart';
-import '../../services/realtime_service.dart';
+import '../../controllers/shifts/my_shifts_controller.dart';
+import '../../models/shifts/available_shift_model.dart';
+import '../../services/core/realtime_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_state_panel.dart';
@@ -213,9 +213,25 @@ class _MyShiftsViewState extends State<MyShiftsView>
               },
             ),
             IconButton(
-              tooltip: 'Shift swap requests',
-              icon: const Icon(Icons.swap_horiz_rounded),
+              tooltip: _controller.shiftAccess.canManageShifts
+                  ? 'Shift swap requests'
+                  : _controller.shiftAccess.blockedReason,
+              icon: Icon(
+                Icons.swap_horiz_rounded,
+                color: _controller.shiftAccess.canManageShifts
+                    ? null
+                    : Colors.grey,
+              ),
               onPressed: () async {
+                if (!_controller.shiftAccess.canManageShifts) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(_controller.shiftAccess.blockedReason!),
+                      duration: const Duration(seconds: 6),
+                    ),
+                  );
+                  return;
+                }
                 await Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ShiftSwapListView()),
                 );
@@ -275,40 +291,71 @@ class _MyShiftsViewState extends State<MyShiftsView>
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 12,
+                  vertical: 10,
                 ),
-                color: AppColors.surface,
+                decoration: const BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.borderLight),
+                  ),
+                ),
                 child: Wrap(
-                  spacing: 16,
+                  spacing: 12,
                   runSpacing: 8,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      _controller.isLoading && shifts.isEmpty
-                          ? 'Loading…'
-                          : '${_controller.totalItems} ${_controller.totalItems == 1 ? 'shift' : 'shifts'}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        _controller.isLoading && shifts.isEmpty
+                            ? 'Loading…'
+                            : '${_controller.totalItems} ${_controller.totalItems == 1 ? 'shift' : 'shifts'}',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
                     ),
                     const _ScheduleLegend(
-                      label: 'Registered',
+                      label: 'Not yet',
                       color: AppColors.primary,
                     ),
                     const _ScheduleLegend(
-                      label: 'Manager',
-                      color: AppColors.warning,
+                      label: 'In progress',
+                      color: Color(0xFFF59E0B),
                     ),
                     const _ScheduleLegend(
-                      label: 'Done',
-                      color: AppColors.success,
+                      label: 'Completed',
+                      color: Color(0xFF10B981),
                     ),
-                    const Text(
-                      'UTC+7',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textSecondary,
+                    const _ScheduleLegend(
+                      label: 'Absent',
+                      color: Color(0xFFEF4444),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'UTC+7',
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ],
@@ -452,14 +499,18 @@ class _ScheduleLegend extends StatelessWidget {
     mainAxisSize: MainAxisSize.min,
     children: [
       Container(
-        width: 6,
-        height: 6,
+        width: 7,
+        height: 7,
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
       const SizedBox(width: 5),
       Text(
         label,
-        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        style: const TextStyle(
+          fontSize: 11.5,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textSecondary,
+        ),
       ),
     ],
   );

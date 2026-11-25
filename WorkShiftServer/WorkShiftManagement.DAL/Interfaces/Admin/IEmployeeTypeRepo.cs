@@ -1,4 +1,5 @@
 using WorkShiftManagement.DAL.Entities;
+using WorkShiftManagement.DAL.Models;
 
 namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -8,5 +9,7 @@ public interface IEmployeeTypeRepo
     Task<EmployeeType?> GetByIdAsync(int id);
     Task<bool> ExistsByNameExceptIdAsync(string typeName, int excludeId);
     Task CreateAsync(EmployeeType employeeType);
+    // Save only changed properties of an entity tracked by GetByIdAsync in this repository scope.
     Task UpdateAsync(EmployeeType employeeType);
+    Task<EmployeeTypeStatusChangeResult> ChangeStatusAsync(int id, bool restore);
 }

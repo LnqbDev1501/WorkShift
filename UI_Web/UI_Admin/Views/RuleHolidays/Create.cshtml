@@ -1,0 +1,68 @@
+@model UI_Admin.Models.Admin.Holidays.HolidayRuleViewModel
+@{
+    ViewData["Title"] = "Add Pay Rule";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" />
+}
+
+<partial name="_NotificationModal" />
+
+<div class="holiday-shell">
+    <main class="holiday-page holiday-form-page">
+        <!-- Heading -->
+        <div class="form-heading">
+            <div>
+                <h1>Add Pay Rule</h1>
+                <p>Save a draft, then publish it when ready. Published rules are locked and scheduled.</p>
+            </div>
+        </div>
+
+        <!-- Create Form -->
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="holiday-validation"></div>
+
+            <section class="holiday-form-card">
+                <div class="edit-fields">
+                    <label>
+                        <span>Rule name *</span>
+                        <input asp-for="RuleName" maxlength="150" required placeholder="e.g. Standard Holiday Rate" />
+                        <span asp-validation-for="RuleName" class="text-error text-xs"></span>
+                    </label>
+
+                    <label>
+                        <span>Pay multiplier *</span>
+                        <input asp-for="PayMultiplier" type="number" min="0.01" max="999.99" step="0.01" required placeholder="e.g. 3.00" />
+                        <span asp-validation-for="PayMultiplier" class="text-error text-xs"></span>
+                    </label>
+
+                    <label>
+                        <span>Effective from *</span>
+                        <input asp-for="EffectiveFrom" type="date" min="@DateTime.UtcNow.AddHours(7).AddDays(1).ToString("yyyy-MM-dd")" required />
+                        <span asp-validation-for="EffectiveFrom" class="text-error text-xs"></span>
+                    </label>
+                </div>
+            </section>
+
+            <section class="holiday-form-note">
+                <p>
+                    Drafts do not affect payroll. The effective date must be in the future (after today), and follow any previous version. The end date will be set automatically when a replacement version becomes effective.
+                </p>
+            </section>
+
+            <div class="form-actions flex items-center gap-3">
+                <a asp-action="List" class="secondary-button">Cancel</a>
+                <button class="primary-button flex items-center gap-1.5" type="submit">
+                    <span class="material-symbols-outlined text-[18px]">save</span>
+                    <span>Save draft</span>
+                </button>
+            </div>
+        </form>
+    </main>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

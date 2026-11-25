@@ -1,0 +1,247 @@
+@model UI_Admin.Models.Manager.Timesheet.ManagerTimesheetListViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = "Weekly Timesheets";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">table_chart</span>
+                <span>Manager / Attendance &amp; Timesheets</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Weekly Timesheets</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Track weekly attendance batches, staff confirmation progress, and finalize branch timesheets.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">refresh</span>
+                <span>Refresh</span>
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@Model.SuccessMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@Model.ErrorMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Search & Filter Card (Harmonized Heights & Clean White Theme) -->
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching timesheets", Model.TotalItems.ToString("N0"), "Matching current filters", "table_chart"),
+        new("Generated", Model.Items.Count(x => x.Status == "GENERATED").ToString("N0"), "On this page", "assignment"),
+        new("Reviewed", Model.Items.Count(x => x.Status == "REVIEWED").ToString("N0"), "On this page", "fact_check"),
+        new("Locked", Model.Items.Count(x => x.Status == "LOCKED").ToString("N0"), "On this page", "lock")
+    })' />
+    <form method="get" id="timesheetFilterForm" class="ws-list-filter" role="search">
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+        <input type="hidden" name="month" value="@Model.Month" />
+        <input type="hidden" name="year" value="@Model.Year" />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="search" name="search" value="@Model.Search" placeholder="Search branch, period code..." /></label>
+            <div class="ws-filter-field"><select id="scheduleWeekId" name="scheduleWeekId" aria-label="Weekly period" onchange="this.form.submit()"><option value="">All Created Weeks</option>@foreach (var period in Model.AvailablePeriods) { <option value="@period.ScheduleWeekId" selected="@(Model.ScheduleWeekId == period.ScheduleWeekId)">Week @period.Period (@period.WeekStartDate.ToString("dd/MM") – @period.WeekEndDate.ToString("dd/MM/yyyy"))</option> }</select></div>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="status">
+                        <option value="ALL" selected="@(string.Equals(Model.Status, "ALL", StringComparison.OrdinalIgnoreCase))">All Statuses</option>
+                        <option value="NOT GENERATED" selected="@(string.Equals(Model.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase))">NOT GENERATED</option>
+                        <option value="GENERATED" selected="@(string.Equals(Model.Status, "GENERATED", StringComparison.OrdinalIgnoreCase))">GENERATED</option>
+                        <option value="REVIEWED" selected="@(string.Equals(Model.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase))">REVIEWED</option>
+                        <option value="LOCKED" selected="@(string.Equals(Model.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))">LOCKED</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
+
+    <!-- Timesheet Table Card (Clean White Theme) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-150 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">date_range</span>
+                <h2 class="text-sm font-bold text-slate-900">Weekly Timesheet Batches</h2>
+                <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.TotalItems Weeks
+                </span>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">Timezone: Vietnam (UTC+7)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5">Period (Weekly)</th>
+                        <th scope="col" class="px-6 py-3.5">Branch</th>
+                        <th scope="col" class="px-6 py-3.5">Status</th>
+                        <th scope="col" class="px-6 py-3.5">Staff Confirmation</th>
+                        <th scope="col" class="px-6 py-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                    @if (Model.Items == null || Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-3xl">calendar_today</span>
+                                    </div>
+                                    <div class="text-base font-semibold text-slate-700">No Weekly Timesheets Found</div>
+                                    <p class="text-xs text-slate-400 max-w-sm">No timesheet records match your filter criteria. Try adjusting the search query or week filter.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            var isReviewed = string.Equals(item.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
+                            var isLocked = string.Equals(item.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+                            var isGenerated = string.Equals(item.Status, "GENERATED", StringComparison.OrdinalIgnoreCase) || string.Equals(item.Status, "OPEN", StringComparison.OrdinalIgnoreCase);
+                            var isNotGenerated = string.Equals(item.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
+                            var isAllConfirmed = item.TotalStaff > 0 && item.ConfirmedStaff == item.TotalStaff;
+
+                            <tr class="hover:bg-slate-50/80 transition-colors group">
+                                <!-- Period -->
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-900 text-sm group-hover:text-indigo-600 transition-colors">
+                                                Week @item.Period
+                                            </span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Schedule Week ID">
+                                                Week #@item.ScheduleWeekId
+                                            </span>
+                                            @if (item.PayrollPeriodId.HasValue)
+                                            {
+                                                <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Payroll Period ID">
+                                                    PR-#@item.PayrollPeriodId.Value
+                                                </span>
+                                            }
+                                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                                Mon – Sun
+                                            </span>
+                                        </div>
+                                        <span class="text-xs text-slate-400 mt-1">
+                                            @item.WeekStartDate.ToString("dd/MM/yyyy") – @item.WeekEndDate.ToString("dd/MM/yyyy")
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Branch -->
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-slate-400 text-base">storefront</span>
+                                        <span class="text-slate-800 font-semibold">@item.BranchName</span>
+                                    </div>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-6 py-4">
+                                    @if (isReviewed)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            <span>REVIEWED</span>
+                                        </span>
+                                    }
+                                    else if (isLocked)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            <span>LOCKED</span>
+                                        </span>
+                                    }
+                                    else if (isGenerated)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                            <span>GENERATED</span>
+                                        </span>
+                                    }
+                                    else if (isNotGenerated)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            <span>NOT GENERATED</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            <span>@item.Status</span>
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Staff Confirmation -->
+                                <td class="px-6 py-4">
+                                    @if (isNotGenerated || item.StaffReview == "-")
+                                    {
+                                        <span class="text-slate-400 font-semibold text-sm pl-2">-</span>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-col gap-1.5 min-w-[170px]">
+                                            <div class="flex items-center justify-between text-xs">
+                                                <span class="font-bold @(isAllConfirmed ? "text-emerald-600" : "text-slate-800")">
+                                                    @item.ConfirmedStaff/@item.TotalStaff Confirmed
+                                                </span>
+                                                <span class="text-slate-500 font-semibold">@item.ConfirmationRate%</span>
+                                            </div>
+                                            <div class="w-full h-2 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                                                <div class="h-full rounded-full transition-all duration-500 @(isAllConfirmed ? "bg-emerald-500" : "bg-indigo-600")"
+                                                     style="width: @(Math.Min(100, item.ConfirmationRate))%"></div>
+                                            </div>
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-6 py-4 text-right">
+                                    <div class="inline-flex items-center gap-2">
+                                        <a asp-action="ExportExcel" asp-route-id="@item.ScheduleWeekId"
+                                           title="Export weekly timesheet to Excel" class="ws-icon-action" aria-label="Export weekly timesheet to Excel"><span class="material-symbols-outlined" aria-hidden="true">download</span></a>
+                                        <a asp-action="Details" asp-route-id="@item.ScheduleWeekId" class="ws-icon-action" title="View details" aria-label="View details"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination / Footer Bar -->
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageIndex,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            PageParameter = "pageIndex",
+            ItemLabel = "weekly timesheets",
+        })" />
+    </div>
+</div>

@@ -1,4 +1,4 @@
-using WorkShiftManagement.BLL.DTOs.Accountant.PayrollSettlement;
+﻿using WorkShiftManagement.BLL.DTOs.Accountant.PayrollSettlement;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
@@ -11,14 +11,14 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
     {
         var u = await calculation.GetActorAsync(actor, ct);
         if (u == null || u.Status != "ACTIVE" || u.DeletedAt != null || u.Role.Status != "ACTIVE" || u.Role.RoleName != "ACCOUNTANT" || u.BranchId == null)
-            throw new UnauthorizedAccessException("Chỉ Accountant đang hoạt động và có chi nhánh được xử lý quyết toán/Carry Forward.");
+            throw new UnauthorizedAccessException("Only active Accountants with an assigned branch can manage settlement and Carry Forward.");
         return u.BranchId.Value;
     }
-    private static void Positive(int id) { if (id <= 0) throw new ArgumentException("ID phải lớn hơn 0."); }
+    private static void Positive(int id) { if (id <= 0) throw new ArgumentException("ID must be greater than 0."); }
     private async Task<PayrollSettlementData> Data(int id, int branch, bool tracking, CancellationToken ct)
     {
         Positive(id);
-        return await repo.LoadAsync(id, branch, tracking, ct) ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương trong chi nhánh.");
+        return await repo.LoadAsync(id, branch, tracking, ct) ?? throw new KeyNotFoundException("Payroll period not found in assigned branch.");
     }
     public async Task<PayrollSettlementSummaryResponse> SummaryAsync(Guid actor, int id, CancellationToken ct)
     {
@@ -43,7 +43,7 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
     {
         var branch = await Branch(actor, ct); Positive(id);
         if (request == null || !request.ConfirmedExternalSettlement || request.PaymentReference?.Length > 100 || request.PaymentNote?.Length > 2000)
-            throw new ArgumentException("Phải xác nhận toàn kỳ đã quyết toán bên ngoài; reference tối đa 100 ký tự, note tối đa 2000 ký tự.");
+            throw new ArgumentException("Must confirm the entire period is settled externally; reference max 100 characters, note max 2000 characters.");
         PayrollSettlementSummaryResponse response; bool already;
         await using (var tx = await calculation.BeginCalculationAsync(ct))
         {
@@ -84,7 +84,7 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
                 repo.Audit(null, "AUTO_CLOSE_PAYROLL_PERIOD", data.Period, now,
                     new { triggeredBy = actor, data.Period.PayrollPeriodId, data.Period.BranchId, data.Period.PaidAt, data.Period.ClosedAt, status = "CLOSED" });
                 repo.Audit(null, "PAYROLL_SYSTEM_EVENT", data.Period, now,
-                    new PayrollSystemMessage(id, data.Period.BranchId, "ADMIN", null, "Kỳ lương đã đóng", $"{data.Period.PeriodCode} đã quyết toán và CLOSED; có thể tra cứu/xuất Excel."));
+                    new PayrollSystemMessage(id, data.Period.BranchId, "ADMIN", null, "Payroll Period Closed", $"{data.Period.PeriodCode} has been settled and CLOSED; available for review and Excel export."));
                 await calculation.SaveAsync(ct);
             }
             response = Summary(data, plan);
@@ -95,16 +95,16 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
         return new() { AlreadySettled = already, Summary = response };
     }
     private static void Pagination(int page, int size)
-    { if (page < 1 || size is < 1 or > 100 || (long)(page - 1) * size > int.MaxValue) throw new ArgumentException("Page >= 1 và PageSize từ 1 đến 100."); }
+    { if (page < 1 || size is < 1 or > 100 || (long)(page - 1) * size > int.MaxValue) throw new ArgumentException("Page must be >= 1 and PageSize between 1 and 100."); }
     public async Task<CarryForwardListResponse> ListCarryAsync(Guid actor, CarryForwardListRequest q, CancellationToken ct)
     {
         var branch = await Branch(actor, ct); Pagination(q.Page, q.PageSize);
         if (q.Keyword?.Length > 200 || q.UserId == Guid.Empty || q.SourcePayrollId <= 0 || q.SourcePayrollPeriodId <= 0
             || q.CreatedFrom == DateOnly.MinValue || q.CreatedTo == DateOnly.MinValue || q.CreatedTo == DateOnly.MaxValue
             || q.CreatedFrom.HasValue && q.CreatedTo.HasValue && q.CreatedFrom > q.CreatedTo)
-            throw new ArgumentException("Tham số tìm kiếm/khoảng ngày không hợp lệ.");
+            throw new ArgumentException("Invalid search or date range parameters.");
         var status = string.IsNullOrWhiteSpace(q.Status) ? null : q.Status.Trim().ToUpperInvariant();
-        if (status != null && status is not ("OPEN" or "PARTIALLY_APPLIED" or "SETTLED")) throw new ArgumentException("Carry Forward status không hợp lệ.");
+        if (status != null && status is not ("OPEN" or "PARTIALLY_APPLIED" or "SETTLED")) throw new ArgumentException("Invalid Carry Forward status.");
         static DateTime Utc(DateOnly d) => new DateTimeOffset(d.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(7)).UtcDateTime;
         var (items, count) = await repo.ListCarryAsync(branch, new CarryForwardSearch
         { Keyword = string.IsNullOrWhiteSpace(q.Keyword) ? null : q.Keyword.Trim(), UserId = q.UserId, Status = status,
@@ -116,28 +116,88 @@ public sealed class PayrollSettlementService(IPayrollSettlementRepo repo, IPayro
     private async Task<PayrollCarryForwardDeduction> Carry(Guid actor, int id, CancellationToken ct)
     {
         var branch = await Branch(actor, ct); Positive(id);
-        return await repo.GetCarryAsync(id, branch, ct) ?? throw new KeyNotFoundException("Không tìm thấy Carry Forward trong chi nhánh nguồn.");
+        return await repo.GetCarryAsync(id, branch, ct) ?? throw new KeyNotFoundException("Carry Forward record not found in source branch.");
     }
     public async Task<CarryForwardResponse> GetCarryAsync(Guid actor, int id, CancellationToken ct) => Map(await Carry(actor, id, ct));
     public async Task<CarryForwardApplicationListResponse> ApplicationsAsync(Guid actor, int id, int page, int pageSize, CancellationToken ct)
     {
-        Pagination(page, pageSize); var c = await Carry(actor, id, ct); PayrollSettlementPolicy.ValidateCarry(c);
-        var apps = c.PayrollCarryForwardApplications.OrderByDescending(a => a.AppliedAt).ThenByDescending(a => a.ApplicationId).ToList();
-        return new() { CarryForwardId = id, Page = page, PageSize = pageSize, TotalItems = apps.Count,
-            Items = apps.Skip((page - 1) * pageSize).Take(pageSize).Select(a => new CarryForwardApplicationResponse
-            { ApplicationId = a.ApplicationId, CarryForwardId = id, UserId = c.UserId, PayrollId = a.PayrollId, PayrollVersionNo = a.Payroll.VersionNo,
-                PayrollPeriodId = a.Payroll.PayrollPeriodId, PeriodCode = a.Payroll.PayrollPeriod.PeriodCode,
-                PeriodStart = a.Payroll.PayrollPeriod.StartDate, PeriodEnd = a.Payroll.PayrollPeriod.EndDate, AppliedAmount = a.AppliedAmount, AppliedAt = a.AppliedAt }).ToList() };
+        Pagination(page, pageSize);
+        var c = await Carry(actor, id, ct);
+        PayrollSettlementPolicy.ValidateCarry(c);
+
+        var allAppsChronological = c.PayrollCarryForwardApplications
+            .OrderBy(a => a.AppliedAt)
+            .ThenBy(a => a.ApplicationId)
+            .ToList();
+
+        decimal runningBalance = c.OriginalAmount;
+        var enriched = new List<CarryForwardApplicationResponse>();
+        foreach (var a in allAppsChronological)
+        {
+            runningBalance -= a.AppliedAmount;
+            enriched.Add(new CarryForwardApplicationResponse
+            {
+                ApplicationId = a.ApplicationId,
+                CarryForwardId = id,
+                UserId = c.UserId,
+                PayrollId = a.PayrollId,
+                PayrollVersionNo = a.Payroll.VersionNo,
+                PayrollStatus = a.Payroll.Status,
+                PayrollPeriodId = a.Payroll.PayrollPeriodId,
+                PeriodCode = a.Payroll.PayrollPeriod.PeriodCode,
+                PeriodName = a.Payroll.PayrollPeriod.PeriodName,
+                PeriodStart = a.Payroll.PayrollPeriod.StartDate,
+                PeriodEnd = a.Payroll.PayrollPeriod.EndDate,
+                AppliedAmount = a.AppliedAmount,
+                RemainingBalanceAfter = runningBalance,
+                AppliedAt = a.AppliedAt
+            });
+        }
+
+        var apps = enriched.OrderByDescending(a => a.AppliedAt).ThenByDescending(a => a.ApplicationId).ToList();
+        return new()
+        {
+            CarryForwardId = id,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = apps.Count,
+            Items = apps.Skip((page - 1) * pageSize).Take(pageSize).ToList()
+        };
     }
+
     public static CarryForwardResponse Map(PayrollCarryForwardDeduction c)
     {
         PayrollSettlementPolicy.ValidateCarry(c);
-        return new() { CarryForwardId = c.CarryForwardId, UserId = c.UserId, EmployeeName = c.SourcePayroll.EmployeeFullNameSnapshot,
-            SourceBranchId = c.SourcePayroll.BranchId, SourcePayrollId = c.SourcePayrollId, SourcePayrollVersionNo = c.SourcePayroll.VersionNo,
-            SourcePayrollPeriodId = c.SourcePayroll.PayrollPeriodId, SourcePeriodCode = c.SourcePayroll.PayrollPeriod.PeriodCode,
-            SourcePayrollDetailId = c.SourcePayrollDetailId, SourceDetailType = c.SourcePayrollDetail.Type, SourceDetailDescription = c.SourcePayrollDetail.Description,
-            SourceDeductionAmount = c.SourcePayrollDetail.Amount, SourceAppliedAmount = c.SourcePayrollDetail.AppliedAmount!.Value,
-            OriginalAmount = c.OriginalAmount, RemainingAmount = c.RemainingAmount, TotalAppliedAmount = c.PayrollCarryForwardApplications.Sum(a => a.AppliedAmount),
-            ApplicationCount = c.PayrollCarryForwardApplications.Count, Reason = c.Reason, Status = c.Status, CreatedAt = c.CreatedAt, UpdatedAt = c.UpdatedAt };
+        return new()
+        {
+            CarryForwardId = c.CarryForwardId,
+            UserId = c.UserId,
+            EmployeeName = c.SourcePayroll.EmployeeFullNameSnapshot,
+            BranchName = c.SourcePayroll.BranchNameSnapshot,
+            EmployeeType = c.User?.EmployeeType?.TypeName ?? c.SourcePayroll.EmployeePositionSnapshot,
+            EmployeeStatus = c.User?.Status ?? "ACTIVE",
+            SourceBranchId = c.SourcePayroll.BranchId,
+            SourcePayrollId = c.SourcePayrollId,
+            SourcePayrollVersionNo = c.SourcePayroll.VersionNo,
+            SourcePayrollPeriodId = c.SourcePayroll.PayrollPeriodId,
+            SourcePeriodCode = c.SourcePayroll.PayrollPeriod.PeriodCode,
+            SourcePeriodName = c.SourcePayroll.PayrollPeriod.PeriodName,
+            SourcePayrollDetailId = c.SourcePayrollDetailId,
+            SourceDetailType = c.SourcePayrollDetail.Type,
+            SourceDetailDescription = c.SourcePayrollDetail.Description,
+            SourceDetailNote = c.SourcePayrollDetail.Note,
+            PenaltyId = c.SourcePayrollDetail.RewardPenaltyId ?? c.SourcePayrollDetail.AttendancePenaltyId,
+            SourceDeductionAmount = c.SourcePayrollDetail.Amount,
+            SourceAppliedAmount = c.SourcePayrollDetail.AppliedAmount ?? 0,
+            OriginalAmount = c.OriginalAmount,
+            RemainingAmount = c.RemainingAmount,
+            TotalAppliedAmount = c.PayrollCarryForwardApplications.Sum(a => a.AppliedAmount),
+            ApplicationCount = c.PayrollCarryForwardApplications.Count,
+            LastAppliedAt = c.PayrollCarryForwardApplications.OrderByDescending(a => a.AppliedAt).Select(a => (DateTime?)a.AppliedAt).FirstOrDefault(),
+            Reason = c.Reason,
+            Status = c.Status,
+            CreatedAt = c.CreatedAt,
+            UpdatedAt = c.UpdatedAt
+        };
     }
 }

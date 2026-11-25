@@ -4,6 +4,7 @@ public class CategoryListQuery
 {
     public string? Search { get; set; }
     public string? Status { get; set; }
+    public int? BranchId { get; set; }
     public int PageNumber { get; set; } = 1;
-    public int PageSize { get; set; } = 10;
+    public int PageSize { get; set; } = 20;
 }

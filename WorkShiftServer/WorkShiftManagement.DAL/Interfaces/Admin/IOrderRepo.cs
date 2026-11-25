@@ -5,7 +5,7 @@ namespace WorkShiftManagement.DAL.Interfaces.Admin;
 
 public interface IOrderRepo
 {
-    Task<(List<OrderData> Items, int TotalCount)> GetPagedAsync(
+    Task<(List<OrderData> Items, int TotalCount, int PaidCount, int CompletedCount, decimal TotalOrderValue)> GetPagedAsync(
         string? search,
         int? branchId,
         string? status,
@@ -13,7 +13,8 @@ public interface IOrderRepo
         DateTime? dateFrom,
         DateTime? dateTo,
         int pageNumber,
-        int pageSize);
+        int pageSize,
+        string? sortBy = null);
 
     Task<OrderDetailData?> GetByIdAsync(int id);
     Task<OrderDetailData?> GetByIdWithBranchAsync(int id, int branchId);
@@ -24,6 +25,9 @@ public interface IOrderRepo
     Task<bool> UpdateStatusAsync(int id, string status);
     Task<bool> UpdatePaymentStatusAsync(int id, string paymentStatus, DateTime? paidAt);
     Task<bool> SoftDeleteAsync(int id);
+    Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, int branchId, DateTime currentUtcTime, CancellationToken cancellationToken = default);
+    Task<int> AutoCompletePastPendingOrdersAsync(DateTime beforeUtc, CancellationToken cancellationToken = default);
+    DateTime GetStartOfTodayVnInUtc();
 }
 
 public interface IPaymentRepo

@@ -1,0 +1,429 @@
+@model UI_Admin.Models.Regions.RegionDetailViewModel
+@inject IConfiguration Configuration
+
+@{
+    ViewData["Title"] = $"Region {Model.RegionCode} - Details";
+    var isActive = Model.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+    var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
+    var vietMapServicesKey = Configuration["VietMap:ServicesKey"] ?? string.Empty;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
+}
+
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <partial name="_NotificationModal" />
+
+    <!-- Top Navigation Bar -->
+    <div class="flex items-center justify-between gap-unit-4 pb-unit-4">
+        <a asp-controller="Regions" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Regions</span>
+        </a>
+        <div class="flex items-center gap-3">
+            <a asp-action="Edit" asp-route-id="@Model.RegionId" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-sm shadow-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+                <span>Edit Region</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Title & Status Bar -->
+    <div class="flex flex-col gap-unit-1 pb-unit-6">
+        <div class="flex flex-wrap items-center gap-unit-3">
+            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">@Model.RegionName</h1>
+            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-md bg-surface-container font-code-num text-body-sm text-secondary font-semibold uppercase tracking-wider">
+                @Model.RegionCode
+            </span>
+            @if (isActive)
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                    Active
+                </span>
+            }
+            else
+            {
+                <span class="inline-flex items-center gap-1.5 px-unit-3 py-1 rounded-full bg-surface-container text-secondary font-label-md text-label-md font-medium">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    Inactive
+                </span>
+            }
+        </div>
+    </div>
+
+    <!-- Administrative Notice Callout -->
+    <div class="bg-amber-50 rounded-xl p-unit-4 flex items-start gap-unit-3 mb-unit-6">
+        <div class="p-unit-1 rounded-lg bg-amber-100 text-amber-800 shrink-0">
+            <span class="material-symbols-outlined text-[20px]">info</span>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="font-body-md-medium text-amber-900">Administrative Notice</div>
+            <p class="font-body-sm text-amber-800/90 mt-unit-1">Deactivating a region only changes the region's status. Its branches and user accounts will remain unchanged.</p>
+        </div>
+    </div>
+
+    <!-- KPI Metric Summary Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-unit-5 mb-unit-6">
+        <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm flex flex-col justify-between border border-surface-container-high/60 sm:col-span-1">
+            <div class="flex items-center justify-between">
+                <span class="font-label-md uppercase tracking-wider text-on-surface-variant">Total Branches</span>
+                <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[18px]">storefront</span>
+                </div>
+            </div>
+            <div class="mt-unit-4">
+                <div class="flex items-baseline gap-unit-2">
+                    <span class="font-display-md text-on-surface font-code-num">@Model.Branches.Count</span>
+                    <span class="font-body-sm text-on-surface-variant">Assigned Branches</span>
+                </div>
+                <div class="mt-unit-2 flex flex-wrap items-center gap-unit-2 font-body-sm">
+                    <span class="inline-flex items-center gap-1 text-emerald-700 font-medium bg-emerald-50 px-unit-2 py-0.5 rounded-md text-[12px]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> @Model.ActiveBranchCount Active
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-on-surface-variant bg-surface-container px-unit-2 py-0.5 rounded-md text-[12px]">
+                        <span class="w-1.5 h-1.5 rounded-full bg-gray-400"></span> @Model.InactiveBranchCount Inactive
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regional Tabs Header -->
+    <div class="flex items-center gap-unit-6 border-b border-surface-container-high mb-unit-6">
+        <button class="flex items-center gap-unit-2 pb-unit-3 text-primary border-b-2 border-primary font-body-md-medium transition-colors cursor-pointer" id="tab-overview-btn" type="button">
+            <span class="material-symbols-outlined text-[18px]">info</span>
+            <span>Overview &amp; Regional Metadata</span>
+        </button>
+        <button class="flex items-center gap-unit-2 pb-unit-3 text-on-surface-variant hover:text-on-surface border-b-2 border-transparent font-body-md-medium transition-colors cursor-pointer" id="tab-branches-btn" type="button">
+            <span class="material-symbols-outlined text-[18px]">storefront</span>
+            <span>Assigned Branches</span>
+            <span class="px-unit-2 py-0.5 rounded-full text-label-sm bg-surface-container font-code-num text-on-surface transition-colors" id="tab-branches-badge">@Model.Branches.Count</span>
+        </button>
+    </div>
+
+    <!-- Tab 1: Overview Content Container -->
+    <div class="block" id="overview-tab-content">
+        <div class="w-full space-y-unit-6">
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm border border-surface-container-high/60 w-full">
+                <div class="flex items-center justify-between pb-unit-4 border-b border-surface-container-high">
+                    <div class="flex items-center gap-unit-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">info</span>
+                        <h2 class="font-title-lg text-on-surface">Regional Metadata</h2>
+                    </div>
+                    @if (isActive)
+                    {
+                        <span class="inline-flex items-center gap-1 px-unit-2 py-0.5 rounded-full text-label-sm bg-emerald-50 text-emerald-700 font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Active
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="inline-flex items-center gap-1 px-unit-2 py-0.5 rounded-full text-label-sm bg-surface-container text-secondary font-medium">
+                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Inactive
+                        </span>
+                    }
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-unit-6 pt-unit-4 text-body-sm">
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Region Code</span>
+                        <div class="mt-unit-1">
+                            <span class="font-code-num font-medium text-on-surface bg-surface-container px-unit-2 py-0.5 rounded text-[13px]">@Model.RegionCode</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Region Name</span>
+                        <div class="mt-unit-1 font-body-md-medium text-on-surface">@Model.RegionName</div>
+                    </div>
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Minimum Wage</span>
+                        <div class="mt-unit-1">
+                            @if (Model.MinimumWage != null)
+                            {
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-on-surface">@Model.MinimumWage.WageName</span>
+                                    <span class="text-xs text-secondary font-code-num">@CurrencyHelper.FormatVnd(Model.MinimumWage.MinimumHourlyRate)/hour</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="text-secondary italic text-body-sm">Not assigned</span>
+                            }
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Status</span>
+                        <div class="mt-unit-1">
+                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-full text-label-sm @(isActive ? "bg-emerald-50 text-emerald-700" : "bg-surface-container text-secondary") font-medium">@Model.Status</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-unit-1">
+                        <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px]">Total Branches</span>
+                        <div class="mt-unit-1 font-code-num text-on-surface font-medium">@Model.Branches.Count branches</div>
+                    </div>
+                </div>
+                <div class="pt-unit-5 mt-unit-5 border-t border-surface-container-high">
+                    <span class="text-on-surface-variant font-label-md uppercase tracking-wider text-[11px] block mb-unit-1">Description</span>
+                    <p class="font-body-md text-on-surface">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Regional Branch Map Card -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm border border-surface-container-high/60 w-full">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-unit-4 border-b border-surface-container-high mb-unit-4 gap-unit-2">
+                    <div class="flex items-center gap-unit-3">
+                        <div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[20px]">map</span>
+                        </div>
+                        <div>
+                            <h2 class="font-title-lg text-on-surface">Regional Map &amp; Branch Locations</h2>
+                            <p class="font-body-sm text-on-surface-variant">
+                                Geographic location map of all assigned branches in @Model.RegionName
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-unit-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-label-sm bg-primary/10 text-primary font-medium">
+                            <span class="w-2 h-2 rounded-full bg-primary"></span>
+                            @Model.Branches.Count(b => b.Latitude.HasValue && b.Longitude.HasValue) Mapped Facilities
+                        </span>
+                    </div>
+                </div>
+                <div id="regionBranchesMap" class="w-full h-[420px] rounded-xl border border-surface-container-high overflow-hidden shadow-inner relative z-0"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Assigned Branches Content Container -->
+    <div class="hidden" id="branches-tab-content">
+        <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-high/60 overflow-hidden mb-unit-6">
+            <div class="px-unit-6 py-unit-4 border-b border-surface-container-high bg-surface-container-lowest flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-unit-4">
+                <div class="relative w-full sm:w-80">
+                    <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+                    <input class="h-input-height w-full pl-unit-10 pr-unit-4 bg-surface-container-low rounded-xl text-on-surface font-body-sm focus:outline-none focus:ring-1 focus:ring-primary-container border border-surface-container-high transition-all" id="branch-search-input" placeholder="Search branch code or name..." type="text">
+                </div>
+                <div class="flex items-center gap-unit-2 shrink-0">
+                    <span class="font-body-sm text-on-surface-variant">Total: <strong class="text-on-surface font-code-num">@Model.Branches.Count</strong> Branches</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse" id="branches-table">
+                    <thead class="bg-surface-container-low/60 text-on-surface-variant font-label-md uppercase tracking-wider border-b border-surface-container-high">
+                        <tr>
+                            <th class="py-unit-3 px-unit-5 text-[11px]">Branch Code</th>
+                            <th class="py-unit-3 px-unit-4 text-[11px]">Branch Name</th>
+                            <th class="py-unit-3 px-unit-4 text-[11px] text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-surface-container-high font-body-sm text-on-surface">
+                        @if (Model.Branches.Count == 0)
+                        {
+                            <tr>
+                                <td colspan="3" class="py-unit-6 px-unit-5 text-center text-secondary font-body-md">
+                                    No branches are currently assigned to this region.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var branch in Model.Branches)
+                            {
+                                var isBranchActive = branch.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                                <tr class="hover:bg-surface-container-low/40 transition-colors branch-row">
+                                    <td class="py-unit-4 px-unit-5 font-code-num font-medium text-on-surface">@branch.BranchCode</td>
+                                    <td class="py-unit-4 px-unit-4 font-body-md-medium text-on-surface">@branch.BranchName</td>
+                                    <td class="py-unit-4 px-unit-4 text-center">
+                                        @if (isBranchActive)
+                                        {
+                                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-full text-label-sm bg-emerald-50 text-emerald-700 font-medium">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="inline-flex items-center px-unit-2 py-0.5 rounded-full text-label-sm bg-surface-container text-on-surface-variant font-medium">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deactivation Confirmation Modal Overlay -->
+    <div class="hidden fixed inset-0 z-50 flex items-center justify-center bg-[#111827]/50 backdrop-blur-sm p-unit-4" id="deactivate-modal">
+        <div class="bg-surface-container-lowest max-w-md w-full rounded-xl p-unit-6 shadow-2xl animate-in fade-in zoom-in duration-150">
+            <div class="flex items-start gap-unit-3">
+                <div class="p-unit-2 rounded-full bg-error-container text-error shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">warning</span>
+                </div>
+                <div>
+                    <h3 class="font-title-lg text-on-surface">Deactivate Region @Model.RegionCode?</h3>
+                    <p class="font-body-sm text-on-surface-variant mt-unit-2">Are you sure you want to deactivate <strong class="text-on-surface">@Model.RegionName</strong>?</p>
+                </div>
+            </div>
+            <div class="mt-unit-4 p-unit-3 bg-surface-container-low rounded-lg text-body-sm text-secondary space-y-1">
+                <p>Deactivating this region will not deactivate its branches or user accounts.</p>
+                <p>The region can be restored later.</p>
+            </div>
+            <form method="post" asp-controller="Regions" asp-action="Deactivate" asp-route-id="@Model.RegionId" class="mt-unit-6 flex items-center justify-end gap-unit-3">
+                @Html.AntiForgeryToken()
+                <button class="h-input-height px-unit-4 bg-surface-container-low hover:bg-surface-container-high text-on-surface font-body-md-medium rounded-lg transition-colors cursor-pointer" onclick="document.getElementById('deactivate-modal').classList.add('hidden')" type="button">Cancel</button>
+                <button class="h-input-height px-unit-4 bg-error text-on-error hover:bg-error/90 font-body-md-medium rounded-lg transition-colors shadow-sm cursor-pointer" type="submit">Confirm Deactivation</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.js"></script>
+    <script>
+        (function () {
+            const overviewBtn = document.getElementById('tab-overview-btn');
+            const branchesBtn = document.getElementById('tab-branches-btn');
+            const overviewContent = document.getElementById('overview-tab-content');
+            const branchesContent = document.getElementById('branches-tab-content');
+            const branchesBadge = document.getElementById('tab-branches-badge');
+
+            function showOverviewTab() {
+                if (!overviewBtn || !branchesBtn || !overviewContent || !branchesContent) return;
+                overviewBtn.className = 'flex items-center gap-unit-2 pb-unit-3 text-primary border-b-2 border-primary font-body-md-medium transition-colors cursor-pointer';
+                branchesBtn.className = 'flex items-center gap-unit-2 pb-unit-3 text-on-surface-variant hover:text-on-surface border-b-2 border-transparent font-body-md-medium transition-colors cursor-pointer';
+                if (branchesBadge) branchesBadge.className = 'px-unit-2 py-0.5 rounded-full text-label-sm bg-surface-container font-code-num text-on-surface transition-colors';
+
+                overviewContent.classList.remove('hidden');
+                overviewContent.classList.add('block');
+                branchesContent.classList.remove('block');
+                branchesContent.classList.add('hidden');
+            }
+
+            function showBranchesTab() {
+                if (!overviewBtn || !branchesBtn || !overviewContent || !branchesContent) return;
+                overviewBtn.className = 'flex items-center gap-unit-2 pb-unit-3 text-on-surface-variant hover:text-on-surface border-b-2 border-transparent font-body-md-medium transition-colors cursor-pointer';
+                branchesBtn.className = 'flex items-center gap-unit-2 pb-unit-3 text-primary border-b-2 border-primary font-body-md-medium transition-colors cursor-pointer';
+                if (branchesBadge) branchesBadge.className = 'px-unit-2 py-0.5 rounded-full text-label-sm bg-primary/10 text-primary font-code-num font-semibold transition-colors';
+
+                branchesContent.classList.remove('hidden');
+                branchesContent.classList.add('block');
+                overviewContent.classList.remove('block');
+                overviewContent.classList.add('hidden');
+            }
+
+            if (overviewBtn) overviewBtn.addEventListener('click', showOverviewTab);
+            if (branchesBtn) branchesBtn.addEventListener('click', showBranchesTab);
+
+            // Branch search filter
+            const branchSearchInput = document.getElementById('branch-search-input');
+            const branchRows = document.querySelectorAll('#branches-table tbody tr.branch-row');
+
+            if (branchSearchInput && branchRows) {
+                branchSearchInput.addEventListener('input', function () {
+                    const query = this.value.toLowerCase().trim();
+                    branchRows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = !query || text.includes(query) ? '' : 'none';
+                    });
+                });
+            }
+
+            // VietMap Initialization for Region Branches
+            const vietMapKey = '@vietMapTileKey';
+            const mapContainer = document.getElementById('regionBranchesMap');
+
+            if (mapContainer && vietMapKey) {
+                const branchesData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Branches.Select(b => new {
+                    b.BranchId,
+                    b.BranchCode,
+                    b.BranchName,
+                    b.Status,
+                    Address = b.Address ?? "",
+                    Latitude = b.Latitude.HasValue ? (double)b.Latitude.Value : (double?)null,
+                    Longitude = b.Longitude.HasValue ? (double)b.Longitude.Value : (double?)null
+                })));
+
+                const defaultLng = 106.660172;
+                const defaultLat = 10.762622;
+
+                const map = new vietmapgl.Map({
+                    container: 'regionBranchesMap',
+                    style: `https://maps.vietmap.vn/maps/styles/tm/style.json?apikey=${vietMapKey}`,
+                    center: [defaultLng, defaultLat],
+                    zoom: 10
+                });
+
+                map.addControl(new vietmapgl.NavigationControl(), 'top-right');
+
+                const bounds = new vietmapgl.LngLatBounds();
+                let validCount = 0;
+
+                branchesData.forEach(branch => {
+                    if (branch.Latitude !== null && branch.Longitude !== null &&
+                        !isNaN(branch.Latitude) && !isNaN(branch.Longitude)) {
+
+                        const lng = branch.Longitude;
+                        const lat = branch.Latitude;
+                        bounds.extend([lng, lat]);
+                        validCount++;
+
+                        const el = document.createElement('div');
+                        el.className = 'w-9 h-9 rounded-full bg-[#4F46E5] text-white flex items-center justify-center shadow-lg border-2 border-white cursor-pointer transform hover:scale-110 transition-transform';
+                        el.innerHTML = '<span class="material-symbols-outlined text-[18px]">store</span>';
+
+                        const popupHtml = `
+                            <div class="p-2 min-w-[200px]">
+                                <div class="font-code-num text-xs text-[#4F46E5] font-bold uppercase tracking-wider">${branch.BranchCode}</div>
+                                <div class="font-semibold text-sm text-gray-900 mt-0.5">${branch.BranchName}</div>
+                                <div class="text-xs text-gray-600 mt-1">${branch.Address || 'No address specified'}</div>
+                                <div class="mt-2 pt-1 border-t border-gray-200 flex items-center justify-between">
+                                    <span class="text-[11px] px-2 py-0.5 rounded-full ${branch.Status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800 font-medium' : 'bg-gray-100 text-gray-700'}">${branch.Status}</span>
+                                    <a href="/Branches/Details/${branch.BranchId}" class="text-xs text-[#4F46E5] hover:underline font-medium">View Branch &rarr;</a>
+                                </div>
+                            </div>
+                        `;
+
+                        const popup = new vietmapgl.Popup({ offset: 25 })
+                            .setHTML(popupHtml);
+
+                        new vietmapgl.Marker(el)
+                            .setLngLat([lng, lat])
+                            .setPopup(popup)
+                            .addTo(map);
+                    }
+                });
+
+                if (validCount > 0) {
+                    map.on('load', () => {
+                        if (validCount === 1) {
+                            map.flyTo({ center: bounds.getCenter(), zoom: 14 });
+                        } else {
+                            map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
+                        }
+                    });
+                } else {
+                    const regionName = '@Model.RegionName';
+                    const servicesApiKey = '@vietMapServicesKey' || vietMapKey;
+                    if (regionName && servicesApiKey) {
+                        fetch(`https://maps.vietmap.vn/api/autocomplete/v3?apikey=${servicesApiKey}&text=${encodeURIComponent(regionName)}`)
+                            .then(res => res.json())
+                            .then(data => {
+                                if (Array.isArray(data) && data.length > 0 && data[0].ref_id) {
+                                    return fetch(`https://maps.vietmap.vn/api/place/v3?apikey=${servicesApiKey}&refid=${data[0].ref_id}`);
+                                }
+                            })
+                            .then(res => res ? res.json() : null)
+                            .then(place => {
+                                if (place && place.lat && place.lng) {
+                                    map.flyTo({ center: [place.lng, place.lat], zoom: 11 });
+                                }
+                            })
+                            .catch(() => {});
+                    }
+                }
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,282 @@
+using UI_Admin.Services;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
+using UI_Admin.Models.EmployeeRequests;
+
+namespace UI_Admin.Services;
+
+public class EmployeeRequestApiService
+{
+    private readonly HttpClient _httpClient;
+    private readonly string _apiBaseUrl;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
+    public EmployeeRequestApiService(
+        HttpClient httpClient,
+        IConfiguration configuration)
+    {
+        _httpClient = httpClient;
+        _apiBaseUrl = configuration.GetWorkShiftApiBaseUrl();
+    }
+
+    /// <summary>
+    /// GET /api/admin/requests — retrieves paged list of employee requests.
+    /// </summary>
+    public async Task<AdminEmployeeRequestListViewModel> GetPagedAsync(
+        string? search = null,
+        string? requestType = null,
+        string? status = null,
+        int? branchId = null,
+        Guid? userId = null,
+        string? fromDate = null,
+        string? toDate = null,
+        int pageNumber = 1,
+        int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new StringBuilder();
+        query.Append($"pageNumber={Math.Max(1, pageNumber)}&pageSize={Math.Clamp(pageSize, 1, 100)}");
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query.Append($"&search={Uri.EscapeDataString(search.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(requestType) && !requestType.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            query.Append($"&requestType={Uri.EscapeDataString(requestType.Trim().ToUpperInvariant())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && !status.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            query.Append($"&status={Uri.EscapeDataString(status.Trim().ToUpperInvariant())}");
+        }
+
+        if (branchId.HasValue && branchId.Value > 0)
+        {
+            query.Append($"&branchId={branchId.Value}");
+        }
+
+        if (userId.HasValue && userId.Value != Guid.Empty)
+        {
+            query.Append($"&userId={userId.Value}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(fromDate))
+        {
+            query.Append($"&fromDate={Uri.EscapeDataString(fromDate.Trim())}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(toDate))
+        {
+            query.Append($"&toDate={Uri.EscapeDataString(toDate.Trim())}");
+        }
+
+        var url = $"{_apiBaseUrl}/api/admin/requests?{query}";
+
+        try
+        {
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Your session has expired. Please log in again.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+                return new AdminEmployeeRequestListViewModel
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    Search = search,
+                    RequestType = requestType,
+                    Status = status,
+                    BranchId = branchId,
+                    UserId = userId,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    ErrorMessage = errorMsg
+                };
+            }
+
+            var paged = await response.Content.ReadFromJsonAsync<PagedApiResponse<AdminEmployeeRequestListItemViewModel>>(JsonOptions, cancellationToken);
+
+            return new AdminEmployeeRequestListViewModel
+            {
+                Items = paged?.Items ?? [],
+                PageNumber = paged?.PageNumber ?? pageNumber,
+                PageSize = paged?.PageSize ?? pageSize,
+                TotalItems = paged?.TotalItems ?? 0,
+                TotalPages = paged?.TotalPages ?? 0,
+                Search = search,
+                RequestType = requestType,
+                Status = status,
+                BranchId = branchId,
+                UserId = userId,
+                FromDate = fromDate,
+                ToDate = toDate
+            };
+        }
+        catch (HttpRequestException ex)
+        {
+            return new AdminEmployeeRequestListViewModel
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Search = search,
+                RequestType = requestType,
+                Status = status,
+                BranchId = branchId,
+                UserId = userId,
+                FromDate = fromDate,
+                ToDate = toDate,
+                ErrorMessage = $"Unable to connect to the server: {ex.Message}"
+            };
+        }
+    }
+
+    /// <summary>
+    /// GET /api/admin/requests/{requestId} — retrieves request details.
+    /// </summary>
+    public async Task<AdminEmployeeRequestDetailViewModel?> GetByIdAsync(
+        int requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/requests/{requestId}";
+
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        if (response.StatusCode == HttpStatusCode.Unauthorized)
+        {
+            throw new UnauthorizedAccessException("Your session has expired. Please log in again.");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+            throw new InvalidOperationException(errorMsg);
+        }
+
+        return await response.Content.ReadFromJsonAsync<AdminEmployeeRequestDetailViewModel>(JsonOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// GET /api/admin/requests/{requestId}/history — retrieves review history / audit logs for the request.
+    /// </summary>
+    public async Task<(IReadOnlyList<AdminEmployeeRequestHistoryViewModel> Items, string? ErrorMessage)> GetHistoryAsync(
+        int requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var url = $"{_apiBaseUrl}/api/admin/requests/{requestId}/history";
+
+        try
+        {
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return ([], "Request not found.");
+            }
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new UnauthorizedAccessException("Session expired or token invalid.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMsg = await ApiErrorReader.ReadErrorMessageAsync(response, cancellationToken);
+                return ([], errorMsg ?? "Unable to load processing history.");
+            }
+
+            var list = await response.Content.ReadFromJsonAsync<List<AdminEmployeeRequestHistoryViewModel>>(
+                JsonOptions,
+                cancellationToken);
+
+            return (list ?? [], null);
+        }
+        catch (HttpRequestException ex)
+        {
+            return ([], $"Unable to connect to the server: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// GET /api/admin/branches — retrieves all branches (including historical/inactive) for filter dropdown.
+    /// Supports multi-page loading so it does not silently cap at 100 branches.
+    /// </summary>
+    public async Task<List<BranchFilterOptionViewModel>> GetBranchesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var allBranches = new List<BranchFilterOptionViewModel>();
+        var pageNumber = 1;
+        const int pageSize = 100;
+        var totalPages = 1;
+
+        try
+        {
+            do
+            {
+                var url = $"{_apiBaseUrl}/api/admin/branches?pageSize={pageSize}&pageNumber={pageNumber}";
+                using var response = await _httpClient.GetAsync(url, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    break;
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<PagedApiResponse<BranchApiItem>>(JsonOptions, cancellationToken);
+                if (result?.Items != null && result.Items.Count > 0)
+                {
+                    allBranches.AddRange(result.Items.Select(b => new BranchFilterOptionViewModel
+                    {
+                        BranchId = b.BranchId,
+                        BranchName = b.BranchName,
+                        BranchCode = b.BranchCode
+                    }));
+                    totalPages = result.TotalPages > 0 ? result.TotalPages : 1;
+                    pageNumber++;
+                }
+                else
+                {
+                    break;
+                }
+            } while (pageNumber <= totalPages && pageNumber <= 10);
+        }
+        catch
+        {
+            // Return whatever loaded or empty
+        }
+
+        return allBranches;
+    }
+
+    private class PagedApiResponse<T>
+    {
+        public List<T> Items { get; set; } = [];
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    private class BranchApiItem
+    {
+        public int BranchId { get; set; }
+        public string BranchCode { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+    }
+}

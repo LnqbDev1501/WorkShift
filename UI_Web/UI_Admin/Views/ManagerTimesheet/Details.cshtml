@@ -1,0 +1,795 @@
+@model UI_Admin.Models.Manager.Timesheet.ManagerWeeklyTimesheetDetailViewModel
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"Week {Model.Period} Details";
+    var isNotGenerated = string.Equals(Model.Status, "NOT GENERATED", StringComparison.OrdinalIgnoreCase);
+    var isGenerated = string.Equals(Model.Status, "GENERATED", StringComparison.OrdinalIgnoreCase) || string.Equals(Model.Status, "OPEN", StringComparison.OrdinalIgnoreCase);
+    var isReviewed = string.Equals(Model.Status, "REVIEWED", StringComparison.OrdinalIgnoreCase);
+    var isLocked = string.Equals(Model.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <a asp-action="Index" class="hover:underline flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">table_chart</span>
+                    <span>Weekly Timesheets</span>
+                </a>
+                <span>/</span>
+                <span class="text-slate-400">Week @Model.Period Details</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Week @Model.Period</h1>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Schedule Week ID">
+                    Week #@Model.ScheduleWeekId
+                </span>
+                @if (Model.PayrollPeriodId.HasValue)
+                {
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Payroll Period ID">
+                        Payroll #@Model.PayrollPeriodId.Value
+                    </span>
+                }
+                
+                <!-- Status Badge -->
+                @if (isReviewed)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <span>REVIEWED</span>
+                    </span>
+                }
+                else if (isLocked)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span>LOCKED</span>
+                    </span>
+                }
+                else if (isGenerated)
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span>GENERATED</span>
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                        <span>NOT GENERATED</span>
+                    </span>
+                }
+            </div>
+            <p class="text-sm text-slate-500 mt-1 flex items-center gap-2">
+                <span>Branch: <strong class="text-slate-700">@Model.BranchName</strong></span>
+                <span>•</span>
+                <span>Schedule: <strong class="text-slate-700">@Model.WeekStartDate.ToString("dd/MM/yyyy") – @Model.WeekEndDate.ToString("dd/MM/yyyy")</strong></span>
+            </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-3">
+            <a asp-action="Index" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-semibold transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to List</span>
+            </a>
+
+            <a asp-action="ExportExcel" asp-route-id="@Model.ScheduleWeekId"
+               title="Export weekly timesheet summary to Excel spreadsheet"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-lg">download</span>
+                <span>Export Excel</span>
+            </a>
+
+            @if (Model.CanGenerateTimesheet)
+            {
+                <form id="formGenerateTimesheet" asp-action="Generate" asp-route-id="@Model.ScheduleWeekId" method="post" class="inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="reviewDeadline" id="hiddenReviewDeadline" value="" />
+                    <button type="button" id="btnGenerateTimesheet"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-lg">auto_awesome</span>
+                        <span>Generate Timesheet</span>
+                    </button>
+                </form>
+            }
+
+            @if (!isLocked && !isReviewed && !Model.CanGenerateTimesheet)
+            {
+                if (Model.CanLockTimesheet)
+                {
+                    <form id="formLockTimesheet" asp-action="Lock" asp-route-id="@Model.ScheduleWeekId" method="post" class="inline">
+                        @Html.AntiForgeryToken()
+                        <button type="button" id="btnLockTimesheet"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                            <span class="material-symbols-outlined text-lg">rate_review</span>
+                            <span>Review Timesheet</span>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <button type="button" disabled
+                            title="@Model.LockEligibilityMessage"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-400 border border-slate-200 text-sm font-semibold shadow-xs cursor-not-allowed">
+                        <span class="material-symbols-outlined text-lg">rate_review</span>
+                        <span>Review Timesheet</span>
+                    </button>
+                }
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@Model.SuccessMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@Model.ErrorMessage</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!isLocked && !isNotGenerated)
+    {
+        <!-- Review Window & Deadline Status Card -->
+        <div class="p-4 rounded-2xl @(Model.CanLockTimesheet ? "bg-emerald-50/80 border border-emerald-200 text-emerald-950" : "bg-sky-50/80 border border-sky-200 text-sky-950") text-sm flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div class="flex items-start gap-3.5">
+                <div class="w-10 h-10 rounded-xl @(Model.CanLockTimesheet ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700") flex items-center justify-center shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-xl">
+                        @(Model.CanLockTimesheet ? "verified_user" : "pending_actions")
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <p class="font-bold text-slate-900">
+                            @(Model.CanLockTimesheet ? "Timesheet Ready to Review" : "Review Window in Progress")
+                        </p>
+                        @if (Model.CanLockTimesheet)
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Eligible
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-800 border border-sky-200">
+                                Awaiting Criteria
+                            </span>
+                        }
+                    </div>
+                    <p class="text-xs @(Model.CanLockTimesheet ? "text-emerald-800" : "text-sky-800") mt-1">
+                        @Model.LockEligibilityMessage
+                    </p>
+                    @if (Model.PendingAdjustmentCount > 0)
+                    {
+                        <div class="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200">
+                            <span class="material-symbols-outlined text-sm text-amber-600">warning</span>
+                            <span>@Model.PendingAdjustmentCount pending adjustment request(s) must be approved or rejected before reviewing.</span>
+                        </div>
+                    }
+                </div>
+            </div>
+            @if (Model.ReviewDeadline.HasValue && !Model.CanLockTimesheet)
+            {
+                <div class="md:text-right shrink-0 bg-white/60 md:bg-transparent p-3 md:p-0 rounded-xl border md:border-0 border-slate-200/60">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider block text-slate-500">Staff Response Deadline</span>
+                    <span class="text-xs font-bold text-slate-800">@Model.ReviewDeadlineDisplay</span>
+                    <span class="text-[11px] block mt-0.5 @(Model.IsPastDeadline ? "text-amber-700 font-semibold" : "text-slate-500")">
+                        @(Model.IsPastDeadline ? "(Expired at end of day)" : "(Until end of day)")
+                    </span>
+                </div>
+            }
+        </div>
+    }
+
+    @if (isReviewed)
+    {
+        <!-- Informational banner for REVIEWED state -->
+        <div class="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-900 text-sm flex items-start gap-3.5 shadow-sm">
+            <span class="material-symbols-outlined text-blue-600 text-xl shrink-0 mt-0.5">verified</span>
+            <div>
+                <p class="font-bold text-blue-900">Timesheet Is Reviewed</p>
+                <p class="text-xs text-blue-800 mt-0.5">
+                    This weekly timesheet has been reviewed and finalized by the manager. An automated notification has been sent to the branch accountant for payroll calculation.
+                </p>
+            </div>
+        </div>
+    }
+
+    @if (isLocked)
+    {
+        <!-- Informational banner for LOCKED state -->
+        <div class="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200 text-emerald-900 text-sm flex items-start gap-3.5 shadow-sm">
+            <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0 mt-0.5">lock</span>
+            <div>
+                <p class="font-bold text-emerald-900">Timesheet Is Locked</p>
+                <p class="text-xs text-emerald-800 mt-0.5">
+                    This weekly timesheet is locked and finalized for payroll calculation. Staff confirmations and attendance hours are permanently closed.
+                </p>
+            </div>
+        </div>
+    }
+
+    @if (isNotGenerated)
+    {
+        <!-- Informational banner for NOT GENERATED state -->
+        <div class="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 text-sm flex items-start gap-3.5 shadow-sm">
+            <span class="material-symbols-outlined text-amber-600 text-xl shrink-0 mt-0.5">info</span>
+            <div>
+                <p class="font-bold text-amber-900">Timesheet Not Generated Yet</p>
+                @if (Model.TotalStaff == 0)
+                {
+                    <p class="text-xs text-amber-800 mt-0.5">
+                        This schedule week does not have any active shift assignments. You must assign staff members to shifts in the schedule before a timesheet can be generated.
+                    </p>
+                }
+                else
+                {
+                    <p class="text-xs text-amber-800 mt-0.5">
+                        This week has active shift schedules but attendance records have not been compiled into a timesheet batch. 
+                        Review the assigned staff list below and click <strong class="font-semibold text-amber-950">Generate Timesheet</strong> to create attendance records.
+                    </p>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Metric Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Total Staff -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">groups</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Staff</span>
+                <span class="text-xl font-bold text-slate-900">@Model.TotalStaff</span>
+                <span class="text-[11px] text-slate-400 block mt-0.5">Assigned to shifts</span>
+            </div>
+        </div>
+
+        <!-- Card 2: Staff Confirmation -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">verified</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Staff Confirmation</span>
+                @if (isNotGenerated)
+                {
+                    <span class="text-xl font-bold text-slate-400">-</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Pending generation</span>
+                }
+                else
+                {
+                    <span class="text-xl font-bold text-slate-900">@Model.ConfirmedStaff / @Model.TotalStaff</span>
+                    @if (Model.NoResponseStaff > 0)
+                    {
+                        <span class="text-[11px] text-slate-500 font-semibold block mt-0.5">@Model.ConfirmationRate% confirmed • @Model.NoResponseStaff no response</span>
+                    }
+                    else
+                    {
+                        <span class="text-[11px] text-emerald-600 font-semibold block mt-0.5">@Model.ConfirmationRate% confirmed</span>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Card 3: Total Work Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">schedule</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Work Time</span>
+                @if (isNotGenerated)
+                {
+                    <span class="text-xl font-bold text-slate-400">-</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Pending computation</span>
+                }
+                else
+                {
+                    <span class="text-xl font-bold text-slate-900">@Model.TotalWorkTimeDisplay</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">@Model.TotalWorkHours.ToString("N1") hrs total</span>
+                }
+            </div>
+        </div>
+
+        <!-- Card 4: Total Late Time -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <span class="material-symbols-outlined text-2xl">alarm_off</span>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Total Late Time</span>
+                @if (isNotGenerated)
+                {
+                    <span class="text-xl font-bold text-slate-400">-</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Pending computation</span>
+                }
+                else
+                {
+                    <span class="text-xl font-bold @(Model.TotalLateMinutes > 0 ? "text-amber-600" : "text-slate-900")">@Model.TotalLateDisplay</span>
+                    <span class="text-[11px] text-slate-400 block mt-0.5">Early leave: @Model.TotalEarlyLeaveDisplay</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Timesheet Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-150 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">badge</span>
+                <h2 class="text-sm font-bold text-slate-900">Staff Weekly Timesheet Records</h2>
+                <span class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.StaffTimesheets.Count Staff Members
+                </span>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">Timezone: Vietnam (UTC+7)</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                    <tr>
+                        <th scope="col" class="px-6 py-3.5">Staff Member</th>
+                        <th scope="col" class="px-6 py-3.5">Role</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Assigned Shifts</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Completed Shifts</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Confirmation</th>
+                        <th scope="col" class="px-6 py-3.5 text-center">Status</th>
+                        <th scope="col" class="px-6 py-3.5 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 font-medium">
+                    @if (Model.StaffTimesheets == null || Model.StaffTimesheets.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                                <div class="flex flex-col items-center justify-center gap-3">
+                                    <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
+                                        <span class="material-symbols-outlined text-3xl">person_off</span>
+                                    </div>
+                                    <div class="text-base font-semibold text-slate-700">No Staff Assigned In This Week</div>
+                                    <p class="text-xs text-slate-400 max-w-sm">No shift assignments or timesheet records found for this week period.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var staff in Model.StaffTimesheets)
+                        {
+                            var isStaffConfirmed = string.Equals(staff.StaffReviewStatus, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+                            var isStaffNoResponse = string.Equals(staff.StaffReviewStatus, "NO_RESPONSE", StringComparison.OrdinalIgnoreCase);
+                            var isStaffAdjustmentPending = string.Equals(staff.StaffReviewStatus, "ADJUSTMENT_PENDING", StringComparison.OrdinalIgnoreCase);
+
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Staff Member -->
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700 text-xs">
+                                            @(string.IsNullOrWhiteSpace(staff.FullName) ? "U" : staff.FullName[..1].ToUpper())
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-bold text-slate-900 text-sm">@staff.FullName</span>
+                                                @if (staff.TimesheetId.HasValue)
+                                                {
+                                                    <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Weekly Timesheet ID">
+                                                        TS-#@staff.TimesheetId.Value
+                                                    </span>
+                                                }
+                                            </div>
+                                            <span class="text-xs text-slate-400 mt-0.5">@(staff.Email ?? staff.Phone ?? "No contact")</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Role -->
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                        @(staff.RoleName ?? "Staff")
+                                    </span>
+                                </td>
+
+                                <!-- Assigned Shifts -->
+                                <td class="px-6 py-4 text-center">
+                                    <span class="font-semibold text-slate-800">@staff.TotalAssignedShifts</span>
+                                </td>
+
+                                <!-- Completed Shifts -->
+                                <td class="px-6 py-4 text-center">
+                                    @if (isNotGenerated)
+                                    {
+                                        <span class="text-slate-400">-</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="font-semibold text-slate-800">@staff.CompletedShifts</span>
+                                    }
+                                </td>
+
+                                <!-- Confirmation -->
+                                <td class="px-6 py-4 text-center">
+                                    @if (isNotGenerated || staff.StaffReviewStatus == "-")
+                                    {
+                                        <span class="text-slate-400">-</span>
+                                    }
+                                    else if (isStaffConfirmed)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="material-symbols-outlined text-xs">check</span>
+                                            <span>CONFIRMED</span>
+                                        </span>
+                                    }
+                                    else if (isStaffAdjustmentPending)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200" title="Staff submitted adjustment requests pending manager review">
+                                            <span class="material-symbols-outlined text-xs">edit_calendar</span>
+                                            <span>DISPUTED</span>
+                                        </span>
+                                    }
+                                    else if (isStaffNoResponse)
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200" title="Review deadline expired with no response">
+                                            <span class="material-symbols-outlined text-xs text-slate-500">timer_off</span>
+                                            <span>NO RESPONSE</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <span class="material-symbols-outlined text-xs">schedule</span>
+                                            <span>PENDING</span>
+                                        </span>
+                                    }
+
+                                    @if (staff.ReviewDeadline.HasValue && !isNotGenerated && !isStaffConfirmed && staff.StaffReviewStatus != "-")
+                                    {
+                                        <div class="mt-1 text-[11px] @(staff.IsPastDeadline ? "text-amber-700 font-medium" : "text-slate-400 font-normal")" title="Staff review deadline">
+                                            <span>Deadline: @staff.ReviewDeadlineDisplay</span>
+                                        </div>
+                                    }
+                                </td>
+
+                                <!-- Status -->
+                                <td class="px-6 py-4 text-center">
+                                    @if (isNotGenerated)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                            NOT GENERATED
+                                        </span>
+                                    }
+                                    else if (string.Equals(staff.Status, "LOCKED", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            LOCKED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            GENERATED
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Action -->
+                                <td class="px-6 py-4 text-right">
+                                    <div class="inline-flex items-center justify-end gap-1.5">
+                                        @if (staff.CanReopenReview && !isLocked && !isNotGenerated)
+                                        {
+                                            <button type="button"
+                                                    onclick="openReopenModal('@staff.TimesheetId', '@Html.Raw(Html.Encode(staff.FullName))')"
+                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-600 text-amber-700 hover:text-white border border-amber-200 hover:border-amber-600 transition-all shadow-xs cursor-pointer"
+                                                    title="Reopen review deadline for @staff.FullName">
+                                                <span class="material-symbols-outlined text-base">replay</span>
+                                            </button>
+                                        }
+                                        <a asp-action="StaffDetail"
+                                           asp-route-scheduleWeekId="@Model.ScheduleWeekId"
+                                           asp-route-userId="@staff.UserId"
+                                           class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white border border-indigo-200 hover:border-indigo-600 transition-all shadow-xs"
+                                           title="View Details">
+                                            <span class="material-symbols-outlined text-base">visibility</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal: Generate Timesheet -->
+<div id="modalGenerateTimesheet" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900" id="modal-title">Generate Weekly Timesheet</h3>
+                        <p class="text-xs text-slate-500">Week @Model.Period • @Model.BranchName</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    You are about to compile attendance records and generate weekly timesheets for this schedule week.
+                </p>
+
+                <div class="mt-4">
+                    <label for="inputReviewDeadline" class="block text-xs font-semibold text-slate-700 mb-1">
+                        Review Deadline (Staff response window: 24h - 72h)
+                    </label>
+                    @{
+                        var nowVnForModal = DateTime.UtcNow.AddHours(7);
+                    }
+                    <input type="datetime-local" id="inputReviewDeadline"
+                           class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                           value="@nowVnForModal.AddHours(24).ToString("yyyy-MM-ddTHH:mm")"
+                           min="@nowVnForModal.AddHours(24).ToString("yyyy-MM-ddTHH:mm")"
+                           max="@nowVnForModal.AddHours(72).ToString("yyyy-MM-ddTHH:mm")" />
+                    <p class="text-[11px] text-slate-400 mt-1">Default is 24 hours from now. Staff will have until this deadline to confirm or dispute their hours.</p>
+                </div>
+
+                @if (Model.TotalStaff == 0)
+                {
+                    <div class="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1.5">
+                        <p class="font-semibold flex items-center gap-1.5 text-rose-950">
+                            <span class="material-symbols-outlined text-sm text-rose-600">error</span>
+                            <span>No Active Staff Assigned</span>
+                        </p>
+                        <p class="text-rose-800">
+                            Cannot generate timesheet: No active shifts or assigned staff members were found for this schedule week. Please verify the work schedule before generating timesheets.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                        <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                            <span class="material-symbols-outlined text-sm text-amber-600">notifications_active</span>
+                            <span>Staff Notification Notice</span>
+                        </p>
+                        <p class="text-amber-800">
+                            Once generated, all assigned staff members will immediately receive in-app and realtime notifications in English to review their work hours.
+                        </p>
+                    </div>
+                }
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" id="btnCancelGenerate"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Cancel
+                </button>
+                @if (Model.TotalStaff == 0)
+                {
+                    <button type="button" disabled
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-300 text-slate-500 text-sm font-semibold shadow-none cursor-not-allowed">
+                        <span class="material-symbols-outlined text-sm">block</span>
+                        <span>Cannot Generate (0 Staff)</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" id="btnConfirmGenerate"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-sm">check</span>
+                        <span id="btnConfirmText">Yes, Generate Now</span>
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal: Review Timesheet -->
+<div id="modalLockTimesheet" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-lock-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">rate_review</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900" id="modal-lock-title">Review Weekly Timesheet</h3>
+                        <p class="text-xs text-slate-500">Week @Model.Period • @Model.BranchName</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    You are about to review and approve this weekly timesheet batch. Once approved, timesheet hours will be finalized and an automated notification will be sent to the branch accountant to calculate payroll.
+                </p>
+
+                @if (Model.PendingAdjustmentCount > 0)
+                {
+                    <div class="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-1.5">
+                        <p class="font-semibold flex items-center gap-1.5 text-rose-950">
+                            <span class="material-symbols-outlined text-sm text-rose-600">block</span>
+                            <span>Pending Adjustments Block Review</span>
+                        </p>
+                        <p class="text-rose-800">
+                            There are @Model.PendingAdjustmentCount pending adjustment request(s) awaiting your decision. You must approve or reject all requests before reviewing the weekly timesheet.
+                        </p>
+                    </div>
+                }
+
+                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Review Notice</span>
+                    </p>
+                    <p class="text-amber-800">
+                        Staff members will no longer be able to submit adjustment requests. All finalized hours will be forwarded to the branch accountant.
+                    </p>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" id="btnCancelLock"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" id="btnConfirmLock" @(Model.PendingAdjustmentCount > 0 ? "disabled" : "")
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl @(Model.PendingAdjustmentCount > 0 ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white cursor-pointer") text-sm font-semibold shadow-sm transition-all">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmLockText">Yes, Review Timesheet</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form for Reopen Staff Review -->
+<form id="formReopenStaff" asp-action="ReopenStaff" asp-route-id="@Model.ScheduleWeekId" method="post" class="hidden">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="timesheetId" id="reopenTimesheetId" value="" />
+    <input type="hidden" name="returnUrl" value="Details" />
+</form>
+
+<!-- Confirmation Modal: Reopen Staff Review -->
+<div id="modalReopenStaff" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-reopen-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity" onclick="closeReopenModal()"></div>
+    <div class="flex min-h-full items-center justify-center p-4 text-center">
+        <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-slate-200">
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <span class="material-symbols-outlined text-2xl">replay</span>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900" id="modal-reopen-title">Reopen Timesheet Review</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Extend timesheet review deadline for staff</p>
+                    </div>
+                </div>
+                
+                <p class="text-sm text-slate-600 leading-relaxed">
+                    Are you sure you want to reopen the timesheet review window for <strong id="reopenStaffName" class="text-slate-900"></strong>? The review deadline will be extended for <strong>24 hours</strong>.
+                </p>
+
+                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5 text-amber-950">
+                        <span class="material-symbols-outlined text-sm text-amber-600">info</span>
+                        <span>Policy &amp; Effects</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-amber-800">
+                        <li>Staff review status will reset from <strong>NO RESPONSE</strong> to <strong>PENDING</strong>.</li>
+                        <li>The review window will be reopened for <strong>24 hours</strong> from now.</li>
+                        <li>An English notification will be sent, unlocking the timesheet on the mobile app for confirmation or disputes.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeReopenModal()"
+                        class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" id="btnConfirmReopen" onclick="confirmReopenModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <span id="btnConfirmReopenText">Confirm Reopen</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function bindModal(btnOpenId, modalId, btnCancelId, btnConfirmId, formId, loadingText, onConfirmCallback) {
+            const btnOpen = document.getElementById(btnOpenId);
+            const modal = document.getElementById(modalId);
+            const btnCancel = document.getElementById(btnCancelId);
+            const btnConfirm = document.getElementById(btnConfirmId);
+            const form = document.getElementById(formId);
+
+            if (btnOpen && modal) {
+                btnOpen.addEventListener('click', () => modal.classList.remove('hidden'));
+            }
+            if (btnCancel && modal) {
+                btnCancel.addEventListener('click', () => modal.classList.add('hidden'));
+            }
+            if (btnConfirm && form) {
+                btnConfirm.addEventListener('click', () => {
+                    if (btnConfirm.disabled) return;
+                    if (onConfirmCallback) {
+                        onConfirmCallback();
+                    }
+                    btnConfirm.disabled = true;
+                    const textSpan = btnConfirm.querySelector('span:last-child');
+                    if (textSpan) textSpan.textContent = loadingText;
+                    form.submit();
+                });
+            }
+        }
+
+        bindModal('btnGenerateTimesheet', 'modalGenerateTimesheet', 'btnCancelGenerate', 'btnConfirmGenerate', 'formGenerateTimesheet', 'Generating...', () => {
+            const deadlineInput = document.getElementById('inputReviewDeadline');
+            const hiddenInput = document.getElementById('hiddenReviewDeadline');
+            if (deadlineInput && hiddenInput) {
+                hiddenInput.value = deadlineInput.value;
+            }
+        });
+
+        bindModal('btnLockTimesheet', 'modalLockTimesheet', 'btnCancelLock', 'btnConfirmLock', 'formLockTimesheet', 'Reviewing...');
+
+        function openReopenModal(timesheetId, staffName) {
+            document.getElementById('reopenTimesheetId').value = timesheetId;
+            document.getElementById('reopenStaffName').textContent = staffName;
+            document.getElementById('modalReopenStaff').classList.remove('hidden');
+        }
+
+        function closeReopenModal() {
+            document.getElementById('modalReopenStaff').classList.add('hidden');
+        }
+
+        function confirmReopenModal() {
+            const btn = document.getElementById('btnConfirmReopen');
+            btn.disabled = true;
+            document.getElementById('btnConfirmReopenText').textContent = 'Processing...';
+            document.getElementById('formReopenStaff').submit();
+        }
+
+        // Close any active modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ['modalGenerateTimesheet', 'modalLockTimesheet', 'modalReopenStaff'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+}

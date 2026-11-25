@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -9,10 +9,11 @@ using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Policies.Requests;
 
 namespace WorkShiftManagement.DAL.Repositories.Staff;
 
-public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
+public class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
 {
     private readonly AppDbContext _context;
 
@@ -759,7 +760,7 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
     {
         if (rule.SubmissionDeadlineDayOfWeek.HasValue)
         {
-            throw new InvalidOperationException($"Quy tắc giới hạn (Rule #{rule.RequestLimitRuleId}) có cấu hình hạn nộp (submission_deadline_day_of_week = {rule.SubmissionDeadlineDayOfWeek.Value}) nhưng chưa có đặc tả nghiệp vụ xác thực chính thức. Cần thống nhất quy tắc hạn nộp với module Request Limit trước khi áp dụng.");
+            throw new InvalidOperationException($"Request limit rule (Rule #{rule.RequestLimitRuleId}) has a submission deadline configured (day_of_week = {rule.SubmissionDeadlineDayOfWeek.Value}), but lacks formal business specification. Please align submission deadline rules before use.");
         }
     }
 
@@ -832,7 +833,7 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
             {
                 var oldStatus = r.Status;
                 r.Status = "CANCELLED";
-                r.ReviewNote = "Hệ thống tự động hủy đơn do ca làm việc đã kết thúc mà chưa được duyệt.";
+                r.ReviewNote = "The system automatically cancelled the request because the shift ended without manager approval.";
                 r.UpdatedAt = nowUtc;
 
                 _context.AuditLogs.Add(new AuditLog
@@ -863,5 +864,46 @@ public partial class StaffEmployeeRequestRepo : IStaffEmployeeRequestRepo
         }
 
         return overdueList;
+    }
+
+    public async Task<EmployeeRequest> SubmitSalaryIncreaseRequestAsync(Guid staffId, int branchId, decimal proposedHourlyRate,
+        string reason, DateOnly todayVn, CancellationToken cancellationToken = default)
+    {
+        if (staffId == Guid.Empty || branchId <= 0 || string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 500)
+            throw new ArgumentException("Salary increase request information is invalid.");
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        // Same per-Staff serialization as the existing requests; prevents duplicate submissions/quota races.
+        await _context.Database.ExecuteSqlInterpolatedAsync($"SELECT user_id FROM public.users WHERE user_id = {staffId} FOR UPDATE", cancellationToken);
+        await _context.Database.ExecuteSqlRawAsync("LOCK TABLE public.staff_salary_history, public.employment_contracts, public.request_limit_rules IN SHARE MODE", cancellationToken);
+        var staff = await GetActiveStaffAsync(staffId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Staff account is inactive.");
+        var rule = await GetActiveRuleAsync(branchId, "SALARY_INCREASE", todayVn, cancellationToken)
+            ?? throw new InvalidOperationException("Branch does not have an active and effective SALARY_INCREASE Request Limit Rule.");
+        SalaryIncreaseRequestPolicy.ValidateSubmissionRule(rule, todayVn);
+        await ValidateMonthlyLimitAsync(staffId, "SALARY_INCREASE", rule.MaxRequestsPerMonth, todayVn, cancellationToken);
+        if (await _context.EmployeeRequests.AnyAsync(r => r.UserId == staffId && r.RequestType == "SALARY_INCREASE" && r.Status == "PENDING", cancellationToken))
+            throw new InvalidOperationException("You already have a PENDING salary increase request. Please wait for Manager review or cancel it before submitting a new one.");
+        var salaries = await _context.StaffSalaryHistories.AsNoTracking().Include(s => s.Contract)
+            .Where(s => s.UserId == staffId && (s.Status == "ACTIVE" || s.Status == "INACTIVE" || s.Status == "SCHEDULED")
+                && s.EffectiveFrom <= todayVn && (!s.EffectiveTo.HasValue || s.EffectiveTo >= todayVn))
+            .ToListAsync(cancellationToken);
+        if (salaries.Count != 1) throw new InvalidOperationException("Exactly one active salary rate record is required for today; records are missing or overlapping.");
+        var salary = salaries[0];
+        SalaryIncreaseRequestPolicy.ValidateSource(staff, branchId, salary, proposedHourlyRate, todayVn);
+        var now = DateTime.UtcNow;
+        var request = new EmployeeRequest { UserId = staffId, BranchId = branchId, RequestType = "SALARY_INCREASE",
+            Reason = reason.Trim(), Status = "PENDING", AppliedRequestLimitRuleId = rule.RequestLimitRuleId, CreatedAt = now, UpdatedAt = now,
+            SalaryIncreaseRequestDetail = new SalaryIncreaseRequestDetail { CurrentContractId = salary.ContractId,
+                CurrentHourlyRate = salary.HourlyRate, ProposedHourlyRate = proposedHourlyRate } };
+        _context.EmployeeRequests.Add(request);
+        await _context.SaveChangesAsync(cancellationToken);
+        _context.AuditLogs.Add(new AuditLog { UserId = staffId, Action = "CREATE", TableName = "employee_requests",
+            RecordId = request.RequestId.ToString(), CreatedAt = now,
+            NewValue = JsonSerializer.Serialize(new { request.RequestId, request.UserId, request.BranchId, request.RequestType,
+                request.Reason, request.Status, request.AppliedRequestLimitRuleId, salary.SalaryHistoryId, salary.ContractId,
+                currentHourlyRate = salary.HourlyRate, proposedHourlyRate }) });
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return request;
     }
 }

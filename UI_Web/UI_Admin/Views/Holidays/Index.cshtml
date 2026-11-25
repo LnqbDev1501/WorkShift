@@ -1,0 +1,149 @@
+﻿@model UI_Admin.Models.Admin.Holidays.HolidayIndexViewModel
+@{
+    ViewData["Title"] = "Public Holidays";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/holidays.css" asp-append-version="true" />
+}
+<div class="holiday-shell">
+    <main class="holiday-page">
+        <div class="holiday-heading">
+            <div>
+                <div class="list-eyebrow">System-wide Configuration</div>
+                <h1>Public Holidays</h1>
+                <p>Manage holidays by year. Pay multipliers are selected automatically for each holiday date.</p>
+            </div><a asp-action="Create" class="primary-button">+ Create Public Holidays</a>
+        </div>
+        <partial name="_Tabs" />
+        @if (Model.ErrorMessage != null)
+        {
+            <div class="holiday-alert error">@Model.ErrorMessage</div>
+        }
+        @if (Model.SuccessMessage != null)
+        {
+            <div class="holiday-alert">@Model.SuccessMessage</div>
+        }
+        <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+            new("Active holidays", Model.ActiveCount.ToString("N0"), "In the selected year", "event_available", "#10b981"),
+            new("Inactive holidays", Model.InactiveCount.ToString("N0"), "In the selected year", "event_busy", "#ef4444"),
+            new("Missing pay rules", Model.SummaryItems.Count(x => x.IsActive && x.PayMultiplier == null).ToString("N0"), "Add a rule before calculating payroll", "warning", "#f59e0b"),
+            new("Upcoming holiday", Model.UpcomingHoliday?.HolidayName ?? "None scheduled", Model.UpcomingHoliday?.HolidayDate.ToString("dd/MM/yyyy") ?? "No upcoming date", "event_upcoming")
+        })' />
+
+        <form asp-action="List" method="get" class="ws-list-filter" role="search">
+            <input type="hidden" name="IncludeInactive" value="true" />
+            <div class="ws-filter-row">
+                <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input name="Search" value="@Model.Query.Search" maxlength="150" placeholder="Search by holiday name" aria-label="Holiday name" /></label>
+                <div class="ws-filter-field"><input aria-label="Year" type="number" name="Year" value="@Model.Query.Year" min="1" max="9999" placeholder="All years" /></div>
+                <div class="ws-filter-field"><select name="IsActive" aria-label="Status">
+                                                <option value="">All statuses</option>
+                                                <option value="true" selected="@(Model.Query.IsActive == true)">Active</option>
+                                                <option value="false" selected="@(Model.Query.IsActive == false)">Inactive</option>
+                                            </select></div>
+                <partial name="_ListFilterActions" model='"List"' />
+            </div>
+        </form>
+                    <section class="holiday-table-card">
+
+                                <div class="table-scroll">
+                                    <table class="holiday-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Holiday name</th>
+                                                <th>Date</th>
+                                                <th>Pay multiplier</th>
+                                                <th>Status</th>
+                                                <th class="actions">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>@foreach (var item in Model.Result.Items) {
+                                            <tr>
+                                                <td><strong>@item.HolidayName</strong></td>
+                                                <td>@item.HolidayDate.ToString("dd/MM/yyyy")</td>
+                                                <td><span class="multiplier">@(item.PayMultiplier.HasValue ? "×" +
+                                                                                                                                            item.PayMultiplier.Value.ToString("0.00") : "No applicable rule")</span></td>
+                                                    <td><span class="status @(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active"                  : "Inactive")</span></td>
+                                                    <td class="actions-cell">
+                                                        <div class="row-actions">
+
+                                                            <!-- View -->
+                                                            <a asp-action="Details" asp-route-id="@item.PublicHolidayId"
+                                                               class="ws-icon-action action-icon action-view" title="View" aria-label="View">
+                                                                <span class="material-symbols-outlined">visibility</span>
+                                                            </a>
+
+                                                            @if (item.CanEdit)
+                                                            {
+                                                                <!-- Edit -->
+                                                                <a asp-action="Edit" asp-route-id="@item.PublicHolidayId"
+                                                                   class="ws-icon-action action-icon action-edit" title="Edit" aria-label="Edit">
+                                                                    <span class="material-symbols-outlined">edit</span>
+                                                                </a>
+
+                                                                <!-- Deactivate -->
+                                                                <button type="button" class="ws-icon-action action-icon action-deactivate cursor-pointer"
+                                                                        title="Deactivate" aria-label="Deactivate"
+                                                                        data-holiday-id="@item.PublicHolidayId"
+                                                                        data-holiday-name="@item.HolidayName"
+                                                                        onclick="openDeactivateHolidayModal(this)">
+                                                                    <span class="material-symbols-outlined">
+                                                                        pause_circle
+                                                                    </span>
+                                                                </button>
+                                                            }
+                                                            else if (item.CanRestore)
+                                                            {
+                                                                <!-- Inactive / Restore -->
+                                                                <button type="button" class="ws-icon-action action-icon action-inactive cursor-pointer"
+                                                                        title="Restore" aria-label="Restore"
+                                                                        data-holiday-id="@item.PublicHolidayId"
+                                                                        data-holiday-name="@item.HolidayName"
+                                                                        onclick="openRestoreHolidayModal(this)">
+                                                                    <span class="material-symbols-outlined">
+                                                                        history
+                                                                    </span>
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <!-- Payroll Locked -->
+                                                                <span class="action-icon action-locked"
+                                                                      title="Read-only: today, past date, or payroll lock" aria-label="Read-only">
+                                                                    <span class="material-symbols-outlined">
+                                                                        lock
+                                                                    </span>
+                                                                </span>
+                                                            }
+
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if (Model.Result.Items.Count == 0)
+                                {
+                                    <div class="holiday-empty">
+                                        <h2>No matching holidays</h2>
+                                        <p>Change the filters or add holidays for this year.</p>
+                                    </div>
+                                }
+                                <partial name="_ListPagination" model="@(new ListPaginationViewModel
+                                         {
+                                             PageNumber = Model.Result.PageNumber,
+                                             PageSize = Model.Result.PageSize,
+                                             TotalItems = Model.Result.TotalCount,
+                                             ItemLabel = "holidays",
+                                             PageParameter = "pageNumber",
+                                         })" />
+                            </section>
+                            <section class="holiday-form-note">
+                                <p>Today's and past holidays are read-only and remain available for historical payroll. Only future holidays
+                                    not locked by payroll can be changed or restored. Calendar changes return affected unfinalized
+                                    payroll periods to draft for recalculation before approval.</p>
+                                </section>
+                            </main>
+                        </div>
+
+<partial name="_HolidayActionModals" />

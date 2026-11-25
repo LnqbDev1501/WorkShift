@@ -1,10 +1,14 @@
+using System.IO.Compression;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using WorkShiftManagement.BLL.Helpers;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
 using WorkShiftManagement.BLL.Services.Auth;
@@ -13,6 +17,7 @@ using WorkShiftManagement.BLL.Services.Staff;
 using WorkShiftManagement.BLL.Interfaces.Notification;
 using WorkShiftManagement.BLL.Services.Notification;
 using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Security;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Repositories.Admin;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
@@ -36,6 +41,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<AdminDataChangedFilter>();
 builder.Services.AddControllers(options => options.Filters.AddService<AdminDataChangedFilter>());
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes;
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options => options.Level = CompressionLevel.Fastest);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -106,11 +121,11 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authentication.IClaimsTransforma
 
 var myCnn = builder.Configuration.GetConnectionString("MyCnn")
     ?? throw new InvalidOperationException("Missing MyCnn connection string.");
-// The Supabase pooler allows only 15 session clients: bound client-side pooling
-// and Hangfire workers so background jobs cannot starve web requests or hit EMAXCONNSESSION.
+// EF Core pool: Hangfire now uses its own "Hangfire" connection string (appsettings.json),
+// so EF Core can use up to 10 connections without competing with background jobs.
 var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
 {
-    MaxPoolSize = 8,
+    MaxPoolSize = 10,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
@@ -119,6 +134,10 @@ var efConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(myCnn)
 };
 var pooledConnectionString = efConnBuilder.ToString();
 
+var identityNoKey = builder.Configuration["Encryption:IdentityNoKey"]
+    ?? throw new InvalidOperationException("Missing Encryption:IdentityNoKey configuration.");
+IdentityNoEncryption.Configure(identityNoKey);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(pooledConnectionString);
@@ -126,21 +145,26 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 var hangfireRaw = builder.Configuration.GetConnectionString("Hangfire") ?? myCnn;
+// Hangfire uses its own "Hangfire" connection string from appsettings.json,
+// keeping background job connections isolated from EF Core web request connections.
 var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
 {
-    MaxPoolSize = 3,
+    MaxPoolSize = 5,
     MinPoolSize = 0,
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
     Timeout = 30,
-    CommandTimeout = 30
 };
 var hangfireConnection = hangfireConnBuilder.ToString();
 builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
-    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection)));
+    .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(hangfireConnection), new PostgreSqlStorageOptions
+    {
+        QueuePollInterval = TimeSpan.FromSeconds(15),
+        JobExpirationCheckInterval = TimeSpan.FromHours(1)
+    }));
 
 builder.Services.AddHangfireServer(options =>
 {
@@ -189,9 +213,12 @@ builder.Services.AddHttpClient<AuthService>(client =>
         ?? throw new InvalidOperationException("Missing AdminUi:ResetPasswordUrl configuration.");
     var staffSetupUrl = builder.Configuration["AdminUi:StaffSetupUrl"]
         ?? throw new InvalidOperationException("Missing AdminUi:StaffSetupUrl configuration.");
-    var context = sp.GetRequiredService<AppDbContext>();
-    return new AuthService(client, context, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
+    var userRepo = sp.GetRequiredService<IUserRepo>();
+    return new AuthService(client, userRepo, setPasswordUrl, resetPasswordUrl, staffSetupUrl);
 });
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditLogHelper, AuditLogHelper>();
 
 builder.Services.AddScoped<IUserRepo, UserRepo>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -242,12 +269,17 @@ builder.Services.AddScoped<IProductRepo, ProductRepo>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IOrderRepo, OrderRepo>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddHostedService<OrderAutoCompletionWorker>();
+builder.Services.AddScoped<WorkShiftManagement.DAL.Interfaces.Accountant.IBranchSalesReportRepo,
+    WorkShiftManagement.DAL.Repositories.Accountant.BranchSalesReportRepo>();
 builder.Services.AddScoped<WorkShiftManagement.BLL.Interfaces.Accountant.IBranchSalesReportService,
     WorkShiftManagement.BLL.Services.Accountant.BranchSalesReportService>();
 builder.Services.AddScoped<IPaymentRepo, PaymentRepo>();
 builder.Services.AddScoped<IPublicHolidayRepo, PublicHolidayRepo>();
 builder.Services.AddScoped<IPublicHolidayService, PublicHolidayService>();
 builder.Services.AddScoped<HolidayConfigurationRepo>();
+builder.Services.AddScoped<IHolidayPayRuleRepo, HolidayPayRuleRepo>();
+builder.Services.AddScoped<IHolidayPayRuleService, HolidayPayRuleService>();
 builder.Services.AddScoped<HolidayPayRuleService>();
 builder.Services.AddHostedService<HolidayRuleActivationWorker>();
 builder.Services.AddHostedService<EmploymentContractActivationWorker>();
@@ -332,12 +364,25 @@ builder.Services.AddSingleton<IAdminRealtimePublisher, SignalRAdminRealtimePubli
 
 var app = builder.Build();
 
+// shift-swap-expiry: 1 phút → 5 phút (swap expire theo giờ/ngày, không cần check mỗi phút)
+try
+{
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IStaffShiftSwapService>("shift-swap-expiry",
+            service => service.ExpireDueAsync(CancellationToken.None), "*/5 * * * *");
+}
+catch (Exception ex)
+{
+    app.Logger.LogError(ex, "Failed to register Hangfire recurring job 'shift-swap-expiry'.");
+}
+
+// salary-change-activation: 1 phút → 5 phút (effective date theo ngày, độ trễ 5 phút không ảnh hưởng)
 // Register independently: another recurring job's lock timeout must not skip salary activation.
 try
 {
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<ISalaryChangeService>("salary-change-activation",
-            service => service.ActivateDueAsync(CancellationToken.None), Cron.Minutely());
+            service => service.ActivateDueAsync(CancellationToken.None), "*/5 * * * *");
 }
 catch (Exception ex)
 {
@@ -348,7 +393,8 @@ foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
 {
     jobs => jobs.AddOrUpdate<IPayrollFeedbackService>("payroll-preview-expiry", service => service.ExpireDueAsync(CancellationToken.None), "*/5 * * * *"),
     jobs => jobs.AddOrUpdate<PayrollSystemNotificationJob>("payroll-system-notifications", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"),
-    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), "*/5 * * * *"); }
+    // approved-payslip-recovery: 5 phút → 1 giờ (recovery/backup job, không cần chạy gấp)
+    jobs => { jobs.RemoveIfExists("initial-payslip-publication"); jobs.AddOrUpdate<PayslipPublicationJob>("approved-payslip-recovery", job => job.ExecuteAsync(CancellationToken.None), "0 * * * *"); }
 })
 {
     try { registerPayrollJob(app.Services.GetRequiredService<IRecurringJobManager>()); }
@@ -357,29 +403,33 @@ foreach (var registerPayrollJob in new Action<IRecurringJobManager>[]
 
 try
 {
+    // payroll-closure-notification-recovery: 5 phút → 1 giờ (recovery job, không cần gấp)
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<PayrollClosureNotificationJob>(
             "payroll-closure-notification-recovery",
             job => job.SendPendingAsync(CancellationToken.None),
-            "*/5 * * * *");
+            "0 * * * *");
 
+    // working-time-rules-activation: 30 phút → 1 giờ (activate theo ngày cụ thể, trễ 1 giờ không ảnh hưởng)
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IWorkingTimeRuleService>(
             "working-time-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
+    // attendance-rules-activation: 30 phút → 1 giờ
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendanceRuleService>(
             "attendance-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
+    // attendance-penalty-rules-activation: 30 phút → 1 giờ
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<IAttendancePenaltyRuleService>(
             "attendance-penalty-rules-activation",
             service => service.ActivateDueAsync(CancellationToken.None),
-            "*/30 * * * *");
+            Cron.Hourly());
 
     app.Services.GetRequiredService<IRecurringJobManager>()
         .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IStaffEmploymentContractService>(
@@ -410,6 +460,18 @@ try
             "overdue-requests-cancellation",
             service => service.CancelOverduePendingRequestsAsync(CancellationToken.None),
             "*/5 * * * *");
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<WorkShiftManagement.BLL.Interfaces.Staff.IAttendanceService>(
+            "attendance-absent-finalizer",
+            service => service.FinalizeExpiredAttendancesAsync(CancellationToken.None),
+            "*/5 * * * *");
+
+    app.Services.GetRequiredService<IRecurringJobManager>()
+        .AddOrUpdate<IOrderService>(
+            "auto-complete-past-pending-orders",
+            service => service.AutoCompletePastPendingOrdersAsync(CancellationToken.None),
+            "*/5 * * * *");
 }
 
 catch (Exception ex)
@@ -426,6 +488,10 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection(); // Commented out to prevent HTTP 307 redirect when behind ngrok/proxy
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/api/auth")
+               && !context.Request.Path.StartsWithSegments("/hubs"),
+    branch => branch.UseResponseCompression());
 app.UseCors("SignalRPolicy");
 
 app.UseAuthentication();
@@ -435,31 +501,5 @@ app.MapControllers();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AdminRealtimeHub>("/hubs/admin-realtime");
 app.MapHub<PayrollNotificationHub>("/hubs/payroll-notifications");
-
-try
-{
-    using var cleanupScope = app.Services.CreateScope();
-    var dbContext = cleanupScope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var notifsToClean = await dbContext.Notifications
-        .Where(n => n.Content.Contains("NOT_ACCEPTED_BY_START_DATE"))
-        .ToListAsync();
-    if (notifsToClean.Count > 0)
-    {
-        foreach (var n in notifsToClean)
-        {
-            n.Content = n.Content
-                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
-                .Replace("Lý do: NOT_ACCEPTED_BY_START_DATE (Quá ngày bắt đầu", "Lý do: Quá ngày bắt đầu")
-                .Replace("chưa xác nhận chấp thuận).", "chưa xác nhận chấp thuận.")
-                .Replace("chưa xác nhận chấp thuận)", "chưa xác nhận chấp thuận")
-                .Replace("NOT_ACCEPTED_BY_START_DATE", "Quá ngày bắt đầu mà nhân viên chưa xác nhận chấp thuận");
-        }
-        await dbContext.SaveChangesAsync();
-    }
-}
-catch (Exception ex)
-{
-    app.Logger.LogWarning(ex, "Failed to clean up legacy notification messages.");
-}
 
 app.Run();

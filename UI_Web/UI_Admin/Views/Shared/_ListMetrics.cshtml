@@ -1,0 +1,15 @@
+@model IReadOnlyList<UI_Admin.Models.ListMetricViewModel>
+<section class="list-metrics" aria-label="List summary">
+    @foreach (var metric in Model)
+    {
+        var accent = metric.Color ?? "#4f46e5";
+        <article class="list-metric" style="--lm-accent:@accent">
+            <div class="list-metric-content">
+                <div class="list-metric-label">@metric.Label</div>
+                <div class="list-metric-value">@metric.Value</div>
+                <div class="list-metric-note">@metric.Note</div>
+            </div>
+            <span class="list-metric-icon material-symbols-outlined" aria-hidden="true">@metric.Icon</span>
+        </article>
+    }
+</section>

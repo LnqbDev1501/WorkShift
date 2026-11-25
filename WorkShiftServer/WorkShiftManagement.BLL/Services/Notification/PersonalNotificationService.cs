@@ -65,6 +65,11 @@ public class PersonalNotificationService : IPersonalNotificationService
         return await _repo.MarkAsReadAsync(userId, userNotificationId);
     }
 
+    public async Task<int> MarkAllAsReadAsync(Guid userId)
+    {
+        return await _repo.MarkAllAsReadAsync(userId);
+    }
+
     public async Task<int> GetUnreadCountAsync(Guid userId)
     {
         return await _repo.GetUnreadCountAsync(userId);

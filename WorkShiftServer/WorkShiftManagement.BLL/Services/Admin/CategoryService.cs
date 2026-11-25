@@ -1,6 +1,8 @@
+using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 
@@ -9,10 +11,28 @@ namespace WorkShiftManagement.BLL.Services.Admin;
 public class CategoryService : ICategoryService
 {
     private readonly ICategoryRepo _categoryRepo;
+    private readonly AppDbContext _context;
 
-    public CategoryService(ICategoryRepo categoryRepo) => _categoryRepo = categoryRepo;
+    public CategoryService(ICategoryRepo categoryRepo, AppDbContext context)
+    {
+        _categoryRepo = categoryRepo;
+        _context = context;
+    }
 
-    public async Task<PagedResponse<CategoryResponse>> GetPagedAsync(CategoryListQuery query)
+    private async Task<(string? Role, int? BranchId)> GetActorAsync(Guid? actorId)
+    {
+        if (!actorId.HasValue || actorId.Value == Guid.Empty)
+            return (null, null);
+
+        var actor = await _context.Users.AsNoTracking()
+            .Where(user => user.UserId == actorId.Value && user.Status == "ACTIVE" && user.DeletedAt == null)
+            .Select(user => new { Role = user.Role.RoleName, user.BranchId })
+            .SingleOrDefaultAsync();
+
+        return actor == null ? (null, null) : (actor.Role.Trim().ToUpperInvariant(), actor.BranchId);
+    }
+
+    public async Task<PagedResponse<CategoryResponse>> GetPagedAsync(CategoryListQuery query, Guid? actorId = null)
     {
         if (query == null)
             throw new ArgumentException("Query is required.");
@@ -30,7 +50,21 @@ public class CategoryService : ICategoryService
                 throw new ArgumentException("Status filter only accepts 'ACTIVE' or 'INACTIVE'.");
         }
 
-        var (items, totalCount) = await _categoryRepo.GetPagedAsync(query.Search, status, pageNumber, pageSize);
+        int? branchId = null;
+        if (actorId.HasValue)
+        {
+            var (role, userBranchId) = await GetActorAsync(actorId);
+            if (role is "MANAGER" or "STAFF" or "ACCOUNTANT")
+                branchId = userBranchId.HasValue ? userBranchId.Value : -1;
+            else if (query.BranchId is > 0)
+                branchId = query.BranchId;
+        }
+        else if (query.BranchId is > 0)
+        {
+            branchId = query.BranchId;
+        }
+
+        var (items, totalCount) = await _categoryRepo.GetPagedAsync(query.Search, status, pageNumber, pageSize, branchId);
 
         return new PagedResponse<CategoryResponse>
         {
@@ -41,12 +75,20 @@ public class CategoryService : ICategoryService
         };
     }
 
-    public async Task<CategoryDetailResponse?> GetByIdAsync(int id)
+    public async Task<CategoryDetailResponse?> GetByIdAsync(int id, Guid? actorId = null)
     {
         if (id <= 0)
             return null;
 
-        var data = await _categoryRepo.GetByIdAsync(id);
+        int? branchId = null;
+        if (actorId.HasValue)
+        {
+            var (role, userBranchId) = await GetActorAsync(actorId);
+            if (role is "MANAGER" or "STAFF" or "ACCOUNTANT")
+                branchId = userBranchId.HasValue ? userBranchId.Value : -1;
+        }
+
+        var data = await _categoryRepo.GetByIdAsync(id, branchId);
         if (data == null)
             return null;
 
@@ -67,6 +109,7 @@ public class CategoryService : ICategoryService
                 ProductCode = product.ProductCode,
                 ProductName = product.ProductName,
                 Price = product.Price,
+                ImageUrl = product.ImageUrl,
                 Status = product.Status
             }).ToList()
         };

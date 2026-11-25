@@ -1,17 +1,23 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System.ComponentModel.DataAnnotations;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
-using WorkShiftManagement.DAL.Version.Rules;
+using WorkShiftManagement.DAL.Rules;
 
 namespace WorkShiftManagement.BLL.Services.Admin;
 
 public class WorkingTimeRuleService : IWorkingTimeRuleService
 {
     private readonly IWorkingTimeRuleRepo _workingTimeRuleRepo;
-    public WorkingTimeRuleService(IWorkingTimeRuleRepo workingTimeRuleRepo) => _workingTimeRuleRepo = workingTimeRuleRepo;
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
+    public WorkingTimeRuleService(IWorkingTimeRuleRepo workingTimeRuleRepo, IAdminRealtimePublisher? adminRealtimePublisher = null)
+    {
+        _workingTimeRuleRepo = workingTimeRuleRepo;
+        _adminRealtimePublisher = adminRealtimePublisher;
+    }
 
     public async Task<List<WorkingTimeRuleResponse>> GetAllAsync(CancellationToken cancellationToken)
     {
@@ -44,7 +50,13 @@ public class WorkingTimeRuleService : IWorkingTimeRuleService
         Map(await _workingTimeRuleRepo.PublishAsync(id, actor, cancellationToken));
     public async Task<WorkingTimeRuleResponse> CancelAsync(int id, Guid actor, CancellationToken cancellationToken) =>
         Map(await _workingTimeRuleRepo.CancelAsync(id, actor, cancellationToken));
-    public Task ActivateDueAsync(CancellationToken cancellationToken) => _workingTimeRuleRepo.ActivateDueAsync(cancellationToken);
+    public async Task ActivateDueAsync(CancellationToken cancellationToken)
+    {
+        var activated = await _workingTimeRuleRepo.ActivateDueAsync(cancellationToken);
+        if (activated > 0 && _adminRealtimePublisher != null)
+            await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "WorkingTimeRules", action = "ACTIVATED" });
+    }
 
     private static WorkingTimeRule CreateValues(WorkingTimeRuleRequest request)
     {

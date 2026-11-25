@@ -30,6 +30,21 @@ public class StaffOrderController : ControllerBase
     }
 
     /// <summary>
+    /// Checks whether the staff member is currently within their scheduled work shift.
+    /// </summary>
+    [HttpGet("shift-status")]
+    [ProducesResponseType(typeof(WorkShiftManagement.BLL.DTOs.Staff.Response.StaffShiftStatusResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetShiftStatus(CancellationToken cancellationToken)
+    {
+        var actor = GetActorId();
+        if (actor == null)
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
+
+        var isInShift = await _orderService.IsStaffInWorkingShiftAsync(actor.Value, actor.Value, cancellationToken);
+        return Ok(new WorkShiftManagement.BLL.DTOs.Staff.Response.StaffShiftStatusResponse { IsInShift = isInShift });
+    }
+
+    /// <summary>
     /// Creates a new customer order.
     /// </summary>
     [HttpPost]
@@ -90,6 +105,7 @@ public class StaffOrderController : ControllerBase
         {
             // Staff only sees their own orders - filter by CreatedBy
             // We'll add a CreatedBy filter to the query
+            query.SortBy ??= "oldest_pending_first";
             return Ok(await _orderService.GetPagedAsync(query, actor.Value));
         }
         catch (ArgumentException exception)
@@ -252,3 +268,4 @@ public class StaffOrderController : ControllerBase
         }
     }
 }
+

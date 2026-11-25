@@ -20,6 +20,8 @@ class AppButton extends StatelessWidget {
   final double? width;
   final double height;
   final double borderRadius;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   const AppButton({
     super.key,
@@ -31,6 +33,8 @@ class AppButton extends StatelessWidget {
     this.width,
     this.height = 50,
     this.borderRadius = 14,
+    this.backgroundColor,
+    this.textColor,
   });
 
   @override
@@ -40,22 +44,26 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: TextButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          foregroundColor: AppColors.primary,
+          foregroundColor: textColor ?? AppColors.primary,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: textColor ?? AppColors.primary,
+                ),
               ),
             ),
             if (icon != null) ...[
               const SizedBox(width: 4),
-              Icon(icon, size: 16, color: AppColors.primary),
+              Icon(icon, size: 16, color: textColor ?? AppColors.primary),
             ],
           ],
         ),
@@ -63,31 +71,31 @@ class AppButton extends StatelessWidget {
     }
 
     Color bgColor;
-    Color textColor;
+    Color txtColor;
     BorderSide borderSide = BorderSide.none;
 
     switch (type) {
       case AppButtonType.primary:
-        bgColor = AppColors.primary;
-        textColor = Colors.white;
+        bgColor = backgroundColor ?? AppColors.primary;
+        txtColor = textColor ?? Colors.white;
         break;
       case AppButtonType.secondary:
-        bgColor = AppColors.borderLight;
-        textColor = AppColors.textPrimary;
+        bgColor = backgroundColor ?? AppColors.borderLight;
+        txtColor = textColor ?? AppColors.textPrimary;
         break;
       case AppButtonType.outline:
-        bgColor = Colors.transparent;
-        textColor = AppColors.primary;
+        bgColor = backgroundColor ?? Colors.transparent;
+        txtColor = textColor ?? AppColors.primary;
         borderSide = const BorderSide(color: AppColors.primary, width: 1.5);
         break;
       case AppButtonType.dangerOutline:
-        bgColor = Colors.transparent;
-        textColor = AppColors.error;
+        bgColor = backgroundColor ?? Colors.transparent;
+        txtColor = textColor ?? AppColors.error;
         borderSide = const BorderSide(color: AppColors.error, width: 1.5);
         break;
       default:
-        bgColor = AppColors.primary;
-        textColor = Colors.white;
+        bgColor = backgroundColor ?? AppColors.primary;
+        txtColor = textColor ?? Colors.white;
     }
 
     return SizedBox(
@@ -96,7 +104,7 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
-          foregroundColor: textColor,
+          foregroundColor: txtColor,
           disabledBackgroundColor: AppColors.border,
           disabledForegroundColor: AppColors.textMuted,
           elevation: 0,
@@ -113,7 +121,7 @@ class AppButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                  valueColor: AlwaysStoppedAnimation<Color>(txtColor),
                 ),
               )
             : Row(
@@ -121,7 +129,7 @@ class AppButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20, color: textColor),
+                    Icon(icon, size: 20, color: txtColor),
                     const SizedBox(width: 8),
                   ],
                   Flexible(
@@ -131,7 +139,7 @@ class AppButton extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: textColor,
+                        color: txtColor,
                       ),
                     ),
                   ),

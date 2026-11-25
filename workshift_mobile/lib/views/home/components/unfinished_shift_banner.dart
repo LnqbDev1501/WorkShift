@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/attendance_shift_model.dart';
+import '../../../models/attendance/attendance_shift_model.dart';
 
 /// Banner cảnh báo khi nhân viên có ca làm việc trước đó chưa Checkout
 class UnfinishedShiftWarningBanner extends StatelessWidget {

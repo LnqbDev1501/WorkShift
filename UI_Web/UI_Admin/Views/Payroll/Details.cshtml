@@ -1,0 +1,399 @@
+﻿@model UI_Admin.Models.Admin.Payroll.PayrollDetailViewModel
+@{
+    var period = Model.Period;
+    var query = Model.Query;
+    ViewData["Title"] = period.PeriodCode;
+    var canApprove = period.Status == "SUBMITTED" && period.Summary.TotalPayrolls > 0 && period.Summary.RejectedPayrollCount
+== 0;
+    var statusText = period.Status switch
+    {
+        "SUBMITTED" => "Pending Admin Review",
+        "APPROVED" => "Approved",
+        "REVISION_REQUIRED" => "Revision Required",
+        _ => period.Status.Replace('_', ' ')
+    };
+    string Money(decimal value) => (Math.Abs(value) < 0.5m ? 0m : value).ToString("#,##0", System.Globalization.CultureInfo.GetCultureInfo("vi-VN")) + " ₫";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/payroll.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/payroll-detail.css" asp-append-version="true" />
+    <style>
+        .payroll-detail-nav {
+            margin-bottom: 14px;
+        }
+
+        .payroll-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #4f46e5;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .payroll-back-link:hover {
+            color: #3730a3;
+            text-decoration: none;
+        }
+
+        .payroll-modal[hidden] {
+            display: none;
+        }
+
+        .payroll-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            display: grid;
+            place-items: center;
+            padding: 20px;
+            background: rgba(27, 30, 42, .58);
+            backdrop-filter: blur(3px);
+        }
+
+        .payroll-modal-dialog {
+            width: min(100%, 520px);
+            overflow: hidden;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 24px 70px rgba(20, 24, 50, .25);
+        }
+
+        .payroll-modal-header,
+        .payroll-modal-footer {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 20px;
+        }
+
+        .payroll-modal-header {
+            justify-content: space-between;
+            border-bottom: 1px solid #eceef4;
+        }
+
+        .payroll-modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .payroll-modal-close {
+            border: 0;
+            background: transparent;
+            color: #6f7687;
+            font-size: 24px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .payroll-modal-body {
+            padding: 20px;
+            color: #555d70;
+        }
+
+        .payroll-modal-body p {
+            margin: 0 0 12px;
+        }
+
+        .payroll-modal-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .payroll-modal-footer {
+            justify-content: flex-end;
+            border-top: 1px solid #eceef4;
+            background: #fafbfe;
+        }
+
+        .payroll-toast[hidden] {
+            display: none;
+        }
+
+        .payroll-toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 2100;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            width: min(420px, calc(100vw - 32px));
+            padding: 16px;
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            color: #065f46;
+            background: #ecfdf5;
+            box-shadow: 0 16px 45px rgba(20, 40, 35, .18);
+        }
+
+        .payroll-toast-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 32px;
+            height: 32px;
+            border-radius: 50%;
+            color: #fff;
+            background: #10b981;
+            font-weight: 700;
+        }
+
+        .payroll-toast-content {
+            flex: 1;
+        }
+
+        .payroll-toast-content strong,
+        .payroll-toast-content span {
+            display: block;
+        }
+
+        .payroll-toast-content span {
+            margin-top: 4px;
+            color: #357463;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .payroll-toast-close {
+            border: 0;
+            color: #357463;
+            background: transparent;
+            font-size: 20px;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .payroll-result-icon {
+            display: grid;
+            place-items: center;
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 16px;
+            border-radius: 50%;
+            color: #fff;
+            background: #10b981;
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .payroll-modal-body .payroll-result-icon+p {
+            color: #1f2937;
+            text-align: center;
+            font-size: 15px;
+        }
+    </style>
+}
+<div class="payroll-page period-detail">
+    @if (TempData["PayrollSuccess"] is string success)
+    {
+        var action = TempData["PayrollAction"]?.ToString();
+        <div class="payroll-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
+            <div class="payroll-modal-dialog">
+                <div class="payroll-modal-header">
+                    <h2 id="result-title">Approval Successful</h2>
+                    <button type="button" class="payroll-modal-close" data-modal-close aria-label="Close">×</button>
+                </div>
+                <div class="payroll-modal-body">
+                    <div class="payroll-result-icon">✓</div>
+                    <p>@success</p>
+                    <p class="text-sm text-gray-600">Timesheets have been locked, the payroll period has been approved, and official payslips have been published to all employees.</p>
+                </div>
+                <div class="payroll-modal-footer">
+                    <button type="button" class="payroll-button primary" data-modal-close>Close</button>
+                </div>
+            </div>
+        </div>
+    }
+    <section class="period-header">
+            <div>
+                <div class="period-title">
+                    <h1>Payroll Period: @period.PeriodName</h1><span
+                    class="payroll-status @period.Status.ToLowerInvariant()">● @statusText</span>
+                </div>
+                <p><strong>@period.PeriodCode</strong><span>•</span> Period ID: @period.PayrollPeriodId <span>•</span>
+                    Cycle: <strong>@period.StartDate.ToString("dd MMM yyyy") – @period.EndDate.ToString("dd MMM yyyy")</strong><span>•</span> Branch: <strong class="purple">@period.BranchName</strong></p>
+                    <p>Submitted by @(period.SubmittedBy?.FullName ?? "—") · @(period.SubmittedAt?.ToString("dd MMM yyyy, HH:mm") ?? "Not submitted")</p>
+                    @if (period.ApprovedAt.HasValue)
+                    {
+                        <p>Approved by @(period.ApprovedBy?.FullName ?? "—") ·
+                            @period.ApprovedAt.Value.ToString("dd MMM yyyy, HH:mm")</p>
+                        }
+                        <p>Approval deadline (UTC+7): @(period.ApprovalDeadlineAt.HasValue ? DateTime.SpecifyKind(period.ApprovalDeadlineAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
+                        {
+                            <p>Paid at (UTC+7): @(period.PaidAt.HasValue ? DateTime.SpecifyKind(period.PaidAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—") · Closed at (UTC+7): @(period.ClosedAt.HasValue ? DateTime.SpecifyKind(period.ClosedAt.Value, DateTimeKind.Utc).AddHours(7).ToString("dd/MM/yyyy HH:mm") : "—")</p>
+                        }
+                    </div>
+                    <div class="period-header-actions">
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
+                        {
+                            <a class="payroll-button" asp-controller="AdminPayslips" asp-action="Index">View Official Payslips</a>
+                        }
+
+                        @if (period.Status is "APPROVED" or "PAID" or "CLOSED")
+                        {
+                            <a class="payroll-button primary" asp-action="Export" asp-route-id="@period.PayrollPeriodId" download title="Download official payroll report to your Downloads folder">Export Excel</a>
+                        }
+
+                        <a class="payroll-button payroll-back-button" asp-action="List">
+                            <span aria-hidden="true">←</span>
+                            Back to Payroll Approvals
+                        </a>
+
+                        <button type="button" class="payroll-button primary" disabled="@(!canApprove)"
+                                data-modal-open="approve-period">
+                            ✓ Approve Payroll Period
+                        </button>
+
+                    </div>
+                </section>
+                <div asp-validation-summary="All" class="alert alert-danger review-errors" role="alert"></div>
+                @if (period.Status == "REVISION_REQUIRED")
+    {
+        <div class="revision-notice">This payroll period requires revision. The accountant must resolve and resubmit rejected payrolls before admin approval.</div>
+    }
+    <section class="payroll-stats detail-stats" aria-label="Period totals">
+        <article>
+            <div>TOTAL NET PAYOUT <span>▣</span></div>
+            <p><strong>@Money(period.Summary.TotalNetSalary)</strong></p>
+            <small>Total period net payout</small>
+        </article>
+        <article>
+            <div>WORK PAY <span>◷</span></div>
+            <p><strong>@Money(period.Summary.TotalWorkPay)</strong></p>
+            <small>Base hourly work pay</small>
+        </article>
+        <article>
+            <div>TOTAL REWARDS <span>⊕</span></div>
+            <p><strong class="reward">@Money(period.Summary.TotalReward)</strong></p>
+            <small>Rewards and bonuses</small>
+        </article>
+        <article>
+            <div>TOTAL DEDUCTIONS <span>⊖</span></div>
+            <p><strong class="red">@Money(period.Summary.TotalPenalty + period.Summary.TotalAttendanceDeduction)</strong></p>
+            <small>Penalties: @Money(period.Summary.TotalPenalty)</small>
+            <small>Attendance: @Money(period.Summary.TotalAttendanceDeduction)</small>
+        </article>
+        <article>
+            <div>EMPLOYEE PAYROLLS <span>♙</span></div>
+            <p><strong>@period.Summary.TotalPayrolls <em>Staff</em></strong></p>
+            <small class="@(period.Summary.RejectedPayrollCount > 0 ? "red" : "reward")">@period.Summary.RejectedPayrollCount payrolls requiring revision</small>
+        </article>
+    </section>
+    <section class="payroll-table-card">
+                            <form method="get" asp-action="Details" class="detail-filter">
+                                <input type="hidden" name="id" value="@period.PayrollPeriodId" />
+                                <label class="employee-search"><span class="visually-hidden">Employee name</span><input name="Search"
+                                                                                                                            value="@query.Search" maxlength="100" placeholder="Search by employee name…" /></label>
+                                    <button class="payroll-button primary" type="submit">Search</button><a class="payroll-button"
+                                                                                                           asp-action="Details" asp-route-id="@period.PayrollPeriodId">Reset</a>
+                                    <label class="detail-page-size">Rows: <select name="PageSize" onchange="this.form.submit()">@foreach (var
+                                        size in new[] { 10, 20, 50, 100 }) {
+                                            <option value="@size" selected="@(query.PageSize == size)">
+                                                @size per page</option>
+                                            }
+                                        </select></label>
+                                    </form>
+                                    <div class="payroll-table-scroll">
+                                        <table class="employee-payroll-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>STAFF &amp; IDENTIFICATION</th>
+                                                    <th>ROLE &amp; RATE</th>
+                                                    <th>COMPLETED HOURS</th>
+                                                    <th class="money">WORK PAY</th>
+                                                    <th class="money">REWARDS</th>
+                                                    <th class="money">DEDUCTIONS</th>
+                                                    <th class="money">NET PAYOUT</th>
+                                                    <th>AUDIT ACTIONS</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var pay in period.Payrolls.Items)
+                                                {
+                                                    var payrollStatus = pay.Status?.Trim() ?? string.Empty;
+                                                    <tr class="staff-row">
+                                                        <td>
+                                                            <div class="staff-identity"><span
+                                                                class="staff-initial">@(string.IsNullOrWhiteSpace(pay.EmployeeFullName) ? "?" :
+                                                                                                                                                                    pay.EmployeeFullName.Trim()[..1])</span>
+                                                                <div><strong>@pay.EmployeeFullName</strong><small>Payroll #@pay.PayrollId</small><small
+                                                                    class="staff-guid">@pay.UserId</small></div>
+                                                                </div>
+                                                            </td>
+                                                            <td>@(pay.EmployeePosition ?? "—")<small>@Money(pay.HourlyRate) / hr</small></td>
+                                                            <td><strong>@pay.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</strong></td>
+                                                            <td class="money">@Money(pay.WorkPay)</td>
+                                                            <td class="money reward">@Money(pay.TotalReward)</td>
+                                                            <td class="money red">@Money(pay.TotalDeduction)</td>
+                                                            <td class="money"><strong class="purple">@Money(pay.NetSalary)</strong></td>
+                                                            <td><a asp-controller="AdminPayrollRevision" asp-action="Review" asp-route-id="@pay.PayrollId" class="payroll-button">Inspect Payroll</a></td>
+                                                            </tr>
+
+                                                                                            }
+                                                                                            @if (period.Payrolls.Items.Count == 0)
+                                                                                            {
+                                                                                                <tr>
+                                                                                                    <td colspan="8" class="payroll-empty"><strong>No employee payrolls found</strong>
+                                                                                                        <p>Try a different employee name or reset the search.</p>
+                                                                                                    </td>
+                                                                                                </tr>
+                                                                                            }
+                                                                                        </tbody>
+                                                                                    </table>
+                                                                                </div>
+                                                                                <partial name="_ListPagination" model="@(new ListPaginationViewModel
+                                                                                         {
+                                                                                             PageNumber = query.PageNumber,
+                                                                                             PageSize = query.PageSize,
+                                                                                             TotalItems = period.Payrolls.TotalCount,
+                                                                                             ItemLabel = "staff records",
+                                                                                             PageParameter = "pageNumber",
+                                                                                         })" />
+                                                                            </section>
+                                                                        </div>
+                                                                        @if (canApprove)
+                                                                        {
+                                                                            <div class="payroll-modal" id="approve-period" role="dialog" aria-modal="true" aria-labelledby="approve-title" hidden>
+        <div class="payroll-modal-dialog">
+            <form asp-action="Approve" method="post">
+                <div class="payroll-modal-header">
+                    <h2 id="approve-title">Approve Payroll Period</h2>
+                    <button type="button" class="payroll-modal-close" data-modal-close aria-label="Close">×</button>
+                </div>
+                <div class="payroll-modal-body">
+                    <p style="font-size:14px; font-weight:600; color:#1e293b; margin-bottom:12px;">Approve payroll period <strong>@period.PeriodCode</strong>?</p>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 14px; margin-bottom:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.025em; color:#64748b; display:block; margin-bottom:2px;">Payroll Count</span>
+                            <strong style="font-size:14px; color:#0f172a;">@period.Summary.TotalPayrolls Staff</strong>
+                        </div>
+                        <div>
+                            <span style="font-size:11px; text-transform:uppercase; letter-spacing:0.025em; color:#64748b; display:block; margin-bottom:2px;">Total Net Salary</span>
+                            <strong style="font-size:14px; color:#059669;">@Money(period.Summary.TotalNetSalary)</strong>
+                        </div>
+                    </div>
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:12px 14px; font-size:12px; color:#1e40af;">
+                        <ul style="list-style-type:disc; padding-left:18px; margin:0; line-height:1.6;">
+                            <li>Related timesheets will be locked.</li>
+                            <li>Current payrolls will be approved.</li>
+                            <li>Official payslips will be published to employees.</li>
+                        </ul>
+                    </div>
+                    <p style="font-size:11px; color:#64748b; margin-top:10px;">This action does not confirm salary payment.</p>
+                    <input type="hidden" name="PeriodId" value="@period.PayrollPeriodId" />
+                    <input type="hidden" name="Search" value="@query.Search" />
+                    <input type="hidden" name="PageNumber" value="@query.PageNumber" />
+                    <input type="hidden" name="PageSize" value="@query.PageSize" />
+                </div>
+                <div class="payroll-modal-footer">
+                    <button type="button" class="payroll-button" data-modal-close>Cancel</button>
+                    <button type="submit" class="payroll-button primary">Confirm Approval</button>
+                </div>
+            </form>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                }
+                                                                                @section Scripts {
+                                                                                    <script src="~/js/payroll-detail.js" asp-append-version="true"></script>
+                                                                                }

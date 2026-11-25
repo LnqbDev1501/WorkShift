@@ -1,0 +1,957 @@
+/* ========================================================
+   WorkShift Admin & Workspace Design System
+   Modern Enterprise Theme with Soft Shadows & Clean Aesthetics
+   ======================================================== */
+
+:root {
+    --ws-font: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --ws-primary: #4f46e5;
+    --ws-primary-hover: #4338ca;
+    --ws-primary-light: #eef2ff;
+    --ws-bg: #f6f7fb;
+    --ws-surface: #ffffff;
+    --ws-line: #e2e8f0;
+    --ws-line-subtle: #f1f5f9;
+    --ws-text-main: #0f172a;
+    --ws-text-muted: #64748b;
+    --ws-text-sub: #475569;
+}
+
+/* Base Body Styles */
+body.workshift-theme {
+    margin: 0;
+    font-family: var(--ws-font);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ws-text-main);
+    background: var(--ws-bg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.workshift-theme [class*="font-"]:not(.material-symbols-outlined),
+.workshift-theme :is(input, select, textarea, button):not(.material-symbols-outlined),
+.workshift-theme .period-detail {
+    font-family: var(--ws-font);
+}
+
+/* Headings */
+.workshift-theme h1 {
+    font-size: 24px;
+    line-height: 1.3;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--ws-text-main);
+}
+
+.workshift-theme h2 {
+    font-size: 18px;
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ws-text-main);
+}
+
+/* Page Containers */
+.workshift-theme :is(.dashboard-page, .notifications-page, .payroll-page, .holiday-page, .shift-content, .accountant-dashboard, .manager-dashboard, .rules-page) {
+    width: 100%;
+    max-width: 1536px;
+    margin-inline: auto;
+    padding: 20px 28px 36px;
+    background: var(--ws-bg);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.workshift-theme :is(#main-content-wrapper > main > .px-7, #main-content-wrapper > main > div > .px-7, .workspace-page > .px-7, #main-content-wrapper > main > .ws-page-container, .workspace-page > .ws-page-container) {
+    max-width: 1536px;
+    margin-inline: auto;
+    padding: 20px 28px 36px;
+    box-sizing: border-box;
+}
+
+.workshift-theme .ws-form-page {
+    padding: 20px 28px 36px;
+    max-width: 1536px;
+    width: 100%;
+    margin-inline: auto;
+    box-sizing: border-box;
+}
+
+.workshift-theme .ws-form-page > :is(.accountant-dashboard, .schedule-page, .ws-form-container, .ws-form-container-wide) {
+    padding: 0;
+    max-width: 1440px;
+}
+
+.workshift-theme :is(.dashboard-heading, .notification-header, .holiday-heading, .form-heading, .shift-heading) {
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.workshift-theme :is(.dashboard-heading, .notification-header, .holiday-heading, .form-heading, .shift-heading, .payroll-heading) p {
+    color: var(--ws-text-muted);
+    font-size: 13.5px;
+    margin-top: 4px;
+}
+
+/* Card Surface Styling */
+.workshift-theme :is(.dashboard-card, .shift-card, .form-card, .detail-card, .notification-table-card, .payroll-table-card, .bg-surface-container-lowest.rounded-xl, .card, .table-card) {
+    background: var(--ws-surface);
+    border-radius: 14px;
+    border: 1px solid var(--ws-line);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
+}
+
+/* Primary CTA Buttons */
+.workshift-theme :is(.shift-primary, .primary-button, .btn-primary, .payroll-button.primary, a.bg-primary-container, button.bg-primary-container) {
+    min-height: 40px;
+    padding: 9px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.28);
+    transition: all 0.18s ease;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.workshift-theme :is(.shift-primary, .primary-button, .btn-primary, .payroll-button.primary, a.bg-primary-container, button.bg-primary-container):hover {
+    background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+    transform: translateY(-1px);
+    color: #ffffff;
+}
+
+/* Inputs & Form Controls */
+.workshift-theme :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=file]), select, textarea) {
+    font-family: var(--ws-font);
+    font-size: 13.5px;
+    background-color: #f8fafc;
+    border: 1px solid var(--ws-line);
+    border-radius: 8px;
+    color: var(--ws-text-main);
+    transition: all 0.15s ease;
+}
+
+.workshift-theme :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=range]):not([type=file]), select) {
+    min-height: 40px;
+    height: 40px;
+}
+
+.workshift-theme :is(input, select, textarea):focus {
+    background-color: #ffffff;
+    border-color: #6366f1;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+}
+
+.workshift-theme :is(a, button, input, select, textarea):focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+}
+
+/* Table Design */
+.workshift-theme table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.workshift-theme table th {
+    background: #f8fafc;
+    color: var(--ws-text-sub);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ws-line);
+}
+
+.workshift-theme table td {
+    font-size: 13.5px;
+    padding: 13px 16px;
+    border-top: 1px solid var(--ws-line-subtle);
+    color: var(--ws-text-main);
+    vertical-align: middle;
+}
+
+.workshift-theme table tbody tr {
+    transition: background-color 0.12s ease;
+}
+
+.workshift-theme table tbody tr:hover {
+    background-color: #f8faff;
+}
+
+/* Eyebrow Label */
+.workshift-theme .list-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.list-eyebrow::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+}
+
+/* ========================================================
+   List Metrics Cards (_ListMetrics.cshtml)
+   ======================================================== */
+.list-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.list-metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-width: 0;
+    min-height: 104px;
+    padding: 18px 20px;
+    background: var(--ws-surface);
+    border-radius: 12px;
+    border: 1px solid var(--ws-line);
+    border-left: 4px solid var(--lm-accent, #4f46e5);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 4px 10px -2px rgba(15, 23, 42, 0.02);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.list-metric:hover {
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.08);
+    transform: translateY(-2px);
+}
+
+.list-metric-content {
+    min-width: 0;
+}
+
+.list-metric-label {
+    color: var(--ws-text-muted);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.list-metric-value {
+    margin-top: 6px;
+    color: var(--ws-text-main);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+    transition: color 0.15s;
+}
+
+.list-metric:hover .list-metric-value {
+    color: var(--lm-accent, #4f46e5);
+}
+
+.list-metric-note {
+    margin-top: 4px;
+    color: var(--ws-text-muted);
+    font-size: 12px;
+}
+
+.list-metric-icon {
+    display: grid;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    color: var(--lm-accent, #4f46e5);
+    background: color-mix(in srgb, var(--lm-accent, #4f46e5) 12%, #fff);
+    border-radius: 12px;
+    font-size: 22px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--lm-accent, #4f46e5) 15%, transparent);
+}
+
+@supports not (color: color-mix(in srgb, red 10%, blue)) {
+    .list-metric-icon { background: #eef0ff; }
+}
+
+.list-metric:hover .list-metric-icon {
+    transform: scale(1.12) rotate(-3deg);
+}
+
+@media(max-width: 1100px) {
+    .list-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media(max-width: 700px) {
+    .list-metrics { grid-template-columns: 1fr; }
+    .workshift-theme :is(.dashboard-page, .notifications-page, .payroll-page, .holiday-page, .shift-content),
+    .workshift-theme #main-content-wrapper > main > .px-7 { padding: 16px; }
+}
+
+/* ========================================================
+   List Directory Filters (.ws-list-filter)
+   ======================================================== */
+.workshift-theme .ws-list-filter {
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+    display: block;
+    width: 100%;
+    margin: 0 0 18px;
+    padding: 14px 18px;
+    background: var(--ws-surface);
+    border: 1px solid var(--ws-line);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.workshift-theme .ws-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.workshift-theme .ws-filter-field {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+}
+
+.workshift-theme .ws-filter-row > .ws-filter-keyword {
+    position: relative;
+    flex: 0 0 32%;
+}
+
+.workshift-theme .ws-list-filter .ws-filter-field > :is(input, select) {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 14px;
+    color: var(--ws-text-main);
+    background: #f8fafc;
+    border: 1px solid var(--ws-line);
+    border-radius: 8px;
+    font-size: 13.5px;
+    transition: all 0.15s ease;
+}
+
+.workshift-theme .ws-list-filter select {
+    appearance: auto;
+    cursor: pointer;
+}
+
+.workshift-theme .ws-list-filter .ws-filter-keyword > input {
+    padding-left: 40px;
+}
+
+.workshift-theme .ws-filter-keyword > .material-symbols-outlined {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ws-text-muted);
+    font-size: 18px;
+    pointer-events: none;
+}
+
+.workshift-theme .ws-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.workshift-theme .ws-filter-actions > :is(button, a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.workshift-theme .ws-filter-search {
+    width: 42px;
+    padding: 0;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+
+.workshift-theme .ws-filter-search:hover {
+    background: linear-gradient(135deg, #4338ca, #4f46e5);
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+}
+
+.workshift-theme .ws-filter-clear {
+    min-width: 90px;
+    padding: 0 16px;
+    background: #f1f5f9;
+    color: var(--ws-text-sub);
+}
+
+.workshift-theme .ws-filter-clear:hover {
+    background: #e2e8f0;
+    color: var(--ws-text-main);
+}
+
+.ws-filter-actions svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+@media(max-width: 1000px) {
+    .workshift-theme .ws-filter-row { flex-wrap: wrap; }
+    .workshift-theme .ws-filter-row > .ws-filter-keyword { flex-basis: 100%; }
+    .workshift-theme .ws-filter-row > .ws-filter-field { flex-basis: 120px; }
+}
+
+@media(max-width: 600px) {
+    .workshift-theme .ws-filter-row > .ws-filter-field { flex-basis: 100%; }
+}
+
+/* ========================================================
+   Pagination (.list-pagination)
+   ======================================================== */
+.workshift-theme .list-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    min-height: 60px;
+    padding: 14px 22px;
+    background: var(--ws-surface);
+    color: var(--ws-text-sub);
+    font-size: 13px;
+    border-top: 1px solid var(--ws-line);
+    border-radius: 0 0 14px 14px;
+}
+
+.workshift-theme .list-pagination small {
+    font-size: 11px;
+    color: var(--ws-text-muted);
+}
+
+.workshift-theme .list-pagination-pages {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.workshift-theme .list-page-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ws-text-sub);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+}
+
+.workshift-theme a.list-page-number:hover {
+    background: var(--ws-primary-light);
+    color: var(--ws-primary);
+}
+
+.workshift-theme .list-page-number.active {
+    background: var(--ws-primary);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+}
+
+.workshift-theme .list-page-number.disabled {
+    color: #cbd5e1;
+    pointer-events: none;
+}
+
+/* ========================================================
+   Action Buttons in Tables (.ws-icon-action)
+   ======================================================== */
+.workshift-theme .ws-icon-action,
+.workshift-theme .admin-rule-list .rule-row-actions :is(a, button),
+.workshift-theme .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0;
+    color: #4f46e5;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: all 0.15s ease;
+}
+
+.workshift-theme .ws-icon-action:hover,
+.workshift-theme .admin-rule-list .rule-row-actions :is(a, button):hover,
+.workshift-theme .icon-button:hover {
+    background: #eef2ff;
+    color: #3730a3;
+    transform: scale(1.05);
+}
+
+.workshift-theme .ws-icon-action.danger,
+.workshift-theme .icon-button.danger,
+.workshift-theme .admin-rule-list .rule-row-actions .rule-danger {
+    color: #dc2626;
+}
+
+.workshift-theme .ws-icon-action.danger:hover,
+.workshift-theme .icon-button.danger:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.workshift-theme .ws-icon-action .material-symbols-outlined {
+    font-size: 19px;
+}
+
+.workshift-theme .ws-icon-action svg,
+.workshift-theme .icon-button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Status Badges & Pills */
+.pill,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+.pill.status,
+.status-badge {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.pill.status .dot,
+.status-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-badge.primary,
+.pill.status.active,
+.status-badge.active,
+.pill.status:not(.inactive):not(.pending):not(.draft):not(.scheduled):not(.cancelled):not(.archived) {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.status-badge.primary .dot,
+.pill.status.active .dot,
+.status-badge.active .dot,
+.pill.status:not(.inactive):not(.pending):not(.draft):not(.scheduled):not(.cancelled):not(.archived) .dot {
+    background: #10b981;
+}
+
+.status-badge.warning,
+.pill.status.draft,
+.status-badge.draft {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-badge.warning .dot,
+.pill.status.draft .dot,
+.status-badge.draft .dot {
+    background: #f59e0b;
+}
+
+.status-badge.scheduled,
+.pill.status.scheduled {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.status-badge.scheduled .dot,
+.pill.status.scheduled .dot {
+    background: #8b5cf6;
+}
+
+.status-badge.danger,
+.pill.status.inactive,
+.status-badge.inactive {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.status-badge.danger .dot,
+.pill.status.inactive .dot,
+.status-badge.inactive .dot {
+    background: #ef4444;
+}
+
+.status-badge.pending,
+.pill.status.pending {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.status-badge.pending .dot,
+.pill.status.pending .dot {
+    background: #f59e0b;
+}
+
+.status-badge.cancelled,
+.pill.status.cancelled,
+.status-badge.archived,
+.pill.status.archived {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.status-badge.cancelled .dot,
+.pill.status.cancelled .dot,
+.status-badge.archived .dot,
+.pill.status.archived .dot {
+    background: #94a3b8;
+}
+
+/* Scrollbars */
+.custom-scrollbar::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track,
+.overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Page entrance animation */
+#main-content-wrapper > main {
+    animation: ws-fadein 0.18s ease-out;
+}
+
+@keyframes ws-fadein {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ========================================================
+   Form Validation Display Normalization
+   Ensure valid/empty validation summaries are completely hidden
+   ======================================================== */
+.validation-summary-valid,
+div.validation-summary-valid,
+.validation-summary-valid:empty,
+div[asp-validation-summary].validation-summary-valid,
+.ms-validation:empty,
+.holiday-validation:empty,
+.create-errors:empty {
+    display: none !important;
+}
+
+/* ========================================================
+   Standardized Form Container & Framework
+   Balanced enterprise width, preventing stretched widescreen or too narrow layouts
+   ======================================================== */
+.ws-form-page {
+    width: 100%;
+    max-width: 1536px;
+    padding: 20px 28px 36px;
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.ws-form-container {
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.ws-form-container-wide {
+    max-width: 1440px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+.ws-form-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px -4px rgba(15, 23, 42, 0.04);
+    padding: 28px 32px;
+}
+
+/* Form header styling */
+.ws-form-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+/* Modern List & Table Polish */
+.ws-table-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 6px 16px -4px rgba(15, 23, 42, 0.03);
+    overflow: hidden;
+}
+
+.ws-table-card table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ws-table-card th {
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 12px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+}
+
+.ws-table-card td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13.5px;
+    color: #1e293b;
+    vertical-align: middle;
+}
+
+.ws-table-card tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.ws-table-card tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Enhanced action buttons */
+.ws-icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ws-icon-action:hover {
+    background: #f1f5f9;
+    color: #4f46e5;
+}
+
+.ws-icon-action.danger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Enhanced Status Pills */
+.ws-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11.5px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.ws-status-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.ws-status-pill.active {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+.ws-status-pill.active .dot {
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+
+.ws-status-pill.pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.ws-status-pill.pending .dot {
+    background: #f59e0b;
+}
+
+.ws-status-pill.inactive {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+.ws-status-pill.inactive .dot {
+    background: #94a3b8;
+}
+
+.ws-status-pill.danger {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+.ws-status-pill.danger .dot {
+    background: #ef4444;
+}
+
+
+/* ========================================================
+   Global Table Card & List Polish for Modern Enterprise Look
+   ======================================================== */
+.workshift-theme .bg-surface-container-lowest.rounded-xl.shadow-sm.overflow-hidden,
+.workshift-theme .bg-surface-container-lowest.rounded-xl.shadow-sm {
+    border-radius: 16px !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 8px 24px -4px rgba(15, 23, 42, 0.03) !important;
+}
+
+.workshift-theme table thead tr {
+    background-color: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.workshift-theme table thead th {
+    color: #64748b !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+}
+
+.workshift-theme table tbody tr {
+    transition: background-color 0.15s ease !important;
+}
+
+.workshift-theme table tbody tr:hover {
+    background-color: #f8fafc !important;
+}
+
+/* Subtle code & identifier tags */
+.workshift-theme .font-code-num {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Enhanced action button styles */
+.workshift-theme .ws-icon-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.workshift-theme .ws-icon-action:hover {
+    background: #f1f5f9;
+    color: #4f46e5;
+}
+
+.workshift-theme .ws-icon-action.danger:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}

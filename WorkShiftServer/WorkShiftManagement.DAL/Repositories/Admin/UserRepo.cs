@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Security;
 
 namespace WorkShiftManagement.DAL.Repositories.Admin
 {
@@ -74,14 +75,23 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
 
         public async Task<User?> GetByIdentityNoAsync(string identityNo)
         {
+            var trimmed = identityNo.Trim();
+            var encrypted = IdentityNoEncryption.Protect(trimmed);
+
             return await _context.Users
+                .FromSqlInterpolated($@"SELECT * FROM public.users WHERE identity_no = {encrypted} OR identity_no = {trimmed}")
                 .AsNoTracking()
-                .FirstOrDefaultAsync(user => user.IdentityNo == identityNo);
+                .FirstOrDefaultAsync();
         }
 
         public void Create(User user)
         {
             _context.Users.Add(user);
+        }
+
+        public void MarkIdentityNoModified(User user)
+        {
+            _context.Entry(user).Property(u => u.IdentityNo).IsModified = true;
         }
 
         public async Task<User?> GetByIdAsync(Guid userId)
@@ -122,12 +132,37 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var pattern = $"%{search}%";
-                query = query.Where(user =>
-                    EF.Functions.ILike(user.FullName, pattern) ||
-                    EF.Functions.ILike(user.Email, pattern) ||
-                    EF.Functions.ILike(user.Phone, pattern) ||
-                    EF.Functions.ILike(user.IdentityNo, pattern));
+                var trimmedSearch = search.Trim();
+                var pattern = $"%{trimmedSearch}%";
+                List<Guid>? identityMatchedUserIds = null;
+
+                if (trimmedSearch.All(char.IsDigit))
+                {
+                    var encryptedIdentity = IdentityNoEncryption.Protect(trimmedSearch);
+                    identityMatchedUserIds = await _context.Database
+                        .SqlQuery<Guid>($@"
+                            SELECT user_id AS ""Value""
+                            FROM public.users
+                            WHERE identity_no = {encryptedIdentity}
+                               OR (identity_no NOT LIKE 'ENC:v1:%' AND identity_no ILIKE {pattern})")
+                        .ToListAsync();
+                }
+
+                if (identityMatchedUserIds is { Count: > 0 })
+                {
+                    query = query.Where(user =>
+                        EF.Functions.ILike(user.FullName, pattern) ||
+                        EF.Functions.ILike(user.Email, pattern) ||
+                        EF.Functions.ILike(user.Phone, pattern) ||
+                        identityMatchedUserIds.Contains(user.UserId));
+                }
+                else
+                {
+                    query = query.Where(user =>
+                        EF.Functions.ILike(user.FullName, pattern) ||
+                        EF.Functions.ILike(user.Email, pattern) ||
+                        EF.Functions.ILike(user.Phone, pattern));
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -250,6 +285,39 @@ namespace WorkShiftManagement.DAL.Repositories.Admin
         public async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync()
         {
             return await _context.Database.BeginTransactionAsync();
+        }
+
+        public async Task<bool> HasActiveAccountByEmailAsync(string email)
+        {
+            var trimmedEmail = email.Trim().ToLower();
+            return await _context.Users.AsNoTracking().AnyAsync(item =>
+                item.Email.ToLower() == trimmedEmail && item.Status == "ACTIVE" && item.DeletedAt == null);
+        }
+
+        public async Task<User?> GetStaffSetupUserAsync(Guid userId)
+        {
+            return await _context.Users.AsNoTracking()
+                .Where(u => u.UserId == userId && (u.Status == "ACTIVE" || u.Status == "PENDING") && u.DeletedAt == null)
+                .SingleOrDefaultAsync();
+        }
+
+        public async Task ActivateStaffAccountAsync(Guid userId)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.UserId == userId);
+            if (user != null)
+            {
+                user.HasPassword = true;
+                user.UpdatedAt = DateTime.UtcNow;
+                if (user.Status.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Status = "ACTIVE";
+                }
+                else if (!user.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("The current account status does not allow activation.");
+                }
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task LoadRoleAndBranchAsync(User user)

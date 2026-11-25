@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../controllers/profile_controller.dart';
+import '../../controllers/profile/profile_controller.dart';
 import '../../theme/app_colors.dart';
 
 /// Trang đổi email (mở từ Profile)
@@ -35,7 +35,7 @@ class _ChangeEmailViewState extends State<ChangeEmailView> {
       _newEmailController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Một liên kết xác nhận đã được gửi đến email mới.'),
+          content: Text('A verification link has been sent to your new email.'),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -106,7 +106,7 @@ class _ChangeEmailViewState extends State<ChangeEmailView> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      _controller.user?.email ?? 'Không có email',
+                      _controller.user?.email ?? 'No email provided',
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppColors.textPrimary,

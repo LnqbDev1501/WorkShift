@@ -8,5 +8,5 @@ public interface IRequestLimitRuleRepo
     Task<(List<RequestLimitRule> Items, int Total)> GetPagedAsync(int branchId, string? type, string? status, int page, int size, CancellationToken ct);
     Task<RequestLimitRule?> GetAsync(int branchId, int id, CancellationToken ct);
     Task<RequestLimitRule> MutateAsync(int branchId, Func<List<RequestLimitRule>, RequestLimitRule> mutation, CancellationToken ct);
-    Task SynchronizeAsync(DateOnly today, CancellationToken ct);
+    Task<int> SynchronizeAsync(DateOnly today, CancellationToken ct);
 }

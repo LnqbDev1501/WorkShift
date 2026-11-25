@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
-String formatCurrency(double amount) {
-  return '${amount.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} VNĐ';
+String formatWorkHours(num hours) {
+  return hours.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
+String formatCurrency(num amount) {
+  if (amount.abs() < 0.0001) return '0 ₫';
+  final isNegative = amount < 0;
+  final formatted = amount.abs().toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (m) => '${m[1]}.',
+  );
+  return '${isNegative ? '-' : ''}$formatted ₫';
 }
 
 String formatDate(DateTime date) {
@@ -38,6 +48,8 @@ String formatVietnamDate(DateTime? dt) {
 
 Color getStatusColor(String status) {
   switch (status.toUpperCase()) {
+    case 'PENDING':
+      return AppColors.warning;
     case 'ACTIVE':
       return AppColors.primary;
     case 'COMPLETED':
@@ -69,7 +81,12 @@ class StatusChip extends StatelessWidget {
   final Color color;
   final IconData? icon;
 
-  const StatusChip({super.key, required this.label, required this.color, this.icon});
+  const StatusChip({
+    super.key,
+    required this.label,
+    required this.color,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +119,12 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-Widget buildTotalRow(String label, String value, {bool isTotal = false, Color? color}) {
+Widget buildTotalRow(
+  String label,
+  String value, {
+  bool isTotal = false,
+  Color? color,
+}) {
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -121,7 +143,8 @@ Widget buildTotalRow(String label, String value, {bool isTotal = false, Color? c
           style: TextStyle(
             fontSize: isTotal ? 18 : 14,
             fontWeight: isTotal ? FontWeight.w800 : FontWeight.w600,
-            color: color ?? (isTotal ? AppColors.primary : AppColors.textPrimary),
+            color:
+                color ?? (isTotal ? AppColors.primary : AppColors.textPrimary),
           ),
         ),
       ],

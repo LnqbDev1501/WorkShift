@@ -1,17 +1,112 @@
 using ClosedXML.Excel;
-using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
-using WorkShiftManagement.DAL.Data;
+using WorkShiftManagement.DAL.Interfaces.Accountant;
 
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
 public class BranchSalesReportService : IBranchSalesReportService
 {
-    private readonly AppDbContext _context;
+    private readonly IBranchSalesReportRepo _repo;
 
-    public BranchSalesReportService(AppDbContext context)
+    public BranchSalesReportService(IBranchSalesReportRepo repo)
     {
-        _context = context;
+        _repo = repo;
+    }
+
+    public Task<int?> GetUserBranchIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        return _repo.GetManagerBranchIdAsync(userId, cancellationToken);
+    }
+
+    public async Task<(int BranchId, string BranchName, int TotalOrders)> GetManagerBranchSalesSummaryAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetUserBranchAsync(managerId, cancellationToken);
+        if (branch == null)
+            throw new UnauthorizedAccessException("Manager is not assigned to any branch.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        var count = await _repo.CountBranchOrdersAsync(branch.BranchId, fromUtc, toUtcExclusive, cancellationToken);
+        return (branch.BranchId, branch.BranchName, count);
+    }
+
+    public async Task<(int BranchId, string BranchName, int TotalOrders)> GetBranchSalesSummaryAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetBranchByIdAsync(branchId, cancellationToken)
+            ?? throw new ArgumentException("Branch not found.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        var count = await _repo.CountBranchOrdersAsync(branchId, fromUtc, toUtcExclusive, cancellationToken);
+        return (branch.BranchId, branch.BranchName, count);
+    }
+
+    public async Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetManagerBranchSalesAnalyticsAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branchId = await _repo.GetManagerBranchIdAsync(managerId, cancellationToken);
+        if (!branchId.HasValue)
+            throw new UnauthorizedAccessException("Manager is not assigned to any branch.");
+
+        return await GetBranchSalesAnalyticsAsync(branchId.Value, dateFrom, dateTo, cancellationToken);
+    }
+
+    public async Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetBranchSalesAnalyticsAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branch = await _repo.GetBranchByIdAsync(branchId, cancellationToken)
+            ?? throw new ArgumentException("Branch not found.");
+
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
+
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
+
+        return await _repo.GetBranchSalesAnalyticsAsync(branchId, fromUtc, toUtcExclusive, cancellationToken);
+    }
+
+    public async Task<byte[]> GenerateManagerBranchSalesReportAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default)
+    {
+        var branchId = await _repo.GetManagerBranchIdAsync(managerId, cancellationToken);
+        if (!branchId.HasValue)
+            throw new UnauthorizedAccessException("Manager is not assigned to any branch.");
+
+        return await GenerateBranchSalesReportAsync(branchId.Value, dateFrom, dateTo, cancellationToken);
     }
 
     public async Task<byte[]> GenerateBranchSalesReportAsync(
@@ -20,45 +115,25 @@ public class BranchSalesReportService : IBranchSalesReportService
         DateTime? dateTo,
         CancellationToken cancellationToken = default)
     {
-        var branch = await _context.Branches
-            .AsNoTracking()
-            .FirstOrDefaultAsync(b => b.BranchId == branchId, cancellationToken)
+        var branch = await _repo.GetBranchByIdAsync(branchId, cancellationToken)
             ?? throw new ArgumentException("Branch not found.");
 
-        var query = _context.Orders
-            .AsNoTracking()
-            .Where(o => o.BranchId == branchId && o.Status != "CANCELLED");
+        DateTime? fromUtc = dateFrom.HasValue
+            ? ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value))
+            : null;
 
-        if (dateFrom.HasValue)
-        {
-            var fromUtc = ConvertVnDateToUtcStartOfDay(DateOnly.FromDateTime(dateFrom.Value));
-            query = query.Where(o => o.OrderDate >= fromUtc);
-        }
+        DateTime? toUtcExclusive = dateTo.HasValue
+            ? ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value))
+            : null;
 
-        if (dateTo.HasValue)
-        {
-            var toUtcExclusive = ConvertVnDateToUtcStartOfNextDay(DateOnly.FromDateTime(dateTo.Value));
-            query = query.Where(o => o.OrderDate < toUtcExclusive);
-        }
-
-        var orders = await query
-            .OrderBy(o => o.OrderDate)
-            .Select(o => new
-            {
-                o.OrderNumber,
-                o.OrderDate,
-                o.Status,
-                o.TotalAmount,
-                StaffName = o.CreatedByNavigation.FullName
-            })
-            .ToListAsync(cancellationToken);
+        var orders = await _repo.GetBranchSalesOrdersAsync(branchId, fromUtc, toUtcExclusive, cancellationToken);
 
         var rangeLabel = (dateFrom.HasValue, dateTo.HasValue) switch
         {
-            (true, true) => $"Từ ngày {dateFrom!.Value:dd/MM/yyyy} đến ngày {dateTo!.Value:dd/MM/yyyy}",
-            (true, false) => $"Từ ngày {dateFrom!.Value:dd/MM/yyyy}",
-            (false, true) => $"Đến ngày {dateTo!.Value:dd/MM/yyyy}",
-            _ => "Toàn bộ thời gian"
+            (true, true) => $"From {dateFrom!.Value:dd/MM/yyyy} to {dateTo!.Value:dd/MM/yyyy}",
+            (true, false) => $"From {dateFrom!.Value:dd/MM/yyyy}",
+            (false, true) => $"To {dateTo!.Value:dd/MM/yyyy}",
+            _ => "All time"
         };
 
         using var workbook = new XLWorkbook();
@@ -66,19 +141,19 @@ public class BranchSalesReportService : IBranchSalesReportService
         ws.Columns(1, 5).Width = 22;
 
         var titleCell = ws.Cell(1, 1);
-        titleCell.Value = "PHIẾU BÁO CÁO DOANH THU";
+        titleCell.Value = "REVENUE REPORT";
         titleCell.Style.Font.Bold = true;
         titleCell.Style.Font.FontSize = 16;
         titleCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         ws.Range(1, 1, 1, 5).Merge();
 
-        ws.Cell(2, 1).Value = $"Chi nhánh: {branch.BranchName}";
+        ws.Cell(2, 1).Value = $"Branch: {branch.BranchName}";
         ws.Cell(2, 1).Style.Font.Bold = true;
 
         ws.Cell(3, 1).Value = rangeLabel;
 
         var headerRow = 5;
-        string[] headers = ["Mã đơn", "Ngày", "Nhân viên", "Trạng thái", "Số tiền (VNĐ)"];
+        string[] headers = ["Order ID", "Date", "Staff", "Status", "Amount (VND)"];
         for (var i = 0; i < headers.Length; i++)
         {
             var cell = ws.Cell(headerRow, i + 1);
@@ -101,7 +176,7 @@ public class BranchSalesReportService : IBranchSalesReportService
         }
 
         var totalRow = row;
-        ws.Cell(totalRow, 4).Value = "Tổng cộng";
+        ws.Cell(totalRow, 4).Value = "Total";
         ws.Cell(totalRow, 4).Style.Font.Bold = true;
         ws.Cell(totalRow, 5).Value = orders.Sum(o => o.TotalAmount);
         ws.Cell(totalRow, 5).Style.Font.Bold = true;

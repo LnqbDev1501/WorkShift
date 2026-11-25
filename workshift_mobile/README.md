@@ -1,17 +1,20 @@
 # workshift_mobile
 
-A new Flutter project.
+Ứng dụng nhân viên WorkShift: lịch làm việc, chấm công, hợp đồng, yêu cầu và bảng lương.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Xem [hướng dẫn cấu hình và kiểm tra của project](../README.md).
 
-A few resources to get you started if this is your first Flutter project:
+```powershell
+flutter pub get
+flutter run --dart-define=API_BASE_URL=https://your-api.example.com
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Không truyền `API_BASE_URL` thì Android emulator dùng `http://10.0.2.2:5267`, các nền tảng khác dùng `http://localhost:5267`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```powershell
+flutter analyze --no-pub
+flutter test --no-pub
+dart format --output=none --set-exit-if-changed lib test
+```

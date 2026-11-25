@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../controllers/auth_controller.dart';
+import '../../controllers/auth/auth_controller.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/app_button.dart';
 import '../../widgets/app_text_field.dart';
 
-/// Màn hình Quên mật khẩu (Forgot Password View)
+/// Màn hình Quên mật khẩu (Forgot Password View) - Thiết kế hiện đại không dùng hình ảnh
 class ForgotPasswordView extends StatefulWidget {
   const ForgotPasswordView({super.key});
 
@@ -12,7 +12,8 @@ class ForgotPasswordView extends StatefulWidget {
   State<ForgotPasswordView> createState() => _ForgotPasswordViewState();
 }
 
-class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTickerProviderStateMixin {
+class _ForgotPasswordViewState extends State<ForgotPasswordView>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _authController = AuthController();
@@ -21,13 +22,15 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  bool _emailSent = false;
+
   @override
   void initState() {
     super.initState();
     _authController.addListener(_onControllerUpdate);
 
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 700),
       vsync: this,
     );
 
@@ -35,10 +38,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -55,7 +61,7 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
     if (mounted) setState(() {});
   }
 
-  Future<void> _handleForgotPassword() async {
+  Future<void> _handleResetPassword() async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -67,478 +73,355 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> with SingleTick
     );
 
     if (success && mounted) {
-      // Success message shown via AuthController.successMessage
+      setState(() {
+        _emailSent = true;
+      });
     }
-  }
-
-  void _goBackToLogin() {
-    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
-      body: Stack(
-        children: [
-          // Full-screen background image
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/ForgotPassword.jpg',
-              fit: BoxFit.cover,
-            ),
-          ),
-          // Dark gradient overlay for text readability
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.5),
-                    Colors.black.withValues(alpha: 0.7),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          // Content
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const SizedBox(height: 10),
-
-                          // Back button
-                          _AnimatedTextField(
-                            delay: 0,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.arrow_back_rounded,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                              onPressed: _goBackToLogin,
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
+      backgroundColor: AppColors.background,
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            children: [
+              // Hero Header with brand gradient & back button
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.fromLTRB(20, topPadding + 16, 20, 68),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.homeHeroStart,
+                          Color(0xFF1E3A8A),
+                          AppColors.homeHeroEnd,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Back Button
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 24,
                           ),
-                          const SizedBox(height: 4),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.15,
+                            ),
+                            padding: const EdgeInsets.all(8),
+                            minimumSize: Size.zero,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
-                          // Logo with animated entrance
-                          Center(
-                            child: TweenAnimationBuilder<double>(
-                              tween: Tween(begin: 0.0, end: 1.0),
-                              duration: const Duration(milliseconds: 1000),
-                              curve: Curves.elasticOut,
-                              builder: (_, value, child) {
-                                return Transform.scale(
-                                  scale: value,
-                                  child: child,
-                                );
-                              },
-                              child: Container(
-                                width: 88,
-                                height: 88,
+                        // Center Badge & Title
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [AppColors.primary, AppColors.primaryDark],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(26),
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.35),
-                                      blurRadius: 30,
-                                      offset: const Offset(0, 12),
-                                      spreadRadius: -4,
+                                      color: Colors.black.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 10),
                                     ),
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.15),
-                                      blurRadius: 60,
-                                      offset: const Offset(0, 24),
-                                      spreadRadius: -8,
+                                      color: AppColors.homeAccent.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                      blurRadius: 30,
+                                      spreadRadius: 2,
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.lock_reset_rounded,
-                                  color: Colors.white,
-                                  size: 48,
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.lock_reset_rounded,
+                                    size: 40,
+                                    color: AppColors.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-
-                          // Title with gradient text
-                          Center(
-                            child: ShaderMask(
-                              shaderCallback: (bounds) => LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
-                              ).createShader(bounds),
-                              child: const Text(
-                                'WorkShift',
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Reset Password',
                                 style: TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.w900,
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
                                   color: Colors.white,
-                                  letterSpacing: -1.0,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Reset your password',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontWeight: FontWeight.w400,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 48),
-
-                          // Error notification banner
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: _authController.errorMessage != null
-                                ? Container(
-                                    key: const ValueKey('error'),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.errorBg,
-                                          AppColors.errorBg.withValues(alpha: 0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.error.withValues(alpha: 0.1),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.error.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: const Icon(
-                                            Icons.error_outline_rounded,
-                                            color: AppColors.error,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            _authController.errorMessage!,
-                                            style: const TextStyle(
-                                              color: AppColors.error,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.3,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          if (_authController.errorMessage != null) const SizedBox(height: 20),
-
-                          // Success notification banner
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 300),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            child: _authController.successMessage != null
-                                ? Container(
-                                    key: const ValueKey('success'),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.successBg,
-                                          AppColors.successBg.withValues(alpha: 0.8),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.success.withValues(alpha: 0.1),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.success.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: const Icon(
-                                            Icons.check_circle_outline_rounded,
-                                            color: AppColors.success,
-                                            size: 22,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            _authController.successMessage!,
-                                            style: const TextStyle(
-                                              color: AppColors.success,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              height: 1.3,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                          if (_authController.successMessage != null) const SizedBox(height: 20),
-
-                          // Instruction text
-                          _AnimatedTextField(
-                            delay: 100,
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.1),
-                                    blurRadius: 16,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.mail_outline_rounded,
-                                      color: Colors.white,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Check your inbox',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'We\'ll send a password reset link to your email. If you don\'t see it, check your spam folder.',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.white.withValues(alpha: 0.8),
-                                            height: 1.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Email input
-                          _AnimatedTextField(
-                            delay: 200,
-                            child: AppTextField(
-                              label: 'Email Address',
-                              hintText: 'you@company.com',
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              prefixIcon: Icons.email_outlined,
-                              onChanged: (_) {
-                                _authController.clearError();
-                                _authController.clearSuccess();
-                              },
-                              validator: (val) {
-                                if (val == null || val.trim().isEmpty) {
-                                  return 'Please enter your email';
-                                }
-                                if (!val.contains('@') || !val.contains('.')) {
-                                  return 'Please enter a valid email address';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 28),
-
-                          // Send Reset Link button
-                          _AnimatedTextField(
-                            delay: 300,
-                            child: AppButton(
-                              text: 'Send Reset Link',
-                              icon: Icons.send_rounded,
-                              isLoading: _authController.isLoading,
-                              onPressed: _handleForgotPassword,
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Back to Login link
-                          _AnimatedTextField(
-                            delay: 400,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Remember your password? ',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                  ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _emailSent
+                                    ? 'Check your inbox for reset instructions'
+                                    : 'Enter your registered email to continue',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white70,
                                 ),
-                                TextButton(
-                                  onPressed: _goBackToLogin,
-                                  style: TextButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                  child: const Text(
-                                    'Sign In',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.2,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-                          Center(
-                            child: Text(
-                              'WorkShift Management System v1.0',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.white.withValues(alpha: 0.5),
-                                letterSpacing: 0.3,
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Ambient soft circles for modern depth
+                  Positioned(
+                    top: topPadding + 10,
+                    right: -20,
+                    child: Container(
+                      width: 110,
+                      height: 110,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.04),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Elevated Card Form / Success State
+              Transform.translate(
+                offset: const Offset(0, -32),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(22, 28, 22, 28),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: AppColors.borderLight),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 24,
+                              offset: const Offset(0, 12),
+                            ),
+                          ],
+                        ),
+                        child: _emailSent
+                            ? _buildSuccessContent()
+                            : _buildFormContent(),
                       ),
                     ),
                   ),
                 ),
               ),
+
+              // Return to Sign In link
+              if (!_emailSent)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Remember your password? ',
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: const Text(
+                          'Sign In',
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormContent() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Forgot Password?',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
             ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'We will send a password reset link to your email address.',
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Error Banner (if any)
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 300),
+            crossFadeState: _authController.errorMessage != null
+                ? CrossFadeState.showFirst
+                : CrossFadeState.showSecond,
+            firstChild: Container(
+              margin: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.errorBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.error.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.error,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _authController.errorMessage ?? '',
+                      style: const TextStyle(
+                        color: AppColors.error,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            secondChild: const SizedBox.shrink(),
+          ),
+
+          // Email Input
+          AppTextField(
+            label: 'Email Address',
+            hintText: 'you@company.com',
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: Icons.email_outlined,
+            onChanged: (_) => _authController.clearError(),
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'Please enter your email';
+              }
+              if (!val.contains('@') || !val.contains('.')) {
+                return 'Please enter a valid email address';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // Send Reset Link Button
+          AppButton(
+            text: 'Send Reset Link',
+            icon: Icons.send_rounded,
+            isLoading: _authController.isLoading,
+            onPressed: _handleResetPassword,
+            height: 50,
+            borderRadius: 14,
           ),
         ],
       ),
     );
   }
-}
 
-class _AnimatedTextField extends StatefulWidget {
-  final Widget child;
-  final int delay;
-
-  const _AnimatedTextField({required this.child, required this.delay});
-
-  @override
-  State<_AnimatedTextField> createState() => _AnimatedTextFieldState();
-}
-
-class _AnimatedTextFieldState extends State<_AnimatedTextField>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fade;
-  late Animation<Offset> _slide;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-
-    Future.delayed(Duration(milliseconds: widget.delay), () {
-      if (mounted) _controller.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fade,
-      child: SlideTransition(position: _slide, child: widget.child),
+  Widget _buildSuccessContent() {
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            color: AppColors.successBg,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.mark_email_read_rounded,
+            color: AppColors.success,
+            size: 34,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Email Sent!',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'We have sent a password reset link to ${_emailController.text}. Please check your inbox and follow the instructions.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontSize: 13.5,
+            color: AppColors.textSecondary,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 24),
+        AppButton(
+          text: 'Back to Sign In',
+          icon: Icons.arrow_back_rounded,
+          onPressed: () => Navigator.pop(context),
+          height: 50,
+          borderRadius: 14,
+        ),
+      ],
     );
   }
 }

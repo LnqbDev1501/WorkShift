@@ -1,0 +1,392 @@
+@model UI_Admin.Models.Branches.CreateBranchViewModel
+@inject IConfiguration Configuration
+
+@{
+    ViewData["Title"] = "Create Branch";
+    var selectedRegion = Model.AvailableRegions.FirstOrDefault(r => r.RegionId == Model.RegionId);
+    var vietMapTileKey = Configuration["VietMap:TileMapKey"] ?? string.Empty;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.css" />
+    <link rel="stylesheet" href="~/css/branches.css" asp-append-version="true" />
+}
+
+
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <div class="flex flex-col gap-unit-6">
+        <!-- Header Zone -->
+        <div>
+            <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Create Branch</h1>
+            <p class="font-body-md text-secondary mt-0.5">
+                Register a new operating branch within an active regional jurisdiction.
+            </p>
+        </div>
+
+        <!-- Alert / Important Business Rules Banner -->
+        <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-unit-4 relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-primary-container"></div>
+            <div class="flex items-start sm:items-center gap-unit-4 pl-unit-2">
+                <div class="w-10 h-10 rounded-xl bg-primary-fixed flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary text-title-lg">info</span>
+                </div>
+                <div class="space-y-0.5">
+                    <p class="font-title-md text-title-md text-on-surface">Branch Identifiers Policy</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">Branch Code cannot be changed once created. Deactivation of a branch later will preserve all employee assignment histories.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Form Section -->
+        <form method="post" asp-controller="Branches" asp-action="Create" class="space-y-unit-6" id="createBranchForm">
+            @Html.AntiForgeryToken()
+
+            <partial name="_NotificationModal" />
+
+
+            <!-- Grid Bento Split -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-unit-6 items-start">
+                <!-- Left Side: Core Fields (8 Cols) -->
+                <div class="lg:col-span-8 space-y-unit-6">
+                    <!-- Section 1: Branch Information -->
+                    <section class="bg-surface-container-lowest rounded-xl p-unit-8 shadow-sm space-y-unit-6">
+                        <div class="flex items-center justify-between pb-unit-2">
+                            <div class="flex items-center gap-unit-3">
+                                <div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
+                                    <span class="material-symbols-outlined text-title-md">domain</span>
+                                </div>
+                                <div>
+                                    <h2 class="font-title-lg text-title-lg text-on-surface">Core Information</h2>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Corporate structural identity and administrative mapping.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                            <!-- Branch Code -->
+                            <div class="space-y-unit-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="font-body-md-medium text-body-md-medium text-on-surface" for="branchCode">
+                                        Branch Code <span class="text-error font-bold">*</span>
+                                    </label>
+                                    <span class="font-code-num text-label-sm text-on-surface-variant" id="codeCounter">@(Model?.BranchCode?.Length ?? 0)/30</span>
+                                </div>
+                                <div class="relative">
+                                    <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-code-num text-body-md focus:outline-none focus:bg-surface-container-lowest transition-all placeholder:text-outline uppercase shadow-sm border border-surface-container-high"
+                                           id="branchCode"
+                                           maxlength="30"
+                                           name="BranchCode"
+                                           value="@Model?.BranchCode"
+                                           placeholder="e.g., D1-FLAGSHIP or HN-CENTRAL"
+                                           required=""
+                                           type="text" />
+                                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">fingerprint</span>
+                                </div>
+                                <span asp-validation-for="BranchCode" class="text-error text-label-sm"></span>
+                                <p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-unit-1">
+                                    <span class="material-symbols-outlined text-[13px] text-primary-container">info</span>
+                                    Normalized to uppercase automatically upon creation. Maximum 30 characters.
+                                </p>
+                            </div>
+
+                            <!-- Region -->
+                            <div class="space-y-unit-2">
+                                <label class="font-body-md-medium text-body-md-medium text-on-surface" for="regionSelect">
+                                    Region <span class="text-error font-bold">*</span>
+                                </label>
+                                <div class="relative">
+                                    <select class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md appearance-none focus:outline-none cursor-pointer pr-unit-10 shadow-sm border border-surface-container-high"
+                                            id="regionSelect"
+                                            name="RegionId"
+                                            required="">
+                                        <option disabled="" selected="@(Model?.RegionId == 0)" value="">Select operating active region</option>
+                                        @if (Model?.AvailableRegions != null)
+                                        {
+                                            @foreach (var r in Model.AvailableRegions)
+                                            {
+                                                var isRegionActive = r.Status.Equals("ACTIVE", StringComparison.OrdinalIgnoreCase);
+                                                <option value="@r.RegionId"
+                                                        data-region-name="@r.RegionName"
+                                                        disabled="@(!isRegionActive)"
+                                                        selected="@(Model.RegionId == r.RegionId)"
+                                                        class="@(isRegionActive ? "" : "bg-surface-container text-outline")">
+                                                    @r.RegionName (@r.RegionCode) [@(isRegionActive ? "Active" : "Inactive / Suspended")]
+                                                </option>
+                                            }
+                                        }
+                                    </select>
+                                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+                                </div>
+                                <span asp-validation-for="RegionId" class="text-error text-label-sm"></span>
+                                <p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-unit-1">
+                                    <span class="material-symbols-outlined text-[13px] text-primary-container">verified</span>
+                                    Select an active operational region. Inactive regions are excluded.
+                                </p>
+                            </div>
+
+                            <!-- Branch Name (Full Width in 2-col) -->
+                            <div class="md:col-span-2 space-y-unit-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="font-body-md-medium text-body-md-medium text-on-surface" for="branchName">
+                                        Branch Name <span class="text-error font-bold">*</span>
+                                    </label>
+                                    <span class="font-code-num text-label-sm text-on-surface-variant" id="nameCounter">@(Model?.BranchName?.Length ?? 0)/150</span>
+                                </div>
+                                <div class="relative">
+                                    <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
+                                           id="branchName"
+                                           maxlength="150"
+                                           name="BranchName"
+                                           value="@Model?.BranchName"
+                                           placeholder="e.g., District 1 Flagship"
+                                           required=""
+                                           type="text" />
+                                    <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">apartment</span>
+                                </div>
+                                <span asp-validation-for="BranchName" class="text-error text-label-sm"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Section 2: Location -->
+                    <section class="bg-surface-container-lowest rounded-xl p-unit-8 shadow-sm space-y-unit-6">
+                        <div class="flex items-center justify-between pb-unit-2">
+                            <div class="flex items-center gap-unit-3">
+                                <div class="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary-container">
+                                    <span class="material-symbols-outlined text-title-md">pin_drop</span>
+                                </div>
+                                <div>
+                                    <h2 class="font-title-lg text-title-lg text-on-surface">Location &amp; Coordinates</h2>
+                                    <p class="font-body-sm text-body-sm text-on-surface-variant">Civic postal destination and optional baseline coordinates.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-unit-5">
+                            <!-- VietMap Search Location (Autocomplete) -->
+                            <div class="space-y-unit-2 relative z-20" id="search-location-container">
+                                <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between" for="searchLocationInput">
+                                    <span>Search Location</span>
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">Search place, address, or coordinates (Lat, Lng)</span>
+                                </label>
+                                <div class="relative">
+                                    <input class="h-input-height w-full px-unit-3 pl-unit-10 pr-unit-10 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
+                                           id="searchLocationInput"
+                                           type="text"
+                                           placeholder="Type place or coordinates (e.g. 10.0376, 105.8307)..."
+                                           autocomplete="off" />
+                                    <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">search</span>
+                                    <button type="button" id="clearSearchBtn" class="hidden absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant hover:text-on-surface text-[18px] cursor-pointer">
+                                        <span class="material-symbols-outlined text-[18px]">close</span>
+                                    </button>
+                                </div>
+                                <div id="searchResultsDropdown"
+                                     class="hidden absolute left-0 right-0 top-full mt-1 bg-surface-container-lowest rounded-xl shadow-xl border border-surface-container-high z-50 max-h-60 overflow-y-auto divide-y divide-surface-container-high">
+                                </div>
+                            </div>
+
+                            <!-- Physical Address (Full Width) -->
+                            <div class="space-y-unit-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="font-body-md-medium text-body-md-medium text-on-surface" for="branchAddress">
+                                        Address <span class="text-error font-bold">*</span>
+                                    </label>
+                                    <span class="font-code-num text-label-sm text-on-surface-variant" id="addressCounter">@(Model?.Address?.Length ?? 0)/500</span>
+                                </div>
+                                <textarea class="w-full p-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-body-md text-body-md focus:outline-none transition-all placeholder:text-outline resize-y shadow-sm border border-surface-container-high"
+                                          id="branchAddress"
+                                          maxlength="500"
+                                          name="Address"
+                                          placeholder="Street address, ward/commune, district, province/city"
+                                          required=""
+                                          rows="3">@Model?.Address</textarea>
+                                <span asp-validation-for="Address" class="text-error text-label-sm"></span>
+                            </div>
+
+                            <!-- Coordinate Pair Inputs -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                                <div class="space-y-unit-2">
+                                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center gap-unit-1" for="latitude">
+                                        Latitude
+                                        <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">(Optional)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-code-num text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
+                                               id="latitude"
+                                               max="90.000000"
+                                               min="-90.000000"
+                                               name="Latitude"
+                                               value="@Model?.Latitude"
+                                               placeholder="Between -90.000000 and 90.000000 (e.g., 10.7769)"
+                                               step="any"
+                                               type="number" />
+                                        <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">explore</span>
+                                    </div>
+                                    <span asp-validation-for="Latitude" class="text-error text-label-sm"></span>
+                                </div>
+
+                                <div class="space-y-unit-2">
+                                    <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center gap-unit-1" for="longitude">
+                                        Longitude
+                                        <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">(Optional)</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input class="h-input-height w-full px-unit-3 rounded-lg bg-surface-container-lowest text-on-surface font-code-num text-body-md focus:outline-none transition-all placeholder:text-outline shadow-sm border border-surface-container-high"
+                                               id="longitude"
+                                               max="180.000000"
+                                               min="-180.000000"
+                                               name="Longitude"
+                                               value="@Model?.Longitude"
+                                               placeholder="Between -180.000000 and 180.000000 (e.g., 106.7009)"
+                                               step="any"
+                                               type="number" />
+                                        <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 text-outline-variant text-[18px]">explore</span>
+                                    </div>
+                                    <span asp-validation-for="Longitude" class="text-error text-label-sm"></span>
+                                </div>
+                            </div>
+
+                            <!-- Map Section -->
+                            <div class="space-y-unit-2 pt-unit-2">
+                                <label class="font-body-md-medium text-body-md-medium text-on-surface flex items-center justify-between">
+                                    <span>Branch Location Map</span>
+                                    <span class="font-label-sm text-label-sm text-on-surface-variant font-normal">VIETMAP GL JS</span>
+                                </label>
+                                <div id="branchMap"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Right Side: Sticky Operational Summary & Meta Details (4 Cols) -->
+                <div class="lg:col-span-4 space-y-unit-6 lg:sticky lg:top-24">
+                    <!-- Live Preview Summary Card -->
+                    <div class="bg-surface-container-lowest rounded-xl p-unit-6 shadow-sm space-y-unit-5">
+                        <div class="flex items-center justify-between border-b border-surface-container-high pb-unit-4">
+                            <span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant">Branch Preview</span>
+                        </div>
+                        <!-- Preview Card Body -->
+                        <div class="bg-surface-container-low rounded-xl p-unit-5 space-y-unit-4">
+                            <div class="flex items-start justify-between gap-unit-2">
+                                <div class="space-y-1 min-w-0">
+                                    <p class="font-code-num text-label-md text-primary-container uppercase font-bold tracking-wider" id="previewCode">
+                                        @(string.IsNullOrEmpty(Model?.BranchCode) ? "Not provided" : Model.BranchCode)
+                                    </p>
+                                    <h3 class="font-title-lg text-title-lg text-on-surface truncate" id="previewName">
+                                        @(string.IsNullOrEmpty(Model?.BranchName) ? "Not provided" : Model.BranchName)
+                                    </h3>
+                                </div>
+                                <div class="w-10 h-10 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0">
+                                    <span class="material-symbols-outlined text-primary-container">store</span>
+                                </div>
+                            </div>
+                            <div class="space-y-unit-2 pt-unit-2 border-t border-surface-container-high">
+                                <div class="flex items-center justify-between text-body-sm">
+                                    <span class="text-on-surface-variant font-body-sm">Region:</span>
+                                    <span class="font-body-md-medium text-on-surface truncate max-w-[150px]" id="previewRegion">
+                                        @(selectedRegion == null ? "Not selected" : $"{selectedRegion.RegionName} ({selectedRegion.RegionCode})")
+                                    </span>
+                                </div>
+                                <div class="flex items-center justify-between text-body-sm">
+                                    <span class="text-on-surface-variant font-body-sm">Address:</span>
+                                    <span class="font-body-sm text-on-surface truncate max-w-[150px]" id="previewAddress">
+                                        @(string.IsNullOrEmpty(Model?.Address) ? "Not provided" : Model.Address)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Persistent Bottom Actions Ribbon -->
+            <div class="bg-surface-container-lowest rounded-xl p-unit-5 shadow-sm flex items-center justify-end gap-unit-4">
+                <a asp-controller="Branches" asp-action="Index" class="h-input-height px-unit-6 rounded-lg bg-surface-container-lowest text-[#64748B] hover:bg-surface-container hover:text-on-surface font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer border border-surface-container-high">
+                    Cancel
+                </a>
+                <button class="h-input-height px-unit-6 rounded-lg bg-primary-container text-white hover:bg-primary font-body-md-medium transition-all shadow-sm flex items-center justify-center gap-unit-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" id="submitBtn" type="submit">
+                    <span class="material-symbols-outlined text-body-md">add_business</span>
+                    <span>Create Branch</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/@@vietmap/vietmap-gl-js@6.0.1/dist/vietmap-gl.js"></script>
+    <script>
+        window.vietMapConfig = {
+            tileMapKey: '@vietMapTileKey'
+        };
+    </script>
+    <script src="~/js/branch-map.js" asp-append-version="true"></script>
+    <script>
+        (function() {
+            const codeInput = document.getElementById('branchCode');
+            const nameInput = document.getElementById('branchName');
+            const addressInput = document.getElementById('branchAddress');
+            const regionSelect = document.getElementById('regionSelect');
+            const latInput = document.getElementById('latitude');
+            const lngInput = document.getElementById('longitude');
+
+            const previewCode = document.getElementById('previewCode');
+            const previewName = document.getElementById('previewName');
+            const previewRegion = document.getElementById('previewRegion');
+            const previewAddress = document.getElementById('previewAddress');
+
+            function updateCounter(input, counterId, max) {
+                const counter = document.getElementById(counterId);
+                if (counter) {
+                    counter.textContent = `${input.value.length}/${max}`;
+                }
+            }
+
+            if (codeInput) {
+                codeInput.addEventListener('input', function() {
+                    const caret = this.selectionStart;
+                    this.value = this.value.toUpperCase();
+                    this.setSelectionRange(caret, caret);
+
+                    updateCounter(this, 'codeCounter', 30);
+                    if (previewCode) previewCode.textContent = this.value || 'Not provided';
+                });
+            }
+
+            if (nameInput) {
+                nameInput.addEventListener('input', function() {
+                    updateCounter(this, 'nameCounter', 150);
+                    if (previewName) previewName.textContent = this.value || 'Not provided';
+                });
+            }
+
+            if (addressInput) {
+                addressInput.addEventListener('input', function() {
+                    updateCounter(this, 'addressCounter', 500);
+                    if (previewAddress) previewAddress.textContent = this.value || 'Not provided';
+                });
+            }
+
+            if (regionSelect) {
+                function handleRegionChange() {
+                    const selectedOpt = regionSelect.options[regionSelect.selectedIndex];
+                    const text = selectedOpt?.text || '';
+                    const regionName = selectedOpt?.getAttribute('data-region-name') || text.split(' (')[0].trim();
+
+                    if (previewRegion) previewRegion.textContent = regionSelect.value ? text.split(' [')[0] : 'Not selected';
+
+                    // Auto-fill VietMap search location box when region is selected
+                    const searchInput = document.getElementById('searchLocationInput');
+                    const clearSearchBtn = document.getElementById('clearSearchBtn');
+                    if (searchInput && regionSelect.value && regionName) {
+                        searchInput.value = regionName;
+                        if (clearSearchBtn) clearSearchBtn.classList.remove('hidden');
+                        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+
+                regionSelect.addEventListener('change', handleRegionChange);
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,423 @@
+@using UI_Admin.Models.Admin.UserAdmin
+@model UserCreateViewModel
+
+@{
+    ViewData["Title"] = "Create User Account";
+}
+
+@section Styles {
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-error": "#ffffff",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-container": "#dad7ff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface": "#f8f9fd",
+                        "surface-container-low": "#f2f3f7",
+                        "surface-dim": "#d9dade",
+                        "inverse-surface": "#2e3134",
+                        "background": "#f8f9fd",
+                        "surface-bright": "#f8f9fd",
+                        "on-background": "#191c1f",
+                        "on-tertiary-fixed": "#0b1c30",
+                        "outline": "#777587",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed-dim": "#b7c8e1",
+                        "primary-container": "#4f46e5",
+                        "on-secondary-container": "#5c6274",
+                        "secondary-container": "#d9dff5",
+                        "inverse-primary": "#c3c0ff",
+                        "surface-container-high": "#e7e8ec",
+                        "secondary-fixed": "#dce2f7",
+                        "on-secondary-fixed": "#141b2b",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#d3e4fe",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#ccdcf7",
+                        "surface-tint": "#4d44e3",
+                        "on-surface": "#191c1f",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "primary-fixed": "#e2dfff",
+                        "inverse-on-surface": "#eff1f5",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#e1e2e6",
+                        "surface-container": "#edeef2",
+                        "on-surface-variant": "#464555",
+                        "tertiary": "#3a495f",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c7c4d8",
+                        "tertiary-container": "#516177",
+                        "surface-variant": "#e1e2e6",
+                        "secondary-fixed-dim": "#c0c6db",
+                        "error-container": "#ffdad6",
+                        "secondary": "#575e70",
+                        "primary": "#3525cd",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#404758",
+                        "on-tertiary-fixed-variant": "#38485d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit-4": "1rem",
+                        "sidebar-width": "16.25rem",
+                        "input-height": "2.5rem",
+                        "unit-8": "2rem",
+                        "unit-6": "1.5rem",
+                        "unit-12": "3rem",
+                        "unit-10": "2.5rem",
+                        "unit-2": "0.5rem",
+                        "unit-1": "0.25rem",
+                        "topbar-height": "4rem",
+                        "unit-3": "0.75rem",
+                        "table-row-height": "3.5rem",
+                        "unit-5": "1.25rem"
+                    },
+                    "fontFamily": {
+                        "title-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-md": ["Arial", "Helvetica", "sans-serif"],
+                        "label-sm": ["Arial", "Helvetica", "sans-serif"],
+                        "display-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "code-num": ["Arial", "Helvetica", "sans-serif"],
+                        "display-md": ["Arial", "Helvetica", "sans-serif"],
+                        "title-lg": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md-medium": ["Arial", "Helvetica", "sans-serif"],
+                        "body-md": ["Arial", "Helvetica", "sans-serif"],
+                        "body-sm": ["Arial", "Helvetica", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "title-md": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.005em", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "letterSpacing": "0.03em", "fontWeight": "500" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "code-num": ["13px", { "lineHeight": "18px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                        "display-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md-medium": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "500" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "0em", "fontWeight": "400" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }]
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        .field-validation-error {
+            color: #ba1a1a;
+            font-size: 11px;
+            font-weight: 500;
+            display: block;
+            margin-top: 4px;
+        }
+        .input-validation-error {
+            border-color: #ba1a1a !important;
+            background-color: #fff8f8 !important;
+        }
+    </style>
+}
+
+<div class="w-full px-7 py-4">
+    <div class="w-full max-w-[1440px] mx-auto">
+        <div class="flex flex-col w-full">
+            <!-- Page Header -->
+            <div class="mb-unit-4 flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+                <div class="space-y-unit-1">
+                    <div class="inline-flex items-center gap-unit-2 px-unit-2 py-0.5 bg-surface-container-high rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+                        <span class="font-label-sm text-secondary tracking-wider uppercase text-[10px]">Staff Provisioning • RBAC Enforcement</span>
+                    </div>
+                    <h1 class="font-display-lg text-on-surface tracking-tight text-[26px]">Create User Account</h1>
+                </div>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.TryGetValue(string.Empty, out var modelStateErrors) && modelStateErrors.Errors.Count > 0)
+            {
+                <div id="createModelStateErrorBanner" class="mb-unit-4 p-unit-4 bg-rose-50 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-error shadow-sm transition-opacity duration-200">
+                    <div class="flex items-start gap-2.5 min-w-0">
+                        <span class="material-symbols-outlined text-[20px] shrink-0 mt-0.5 text-[#dc2626]">error</span>
+                        <div class="text-[13px] font-body-md space-y-1 leading-relaxed">
+                            @foreach (var error in modelStateErrors.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        </div>
+                    </div>
+                    <button type="button" 
+                            class="p-1 rounded-lg hover:bg-rose-200/50 text-[#991b1b] transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center" 
+                            title="Dismiss" 
+                            aria-label="Close" 
+                            onclick="document.getElementById('createModelStateErrorBanner').remove()">
+                        <span class="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            }
+
+            <!-- Single Unified Enterprise Form Card -->
+            <form asp-controller="User" asp-action="Create" method="post" id="createUserForm" class="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container-high overflow-hidden">
+                @Html.AntiForgeryToken()
+
+                <!-- Section 1: Identity & Personal Details -->
+                <div class="p-unit-6 border-b border-surface-container-high">
+                    <div class="flex items-center justify-between mb-unit-5 pb-unit-3 border-b border-surface-container-low">
+                        <div class="flex items-center gap-unit-3">
+                            <span class="w-8 h-8 rounded-lg bg-primary-container/10 text-primary-container flex items-center justify-center material-symbols-outlined text-[18px]">badge</span>
+                            <div>
+                                <h2 class="font-title-md text-on-surface leading-snug text-[15px]">Identity &amp; Personal Details</h2>
+                                <p class="font-label-sm text-secondary text-[11px]">Core personnel records, contact details, and citizen identification.</p>
+                            </div>
+                        </div>
+                        <span class="font-code-num text-secondary bg-surface-container-high px-unit-2 py-0.5 rounded text-[11px]">SECTION 1</span>
+                    </div>
+
+                    <div class="space-y-unit-4">
+                        <!-- Row 1: Full Name & Official Work Email -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="FullName">
+                                    Full Name <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input asp-for="FullName" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="150" placeholder="e.g. Nguyen Van An" type="text" />
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">person</span>
+                                </div>
+                                <span asp-validation-for="FullName" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Required, max 150 characters.</p>
+                            </div>
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="Email">
+                                    Official Work Email <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input asp-for="Email" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="254" placeholder="nva@workshift.vn" type="email" />
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">mail</span>
+                                </div>
+                                <span asp-validation-for="Email" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Required, max 254 characters. Lowercase enforced, verified via Supabase Auth &amp; database.</p>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Mobile Phone & National Citizen ID -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="Phone">
+                                    Mobile Phone Number <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input asp-for="Phone" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="10" placeholder="0912345678" type="tel" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">call</span>
+                                </div>
+                                <span asp-validation-for="Phone" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">10 digits, valid Vietnam mobile prefix (03x, 05x, 07x, 08x, 09x). Verified unique.</p>
+                            </div>
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="IdentityNo">
+                                    National Citizen ID (CCCD/CMND) <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input asp-for="IdentityNo" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-code-num text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="12" placeholder="079099012345" type="text" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12)" onkeypress="return event.charCode >= 48 && event.charCode <= 57" />
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[18px] pointer-events-none">badge</span>
+                                </div>
+                                <span asp-validation-for="IdentityNo" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">9 or 12 numeric digits. Must be strictly unique across active and archived staff.</p>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Gender & Date of Birth -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1">
+                                    Gender <span class="text-error">*</span>
+                                </label>
+                                <div class="grid grid-cols-3 gap-unit-2">
+                                    <label class="flex items-center justify-center gap-unit-2 h-input-height rounded-lg border border-outline-variant bg-surface-container-low px-unit-2 cursor-pointer hover:bg-surface-container transition-colors">
+                                        <input asp-for="Gender" class="w-4 h-4 text-primary-container focus:ring-primary-container" type="radio" value="MALE" checked="@(Model.Gender == "MALE" || string.IsNullOrEmpty(Model.Gender))" />
+                                        <span class="font-label-md text-on-surface text-[12px]">MALE</span>
+                                    </label>
+                                    <label class="flex items-center justify-center gap-unit-2 h-input-height rounded-lg border border-outline-variant bg-surface-container-low px-unit-2 cursor-pointer hover:bg-surface-container transition-colors">
+                                        <input asp-for="Gender" class="w-4 h-4 text-primary-container focus:ring-primary-container" type="radio" value="FEMALE" checked="@(Model.Gender == "FEMALE")" />
+                                        <span class="font-label-md text-on-surface text-[12px]">FEMALE</span>
+                                    </label>
+                                    <label class="flex items-center justify-center gap-unit-2 h-input-height rounded-lg border border-outline-variant bg-surface-container-low px-unit-2 cursor-pointer hover:bg-surface-container transition-colors">
+                                        <input asp-for="Gender" class="w-4 h-4 text-primary-container focus:ring-primary-container" type="radio" value="OTHER" checked="@(Model.Gender == "OTHER")" />
+                                        <span class="font-label-md text-on-surface text-[12px]">OTHER</span>
+                                    </label>
+                                </div>
+                                <span asp-validation-for="Gender" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Stored as uppercase enum (MALE / FEMALE / OTHER).</p>
+                            </div>
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="DateOfBirth">
+                                    Date of Birth <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input asp-for="DateOfBirth" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container text-[13px]" max="@DateTime.UtcNow.AddYears(-18).ToString("yyyy-MM-dd")" min="1900-01-01" type="date" />
+                                </div>
+                                <span asp-validation-for="DateOfBirth" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Must be &gt;= 01/01/1900 and applicant must be at least 18 years old.</p>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Residential Address -->
+                        <div class="space-y-unit-1">
+                            <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="Address">
+                                Residential Address <span class="text-error">*</span>
+                            </label>
+                            <div class="relative">
+                                <textarea asp-for="Address" class="w-full p-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container placeholder:text-outline-variant text-[13px]" maxlength="500" placeholder="e.g. 45 Le Thanh Ton Street, Ben Nghe Ward, District 1, Ho Chi Minh City" rows="2"></textarea>
+                            </div>
+                            <span asp-validation-for="Address" class="field-validation-error"></span>
+                            <p class="font-label-sm text-secondary text-[11px]">Required, max 500 characters. Auto-trimmed.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Role & Branch Allocation -->
+                <div class="p-unit-6 border-b border-surface-container-high bg-surface-container-low/30">
+                    <div class="flex items-center justify-between mb-unit-5 pb-unit-3 border-b border-surface-container-low">
+                        <div class="flex items-center gap-unit-3">
+                            <span class="w-8 h-8 rounded-lg bg-primary-container/10 text-primary-container flex items-center justify-center material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                            <div>
+                                <h2 class="font-title-md text-on-surface leading-snug text-[15px]">Role Assignment &amp; Branch Allocation</h2>
+                                <p class="font-label-sm text-secondary text-[11px]">Role assignment restricted to operational roles (Manager / Accountant) with branch allocation.</p>
+                            </div>
+                        </div>
+                        <span class="font-code-num text-secondary bg-surface-container-high px-unit-2 py-0.5 rounded text-[11px]">SECTION 2</span>
+                    </div>
+
+                    <div class="space-y-unit-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-unit-5">
+                            <!-- Role Selector -->
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="RoleId">
+                                    System Role <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <select asp-for="RoleId" id="select-role" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container appearance-none pr-unit-10 cursor-pointer text-[13px]">
+                                        @if (Model.AvailableRoles.Count == 0)
+                                        {
+                                            <option value="2">Manager</option>
+                                            <option value="3">Accountant</option>
+                                        }
+                                        else
+                                        {
+                                            foreach (var role in Model.AvailableRoles.Where(r => !r.Name.Equals("Admin", StringComparison.OrdinalIgnoreCase)))
+                                            {
+                                                <option value="@role.Id">@role.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[20px] pointer-events-none">expand_more</span>
+                                </div>
+                                <span asp-validation-for="RoleId" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Strict scope: Manager or Accountant only.</p>
+                            </div>
+
+                            <!-- Branch Selector -->
+                            <div class="space-y-unit-1">
+                                <label class="font-label-md text-on-surface flex items-center gap-unit-1" asp-for="BranchId">
+                                    Target Branch <span class="text-error">*</span>
+                                </label>
+                                <div class="relative">
+                                    <select asp-for="BranchId" id="select-branch" class="w-full h-input-height px-unit-3 bg-surface-container-lowest rounded-lg font-body-md text-on-surface shadow-sm border border-outline-variant focus:outline-none focus:ring-2 focus:ring-primary-container appearance-none pr-unit-10 cursor-pointer text-[13px]">
+                                        @if (Model.AvailableBranches.Count == 0)
+                                        {
+                                            <option value="">No active branches available</option>
+                                        }
+                                        else
+                                        {
+                                            foreach (var branch in Model.AvailableBranches)
+                                            {
+                                                <option value="@branch.Id">@branch.DisplayText</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span class="material-symbols-outlined absolute right-3 top-2.5 text-outline text-[20px] pointer-events-none">expand_more</span>
+                                </div>
+                                <span asp-validation-for="BranchId" class="field-validation-error"></span>
+                                <p class="font-label-sm text-secondary text-[11px]">Select an active branch for staff assignment.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Provisioning Pipeline Guarantee & Action Bar -->
+                <div class="p-unit-5 bg-surface-container-lowest flex flex-col sm:flex-row items-center justify-between gap-unit-4 border-t border-surface-container-high">
+                    <div class="flex items-center gap-unit-2 text-secondary font-body-sm text-[12px]">
+                        <span class="material-symbols-outlined text-primary-container text-[18px]">verified</span>
+                        <span>Supabase Auth Invite will be dispatched • Default Cloudinary avatar assigned • Auto-rollback on failure</span>
+                    </div>
+                    <div class="flex items-center gap-unit-3 w-full sm:w-auto justify-end">
+                        <a asp-controller="User" asp-action="List" class="h-input-height px-unit-5 rounded-xl bg-surface-container-lowest hover:bg-surface-container text-slate-700 font-body-md-medium border border-surface-container-high transition-colors flex items-center gap-unit-2 text-[13px] text-decoration-none shadow-sm cursor-pointer">
+                            <span class="material-symbols-outlined text-[18px]">close</span>
+                            <span>Cancel</span>
+                        </a>
+                        <button class="h-input-height px-unit-5 rounded-xl bg-primary-container hover:bg-primary text-white font-body-md-medium transition-all duration-150 flex items-center gap-unit-2 shadow-sm focus:ring-2 focus:ring-offset-2 focus:ring-primary-container text-[13px] cursor-pointer" id="btn-create-account" type="submit">
+                            <span class="material-symbols-outlined text-[18px]">person_add</span>
+                            <span id="btn-create-text">Create Account</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function resetSubmitButton() {
+            const btn = document.getElementById('btn-create-account');
+            const btnText = document.getElementById('btn-create-text');
+            if (btn) {
+                btn.disabled = false;
+                if (btnText) btnText.innerText = 'Create Account';
+                const icon = btn.querySelector('.material-symbols-outlined');
+                if (icon) {
+                    icon.innerText = 'person_add';
+                    icon.classList.remove('animate-spin');
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('createUserForm');
+
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    // Check jQuery validation validity
+                    if (window.jQuery && $(form).length && typeof $(form).valid === 'function') {
+                        if (!$(form).valid()) {
+                            resetSubmitButton();
+                            return;
+                        }
+                    } else if (!form.checkValidity()) {
+                        resetSubmitButton();
+                        return;
+                    }
+
+                    const btn = document.getElementById('btn-create-account');
+                    const btnText = document.getElementById('btn-create-text');
+                    if (btn) {
+                        btn.disabled = true;
+                        if (btnText) btnText.innerText = 'Provisioning Account...';
+                        const icon = btn.querySelector('.material-symbols-outlined');
+                        if (icon) {
+                            icon.innerText = 'progress_activity';
+                            icon.classList.add('animate-spin');
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}

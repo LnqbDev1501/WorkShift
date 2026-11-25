@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FaceAiSharp;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.ML.OnnxRuntime;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using WorkShiftManagement.BLL.Interfaces.Staff;
@@ -14,52 +18,221 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 
 public class FaceBiometricService : IFaceBiometricService, IDisposable
 {
+    private const int DefaultPoolSize = 3;
+    private const int MaxPoolSize = 8;
+
     private readonly ILogger<FaceBiometricService> _logger;
-    private readonly SemaphoreSlim _lock = new(1, 1);
-    private IFaceDetectorWithLandmarks? _detector;
-    private IFaceEmbeddingsGenerator? _recognizer;
-    private bool _initialized;
+    private readonly int _poolSize;
+    private readonly int _intraOpThreads;
+    private readonly bool _enableCpuMemArena;
+    private readonly SemaphoreSlim _poolSemaphore;
+    private readonly SemaphoreSlim _initSemaphore = new(1, 1);
+    private readonly ConcurrentBag<BiometricWorker> _idleWorkers = new();
+    private readonly List<BiometricWorker> _allWorkers = new();
+    private readonly object _lifecycleLock = new();
     private Exception? _initException;
     private bool _disposed;
 
-    public FaceBiometricService(ILogger<FaceBiometricService> logger)
+    private sealed class BiometricWorker : IDisposable
     {
-        _logger = logger;
-        _logger.LogInformation("FaceBiometricService registered (lazy-loading ONNX models on demand).");
+        public IFaceDetectorWithLandmarks Detector { get; }
+        public IFaceEmbeddingsGenerator Recognizer { get; }
+
+        public BiometricWorker(IFaceDetectorWithLandmarks detector, IFaceEmbeddingsGenerator recognizer)
+        {
+            Detector = detector;
+            Recognizer = recognizer;
+        }
+
+        public void Dispose()
+        {
+            (Detector as IDisposable)?.Dispose();
+            (Recognizer as IDisposable)?.Dispose();
+        }
     }
 
-    private void EnsureInitialized()
+    public FaceBiometricService(ILogger<FaceBiometricService> logger, IConfiguration? configuration = null)
     {
-        if (_initialized) return;
+        _logger = logger;
+        var configuredPoolSize = configuration?.GetValue<int?>("Biometrics:WorkerPoolSize") ?? DefaultPoolSize;
+        _poolSize = Math.Clamp(configuredPoolSize, 1, MaxPoolSize);
+        _intraOpThreads = Math.Clamp(Environment.ProcessorCount >= 8 ? 4 : Environment.ProcessorCount / _poolSize, 1, 4);
+        _enableCpuMemArena = configuration?.GetValue<bool?>("Biometrics:EnableCpuMemArena") ?? false;
+        _poolSemaphore = new SemaphoreSlim(_poolSize, _poolSize);
 
-        _lock.Wait();
+        _logger.LogInformation(
+            "FaceBiometricService registered (lazy-loading ONNX worker pool: max {PoolSize} workers, {IntraOpThreads} intra-op threads/worker, CpuMemArena={EnableArena}).",
+            _poolSize,
+            _intraOpThreads,
+            _enableCpuMemArena);
+    }
+
+    private SessionOptions CreateWorkerSessionOptions()
+    {
+        return new SessionOptions
+        {
+            ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
+            InterOpNumThreads = 1,
+            IntraOpNumThreads = _intraOpThreads,
+            EnableCpuMemArena = _enableCpuMemArena
+        };
+    }
+
+    private async Task<BiometricWorker> BorrowWorkerAsync(CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        await _poolSemaphore.WaitAsync(cancellationToken);
+        bool releasePermitOnFailure = true;
         try
         {
-            if (_initialized) return;
+            ObjectDisposedException.ThrowIf(_disposed, this);
 
-            if (_initException != null)
+            if (_idleWorkers.TryTake(out var idleWorker))
             {
-                throw new InvalidOperationException($"Face biometric model initialization failed: {_initException.Message}", _initException);
+                releasePermitOnFailure = false;
+                return idleWorker;
             }
 
+            await _initSemaphore.WaitAsync(cancellationToken);
             try
             {
-                _logger.LogInformation("Initializing FaceBiometricService with ArcFace and SCRFD ONNX models...");
-                _detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks();
-                _recognizer = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator();
-                _initialized = true;
-                _logger.LogInformation("FaceBiometricService initialized successfully.");
+                ObjectDisposedException.ThrowIf(_disposed, this);
+
+                if (_idleWorkers.TryTake(out idleWorker))
+                {
+                    releasePermitOnFailure = false;
+                    return idleWorker;
+                }
+
+                if (_initException != null)
+                {
+                    throw new InvalidOperationException(
+                        $"Face biometric model initialization failed: {_initException.Message}",
+                        _initException);
+                }
+
+                BiometricWorker createdWorker;
+                try
+                {
+                    int workerIndex;
+                    lock (_lifecycleLock)
+                    {
+                        workerIndex = _allWorkers.Count + 1;
+                    }
+
+                    _logger.LogInformation(
+                        "Initializing ONNX biometric worker {WorkerIndex}/{PoolSize} (ArcFace and SCRFD models)...",
+                        workerIndex,
+                        _poolSize);
+
+                    using var sessionOptions = CreateWorkerSessionOptions();
+                    var detector = FaceAiSharpBundleFactory.CreateFaceDetectorWithLandmarks(sessionOptions);
+                    IFaceEmbeddingsGenerator recognizer;
+                    try
+                    {
+                        recognizer = FaceAiSharpBundleFactory.CreateFaceEmbeddingsGenerator(sessionOptions);
+                    }
+                    catch
+                    {
+                        (detector as IDisposable)?.Dispose();
+                        throw;
+                    }
+
+                    createdWorker = new BiometricWorker(detector, recognizer);
+                    lock (_lifecycleLock)
+                    {
+                        if (_disposed)
+                        {
+                            createdWorker.Dispose();
+                            throw new ObjectDisposedException(nameof(FaceBiometricService));
+                        }
+
+                        _allWorkers.Add(createdWorker);
+                    }
+
+                    _logger.LogInformation(
+                        "ONNX biometric worker {WorkerIndex}/{PoolSize} initialized successfully.",
+                        workerIndex,
+                        _poolSize);
+                }
+                catch (ObjectDisposedException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    bool hasHealthyWorkers;
+                    lock (_lifecycleLock)
+                    {
+                        hasHealthyWorkers = _allWorkers.Count > 0;
+                    }
+
+                    if (!hasHealthyWorkers)
+                    {
+                        _initException = ex;
+                    }
+
+                    _logger.LogError(ex, "Failed to initialize FaceBiometricService with ArcFace and SCRFD models.");
+                    throw;
+                }
+
+                releasePermitOnFailure = false;
+                return createdWorker;
             }
-            catch (Exception ex)
+            finally
             {
-                _initException = ex;
-                _logger.LogError(ex, "Failed to initialize FaceBiometricService with ArcFace and SCRFD models.");
-                throw;
+                _initSemaphore.Release();
             }
         }
         finally
         {
-            _lock.Release();
+            if (releasePermitOnFailure)
+            {
+                try
+                {
+                    if (!_disposed)
+                    {
+                        _poolSemaphore.Release();
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                }
+            }
+        }
+    }
+
+    private void ReturnWorker(BiometricWorker worker)
+    {
+        bool disposeWorker = false;
+        lock (_lifecycleLock)
+        {
+            if (_disposed)
+            {
+                _allWorkers.Remove(worker);
+                disposeWorker = true;
+            }
+            else
+            {
+                _idleWorkers.Add(worker);
+            }
+        }
+
+        if (disposeWorker)
+        {
+            worker.Dispose();
+        }
+
+        try
+        {
+            if (!_disposed)
+            {
+                _poolSemaphore.Release();
+            }
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 
@@ -70,15 +243,15 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
             throw new ArgumentException("A valid face image file is required.", nameof(imageFile));
         }
 
-        EnsureInitialized();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         await using var stream = imageFile.OpenReadStream();
         using var image = await Image.LoadAsync<Rgb24>(stream, cancellationToken);
 
-        await _lock.WaitAsync(cancellationToken);
+        var worker = await BorrowWorkerAsync(cancellationToken);
         try
         {
-            var detectedFaces = _detector!.DetectFaces(image);
+            var detectedFaces = worker.Detector.DetectFaces(image);
             if (detectedFaces == null || detectedFaces.Count == 0)
             {
                 throw new InvalidOperationException("No human face detected in the image. Please position your face clearly in the camera frame with good lighting.");
@@ -94,10 +267,10 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
 
             if (bestFace.Landmarks != null && bestFace.Landmarks.Count >= 5)
             {
-                _recognizer!.AlignFaceUsingLandmarks(image, bestFace.Landmarks);
+                worker.Recognizer.AlignFaceUsingLandmarks(image, bestFace.Landmarks);
             }
 
-            var embedding = _recognizer!.GenerateEmbedding(image);
+            var embedding = worker.Recognizer.GenerateEmbedding(image);
             if (embedding == null || embedding.Length == 0)
             {
                 throw new InvalidOperationException("Failed to generate facial biometric vector from the image.");
@@ -107,7 +280,7 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
         }
         finally
         {
-            _lock.Release();
+            ReturnWorker(worker);
         }
     }
 
@@ -140,20 +313,27 @@ public class FaceBiometricService : IFaceBiometricService, IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
-        _disposed = true;
-
-        if (_detector is IDisposable dispDetector)
+        List<BiometricWorker> workersToDispose;
+        lock (_lifecycleLock)
         {
-            dispDetector.Dispose();
+            if (_disposed) return;
+            _disposed = true;
+
+            workersToDispose = new List<BiometricWorker>();
+            while (_idleWorkers.TryTake(out var idle))
+            {
+                workersToDispose.Add(idle);
+                _allWorkers.Remove(idle);
+            }
         }
 
-        if (_recognizer is IDisposable dispRecognizer)
+        foreach (var worker in workersToDispose)
         {
-            dispRecognizer.Dispose();
+            worker.Dispose();
         }
 
-        _lock.Dispose();
+        _initSemaphore.Dispose();
+        _poolSemaphore.Dispose();
         GC.SuppressFinalize(this);
     }
 }

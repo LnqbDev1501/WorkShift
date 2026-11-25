@@ -2,12 +2,15 @@ using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Manager.Request;
 using WorkShiftManagement.BLL.DTOs.Manager.Response;
 using WorkShiftManagement.BLL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
 
-public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimitRuleService
+public class RequestLimitRuleService(
+    IRequestLimitRuleRepo repo,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IRequestLimitRuleService
 {
     private static readonly string[] Types = ["LEAVE", "LATE_ARRIVAL", "EARLY_LEAVE", "SALARY_INCREASE"];
     private static readonly string[] Statuses = ["DRAFT", "SCHEDULED", "ACTIVE", "INACTIVE"];
@@ -35,14 +38,29 @@ public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimit
     {
         var branch = await BranchAsync(managerId, ct);
         Validate(request);
-        return Map(await repo.MutateAsync(branch, _ => NewRule(branch, managerId, request), ct));
+        var res = Map(await repo.MutateAsync(branch, _ => NewRule(branch, managerId, request), ct));
+        if (adminRealtimePublisher != null)
+        {
+            try
+            {
+                await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "RequestLimitRules",
+                    action = "CREATED",
+                    ruleId = res.RequestLimitRuleId,
+                    branchId = branch
+                });
+            }
+            catch { }
+        }
+        return res;
     }
 
     public async Task<RequestLimitRuleResponse> UpdateAsync(Guid managerId, int id, UpdateRequestLimitRuleRequest request, CancellationToken ct)
     {
         var branch = await BranchAsync(managerId, ct);
         Validate(request);
-        return Map(await repo.MutateAsync(branch, rules =>
+        var res = Map(await repo.MutateAsync(branch, rules =>
         {
             var rule = Find(rules, id);
             if (rule.Status != "DRAFT") throw new InvalidOperationException("Only DRAFT rules can be updated.");
@@ -55,13 +73,28 @@ public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimit
             Apply(rule, request);
             return rule;
         }, ct));
+        if (adminRealtimePublisher != null)
+        {
+            try
+            {
+                await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "RequestLimitRules",
+                    action = "UPDATED",
+                    ruleId = id,
+                    branchId = branch
+                });
+            }
+            catch { }
+        }
+        return res;
     }
 
     public async Task<RequestLimitRuleResponse> ReplaceAsync(Guid managerId, int id, ReplaceRequestLimitRuleRequest request, CancellationToken ct)
     {
         var branch = await BranchAsync(managerId, ct);
         Validate(request);
-        return Map(await repo.MutateAsync(branch, rules =>
+        var res = Map(await repo.MutateAsync(branch, rules =>
         {
             var previous = Find(rules, id);
             if (previous.Status != "ACTIVE") throw new InvalidOperationException("Only ACTIVE rules can be replaced.");
@@ -73,17 +106,34 @@ public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimit
             rule.SupersedesRuleId = id;
             return rule;
         }, ct));
+        if (adminRealtimePublisher != null)
+        {
+            try
+            {
+                await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "RequestLimitRules",
+                    action = "REPLACED",
+                    ruleId = res.RequestLimitRuleId,
+                    branchId = branch
+                });
+            }
+            catch { }
+        }
+        return res;
     }
 
     public async Task<RequestLimitRuleResponse> PublishAsync(Guid managerId, int id, CancellationToken ct)
     {
         var branch = await BranchAsync(managerId, ct);
-        return Map(await repo.MutateAsync(branch, rules =>
+        var res = Map(await repo.MutateAsync(branch, rules =>
         {
             var rule = Find(rules, id);
             if (rule.Status != "DRAFT") throw new InvalidOperationException("Only DRAFT rules can be published.");
             if (rule.SubmissionDeadlineDayOfWeek.HasValue && rule.RequestType != "SALARY_INCREASE")
                 throw new InvalidOperationException("The staff request module does not yet support SubmissionDeadlineDayOfWeek. Clear this field before publishing.");
+            if (rule.RequestType == "SALARY_INCREASE" && rule.MinimumAdvanceDays != 0)
+                throw new InvalidOperationException("Salary increase requests do not select an effective date. Set MinimumAdvanceDays to 0 before publishing.");
             if (rule.EffectiveFrom < Today) throw new ArgumentException("EffectiveFrom cannot be in the past. Update the draft before publishing.");
             if (rules.Any(x => x.RequestType == rule.RequestType && x.Status == "SCHEDULED"))
                 throw new InvalidOperationException("A rule for this request type is already scheduled.");
@@ -105,6 +155,21 @@ public class RequestLimitRuleService(IRequestLimitRuleRepo repo) : IRequestLimit
             }
             return rule;
         }, ct));
+        if (adminRealtimePublisher != null)
+        {
+            try
+            {
+                await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "RequestLimitRules",
+                    action = "PUBLISHED",
+                    ruleId = id,
+                    branchId = branch
+                });
+            }
+            catch { }
+        }
+        return res;
     }
 
     private async Task<int> BranchAsync(Guid managerId, CancellationToken ct)

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -29,6 +29,28 @@ public sealed class PayrollPeriodRepo(AppDbContext db) : IPayrollPeriodRepo
             .Include(p => p.EmployeeRewardsPenalties)
             .Include(p => p.Payrolls)
                 .ThenInclude(p => p.PayrollDetails)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCorrectionRequestPayrolls)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.User)
+                    .ThenInclude(u => u.EmployeeType)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PaymentConfirmedByNavigation)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.CalculatedByNavigation)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCarryForwardApplications)
+            .Include(p => p.Payrolls)
+                .ThenInclude(p => p.PayrollCarryForwardDeductions)
+            .AsSplitQuery();
+
+    private static IQueryable<PayrollPeriod> ListSummary(
+        IQueryable<PayrollPeriod> query) =>
+        query
+            .Include(p => p.ScheduleWeek)
+                .ThenInclude(w => w!.Branch)
+            .Include(p => p.Timesheets)
+            .Include(p => p.EmployeeRewardsPenalties)
             .Include(p => p.Payrolls)
                 .ThenInclude(p => p.PayrollCorrectionRequestPayrolls)
             .AsSplitQuery();
@@ -77,7 +99,7 @@ public sealed class PayrollPeriodRepo(AppDbContext db) : IPayrollPeriodRepo
 
         var count = await query.CountAsync(ct);
 
-        var items = await Details(
+        var items = await ListSummary(
                 query
                     .OrderByDescending(p => p.StartDate)
                     .ThenByDescending(p => p.PayrollPeriodId)
@@ -230,6 +252,55 @@ public sealed class PayrollPeriodRepo(AppDbContext db) : IPayrollPeriodRepo
                     .Select(a => a.UserId))
             .Distinct()
             .CountAsync(ct);
+
+    public async Task<Dictionary<int, int>> GetExpectedEmployeeCountsAsync(
+        IReadOnlyList<PayrollPeriod> periods,
+        CancellationToken ct)
+    {
+        if (periods.Count == 0) return new Dictionary<int, int>();
+
+        var periodIds = periods.Select(p => p.PayrollPeriodId).ToList();
+        var weekIds = periods.Where(p => p.ScheduleWeekId.HasValue).Select(p => p.ScheduleWeekId!.Value).Distinct().ToList();
+
+        var timesheetUsers = await db.Timesheets
+            .AsNoTracking()
+            .Where(t => periodIds.Contains(t.PayrollPeriodId))
+            .Select(t => new { t.PayrollPeriodId, t.UserId })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var shiftUsers = weekIds.Count > 0
+            ? await db.ShiftAssignments
+                .AsNoTracking()
+                .Where(a => weekIds.Contains(a.Shift.ScheduleWeekId)
+                            && a.Status != "CANCELLED"
+                            && a.Shift.Status != "CANCELLED")
+                .Select(a => new { a.Shift.ScheduleWeekId, a.UserId })
+                .Distinct()
+                .ToListAsync(ct)
+            : [];
+
+        var timesheetLookup = timesheetUsers
+            .GroupBy(t => t.PayrollPeriodId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.UserId).ToHashSet());
+
+        var shiftLookup = shiftUsers
+            .GroupBy(s => s.ScheduleWeekId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.UserId).ToHashSet());
+
+        var result = new Dictionary<int, int>(periods.Count);
+        foreach (var p in periods)
+        {
+            var userIds = new HashSet<Guid>();
+            if (timesheetLookup.TryGetValue(p.PayrollPeriodId, out var tsSet))
+                userIds.UnionWith(tsSet);
+            if (p.ScheduleWeekId.HasValue && shiftLookup.TryGetValue(p.ScheduleWeekId.Value, out var saSet))
+                userIds.UnionWith(saSet);
+            result[p.PayrollPeriodId] = userIds.Count;
+        }
+
+        return result;
+    }
 
     public async Task<IDbContextTransaction> BeginWriteAsync(
         CancellationToken ct)

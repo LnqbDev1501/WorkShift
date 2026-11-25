@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../controllers/profile_controller.dart';
-import '../../models/user_model.dart';
-import '../../services/auth_service.dart';
+import '../../controllers/profile/profile_controller.dart';
+import '../../models/auth/user_model.dart';
+import '../../services/auth/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../views/auth/login_view.dart';
 import 'profile/change_email_view.dart';
@@ -64,7 +65,9 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_controller.errorMessage ?? 'Upload avatar thất bại.'),
+            content: Text(
+              _controller.errorMessage ?? 'Failed to upload profile picture.',
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -72,7 +75,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cập nhật ảnh đại diện thành công.'),
+            content: Text('Profile picture updated successfully.'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
@@ -82,7 +85,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: $e'),
+            content: Text('Error: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -91,12 +94,197 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     }
   }
 
+  DateTime? _parseDate(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Check YYYY-MM-DD
+    final isoRegex = RegExp(r'^(\d{4})-(\d{1,2})-(\d{1,2})$');
+    final isoMatch = isoRegex.firstMatch(trimmed);
+    if (isoMatch != null) {
+      final y = int.tryParse(isoMatch.group(1)!);
+      final m = int.tryParse(isoMatch.group(2)!);
+      final d = int.tryParse(isoMatch.group(3)!);
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          try {
+            final dt = DateTime(y, m, d);
+            if (dt.year == y && dt.month == m && dt.day == d) {
+              return dt;
+            }
+          } catch (_) {}
+        }
+      }
+      return null;
+    }
+
+    // Check DD/MM/YYYY
+    final dmyRegex = RegExp(r'^(\d{1,2})/(\d{1,2})/(\d{4})$');
+    final dmyMatch = dmyRegex.firstMatch(trimmed);
+    if (dmyMatch != null) {
+      final d = int.tryParse(dmyMatch.group(1)!);
+      final m = int.tryParse(dmyMatch.group(2)!);
+      final y = int.tryParse(dmyMatch.group(3)!);
+      if (y != null && m != null && d != null) {
+        if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+          try {
+            final dt = DateTime(y, m, d);
+            if (dt.year == y && dt.month == m && dt.day == d) {
+              return dt;
+            }
+          } catch (_) {}
+        }
+      }
+      return null;
+    }
+
+    return null;
+  }
+
+  Future<void> _pickDateOfBirth() async {
+    final now = DateTime.now();
+    final minDate = DateTime(1900, 1, 1);
+    final adultDate = DateTime(now.year - 18, now.month, now.day);
+
+    DateTime initialDate = adultDate;
+    final text = _dobController.text.trim();
+    final parsed = _parseDate(text);
+    if (parsed != null) {
+      if (parsed.isBefore(minDate)) {
+        initialDate = minDate;
+      } else if (parsed.isAfter(now)) {
+        initialDate = adultDate;
+      } else {
+        initialDate = parsed;
+      }
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: minDate,
+      lastDate: now,
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'SELECT DATE OF BIRTH',
+      fieldLabelText: 'Date of Birth (YYYY-MM-DD)',
+      errorFormatText: 'Invalid date of birth format.',
+      errorInvalidText: 'Please enter a valid date of birth.',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      var age = now.year - picked.year;
+      if (now.month < picked.month || (now.month == picked.month && now.day < picked.day)) {
+        age--;
+      }
+      if (age < 18) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User must be at least 18 years old.'),
+              backgroundColor: AppColors.error,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _dobController.text =
+            '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
   Future<void> _handleUpdateProfile() async {
+    final phone = _phoneController.text.trim();
+    final phoneRegex = RegExp(r'^(03[2-9]|05[689]|07[06-9]|08[1-689]|09[0134678])\d{7}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid phone number. Please enter a valid 10-digit mobile phone number.',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final dobText = _dobController.text.trim();
+    if (dobText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Date of birth is required. Please select your date of birth.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final parsedDob = _parseDate(dobText);
+    if (parsedDob == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invalid date of birth format. Please select a valid date (YYYY-MM-DD).',
+          ),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (parsedDob.isBefore(DateTime(1900, 1, 1))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Date of birth must be on or after January 1, 1900.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
+    var age = now.year - parsedDob.year;
+    if (now.month < parsedDob.month || (now.month == parsedDob.month && now.day < parsedDob.day)) {
+      age--;
+    }
+    if (age < 18) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('User must be at least 18 years old.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final formattedDob =
+        '${parsedDob.year.toString().padLeft(4, '0')}-${parsedDob.month.toString().padLeft(2, '0')}-${parsedDob.day.toString().padLeft(2, '0')}';
+
     final success = await _controller.updateProfile(
       fullName: _fullNameController.text,
       phone: _phoneController.text,
       gender: _genderController.text,
-      dateOfBirth: _dobController.text.isEmpty ? null : _dobController.text,
+      dateOfBirth: formattedDob,
       address: _addressController.text,
     );
 
@@ -104,8 +292,18 @@ class _StaffProfileViewState extends State<StaffProfileView> {
       setState(() => _isEditingPersonal = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cập nhật thông tin thành công.'),
+          content: Text('Personal information updated successfully.'),
           backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _controller.errorMessage ?? 'Failed to update personal information.',
+          ),
+          backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -130,20 +328,20 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             Icon(Icons.logout_rounded, color: AppColors.error),
             SizedBox(width: 8),
             Text(
-              'Đăng xuất',
+              'Log Out',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ],
         ),
         content: const Text(
-          'Bạn có chắc muốn đăng xuất khỏi tài khoản này?',
+          'Are you sure you want to log out of this account?',
           style: TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text(
-              'Hủy',
+              'Cancel',
               style: TextStyle(color: AppColors.textSecondary),
             ),
           ),
@@ -157,7 +355,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Đăng xuất'),
+            child: const Text('Log Out'),
           ),
         ],
       ),
@@ -247,7 +445,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     onPressed: _handleLogout,
                     icon: const Icon(Icons.logout_rounded, size: 20),
                     label: const Text(
-                      'Đăng xuất',
+                      'Log Out',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -275,7 +473,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
   Widget _buildProfileHeader(UserModel? user) {
     final initials = _getInitials(user?.fullName ?? '');
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -288,162 +486,154 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: _pickAndUploadAvatar,
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: AppColors.primaryLight,
-                      backgroundImage:
-                          (user?.avatarUrl.isNotEmpty ?? false)
-                              ? NetworkImage(user!.avatarUrl)
-                              : null,
-                      child: (user?.avatarUrl.isEmpty ?? true)
-                          ? Text(
-                              initials,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            )
-                          : null,
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                  ],
+          GestureDetector(
+            onTap: _pickAndUploadAvatar,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 32,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage: (user?.avatarUrl.isNotEmpty ?? false)
+                      ? NetworkImage(user!.avatarUrl)
+                      : null,
+                  child: (user?.avatarUrl.isEmpty ?? true)
+                      ? Text(
+                          initials,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : null,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            user?.fullName ?? 'Không có tên',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.workspace_premium_rounded,
-                                  size: 14, color: AppColors.primary),
-                              const SizedBox(width: 4),
-                              Text(
-                                user?.roleName ?? 'STAFF',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${user?.roleName ?? 'STAFF'} • ${user?.branchName ?? 'Chi nhánh'} • Joined ${_formatDate(user?.createdAt)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 14,
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.successBg,
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: AppColors.success.withValues(alpha: 0.3),
-                            ),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle_rounded,
-                                  size: 12, color: AppColors.success),
-                              SizedBox(width: 4),
-                              Text(
-                                'ACTIVE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.success,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (user != null)
-                TextButton(
-                  onPressed: _handleLogout,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.logout_rounded, size: 16),
-                      SizedBox(width: 4),
-                      Text('Sign Out'),
-                    ],
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.fullName ?? 'No name provided',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.workspace_premium_rounded,
+                            size: 13,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            user?.roleName ?? 'STAFF',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.successBg,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: AppColors.success.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: 12,
+                            color: AppColors.success,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            'ACTIVE',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${user?.branchName ?? 'Branch'} • Joined ${_formatDate(user?.createdAt)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (user != null)
+            IconButton(
+              onPressed: _handleLogout,
+              tooltip: 'Log Out',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: const Icon(
+                Icons.logout_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+            ),
         ],
       ),
     );
@@ -462,7 +652,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             Icons.check_circle_rounded,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 10),
         Expanded(
           child: _buildStatusCard(
             'ASSIGNED ROLE',
@@ -484,7 +674,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     IconData icon,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
@@ -496,39 +686,48 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textMuted,
-                  letterSpacing: 0.5,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textMuted,
+                    letterSpacing: 0.3,
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(icon, size: 16, color: color),
+                child: Icon(icon, size: 14, color: color),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w700,
               color: color,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               color: AppColors.textSecondary,
             ),
           ),
@@ -571,12 +770,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Personal & Identity Information',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Personal & Identity Information',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -584,10 +785,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           const SizedBox(height: 4),
           const Text(
             'Your personal records. Tap "Update Personal Information" to edit the fields below.',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           _buildInfoGrid(
@@ -595,59 +793,77 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ? [
                     _buildEditTextField(
                       label: 'FULL NAME',
-                      hint: 'Nhập họ tên',
+                      hint: 'Enter full name',
                       controller: _fullNameController,
                     ),
                     _buildInfoItem(
                       'EMAIL',
-                      user?.email ?? 'Không có email',
+                      user?.email ?? 'No email provided',
                       isVerified: true,
                       isLocked: true,
                     ),
                     _buildEditTextField(
                       label: 'MOBILE PHONE',
-                      hint: 'Nhập số điện thoại',
+                      hint: 'Enter 10-digit mobile number',
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      maxLength: 10,
                     ),
                     _buildInfoItem(
                       'NATIONAL CITIZEN ID',
-                      user?.identityNo ?? 'Không có CCCD',
+                      user?.identityNo ?? 'No ID provided',
                       isLocked: true,
                     ),
                     _buildGenderEditField(),
-                    _buildEditTextField(
-                      label: 'DATE OF BIRTH',
-                      hint: 'DD/MM/YYYY',
-                      controller: _dobController,
-                      keyboardType: TextInputType.datetime,
-                    ),
+                    _buildDateOfBirthEditField(),
                     _buildEditTextField(
                       label: 'RESIDENTIAL ADDRESS',
-                      hint: 'Nhập địa chỉ',
+                      hint: 'Enter address',
                       controller: _addressController,
                       maxLines: 2,
                     ),
                   ]
                 : [
-                    _buildInfoItem('FULL NAME', user?.fullName ?? 'Không có tên',
-                        onTap: () => setState(() => _isEditingPersonal = true)),
-                    _buildInfoItem('EMAIL', user?.email ?? 'Không có email',
-                        isVerified: true, isLocked: true),
-                    _buildInfoItem('MOBILE PHONE',
-                        user?.phone ?? 'Không có số điện thoại',
-                        onTap: () => setState(() => _isEditingPersonal = true)),
-                    _buildInfoItem('NATIONAL CITIZEN ID',
-                        user?.identityNo ?? 'Không có CCCD',
-                        isLocked: true),
-                    _buildInfoItem('GENDER', user?.gender ?? 'Không có giới tính',
-                        onTap: () => setState(() => _isEditingPersonal = true)),
-                    _buildInfoItem('DATE OF BIRTH',
-                        _formatDate(user?.dateOfBirth) ?? 'Không có ngày sinh',
-                        onTap: () => setState(() => _isEditingPersonal = true)),
-                    _buildInfoItem('RESIDENTIAL ADDRESS',
-                        user?.address ?? 'Không có địa chỉ',
-                        onTap: () => setState(() => _isEditingPersonal = true)),
+                    _buildInfoItem(
+                      'FULL NAME',
+                      user?.fullName ?? 'No name provided',
+                      onTap: () => setState(() => _isEditingPersonal = true),
+                    ),
+                    _buildInfoItem(
+                      'EMAIL',
+                      user?.email ?? 'No email provided',
+                      isVerified: true,
+                      isLocked: true,
+                    ),
+                    _buildInfoItem(
+                      'MOBILE PHONE',
+                      user?.phone ?? 'No phone provided',
+                      onTap: () => setState(() => _isEditingPersonal = true),
+                    ),
+                    _buildInfoItem(
+                      'NATIONAL CITIZEN ID',
+                      user?.identityNo ?? 'No ID provided',
+                      isLocked: true,
+                    ),
+                    _buildInfoItem(
+                      'GENDER',
+                      user?.gender ?? 'No gender provided',
+                      onTap: () => setState(() => _isEditingPersonal = true),
+                    ),
+                    _buildInfoItem(
+                      'DATE OF BIRTH',
+                      _formatDate(user?.dateOfBirth) ?? 'No date of birth',
+                      onTap: () => setState(() => _isEditingPersonal = true),
+                    ),
+                    _buildInfoItem(
+                      'RESIDENTIAL ADDRESS',
+                      user?.address ?? 'No address provided',
+                      onTap: () => setState(() => _isEditingPersonal = true),
+                    ),
                   ],
           ),
           const SizedBox(height: 20),
@@ -660,10 +876,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 icon: const Icon(Icons.edit_rounded, size: 18),
                 label: const Text(
                   'Update Personal Information',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.primary,
@@ -683,7 +896,16 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                     child: OutlinedButton(
                       onPressed: _controller.isUpdatingProfile
                           ? null
-                          : () => setState(() => _isEditingPersonal = false),
+                          : () {
+                              if (user != null) {
+                                _fullNameController.text = user.fullName;
+                                _phoneController.text = user.phone;
+                                _genderController.text = user.gender;
+                                _dobController.text = user.dateOfBirth ?? '';
+                                _addressController.text = user.address;
+                              }
+                              setState(() => _isEditingPersonal = false);
+                            },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textSecondary,
                         side: const BorderSide(color: AppColors.border),
@@ -715,7 +937,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                           : const Icon(Icons.save_rounded, size: 18),
                       label: Text(
                         _controller.isUpdatingProfile
-                            ? 'Đang lưu...'
+                            ? 'Saving...'
                             : 'Save Changes',
                         style: const TextStyle(
                           fontSize: 14,
@@ -739,8 +961,13 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     );
   }
 
-  Widget _buildInfoItem(String label, String value,
-      {bool isVerified = false, bool isLocked = false, VoidCallback? onTap}) {
+  Widget _buildInfoItem(
+    String label,
+    String value, {
+    bool isVerified = false,
+    bool isLocked = false,
+    VoidCallback? onTap,
+  }) {
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -806,37 +1033,58 @@ class _StaffProfileViewState extends State<StaffProfileView> {
   }
 
   Widget _buildInfoGrid(List<Widget> items) {
-    return Column(
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive breakpoint: Switch to single column on narrow viewports (< 340dp width)
+        // or when font scales require more horizontal breathing space.
+        final isNarrow = constraints.maxWidth < 340;
+        if (isNarrow) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 14),
+                items[i],
+              ],
+            ],
+          );
+        }
+
+        return Column(
           children: [
-            Expanded(child: items[0]),
-            const SizedBox(width: 20),
-            Expanded(child: items[1]),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[0]),
+                const SizedBox(width: 12),
+                Expanded(child: items[1]),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[2]),
+                const SizedBox(width: 12),
+                Expanded(child: items[3]),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: items[4]),
+                const SizedBox(width: 12),
+                Expanded(child: items[5]),
+              ],
+            ),
+            if (items.length > 6) ...[
+              const SizedBox(height: 16),
+              items[6],
+            ],
           ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: items[2]),
-            const SizedBox(width: 20),
-            Expanded(child: items[3]),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(child: items[4]),
-            const SizedBox(width: 20),
-            Expanded(child: items[5]),
-          ],
-        ),
-        const SizedBox(height: 16),
-        items[6],
-      ],
+        );
+      },
     );
   }
 
@@ -864,7 +1112,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: _normalizeGender(_genderController.text),
-              hint: const Text('Chọn giới tính'),
+              hint: const Text('Select Gender'),
               isExpanded: true,
               isDense: true,
               items: const [
@@ -884,11 +1132,76 @@ class _StaffProfileViewState extends State<StaffProfileView> {
     );
   }
 
+  Widget _buildDateOfBirthEditField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'DATE OF BIRTH',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: _pickDateOfBirth,
+          borderRadius: BorderRadius.circular(12),
+          child: IgnorePointer(
+            child: TextFormField(
+              controller: _dobController,
+              readOnly: true,
+              showCursor: false,
+              enableInteractiveSelection: false,
+              style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Select date of birth (YYYY-MM-DD)',
+                hintStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textMuted,
+                ),
+                filled: true,
+                fillColor: AppColors.surface,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                suffixIcon: const Icon(
+                  Icons.calendar_month_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildEditTextField({
     required String label,
     required String hint,
     required TextEditingController controller,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
     int maxLines = 1,
   }) {
     return Column(
@@ -906,6 +1219,9 @@ class _StaffProfileViewState extends State<StaffProfileView> {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
           maxLines: maxLines,
           style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
@@ -930,7 +1246,10 @@ class _StaffProfileViewState extends State<StaffProfileView> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -972,12 +1291,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Account & System Info',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Account & System Info',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -985,27 +1306,42 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           const SizedBox(height: 4),
           const Text(
             'System record details',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
-          _buildSystemInfoItem('USER ID', user?.userId ?? 'Không có ID'),
-          _buildSystemInfoItem('SYSTEM ROLE', user?.roleName ?? 'Không có vai trò'),
-          _buildSystemInfoItem('CURRENT STATUS',
-              user?.status ?? 'ACTIVE', statusColor: AppColors.success),
-          _buildSystemInfoItem('JOINED', _formatDate(user?.createdAt) ?? 'Không có ngày'),
-          _buildSystemInfoItem('LAST UPDATED', _formatDate(user?.updatedAt) ?? 'Không có ngày'),
-          _buildSystemInfoItem('Record Integrity', 'Synchronized',
-              statusColor: AppColors.success),
+          _buildSystemInfoItem('USER ID', user?.userId ?? 'No ID'),
+          _buildSystemInfoItem(
+            'SYSTEM ROLE',
+            user?.roleName ?? 'No role',
+          ),
+          _buildSystemInfoItem(
+            'CURRENT STATUS',
+            user?.status ?? 'ACTIVE',
+            statusColor: AppColors.success,
+          ),
+          _buildSystemInfoItem(
+            'JOINED',
+            _formatDate(user?.createdAt) ?? 'No date',
+          ),
+          _buildSystemInfoItem(
+            'LAST UPDATED',
+            _formatDate(user?.updatedAt) ?? 'No date',
+          ),
+          _buildSystemInfoItem(
+            'Record Integrity',
+            'Synchronized',
+            statusColor: AppColors.success,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSystemInfoItem(String label, String value,
-      {Color? statusColor}) {
+  Widget _buildSystemInfoItem(
+    String label,
+    String value, {
+    Color? statusColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -1147,12 +1483,14 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'Account Settings',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              const Expanded(
+                child: Text(
+                  'Account Settings',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
             ],
@@ -1160,25 +1498,22 @@ class _StaffProfileViewState extends State<StaffProfileView> {
           const SizedBox(height: 4),
           const Text(
             'Manage your email and password.',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           _buildOptionRow(
             icon: Icons.email_rounded,
             title: 'Change Email',
-            subtitle: user?.email ?? 'Cập nhật địa chỉ email',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ChangeEmailView()),
-            ),
+            subtitle: user?.email ?? 'Update email address',
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ChangeEmailView())),
           ),
           const Divider(height: 1),
           _buildOptionRow(
             icon: Icons.lock_reset_rounded,
             title: 'Change Password',
-            subtitle: 'Đổi mật khẩu đăng nhập',
+            subtitle: 'Update login password',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ChangePasswordView()),
             ),
@@ -1235,10 +1570,7 @@ class _StaffProfileViewState extends State<StaffProfileView> {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textMuted,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
           ],
         ),
       ),

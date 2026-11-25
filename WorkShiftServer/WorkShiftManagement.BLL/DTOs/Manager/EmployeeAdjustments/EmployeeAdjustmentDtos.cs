@@ -16,7 +16,8 @@ public sealed class EmployeeAdjustmentQuery
 public sealed class SaveEmployeeAdjustmentRequest
 {
     public Guid UserId { get; set; }
-    [Range(1, int.MaxValue)] public int PayrollPeriodId { get; set; }
+    [Range(1, int.MaxValue)] public int? PayrollPeriodId { get; set; }
+    public DateOnly? AdjustmentDate { get; set; }
     [Required, StringLength(100)] public string AdjustmentName { get; set; } = "";
     public decimal Amount { get; set; }
     [Required, StringLength(500)] public string Reason { get; set; } = "";
@@ -32,7 +33,8 @@ public sealed class ReviewEmployeeAdjustmentRequest
     public string EmployeeName { get; set; } = "";
     public int BranchId { get; set; }
     public string BranchName { get; set; } = "";
-    public int PayrollPeriodId { get; set; }
+    public int? PayrollPeriodId { get; set; }
+    public DateOnly? AdjustmentDate { get; set; }
     public string PeriodCode { get; set; } = "";
     public string PeriodName { get; set; } = "";
     public DateOnly PeriodStart { get; set; }
@@ -59,7 +61,8 @@ public sealed class ReviewEmployeeAdjustmentRequest
 }
 public sealed class PayrollPeriodOptionResponse
 {
-    public int PayrollPeriodId { get; set; }
+    public int? PayrollPeriodId { get; set; }
+    public DateOnly? AdjustmentDate { get; set; }
     public string PeriodCode { get; set; } = "";
     public string PeriodName { get; set; } = "";
     public DateOnly StartDate { get; set; }

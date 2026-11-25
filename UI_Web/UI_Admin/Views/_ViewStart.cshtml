@@ -1,0 +1,5 @@
+@{
+    Layout = User.IsInRole("MANAGER") ? "_ManagerLayout"
+        : User.IsInRole("ACCOUNTANT") ? "_AccountantLayout"
+        : "_AdminLayout";
+}

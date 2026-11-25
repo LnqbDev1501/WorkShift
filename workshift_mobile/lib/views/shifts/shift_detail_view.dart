@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../controllers/shift_detail_controller.dart';
+import '../../controllers/shifts/shift_detail_controller.dart';
 import '../../widgets/app_state_panel.dart';
 import 'components/shift_detail_content.dart';
 
@@ -75,7 +75,10 @@ class _ShiftDetailViewState extends State<ShiftDetailView>
                   isError: true,
                 ),
               if (_controller.shift != null)
-                ShiftDetailContent(shift: _controller.shift!),
+                ShiftDetailContent(
+                  shift: _controller.shift!,
+                  attendanceDetail: _controller.attendanceDetail,
+                ),
             ],
           ),
         ),

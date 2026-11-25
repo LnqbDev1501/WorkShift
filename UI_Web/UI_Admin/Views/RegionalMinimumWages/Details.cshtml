@@ -1,0 +1,370 @@
+@model UI_Admin.Models.RegionalMinimumWages.RegionalMinimumWageDetailViewModel
+
+@{
+    ViewData["Title"] = $"Minimum Wage {Model.WageName} - Details";
+    var statusUpper = Model.Status?.ToUpperInvariant() ?? "DRAFT";
+}
+
+<div class="flex flex-col w-full px-7 py-6 mx-auto" style="max-width: 1496px;">
+    <partial name="_NotificationModal" />
+
+    <!-- Top Back & Action Row -->
+    <div class="flex flex-wrap items-center justify-between gap-4 pb-4">
+        <a asp-controller="RegionalMinimumWages" asp-action="Index" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Minimum Wages</span>
+        </a>
+        <div class="flex items-center gap-3">
+            @if (statusUpper == "DRAFT")
+            {
+                <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">edit</span>
+                    <span>Edit Draft</span>
+                </a>
+                <button type="button" onclick="openPublishModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">publish</span>
+                    <span>Publish</span>
+                </button>
+                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">block</span>
+                    <span>Cancel Wage</span>
+                </button>
+            }
+            else if (statusUpper == "PUBLISH")
+            {
+                <button type="button" onclick="openCancelModal()" class="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">block</span>
+                    <span>Cancel Minimum Wage</span>
+                </button>
+            }
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <div class="pb-6">
+        <div class="flex items-center gap-2">
+            <h1 class="text-display-md text-display-lg font-bold tracking-tight text-on-surface">@Model.WageName Details</h1>
+                    @switch (statusUpper)
+                    {
+                        case "DRAFT":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-label-sm bg-amber-50 text-amber-700 border border-amber-200 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Draft
+                            </span>
+                            break;
+                        case "PUBLISH":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-label-sm bg-blue-50 text-blue-700 border border-blue-200 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span> Scheduled / Publish
+                            </span>
+                            break;
+                        case "ACTIVE":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-label-sm bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> Active
+                            </span>
+                            break;
+                        case "INACTIVE":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-label-sm bg-slate-100 text-slate-600 border border-slate-200 font-medium">
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> Inactive
+                            </span>
+                            break;
+                        case "CANCEL":
+                            <span class="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-label-sm bg-rose-50 text-rose-700 border border-rose-200 font-semibold">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Cancelled
+                            </span>
+                            break;
+                    }
+                </div>
+                <p class="text-body-md text-secondary mt-0.5">Comprehensive regional minimum wage specification and status details.</p>
+    </div>
+
+    <!-- Status Banner Callout -->
+    @switch (statusUpper)
+    {
+        case "DRAFT":
+            <div class="bg-amber-50/90 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-amber-200/80 shadow-sm">
+                <div class="p-1.5 rounded-lg bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">drafts</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-body-md-medium font-bold text-amber-950 text-sm">Draft Status Notice</div>
+                    <p class="font-body-sm text-amber-900 text-xs mt-0.5 leading-relaxed">
+                        Draft — not yet published. You can edit parameters or publish this wage when ready.
+                    </p>
+                </div>
+            </div>
+            break;
+        case "PUBLISH":
+            <div class="bg-blue-50/90 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-blue-200/80 shadow-sm">
+                <div class="p-1.5 rounded-lg bg-blue-100 text-blue-800 shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">schedule</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-body-md-medium font-bold text-blue-950 text-sm">Scheduled Activation Notice</div>
+                    <p class="font-body-sm text-blue-900 text-xs mt-0.5 leading-relaxed">
+                        Scheduled to become active on: <strong class="font-mono font-bold">@(Model.EffectiveFrom.HasValue ? Model.EffectiveFrom.Value.ToString("dd/MM/yyyy") : "Pending")</strong>. It can no longer be edited.
+                    </p>
+                </div>
+            </div>
+            break;
+        case "ACTIVE":
+            <div class="bg-emerald-50/90 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-emerald-200/80 shadow-sm">
+                <div class="p-1.5 rounded-lg bg-emerald-100 text-emerald-800 shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">check_circle</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-body-md-medium font-bold text-emerald-950 text-sm">Active Wage Tier Notice</div>
+                    <p class="font-body-sm text-emerald-900 text-xs mt-0.5 leading-relaxed">
+                        Currently active. This rate is currently applied to mapped regional branches.
+                    </p>
+                </div>
+            </div>
+            break;
+        case "INACTIVE":
+            <div class="bg-slate-100 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-slate-200 shadow-sm">
+                <div class="p-1.5 rounded-lg bg-slate-200 text-slate-700 shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">history</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-body-md-medium font-bold text-slate-900 text-sm">Historical Wage Record</div>
+                    <p class="font-body-sm text-slate-700 text-xs mt-0.5 leading-relaxed">
+                        No longer active. Effective period: <strong class="font-mono font-semibold">@(Model.EffectiveFrom.HasValue ? Model.EffectiveFrom.Value.ToString("dd/MM/yyyy") : "—")</strong> → <strong class="font-mono font-semibold">@(Model.EffectiveTo.HasValue ? Model.EffectiveTo.Value.ToString("dd/MM/yyyy") : "—")</strong>.
+                    </p>
+                </div>
+            </div>
+            break;
+        case "CANCEL":
+            <div class="bg-rose-50/90 rounded-xl p-4 flex items-start gap-3.5 mb-6 border border-rose-200/80 shadow-sm">
+                <div class="p-1.5 rounded-lg bg-rose-100 text-rose-800 shrink-0 mt-0.5">
+                    <span class="material-symbols-outlined text-[20px]">block</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="font-body-md-medium font-bold text-rose-950 text-sm">Cancelled Status Notice</div>
+                    <p class="font-body-sm text-rose-900 text-xs mt-0.5 leading-relaxed">
+                        Cancelled — this wage will not be applied and cannot be edited.
+                    </p>
+                </div>
+            </div>
+            break;
+    }
+
+    <!-- Main Content Cards Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Main Details Card (8 Cols) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-surface-container-high/60 flex flex-col gap-6">
+                <div class="flex items-center justify-between pb-4 border-b border-surface-container-high">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-[20px]">payments</span>
+                        <h2 class="font-title-lg text-on-surface font-bold text-base">Wage Tier Parameters</h2>
+                    </div>
+                    <span class="font-mono text-xs text-secondary font-semibold bg-surface-container px-2.5 py-1 rounded-md">
+                        Record ID: #@Model.RegionalMinimumWageId
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-body-sm">
+                    <!-- Field 1: Wage Name -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Wage Tier Name</span>
+                        <div class="mt-1 font-body-md-medium text-on-surface text-base font-bold">@Model.WageName</div>
+                    </div>
+
+                    <!-- Field 2: Hourly Rate -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Minimum Hourly Rate</span>
+                        <div class="mt-1 flex items-baseline gap-1.5">
+                            <span class="font-code-num text-primary font-bold text-2xl tracking-tight">@CurrencyHelper.FormatNumber(Model.MinimumHourlyRate)</span>
+                            <span class="text-xs text-secondary font-semibold">₫ / hour</span>
+                        </div>
+                    </div>
+
+                    <!-- Field 3: Effective From -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Effective From</span>
+                        <div class="mt-1 font-mono text-on-surface font-semibold text-sm">
+                            @(Model.EffectiveFrom.HasValue ? Model.EffectiveFrom.Value.ToString("dd/MM/yyyy") : "—")
+                        </div>
+                    </div>
+
+                    <!-- Field 4: Effective To -->
+                    <div class="flex flex-col gap-1">
+                        <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Effective To</span>
+                        <div class="mt-1 font-mono text-secondary font-semibold text-sm">
+                            @(Model.EffectiveTo.HasValue ? Model.EffectiveTo.Value.ToString("dd/MM/yyyy") : "—")
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-5 border-t border-surface-container-high flex flex-col gap-2">
+                    <span class="text-secondary font-label-md uppercase tracking-wider text-[11px] font-semibold">Description / Coverage Notes</span>
+                    <p class="font-body-md text-on-surface text-sm leading-relaxed bg-surface-container-low p-4 rounded-xl">
+                        @(string.IsNullOrWhiteSpace(Model.Description) ? "No description or special notes provided for this wage tier." : Model.Description)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Audit Sidebar (4 Cols) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl p-5 shadow-sm border border-surface-container-high/60 flex flex-col gap-4">
+                <div class="flex items-center gap-2 border-b border-surface-container-high pb-3">
+                    <span class="material-symbols-outlined text-primary text-[20px]">manage_history</span>
+                    <h3 class="font-title-md text-on-surface font-bold text-sm">Audit & Lifecycle Metadata</h3>
+                </div>
+
+                <div class="flex flex-col gap-3.5 text-xs">
+                    <div class="flex items-center justify-between py-1">
+                        <span class="text-secondary">Current Status</span>
+                        <span class="font-semibold text-on-surface font-mono uppercase">@Model.Status</span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Replaced Wage Record</span>
+                        <span class="font-mono text-on-surface font-semibold">
+                            @(Model.ReplacedWageId.HasValue ? $"Replaced Wage ID #{Model.ReplacedWageId}" : "None (New Wage)")
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Created Timestamp</span>
+                        <span class="font-mono text-on-surface font-semibold">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</span>
+                    </div>
+
+                    <div class="flex flex-col gap-1 py-1 border-t border-surface-container-high/60">
+                        <span class="text-secondary">Created By (Admin User ID)</span>
+                        <span class="font-mono text-secondary text-[11px] truncate" title="@Model.CreatedBy">@Model.CreatedBy</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Bar Footer by Status -->
+    <div class="mt-8 pt-5 border-t border-surface-container-high/60 flex items-center justify-end">
+        <div class="flex items-center gap-3">
+            @if (statusUpper == "DRAFT")
+            {
+                <a asp-controller="RegionalMinimumWages" asp-action="Edit" asp-route-id="@Model.RegionalMinimumWageId" class="h-10 px-5 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs flex items-center gap-2 transition-all">
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                    <span>Edit Draft</span>
+                </a>
+                <button type="button" onclick="openPublishModal()" class="h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-body-md-medium text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">publish</span>
+                    <span>Publish</span>
+                </button>
+                <button type="button" onclick="openCancelModal()" class="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">block</span>
+                    <span>Cancel Wage</span>
+                </button>
+            }
+            else if (statusUpper == "PUBLISH")
+            {
+                <button type="button" onclick="openCancelModal()" class="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs flex items-center gap-2 transition-all shadow-sm cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px]">block</span>
+                    <span>Cancel Minimum Wage</span>
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@if (statusUpper == "DRAFT")
+{
+    <!-- Publish Modal -->
+    <div id="publishModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">publish</span>
+                </div>
+                <div>
+                    <h3 class="text-title-lg font-bold text-on-surface">Publish Minimum Wage</h3>
+                    <span class="text-xs text-secondary font-mono">@Model.WageName (#@Model.RegionalMinimumWageId)</span>
+                </div>
+            </div>
+
+            <p class="text-body-sm text-secondary leading-relaxed">
+                Are you sure you want to publish this minimum wage? After publishing, it can no longer be edited and will automatically become active on its effective date.
+            </p>
+
+            <form method="post" asp-controller="RegionalMinimumWages" asp-action="Publish" asp-route-id="@Model.RegionalMinimumWageId" onsubmit="disableSubmitButton(this)">
+                @Html.AntiForgeryToken()
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closePublishModal()" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer">
+                        Cancel
+                    </button>
+                    <button type="submit" class="h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">publish</span>
+                        <span>Publish</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (statusUpper == "DRAFT" || statusUpper == "PUBLISH")
+{
+    <!-- Cancel Modal -->
+    <div id="cancelModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container-high flex flex-col gap-5">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-[24px]">block</span>
+                </div>
+                <div>
+                    <h3 class="text-title-lg font-bold text-on-surface">Cancel Minimum Wage</h3>
+                    <span class="text-xs text-secondary font-mono">@Model.WageName (#@Model.RegionalMinimumWageId)</span>
+                </div>
+            </div>
+
+            <p class="text-body-sm text-secondary leading-relaxed">
+                Are you sure you want to cancel this minimum wage? Cancelled wages will not be applied and cannot be edited again.
+            </p>
+
+            <form method="post" asp-controller="RegionalMinimumWages" asp-action="Cancel" asp-route-id="@Model.RegionalMinimumWageId" onsubmit="disableSubmitButton(this)">
+                @Html.AntiForgeryToken()
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeCancelModal()" class="h-10 px-4 rounded-xl bg-surface-container hover:bg-surface-container-high text-on-surface font-body-md-medium text-xs transition-colors cursor-pointer">
+                        Back
+                    </button>
+                    <button type="submit" class="h-10 px-5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-body-md-medium text-xs transition-all shadow-md flex items-center gap-1.5 cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">block</span>
+                        <span>Cancel Minimum Wage</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function openPublishModal() {
+            var modal = document.getElementById('publishModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closePublishModal() {
+            var modal = document.getElementById('publishModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function openCancelModal() {
+            var modal = document.getElementById('cancelModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeCancelModal() {
+            var modal = document.getElementById('cancelModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function disableSubmitButton(form) {
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    </script>
+}

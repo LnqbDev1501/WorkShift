@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../controllers/staff_contract_controller.dart';
-import '../../models/staff_contract_model.dart';
+import '../../controllers/contracts/staff_contract_controller.dart';
+import '../../models/contracts/staff_contract_model.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/format_utils.dart';
 import '../../widgets/app_button.dart';
 
 /// Screen: Submit Employment Contract Change Request
@@ -60,7 +61,9 @@ class _SubmitContractChangeRequestViewState
       _FieldOption(
         key: 'HourlyRate',
         label: 'Base Hourly Rate',
-        currentValue: c.formattedHourlyRate,
+        currentValue: c.regionalMinimumWage != null && c.regionalMinimumWage! > 0
+            ? '${c.formattedHourlyRate} (Min: ${formatCurrency(c.regionalMinimumWage!)}/hr)'
+            : c.formattedHourlyRate,
         icon: Icons.monetization_on_outlined,
       ),
       _FieldOption(
@@ -125,11 +128,69 @@ class _SubmitContractChangeRequestViewState
     });
   }
 
+  Future<void> _pickDate(String fieldKey, TextEditingController controller) async {
+    DateTime initialDate;
+    if (controller.text.isNotEmpty) {
+      initialDate = DateTime.tryParse(controller.text) ??
+          (fieldKey == 'StartDate'
+              ? widget.contract.startDate
+              : (widget.contract.endDate ?? widget.contract.startDate.add(const Duration(days: 365))));
+    } else {
+      initialDate = fieldKey == 'StartDate'
+          ? widget.contract.startDate
+          : (widget.contract.endDate ?? widget.contract.startDate.add(const Duration(days: 365)));
+    }
+
+    final firstDate = DateTime(2020, 1, 1);
+    final lastDate = DateTime(2035, 12, 31);
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isBefore(firstDate)
+          ? firstDate
+          : (initialDate.isAfter(lastDate) ? lastDate : initialDate),
+      firstDate: firstDate,
+      lastDate: lastDate,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        controller.text =
+            '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
   Future<void> _handleSubmit() async {
+    if (!widget.contract.isPendingStaff) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Change requests can only be submitted for contracts pending acceptance (PENDING_STAFF). Active contracts cannot be modified via change request.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
     if (_selectedFieldKeys.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select at least one field to request adjustment.'),
+          content: Text(
+            'Please select at least one field to request adjustment.',
+          ),
           backgroundColor: AppColors.error,
         ),
       );
@@ -138,13 +199,90 @@ class _SubmitContractChangeRequestViewState
 
     if (!_formKey.currentState!.validate()) return;
 
+    // Date validations
+    if (_selectedFieldKeys.contains('StartDate') && _selectedFieldKeys.contains('EndDate')) {
+      final startStr = _proposedControllers['StartDate']?.text.trim();
+      final endStr = _proposedControllers['EndDate']?.text.trim();
+      if (startStr != null && endStr != null && startStr.isNotEmpty && endStr.isNotEmpty) {
+        final start = DateTime.tryParse(startStr);
+        final end = DateTime.tryParse(endStr);
+        if (start != null && end != null && !end.isAfter(start)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract End Date must be after Contract Start Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (_selectedFieldKeys.contains('StartDate') &&
+        !_selectedFieldKeys.contains('EndDate') &&
+        widget.contract.endDate != null) {
+      final startStr = _proposedControllers['StartDate']?.text.trim();
+      if (startStr != null && startStr.isNotEmpty) {
+        final start = DateTime.tryParse(startStr);
+        if (start != null && !widget.contract.endDate!.isAfter(start)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract Start Date must be before current Contract End Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (_selectedFieldKeys.contains('EndDate') && !_selectedFieldKeys.contains('StartDate')) {
+      final endStr = _proposedControllers['EndDate']?.text.trim();
+      if (endStr != null && endStr.isNotEmpty) {
+        final end = DateTime.tryParse(endStr);
+        if (end != null && !end.isAfter(widget.contract.startDate)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Contract End Date must be after current Contract Start Date.'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+          return;
+        }
+      }
+    }
+
+    if (_selectedFieldKeys.contains('HourlyRate')) {
+      final rateStr = _proposedControllers['HourlyRate']?.text.trim().replaceAll(',', '');
+      final rate = double.tryParse(rateStr ?? '');
+      if (rate == null || rate <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Proposed hourly rate must be a valid positive number.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+      final minWage = widget.contract.regionalMinimumWage;
+      if (minWage != null && minWage > 0 && rate < minWage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Proposed hourly rate cannot be lower than the regional minimum wage (${formatCurrency(minWage)}/hr).',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+    }
+
     final items = <ContractChangeRequestItemInputModel>[];
     for (var key in _selectedFieldKeys) {
-      items.add(ContractChangeRequestItemInputModel(
-        fieldName: key,
-        proposedValue: _proposedControllers[key]!.text.trim(),
-        reason: _reasonControllers[key]?.text.trim(),
-      ));
+      items.add(
+        ContractChangeRequestItemInputModel(
+          fieldName: key,
+          proposedValue: _proposedControllers[key]!.text.trim(),
+          reason: _reasonControllers[key]?.text.trim(),
+        ),
+      );
     }
 
     final success = await widget.controller.submitChangeRequest(
@@ -157,14 +295,18 @@ class _SubmitContractChangeRequestViewState
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Contract change request submitted to manager successfully!'),
+            content: Text(
+              'Contract change request submitted to manager successfully!',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
       } else {
-        _showErrorDialog(widget.controller.actionErrorMessage ??
-            'Unable to submit change request.');
+        _showErrorDialog(
+          widget.controller.actionErrorMessage ??
+              'Unable to submit change request.',
+        );
       }
     }
   }
@@ -178,17 +320,25 @@ class _SubmitContractChangeRequestViewState
           children: [
             Icon(Icons.error_outline, color: AppColors.error),
             SizedBox(width: 8),
-            Text('Request Failed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(
+              'Request Failed',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
-        content: Text(message, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Understood'),
           ),
@@ -215,7 +365,11 @@ class _SubmitContractChangeRequestViewState
         backgroundColor: Colors.white,
         elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -236,7 +390,11 @@ class _SubmitContractChangeRequestViewState
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 22),
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -253,7 +411,10 @@ class _SubmitContractChangeRequestViewState
                           const SizedBox(height: 2),
                           const Text(
                             'Select the fields requiring adjustment to send to your manager for review and revision.',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ],
                       ),
@@ -273,27 +434,42 @@ class _SubmitContractChangeRequestViewState
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isChecked ? AppColors.primary : AppColors.borderLight,
+                      color: isChecked
+                          ? AppColors.primary
+                          : AppColors.borderLight,
                       width: isChecked ? 1.5 : 1,
                     ),
                   ),
                   child: CheckboxListTile(
                     value: isChecked,
                     activeColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     title: Text(
                       field.label,
                       style: TextStyle(
                         fontSize: 14,
-                        fontWeight: isChecked ? FontWeight.bold : FontWeight.w600,
+                        fontWeight: isChecked
+                            ? FontWeight.bold
+                            : FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
                     ),
                     subtitle: Text(
                       'Current: ${field.currentValue}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
+                      ),
                     ),
-                    secondary: Icon(field.icon, color: isChecked ? AppColors.primary : AppColors.textMuted, size: 22),
+                    secondary: Icon(
+                      field.icon,
+                      color: isChecked
+                          ? AppColors.primary
+                          : AppColors.textMuted,
+                      size: 22,
+                    ),
                     onChanged: (_) => _toggleField(field.key),
                   ),
                 );
@@ -316,8 +492,12 @@ class _SubmitContractChangeRequestViewState
                 maxLines: 3,
                 maxLength: 300,
                 decoration: InputDecoration(
-                  hintText: 'Enter additional comments or explanation for your manager (optional)...',
-                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  hintText:
+                      'Enter additional comments or explanation for your manager (optional)...',
+                  hintStyle: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textMuted,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -330,7 +510,10 @@ class _SubmitContractChangeRequestViewState
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: AppColors.primary,
+                      width: 1.5,
+                    ),
                   ),
                   contentPadding: const EdgeInsets.all(14),
                 ),
@@ -418,7 +601,13 @@ class _SubmitContractChangeRequestViewState
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           SizedBox(width: 8),
-                          Text('Loading active positions...', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          Text(
+                            'Loading active positions...',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -426,7 +615,9 @@ class _SubmitContractChangeRequestViewState
                 }
 
                 final currentVal = proposedCtrl.text.trim();
-                final dropdownValue = positions.contains(currentVal) ? currentVal : null;
+                final dropdownValue = positions.contains(currentVal)
+                    ? currentVal
+                    : null;
 
                 return DropdownButtonFormField<String>(
                   initialValue: dropdownValue,
@@ -434,19 +625,36 @@ class _SubmitContractChangeRequestViewState
                     labelText: 'Desired Position *',
                     hintText: '-- Select position from system --',
                     helperText: 'Only active system positions are selectable.',
-                    helperStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                    labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    helperStyle: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
+                    labelStyle: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
-                  icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: AppColors.primary,
+                  ),
                   isExpanded: true,
                   items: positions.map((pos) {
                     return DropdownMenuItem<String>(
                       value: pos,
                       child: Text(
                         pos,
-                        style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     );
                   }).toList(),
@@ -466,15 +674,110 @@ class _SubmitContractChangeRequestViewState
                 );
               },
             ),
+          ] else if (field.key == 'StartDate' || field.key == 'EndDate') ...[
+            TextFormField(
+              controller: proposedCtrl,
+              readOnly: true,
+              onTap: () => _pickDate(field.key, proposedCtrl),
+              decoration: InputDecoration(
+                labelText: field.key == 'StartDate'
+                    ? 'Proposed Start Date *'
+                    : 'Proposed End Date *',
+                hintText: 'Tap to select date (YYYY-MM-DD)',
+                helperText: 'Date will be formatted as YYYY-MM-DD.',
+                helperStyle: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.calendar_month_rounded, color: AppColors.primary),
+                  onPressed: () => _pickDate(field.key, proposedCtrl),
+                ),
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please select a date.';
+                }
+                return null;
+              },
+            ),
+          ] else if (field.key == 'HourlyRate') ...[
+            TextFormField(
+              controller: proposedCtrl,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                labelText: 'Proposed Hourly Rate (₫/hr) *',
+                hintText: 'e.g. 25000',
+                helperText: widget.contract.regionalMinimumWage != null && widget.contract.regionalMinimumWage! > 0
+                    ? 'Regional minimum wage: ${formatCurrency(widget.contract.regionalMinimumWage!)}/hr'
+                    : 'Must be higher than or equal to regional minimum wage.',
+                helperStyle: TextStyle(
+                  fontSize: 11,
+                  color: widget.contract.regionalMinimumWage != null && widget.contract.regionalMinimumWage! > 0
+                      ? AppColors.primary
+                      : AppColors.textMuted,
+                  fontWeight: FontWeight.w600,
+                ),
+                suffixText: '₫/hr',
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+              ),
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'Please enter a proposed hourly rate.';
+                }
+                final cleaned = val.trim().replaceAll(',', '');
+                final rate = double.tryParse(cleaned);
+                if (rate == null) {
+                  return 'Hourly rate must be a valid number.';
+                }
+                if (rate <= 0) {
+                  return 'Hourly rate must be greater than 0.';
+                }
+                final minWage = widget.contract.regionalMinimumWage;
+                if (minWage != null && minWage > 0 && rate < minWage) {
+                  return 'Rate cannot be lower than regional minimum (${formatCurrency(minWage)}/hr).';
+                }
+                return null;
+              },
+            ),
           ] else ...[
             TextFormField(
               controller: proposedCtrl,
               decoration: InputDecoration(
                 labelText: 'Proposed New Value *',
                 hintText: 'Enter your proposed value',
-                labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                labelStyle: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
               ),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
@@ -490,9 +793,17 @@ class _SubmitContractChangeRequestViewState
             decoration: InputDecoration(
               labelText: 'Reason for Adjustment',
               hintText: 'Explain why this change is requested (optional)',
-              labelStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              labelStyle: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
             ),
           ),
         ],

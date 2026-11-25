@@ -38,7 +38,7 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
             .ToListAsync(cancellationToken);
     }
 
-    public Task<List<WorkShift>> GetShiftsForBranchAsync(int branchId, int? scheduleWeekId, DateOnly? targetDate, CancellationToken cancellationToken = default)
+    public async Task<List<WorkShift>> GetShiftsForBranchAsync(int branchId, int? scheduleWeekId, DateOnly? targetDate, CancellationToken cancellationToken = default)
     {
         var query = _context.WorkShifts
             .AsNoTracking()
@@ -47,6 +47,21 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
         if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
         {
             query = query.Where(s => s.ScheduleWeekId == scheduleWeekId.Value);
+        }
+        else if (!targetDate.HasValue)
+        {
+            // When querying across all weeks, limit lookup shifts to the latest week's schedule to prevent scanning 400+ historical shifts
+            var latestWeekId = await _context.WorkScheduleWeeks
+                .AsNoTracking()
+                .Where(w => w.BranchId == branchId && w.Status != "CANCELLED")
+                .OrderByDescending(w => w.WeekStartDate)
+                .Select(w => (int?)w.ScheduleWeekId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (latestWeekId.HasValue && latestWeekId.Value > 0)
+            {
+                query = query.Where(s => s.ScheduleWeekId == latestWeekId.Value);
+            }
         }
 
         if (targetDate.HasValue)
@@ -61,12 +76,12 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
                                      (s.ScheduledStartAt >= rawStartOfDay && s.ScheduledStartAt <= rawEndOfDay));
         }
 
-        return query
+        return await query
             .OrderBy(s => s.ScheduledStartAt)
             .ToListAsync(cancellationToken);
     }
 
-    public Task<List<ShiftAssignment>> GetDailyAssignmentsWithDetailsAsync(
+    public async Task<List<ShiftAssignment>> GetDailyAssignmentsWithDetailsAsync(
         int branchId,
         int? scheduleWeekId,
         DateOnly? targetDate,
@@ -76,6 +91,7 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
     {
         var query = _context.ShiftAssignments
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(sa => sa.User)
                 .ThenInclude(u => u.Role)
             .Include(sa => sa.Shift)
@@ -104,7 +120,21 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
 
         if (shiftId.HasValue && shiftId.Value > 0)
         {
-            query = query.Where(sa => sa.ShiftId == shiftId.Value);
+            var targetShift = await _context.WorkShifts
+                .AsNoTracking()
+                .Where(s => s.ShiftId == shiftId.Value)
+                .Select(s => new { s.ShiftNameSnapshot, s.ShiftTemplateId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (targetShift != null)
+            {
+                query = query.Where(sa => sa.ShiftId == shiftId.Value ||
+                                          (sa.Shift.ShiftTemplateId == targetShift.ShiftTemplateId && sa.Shift.ShiftNameSnapshot == targetShift.ShiftNameSnapshot));
+            }
+            else
+            {
+                query = query.Where(sa => sa.Shift.ShiftTemplateId == shiftId.Value || sa.ShiftId == shiftId.Value);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -116,7 +146,7 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
                 EF.Functions.ILike(sa.Shift.ShiftNameSnapshot, searchPattern));
         }
 
-        return query
+        return await query
             .OrderByDescending(sa => sa.Shift.ScheduledStartAt)
             .ThenBy(sa => sa.User.FullName)
             .ToListAsync(cancellationToken);
@@ -149,5 +179,17 @@ public class ManagerAttendanceRepo : IManagerAttendanceRepo
             .Include(sa => sa.LeaveRequestAssignments)
                 .ThenInclude(lra => lra.Request)
             .FirstOrDefaultAsync(sa => sa.AssignmentId == assignmentId && sa.Shift.ScheduleWeek.BranchId == branchId, cancellationToken);
+    }
+
+    public async Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.AttendanceRules
+            .AsNoTracking()
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.AttendanceRuleId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await _context.AttendanceRules.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
     }
 }

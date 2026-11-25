@@ -93,6 +93,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query
+            .AsSplitQuery()
             .Include(w => w.Branch)
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
@@ -123,7 +124,11 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
     {
         var week = await _context.WorkScheduleWeeks
             .AsNoTracking()
+            .AsSplitQuery()
             .Include(w => w.Branch)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.ApprovedByNavigation)
+                    .ThenInclude(u => u!.Role)
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
                     .ThenInclude(t => t.User)
@@ -131,6 +136,14 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .Include(w => w.PayrollPeriod)
                 .ThenInclude(p => p!.Timesheets)
                     .ThenInclude(t => t.TimesheetAdjustmentRequests)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.LockedByNavigation)
+                        .ThenInclude(u => u!.Role)
+            .Include(w => w.PayrollPeriod)
+                .ThenInclude(p => p!.Timesheets)
+                    .ThenInclude(t => t.ReviewedByNavigation)
+                        .ThenInclude(u => u!.Role)
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.User)
@@ -198,7 +211,11 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 .ThenInclude(p => p!.Timesheets)
             .Include(w => w.WorkShifts)
                 .ThenInclude(s => s.ShiftAssignments)
+                    .ThenInclude(a => a.User)
+            .Include(w => w.WorkShifts)
+                .ThenInclude(s => s.ShiftAssignments)
                     .ThenInclude(a => a.Attendance)
+                        .ThenInclude(att => att!.AttendancePenaltyRecords)
             .FirstOrDefaultAsync(w => w.ScheduleWeekId == scheduleWeekId && w.BranchId == branchId, cancellationToken);
 
         if (week == null)
@@ -233,16 +250,67 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .ToList();
 
         var staffGroups = activeAssignments.GroupBy(x => x.Assignment.UserId).ToList();
+        if (staffGroups.Count == 0)
+        {
+            throw new InvalidOperationException("Cannot generate timesheet: No active shifts or assigned staff members were found for this schedule week. Please verify the work schedule before generating timesheets.");
+        }
+
+        var activeRule = await GetActiveAttendanceRuleAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Cannot generate timesheet: No attendance rule is configured in the system.");
+
+        var activePenaltyRule = await _context.AttendancePenaltyRules
+            .AsNoTracking()
+            .Include(r => r.AttendancePenaltyLevels)
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.PenaltyRuleId)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var generatedTimesheets = new List<Timesheet>();
         var now = DateTime.UtcNow;
         var vnOffset = TimeSpan.FromHours(7);
+
+        string ruleSnapshotJson = JsonSerializer.Serialize(new
+        {
+            AttendanceRule = new
+            {
+                activeRule.AttendanceRuleId,
+                activeRule.RuleName,
+                activeRule.CheckInBeforeMinutes,
+                activeRule.CheckInGraceMinutes,
+                activeRule.CheckOutGraceMinutes,
+                activeRule.CheckOutAfterMinutes,
+                activeRule.MaxAttendanceDistanceMeters,
+                activeRule.EffectiveFrom,
+                activeRule.EffectiveTo,
+                activeRule.Status
+            },
+            AttendancePenaltyRule = activePenaltyRule != null ? new
+            {
+                activePenaltyRule.PenaltyRuleId,
+                activePenaltyRule.RuleName,
+                activePenaltyRule.EffectiveFrom,
+                activePenaltyRule.EffectiveTo,
+                activePenaltyRule.Status,
+                PenaltyLevels = activePenaltyRule.AttendancePenaltyLevels.Select(l => new
+                {
+                    l.PenaltyLevelId,
+                    l.ViolationType,
+                    l.FromMinutes,
+                    l.ToMinutes,
+                    l.PenaltyAmount
+                }).ToList()
+            } : null,
+            SnapshottedAt = now
+        });
 
         DateTime reviewDeadlineUtc;
         if (reviewDeadline.HasValue)
         {
             var reqUtc = reviewDeadline.Value.Kind == DateTimeKind.Utc 
                 ? reviewDeadline.Value 
-                : DateTime.SpecifyKind(reviewDeadline.Value, DateTimeKind.Utc);
+                : DateTime.SpecifyKind(reviewDeadline.Value - vnOffset, DateTimeKind.Utc);
 
             if (reqUtc < now.AddHours(23).AddMinutes(50))
             {
@@ -265,7 +333,6 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             int totalAssigned = group.Count();
             int completedCount = 0;
             int absentCount = 0;
-            int incompleteCount = 0;
             int totalScheduledMinutes = 0;
             int totalWorkMinutes = 0;
             int totalLateMinutes = 0;
@@ -284,6 +351,39 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 var attendance = item.Assignment.Attendance;
                 if (attendance == null)
                 {
+                    attendance = new Attendance
+                    {
+                        AssignmentId = item.Assignment.AssignmentId,
+                        AttendanceRuleId = activeRule.AttendanceRuleId,
+                        RuleSnapshotJson = ruleSnapshotJson,
+                        EmployeeFullNameSnapshot = item.Assignment.User?.FullName ?? "Staff",
+                        ShiftStartAtSnapshot = shift.ScheduledStartAt,
+                        ShiftEndAtSnapshot = shift.ScheduledEndAt,
+                        BranchNameSnapshot = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
+                        BranchAddressSnapshot = week.Branch?.Address,
+                        BranchLatitudeSnapshot = week.Branch?.Latitude,
+                        BranchLongitudeSnapshot = week.Branch?.Longitude,
+                        Status = "ABSENT",
+                        ActualWorkingMinutes = 0,
+                        TotalLateMinutes = 0,
+                        ExcusedLateMinutes = 0,
+                        ChargeableLateMinutes = 0,
+                        TotalEarlyLeaveMinutes = 0,
+                        ExcusedEarlyLeaveMinutes = 0,
+                        ChargeableEarlyLeaveMinutes = 0,
+                        CompletedAt = null,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    _context.Attendances.Add(attendance);
+                    item.Assignment.Attendance = attendance;
+                    absentCount++;
+                    continue;
+                }
+
+                if (!attendance.CheckInTime.HasValue || !attendance.CheckOutTime.HasValue)
+                {
+                    ApplyAbsentState(attendance, now);
                     absentCount++;
                     continue;
                 }
@@ -293,12 +393,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 {
                     completedCount++;
                 }
-                else if (status == "INCOMPLETE")
-                {
-                    incompleteCount++;
-                }
                 else
                 {
+                    ApplyAbsentState(attendance, now);
                     absentCount++;
                     continue;
                 }
@@ -319,7 +416,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 TotalAssignedShifts = totalAssigned,
                 CompletedShiftCount = completedCount,
                 AbsentShiftCount = absentCount,
-                IncompleteShiftCount = incompleteCount,
+                IncompleteShiftCount = 0,
                 TotalScheduledMinutes = totalScheduledMinutes,
                 TotalWorkMinutes = totalWorkMinutes,
                 TotalLateMinutes = totalLateMinutes,
@@ -466,8 +563,181 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             throw new InvalidOperationException($"Cannot review timesheet: All staff must confirm their timesheet or you must wait until the review window expires ({deadlineVnDisplay}).");
         }
 
+        // Ensure all active assignments in the week have finalized Attendance records (no nulls or INCOMPLETE)
+        // before setting ReviewedAt so downstream payroll calculation snapshots match cleanly.
+        var activeWeekAssignments = await _context.ShiftAssignments
+            .Include(a => a.Shift)
+            .Include(a => a.User)
+            .Include(a => a.Attendance)
+                .ThenInclude(att => att!.AttendancePenaltyRecords)
+            .Where(a => a.Shift.ScheduleWeekId == scheduleWeekId
+                     && a.Shift.Status != "CANCELLED"
+                     && a.Status != "CANCELLED")
+            .ToListAsync(cancellationToken);
+
+        var dirtyUsers = new HashSet<Guid>();
+        var missingAttendanceAssignments = activeWeekAssignments.Where(a => a.Attendance == null).ToList();
+        if (missingAttendanceAssignments.Count > 0)
+        {
+            var activeRule = await GetActiveAttendanceRuleAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Cannot review timesheet: No attendance rule is configured in the system.");
+
+            var activePenaltyRule = await _context.AttendancePenaltyRules
+                .AsNoTracking()
+                .Include(r => r.AttendancePenaltyLevels)
+                .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+                .OrderByDescending(r => r.Status == "ACTIVE")
+                .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+                .ThenByDescending(r => r.PenaltyRuleId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            string snapshotJson = JsonSerializer.Serialize(new
+            {
+                AttendanceRule = new
+                {
+                    activeRule.AttendanceRuleId,
+                    activeRule.RuleName,
+                    activeRule.CheckInBeforeMinutes,
+                    activeRule.CheckInGraceMinutes,
+                    activeRule.CheckOutGraceMinutes,
+                    activeRule.CheckOutAfterMinutes,
+                    activeRule.MaxAttendanceDistanceMeters,
+                    activeRule.EffectiveFrom,
+                    activeRule.EffectiveTo,
+                    activeRule.Status
+                },
+                AttendancePenaltyRule = activePenaltyRule != null ? new
+                {
+                    activePenaltyRule.PenaltyRuleId,
+                    activePenaltyRule.RuleName,
+                    activePenaltyRule.EffectiveFrom,
+                    activePenaltyRule.EffectiveTo,
+                    activePenaltyRule.Status,
+                    PenaltyLevels = activePenaltyRule.AttendancePenaltyLevels.Select(l => new
+                    {
+                        l.PenaltyLevelId,
+                        l.ViolationType,
+                        l.FromMinutes,
+                        l.ToMinutes,
+                        l.PenaltyAmount
+                    }).ToList()
+                } : null,
+                SnapshottedAt = now
+            });
+
+            foreach (var missingAssign in missingAttendanceAssignments)
+            {
+                var absentAtt = new Attendance
+                {
+                    AssignmentId = missingAssign.AssignmentId,
+                    AttendanceRuleId = activeRule.AttendanceRuleId,
+                    RuleSnapshotJson = snapshotJson,
+                    EmployeeFullNameSnapshot = missingAssign.User?.FullName ?? "Staff",
+                    ShiftStartAtSnapshot = missingAssign.Shift.ScheduledStartAt,
+                    ShiftEndAtSnapshot = missingAssign.Shift.ScheduledEndAt,
+                    BranchNameSnapshot = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
+                    BranchAddressSnapshot = week.Branch?.Address,
+                    BranchLatitudeSnapshot = week.Branch?.Latitude,
+                    BranchLongitudeSnapshot = week.Branch?.Longitude,
+                    Status = "ABSENT",
+                    ActualWorkingMinutes = 0,
+                    TotalLateMinutes = 0,
+                    ExcusedLateMinutes = 0,
+                    ChargeableLateMinutes = 0,
+                    TotalEarlyLeaveMinutes = 0,
+                    ExcusedEarlyLeaveMinutes = 0,
+                    ChargeableEarlyLeaveMinutes = 0,
+                    CompletedAt = null,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                _context.Attendances.Add(absentAtt);
+                missingAssign.Attendance = absentAtt;
+                dirtyUsers.Add(missingAssign.UserId);
+            }
+        }
+
+        foreach (var assign in activeWeekAssignments.Where(a => a.Attendance != null))
+        {
+            var att = assign.Attendance!;
+            var upperStatus = att.Status?.ToUpperInvariant();
+            bool isValidCompleted = att.CheckInTime.HasValue && att.CheckOutTime.HasValue &&
+                (upperStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE");
+
+            if (!isValidCompleted)
+            {
+                if (ApplyAbsentState(att, now))
+                {
+                    dirtyUsers.Add(assign.UserId);
+                }
+            }
+        }
+
+        var assignmentsByStaff = activeWeekAssignments
+            .GroupBy(a => a.UserId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         foreach (var timesheet in timesheets)
         {
+            var staffAssigns = assignmentsByStaff.GetValueOrDefault(timesheet.UserId) ?? new List<ShiftAssignment>();
+            int completedCount = 0;
+            int absentCount = 0;
+            int totalWorkMinutes = 0;
+            int totalLateMinutes = 0;
+            int excusedLateMinutes = 0;
+            int chargeableLateMinutes = 0;
+            int totalEarlyLeaveMinutes = 0;
+            int excusedEarlyLeaveMinutes = 0;
+            int chargeableEarlyLeaveMinutes = 0;
+
+            foreach (var assign in staffAssigns)
+            {
+                var att = assign.Attendance;
+                var upperStatus = att?.Status?.ToUpperInvariant();
+                if (att != null && att.CheckInTime.HasValue && att.CheckOutTime.HasValue &&
+                    upperStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE")
+                {
+                    completedCount++;
+                    totalWorkMinutes += att.ActualWorkingMinutes;
+                    totalLateMinutes += att.TotalLateMinutes;
+                    excusedLateMinutes += att.ExcusedLateMinutes;
+                    chargeableLateMinutes += att.ChargeableLateMinutes;
+                    totalEarlyLeaveMinutes += att.TotalEarlyLeaveMinutes;
+                    excusedEarlyLeaveMinutes += att.ExcusedEarlyLeaveMinutes;
+                    chargeableEarlyLeaveMinutes += att.ChargeableEarlyLeaveMinutes;
+                }
+                else
+                {
+                    absentCount++;
+                }
+            }
+
+            if (dirtyUsers.Contains(timesheet.UserId)
+                || timesheet.TotalAssignedShifts != staffAssigns.Count
+                || timesheet.CompletedShiftCount != completedCount
+                || timesheet.AbsentShiftCount != absentCount
+                || timesheet.IncompleteShiftCount != 0
+                || timesheet.TotalWorkMinutes != totalWorkMinutes
+                || timesheet.TotalLateMinutes != totalLateMinutes
+                || timesheet.ExcusedLateMinutes != excusedLateMinutes
+                || timesheet.ChargeableLateMinutes != chargeableLateMinutes
+                || timesheet.TotalEarlyLeaveMinutes != totalEarlyLeaveMinutes
+                || timesheet.ExcusedEarlyLeaveMinutes != excusedEarlyLeaveMinutes
+                || timesheet.ChargeableEarlyLeaveMinutes != chargeableEarlyLeaveMinutes)
+            {
+                timesheet.TotalAssignedShifts = staffAssigns.Count;
+                timesheet.CompletedShiftCount = completedCount;
+                timesheet.AbsentShiftCount = absentCount;
+                timesheet.IncompleteShiftCount = 0;
+                timesheet.TotalWorkMinutes = totalWorkMinutes;
+                timesheet.TotalLateMinutes = totalLateMinutes;
+                timesheet.ExcusedLateMinutes = excusedLateMinutes;
+                timesheet.ChargeableLateMinutes = chargeableLateMinutes;
+                timesheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+                timesheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
+                timesheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
+            }
+
             if (string.Equals(timesheet.StaffReviewStatus, "PENDING", StringComparison.OrdinalIgnoreCase))
             {
                 timesheet.StaffReviewStatus = "NO_RESPONSE";
@@ -683,6 +953,12 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                 .ThenInclude(a => a.AttendanceRule)
             .Include(r => r.Attendance)
                 .ThenInclude(a => a.AttendancePenaltyRecords)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.LateArrivalRequest)
+                    .ThenInclude(lr => lr!.Request)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.EarlyLeaveRequest)
+                    .ThenInclude(er => er!.Request)
             .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.Timesheet.PayrollPeriod.BranchId == branchId, cancellationToken)
             ?? throw new KeyNotFoundException($"Timesheet adjustment request #{adjustmentRequestId} not found for your branch.");
 
@@ -769,12 +1045,35 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                     }
                 }
 
-                // 3. Recalculate late minutes
+                // 3. Recalculate late minutes (restoring approved LateArrivalRequest exemption if applicable)
+                var approvedLateReq = attendance.LateArrivalRequest;
+                if (approvedLateReq == null && attendance.AssignmentId > 0)
+                {
+                    approvedLateReq = await _context.TimeAdjustmentRequestDetails
+                        .AsNoTracking()
+                        .Include(t => t.Request)
+                        .FirstOrDefaultAsync(t =>
+                            t.AssignmentId == attendance.AssignmentId &&
+                            t.Request.RequestType == "LATE_ARRIVAL" &&
+                            t.Request.Status == "APPROVED",
+                            cancellationToken);
+                }
+
                 if (attendance.CheckInTime.Value > attendance.ShiftStartAtSnapshot.AddMinutes(graceIn))
                 {
                     attendance.TotalLateMinutes = (int)Math.Max(0, Math.Floor((attendance.CheckInTime.Value - attendance.ShiftStartAtSnapshot).TotalMinutes));
-                    attendance.ExcusedLateMinutes = Math.Min(attendance.ExcusedLateMinutes, attendance.TotalLateMinutes);
-                    attendance.ChargeableLateMinutes = attendance.TotalLateMinutes - attendance.ExcusedLateMinutes;
+                    if (approvedLateReq != null && string.Equals(approvedLateReq.Request?.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        attendance.LateArrivalRequestId ??= approvedLateReq.RequestId;
+                        attendance.ExcusedLateMinutes = attendance.CheckInTime.Value <= approvedLateReq.RequestedTime.AddMinutes(graceIn)
+                            ? attendance.TotalLateMinutes
+                            : 0;
+                    }
+                    else
+                    {
+                        attendance.ExcusedLateMinutes = Math.Min(attendance.ExcusedLateMinutes, attendance.TotalLateMinutes);
+                    }
+                    attendance.ChargeableLateMinutes = Math.Max(0, attendance.TotalLateMinutes - attendance.ExcusedLateMinutes);
                 }
                 else
                 {
@@ -783,12 +1082,35 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                     attendance.ChargeableLateMinutes = 0;
                 }
 
-                // 4. Recalculate early leave minutes
+                // 4. Recalculate early leave minutes (restoring approved EarlyLeaveRequest exemption if applicable)
+                var approvedEarlyReq = attendance.EarlyLeaveRequest;
+                if (approvedEarlyReq == null && attendance.AssignmentId > 0)
+                {
+                    approvedEarlyReq = await _context.TimeAdjustmentRequestDetails
+                        .AsNoTracking()
+                        .Include(t => t.Request)
+                        .FirstOrDefaultAsync(t =>
+                            t.AssignmentId == attendance.AssignmentId &&
+                            t.Request.RequestType == "EARLY_LEAVE" &&
+                            t.Request.Status == "APPROVED",
+                            cancellationToken);
+                }
+
                 if (attendance.CheckOutTime.Value < attendance.ShiftEndAtSnapshot.AddMinutes(-graceOut))
                 {
                     attendance.TotalEarlyLeaveMinutes = (int)Math.Max(0, Math.Floor((attendance.ShiftEndAtSnapshot - attendance.CheckOutTime.Value).TotalMinutes));
-                    attendance.ExcusedEarlyLeaveMinutes = Math.Min(attendance.ExcusedEarlyLeaveMinutes, attendance.TotalEarlyLeaveMinutes);
-                    attendance.ChargeableEarlyLeaveMinutes = attendance.TotalEarlyLeaveMinutes - attendance.ExcusedEarlyLeaveMinutes;
+                    if (approvedEarlyReq != null && string.Equals(approvedEarlyReq.Request?.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+                    {
+                        attendance.EarlyLeaveRequestId ??= approvedEarlyReq.RequestId;
+                        attendance.ExcusedEarlyLeaveMinutes = attendance.CheckOutTime.Value >= approvedEarlyReq.RequestedTime.AddMinutes(-graceOut)
+                            ? attendance.TotalEarlyLeaveMinutes
+                            : 0;
+                    }
+                    else
+                    {
+                        attendance.ExcusedEarlyLeaveMinutes = Math.Min(attendance.ExcusedEarlyLeaveMinutes, attendance.TotalEarlyLeaveMinutes);
+                    }
+                    attendance.ChargeableEarlyLeaveMinutes = Math.Max(0, attendance.TotalEarlyLeaveMinutes - attendance.ExcusedEarlyLeaveMinutes);
                 }
                 else
                 {
@@ -797,9 +1119,9 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                     attendance.ChargeableEarlyLeaveMinutes = 0;
                 }
 
-                // 5. Update Status
-                bool hasLate = attendance.TotalLateMinutes > 0;
-                bool hasEarly = attendance.TotalEarlyLeaveMinutes > 0;
+                // 5. Update Status (violation statuses reflect chargeable minutes, matching check-out logic)
+                bool hasLate = attendance.ChargeableLateMinutes > 0;
+                bool hasEarly = attendance.ChargeableEarlyLeaveMinutes > 0;
 
                 if (hasLate && hasEarly)
                     attendance.Status = "LATE_AND_EARLY_LEAVE";
@@ -940,7 +1262,13 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
                     attendance.Assignment.UpdatedAt = now;
                 }
 
+                attendance.CompletedAt ??= now;
                 attendance.UpdatedAt = now;
+            }
+            else
+            {
+                // One side of check-in/check-out is still missing -> remain ABSENT with zero payable/penalty minutes
+                ApplyAbsentState(attendance, now);
             }
 
             var historyRecord = new AttendanceAdjustmentHistory
@@ -974,80 +1302,7 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         var timesheet = request.Timesheet;
         if (timesheet != null)
         {
-            var scheduleWeekId = timesheet.PayrollPeriod?.ScheduleWeekId 
-                ?? attendance?.Assignment?.Shift?.ScheduleWeekId;
-
-            if (scheduleWeekId.HasValue)
-            {
-                var assignments = await _context.ShiftAssignments
-                    .Include(sa => sa.Attendance)
-                    .Where(sa => sa.Shift.ScheduleWeekId == scheduleWeekId.Value
-                              && sa.UserId == timesheet.UserId
-                              && sa.Shift.Status != "CANCELLED"
-                              && sa.Status != "CANCELLED")
-                    .ToListAsync(cancellationToken);
-
-                int completedCount = 0;
-                int absentCount = 0;
-                int incompleteCount = 0;
-                int totalWorkMinutes = 0;
-                int totalLateMinutes = 0;
-                int excusedLateMinutes = 0;
-                int chargeableLateMinutes = 0;
-                int totalEarlyLeaveMinutes = 0;
-                int excusedEarlyLeaveMinutes = 0;
-                int chargeableEarlyLeaveMinutes = 0;
-
-                foreach (var assign in assignments)
-                {
-                    var att = (attendance != null && assign.AssignmentId == attendance.AssignmentId)
-                        ? attendance
-                        : assign.Attendance;
-
-                    if (att == null)
-                    {
-                        absentCount++;
-                        continue;
-                    }
-
-                    var status = att.Status?.ToUpperInvariant();
-                    if (status is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE")
-                    {
-                        completedCount++;
-                    }
-                    else if (status == "INCOMPLETE")
-                    {
-                        incompleteCount++;
-                    }
-                    else
-                    {
-                        absentCount++;
-                        continue;
-                    }
-
-                    totalWorkMinutes += att.ActualWorkingMinutes;
-                    totalLateMinutes += att.TotalLateMinutes;
-                    excusedLateMinutes += att.ExcusedLateMinutes;
-                    chargeableLateMinutes += att.ChargeableLateMinutes;
-                    totalEarlyLeaveMinutes += att.TotalEarlyLeaveMinutes;
-                    excusedEarlyLeaveMinutes += att.ExcusedEarlyLeaveMinutes;
-                    chargeableEarlyLeaveMinutes += att.ChargeableEarlyLeaveMinutes;
-                }
-
-                timesheet.TotalAssignedShifts = assignments.Count;
-                timesheet.CompletedShiftCount = completedCount;
-                timesheet.AbsentShiftCount = absentCount;
-                timesheet.IncompleteShiftCount = incompleteCount;
-                timesheet.TotalWorkMinutes = totalWorkMinutes;
-                timesheet.TotalLateMinutes = totalLateMinutes;
-                timesheet.ExcusedLateMinutes = excusedLateMinutes;
-                timesheet.ChargeableLateMinutes = chargeableLateMinutes;
-                timesheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
-                timesheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
-                timesheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
-                if (timesheet.Status == "REVIEWED") { timesheet.ReviewedAt = now; timesheet.ReviewedBy = managerId; }
-            timesheet.UpdatedAt = now;
-            }
+            await RecalculateTimesheetAggregatesAsync(timesheet, attendance, managerId, now, cancellationToken);
 
             var otherPendingAdjustments = await _context.TimesheetAdjustmentRequests
                 .AnyAsync(r => r.TimesheetId == timesheet.TimesheetId && r.AdjustmentRequestId != adjustmentRequestId && r.Status == "PENDING", cancellationToken);
@@ -1106,6 +1361,8 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
             .Include(r => r.Attendance)
                 .ThenInclude(a => a.Assignment)
                     .ThenInclude(ass => ass.Shift)
+            .Include(r => r.Attendance)
+                .ThenInclude(a => a.AttendancePenaltyRecords)
             .FirstOrDefaultAsync(r => r.AdjustmentRequestId == adjustmentRequestId && r.Timesheet.PayrollPeriod.BranchId == branchId, cancellationToken)
             ?? throw new KeyNotFoundException($"Timesheet adjustment request #{adjustmentRequestId} not found for your branch.");
 
@@ -1121,9 +1378,24 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         request.ManagerNote = managerNote.Trim();
         request.UpdatedAt = now;
 
+        bool attNormalized = false;
+        if (request.Attendance != null &&
+            (!request.Attendance.CheckInTime.HasValue ||
+             !request.Attendance.CheckOutTime.HasValue ||
+             string.Equals(request.Attendance.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Rejection preserves ABSENT (and normalizes any legacy INCOMPLETE row to ABSENT).
+            attNormalized = ApplyAbsentState(request.Attendance, now);
+        }
+
         var timesheet = request.Timesheet;
         if (timesheet != null)
         {
+            if (attNormalized || timesheet.IncompleteShiftCount != 0)
+            {
+                await RecalculateTimesheetAggregatesAsync(timesheet, request.Attendance, managerId, now, cancellationToken);
+            }
+
             var otherPendingAdjustments = await _context.TimesheetAdjustmentRequests
                 .AnyAsync(r => r.TimesheetId == timesheet.TimesheetId && r.AdjustmentRequestId != adjustmentRequestId && r.Status == "PENDING", cancellationToken);
 
@@ -1378,6 +1650,159 @@ public sealed class ManagerTimesheetRepo : IManagerTimesheetRepo
         await _context.SaveChangesAsync(cancellationToken);
 
         return (timesheet, week.ScheduleWeekId, timesheet.UserId, notification.NotificationId, notificationContent);
+    }
+
+    public async Task<AttendanceRule?> GetActiveAttendanceRuleAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.AttendanceRules
+            .AsNoTracking()
+            .Where(r => r.Status == "ACTIVE" || r.Status == "PUBLISHED")
+            .OrderByDescending(r => r.Status == "ACTIVE")
+            .ThenByDescending(r => r.PublishedAt ?? DateTime.MinValue)
+            .ThenByDescending(r => r.AttendanceRuleId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? await _context.AttendanceRules.AsNoTracking().FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static bool ApplyAbsentState(Attendance attendance, DateTime nowUtc)
+    {
+        bool changed = false;
+
+        if (!string.Equals(attendance.Status, "ABSENT", StringComparison.Ordinal))
+        {
+            attendance.Status = "ABSENT";
+            changed = true;
+        }
+        if (attendance.ActualWorkingMinutes != 0) { attendance.ActualWorkingMinutes = 0; changed = true; }
+        if (attendance.TotalLateMinutes != 0) { attendance.TotalLateMinutes = 0; changed = true; }
+        if (attendance.ExcusedLateMinutes != 0) { attendance.ExcusedLateMinutes = 0; changed = true; }
+        if (attendance.ChargeableLateMinutes != 0) { attendance.ChargeableLateMinutes = 0; changed = true; }
+        if (attendance.TotalEarlyLeaveMinutes != 0) { attendance.TotalEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.ExcusedEarlyLeaveMinutes != 0) { attendance.ExcusedEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.ChargeableEarlyLeaveMinutes != 0) { attendance.ChargeableEarlyLeaveMinutes = 0; changed = true; }
+        if (attendance.CompletedAt.HasValue) { attendance.CompletedAt = null; changed = true; }
+
+        if (attendance.AttendancePenaltyRecords != null)
+        {
+            foreach (var penalty in attendance.AttendancePenaltyRecords)
+            {
+                if (string.Equals(penalty.Status, "APPLIED", StringComparison.OrdinalIgnoreCase))
+                {
+                    penalty.Status = "CANCELLED";
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed)
+        {
+            attendance.UpdatedAt = nowUtc;
+        }
+
+        return changed;
+    }
+
+    private async Task RecalculateTimesheetAggregatesAsync(
+        Timesheet timesheet,
+        Attendance? updatedAttendance,
+        Guid managerId,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var scheduleWeekId = timesheet.PayrollPeriod?.ScheduleWeekId
+            ?? updatedAttendance?.Assignment?.Shift?.ScheduleWeekId;
+
+        if (!scheduleWeekId.HasValue)
+        {
+            return;
+        }
+
+        var assignments = await _context.ShiftAssignments
+            .Include(sa => sa.Attendance)
+            .Where(sa => sa.Shift.ScheduleWeekId == scheduleWeekId.Value
+                      && sa.UserId == timesheet.UserId
+                      && sa.Shift.Status != "CANCELLED"
+                      && sa.Status != "CANCELLED")
+            .ToListAsync(cancellationToken);
+
+        int completedCount = 0;
+        int absentCount = 0;
+        int totalWorkMinutes = 0;
+        int totalLateMinutes = 0;
+        int excusedLateMinutes = 0;
+        int chargeableLateMinutes = 0;
+        int totalEarlyLeaveMinutes = 0;
+        int excusedEarlyLeaveMinutes = 0;
+        int chargeableEarlyLeaveMinutes = 0;
+
+        foreach (var assign in assignments)
+        {
+            var att = (updatedAttendance != null && assign.AssignmentId == updatedAttendance.AssignmentId)
+                ? updatedAttendance
+                : assign.Attendance;
+
+            if (att == null || !att.CheckInTime.HasValue || !att.CheckOutTime.HasValue)
+            {
+                absentCount++;
+                continue;
+            }
+
+            var status = att.Status?.ToUpperInvariant();
+            if (status is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE")
+            {
+                completedCount++;
+            }
+            else
+            {
+                absentCount++;
+                continue;
+            }
+
+            totalWorkMinutes += att.ActualWorkingMinutes;
+            totalLateMinutes += att.TotalLateMinutes;
+            excusedLateMinutes += att.ExcusedLateMinutes;
+            chargeableLateMinutes += att.ChargeableLateMinutes;
+            totalEarlyLeaveMinutes += att.TotalEarlyLeaveMinutes;
+            excusedEarlyLeaveMinutes += att.ExcusedEarlyLeaveMinutes;
+            chargeableEarlyLeaveMinutes += att.ChargeableEarlyLeaveMinutes;
+        }
+
+        timesheet.TotalAssignedShifts = assignments.Count;
+        timesheet.CompletedShiftCount = completedCount;
+        timesheet.AbsentShiftCount = absentCount;
+        timesheet.IncompleteShiftCount = 0;
+        timesheet.TotalWorkMinutes = totalWorkMinutes;
+        timesheet.TotalLateMinutes = totalLateMinutes;
+        timesheet.ExcusedLateMinutes = excusedLateMinutes;
+        timesheet.ChargeableLateMinutes = chargeableLateMinutes;
+        timesheet.TotalEarlyLeaveMinutes = totalEarlyLeaveMinutes;
+        timesheet.ExcusedEarlyLeaveMinutes = excusedEarlyLeaveMinutes;
+        timesheet.ChargeableEarlyLeaveMinutes = chargeableEarlyLeaveMinutes;
+        if (timesheet.Status == "REVIEWED")
+        {
+            timesheet.ReviewedAt = now;
+            timesheet.ReviewedBy = managerId;
+        }
+        timesheet.UpdatedAt = now;
+    }
+
+    public async Task<string?> GetUserNameByIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.UserId == userId)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<string?> GetDefaultDirectorNameAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Role.RoleName == "ADMIN" && u.DeletedAt == null && u.Status == "ACTIVE")
+            .OrderBy(u => u.CreatedAt)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync(cancellationToken);
     }
 }
 

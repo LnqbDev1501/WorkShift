@@ -1,0 +1,124 @@
+@model UI_Admin.Models.PersonalNotificationDetailViewModel
+@{
+    ViewData["Title"] = "Broadcast Detail";
+}
+
+<div class="w-full px-7 py-6 mx-auto space-y-6" style="max-width: 1496px;">
+    <!-- Top Nav / Back Action -->
+    <div class="flex items-center justify-between gap-4">
+        <a asp-action="BroadcastHistory" class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+            <span>Back to Broadcast History</span>
+        </a>
+
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+            Notification ID: #@Model.NotificationId
+        </span>
+    </div>
+
+    <!-- Main Detail Card -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <!-- Card Header with Badges -->
+        <div class="p-6 border-b border-gray-100 bg-gradient-to-b from-gray-50/50 to-white">
+            <div class="flex flex-wrap items-center gap-2 mb-3">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                    @(string.IsNullOrWhiteSpace(Model.NotificationType) ? "Broadcast" : Model.NotificationType)
+                </span>
+
+                @if (Model.IsRead)
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        <span class="material-symbols-outlined text-[14px]">done_all</span>
+                        Read
+                    </span>
+                }
+                else
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-600 animate-pulse"></span>
+                        Unread
+                    </span>
+                }
+
+                @if (Model.Channels != null && Model.Channels.Count > 0)
+                {
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-50 text-gray-600 border border-gray-100">
+                        <span class="material-symbols-outlined text-[14px]">cell_tower</span>
+                        @string.Join(" • ", Model.Channels.Select(c => c == "InApp" ? "In-App" : c == "Email" ? "Email" : c))
+                    </span>
+                }
+            </div>
+
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-snug break-words break-all [overflow-wrap:anywhere]">
+                @Model.Title
+            </h1>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100 text-xs text-gray-600">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gray-400 text-[18px]">calendar_today</span>
+                    <div>
+                        <p class="text-gray-400 text-[10px]">Sent At</p>
+                        <p class="font-semibold text-gray-800">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-gray-400 text-[18px]">person</span>
+                    <div>
+                        <p class="text-gray-400 text-[10px]">Sender</p>
+                        <p class="font-semibold text-gray-800">@(string.IsNullOrWhiteSpace(Model.CreatedByName) ? "Admin System" : Model.CreatedByName)</p>
+                    </div>
+                </div>
+
+                @if (Model.IsRead && Model.ReadAt.HasValue)
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-emerald-500 text-[18px]">visibility</span>
+                        <div>
+                            <p class="text-gray-400 text-[10px]">Viewed At</p>
+                            <p class="font-semibold text-emerald-700">@Model.ReadAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-blue-500 text-[18px]">group</span>
+                        <div>
+                            <p class="text-gray-400 text-[10px]">In-App Recipients</p>
+                            <p class="font-semibold text-gray-800">@Model.InAppRecipientCount users</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Scope & Targeting Info -->
+        <div class="px-6 py-4 bg-gray-50/60 border-b border-gray-100 flex flex-wrap items-center gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-1.5">
+                <span class="text-gray-400">Audience:</span>
+                <span class="font-semibold text-gray-800">@(string.IsNullOrWhiteSpace(Model.Audience) ? "All Staff" : Model.Audience)</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="text-gray-400">Target Scope:</span>
+                <span class="font-semibold text-gray-800">@(Model.TargetBranchId.HasValue ? $"Branch #{Model.TargetBranchId}" : Model.TargetRegionId.HasValue ? $"Region #{Model.TargetRegionId}" : "Organization-wide")</span>
+            </div>
+        </div>
+
+        <!-- Notification Message Content -->
+        <div class="p-6">
+            <div class="flex items-center gap-2 mb-3">
+                <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-[16px]">mail</span>
+                </div>
+                <h2 class="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Notification Content
+                </h2>
+            </div>
+
+            <div class="p-4 sm:p-5 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-line font-normal break-words break-all [overflow-wrap:anywhere]">
+                @Model.Message
+            </div>
+        </div>
+    </div>
+</div>

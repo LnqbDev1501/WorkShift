@@ -1,0 +1,207 @@
+@model UI_Admin.Models.Staff.Orders.StaffOrderListViewModel
+
+@{
+    ViewData["Title"] = "My Orders";
+    var isInShift = ViewBag.IsInShift as bool? ?? false;
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <partial name="_NotificationModal" />
+    @if (!isInShift)
+    {
+        <div class="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">schedule</span>
+            <span>You are currently outside your shift hours or have not checked in. Creating and completing orders will remain disabled until you check in to your active shift.</span>
+        </div>
+    }
+
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Order Management</div>
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">My Orders</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">View and manage your customer orders.</p>
+        </div>
+        <div class="flex items-center gap-unit-3 self-start md:self-auto">
+            <a asp-controller="StaffOrders" asp-action="Create" class="inline-flex items-center justify-center gap-unit-2 h-[40px] px-unit-4 rounded-xl bg-primary-container hover:bg-primary text-on-primary font-body-md-medium text-body-md-medium transition-colors shadow-sm focus:outline-none cursor-pointer">
+                <span class="material-symbols-outlined text-[20px]">add_shopping_cart</span>
+                <span>Create Order</span>
+            </a>
+        </div>
+    </div>
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+new("Total Orders", Model.TotalItems.ToString("N0"), "All time", "receipt_long", "#f59e0b"),
+new("Completed", Model.Items.Count(x => x.Status == "COMPLETED").ToString("N0"), "This page", "check_circle", "#10b981"),
+new("Pending", Model.Items.Count(x => x.Status == "PENDING").ToString("N0"), "This page", "pending", "#f59e0b"),
+new("Cancelled", Model.Items.Count(x => x.Status == "CANCELLED").ToString("N0"), "This page", "cancel", "#ef4444")
+})' />
+    <!-- Filter Toolbar -->
+    <form method="get" asp-controller="StaffOrders" asp-action="Index" id="filter-form" class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-unit-3 p-unit-4 bg-surface-container-lowest rounded-xl shadow-sm">
+        <div class="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-unit-3">
+            <!-- Search Input -->
+            <div class="relative flex-1">
+                <span class="material-symbols-outlined absolute left-unit-3 top-1/2 -translate-y-1/2 text-[18px] text-secondary">search</span>
+                <input class="w-full h-[40px] pl-9 pr-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                       id="order-search"
+                       name="search"
+                       value="@Model.Search"
+                       placeholder="Search order number..."
+                       type="text">
+            </div>
+            <!-- Status Filter Dropdown -->
+            <div class="relative sm:w-48">
+                <select class="w-full h-[40px] px-unit-3 appearance-none bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary-container pr-8 cursor-pointer"
+                        id="status-filter"
+                        name="status"
+                        onchange="this.form.submit()">
+                    <option value="" selected="@(string.IsNullOrEmpty(Model.StatusFilter))">All Statuses</option>
+                    <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
+                    <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-unit-3 top-1/2 -translate-y-1/2 pointer-events-none text-[18px] text-secondary">expand_more</span>
+            </div>
+            <!-- Date From -->
+            <div class="relative sm:w-48">
+                <input class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                       id="date-from"
+                       name="dateFrom"
+                       value="@(Model.DateFrom?.ToString("yyyy-MM-dd"))"
+                       placeholder="From Date"
+                       type="date">
+            </div>
+            <!-- Date To -->
+            <div class="relative sm:w-48">
+                <input class="w-full h-[40px] px-unit-3 bg-surface-container-lowest border border-surface-container-high rounded-xl text-on-surface font-body-md text-body-md placeholder:text-secondary focus:outline-none focus:ring-1 focus:ring-primary-container"
+                       id="date-to"
+                       name="dateTo"
+                       value="@(Model.DateTo?.ToString("yyyy-MM-dd"))"
+                       placeholder="To Date"
+                       type="date">
+            </div>
+        </div>
+        <partial name="_ListFilterActions" model='"Index"' />
+    </form>
+
+    <!-- Main Table Container -->
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="h-[40px] bg-surface-container-low text-secondary text-label-md font-label-md uppercase tracking-wider">
+                        <th class="px-unit-5 py-2" scope="col">Order Number</th>
+                        <th class="px-unit-4 py-2" scope="col">Date</th>
+                        <th class="px-unit-4 py-2" scope="col">Items</th>
+                        <th class="px-unit-4 py-2 text-right" scope="col">Total</th>
+                        <th class="px-unit-4 py-2" scope="col">Status</th>
+                        <th class="px-unit-4 py-2" scope="col">Payment</th>
+                        <th class="px-unit-5 py-2 text-right" scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y-0" id="orders-table-body">
+                    @if (Model.Items.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="7" class="px-unit-5 py-8 text-center text-secondary font-body-md">
+                                No orders found matching your filter criteria.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Items)
+                        {
+                            var isCompleted = item.Status.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase);
+                            var isCancelled = item.Status.Equals("CANCELLED", StringComparison.OrdinalIgnoreCase);
+                            var isPaid = item.PaymentStatus.Equals("PAID", StringComparison.OrdinalIgnoreCase);
+
+                            <tr class="h-[56px] hover:bg-surface-container-low transition-colors group @(!isCompleted && !isCancelled ? "" : "bg-surface-container-lowest/70")">
+                                <td class="px-unit-5 py-2">
+                                    <span class="font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-primary") font-semibold bg-surface-container px-2 py-1 rounded break-words" title="@item.OrderNumber">
+                                        @(item.OrderNumber != null && item.OrderNumber.Length > 50 ? item.OrderNumber.Substring(0, 50) + "..." : item.OrderNumber)
+                                    </span>
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
+                                    @item.OrderDate.ToString("dd/MM/yyyy HH:mm")
+                                </td>
+                                <td class="px-unit-4 py-2 font-body-md text-body-md text-secondary whitespace-nowrap">
+                                    @item.ItemCount item(s)
+                                </td>
+                                <td class="px-unit-4 py-2 font-code-num text-code-num @(isCancelled ? "text-secondary" : "text-on-surface") text-right whitespace-nowrap">
+                                    @UI_Admin.Helpers.CurrencyHelper.FormatVnd(item.TotalAmount)
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    @if (isCompleted)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            Completed
+                                        </span>
+                                    }
+                                    else if (isCancelled)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-surface-container text-secondary">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                            Cancelled
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-blue-50 text-blue-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                            Pending
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-unit-4 py-2 whitespace-nowrap">
+                                    @if (isPaid)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-emerald-50 text-emerald-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                            Paid
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 h-6 px-2 rounded-full text-label-sm font-label-sm bg-amber-50 text-amber-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                            Unpaid
+                                        </span>
+                                    }
+                                </td>
+                                <td class="px-unit-5 py-2 text-right whitespace-nowrap">
+                                    <div class="inline-flex items-center justify-end gap-2">
+                                        <a href="@Url.Action("Details", "StaffOrders", new { id = item.OrderId })" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-primary hover:bg-surface-container font-body-md-medium text-body-sm transition-colors">View</a>
+                                        @if (!isCompleted && !isCancelled)
+                                        {
+                                            <form method="post" asp-controller="StaffOrders" asp-action="Complete" asp-route-id="@item.OrderId" class="inline">
+                                                <button type="submit" disabled="@(!isInShift)" title="@(!isInShift ? "You must be in your shift and checked in to perform this action." : "Complete order")" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent font-body-md-medium text-body-sm transition-colors" onclick="return confirm('Mark this order as completed?');">Complete</button>
+                                            </form>
+                                            <form method="post" asp-controller="StaffOrders" asp-action="Cancel" asp-route-id="@item.OrderId" class="inline">
+                                                <button type="submit" class="inline-flex items-center justify-center h-8 px-unit-3 rounded-lg text-red-700 hover:bg-red-50 font-body-md-medium text-body-sm transition-colors" onclick="return confirm('Cancel this order?');">Cancel</button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <!-- Pagination / Footer Bar -->
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            ItemLabel = "orders",
+        })" />
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/products.js" asp-append-version="true"></script>
+}

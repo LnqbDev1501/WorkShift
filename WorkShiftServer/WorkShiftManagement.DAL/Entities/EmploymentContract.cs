@@ -97,6 +97,8 @@ public partial class EmploymentContract
 
     public virtual ICollection<EmploymentContract> InverseReplacesContract { get; set; } = new List<EmploymentContract>();
 
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
     public virtual Region Region { get; set; } = null!;
 
     public virtual User? RejectedByNavigation { get; set; }

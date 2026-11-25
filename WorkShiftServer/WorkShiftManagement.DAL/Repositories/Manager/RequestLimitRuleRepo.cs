@@ -55,8 +55,9 @@ public class RequestLimitRuleRepo(AppDbContext db) : IRequestLimitRuleRepo
         return result;
     }
 
-    public async Task SynchronizeAsync(DateOnly today, CancellationToken ct)
+    public async Task<int> SynchronizeAsync(DateOnly today, CancellationToken ct)
     {
+        var activated = 0;
         var branches = await db.RequestLimitRules.AsNoTracking()
             .Where(x => x.Status == "SCHEDULED" && x.EffectiveFrom <= today)
             .Select(x => x.BranchId).Distinct().ToListAsync(ct);
@@ -71,11 +72,13 @@ public class RequestLimitRuleRepo(AppDbContext db) : IRequestLimitRuleRepo
                 RetireActive(rules, next);
                 await db.SaveChangesAsync(ct);
                 next.Status = "ACTIVE";
+                activated++;
                 next.UpdatedAt = DateTime.UtcNow;
                 await db.SaveChangesAsync(ct);
             }
             await transaction.CommitAsync(ct);
         }
+        return activated;
     }
 
     private static void RetireActive(List<RequestLimitRule> rules, RequestLimitRule next)

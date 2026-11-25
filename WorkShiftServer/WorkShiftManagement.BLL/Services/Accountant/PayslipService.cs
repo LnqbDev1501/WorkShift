@@ -1,9 +1,9 @@
-using WorkShiftManagement.BLL.DTOs.Accountant.Payslip;
+﻿using WorkShiftManagement.BLL.DTOs.Accountant.Payslip;
 using WorkShiftManagement.BLL.Interfaces.Accountant;
 using WorkShiftManagement.BLL.Services.Admin;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Accountant;
-using WorkShiftManagement.DAL.Version.Payroll;
+using WorkShiftManagement.BLL.Policies.Payroll;
 
 namespace WorkShiftManagement.BLL.Services.Accountant;
 
@@ -13,13 +13,13 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
     {
         var user = await calculation.GetActorAsync(actor, ct);
         if (user == null || user.Status != "ACTIVE" || user.DeletedAt != null || user.Role.Status != "ACTIVE")
-            throw new UnauthorizedAccessException("Tài khoản không có quyền xem phiếu lương.");
+            throw new UnauthorizedAccessException("User is not authorized to view payslips.");
         return user.Role.RoleName switch
         {
             "ADMIN" => (new PayslipScope(null, null), false),
-            "ACCOUNTANT" => (new PayslipScope(user.BranchId ?? throw new UnauthorizedAccessException("Accountant chưa có chi nhánh."), null), false),
+            "ACCOUNTANT" => (new PayslipScope(user.BranchId ?? throw new UnauthorizedAccessException("Accountant does not have an assigned branch."), null), false),
             "STAFF" => (new PayslipScope(null, actor), true),
-            _ => throw new UnauthorizedAccessException("Chỉ Admin, Accountant và Staff được xem phiếu lương.")
+            _ => throw new UnauthorizedAccessException("Only Admin, Accountant, and Staff roles can view payslips.")
         };
     }
 
@@ -28,15 +28,15 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
         var (scope, staff) = await Scope(actor, ct);
         if (q.Page < 1 || q.PageSize is < 1 or > 100 || (long)(q.Page - 1) * q.PageSize > int.MaxValue
             || q.Keyword?.Length > 200 || q.UserId == Guid.Empty || q.BranchId <= 0 || q.PayrollPeriodId <= 0)
-            throw new ArgumentException("Tham số không hợp lệ: Page >= 1, PageSize 1–100, Keyword tối đa 200 ký tự, ID phải hợp lệ.");
+            throw new ArgumentException("Invalid parameters: Page >= 1, PageSize 1–100, Keyword max 200 characters, valid ID required.");
         if (q.PeriodFrom.HasValue && q.PeriodTo.HasValue && q.PeriodFrom > q.PeriodTo)
-            throw new ArgumentException("PeriodFrom không được sau PeriodTo.");
+            throw new ArgumentException("PeriodFrom cannot be after PeriodTo.");
         if (scope.UserId.HasValue && q.UserId.HasValue && q.UserId != scope.UserId
             || scope.BranchId.HasValue && q.BranchId.HasValue && q.BranchId != scope.BranchId)
-            throw new UnauthorizedAccessException("Không được tra cứu ngoài phạm vi tài khoản.");
+            throw new UnauthorizedAccessException("Cannot query beyond authorized account scope.");
         var status = string.IsNullOrWhiteSpace(q.Status) ? null : q.Status.Trim().ToUpperInvariant();
         if (status != null && status is not ("PUBLISHED" or "REPLACED"))
-            throw new ArgumentException("Payslip status chỉ gồm PUBLISHED hoặc REPLACED.");
+            throw new ArgumentException("Payslip status must be PUBLISHED or REPLACED.");
         var (items, count) = await repo.ListAsync(scope, new PayslipSearch
         {
             Keyword = string.IsNullOrWhiteSpace(q.Keyword) ? null : q.Keyword.Trim(),
@@ -55,8 +55,8 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
 
     private async Task<Payslip> Get(PayslipScope scope, int id, CancellationToken ct)
     {
-        if (id <= 0) throw new ArgumentException("Payslip ID phải lớn hơn 0.");
-        return await repo.GetAsync(scope, id, ct) ?? throw new KeyNotFoundException("Không tìm thấy phiếu lương trong phạm vi được phép.");
+        if (id <= 0) throw new ArgumentException("Payslip ID must be greater than 0.");
+        return await repo.GetAsync(scope, id, ct) ?? throw new KeyNotFoundException("Payslip not found within authorized scope.");
     }
 
     public async Task<PayslipDetailsResponse> GetAsync(Guid actor, int id, CancellationToken ct)
@@ -126,23 +126,23 @@ public sealed class PayslipService(IPayslipRepo repo, IPayrollCalculationRepo ca
     {
         await using var tx = await calculation.BeginCalculationAsync(ct);
         var period = await calculation.GetPeriodAsync(periodId, null, ct)
-            ?? throw new KeyNotFoundException("Không tìm thấy kỳ lương cần phát hành.");
+            ?? throw new KeyNotFoundException("Payroll period for publication not found.");
         // Transaction lock serializes publication, approval and corrections across Hangfire retries/servers.
         var all = await repo.PublicationPayrollsAsync(periodId, ct);
         var current = PayrollVersionPolicy.Current(all, period.Status);
         var expected = await repo.ExpectedEmployeesAsync(period, ct);
         if (current.Count == 0 || !expected.SetEquals(current.Select(p => p.UserId)))
-            throw new InvalidOperationException("Kỳ chưa đủ Payroll hiện hành cho tất cả nhân viên; không phát hành một phần.");
+            throw new InvalidOperationException("Period lacks current active Payroll records for all employees; partial publishing rejected.");
         // Published OR replaced historical slips are evidence of publication. A rejected
         // unpublished payroll version does not make an already published period incomplete.
         if (current.All(p => p.Payslip != null)) { await tx.CommitAsync(ct); return; }
         if (all.Any(p => p.Payslip != null))
-            throw new InvalidOperationException("Kỳ đã có Payslip nhưng chưa đủ cho các Payroll hiện hành; cần kiểm tra dữ liệu phát hành, không tự phát lại cả kỳ.");
+            throw new InvalidOperationException("Period has payslips but does not match current active payroll records; manual inspection required.");
         var now = clock.GetUtcNow().UtcDateTime;
-        var scheduled = period.ApprovedAt ?? throw new InvalidOperationException("Kỳ chưa có thời điểm Admin duyệt.");
-        if (period.Status != "APPROVED") throw new InvalidOperationException("Chỉ phát phiếu cho kỳ APPROVED.");
+        var scheduled = period.ApprovedAt ?? throw new InvalidOperationException("Payroll period lacks Admin approval timestamp.");
+        if (period.Status != "APPROVED") throw new InvalidOperationException("Payslips can only be published for an APPROVED period.");
         if (current.Any(p => p.Status != "APPROVED"))
-            throw new InvalidOperationException("Tất cả Payroll hiện hành phải APPROVED trước khi phát phiếu.");
+            throw new InvalidOperationException("All current active payrolls must be APPROVED before publishing payslips.");
         // Validate/build the whole batch before adding anything; any failure rolls back every slip.
         var slips = current.Select(p =>
         {

@@ -1,0 +1,183 @@
+﻿@model UI_Admin.Models.PayrollDocuments.PayslipListViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = User.IsInRole("STAFF") ? "My Payslips" : "Published Payslips";
+}
+
+<div class="px-7 py-6 max-w-[1400px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="list-eyebrow">Payroll / Published Payslips</div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@ViewData["Title"]</h1>
+            <p class="text-sm text-slate-500 mt-0.5">
+                Official employee salary statements published following Admin approval and settlement.
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Index"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">refresh</span>
+                <span>Refresh</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    <partial name="_PayrollWorkflowMessages" />
+    @if (Model.Error != null)
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@Model.Error</span>
+            </div>
+            <a asp-action="Index" class="text-xs text-rose-700 font-bold hover:underline">Retry</a>
+        </div>
+    }
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching payslips", Model.Data.TotalItems.ToString("N0"), "Matching current filters", "receipt_long", "#f59e0b"),
+        new("Published", Model.Data.Items.Count(x => x.Status == "PUBLISHED").ToString("N0"), "On this page", "verified", "#10b981"),
+        new("Replaced", Model.Data.Items.Count(x => x.Status == "REPLACED").ToString("N0"), "On this page", "history", "#8b5cf6"),
+        new("Net salary", D.Money(Model.Data.Items.Sum(x => x.NetSalary)), "Payslips on this page", "payments", "#f59e0b")
+    })' />
+
+    <!-- Search and filters -->
+    <form method="get" asp-action="Index" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="keyword" name="Keyword" value="@Model.Query.Keyword" maxlength="200" placeholder="Search employee or payslip..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="Status">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
+                        @foreach (var s in new[] { "PUBLISHED", "REPLACED" })
+                        {
+                            <option value="@s" selected="@(Model.Query.Status == s)">@s</option>
+                        }
+                    </select></div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "PeriodFrom", "PeriodTo", "IncludeHistory" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field"><span>Period from</span><input aria-label="Period from" type="date" id="periodFrom" name="PeriodFrom" value="@Model.Query.PeriodFrom?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-field"><span>Period to</span><input aria-label="Period to" type="date" id="periodTo" name="PeriodTo" value="@Model.Query.PeriodTo?.ToString("yyyy-MM-dd")" /></label>
+                    <label class="ws-filter-check"><input aria-label="Include replaced payslip versions" type="checkbox" name="IncludeHistory" value="true" checked="@Model.Query.IncludeHistory" /><span>Include replaced payslip versions</span></label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
+
+    <!-- Payslips Table Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">receipt</span>
+                <h2 class="text-sm font-bold text-slate-900">Payslip Statements</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Data.TotalItems @(Model.Data.TotalItems == 1 ? "Statement" : "Statements")
+                </span>
+            </div>
+            <div class="text-xs text-slate-400 font-medium hidden sm:block">
+                Timezone: Vietnam (UTC+7)
+            </div>
+        </div>
+
+        @if (Model.Data.Items.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">receipt_long</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">No Payslips Found</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                    @(Model.Error == null ? "No published salary statements match your search criteria." : "Payslips are currently unavailable.")
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Employee</th>
+                            <th class="py-3.5 px-6">Period &amp; Branch</th>
+                            <th class="py-3.5 px-6">Version</th>
+                            <th class="py-3.5 px-6">Status</th>
+                            <th class="py-3.5 px-6 text-right">Net Salary</th>
+                            <th class="py-3.5 px-6">Published (UTC+7)</th>
+                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var p in Model.Data.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Employee -->
+                                <td class="py-4 px-6 font-semibold text-slate-900">
+                                    <div class="font-semibold text-slate-900">@p.EmployeeName</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">Staff ID: @p.UserId</div>
+                                </td>
+
+                                <!-- Period & Branch -->
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-slate-800">@p.PeriodCode • @p.BranchName</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">@p.PeriodStart.ToString("dd/MM/yyyy") – @p.PeriodEnd.ToString("dd/MM/yyyy")</div>
+                                </td>
+
+                                <!-- Version -->
+                                <td class="py-4 px-6 font-mono text-xs font-bold text-slate-700">
+                                    V@(p.VersionNo)
+                                </td>
+
+                                <!-- Status -->
+                                <td class="py-4 px-6">
+                                    @if (p.Status == "PUBLISHED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            PUBLISHED
+                                        </span>
+                                    }
+                                    else if (p.Status == "REPLACED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                            REPLACED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            @p.Status
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Net Salary -->
+                                <td class="py-4 px-6 text-right font-bold text-slate-900">
+                                    @D.Money(p.NetSalary)
+                                </td>
+
+                                <!-- Published At -->
+                                <td class="py-4 px-6 text-xs text-slate-600">
+                                    @D.Time(p.PublishedAt)
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-4 px-6 text-right">
+                                    <a asp-action="Details" asp-route-id="@p.PayslipId" class="ws-icon-action" title="View payslip" aria-label="View payslip"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.Error == null && ViewData.ModelState.IsValid)
+        {
+            <partial name="_ListPagination" model='@(new ListPaginationViewModel { PageNumber = Model.Data.Page, PageSize = Model.Data.PageSize, TotalItems = Model.Data.TotalItems, ItemLabel = "payslips" })' />
+        }
+    </div>
+</div>

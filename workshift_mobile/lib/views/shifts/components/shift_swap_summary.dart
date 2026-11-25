@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../models/shift_swap_model.dart';
+import '../../../models/shifts/shift_swap_model.dart';
 import '../../../theme/app_colors.dart';
 import '../../../widgets/status_badge.dart';
 import 'shift_display_format.dart';
@@ -13,6 +13,7 @@ class ShiftSwapStatusBadge extends StatelessWidget {
     'ACCEPTED' => StatusBadge.success(text: 'Accepted'),
     'REJECTED' => StatusBadge.rejected(text: 'Rejected'),
     'CANCELLED' => StatusBadge.neutral(text: 'Cancelled'),
+    'EXPIRED' => StatusBadge.neutral(text: 'Expired'),
     _ => StatusBadge.neutral(text: status),
   };
 }

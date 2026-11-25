@@ -1,0 +1,221 @@
+/* ========================================================
+   WorkShift – Manager Dashboard Enhancements
+   Weekly Schedule Operations, Daily Attendance & Requests
+   ======================================================== */
+
+.manager-dashboard .ad-stats {
+    margin-bottom: 22px;
+}
+
+/* ── Current Schedule Week Banner ──────────────────── */
+.md-week {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    border: 1px solid #e0e7ff;
+    border-radius: 16px;
+    padding: 26px 32px;
+    margin-bottom: 22px;
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #f8fafc 100%);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.md-week::after {
+    content: '';
+    position: absolute;
+    right: 180px;
+    top: -30px;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.md-week h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1e1b4b;
+    margin: 6px 0 4px;
+    letter-spacing: -.01em;
+}
+
+.md-week p {
+    color: #4338ca;
+    font-weight: 600;
+    font-size: 15px;
+    margin: 0;
+}
+
+.md-week small {
+    display: block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.md-week-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    color: #6366f1;
+    flex-shrink: 0;
+}
+
+.md-week-status .material-symbols-outlined {
+    font-size: 46px;
+    color: #4f46e5;
+    background: #ffffff;
+    padding: 12px;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.md-week-status > span:last-child:not(.material-symbols-outlined) {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #4f46e5;
+    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+
+.ms-dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #4f46e5;
+    text-decoration: none;
+    transition: color 0.15s ease, gap 0.15s ease;
+}
+
+.ms-dashboard-link:hover {
+    color: #3730a3;
+    gap: 8px;
+}
+
+/* ── Donut Chart ───────────────────────────────────── */
+.md-donut {
+    width: 200px;
+    aspect-ratio: 1;
+    flex: 0 0 200px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    margin-inline: auto;
+    box-shadow: 0 0 0 6px #f8fafc, 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.md-donut > div {
+    width: 130px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.md-donut strong {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.2;
+}
+
+.md-donut span {
+    font-size: 11.5px;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+/* ── Empty States ──────────────────────────────────── */
+.md-empty {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    padding: 28px 20px;
+    color: #64748b;
+}
+
+.md-empty > .material-symbols-outlined {
+    font-size: 32px;
+    background: #f1f5f9;
+    color: #64748b;
+    padding: 14px;
+    border-radius: 16px;
+    margin-bottom: 4px;
+}
+
+.md-empty strong {
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.md-empty p {
+    font-size: 12.5px;
+    max-width: 280px;
+    margin: 0;
+}
+
+.md-footnote {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid #f1f5f9;
+}
+
+/* ── Request Breakdown Rows ────────────────────────── */
+.md-request-row {
+    margin-top: 20px;
+}
+
+.md-request-row > div:first-child {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #1e293b;
+}
+
+.md-request-row small {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: #64748b;
+    margin-left: 6px;
+}
+
+@media(max-width: 600px) {
+    .md-week {
+        padding: 20px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .md-week h2 { font-size: 19px; }
+    .md-week-status { align-self: flex-start; flex-direction: row; }
+    .md-week-status .material-symbols-outlined { font-size: 32px; padding: 8px; }
+    .md-donut { width: 170px; flex-basis: 170px; }
+}

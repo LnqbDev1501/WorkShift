@@ -1,0 +1,178 @@
+@model UI_Admin.Models.Accountant.PayrollSettlement.CarryForwardListViewModel
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    ViewData["Title"] = "Carry Forward Deductions";
+}
+
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">trending_down</span>
+                <span>Payroll / Carry Forward Deductions</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Carry Forward Deductions</h1>
+            <p class="text-sm text-slate-500 mt-0.5">
+                Track deferred deduction balances carried forward and applied to future payroll periods.
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-controller="AccountantPayrollPeriods" asp-action="Index"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">calendar_month</span>
+                <span>Period Management</span>
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-3 shadow-sm">
+            <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+            <span class="font-medium">@Model.ErrorMessage</span>
+        </div>
+    }
+
+    <!-- Search & Filter Card (Manager Style) -->
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("Matching deductions", Model.Data.TotalItems.ToString("N0"), "Matching current filters", "next_plan"),
+        new("Open", Model.Data.Items.Count(x => x.Status == "OPEN").ToString("N0"), "On this page", "pending_actions"),
+        new("Partially applied", Model.Data.Items.Count(x => x.Status == "PARTIALLY_APPLIED").ToString("N0"), "On this page", "timelapse"),
+        new("Remaining balance", CurrencyHelper.FormatVnd(Model.Data.Items.Sum(x => x.RemainingAmount)), "On this page", "account_balance_wallet")
+    })' />
+    <form method="get" class="ws-list-filter" role="search">
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" id="keyword" name="Keyword" value="@Model.Query.Keyword" placeholder="Search employee name, ID, or deduction reason..." /></label>
+            <div class="ws-filter-field"><select aria-label="Status" id="status" name="Status">
+                        <option value="" selected="@(string.IsNullOrEmpty(Model.Query.Status))">All Statuses</option>
+                        <option value="OPEN" selected="@(Model.Query.Status == "OPEN")">OPEN (Unapplied)</option>
+                        <option value="PARTIALLY_APPLIED" selected="@(Model.Query.Status == "PARTIALLY_APPLIED")">PARTIALLY APPLIED</option>
+                        <option value="SETTLED" selected="@(Model.Query.Status == "SETTLED")">SETTLED (Fully Recovered)</option>
+                    </select></div>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
+
+    <!-- Table Card (Manager Style) -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-indigo-600 text-xl">account_balance</span>
+                <h2 class="text-sm font-bold text-slate-900">Carry Forward Records</h2>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    @Model.Data.TotalItems @(Model.Data.TotalItems == 1 ? "Record" : "Records")
+                </span>
+            </div>
+        </div>
+
+        @if (Model.Data.Items.Count == 0)
+        {
+            <div class="p-12 text-center">
+                <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <span class="material-symbols-outlined text-3xl">task_alt</span>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">No Carry Forward Deductions</h3>
+                <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">No unapplied or deferred deduction balances recorded at this time.</p>
+            </div>
+        }
+        else
+        {
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-6">Employee</th>
+                            <th class="py-3.5 px-6">Source Period</th>
+                            <th class="py-3.5 px-6">Original Deduction Source</th>
+                            <th class="py-3.5 px-6 text-right">Original</th>
+                            <th class="py-3.5 px-6 text-right">Deducted</th>
+                            <th class="py-3.5 px-6 text-right font-bold text-indigo-900">Remaining</th>
+                            <th class="py-3.5 px-6">Status</th>
+                            <th class="py-3.5 px-6 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        @foreach (var item in Model.Data.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <!-- Employee -->
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-900">@item.EmployeeName</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">Staff ID: @item.UserId</div>
+                                </td>
+
+                                <!-- Source Period -->
+                                <td class="py-4 px-6">
+                                    <div class="font-medium text-slate-800">@item.SourcePeriodCode</div>
+                                    <div class="text-xs text-slate-400 mt-0.5">Payroll #@item.SourcePayrollId · V@(item.SourcePayrollVersionNo)</div>
+                                </td>
+
+                                <!-- Deduction Source -->
+                                <td class="py-4 px-6 text-xs">
+                                    <div class="font-medium text-slate-800">@item.SourceDetailDescription</div>
+                                    <div class="text-slate-400 mt-0.5">@item.SourceDetailType • @item.Reason</div>
+                                </td>
+
+                                <!-- Original Amount -->
+                                <td class="py-4 px-6 text-right font-medium text-slate-700">
+                                    @D.Money(item.OriginalAmount)
+                                </td>
+
+                                <!-- Total Applied -->
+                                <td class="py-4 px-6 text-right font-semibold text-emerald-600">
+                                    @D.Money(item.TotalAppliedAmount)
+                                </td>
+
+                                <!-- Remaining Amount -->
+                                <td class="py-4 px-6 text-right font-bold text-slate-900">
+                                    @D.Money(item.RemainingAmount)
+                                </td>
+
+                                <!-- Status -->
+                                <td class="py-4 px-6">
+                                    @if (item.Status == "OPEN")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            OPEN
+                                        </span>
+                                    }
+                                    else if (item.Status == "PARTIALLY_APPLIED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            PARTIALLY APPLIED
+                                        </span>
+                                    }
+                                    else if (item.Status == "SETTLED")
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            SETTLED
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            @item.Status.Replace('_', ' ')
+                                        </span>
+                                    }
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-4 px-6 text-right">
+                                    <a asp-controller="AccountantCarryForward" asp-action="Details" asp-route-id="@item.CarryForwardId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.Data.Page,
+            PageSize = Model.Data.PageSize,
+            TotalItems = Model.Data.TotalItems,
+            ItemLabel = "carry-forward deductions",
+        })" />
+    </div>
+</div>

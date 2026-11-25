@@ -73,6 +73,37 @@ public class StaffProductController : ControllerBase
         }
     }
 
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(ProductDetailResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var actor = GetActorId();
+        if (actor == null)
+            return Problem(statusCode: StatusCodes.Status401Unauthorized, detail: "The authenticated user ID is invalid.");
+
+        try
+        {
+            var product = await _productService.GetByIdAsync(id, actor.Value);
+            if (product == null || product.Status != "ACTIVE")
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Status = StatusCodes.Status404NotFound,
+                    Title = "Not Found",
+                    Detail = "Product not found or not available in your branch."
+                });
+            }
+
+            return Ok(product);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, detail: exception.Message);
+        }
+    }
+
     private Guid? GetActorId()
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

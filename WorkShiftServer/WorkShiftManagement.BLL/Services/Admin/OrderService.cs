@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -51,11 +51,13 @@ public class OrderService : IOrderService
                 throw new ArgumentException("Payment status filter only accepts 'PAID', 'UNPAID', or 'PARTIAL'.");
         }
 
-        // Managers only see orders of their own branch.
-        // Accountants and Admins can filter by branch or see all.
-        int? branchId = actor.Role == "MANAGER" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
+        // Managers, Staff, and Accountants only see orders of their own branch.
+        // Admins can filter by branch or see all.
+        int? branchId = (actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT")
+            ? (actor.BranchId.HasValue ? actor.BranchId.Value : -1)
+            : query.BranchId is > 0 ? query.BranchId : null;
 
-        var (items, totalCount) = await _orderRepo.GetPagedAsync(
+        var (items, totalCount, paidCount, completedCount, totalOrderValue) = await _orderRepo.GetPagedAsync(
             query.Search,
             branchId,
             status,
@@ -63,14 +65,17 @@ public class OrderService : IOrderService
             query.DateFrom,
             query.DateTo,
             pageNumber,
-            pageSize);
+            pageSize, query.SortBy);
 
         return new PagedResponse<OrderResponse>
         {
             Items = items.Select(Map).ToList(),
             PageNumber = pageNumber,
             PageSize = pageSize,
-            TotalItems = totalCount
+            TotalItems = totalCount,
+            PaidCount = paidCount,
+            CompletedCount = completedCount,
+            TotalOrderValue = totalOrderValue
         };
     }
 
@@ -81,14 +86,14 @@ public class OrderService : IOrderService
 
         var actor = await GetActorAsync(actorId);
 
-        var data = actor.Role == "MANAGER" && actor.BranchId.HasValue
+        var data = (actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT") && actor.BranchId.HasValue
             ? await _orderRepo.GetByIdWithBranchAsync(id, actor.BranchId.Value)
             : await _orderRepo.GetByIdAsync(id);
 
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if ((actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT") && (!actor.BranchId.HasValue || data.BranchId != actor.BranchId.Value))
             return null;
 
         return MapDetail(data);
@@ -100,6 +105,13 @@ public class OrderService : IOrderService
         if (!actor.BranchId.HasValue)
             throw new UnauthorizedAccessException("Your account is not assigned to a branch.");
         var branchId = actor.BranchId.Value;
+
+        if (actor.Role == "STAFF")
+        {
+            var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
+            if (!inShift)
+                throw new InvalidOperationException("You must be in your shift and checked in to perform this action.");
+        }
 
         if (request == null)
             throw new ArgumentException("Request body cannot be null.");
@@ -242,7 +254,7 @@ public class OrderService : IOrderService
     public async Task<bool> UpdateStatusAsync(int id, string status, Guid actorId)
     {
         var actor = await GetActorAsync(actorId);
-        var branchId = actor.Role == "MANAGER" ? actor.BranchId.Value : (actor.BranchId ?? throw new UnauthorizedAccessException("User not assigned to a branch."));
+        var branchId = actor.BranchId ?? throw new UnauthorizedAccessException("User not assigned to a branch.");
         var normalizedStatus = status.Trim().ToUpperInvariant();
 
         if (!new[] { "PENDING", "COMPLETED", "CANCELLED" }.Contains(normalizedStatus))
@@ -252,9 +264,13 @@ public class OrderService : IOrderService
         if (existing == null)
             return false;
 
-        // Staff can complete their own orders
-        if (actor.Role == "STAFF" && existing.CreatedBy != actorId)
-            throw new UnauthorizedAccessException("You can only complete your own orders.");
+        // Staff and Managers can complete orders within their branch
+        if (actor.Role == "STAFF" && normalizedStatus == "COMPLETED")
+        {
+            var inShift = await _orderRepo.IsStaffInWorkingShiftAsync(actorId, branchId, DateTime.UtcNow);
+            if (!inShift)
+                throw new InvalidOperationException("You must be in your shift and checked in to perform this action.");
+        }
 
         if (normalizedStatus == "COMPLETED" && existing.PaymentStatus != "PAID")
             throw new InvalidOperationException("Order must be fully paid before it can be completed.");
@@ -272,14 +288,14 @@ public class OrderService : IOrderService
 
         var actor = await GetActorAsync(actorId);
 
-        var data = actor.Role == "MANAGER" && actor.BranchId.HasValue
+        var data = (actor.Role is "MANAGER" or "ACCOUNTANT") && actor.BranchId.HasValue
             ? await _orderRepo.GetByIdWithBranchAsync(0, actor.BranchId.Value) // We need GetByOrderNumberAsync
             : await _orderRepo.GetByOrderNumberAsync(orderNumber.Trim());
 
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if ((actor.Role is "MANAGER" or "ACCOUNTANT") && (!actor.BranchId.HasValue || data.BranchId != actor.BranchId.Value))
             return null;
 
         return MapDetail(data);
@@ -308,8 +324,8 @@ public class OrderService : IOrderService
 
                 page.Header().Column(col =>
                 {
-                    col.Item().Text("HÓA ĐƠN THANH TOÁN").Bold().FontSize(18).FontColor(Colors.Indigo.Darken3).AlignCenter();
-                    col.Item().Text($"Mã đơn: {order.OrderNumber}").FontSize(9).FontColor(Colors.Grey.Darken1).AlignCenter();
+                    col.Item().Text("CUSTOMER ORDER INVOICE").Bold().FontSize(18).FontColor(Colors.Indigo.Darken3).AlignCenter();
+                    col.Item().Text($"Order #: {order.OrderNumber}").FontSize(9).FontColor(Colors.Grey.Darken1).AlignCenter();
                     col.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Medium);
                 });
 
@@ -325,10 +341,10 @@ public class OrderService : IOrderService
                             cols.RelativeColumn();
                         });
 
-                        AddInfoRow(table, "Chi nhánh:", order.BranchName);
-                        AddInfoRow(table, "Ngày:", order.OrderDate.ToString("dd/MM/yyyy HH:mm"));
-                        AddInfoRow(table, "Nhân viên:", order.CreatedByName);
-                        AddInfoRow(table, "Trạng thái:", order.Status);
+                        AddInfoRow(table, "Branch:", order.BranchName);
+                        AddInfoRow(table, "Date:", order.OrderDate.ToString("dd/MM/yyyy HH:mm"));
+                        AddInfoRow(table, "Staff:", order.CreatedByName);
+                        AddInfoRow(table, "Status:", order.Status);
                     });
 
                     col.Item().PaddingTop(16).Table(table =>
@@ -339,16 +355,14 @@ public class OrderService : IOrderService
                             cols.RelativeColumn(2);
                             cols.RelativeColumn();
                             cols.RelativeColumn(2);
-                            cols.RelativeColumn(2);
                         });
 
                         table.Header(header =>
                         {
-                            header.Cell().Element(HeaderCell).Text("Sản phẩm").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Đơn giá").Bold();
+                            header.Cell().Element(HeaderCell).Text("Product").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Unit Price").Bold();
                             header.Cell().Element(HeaderCell).AlignCenter().Text("SL").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Giảm giá").Bold();
-                            header.Cell().Element(HeaderCell).AlignRight().Text("Thành tiền").Bold();
+                            header.Cell().Element(HeaderCell).AlignRight().Text("Total Amount").Bold();
                         });
 
                         foreach (var item in order.Items)
@@ -356,24 +370,23 @@ public class OrderService : IOrderService
                             table.Cell().Element(BodyCell).Text(item.ProductName);
                             table.Cell().Element(BodyCell).AlignRight().Text($"{item.UnitPrice:N0}");
                             table.Cell().Element(BodyCell).AlignCenter().Text(item.Quantity.ToString());
-                            table.Cell().Element(BodyCell).AlignRight().Text($"{item.DiscountAmount:N0}");
                             table.Cell().Element(BodyCell).AlignRight().Text($"{item.TotalAmount:N0}");
                         }
                     });
 
                     col.Item().PaddingTop(10).AlignRight().Column(totals =>
                     {
-                        totals.Item().Text($"Tạm tính: {order.Subtotal:N0} VNĐ").FontSize(10);
-                        totals.Item().Text($"Tổng cộng: {order.TotalAmount:N0} VNĐ").Bold().FontSize(13).FontColor(Colors.Indigo.Darken3);
+                        totals.Item().Text($"Subtotal: {order.Subtotal:N0} VND").FontSize(10);
+                        totals.Item().Text($"Total: {order.TotalAmount:N0} VND").Bold().FontSize(13).FontColor(Colors.Indigo.Darken3);
                     });
 
                     if (!string.IsNullOrWhiteSpace(order.Note))
                     {
-                        col.Item().PaddingTop(14).Text("Ghi chú:").Bold().FontSize(10);
+                        col.Item().PaddingTop(14).Text("Note:").Bold().FontSize(10);
                         col.Item().PaddingTop(3).Background(Colors.Grey.Lighten4).Padding(8).Text(order.Note).FontSize(9);
                     }
 
-                    col.Item().PaddingTop(20).Text("Cảm ơn quý khách đã sử dụng dịch vụ!").Italic().FontSize(9).FontColor(Colors.Grey.Darken1);
+                    col.Item().PaddingTop(20).Text("Thank you for your business!").Italic().FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
 
                 page.Footer().AlignCenter().Text(x =>
@@ -523,4 +536,18 @@ public class OrderService : IOrderService
         RecordedByName = payment.RecordedByName,
         RecordedAt = payment.RecordedAt
     };
+    public async Task<bool> IsStaffInWorkingShiftAsync(Guid staffId, Guid actorId, CancellationToken cancellationToken = default)
+    {
+        var actor = await GetActorAsync(actorId);
+        if (!actor.BranchId.HasValue)
+            return false;
+
+        return await _orderRepo.IsStaffInWorkingShiftAsync(staffId, actor.BranchId.Value, DateTime.UtcNow, cancellationToken);
+    }
+
+    public async Task<int> AutoCompletePastPendingOrdersAsync(CancellationToken cancellationToken = default)
+    {
+        var startOfTodayUtc = _orderRepo.GetStartOfTodayVnInUtc();
+        return await _orderRepo.AutoCompletePastPendingOrdersAsync(startOfTodayUtc, cancellationToken);
+    }
 }

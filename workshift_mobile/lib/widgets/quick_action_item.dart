@@ -9,6 +9,7 @@ class QuickActionItem extends StatelessWidget {
   final Color iconColor;
   final Color iconBgColor;
   final VoidCallback? onTap;
+  final bool isGrayedOut;
 
   const QuickActionItem({
     super.key,
@@ -18,15 +19,18 @@ class QuickActionItem extends StatelessWidget {
     required this.iconColor,
     required this.iconBgColor,
     this.onTap,
+    this.isGrayedOut = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface,
+      color: isGrayedOut ? const Color(0xFFF3F4F6) : AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(
+          color: isGrayedOut ? Colors.grey.shade300 : AppColors.border,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -41,36 +45,40 @@ class QuickActionItem extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(11),
                     decoration: BoxDecoration(
-                      color: iconBgColor,
+                      color: isGrayedOut ? Colors.grey.shade200 : iconBgColor,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(icon, color: iconColor, size: 24),
+                    child: Icon(
+                      icon,
+                      color: isGrayedOut ? Colors.grey.shade500 : iconColor,
+                      size: 24,
+                    ),
                   ),
                   const Spacer(),
-                  const Icon(
+                  Icon(
                     Icons.north_east_rounded,
                     size: 16,
-                    color: AppColors.textMuted,
+                    color: isGrayedOut ? Colors.grey.shade400 : AppColors.textMuted,
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.35,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: isGrayedOut ? Colors.grey.shade600 : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   height: 1.4,
-                  color: AppColors.textSecondary,
+                  color: isGrayedOut ? Colors.grey.shade500 : AppColors.textSecondary,
                 ),
               ),
             ],

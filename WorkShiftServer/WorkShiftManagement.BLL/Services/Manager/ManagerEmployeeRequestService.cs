@@ -13,6 +13,7 @@ using WorkShiftManagement.BLL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
 using WorkShiftManagement.DAL.Interfaces.Manager;
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
 namespace WorkShiftManagement.BLL.Services.Manager;
@@ -22,6 +23,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
     private readonly IManagerEmployeeRequestRepo _repo;
     private readonly INotificationRepo? _notificationRepo;
     private readonly INotificationRealtimePublisher? _realtimePublisher;
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly ILogger<ManagerEmployeeRequestService>? _logger;
 
     private static readonly HashSet<string> AllowedRequestTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -44,12 +46,14 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
         IManagerEmployeeRequestRepo repo,
         INotificationRepo? notificationRepo = null,
         INotificationRealtimePublisher? realtimePublisher = null,
-        ILogger<ManagerEmployeeRequestService>? logger = null)
+        ILogger<ManagerEmployeeRequestService>? logger = null,
+        IAdminRealtimePublisher? adminRealtimePublisher = null)
     {
         _repo = repo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<PagedResponse<ManagerEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -314,6 +318,34 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
             await BroadcastOpenShiftNotificationAsync(managerId, updated, cancellationToken);
         }
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "APPROVED",
+                    requestId = updated.RequestId,
+                    branchId = updated.BranchId
+                });
+
+                if (updated.RequestType == "LEAVE")
+                {
+                    await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "Shifts",
+                        action = "OPEN_SHIFT_CREATED",
+                        branchId = updated.BranchId
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for approved request #{RequestId}", requestId);
+            }
+        }
+
         return MapToDetailResponse(updated);
     }
 
@@ -347,6 +379,24 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         await SendManagerReviewNotificationToStaffAsync(managerId, updated, isApproved: false, request.ReviewNote);
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "REJECTED",
+                    requestId = updated.RequestId,
+                    branchId = updated.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for rejected request #{RequestId}", requestId);
+            }
+        }
+
         return MapToDetailResponse(updated);
     }
 
@@ -360,25 +410,30 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         try
         {
-            var typeVietnamese = TranslateRequestType(request.RequestType);
-            var title = isApproved
-                ? $"Yêu cầu #{request.RequestId} đã được phê duyệt"
-                : $"Yêu cầu #{request.RequestId} đã bị từ chối";
-
+            string title;
             string content;
-            if (isApproved)
+            if (request.RequestType == "SALARY_INCREASE")
             {
-                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã được Quản lý phê duyệt.";
-                if (!string.IsNullOrWhiteSpace(reviewNote))
+                if (isApproved)
                 {
-                    content += $" Ghi chú: {reviewNote.Trim()}";
+                    title = $"Salary Increase Request #{request.RequestId} Approved";
+                    content = $"Your salary increase request #{request.RequestId} has been approved by the Manager. Please note that this approval accepts your request; your current salary remains unchanged until an Admin approves the proposal and the effective date arrives.";
+                    if (!string.IsNullOrWhiteSpace(reviewNote)) content += $" Review note: {reviewNote.Trim()}";
+                }
+                else
+                {
+                    title = $"Salary Increase Request #{request.RequestId} Rejected";
+                    content = $"Your salary increase request #{request.RequestId} has been rejected by the Manager.";
+                    if (!string.IsNullOrWhiteSpace(reviewNote)) content += $" Reason: {reviewNote.Trim()}";
                 }
             }
             else
             {
-                content = $"Yêu cầu {typeVietnamese} #{request.RequestId} của bạn đã bị Quản lý từ chối. Lý do: {reviewNote?.Trim()}";
+                title = isApproved ? $"Request #{request.RequestId} Approved" : $"Request #{request.RequestId} Rejected";
+                content = isApproved
+                    ? $"Your {request.RequestType} request #{request.RequestId} has been approved by your Manager." + (!string.IsNullOrWhiteSpace(reviewNote) ? $" Review note: {reviewNote.Trim()}" : "")
+                    : $"Your {request.RequestType} request #{request.RequestId} has been rejected by your Manager." + (!string.IsNullOrWhiteSpace(reviewNote) ? $" Reason: {reviewNote.Trim()}" : "");
             }
-
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity
@@ -390,9 +445,9 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                TargetType = "Custom",
+                TargetType = "Staff",
                 TargetBranchId = null,
-                TargetRoles = new List<string> { "STAFF" },
+                TargetRoles = new List<string>(),
                 Channels = new List<string> { "InApp" }
             };
 
@@ -426,11 +481,11 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
     private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
     {
-        "LEAVE" => "xin nghỉ phép",
-        "LATE_ARRIVAL" => "xin đi muộn",
-        "EARLY_LEAVE" => "xin về sớm",
-        "SALARY_INCREASE" => "xin tăng lương",
-        _ => requestType ?? "khác"
+        "LEAVE" => "Leave",
+        "LATE_ARRIVAL" => "Late Arrival",
+        "EARLY_LEAVE" => "Early Leave",
+        "SALARY_INCREASE" => "Salary Increase",
+        _ => requestType ?? "Other"
     };
 
     private async Task<int> GetActiveBranchIdAsync(Guid managerId, CancellationToken cancellationToken)
@@ -581,7 +636,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
         try
         {
-            // Lấy danh sách nhân viên cùng chi nhánh, cùng vị trí (loại trừ người xin nghỉ)
+            // Get staff members in same branch and employee type (excluding requester)
             var eligibleStaffIds = await _repo.GetEligibleStaffUserIdsAsync(
                 request.BranchId,
                 employeeTypeId.Value,
@@ -590,10 +645,10 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
 
             if (eligibleStaffIds.Count == 0) return;
 
-            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "nhân viên";
+            var employeeTypeName = request.User?.EmployeeType?.TypeName ?? "staff member";
             var now = DateTime.UtcNow;
 
-            // Mỗi ca được giải phóng slot trong đơn nghỉ sẽ tạo 1 thông báo Open Shift
+            // Create 1 Open Shift notification for each slot freed up by approved leave
             foreach (var lra in request.LeaveRequestAssignments)
             {
                 var shift = lra.Assignment?.Shift;
@@ -603,8 +658,8 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                 var endVn = shift.ScheduledEndAt.AddHours(7);
                 var shiftName = shift.ShiftNameSnapshot;
 
-                var title = "📢 Ca làm việc cần người làm thay";
-                var content = $"Ca {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) ngày {startVn:dd/MM/yyyy} đang cần 1 {employeeTypeName} làm thay. Nhấn để xem và nhận ca!";
+                var title = "📢 Shift Available for Replacement";
+                var content = $"Shift {shiftName} ({startVn:HH:mm} - {endVn:HH:mm}) on {startVn:dd/MM/yyyy} needs 1 {employeeTypeName} as replacement. Tap to view and pick up!";
 
                 var notification = new NotificationEntity
                 {
@@ -617,7 +672,7 @@ public class ManagerEmployeeRequestService : IManagerEmployeeRequestService
                     IsDeleted = false,
                     TargetType = "Custom",
                     TargetBranchId = null,
-                    TargetRoles = new List<string> { "STAFF" },
+                    TargetRoles = new List<string>(),
                     Channels = new List<string> { "InApp" }
                 };
 

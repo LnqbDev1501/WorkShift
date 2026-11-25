@@ -7,4 +7,38 @@ public interface IBranchSalesReportService
         DateTime? dateFrom,
         DateTime? dateTo,
         CancellationToken cancellationToken = default);
+
+    Task<byte[]> GenerateManagerBranchSalesReportAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
+
+    Task<int?> GetUserBranchIdAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    Task<(int BranchId, string BranchName, int TotalOrders)> GetManagerBranchSalesSummaryAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
+
+    Task<(int BranchId, string BranchName, int TotalOrders)> GetBranchSalesSummaryAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
+
+    Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetManagerBranchSalesAnalyticsAsync(
+        Guid managerId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
+
+    Task<WorkShiftManagement.DAL.Interfaces.Accountant.BranchSalesAnalyticsData> GetBranchSalesAnalyticsAsync(
+        int branchId,
+        DateTime? dateFrom,
+        DateTime? dateTo,
+        CancellationToken cancellationToken = default);
 }

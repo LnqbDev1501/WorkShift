@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,7 +26,8 @@ public class StaffEmploymentContractService(
     INotificationRealtimePublisher? realtimePublisher = null,
     INotificationEmailSender? emailSender = null,
     ILogger<StaffEmploymentContractService>? logger = null,
-    IConfiguration? configuration = null) : IStaffEmploymentContractService
+    IConfiguration? configuration = null,
+    IAdminRealtimePublisher? adminRealtimePublisher = null) : IStaffEmploymentContractService
 {
     private readonly ICloudinaryService? _cloudinaryService = cloudinaryService;
 
@@ -105,20 +107,28 @@ public class StaffEmploymentContractService(
         string? cannotAcceptReason = null;
         if (isPending && isPastStart)
         {
-            cannotAcceptReason = "Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.";
+            cannotAcceptReason = "The contract start date has passed. The contract can no longer be accepted.";
         }
 
         var openCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
-        bool isContractChangeable = isPending || string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase);
+        bool isContractChangeable = isPending;
         bool canSubmitChangeRequest = isContractChangeable && openCr == null;
         string? cannotSubmitChangeRequestReason = null;
         if (openCr != null)
         {
-            cannotSubmitChangeRequestReason = "Hợp đồng đã có một yêu cầu thay đổi đang được xử lý.";
+            cannotSubmitChangeRequestReason = "This contract already has a change request under review.";
         }
         else if (!isContractChangeable)
         {
-            cannotSubmitChangeRequestReason = "Chỉ có thể gửi yêu cầu thay đổi cho hợp đồng đang chờ ký (PENDING_STAFF) hoặc đang có hiệu lực (ACTIVE).";
+            cannotSubmitChangeRequestReason = "Only contracts awaiting acceptance (PENDING_STAFF) can have change requests. ACTIVE contracts cannot be changed through this process.";
+        }
+
+        decimal? regionalMinWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+            ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+        if (!regionalMinWage.HasValue || regionalMinWage.Value <= 0)
+        {
+            regionalMinWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, contract.StartDate, cancellationToken)
+                ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, contract.StartDate, cancellationToken);
         }
 
         return new StaffContractDetailResponse
@@ -139,6 +149,7 @@ public class StaffEmploymentContractService(
             BranchAddress = !string.IsNullOrWhiteSpace(contract.BranchAddressSnapshot) ? contract.BranchAddressSnapshot : (contract.Branch?.Address ?? string.Empty),
             RegionId = contract.RegionId,
             RegionName = !string.IsNullOrWhiteSpace(contract.RegionNameSnapshot) ? contract.RegionNameSnapshot : (contract.Region?.RegionName ?? string.Empty),
+            RegionalMinimumWage = regionalMinWage,
             CreatedByManagerName = contract.CreatedByNavigation?.FullName,
             CreatedAt = contract.CreatedAt,
             SentToStaffAt = contract.SentToStaffAt,
@@ -172,7 +183,7 @@ public class StaffEmploymentContractService(
         var todayVn = GetCurrentVietnamDate();
         if (todayVn > contract.StartDate)
         {
-            throw new InvalidOperationException("Hợp đồng đã quá ngày bắt đầu. Không thể chấp nhận hợp đồng khi ngày hiện tại đã sau ngày bắt đầu.");
+            throw new InvalidOperationException("The contract start date has passed. The contract can no longer be accepted.");
         }
 
         var newStatus = (todayVn == contract.StartDate) ? "ACTIVE" : "SCHEDULED";
@@ -186,8 +197,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Nhân viên đã chấp nhận hợp đồng",
-                Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã chấp nhận hợp đồng lao động {contract.ContractNumber}. Trạng thái hợp đồng: {newStatus}.",
+                Title = "Staff Accepted Employment Contract",
+                Content = $"{contract.EmployeeFullNameSnapshot} has accepted employment contract {contract.ContractNumber}. Contract status: {newStatus}.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -198,6 +209,38 @@ public class StaffEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
+
+            if (realtimePublisher != null)
+            {
+                try
+                {
+                    await realtimePublisher.PublishAsync(contract.CreatedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "StaffAcceptContract",
+                        contractId,
+                        contractNumber = contract.ContractNumber,
+                        status = newStatus,
+                        staffName = contract.EmployeeFullNameSnapshot
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -216,28 +259,36 @@ public class StaffEmploymentContractService(
             throw new ArgumentException("ContractId must be greater than 0.");
 
         if (request.Items == null || request.Items.Count == 0)
-            throw new ArgumentException("Phải có ít nhất một trường thông tin yêu cầu thay đổi.");
+            throw new ArgumentException("At least one field change is required.");
 
         if (request.Items.GroupBy(x => x.FieldName.Trim().ToLowerInvariant()).Any(g => g.Count() > 1))
-            throw new ArgumentException("Mỗi trường thông tin chỉ được gửi yêu cầu thay đổi một lần trong cùng một yêu cầu.");
+            throw new ArgumentException("Each field can appear only once in a change request.");
 
         var contract = await repository.GetStaffContractByIdAsync(contractId, staffUserId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại hoặc không thuộc quyền sở hữu của bạn.");
+            throw new KeyNotFoundException("The contract was not found or does not belong to you.");
 
-        var allowedStatuses = new[] { "PENDING_STAFF", "ACTIVE" };
+        var allowedStatuses = new[] { "PENDING_STAFF" };
         if (!allowedStatuses.Contains(contract.Status, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Không thể gửi yêu cầu thay đổi cho hợp đồng ở trạng thái {contract.Status}.");
+            throw new InvalidOperationException($"Cannot request changes to a contract with status {contract.Status}. Only PENDING_STAFF contracts can have change requests.");
 
         var existingCr = await repository.GetOpenChangeRequestByContractIdAsync(contractId, cancellationToken);
         if (existingCr != null)
-            throw new InvalidOperationException("Hợp đồng này đang có một yêu cầu thay đổi chưa hoàn tất.");
+            throw new InvalidOperationException("This contract already has an unresolved change request.");
 
         var now = DateTime.UtcNow;
         var cleanRequestType = (!string.IsNullOrWhiteSpace(request.RequestType) &&
             string.Equals(request.RequestType.Trim(), "ACCEPTANCE", StringComparison.OrdinalIgnoreCase))
             ? "ACCEPTANCE"
             : "CHANGE_REQUEST";
+
+        // Extract proposed start date if any, to check minimum wage against it
+        DateOnly effectiveStartDate = contract.StartDate;
+        var startDateItem = request.Items.FirstOrDefault(x => string.Equals(x.FieldName.Trim(), "StartDate", StringComparison.OrdinalIgnoreCase));
+        if (startDateItem != null && DateOnly.TryParse(startDateItem.ProposedValue.Trim(), out var parsedProposedStart))
+        {
+            effectiveStartDate = parsedProposedStart;
+        }
 
         var changeRequest = new ContractChangeRequest
         {
@@ -261,7 +312,35 @@ public class StaffEmploymentContractService(
                 var isMatched = validPositions.Any(p => string.Equals(p, item.ProposedValue.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (!isMatched)
                 {
-                    throw new ArgumentException($"Vị trí '{item.ProposedValue}' không hợp lệ hoặc không có trong danh mục vị trí hoạt động của hệ thống.");
+                    throw new ArgumentException($"Position '{item.ProposedValue}' is invalid or is not an active position.");
+                }
+            }
+            else if (string.Equals(cleanField, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(cleanField, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!decimal.TryParse(item.ProposedValue.Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var proposedRate) &&
+                    !decimal.TryParse(item.ProposedValue.Trim(), out proposedRate))
+                {
+                    throw new ArgumentException("Proposed hourly rate must be a valid number.");
+                }
+
+                if (proposedRate <= 0)
+                {
+                    throw new ArgumentException("Proposed hourly rate must be greater than 0.");
+                }
+
+                decimal? minWage = contract.Region?.RegionalMinimumWage?.MinimumHourlyRate
+                    ?? contract.Branch?.Region?.RegionalMinimumWage?.MinimumHourlyRate;
+
+                if (!minWage.HasValue || minWage.Value <= 0)
+                {
+                    minWage = await repository.GetRegionalMinimumWageAsync(contract.RegionId, effectiveStartDate, cancellationToken)
+                        ?? await repository.GetBranchRegionalMinimumWageAsync(contract.BranchId, effectiveStartDate, cancellationToken);
+                }
+
+                if (minWage.HasValue && minWage.Value > 0 && proposedRate < minWage.Value)
+                {
+                    throw new ArgumentException($"Proposed hourly rate ({proposedRate:#,##0} VND/hour) cannot be lower than the regional minimum wage ({minWage.Value:#,##0} VND/hour).");
                 }
             }
 
@@ -271,7 +350,7 @@ public class StaffEmploymentContractService(
                 "enddate" => contract.EndDate?.ToString("yyyy-MM-dd"),
                 "employeeposition" or "position" => contract.EmployeePositionSnapshot,
                 "contractterms" or "terms" => contract.ContractTerms,
-                "hourlyrate" => contract.HourlyRate.ToString("F2"),
+                "hourlyrate" => contract.HourlyRate % 1 == 0 ? contract.HourlyRate.ToString("0") : contract.HourlyRate.ToString("0.##"),
                 _ => null
             };
 
@@ -294,8 +373,8 @@ public class StaffEmploymentContractService(
             var notification = new WorkShiftManagement.DAL.Entities.Notification
             {
                 NotificationType = "SYSTEM",
-                Title = "Yêu cầu thay đổi hợp đồng từ nhân viên",
-                Content = $"Nhân viên {contract.EmployeeFullNameSnapshot} đã gửi yêu cầu thay đổi hợp đồng {contract.ContractNumber}. Vui lòng xem xét và phản hồi.",
+                Title = "Employment Contract Change Request",
+                Content = $"{contract.EmployeeFullNameSnapshot} has submitted a request to adjust the terms of contract {contract.ContractNumber}. Please review and respond.",
                 CreatedBy = staffUserId,
                 TargetBranchId = contract.BranchId,
                 TargetType = "Branch",
@@ -306,6 +385,38 @@ public class StaffEmploymentContractService(
                 IsDeleted = false
             };
             await repository.AddNotificationAsync(notification, new[] { contract.CreatedBy }, cancellationToken);
+
+            if (realtimePublisher != null)
+            {
+                try
+                {
+                    await realtimePublisher.PublishAsync(contract.CreatedBy, new RealtimeNotificationResponse
+                    {
+                        NotificationId = notification.NotificationId,
+                        Title = notification.Title,
+                        Message = notification.Content,
+                        CreatedAt = notification.CreatedAt
+                    });
+                }
+                catch { }
+            }
+
+            if (adminRealtimePublisher != null)
+            {
+                try
+                {
+                    await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                    {
+                        resource = "EmploymentContracts",
+                        action = "SubmitChangeRequest",
+                        contractId,
+                        changeRequestId = changeRequest.ChangeRequestId,
+                        contractNumber = contract.ContractNumber,
+                        staffName = contract.EmployeeFullNameSnapshot
+                    });
+                }
+                catch { }
+            }
         }
         catch
         {
@@ -322,10 +433,10 @@ public class StaffEmploymentContractService(
 
         var contract = await repository.GetByIdAsync(contractId, cancellationToken);
         if (contract == null)
-            throw new KeyNotFoundException("Hợp đồng lao động không tồn tại.");
+            throw new KeyNotFoundException("Employment contract not found.");
 
         if (contract.UserId != staffUserId)
-            throw new UnauthorizedAccessException("Bạn chỉ có thể xem yêu cầu thay đổi hợp đồng của chính mình.");
+            throw new UnauthorizedAccessException("You can only view your own contract change requests.");
 
         var list = await repository.GetChangeRequestsByContractIdAsync(contractId, cancellationToken);
         return list.Select(MapToChangeRequestResponse).ToList();
@@ -338,10 +449,10 @@ public class StaffEmploymentContractService(
 
         var cr = await repository.GetChangeRequestByIdAsync(changeRequestId, cancellationToken);
         if (cr == null)
-            throw new KeyNotFoundException("Yêu cầu thay đổi hợp đồng không tồn tại.");
+            throw new KeyNotFoundException("Contract change request not found.");
 
         if (cr.RequestedBy != staffUserId && cr.Contract.UserId != staffUserId)
-            throw new UnauthorizedAccessException("Bạn chỉ có thể xem yêu cầu thay đổi hợp đồng của chính mình.");
+            throw new UnauthorizedAccessException("You can only view your own contract change requests.");
 
         return MapToChangeRequestResponse(cr);
     }
@@ -368,26 +479,31 @@ public class StaffEmploymentContractService(
         var hasActive = await repository.HasActiveContractForShiftRegistrationAsync(staffUserId, branchId, scheduledStartAtUtc, scheduledEndAtUtc, cancellationToken);
         if (!hasActive)
         {
-            throw new InvalidOperationException("Bạn không thể đăng ký ca làm việc này. Bạn phải có hợp đồng lao động đang ở trạng thái ACTIVE, thuộc chi nhánh của ca và nằm trong thời hạn hiệu lực của hợp đồng (kể cả giờ bắt đầu và kết thúc ca). Hợp đồng SCHEDULED hoặc PENDING chưa cho phép đăng ký ca.");
+            throw new InvalidOperationException("Shift registration requires an ACTIVE contract for the shift's branch covering the entire shift. SCHEDULED or PENDING contracts do not allow registration.");
         }
     }
 
     public async Task<int> ActivateDueScheduledContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
-        return await repository.ActivateDueScheduledContractsAsync(todayVn, cancellationToken);
+        var count = await repository.ActivateDueScheduledContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(count, "ACTIVATED");
+        return count;
     }
 
     public async Task<int> ExpireDueContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
-        return await repository.ExpireDueContractsAsync(todayVn, cancellationToken);
+        var count = await repository.ExpireDueContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(count, "EXPIRED");
+        return count;
     }
 
     public async Task<int> CancelOverduePendingContractsAsync(CancellationToken cancellationToken = default)
     {
         var todayVn = GetCurrentVietnamDate();
         var result = await repository.CancelOverduePendingContractsAsync(todayVn, cancellationToken);
+        await PublishContractChangesAsync(result.CancelledCount, "AUTO_CANCELLED");
 
         if (result.Dispatches != null && result.Dispatches.Count > 0)
         {
@@ -444,6 +560,13 @@ public class StaffEmploymentContractService(
         return result.CancelledCount;
     }
 
+    private async Task PublishContractChangesAsync(int count, string action)
+    {
+        if (count > 0 && adminRealtimePublisher != null)
+            await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "EmploymentContracts", action });
+    }
+
     private static DateOnly GetCurrentVietnamDate()
     {
         var utcNow = DateTimeOffset.UtcNow;
@@ -477,11 +600,26 @@ public class StaffEmploymentContractService(
             {
                 ChangeRequestItemId = i.ChangeRequestItemId,
                 FieldName = i.FieldName,
-                OriginalValue = DeserializeJsonString(i.OriginalValue),
-                ProposedValue = DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue,
+                OriginalValue = CleanRateString(i.FieldName, DeserializeJsonString(i.OriginalValue)),
+                ProposedValue = CleanRateString(i.FieldName, DeserializeJsonString(i.ProposedValue) ?? i.ProposedValue) ?? string.Empty,
                 Reason = i.Reason
             }).ToList()
         };
+    }
+
+    private static string? CleanRateString(string? fieldName, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return value;
+        if (string.Equals(fieldName, "HourlyRate", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(fieldName, "hourly_rate", StringComparison.OrdinalIgnoreCase))
+        {
+            if (decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var d) ||
+                decimal.TryParse(value, out d))
+            {
+                return d % 1 == 0 ? d.ToString("0") : d.ToString("0.##");
+            }
+        }
+        return value;
     }
 
     private static string? DeserializeJsonString(string? json)

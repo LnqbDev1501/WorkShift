@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using System.Text.Json;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
@@ -6,18 +7,33 @@ using WorkShiftManagement.BLL.Interfaces.Staff;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Interfaces.Staff;
+using WorkShiftManagement.DAL.Repositories.Staff;
+using WorkShiftManagement.DAL.Policies.Shifts;
 using static WorkShiftManagement.BLL.Helpers.ShiftAssignmentRules;
 using static WorkShiftManagement.BLL.Helpers.StaffAccountRules;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
 
 public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftRepo staffRepo,
-    IShiftAssignmentRepo assignments) : IStaffShiftSwapService
+    IShiftAssignmentRepo assignments, IAdminRealtimePublisher? adminRealtimePublisher = null) : IStaffShiftSwapService
 {
+    public Task<int> ExpireDueAsync(CancellationToken ct = default) => ExpirePendingAsync(null, ct);
+
+    private async Task<int> ExpirePendingAsync(Guid? actor, CancellationToken ct)
+    {
+        var count = await repo.ExpirePendingAsync(actor, DateTime.UtcNow, ct);
+        if (count > 0 && adminRealtimePublisher != null)
+            await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "ShiftSwaps", action = "EXPIRED" });
+        return count;
+    }
+
     public async Task<List<StaffShiftSwapCandidateResponse>> GetCandidatesAsync(Guid actor, int sourceAssignmentId, CancellationToken ct = default)
     {
         ValidateId(sourceAssignmentId);
         var staff = await GetActorAsync(actor, ct);
+        await ValidateContractAccessAsync(staff, ct);
+        await ExpirePendingAsync(actor, ct);
         var source = await repo.FindAssignmentAsync(sourceAssignmentId, ct)
             ?? throw new KeyNotFoundException("Your shift assignment was not found.");
         if (source.UserId != actor) throw new UnauthorizedAccessException("You can only offer your own assignment.");
@@ -27,7 +43,8 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         ValidateSwappableAssignment(source, staff.BranchId!.Value);
         if (await repo.HasPendingAsync(sourceAssignmentId, sourceAssignmentId, ct))
             throw new InvalidOperationException("Your shift already has a pending swap request.");
-        var candidates = await repo.GetCandidateAssignmentsAsync(actor, staff.BranchId!.Value, staff.EmployeeTypeId.Value, ct);
+        var candidates = await repo.GetCandidateAssignmentsAsync(actor, staff.BranchId!.Value,
+            staff.EmployeeTypeId.Value, source.Shift.ScheduleWeekId, ct);
         var result = new List<StaffShiftSwapCandidateResponse>();
         foreach (var target in candidates)
         {
@@ -51,12 +68,13 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         if (query.PageNumber < 1 || query.PageSize is < 1 or > 100 || (long)(query.PageNumber - 1) * query.PageSize > int.MaxValue)
             throw new ArgumentException("Page number must be positive and page size must be between 1 and 100.");
         var status = Normalize(query.Status);
-        if (status != null && status is not ("PENDING" or "ACCEPTED" or "REJECTED" or "CANCELLED"))
-            throw new ArgumentException("Status must be PENDING, ACCEPTED, REJECTED, or CANCELLED.");
+        if (status != null && status is not ("PENDING" or "ACCEPTED" or "REJECTED" or "CANCELLED" or "EXPIRED"))
+            throw new ArgumentException("Status must be PENDING, ACCEPTED, REJECTED, CANCELLED, or EXPIRED.");
         var direction = Normalize(query.Direction) ?? "ALL";
         if (direction is not ("ALL" or "SENT" or "RECEIVED"))
             throw new ArgumentException("Direction must be ALL, SENT, or RECEIVED.");
         await GetActorAsync(actor, ct);
+        await ExpirePendingAsync(actor, ct);
         var (items, total) = await repo.GetPagedAsync(actor, status, direction, query.PageNumber, query.PageSize, ct);
         return new()
         {
@@ -69,6 +87,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
     {
         ValidateId(requestId);
         await GetActorAsync(actor, ct);
+        await ExpirePendingAsync(actor, ct);
         return Map(await FindAsync(actor, requestId, ct));
     }
 
@@ -81,7 +100,9 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
             throw new ArgumentException("Source and target assignments must be different.");
         var reason = CleanNote(request.Reason);
         var staff = await GetActorAsync(actor, ct);
+        await ValidateContractAccessAsync(staff, ct);
         var branchId = staff.BranchId!.Value;
+        await ExpirePendingAsync(actor, ct);
         var result = await repo.ExecuteAsync(request.SourceAssignmentId, request.TargetAssignmentId, null,
             async (source, target, _) =>
             {
@@ -128,6 +149,7 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         ValidateId(requestId);
         var staff = await GetActorAsync(actor, ct);
         var branchId = staff.BranchId!.Value;
+        await ExpirePendingAsync(actor, ct);
         var reference = await FindAsync(actor, requestId, ct);
         var result = await repo.ExecuteAsync(reference.SourceAssignmentId, reference.TargetAssignmentId, requestId,
             async (source, target, swap) =>
@@ -137,19 +159,25 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
                 if (actor != authorizedUser)
                     throw new UnauthorizedAccessException(status == "CANCELLED"
                         ? "Only the requester can cancel this swap." : "Only the target staff member can respond to this swap.");
+                if (swap.Status == "EXPIRED") throw new InvalidOperationException("This shift swap request has expired.");
                 if (swap.Status != "PENDING") throw new InvalidOperationException("Only PENDING swap requests can be changed.");
                 // Revalidate the actor inside the transaction, including after a branch transfer.
                 var lockedActor = await staffRepo.GetStaffAsync(actor, ct)
                     ?? throw new UnauthorizedAccessException("Staff account not found.");
                 ValidateStaff(lockedActor, branchId);
                 var oldValue = JsonSerializer.Serialize(Map(swap));
+                swap.SourceAssignment = source;
+                swap.TargetAssignment = target;
+                if (ExpireIfDue(actor, swap, oldValue)) return swap;
                 if (status == "ACCEPTED")
                 {
                     if (source.UserId != swap.RequesterId || target.UserId != swap.TargetUserId)
                         throw new InvalidOperationException("Assignment ownership has changed. Submit a new swap request.");
-                    ValidatePair(source, target, branchId);
+                    ValidatePair(source, target, branchId, requireAdvanceNotice: false);
                     await ValidateIncomingShiftAsync(source.UserId, source.Shift, target.Shift, ct);
                     await ValidateIncomingShiftAsync(target.UserId, target.Shift, source.Shift, ct);
+                    // Eligibility queries can cross the deadline. Check again before changing either owner.
+                    if (ExpireIfDue(actor, swap, oldValue)) return swap;
                     SwapOwners(actor, source, target);
                 }
                 swap.SourceAssignment = source;
@@ -167,34 +195,48 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
                 }, swap, oldValue);
                 return swap;
             }, ct);
+        // Throw after ExecuteAsync commits, otherwise the EXPIRED transition would be rolled back.
+        if (result.Status == "EXPIRED") throw new InvalidOperationException("This shift swap request has expired.");
         return Map(result);
     }
 
-    private static void ValidatePair(ShiftAssignment source, ShiftAssignment target, int branchId)
+    private bool ExpireIfDue(Guid actor, ShiftSwapRequest swap, string oldValue)
+    {
+        if (!ShiftSwapExpiryPolicy.TryExpire(swap, DateTime.UtcNow)) return false;
+        repo.Audit(actor, "EXPIRE_SHIFT_SWAP", swap, oldValue);
+        return true;
+    }
+
+    private static void ValidatePair(ShiftAssignment source, ShiftAssignment target, int branchId, bool requireAdvanceNotice = true)
     {
         if (source.UserId == target.UserId || source.ShiftId == target.ShiftId)
             throw new InvalidOperationException("A swap requires different staff members and different shifts.");
+        if (source.Shift.ScheduleWeekId != target.Shift.ScheduleWeekId)
+            throw new InvalidOperationException("Both shifts must belong to the same schedule week.");
         ValidateStaff(source.User, branchId);
         ValidateStaff(target.User, branchId);
         if (!source.User.EmployeeTypeId.HasValue || source.User.EmployeeType?.Status != "ACTIVE" ||
             target.User.EmployeeType?.Status != "ACTIVE" || source.User.EmployeeTypeId != target.User.EmployeeTypeId)
             throw new InvalidOperationException("Both staff members must have the same active employee type.");
-        ValidateSwappableAssignment(source, branchId);
-        ValidateSwappableAssignment(target, branchId);
+        ValidateSwappableAssignment(source, branchId, requireAdvanceNotice);
+        ValidateSwappableAssignment(target, branchId, requireAdvanceNotice);
         // The database enforces uniqueness even for cancelled assignments; do not overwrite their history.
         if (source.Shift.ShiftAssignments.Any(a => a.UserId == target.UserId) ||
             target.Shift.ShiftAssignments.Any(a => a.UserId == source.UserId))
             throw new InvalidOperationException("A staff member already has assignment history in the incoming shift.");
     }
 
-    private static void ValidateSwappableAssignment(ShiftAssignment assignment, int branchId)
+    private static void ValidateSwappableAssignment(ShiftAssignment assignment, int branchId, bool requireAdvanceNotice = true)
     {
         var shift = assignment.Shift;
         if (assignment.Status != "ASSIGNED" || shift.Status != "SCHEDULED" ||
             shift.ScheduleWeek.Status is not ("OPEN_REGISTRATION" or "REGISTRATION_CLOSED") ||
-            shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt < DateTime.UtcNow.AddHours(24) ||
+            shift.ScheduleWeek.BranchId != branchId || shift.ScheduledStartAt <= DateTime.UtcNow ||
+            (requireAdvanceNotice && shift.ScheduledStartAt < DateTime.UtcNow.AddHours(24)) ||
             shift.ScheduledEndAt <= shift.ScheduledStartAt)
-            throw new InvalidOperationException("Both shifts must be scheduled and assigned, in this branch, and start at least 24 hours from now.");
+            throw new InvalidOperationException(requireAdvanceNotice
+                ? "Both shifts must be scheduled and assigned, in this branch, and start at least 24 hours from now."
+                : "Both shifts must be scheduled and assigned, in this branch, and must not have started.");
         if (assignment.Attendance != null || assignment.PayslipWorkDetails.Any() ||
             assignment.LeaveRequestAssignments.Any() || assignment.TimeAdjustmentRequestDetails.Any())
             throw new InvalidOperationException("Assignments with attendance, payroll, or employee request history cannot be swapped.");
@@ -206,6 +248,10 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
 
     private async Task ValidateIncomingShiftAsync(Guid staffId, WorkShift outgoing, WorkShift incoming, CancellationToken ct)
     {
+        if (!await staffRepo.HasRegistrationContractAsync(staffId, incoming.ScheduleWeek.BranchId,
+            incoming.ShiftId, DateTime.UtcNow, ct))
+            throw new InvalidOperationException("Both staff members must have an accepted, ACTIVE employment contract that is effective now and covers the entire incoming shift.");
+
         var first = DateOnly.FromDateTime(incoming.ScheduledStartAt.AddHours(7));
         var last = DateOnly.FromDateTime(incoming.ScheduledEndAt.AddTicks(-1).AddHours(7));
         var others = (await assignments.GetStaffShiftsAsync(staffId, ToUtc(StartOfWeek(first)),
@@ -237,6 +283,12 @@ public sealed class StaffShiftSwapService(IStaffShiftSwapRepo repo, IStaffShiftR
         }
         assignments.Audit(actor, "SWAP_SHIFT_ASSIGNMENT", source, oldSource);
         assignments.Audit(actor, "SWAP_SHIFT_ASSIGNMENT", target, oldTarget);
+    }
+
+    private async Task ValidateContractAccessAsync(User staff, CancellationToken ct)
+    {
+        if (!await staffRepo.HasActiveContractAsync(staff.UserId, staff.BranchId!.Value, DateTime.UtcNow, ct))
+            throw new InvalidOperationException(StaffShiftContractPolicy.AccessBlockedReason);
     }
 
     private async Task<User> GetActorAsync(Guid actor, CancellationToken ct)

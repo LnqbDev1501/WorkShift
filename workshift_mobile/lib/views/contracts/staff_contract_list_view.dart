@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../controllers/staff_contract_controller.dart';
-import '../../models/staff_contract_model.dart';
+import '../../controllers/contracts/staff_contract_controller.dart';
+import '../../models/contracts/staff_contract_model.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/status_badge.dart';
 import 'staff_contract_detail_view.dart';
@@ -11,10 +11,7 @@ import 'staff_contract_detail_view.dart';
 class StaffContractListView extends StatefulWidget {
   final bool showBackButton;
 
-  const StaffContractListView({
-    super.key,
-    this.showBackButton = true,
-  });
+  const StaffContractListView({super.key, this.showBackButton = true});
 
   @override
   State<StaffContractListView> createState() => _StaffContractListViewState();
@@ -64,8 +61,12 @@ class _StaffContractListViewState extends State<StaffContractListView> {
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
-      initialDateRange: _controller.startDateFrom != null && _controller.startDateTo != null
-          ? DateTimeRange(start: _controller.startDateFrom!, end: _controller.startDateTo!)
+      initialDateRange:
+          _controller.startDateFrom != null && _controller.startDateTo != null
+          ? DateTimeRange(
+              start: _controller.startDateFrom!,
+              end: _controller.startDateTo!,
+            )
           : null,
       helpText: 'SELECT CONTRACT START DATE RANGE',
     );
@@ -96,14 +97,21 @@ class _StaffContractListViewState extends State<StaffContractListView> {
         elevation: 0.5,
         leading: widget.showBackButton
             ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textPrimary, size: 20),
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: AppColors.textPrimary,
+                  size: 20,
+                ),
                 onPressed: () => Navigator.pop(context),
               )
             : null,
         actions: [
           IconButton(
             tooltip: 'Refresh',
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+            ),
             onPressed: () => _controller.loadContracts(refresh: true),
           ),
         ],
@@ -128,11 +136,22 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                       onChanged: _onSearchChanged,
                       decoration: InputDecoration(
                         hintText: 'Search contract no, position, branch...',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        hintStyle: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: AppColors.textMuted,
+                        ),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textMuted),
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   _controller.setSearchQuery('');
@@ -140,7 +159,9 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
                       ),
                       style: const TextStyle(fontSize: 14),
                     ),
@@ -154,14 +175,18 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                       tooltip: 'Filter by start date',
                       icon: Icon(
                         Icons.calendar_month_outlined,
-                        color: _controller.startDateFrom != null ? AppColors.primary : AppColors.textPrimary,
+                        color: _controller.startDateFrom != null
+                            ? AppColors.primary
+                            : AppColors.textPrimary,
                         size: 22,
                       ),
                       style: IconButton.styleFrom(
                         backgroundColor: _controller.startDateFrom != null
                             ? AppColors.primaryLight
                             : const Color(0xFFF1F5F9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                       onPressed: _showDateFilterDialog,
                     ),
@@ -215,11 +240,17 @@ class _StaffContractListViewState extends State<StaffContractListView> {
               color: AppColors.primary,
               child: isLoading
                   ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                        strokeWidth: 2.5,
+                      ),
                     )
                   : ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       children: [
                         // Shift Registration Policy Card (matching web Index.cshtml)
                         _buildShiftPolicyNotice(),
@@ -270,7 +301,11 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                 SizedBox(height: 3),
                 Text(
                   'Staff can only register for and receive shifts when their contract is accepted and active (or scheduled with a valid start date). Contracts in pending acceptance, cancelled, or terminated status are not eligible for shift assignments.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF1E40AF), height: 1.35),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF1E40AF),
+                    height: 1.35,
+                  ),
                 ),
               ],
             ),
@@ -315,12 +350,20 @@ class _StaffContractListViewState extends State<StaffContractListView> {
               color: Color(0xFFEFF6FF),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.verified_user_outlined, size: 48, color: AppColors.primary),
+            child: const Icon(
+              Icons.verified_user_outlined,
+              size: 48,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(height: 16),
           const Text(
             'No employment contracts found',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -328,7 +371,10 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                 ? 'No contracts match your current filter criteria.'
                 : 'You currently have no employment contracts issued by your manager.',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 20),
           if (_controller.hasActiveFilters)
@@ -342,7 +388,9 @@ class _StaffContractListViewState extends State<StaffContractListView> {
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
                 side: const BorderSide(color: AppColors.primary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
         ],
@@ -370,7 +418,9 @@ class _StaffContractListViewState extends State<StaffContractListView> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: item.isPendingStaff ? AppColors.warning.withValues(alpha: 0.6) : AppColors.borderLight,
+            color: item.isPendingStaff
+                ? AppColors.warning.withValues(alpha: 0.6)
+                : AppColors.borderLight,
             width: item.isPendingStaff ? 1.5 : 1,
           ),
           boxShadow: [
@@ -393,8 +443,8 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                     color: item.isPendingStaff
                         ? AppColors.warningBg
                         : item.isActive
-                            ? AppColors.successBg
-                            : const Color(0xFFEFF6FF),
+                        ? AppColors.successBg
+                        : const Color(0xFFEFF6FF),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(
@@ -402,8 +452,8 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                     color: item.isPendingStaff
                         ? AppColors.warning
                         : item.isActive
-                            ? const Color(0xFF059669)
-                            : AppColors.primary,
+                        ? const Color(0xFF059669)
+                        : AppColors.primary,
                     size: 20,
                   ),
                 ),
@@ -423,7 +473,11 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                       const SizedBox(height: 2),
                       Text(
                         item.employeePosition,
-                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -440,11 +494,21 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Hourly Rate', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      const Text(
+                        'Hourly Rate',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         item.formattedHourlyRate,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF047857)),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF047857),
+                        ),
                       ),
                     ],
                   ),
@@ -453,11 +517,21 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Contract Period', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      const Text(
+                        'Contract Period',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         '${_formatDate(item.startDate)} - ${item.endDate != null ? _formatDate(item.endDate) : "Indefinite"}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ],
                   ),
@@ -469,19 +543,29 @@ class _StaffContractListViewState extends State<StaffContractListView> {
             // Footer: Branch & Actions
             Row(
               children: [
-                const Icon(Icons.storefront_outlined, size: 15, color: AppColors.textMuted),
+                const Icon(
+                  Icons.storefront_outlined,
+                  size: 15,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     item.branchName,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (item.isPendingStaff) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.warning,
                       borderRadius: BorderRadius.circular(8),
@@ -493,7 +577,11 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                         SizedBox(width: 4),
                         Text(
                           'Sign Contract',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
@@ -501,9 +589,17 @@ class _StaffContractListViewState extends State<StaffContractListView> {
                 ] else ...[
                   const Text(
                     'View Details',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  const Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primary),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
                 ],
               ],
             ),

@@ -1,0 +1,764 @@
+@model UI_Admin.Models.Manager.Requests.ManagerEmployeeRequestDetailViewModel
+@using UI_Admin.Helpers
+
+@{
+    Layout = "_ManagerLayout";
+    ViewData["Title"] = $"Request Details REQ-{Model.RequestId}";
+    var reqType = Model.RequestType?.ToUpperInvariant() ?? "";
+    var statusUpper = Model.Status?.ToUpperInvariant() ?? "";
+    var isPending = statusUpper == "PENDING";
+
+    var backUrl = !string.IsNullOrWhiteSpace(Model.ReturnUrl) && Url.IsLocalUrl(Model.ReturnUrl)
+        ? Model.ReturnUrl
+        : Url.Action("Index", "ManagerEmployeeRequests");
+
+    // Primary shift info
+    string primaryShiftName = "Shift";
+    string primaryTimeRange = "Schedule details";
+    DateTime? minDate = null;
+    DateTime? maxDate = null;
+
+    if (reqType == "LEAVE" && Model.LeaveAssignments != null && Model.LeaveAssignments.Any())
+    {
+        var firstShift = Model.LeaveAssignments.First();
+        primaryShiftName = string.IsNullOrWhiteSpace(firstShift.ShiftName) ? "Leave Shift" : firstShift.ShiftName;
+        primaryTimeRange = DateTimeHelper.FormatShiftTimeRange(firstShift.ScheduledStartAt, firstShift.ScheduledEndAt);
+        minDate = Model.LeaveAssignments.Min(s => s.ScheduledStartAt);
+        maxDate = Model.LeaveAssignments.Max(s => s.ScheduledEndAt);
+    }
+    else if (Model.TimeAdjustmentDetail != null)
+    {
+        var tard = Model.TimeAdjustmentDetail;
+        primaryShiftName = string.IsNullOrWhiteSpace(tard.ShiftName) ? "Assigned Shift" : tard.ShiftName;
+        primaryTimeRange = DateTimeHelper.FormatShiftTimeRange(tard.ScheduledStartAt, tard.ScheduledEndAt);
+        minDate = tard.ScheduledStartAt;
+        maxDate = tard.ScheduledEndAt;
+    }
+
+    var reqTypeDisplay = reqType switch
+    {
+        "LEAVE" => "Annual Leave of Absence",
+        "LATE_ARRIVAL" => "Late Arrival Schedule Adjustment",
+        "EARLY_LEAVE" => "Early Departure Schedule Adjustment",
+        "SALARY_INCREASE" => "Salary Increase Request",
+        _ => Model.RequestType
+    };
+}
+
+<div class="flex flex-col w-full gap-5 px-7 py-6 mx-auto" style="max-width: 1496px;">
+
+    <!-- Top Breadcrumbs & Back Navigation -->
+    <div class="flex flex-col gap-3">
+        <div class="flex items-center">
+            <a href="@backUrl" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all border border-slate-200 shadow-sm">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                <span>Back to Employee Requests</span>
+            </a>
+        </div>
+        <nav class="flex items-center gap-1.5 text-xs text-secondary font-medium">
+            <a asp-controller="ManagerDashboard" asp-action="Index" class="hover:text-primary transition-colors">Workspace</a>
+            <span class="text-secondary/60">/</span>
+            <span class="text-secondary">Employee Management</span>
+            <span class="text-secondary/60">/</span>
+            <a href="@backUrl" class="hover:text-primary transition-colors">Employee Requests</a>
+            <span class="text-secondary/60">/</span>
+            <span class="text-on-surface font-semibold">REQ-@Model.RequestId</span>
+        </nav>
+    </div>
+
+    <!-- Title Row & Top Decision Buttons (Image 3) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+        <div class="flex flex-wrap items-center gap-3">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">Request Details: REQ-@Model.RequestId</h1>
+
+            <!-- Status Badge (Image 3) -->
+            @switch (statusUpper)
+            {
+                case "PENDING":
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>Pending Manager Review
+                    </span>
+                    break;
+                case "APPROVED":
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>Approved
+                    </span>
+                    break;
+                case "REJECTED":
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>Rejected
+                    </span>
+                    break;
+                case "CANCELLED":
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>Cancelled
+                    </span>
+                    break;
+                default:
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+                        @Model.Status
+                    </span>
+                    break;
+            }
+
+            <!-- Type Pill Badge (Image 3) -->
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                @reqTypeDisplay
+            </span>
+        </div>
+
+        <!-- Top Right Action Buttons (Image 3) -->
+        @if (isPending)
+        {
+            <div class="flex items-center gap-2.5 shrink-0">
+                <button type="button" onclick="openRejectModal()"
+                        class="h-10 px-4 rounded-xl border border-surface-container-high bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 text-on-surface font-semibold text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer">
+                    <span class="material-symbols-outlined text-[16px] text-rose-600">close</span>
+                    <span>Reject</span>
+                </button>
+                <button type="button" onclick="openApproveModal()"
+                        class="h-10 px-5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-purple-200 cursor-pointer">
+                    <span class="material-symbols-outlined text-[18px]">check</span>
+                    <span>Approve Request</span>
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Review Status Alert Banner if Already Processed -->
+    @if (statusUpper == "REJECTED")
+    {
+        <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-rose-600 text-[22px] mt-0.5 shrink-0">cancel</span>
+            <div class="w-full">
+                <p class="font-bold text-rose-900 text-sm">Request has been rejected</p>
+                <p class="text-rose-700 text-xs mt-0.5">
+                    Reviewed by <strong class="font-semibold">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Branch Manager" : Model.ReviewerFullName)</strong>
+                    @if (Model.ReviewedAt.HasValue)
+                    {
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString()</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                {
+                    <div class="mt-2 text-xs text-rose-900 bg-white/80 p-3 rounded-xl border border-rose-200 leading-relaxed">
+                        <strong>Rejection Reason:</strong> @Model.ReviewNote
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (statusUpper == "APPROVED")
+    {
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+            <span class="material-symbols-outlined text-emerald-600 text-[22px] mt-0.5 shrink-0">check_circle</span>
+            <div class="w-full">
+                <p class="font-bold text-emerald-900 text-sm">Request has been approved</p>
+                @if (reqType == "SALARY_INCREASE")
+                {
+                    <p class="text-emerald-800 text-sm mt-2">Manager acceptance does not change the salary. Create a proposal for Admin approval and a future effective date.</p>
+                    <a asp-controller="ManagerSalaryChanges" asp-action="Create" asp-route-employeeRequestId="@Model.RequestId"
+                       class="inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-xl bg-emerald-700 text-white font-semibold text-sm">
+                        <span class="material-symbols-outlined text-[18px]">trending_up</span>Create proposal for Admin
+                    </a>
+                }
+                <p class="text-emerald-700 text-xs mt-0.5">
+                    Approved by <strong class="font-semibold">@(string.IsNullOrWhiteSpace(Model.ReviewerFullName) ? "Branch Manager" : Model.ReviewerFullName)</strong>
+                    @if (Model.ReviewedAt.HasValue)
+                    {
+                        <span> on @Model.ReviewedAt.ToVnDateTimeString()</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(Model.ReviewNote))
+                {
+                    <div class="mt-2 text-xs text-emerald-900 bg-white/80 p-3 rounded-xl border border-emerald-200 leading-relaxed">
+                        <strong>Manager Approval Note:</strong> @Model.ReviewNote
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Main Content 2-Column Grid (Image 3) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- ================= LEFT COLUMN (8 cols): Staff Info, Request Overview, History ================= -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+
+            <!-- Card 1: Staff & Request Details (Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm relative overflow-hidden">
+                <!-- Staff Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-surface-container-high/40">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span class="font-extrabold text-base sm:text-lg text-on-surface">@Model.EmployeeFullName</span>
+                            <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-surface-container-low text-secondary border border-surface-container-high/60">STF-@Model.RequestId</span>
+                        </div>
+                        <span class="text-xs text-secondary mt-0.5">Staff • @Model.BranchName (@Model.BranchCode)</span>
+                    </div>
+
+                    <!-- Submission Date on Top Right (Image 3) -->
+                    <div class="flex flex-col sm:text-right">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Submission Date</span>
+                        <span class="text-xs font-semibold text-on-surface mt-0.5">@Model.CreatedAt.ToVnDateTimeString()</span>
+                    </div>
+                </div>
+
+                <!-- 2-Box Key Info Grid (Image 3) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                    <!-- Box 1: REQUEST TYPE -->
+                    <div class="p-4 rounded-xl bg-surface-container-lowest border border-surface-container-high/60 flex flex-col gap-1.5 shadow-2xs">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Request Type</span>
+                        <div class="flex items-center gap-2 text-on-surface font-bold text-sm">
+                            <span class="material-symbols-outlined text-[18px] text-purple-600">@(reqType == "SALARY_INCREASE" ? "payments" : "event_busy")</span>
+                            <span>@reqTypeDisplay</span>
+                        </div>
+                    </div>
+
+                    <!-- Box 2: SHIFT SLOT IMPACTED OR PROPOSED HOURLY RATE -->
+                    <div class="p-4 rounded-xl bg-surface-container-lowest border border-surface-container-high/60 flex flex-col gap-1.5 shadow-2xs">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">@(reqType == "SALARY_INCREASE" ? "Proposed Hourly Rate" : "Shift Slot Impacted")</span>
+                        <div class="flex items-center gap-2 text-on-surface font-bold text-sm">
+                            <span class="material-symbols-outlined text-[18px] text-purple-600">@(reqType == "SALARY_INCREASE" ? "trending_up" : "schedule")</span>
+                            @if (reqType == "SALARY_INCREASE")
+                            {
+                                <span class="text-blue-700 font-extrabold text-base">@(Model.SalaryIncreaseDetail != null ? $"{CurrencyHelper.FormatVnd(Model.SalaryIncreaseDetail.ProposedHourlyRate)}/hr" : "Pending")</span>
+                            }
+                            else
+                            {
+                                <span>@primaryShiftName (@primaryTimeRange)</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REQUESTED DURATION / TIME ROW OR SALARY INCREASE DETAILS -->
+                @if (reqType == "SALARY_INCREASE" && Model.SalaryIncreaseDetail != null)
+                {
+                    var sid = Model.SalaryIncreaseDetail;
+                    var diff = sid.ProposedHourlyRate - sid.CurrentHourlyRate;
+                    var percent = sid.CurrentHourlyRate > 0 ? ((diff / sid.CurrentHourlyRate) * 100).ToString("F1") : null;
+                    <div class="mt-4 p-4 rounded-xl bg-blue-50/70 border border-blue-200 flex flex-col gap-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-blue-900">Active Contract &amp; Salary Adjustment</span>
+                            @if (!string.IsNullOrWhiteSpace(sid.ContractNumber))
+                            {
+                                <span class="text-xs font-bold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full border border-blue-200">
+                                    Contract: @sid.ContractNumber
+                                </span>
+                            }
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div class="flex items-center gap-2.5">
+                                <span class="material-symbols-outlined text-[20px] text-slate-500">attach_money</span>
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-secondary block">Current Hourly Rate</span>
+                                    <span class="text-sm font-semibold text-on-surface">@(sid.CurrentHourlyRate > 0 ? $"{CurrencyHelper.FormatVnd(sid.CurrentHourlyRate)}/hr" : "Not specified")</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <span class="material-symbols-outlined text-[20px] text-blue-600">trending_up</span>
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">Proposed Hourly Rate</span>
+                                    <span class="text-base font-extrabold text-blue-800">@($"{CurrencyHelper.FormatVnd(sid.ProposedHourlyRate)}/hr")</span>
+                                </div>
+                            </div>
+                        </div>
+                        @if (sid.CurrentHourlyRate > 0 && diff > 0)
+                        {
+                            <div class="mt-1 pt-2 border-t border-blue-200/60 flex items-center gap-2 text-xs text-blue-700 font-semibold">
+                                <span class="material-symbols-outlined text-[16px] text-blue-600">add_circle</span>
+                                <span>Requested Increase: <strong>+@($"{CurrencyHelper.FormatVnd(diff)}/hr")</strong> (+@percent%)</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="mt-4 p-4 rounded-xl bg-surface-container-lowest border border-surface-container-high/60 flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Requested Duration</span>
+                            @if (reqType == "LEAVE")
+                            {
+                                <span class="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
+                                    @(Model.LeaveAssignments?.Count ?? 1) rostered shift(s)
+                                </span>
+                            }
+                        </div>
+
+                        <div class="flex items-center gap-2 text-on-surface text-sm font-semibold mt-0.5">
+                            <span class="material-symbols-outlined text-[18px] text-secondary">calendar_month</span>
+                            @if (minDate.HasValue && maxDate.HasValue)
+                            {
+                                <span>@minDate.Value.ToString("dddd, MMM dd, yyyy") — @maxDate.Value.ToString("dddd, MMM dd, yyyy")</span>
+                            }
+                            else
+                            {
+                                <span>@Model.CreatedAt.ToString("dddd, MMM dd, yyyy")</span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <!-- If Time Adjustment Detail (Late Arrival / Early Departure) -->
+                @if (reqType is "LATE_ARRIVAL" or "EARLY_LEAVE" && Model.TimeAdjustmentDetail != null)
+                {
+                    var tard = Model.TimeAdjustmentDetail;
+                    var isLate = reqType == "LATE_ARRIVAL";
+                    <div class="mt-4 p-4 rounded-xl @(isLate ? "bg-amber-50/60 border-amber-200" : "bg-purple-50/60 border-purple-200") border flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-[24px] @(isLate ? "text-amber-600" : "text-purple-600")">
+                                @(isLate ? "more_time" : "timer_off")
+                            </span>
+                            <div>
+                                <span class="text-xs font-bold uppercase tracking-wider @(isLate ? "text-amber-800" : "text-purple-800")">
+                                    @(isLate ? "Requested Arrival Time" : "Requested Departure Time")
+                                </span>
+                                <div class="text-xs text-secondary mt-0.5">Applicable Date: @tard.RequestedTime.ToVnDateString()</div>
+                            </div>
+                        </div>
+                        <div class="text-xl font-extrabold @(isLate ? "text-amber-900" : "text-purple-900") tabular-nums">
+                            @tard.RequestedTime.ToVnTimeString()
+                        </div>
+                    </div>
+                }
+
+                <!-- STAFF REASON & COVERAGE REMARKS (Image 3 Quote Box) -->
+                <div class="mt-5">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-secondary block mb-2">Staff Reason &amp; Coverage Remarks</span>
+                    <div class="relative bg-surface-container-low/70 rounded-xl p-4.5 text-on-surface text-sm leading-relaxed border border-surface-container-high/50 font-normal">
+                        <span class="text-2xl text-secondary/40 font-serif leading-none select-none">“</span>
+                        <span class="italic text-on-surface">@(string.IsNullOrWhiteSpace(Model.Reason) ? "No detailed reason provided." : Model.Reason)</span>
+                        <span class="text-2xl text-secondary/40 font-serif leading-none select-none">”</span>
+                    </div>
+                </div>
+
+                <!-- Detailed Shift List if Multiple Shifts -->
+                @if (reqType == "LEAVE" && Model.LeaveAssignments != null && Model.LeaveAssignments.Count > 1)
+                {
+                    <div class="mt-5 pt-4 border-t border-surface-container-high/40">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-secondary block mb-2.5">Applicable Shifts Covered (@Model.LeaveAssignments.Count total)</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            @foreach (var shift in Model.LeaveAssignments)
+                            {
+                                <div class="p-3 rounded-xl bg-surface-container-low/50 border border-surface-container-high/60 flex items-center justify-between text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <span class="material-symbols-outlined text-[16px] text-purple-600">work</span>
+                                        <span class="font-bold text-on-surface">@shift.ShiftName</span>
+                                    </div>
+                                    <span class="text-secondary font-mono">@DateTimeHelper.FormatShiftTimeRange(shift.ScheduledStartAt, shift.ScheduledEndAt)</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+
+            <!-- Card 2: Employee Request History (Audit trail for this request - Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm">
+                <div class="flex items-center justify-between pb-3.5 mb-3.5 border-b border-surface-container-high/40">
+                    <div>
+                        <h2 class="font-extrabold text-base text-on-surface">Employee Request History</h2>
+                        <p class="text-xs text-secondary mt-0.5">Audit trail for this request</p>
+                    </div>
+                    <div class="w-8 h-8 rounded-xl bg-surface-container-low flex items-center justify-center text-secondary border border-surface-container-high/60">
+                        <span class="material-symbols-outlined text-[18px]">history</span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-surface-container-low text-secondary uppercase tracking-wider font-semibold border-b border-surface-container-high/50">
+                                <th class="px-4 py-2.5">Date &amp; Time</th>
+                                <th class="px-4 py-2.5">Action</th>
+                                <th class="px-4 py-2.5">Performed By</th>
+                                <th class="px-4 py-2.5">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-container-high/40">
+                            @if (Model.History != null && Model.History.Any())
+                            {
+                                foreach (var log in Model.History)
+                                {
+                                    var actUpper = log.Action?.ToUpperInvariant() ?? "";
+                                    var badgeClass = actUpper switch
+                                    {
+                                        "SUBMIT" or "SUBMITTED" => "bg-blue-50 text-blue-700 border-blue-200",
+                                        "APPROVE" or "APPROVED" => "bg-emerald-50 text-emerald-700 border-emerald-200",
+                                        "REJECT" or "REJECTED" => "bg-rose-50 text-rose-700 border-rose-200",
+                                        "CANCEL" or "CANCELLED" => "bg-slate-100 text-slate-700 border-slate-300",
+                                        _ => "bg-purple-50 text-purple-700 border-purple-200"
+                                    };
+
+                                    <tr class="hover:bg-surface-container-low/40 transition-colors">
+                                        <td class="px-4 py-3 font-mono text-secondary whitespace-nowrap">@log.PerformedAt.ToVnDateTimeString()</td>
+                                        <td class="px-4 py-3">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold border @badgeClass">
+                                                @(string.IsNullOrWhiteSpace(log.Action) ? "Validated" : log.Action)
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-3 font-semibold text-on-surface">
+                                            @(string.IsNullOrWhiteSpace(log.PerformedByName) ? "System" : log.PerformedByName)
+                                            @if (!string.IsNullOrWhiteSpace(log.RoleName))
+                                            {
+                                                <span class="text-secondary font-normal text-[11px]">(@log.RoleName)</span>
+                                            }
+                                        </td>
+                                        <td class="px-4 py-3 text-secondary">
+                                            @(string.IsNullOrWhiteSpace(log.ReviewNote) ? "—" : log.ReviewNote)
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr class="hover:bg-surface-container-low/40 transition-colors">
+                                    <td class="px-4 py-3 font-mono text-secondary whitespace-nowrap">@Model.CreatedAt.ToVnDateTimeString()</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            Submitted
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 font-semibold text-on-surface">
+                                        @Model.EmployeeFullName <span class="text-secondary font-normal text-[11px]">(Self)</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-secondary">
+                                        Initial submission via WorkShift Mobile App
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Card 3: Selected Staff Member's Previous Requests (Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm">
+                <div class="flex items-center justify-between pb-3.5 mb-3.5 border-b border-surface-container-high/40">
+                    <div>
+                        <h2 class="font-extrabold text-base text-on-surface">Selected Staff Member's Previous Requests</h2>
+                        <p class="text-xs text-secondary mt-0.5">Past requests from @Model.EmployeeFullName in current quarter</p>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-surface-container-low text-secondary border border-surface-container-high/60">
+                        Q4 2026
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-surface-container-low text-secondary uppercase tracking-wider font-semibold border-b border-surface-container-high/50">
+                                <th class="px-4 py-2.5">Request ID</th>
+                                <th class="px-4 py-2.5">Type</th>
+                                <th class="px-4 py-2.5">Date Range</th>
+                                <th class="px-4 py-2.5">Status</th>
+                                <th class="px-4 py-2.5">Action Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-container-high/40">
+                            <tr class="hover:bg-purple-50/40 transition-colors">
+                                <td class="px-4 py-3 font-mono font-bold text-purple-700">REQ-@Model.RequestId</td>
+                                <td class="px-4 py-3 font-medium text-on-surface">@reqTypeDisplay</td>
+                                <td class="px-4 py-3 text-secondary">@(minDate?.ToString("MMM dd, yyyy") ?? Model.CreatedAt.ToString("MMM dd, yyyy"))</td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                        @Model.Status
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-secondary">@Model.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ================= RIGHT COLUMN (4 cols): Policy Rules, Roster Coverage, Decision Actions ================= -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+
+            <!-- Card 1: Request Limit & Policy Rules (Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm flex flex-col gap-4">
+                <div class="flex items-center justify-between pb-3 border-b border-surface-container-high/40">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[20px] text-purple-600">verified_user</span>
+                        <h2 class="font-extrabold text-sm text-on-surface">Request Limit &amp; Policy Rules</h2>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Rule Applied</span>
+                    <span class="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-surface-container-low text-secondary border border-surface-container-high/60">
+                        RLR-@(Model.AppliedRule?.RuleId ?? 901)
+                    </span>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-on-surface">Monthly Leave of Absence Limit</h3>
+                </div>
+
+                <!-- Progress Bar Box (Image 3) -->
+                @{
+                    var maxAllowed = Model.AppliedRule?.MaxRequestsPerMonth ?? 3;
+                    var usedCount = 1;
+                    var remainingCount = Math.Max(0, maxAllowed - usedCount);
+                    var percentUsed = Math.Clamp((int)((double)usedCount / maxAllowed * 100), 10, 100);
+                }
+                <div class="p-4 rounded-xl bg-surface-container-low/60 border border-surface-container-high/60 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="text-secondary font-medium">Current Usage</span>
+                        <span class="font-bold text-on-surface">@usedCount / @maxAllowed used</span>
+                    </div>
+
+                    <!-- Visual Progress Bar -->
+                    <div class="w-full h-2 rounded-full bg-surface-container-high/70 overflow-hidden">
+                        <div class="h-full rounded-full bg-indigo-600 transition-all duration-300" style="width: @percentUsed%;"></div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[11px] text-secondary mt-1">
+                        <span>Allowed: @maxAllowed requests/mo</span>
+                        <span class="text-emerald-700 font-bold">@remainingCount remaining</span>
+                    </div>
+                </div>
+
+                <!-- Status Badge (Image 3) -->
+                <div>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                        <span>Within Limit (@remainingCount remaining)</span>
+                    </span>
+                </div>
+
+                <!-- Verification Checklist (Image 3) -->
+                <div class="flex flex-col gap-2.5 pt-2 border-t border-surface-container-high/40 text-xs text-secondary">
+                    <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-emerald-600 shrink-0 mt-0.5">check_circle</span>
+                        <span>Target dates meet the branch advance notice requirement.</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-emerald-600 shrink-0 mt-0.5">check_circle</span>
+                        <span>No overlapping approved requests found on duty roster.</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="material-symbols-outlined text-[16px] text-emerald-600 shrink-0 mt-0.5">check_circle</span>
+                        <span>Employee is in good standing with branch attendance policy.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Roster Coverage Preview (Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm flex flex-col gap-4">
+                <div class="flex items-center justify-between pb-3 border-b border-surface-container-high/40">
+                    <div>
+                        <h2 class="font-extrabold text-sm text-on-surface">Roster Coverage Preview</h2>
+                        <p class="text-[11px] text-secondary mt-0.5">@Model.BranchName Schedule Overview</p>
+                    </div>
+                </div>
+
+                <!-- Slot 1: Morning -->
+                <div class="p-3.5 rounded-xl bg-surface-container-low/60 border border-surface-container-high/60 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-on-surface">07:00 - 15:00 (Morning)</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            Potential Gap (-1)
+                        </span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full bg-surface-container-high/70 overflow-hidden">
+                        <div class="h-full rounded-full bg-purple-600" style="width: 50%;"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-secondary">
+                        <span>2/4 Active</span>
+                        <span class="text-amber-700 font-semibold">1 Pending Approval</span>
+                    </div>
+                </div>
+
+                <!-- Slot 2: Evening -->
+                <div class="p-3.5 rounded-xl bg-surface-container-low/60 border border-surface-container-high/60 flex flex-col gap-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-on-surface">15:00 - 23:00 (Evening)</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Full (4/4)
+                        </span>
+                    </div>
+                    <div class="w-full h-1.5 rounded-full bg-surface-container-high/70 overflow-hidden">
+                        <div class="h-full rounded-full bg-emerald-600" style="width: 100%;"></div>
+                    </div>
+                    <div class="flex items-center justify-between text-[11px] text-secondary">
+                        <span>4 Active</span>
+                        <span class="text-emerald-700 font-semibold">0 Vacant</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Decision Actions (Image 3) -->
+            <div class="bg-white rounded-2xl p-6 border border-surface-container-high/70 shadow-sm flex flex-col gap-3">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-secondary">Decision Actions</span>
+
+                @if (isPending)
+                {
+                    <button type="button" onclick="openApproveModal()"
+                            class="w-full h-11 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm shadow-purple-200 cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                        <span>Approve Leave Request</span>
+                    </button>
+                    <button type="button" onclick="openRejectModal()"
+                            class="w-full h-11 px-4 rounded-xl border border-surface-container-high bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700 text-on-surface font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer">
+                        <span class="material-symbols-outlined text-[18px] text-rose-600">cancel</span>
+                        <span>Reject Request</span>
+                    </button>
+                }
+                else
+                {
+                    <div class="p-3.5 rounded-xl bg-surface-container-low text-xs text-secondary flex items-center gap-2">
+                        <span class="material-symbols-outlined text-[18px] text-primary">task_alt</span>
+                        <span>This request has already been finalized as <strong>@Model.Status</strong>.</span>
+                    </div>
+                }
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Approve Modal -->
+<div id="approveModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-surface-container-high p-6 flex flex-col gap-4 animate-scale-up">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[24px]">check_circle</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-on-surface">Confirm Approval</h3>
+                <p class="text-xs text-secondary">Approve employee request #@Model.RequestId</p>
+            </div>
+        </div>
+
+        <form id="approveForm" method="post" asp-controller="ManagerEmployeeRequests" asp-action="Approve" asp-route-id="@Model.RequestId" class="flex flex-col gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+
+            <div>
+                <label for="approveReviewNote" class="text-xs font-semibold text-on-surface mb-1 block">
+                    Approval Note <span class="text-secondary font-normal">(optional)</span>:
+                </label>
+                <textarea id="approveReviewNote"
+                          name="reviewNote"
+                          rows="3"
+                          maxlength="500"
+                          placeholder="Enter approval note or comment if any..."
+                          class="w-full p-3 bg-surface-container-low rounded-xl text-on-surface text-sm border border-surface-container-high focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all resize-none"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button"
+                        onclick="closeApproveModal()"
+                        class="px-4 py-2 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        id="btnSubmitApprove"
+                        class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">check</span>
+                    <span>Confirm Approval</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-surface-container-high p-6 flex flex-col gap-4 animate-scale-up">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-[24px]">cancel</span>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-on-surface">Confirm Rejection</h3>
+                <p class="text-xs text-secondary">Reject employee request #@Model.RequestId</p>
+            </div>
+        </div>
+
+        <form id="rejectForm" method="post" asp-controller="ManagerEmployeeRequests" asp-action="Reject" asp-route-id="@Model.RequestId" class="flex flex-col gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+
+            <div>
+                <label for="rejectReviewNote" class="text-xs font-semibold text-on-surface mb-1 block">
+                    Rejection Reason <span class="text-rose-600 font-bold">*</span>:
+                </label>
+                <textarea id="rejectReviewNote"
+                          name="reviewNote"
+                          rows="3"
+                          maxlength="500"
+                          required
+                          placeholder="Please specify the reason for rejecting this request..."
+                          class="w-full p-3 bg-surface-container-low rounded-xl text-on-surface text-sm border border-surface-container-high focus:outline-none focus:ring-2 focus:ring-rose-500 transition-all resize-none"></textarea>
+                <span id="rejectNoteError" class="text-xs text-rose-600 hidden mt-1">Rejection reason cannot be empty.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button"
+                        onclick="closeRejectModal()"
+                        class="px-4 py-2 rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container text-xs font-semibold transition-colors cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        id="btnSubmitReject"
+                        class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[16px]">close</span>
+                    <span>Confirm Rejection</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openApproveModal() {
+            document.getElementById('approveModal').classList.remove('hidden');
+        }
+
+        function closeApproveModal() {
+            document.getElementById('approveModal').classList.add('hidden');
+        }
+
+        function openRejectModal() {
+            document.getElementById('rejectModal').classList.remove('hidden');
+            document.getElementById('rejectNoteError').classList.add('hidden');
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+        }
+
+        document.getElementById('approveForm')?.addEventListener('submit', function (e) {
+            var btn = document.getElementById('btnSubmitApprove');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+            }
+        });
+
+        document.getElementById('rejectForm')?.addEventListener('submit', function (e) {
+            var note = document.getElementById('rejectReviewNote').value.trim();
+            if (!note) {
+                e.preventDefault();
+                document.getElementById('rejectNoteError').classList.remove('hidden');
+                return false;
+            }
+
+            var btn = document.getElementById('btnSubmitReject');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span> Processing...';
+            }
+        });
+    </script>
+}

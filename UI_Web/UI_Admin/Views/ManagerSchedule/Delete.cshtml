@@ -1,0 +1,28 @@
+@model UI_Admin.Models.Manager.ManagerScheduleDetailViewModel
+@using S = UI_Admin.Models.Manager.ScheduleDisplay
+@{
+    ViewData["Title"] = "Delete Weekly Schedule";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/accountant-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/manager-schedules.css" asp-append-version="true" />
+}
+<div class="accountant-dashboard schedule-page ms-workspace" style="max-width: 1496px;">
+    <header class="ad-heading"><div><span class="ad-eyebrow">MANAGER / WEEKLY SCHEDULE</span><h1>Delete Weekly Schedule</h1><p>Review the schedule before confirming deletion.</p></div></header>
+    @if (Model.ErrorMessage is not null) { <div class="ad-error" role="alert">@Model.ErrorMessage</div> }
+    @if (Model.Week is { } week)
+    {
+        <section class="ad-card ms-edit-form"><div class="ad-panel-heading"><h2>Schedule #@week.ScheduleWeekId</h2><span class="ad-badge @S.Tone(week.Status)">@S.Label(week.Status)</span></div><h3 class="ms-delete-dates">@S.Date(week.WeekStartDate) – @S.Date(week.WeekEndDate)</h3><p>@week.TotalShifts shifts · @week.AssignedEmployees assigned slots</p>
+            @if (week.Status == "DRAFT")
+            {
+                <div class="ms-delete-warning"><strong>This action cannot be undone.</strong><p>Deleting this draft also removes its shifts and employee type requirements. Schedules with assignments or other dependent records cannot be deleted.</p></div>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post"><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a><button type="submit" class="ms-danger-button">Delete schedule</button></div></form>
+            }
+            else { <div class="ms-delete-warning">Only draft schedules can be deleted.</div><div class="ms-form-actions"><a class="ms-reset" asp-action="Details" asp-route-id="@Model.Id">Cancel</a></div> }
+        </section>
+    }
+    else
+    {
+        <div class="ms-form-actions"><a class="ms-reset" asp-action="Index">Cancel</a></div>
+    }
+</div>

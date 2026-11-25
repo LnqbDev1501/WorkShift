@@ -1,0 +1,59 @@
+@model UI_Admin.Models.Accountant.PayrollPeriods.PeriodConfirmation
+@{
+    ViewData["Title"] = "Open Payroll Period";
+}
+
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">calendar_month</span>
+                <span>Payroll / Period Management</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">@ViewData["Title"]</h1>
+            <p class="text-sm text-slate-500 mt-0.5">Please review the details below before confirming this operation.</p>
+        </div>
+    </div>
+
+    <!-- Confirmation Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-5">
+        <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">lock_open</span>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">@Model.Period.PeriodName</h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    @Model.Period.PeriodCode • Branch: <strong class="text-slate-700">@Model.Period.BranchName</strong>
+                </p>
+                <div class="text-xs text-slate-400 mt-0.5">
+                    @Model.Period.StartDate.ToString("dd/MM/yyyy") – @Model.Period.EndDate.ToString("dd/MM/yyyy")
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs space-y-1">
+            <strong class="font-bold text-sm text-indigo-950 flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-base">info</span>
+                <span>Confirm Publishing Period (DRAFT → OPEN)</span>
+            </strong>
+            <p class="text-indigo-800">
+                Opening this period locks its configuration and branch assignment. The period will transition to <strong class="text-indigo-950">OPEN</strong>, enabling timesheet verification and batch payroll calculation.
+            </p>
+        </div>
+
+        <form method="post" asp-action="Open" asp-route-id="@Model.Period.PayrollPeriodId" class="flex items-center gap-3 pt-2">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                <span class="material-symbols-outlined text-base">lock_open</span>
+                <span>Confirm Open Period</span>
+            </button>
+            <a asp-action="Details" asp-route-id="@Model.Period.PayrollPeriodId"
+               class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-sm font-semibold transition-all shadow-xs cursor-pointer">
+                Cancel
+            </a>
+        </form>
+    </div>
+</div>

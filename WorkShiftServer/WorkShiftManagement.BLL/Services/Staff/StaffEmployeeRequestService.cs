@@ -1,3 +1,4 @@
+using WorkShiftManagement.BLL.Interfaces.Realtime;
 using Microsoft.Extensions.Logging;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.DTOs.Staff.Request;
@@ -13,6 +14,7 @@ namespace WorkShiftManagement.BLL.Services.Staff;
 
 public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 {
+    private readonly IAdminRealtimePublisher? _adminRealtimePublisher;
     private readonly IStaffEmployeeRequestRepo _repo;
     private readonly INotificationRepo? _notificationRepo;
     private readonly INotificationRealtimePublisher? _realtimePublisher;
@@ -40,12 +42,14 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         IStaffEmployeeRequestRepo repo,
         INotificationRepo? notificationRepo = null,
         INotificationRealtimePublisher? realtimePublisher = null,
-        ILogger<StaffEmployeeRequestService>? logger = null)
+        ILogger<StaffEmployeeRequestService>? logger = null,
+        IAdminRealtimePublisher? adminRealtimePublisher = null)
     {
         _repo = repo;
         _notificationRepo = notificationRepo;
         _realtimePublisher = realtimePublisher;
         _logger = logger;
+        _adminRealtimePublisher = adminRealtimePublisher;
     }
 
     public async Task<PagedResponse<StaffEmployeeRequestListItemResponse>> GetPagedAsync(
@@ -281,7 +285,25 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             cancellationToken);
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "LEAVE",
-            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin nghỉ phép cho {request.AssignmentIds.Count} ca làm việc. Lý do: {request.Reason.Trim()}");
+            $"Staff member {staff.FullName} submitted a leave request for {request.AssignmentIds.Count} shift(s). Reason: {request.Reason.Trim()}");
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted leave request #{RequestId}", created.RequestId);
+            }
+        }
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -325,7 +347,25 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             cancellationToken);
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "LATE_ARRIVAL",
-            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin đi muộn vào lúc {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Lý do: {request.Reason.Trim()}");
+            $"Staff member {staff.FullName} submitted a late arrival request for {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Reason: {request.Reason.Trim()}");
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted late arrival request #{RequestId}", created.RequestId);
+            }
+        }
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -369,7 +409,25 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             cancellationToken);
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "EARLY_LEAVE",
-            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin về sớm vào lúc {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Lý do: {request.Reason.Trim()}");
+            $"Staff member {staff.FullName} submitted an early leave request for {requestedTimeUtc.AddHours(7):HH:mm dd/MM/yyyy}. Reason: {request.Reason.Trim()}");
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted early leave request #{RequestId}", created.RequestId);
+            }
+        }
 
         var detail = await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? created);
@@ -380,17 +438,35 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
     {
         ArgumentNullException.ThrowIfNull(request); ValidateStaffId(staffId);
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
-            throw new ArgumentException("Cần lý do xin tăng lương, tối đa 500 ký tự.");
+            throw new ArgumentException("Reason for salary increase is required, maximum 500 characters.");
         if (request.ProposedHourlyRate <= 0 || request.ProposedHourlyRate > 9999999999999999.99m
             || request.ProposedHourlyRate != decimal.Truncate(request.ProposedHourlyRate * 100) / 100)
-            throw new ArgumentException("Mức đề xuất phải dương và phù hợp NUMERIC(18,2); không tự làm tròn.");
+            throw new ArgumentException("Proposed rate must be positive and conform to NUMERIC(18,2); rounding is not permitted.");
         var staff = await GetActiveStaffOrThrowAsync(staffId, cancellationToken);
         var branchId = staff.BranchId!.Value;
         var created = await _repo.SubmitSalaryIncreaseRequestAsync(staffId, branchId, request.ProposedHourlyRate,
             request.Reason.Trim(), DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7)), cancellationToken);
 
         await SendStaffRequestNotificationToManagerAsync(staff, created, "SALARY_INCREASE",
-            $"Nhân viên {staff.FullName} đã gửi yêu cầu xin tăng lương với mức lương đề xuất {request.ProposedHourlyRate:N0} đ/giờ. Lý do: {request.Reason.Trim()}");
+            $"Staff member {staff.FullName} submitted a salary increase request proposing {request.ProposedHourlyRate:N0} VND/h. Reason: {request.Reason.Trim()}");
+
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "SUBMITTED",
+                    requestId = created.RequestId,
+                    branchId = created.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for submitted salary increase request #{RequestId}", created.RequestId);
+            }
+        }
 
         return MapToDetailResponse(await _repo.GetByIdAsync(created.RequestId, staffId, cancellationToken) ?? created);
     }
@@ -412,6 +488,24 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 
         await SendStaffCancelNotificationToManagerAsync(staff, cancelled);
 
+        if (_adminRealtimePublisher != null)
+        {
+            try
+            {
+                await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged, new
+                {
+                    resource = "EmployeeRequests",
+                    action = "CANCELLED",
+                    requestId = cancelled.RequestId,
+                    branchId = cancelled.BranchId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Failed to broadcast AdminRealtime update for cancelled request #{RequestId}", cancelled.RequestId);
+            }
+        }
+
         var detail = await _repo.GetByIdAsync(cancelled.RequestId, staffId, cancellationToken);
         return MapToDetailResponse(detail ?? cancelled);
     }
@@ -421,6 +515,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
         var nowUtc = DateTime.UtcNow;
         var cancelledList = await _repo.CancelOverduePendingRequestsAsync(nowUtc, cancellationToken);
         if (cancelledList.Count == 0) return 0;
+        if (_adminRealtimePublisher != null)
+            await _adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
+                new { resource = "EmployeeRequests", action = "AUTO_CANCELLED" });
 
         foreach (var r in cancelledList)
         {
@@ -429,8 +526,8 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
                 if (_notificationRepo != null)
                 {
                     var typeVietnamese = TranslateRequestType(r.RequestType);
-                    var notifTitle = $"Yêu cầu #{r.RequestId} đã tự động hủy do quá hạn";
-                    var notifContent = $"Yêu cầu {typeVietnamese} #{r.RequestId} của bạn đã bị hệ thống tự động hủy do ca làm việc đã kết thúc mà chưa được quản lý phê duyệt.";
+                    var notifTitle = $"Request #{r.RequestId} automatically cancelled due to expiration";
+                    var notifContent = $"Your {typeVietnamese} request #{r.RequestId} was automatically cancelled by the system because the shift has ended without Manager approval.";
 
                     var notification = new NotificationEntity
                     {
@@ -497,7 +594,9 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             }
 
             var typeVietnamese = TranslateRequestType(requestType);
-            var title = $"Yêu cầu {typeVietnamese} mới từ {staff.FullName}";
+            var title = requestType == "SALARY_INCREASE"
+                ? $"New Salary Increase Request from {staff.FullName}"
+                : $"New {requestType} Request from {staff.FullName}";
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity
@@ -559,8 +658,10 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
             if (branchManagers == null || branchManagers.Count == 0) return;
 
             var typeVietnamese = TranslateRequestType(cancelledRequest.RequestType);
-            var title = $"Nhân viên đã hủy yêu cầu #{cancelledRequest.RequestId}";
-            var content = $"Nhân viên {staff.FullName} đã hủy yêu cầu {typeVietnamese} #{cancelledRequest.RequestId}.";
+            var title = cancelledRequest.RequestType == "SALARY_INCREASE"
+                ? $"Salary Increase Request #{cancelledRequest.RequestId} Cancelled by Staff"
+                : $"Request #{cancelledRequest.RequestId} Cancelled by Staff";
+            var content = $"Staff member {staff.FullName} has cancelled request #{cancelledRequest.RequestId} ({cancelledRequest.RequestType}).";
             var now = DateTime.UtcNow;
 
             var notification = new NotificationEntity
@@ -612,11 +713,11 @@ public class StaffEmployeeRequestService : IStaffEmployeeRequestService
 
     private static string TranslateRequestType(string requestType) => requestType?.ToUpperInvariant() switch
     {
-        "LEAVE" => "xin nghỉ phép",
-        "LATE_ARRIVAL" => "xin đi muộn",
-        "EARLY_LEAVE" => "xin về sớm",
-        "SALARY_INCREASE" => "xin tăng lương",
-        _ => requestType ?? "khác"
+        "LEAVE" => "Leave",
+        "LATE_ARRIVAL" => "Late Arrival",
+        "EARLY_LEAVE" => "Early Leave",
+        "SALARY_INCREASE" => "Salary Increase",
+        _ => requestType ?? "Other"
     };
 
     private static void ValidateStaffId(Guid staffId)

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'services/realtime_service.dart';
+import 'services/core/realtime_service.dart';
 import 'theme/app_theme.dart';
 import 'views/auth/login_view.dart';
 

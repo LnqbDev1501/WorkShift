@@ -16,8 +16,6 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public virtual DbSet<AbsenceLimitRule> AbsenceLimitRules { get; set; }
-
     public virtual DbSet<Attendance> Attendances { get; set; }
 
     public virtual DbSet<AttendanceAdjustmentHistory> AttendanceAdjustmentHistories { get; set; }
@@ -33,12 +31,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<Branch> Branches { get; set; }
-
-    public virtual DbSet<Checklist> Checklists { get; set; }
-
-    public virtual DbSet<ChecklistItem> ChecklistItems { get; set; }
-
-    public virtual DbSet<ChecklistResult> ChecklistResults { get; set; }
 
     public virtual DbSet<ContractChangeRequest> ContractChangeRequests { get; set; }
 
@@ -65,8 +57,6 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Order> Orders { get; set; }
 
     public virtual DbSet<OrderItem> OrderItems { get; set; }
-
-    public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<Payroll> Payrolls { get; set; }
 
@@ -150,50 +140,6 @@ public partial class AppDbContext : DbContext
             .HasPostgresExtension("extensions", "uuid-ossp")
             .HasPostgresExtension("vector")
             .HasPostgresExtension("vault", "supabase_vault");
-
-        modelBuilder.Entity<AbsenceLimitRule>(entity =>
-        {
-            entity.HasKey(e => e.AbsenceLimitRuleId).HasName("absence_limit_rules_pkey");
-
-            entity.ToTable("absence_limit_rules");
-
-            entity.HasIndex(e => e.ReplaceId, "idx_absence_limit_rules_replace_id");
-
-            entity.HasIndex(e => e.RuleName, "idx_absence_limit_rules_rule_name");
-
-            entity.HasIndex(e => e.Status, "idx_absence_limit_rules_status");
-
-            entity.HasIndex(e => e.Status, "uq_absence_limit_rule_active")
-                .IsUnique()
-                .HasFilter("((status)::text = 'ACTIVE'::text)");
-
-            entity.HasIndex(e => e.Version, "uq_absence_limit_rule_version").IsUnique();
-
-            entity.Property(e => e.AbsenceLimitRuleId).HasColumnName("absence_limit_rule_id");
-            entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.Description).HasColumnName("description");
-            entity.Property(e => e.MaxAbsenceCount).HasColumnName("max_absence_count");
-            entity.Property(e => e.ReplaceId).HasColumnName("replace_id");
-            entity.Property(e => e.RuleName)
-                .HasMaxLength(100)
-                .HasColumnName("rule_name");
-            entity.Property(e => e.Status)
-                .HasMaxLength(20)
-                .HasDefaultValueSql("'DRAFT'::character varying")
-                .HasColumnName("status");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-            entity.Property(e => e.Version).HasColumnName("version");
-
-            entity.HasOne(d => d.Replace).WithMany(p => p.InverseReplace)
-                .HasForeignKey(d => d.ReplaceId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_absence_limit_rule_replace");
-        });
 
         modelBuilder.Entity<Attendance>(entity =>
         {
@@ -655,119 +601,9 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("branches_region_id_fkey");
         });
 
-        modelBuilder.Entity<Checklist>(entity =>
-        {
-            entity.HasKey(e => e.ChecklistId).HasName("checklists_pkey");
-
-            entity.ToTable("checklists");
-
-            entity.HasIndex(e => e.ShiftId, "ix_checklists_shift").HasFilter("(is_deleted = false)");
-
-            entity.Property(e => e.ChecklistId).HasColumnName("checklist_id");
-            entity.Property(e => e.ChecklistName)
-                .HasMaxLength(150)
-                .HasColumnName("checklist_name");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.Description)
-                .HasMaxLength(500)
-                .HasColumnName("description");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.ShiftId).HasColumnName("shift_id");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Checklists)
-                .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklists_created_by_fkey");
-
-            entity.HasOne(d => d.Shift).WithMany(p => p.Checklists)
-                .HasForeignKey(d => d.ShiftId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklists_shift_id_fkey");
-        });
-
-        modelBuilder.Entity<ChecklistItem>(entity =>
-        {
-            entity.HasKey(e => e.ChecklistItemId).HasName("checklist_items_pkey");
-
-            entity.ToTable("checklist_items");
-
-            entity.HasIndex(e => new { e.ChecklistId, e.DisplayOrder }, "uq_checklist_item_order").IsUnique();
-
-            entity.Property(e => e.ChecklistItemId).HasColumnName("checklist_item_id");
-            entity.Property(e => e.ChecklistId).HasColumnName("checklist_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.DisplayOrder)
-                .HasDefaultValue(0)
-                .HasColumnName("display_order");
-            entity.Property(e => e.IsRequired)
-                .HasDefaultValue(true)
-                .HasColumnName("is_required");
-            entity.Property(e => e.ItemName)
-                .HasMaxLength(255)
-                .HasColumnName("item_name");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-
-            entity.HasOne(d => d.Checklist).WithMany(p => p.ChecklistItems)
-                .HasForeignKey(d => d.ChecklistId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_items_checklist_id_fkey");
-        });
-
-        modelBuilder.Entity<ChecklistResult>(entity =>
-        {
-            entity.HasKey(e => e.ResultId).HasName("checklist_results_pkey");
-
-            entity.ToTable("checklist_results");
-
-            entity.HasIndex(e => e.UserId, "ix_checklist_results_user").HasFilter("(is_deleted = false)");
-
-            entity.HasIndex(e => new { e.ChecklistItemId, e.UserId }, "uq_checklist_result_user_item").IsUnique();
-
-            entity.Property(e => e.ResultId).HasColumnName("result_id");
-            entity.Property(e => e.ChecklistItemId).HasColumnName("checklist_item_id");
-            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("created_at");
-            entity.Property(e => e.IsCompleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_completed");
-            entity.Property(e => e.IsDeleted)
-                .HasDefaultValue(false)
-                .HasColumnName("is_deleted");
-            entity.Property(e => e.Note)
-                .HasMaxLength(500)
-                .HasColumnName("note");
-            entity.Property(e => e.PhotoUrl)
-                .HasMaxLength(500)
-                .HasColumnName("photo_url");
-            entity.Property(e => e.UpdatedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("updated_at");
-            entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.ChecklistItem).WithMany(p => p.ChecklistResults)
-                .HasForeignKey(d => d.ChecklistItemId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_results_checklist_item_id_fkey");
-
-            entity.HasOne(d => d.User).WithMany(p => p.ChecklistResults)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("checklist_results_user_id_fkey");
-        });
+        modelBuilder.Ignore<Checklist>();
+        modelBuilder.Ignore<ChecklistItem>();
+        modelBuilder.Ignore<ChecklistResult>();
 
         modelBuilder.Entity<ContractChangeRequest>(entity =>
         {
@@ -917,6 +753,7 @@ public partial class AppDbContext : DbContext
             entity.HasIndex(e => new { e.PayrollPeriodId, e.UserId }, "ix_rewards_penalties_payroll_period_user").HasFilter("(is_deleted = false)");
 
             entity.Property(e => e.RewardPenaltyId).HasColumnName("reward_penalty_id");
+            entity.Property(e => e.AdjustmentDate).HasColumnName("adjustment_date");
             entity.Property(e => e.AdjustmentName)
                 .HasMaxLength(100)
                 .HasColumnName("adjustment_name");
@@ -1149,8 +986,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_terminated_by_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.EmploymentContractUser)
-                .HasForeignKey<EmploymentContract>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.EmploymentContracts)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("employment_contracts_user_id_fkey");
         });
@@ -1346,6 +1183,7 @@ public partial class AppDbContext : DbContext
                 .HasColumnType("character varying(20)[]")
                 .HasColumnName("channels");
             entity.Property(e => e.Content).HasColumnName("content");
+            entity.Property(e => e.ContractId).HasColumnName("contract_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("created_at");
@@ -1366,12 +1204,17 @@ public partial class AppDbContext : DbContext
                 .HasMaxLength(20)
                 .HasDefaultValueSql("'All'::character varying")
                 .HasColumnName("target_type");
+            entity.Property(e => e.TerminationNoticeNo).HasColumnName("termination_notice_no");
             entity.Property(e => e.Title)
                 .HasMaxLength(200)
                 .HasColumnName("title");
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("now()")
                 .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Contract).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.ContractId)
+                .HasConstraintName("notifications_contract_id_fkey");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.CreatedBy)
@@ -1489,42 +1332,7 @@ public partial class AppDbContext : DbContext
                 .HasConstraintName("order_items_product_id_fkey");
         });
 
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.HasKey(e => e.PaymentId).HasName("payments_pkey");
-
-            entity.ToTable("payments");
-
-            entity.HasIndex(e => e.OrderId, "ix_payments_order_id");
-
-            entity.HasIndex(e => e.RecordedBy, "ix_payments_recorded_by");
-
-            entity.Property(e => e.PaymentId).HasColumnName("payment_id");
-            entity.Property(e => e.Amount)
-                .HasPrecision(18, 2)
-                .HasColumnName("amount");
-            entity.Property(e => e.Note).HasColumnName("note");
-            entity.Property(e => e.OrderId).HasColumnName("order_id");
-            entity.Property(e => e.PaymentMethod)
-                .HasMaxLength(50)
-                .HasColumnName("payment_method");
-            entity.Property(e => e.RecordedAt)
-                .HasDefaultValueSql("now()")
-                .HasColumnName("recorded_at");
-            entity.Property(e => e.RecordedBy).HasColumnName("recorded_by");
-            entity.Property(e => e.ReferenceNumber)
-                .HasMaxLength(100)
-                .HasColumnName("reference_number");
-
-            entity.HasOne(d => d.Order).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.OrderId)
-                .HasConstraintName("fk_payments_order");
-
-            entity.HasOne(d => d.RecordedByNavigation).WithMany(p => p.Payments)
-                .HasForeignKey(d => d.RecordedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_payments_recorded_by");
-        });
+        modelBuilder.Ignore<Payment>();
 
         modelBuilder.Entity<Payroll>(entity =>
         {
@@ -2429,7 +2237,7 @@ public partial class AppDbContext : DbContext
         {
             entity.HasKey(e => e.SalaryChangeRequestId).HasName("salary_change_requests_pkey");
 
-            entity.ToTable("salary_change_requests", tb => tb.HasComment("Manager de xuat TANG luong -> Admin. Hien khong giam luong. Hop dong/don gia lay tu History nguon khong ghi de don gia."));
+            entity.ToTable("salary_change_requests");
 
             entity.HasIndex(e => new { e.BranchId, e.Status, e.CreatedAt }, "ix_salary_change_branch_status").IsDescending(false, false, true);
 
@@ -2443,23 +2251,16 @@ public partial class AppDbContext : DbContext
                 .IsUnique()
                 .HasFilter("((status)::text = 'PENDING'::text)");
 
-            entity.Property(e => e.SalaryChangeRequestId)
-                .UseIdentityAlwaysColumn()
-                .HasColumnName("salary_change_request_id");
-            entity.Property(e => e.ApprovedEffectiveFrom)
-                .HasComment("Ngay thuc te: chua den ngay de xuat thi giu ngay; da den/qua thi Admin chon thu Hai tu tuan sau va ghi ly do. Khong hoi to.")
-                .HasColumnName("approved_effective_from");
+            entity.Property(e => e.SalaryChangeRequestId).HasColumnName("salary_change_request_id");
+            entity.Property(e => e.ApprovedEffectiveFrom).HasColumnName("approved_effective_from");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancellationReason).HasColumnName("cancellation_reason");
             entity.Property(e => e.CancelledAt).HasColumnName("cancelled_at");
             entity.Property(e => e.CancelledBy).HasColumnName("cancelled_by");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("now()")
-                .HasComment("Tao la gui ngay PENDING, khong Draft; thoi diem nay thay requested_at.")
                 .HasColumnName("created_at");
-            entity.Property(e => e.CurrentSalaryHistoryId)
-                .HasComment("Nguon don gia cu va contract. Backend kiem tra dung Staff, don gia de nghi lon hon nguon, va nguon con hop le luc duyet.")
-                .HasColumnName("current_salary_history_id");
+            entity.Property(e => e.CurrentSalaryHistoryId).HasColumnName("current_salary_history_id");
             entity.Property(e => e.EffectiveDateChangeReason).HasColumnName("effective_date_change_reason");
             entity.Property(e => e.EmployeeRequestId).HasColumnName("employee_request_id");
             entity.Property(e => e.PreviousRequestId).HasColumnName("previous_request_id");
@@ -2510,8 +2311,8 @@ public partial class AppDbContext : DbContext
                 .HasForeignKey(d => d.ReviewedBy)
                 .HasConstraintName("salary_change_requests_reviewed_by_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.SalaryChangeRequestUser)
-                .HasForeignKey<SalaryChangeRequest>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.SalaryChangeRequestUsers)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("salary_change_requests_user_id_fkey");
         });
@@ -2792,8 +2593,8 @@ public partial class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_salary_increase_request_id_fkey");
 
-            entity.HasOne(d => d.User).WithOne(p => p.StaffSalaryHistoryUser)
-                .HasForeignKey<StaffSalaryHistory>(d => d.UserId)
+            entity.HasOne(d => d.User).WithMany(p => p.StaffSalaryHistoryUsers)
+                .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("staff_salary_history_user_id_fkey");
         });
@@ -2856,13 +2657,13 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(0)
                 .HasColumnName("excused_late_minutes");
             entity.Property(e => e.GeneratedAt).HasColumnName("generated_at");
-            entity.Property(e => e.ReviewDeadline).HasColumnName("review_deadline");
             entity.Property(e => e.IncompleteShiftCount)
                 .HasDefaultValue(0)
                 .HasColumnName("incomplete_shift_count");
             entity.Property(e => e.LockedAt).HasColumnName("locked_at");
             entity.Property(e => e.LockedBy).HasColumnName("locked_by");
             entity.Property(e => e.PayrollPeriodId).HasColumnName("payroll_period_id");
+            entity.Property(e => e.ReviewDeadline).HasColumnName("review_deadline");
             entity.Property(e => e.ReviewNote)
                 .HasMaxLength(500)
                 .HasColumnName("review_note");
@@ -3030,7 +2831,7 @@ public partial class AppDbContext : DbContext
                 .HasDefaultValue(true)
                 .HasColumnName("has_password");
             entity.Property(e => e.IdentityNo)
-                .HasMaxLength(30)
+                .HasMaxLength(255)
                 .HasColumnName("identity_no");
             entity.Property(e => e.Phone)
                 .HasMaxLength(20)
@@ -3113,14 +2914,11 @@ public partial class AppDbContext : DbContext
 
             entity.ToTable("work_schedule_weeks");
 
-            entity.HasIndex(e => e.AbsenceLimitRuleId, "idx_work_schedule_weeks_absence_limit_rule_id");
-
             entity.HasIndex(e => new { e.BranchId, e.Status, e.WeekStartDate }, "ix_schedule_weeks_branch_status");
 
             entity.HasIndex(e => new { e.BranchId, e.WeekStartDate }, "uq_schedule_week_branch_start").IsUnique();
 
             entity.Property(e => e.ScheduleWeekId).HasColumnName("schedule_week_id");
-            entity.Property(e => e.AbsenceLimitRuleId).HasColumnName("absence_limit_rule_id");
             entity.Property(e => e.BranchId).HasColumnName("branch_id");
             entity.Property(e => e.CancelReason)
                 .HasMaxLength(500)
@@ -3143,11 +2941,6 @@ public partial class AppDbContext : DbContext
                 .HasColumnName("updated_at");
             entity.Property(e => e.WeekEndDate).HasColumnName("week_end_date");
             entity.Property(e => e.WeekStartDate).HasColumnName("week_start_date");
-
-            entity.HasOne(d => d.AbsenceLimitRule).WithMany(p => p.WorkScheduleWeeks)
-                .HasForeignKey(d => d.AbsenceLimitRuleId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_work_schedule_week_absence_limit_rule");
 
             entity.HasOne(d => d.Branch).WithMany(p => p.WorkScheduleWeeks)
                 .HasForeignKey(d => d.BranchId)

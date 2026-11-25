@@ -1,0 +1,210 @@
+@model UI_Admin.Models.Accountant.AccountantOrderListViewModel
+@{
+    Layout = "_AccountantLayout";
+    ViewData["Title"] = "Orders";
+
+    var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
+    int diff = (7 + (int)todayVn.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+    var currentMonday = todayVn.AddDays(-diff);
+    var selectedFrom = Model.DateFrom.HasValue ? DateOnly.FromDateTime(Model.DateFrom.Value) : currentMonday;
+    var selectedTo = Model.DateTo.HasValue ? DateOnly.FromDateTime(Model.DateTo.Value) : selectedFrom.AddDays(6);
+
+    // Generate recent 16 weeks (current, past 12, future 3)
+    var weekOptions = new List<(DateOnly Start, DateOnly End, string Label, bool IsCurrent)>();
+    for (int i = 3; i >= -12; i--)
+    {
+        var m = currentMonday.AddDays(i * 7);
+        var s = m.AddDays(6);
+        bool isCurr = (i == 0);
+        string label = $"{m:dd/MM/yyyy} – {s:dd/MM/yyyy}" + (isCurr ? " (Current week)" : "");
+        weekOptions.Add((m, s, label, isCurr));
+    }
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-unit-4">
+        <div class="flex flex-col">
+            <div class="list-eyebrow">Order Management</div>
+            <div class="flex items-center gap-unit-3">
+                <h1 class="font-display-lg text-display-lg text-on-surface tracking-tight">Orders</h1>
+            </div>
+            <p class="font-body-md text-body-md text-secondary mt-1">@(User.IsInRole("ADMIN") ? "View all customer orders across branches." : "View customer orders in your assigned branch.")</p>
+        </div>
+    </div>
+
+    <partial name="_ListMetrics" model='@(new ListMetricViewModel[] {
+        new("TOTAL ORDERS", Model.TotalItems.ToString("N0"), "In selected week", "shopping_bag"),
+        new("PAID", (Model.PaidCount ?? Model.Items.Count(x => x.PaymentStatus == "PAID")).ToString("N0"), "In selected week", "payments"),
+        new("COMPLETED", (Model.CompletedCount ?? Model.Items.Count(x => x.Status == "COMPLETED")).ToString("N0"), "In selected week", "task_alt"),
+        new("ORDER VALUE", CurrencyHelper.FormatVnd(Model.TotalOrderValue ?? Model.Items.Sum(x => x.TotalAmount)), "In selected week", "receipt_long")
+    })' />
+    <form method="get" asp-action="Index" id="orderFilterForm" class="ws-list-filter" role="search">
+        <input type="hidden" id="hiddenDateFrom" name="dateFrom" value="@selectedFrom.ToString("yyyy-MM-dd")" />
+        <input type="hidden" id="hiddenDateTo" name="dateTo" value="@selectedTo.ToString("yyyy-MM-dd")" />
+        <div class="ws-filter-row">
+            <label class="ws-filter-field ws-filter-keyword"><span class="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search" type="text" name="search" value="@Model.Search" placeholder="Order # or staff..." /></label>
+            @if (User.IsInRole("ADMIN"))
+            {
+                <div class="ws-filter-field"><select aria-label="Branch" name="branchId">
+                            <option value="">All Branches</option>
+                            @foreach (var branch in Model.Branches)
+                            {
+                                <option value="@branch.Id" selected="@(Model.BranchId == branch.Id)">@branch.Name</option>
+                            }
+                        </select></div>
+            }
+            <div class="ws-filter-field"><select aria-label="Status" name="status">
+                        <option value="all">All Statuses</option>
+                        <option value="PENDING" selected="@(Model.StatusFilter == "PENDING")">Pending</option>
+                        <option value="COMPLETED" selected="@(Model.StatusFilter == "COMPLETED")">Completed</option>
+                    </select></div>
+            <div class="ws-filter-field">
+                <select id="mainWeekSelect" aria-label="Select week" onchange="onWeekDropdownChanged(this.value); this.form.submit();" class="text-xs font-medium">
+                    @foreach (var w in weekOptions)
+                    {
+                        var val = $"{w.Start:yyyy-MM-dd}|{w.End:yyyy-MM-dd}";
+                        var isSelected = (selectedFrom == w.Start);
+                        <option value="@val" selected="@isSelected">Week: @w.Label</option>
+                    }
+                </select>
+            </div>
+            <details class="ws-filter-advanced">
+                <summary title="Advanced filters" aria-label="Advanced filters"><span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    @if (Context.Request.Query.Any(q => new[] { "dateFrom", "dateTo" }.Contains(q.Key, StringComparer.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(q.Value.ToString()))) { <span class="ws-filter-indicator" aria-label="Advanced filters active"></span> }
+                </summary>
+                <div class="ws-filter-panel">
+                    <label class="ws-filter-field">
+                        <span>Pick any date to view its week</span>
+                        <input aria-label="Pick date in week" type="date" value="@selectedFrom.ToString("yyyy-MM-dd")" onchange="onDatePickerChanged(this.value)" />
+                    </label>
+                    <button type="submit" class="ws-filter-apply">Apply filters</button>
+                </div>
+            </details>
+            <partial name="_ListFilterActions" model='"Index"' />
+        </div>
+    </form>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
+            <span class="material-symbols-outlined text-[20px]">error</span>
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/80 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider font-semibold">
+                        <th class="px-5 py-3.5">Order #</th>
+                        <th class="px-4 py-3.5">Branch</th>
+                        <th class="px-4 py-3.5">Staff</th>
+                        <th class="px-4 py-3.5">Date</th>
+                        <th class="px-4 py-3.5">Total</th>
+                        <th class="px-4 py-3.5">Payment</th>
+                        <th class="px-4 py-3.5">Status</th>
+                        <th class="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="px-6 py-14 text-center">
+                                <div class="flex flex-col items-center gap-2.5 text-slate-400">
+                                    <span class="material-symbols-outlined text-[48px] text-slate-300">receipt_long</span>
+                                    <p class="font-medium text-slate-600 text-sm">No orders found.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var order in Model.Items)
+                        {
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="px-5 py-4 font-medium text-slate-900 break-words max-w-[180px]" title="@order.OrderNumber">@(order.OrderNumber != null && order.OrderNumber.Length > 50 ? order.OrderNumber.Substring(0, 50) + "..." : order.OrderNumber)</td>
+                                <td class="px-4 py-4 text-slate-600 truncate max-w-[150px]" title="@order.BranchName">@(order.BranchName != null && order.BranchName.Length > 50 ? order.BranchName.Substring(0, 50) + "..." : order.BranchName)</td>
+                                <td class="px-4 py-4 text-slate-600 truncate max-w-[150px]" title="@order.CreatedByName">@(order.CreatedByName != null && order.CreatedByName.Length > 50 ? order.CreatedByName.Substring(0, 50) + "..." : order.CreatedByName)</td>
+                                <td class="px-4 py-4 text-slate-600">@order.OrderDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="px-4 py-4 font-semibold text-slate-900">@CurrencyHelper.FormatVnd(order.TotalAmount)</td>
+                                <td class="px-4 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold @GetPaymentColor(order.PaymentStatus)">
+                                        @order.PaymentStatus
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold @GetStatusColor(order.Status)">
+                                        @order.Status
+                                    </span>
+                                </td>
+                                <td class="px-5 py-4 text-right">
+                                    <a asp-action="Details" asp-route-id="@order.OrderId" title="View details" aria-label="View details" class="ws-icon-action"><span class="material-symbols-outlined" aria-hidden="true">visibility</span></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_ListPagination" model="@(new ListPaginationViewModel
+        {
+            PageNumber = Model.PageNumber,
+            PageSize = Model.PageSize,
+            TotalItems = Model.TotalItems,
+            PageParameter = "page",
+            ItemLabel = "orders",
+        })" />
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function onWeekDropdownChanged(val) {
+            if (!val) return;
+            const parts = val.split('|');
+            if (parts.length === 2) {
+                document.getElementById('hiddenDateFrom').value = parts[0];
+                document.getElementById('hiddenDateTo').value = parts[1];
+            }
+        }
+
+        function onDatePickerChanged(dateStr) {
+            if (!dateStr) return;
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return;
+            const day = d.getDay();
+            const diffToMonday = (day === 0 ? -6 : 1) - day;
+            const monday = new Date(d);
+            monday.setDate(d.getDate() + diffToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            const formatYmd = dt => dt.toISOString().slice(0, 10);
+            const fromStr = formatYmd(monday);
+            const toStr = formatYmd(sunday);
+
+            document.getElementById('hiddenDateFrom').value = fromStr;
+            document.getElementById('hiddenDateTo').value = toStr;
+        }
+    </script>
+}
+
+@functions {
+    string GetStatusColor(string status) => status.ToUpperInvariant() switch
+    {
+        "PENDING" => "bg-blue-50 text-blue-700",
+        "COMPLETED" => "bg-emerald-50 text-emerald-700",
+        "CANCELLED" => "bg-red-50 text-red-700",
+        _ => "bg-slate-100 text-slate-600"
+    };
+    string GetPaymentColor(string status) => status.ToUpperInvariant() switch
+    {
+        "PAID" => "bg-emerald-50 text-emerald-700",
+        "PARTIAL" => "bg-amber-50 text-amber-700",
+        "UNPAID" => "bg-red-50 text-red-700",
+        _ => "bg-slate-100 text-slate-600"
+    };
+}

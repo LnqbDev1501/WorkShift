@@ -52,6 +52,11 @@ public interface IEmploymentContractRepo
     Task SendContractPdfAsync(int contractId, string filePath, string templateVersion, DateTime generatedAt, DateTime sentAt, Guid managerId, CancellationToken cancellationToken = default);
     Task AddNotificationAsync(WorkShiftManagement.DAL.Entities.Notification notification, IEnumerable<Guid> targetUserIds, CancellationToken cancellationToken = default);
 
+    Task<int> GetTerminationWarningCountAsync(int contractId, CancellationToken cancellationToken = default);
+    Task<Dictionary<int, int>> GetTerminationWarningCountsAsync(IEnumerable<int> contractIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<WorkShiftManagement.DAL.Entities.Notification>> GetTerminationWarningsByContractIdAsync(int contractId, CancellationToken cancellationToken = default);
+    Task<WorkShiftManagement.DAL.Entities.Notification> AddTerminationWarningAsync(int contractId, Guid managerId, string title, string content, short warningNo, CancellationToken cancellationToken = default);
+
     Task<EmploymentContract?> GetStaffContractByIdAsync(int contractId, Guid staffUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmploymentContract>> GetStaffContractsAsync(Guid staffUserId, string? status = null, string? search = null, DateOnly? startDateFrom = null, DateOnly? startDateTo = null, CancellationToken cancellationToken = default);
     Task StaffAcceptContractAsync(int contractId, Guid staffUserId, string newStatus, DateTime acceptedAtUtc, CancellationToken cancellationToken = default);
@@ -59,6 +64,7 @@ public interface IEmploymentContractRepo
     Task<int> ExpireDueContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<CancelOverdueContractsResult> CancelOverduePendingContractsAsync(DateOnly todayVnDate, CancellationToken cancellationToken = default);
     Task<bool> HasActiveContractForShiftRegistrationAsync(Guid staffUserId, int branchId, DateTime scheduledStartAtUtc, DateTime scheduledEndAtUtc, CancellationToken cancellationToken = default);
+    Task<(bool IsInShift, string? ShiftInfo)> IsStaffCurrentlyInShiftAsync(Guid staffUserId, DateTime? currentUtc = null, CancellationToken cancellationToken = default);
 
     // Contract Change Requests
     Task<ContractChangeRequest?> GetOpenChangeRequestByContractIdAsync(int contractId, CancellationToken cancellationToken = default);
@@ -75,4 +81,7 @@ public interface IEmploymentContractRepo
     Task<IReadOnlyList<AuditLog>> GetContractAuditLogsAsync(int contractId, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<AuditLog> Items, int TotalCount)> GetContractAuditLogsPagedAsync(
         int contractId, int pageNumber, int pageSize, string? sortOrder = "desc", CancellationToken cancellationToken = default);
+
+    Task<decimal?> GetRegionalMinimumWageAsync(int regionId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default);
+    Task<decimal?> GetBranchRegionalMinimumWageAsync(int branchId, DateOnly? effectiveDate = null, CancellationToken cancellationToken = default);
 }

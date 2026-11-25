@@ -1,0 +1,352 @@
+@model UI_Admin.Models.Regions.CreateRegionViewModel
+
+@{
+    ViewData["Title"] = "Create Region";
+}
+
+<div class="flex flex-col w-full gap-unit-4 px-7 py-4"><div class="max-w-[1440px] mx-auto w-full">
+    <!-- Page Header -->
+    <div class="pb-6">
+        <h1 class="text-display-md md:text-display-lg font-bold tracking-tight text-on-surface">
+            Create Region
+        </h1>
+        <p class="text-body-md text-secondary mt-0.5">
+            Create a new operational region.
+        </p>
+    </div>
+
+    <!-- Operational Policy Callout (Zero-border, soft elevated tinted card) -->
+    <div class="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-surface-container to-surface-container p-4 md:p-5 mb-8 shadow-sm">
+        <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="flex items-start gap-3.5 relative z-10">
+            <div class="w-9 h-9 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+                <span class="material-symbols-outlined text-[20px]">info</span>
+            </div>
+            <div class="flex flex-col gap-0.5">
+                <h2 class="text-title-md font-semibold text-on-surface">Operational Notice</h2>
+                <p class="text-body-sm text-secondary leading-relaxed">
+                    A newly created region will automatically be initialized in <span class="font-semibold text-primary">ACTIVE</span> status. Branches can be mapped to this region immediately after creation.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Work Area: 2-Column Bento / Split Configuration -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <!-- Primary Form Card (8 Columns) -->
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 md:p-8 flex flex-col gap-7">
+                <!-- Form Section Header -->
+                <div class="flex items-start justify-between">
+                    <div>
+                        <span class="text-label-sm uppercase tracking-widest text-primary font-bold">Section 01</span>
+                        <h3 class="text-title-lg font-bold text-on-surface mt-0.5">Region Information</h3>
+                        <p class="text-body-sm text-secondary mt-1">
+                            Define the operational identifier and jurisdictional naming for the new territory.
+                        </p>
+                    </div>
+                    <div class="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-md bg-surface-container text-secondary text-xs font-mono">
+                        <span class="material-symbols-outlined text-[14px]">tune</span>
+                        <span>REST: POST /regions</span>
+                    </div>
+                </div>
+
+                <form method="post" asp-controller="Regions" asp-action="Create" class="flex flex-col gap-6" id="createRegionForm">
+                    @Html.AntiForgeryToken()
+
+                    <partial name="_NotificationModal" />
+
+
+                    <!-- Field 1: Region Code -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="regionCode">
+                                Region Code <span class="text-error font-bold">*</span>
+                            </label>
+                            <span class="text-label-sm font-mono text-secondary" id="regionCodeCounter">@(Model?.RegionCode?.Length ?? 0) / 20</span>
+                        </div>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">tag</span>
+                            <input autocomplete="off"
+                                   class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-mono text-body-md uppercase tracking-wide focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
+                                   id="regionCode"
+                                   maxlength="20"
+                                   name="RegionCode"
+                                   value="@Model?.RegionCode"
+                                   oninput="handleCodeInput(this)"
+                                   placeholder="e.g., HCM, CT, VL, or VN-CENTRAL"
+                                   required=""
+                                   type="text" />
+                            <span class="material-symbols-outlined absolute right-3 text-[18px] text-primary @(string.IsNullOrEmpty(Model?.RegionCode) ? "opacity-0" : "opacity-100") transition-opacity pointer-events-none" id="codeCheckmark">check_circle</span>
+                        </div>
+                        <span asp-validation-for="RegionCode" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Unique uppercase identifier code (up to 20 characters). Used across branch allocations and payroll reporting.
+                        </p>
+                    </div>
+
+                    <!-- Field 2: Region Name -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="regionName">
+                                Region Name <span class="text-error font-bold">*</span>
+                            </label>
+                            <span class="text-label-sm font-mono text-secondary" id="regionNameCounter">@(Model?.RegionName?.Length ?? 0) / 150</span>
+                        </div>
+                        <div class="relative flex items-center">
+                            <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">domain</span>
+                            <input autocomplete="off"
+                                   class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all"
+                                   id="regionName"
+                                   maxlength="150"
+                                   name="RegionName"
+                                   value="@Model?.RegionName"
+                                   oninput="handleNameInput(this)"
+                                   placeholder="e.g., Ho Chi Minh City Metropolitan, Can Tho Delta Hub"
+                                   required=""
+                                   type="text" />
+                            <span class="material-symbols-outlined absolute right-3 text-[18px] text-primary @(string.IsNullOrEmpty(Model?.RegionName) ? "opacity-0" : "opacity-100") transition-opacity pointer-events-none" id="nameCheckmark">check_circle</span>
+                        </div>
+                        <span asp-validation-for="RegionName" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Official regional title displayed on management consoles and staff rosters.
+                        </p>
+                    </div>
+
+                    <!-- Field 3: Minimum Wage Region -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-title-md text-on-surface font-semibold flex items-center gap-1" for="regionalMinimumWageId">
+                                Minimum Wage Region <span class="text-error font-bold">*</span>
+                            </label>
+                        </div>
+                        @if (Model?.MinimumWages == null || !Model.MinimumWages.Any())
+                        {
+                            <div class="p-3.5 rounded-lg bg-amber-50 text-amber-800 text-body-sm flex items-center gap-2 border border-amber-200">
+                                <span class="material-symbols-outlined text-[18px]">warning</span>
+                                <span>No regional minimum wages are currently available.</span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="relative flex items-center">
+                                <span class="material-symbols-outlined absolute left-3.5 text-[18px] text-secondary pointer-events-none">payments</span>
+                                <select class="w-full h-11 pl-10 pr-10 bg-surface-container-low rounded-lg text-on-surface font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all appearance-none cursor-pointer"
+                                        id="regionalMinimumWageId"
+                                        name="RegionalMinimumWageId"
+                                        required>
+                                    <option value="">Select minimum wage region...</option>
+                                    @foreach (var wage in Model.MinimumWages)
+                                    {
+                                        <option value="@wage.RegionalMinimumWageId" selected="@(Model?.RegionalMinimumWageId == wage.RegionalMinimumWageId)">
+                                            @wage.WageName — @CurrencyHelper.FormatVnd(wage.MinimumHourlyRate)/hour
+                                        </option>
+                                    }
+                                </select>
+                                <span class="material-symbols-outlined absolute right-3 text-[18px] text-secondary pointer-events-none">expand_more</span>
+                            </div>
+                        }
+                        <span asp-validation-for="RegionalMinimumWageId" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Applicable regional minimum hourly wage rate enforced for baseline payroll calculations.
+                        </p>
+                    </div>
+
+                    <!-- Field 4: Description (Optional) -->
+                    <div class="flex flex-col gap-1.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-title-md text-on-surface font-semibold flex items-center gap-1.5" for="description">
+                                Description
+                                <span class="text-label-sm text-secondary font-normal font-sans">(Optional)</span>
+                            </label>
+                            <span class="text-label-sm font-mono text-secondary" id="descriptionCounter">@(Model?.Description?.Length ?? 0) / 500</span>
+                        </div>
+                        <div class="relative">
+                            <textarea class="w-full p-3.5 bg-surface-container-low rounded-lg text-on-surface placeholder:text-secondary/70 font-body-md focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary shadow-inner transition-all resize-y min-h-[110px]"
+                                      id="description"
+                                      maxlength="500"
+                                      name="Description"
+                                      oninput="handleDescInput(this)"
+                                      placeholder="Briefly outline the operational coverage, included provinces or geographic logistics scope..."
+                                      rows="4">@Model?.Description</textarea>
+                        </div>
+                        <span asp-validation-for="Description" class="text-error text-label-sm"></span>
+                        <p class="text-body-sm text-secondary">
+                            Optional description of administrative boundaries or branch clusters.
+                        </p>
+                    </div>
+
+                    <!-- Live Region Badge Simulator Box -->
+                    <div class="mt-2 p-4 rounded-xl bg-surface-container-low flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-label-sm uppercase font-bold text-secondary tracking-wider">Display Preview</span>
+                            <span class="text-[11px] font-mono text-secondary">Roster Badge Simulation</span>
+                        </div>
+                        <div class="flex items-center gap-3 bg-surface-container-lowest p-3 rounded-lg shadow-sm">
+                            <div class="w-10 h-10 rounded-md bg-primary-container text-white flex items-center justify-center font-mono font-bold text-sm shrink-0">
+                                <span id="badgePreviewCode">@(string.IsNullOrEmpty(Model?.RegionCode) ? "REG" : Model.RegionCode)</span>
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                                <span class="font-title-md text-on-surface truncate text-[14px]" id="badgePreviewName">@(string.IsNullOrEmpty(Model?.RegionName) ? "Region Name Not Specified" : Model.RegionName)</span>
+                                <span class="text-label-sm text-secondary flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                                    Active Enterprise Domain
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Guidelines & Context Information (4 Columns) -->
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <!-- Creation Guidelines Card -->
+            <div class="bg-surface-container-lowest rounded-xl shadow-sm p-6 flex flex-col gap-5">
+                <div class="flex items-center gap-2.5 pb-2">
+                    <div class="w-8 h-8 rounded-lg bg-secondary-container text-on-secondary-container flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[18px]">menu_book</span>
+                    </div>
+                    <div>
+                        <h4 class="text-title-md font-bold text-on-surface leading-tight">Creation Guidelines</h4>
+                        <span class="text-label-sm text-secondary">System Policy Rulebook</span>
+                    </div>
+                </div>
+                <ul class="flex flex-col gap-4">
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-surface-container flex items-center justify-center shrink-0 mt-0.5 text-primary">
+                            <span class="material-symbols-outlined text-[13px] font-bold">fingerprint</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-body-md-medium text-on-surface font-semibold text-xs">Identifier Uniqueness</span>
+                            <p class="text-body-sm text-secondary leading-snug">
+                                Region codes must be unique and cannot be changed once established.
+                            </p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-surface-container flex items-center justify-center shrink-0 mt-0.5 text-primary">
+                            <span class="material-symbols-outlined text-[13px] font-bold">toggle_on</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-body-md-medium text-on-surface font-semibold text-xs">Initial State</span>
+                            <p class="text-body-sm text-secondary leading-snug">
+                                Regions start in Active status upon submission.
+                            </p>
+                        </div>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-surface-container flex items-center justify-center shrink-0 mt-0.5 text-primary">
+                            <span class="material-symbols-outlined text-[13px] font-bold">account_tree</span>
+                        </div>
+                        <div class="flex flex-col gap-0.5">
+                            <span class="text-body-md-medium text-on-surface font-semibold text-xs">Associated Units</span>
+                            <p class="text-body-sm text-secondary leading-snug">
+                                Branch facilities can be associated via Branch Management once this region record is created.
+                            </p>
+                        </div>
+                    </li>
+                </ul>
+                <!-- Quick Format Tips Badges -->
+                <div class="pt-4 mt-1 bg-surface-container-low rounded-xl p-3.5 flex flex-col gap-2.5">
+                    <span class="text-label-sm uppercase font-bold text-secondary tracking-wider">Quick Format Tips</span>
+                    <p class="text-body-sm text-secondary text-xs">Standardize region identifiers with short alpha codes:</p>
+                    <div class="flex flex-wrap gap-2 pt-0.5">
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container hover:bg-primary hover:text-white transition-colors text-xs font-mono font-semibold text-on-surface cursor-pointer" onclick="applySampleCode('HCM')" type="button">HCM</button>
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container hover:bg-primary hover:text-white transition-colors text-xs font-mono font-semibold text-on-surface cursor-pointer" onclick="applySampleCode('CT')" type="button">CT</button>
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container hover:bg-primary hover:text-white transition-colors text-xs font-mono font-semibold text-on-surface cursor-pointer" onclick="applySampleCode('VL')" type="button">VL</button>
+                        <button class="px-2.5 py-1 rounded-md bg-surface-container hover:bg-primary hover:text-white transition-colors text-xs font-mono font-semibold text-on-surface cursor-pointer" onclick="applySampleCode('HN-NORTH')" type="button">HN-NORTH</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Regional Distribution Visual Card with placeholder image -->
+            <div class="relative overflow-hidden rounded-xl bg-surface-container-lowest shadow-sm p-4 flex flex-col gap-3">
+                <div class="relative h-32 w-full rounded-lg overflow-hidden">
+                    <img class="w-full h-full object-cover" data-alt="A modern architectural aerial view of a metropolitan city network connected by digital data lines and glowing regional administrative clusters, rendered in deep indigo, blue, and clean light gray tones matching an enterprise enterprise software aesthetics." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDoj1VLX46HlaOUM0b7RXFtP55TLo4sqRr5z0C-MR1Hv5eSEXWzcMlfOJt3euQZpOx_4VE88ZmautOCHUUMYoQLMQrxfipy1UYImCk56jldA2jC_zSPrEWJCyOwrvbxQPiZU_xVY6TyJPTC_5TTLOUt9qLEV6ZRqWZFXvsOvvC3UaLR18_LRf0m96Yobzmt9WoxdoKWSF5TjJJFyZIDXHZUPCs7VkdIhjJmfWACFNLpF_9Wy-S2uPu1" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
+                        <div class="flex items-center gap-1.5 text-white">
+                            <span class="material-symbols-outlined text-[16px]">location_searching</span>
+                            <span class="text-xs font-semibold">Hierarchy Engine Node</span>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-[12px] text-secondary leading-snug px-1">
+                    Regions anchor organizational schedules, branch assignments, and localized regulatory rulesets.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Persistent Action Footer Bar -->
+    <div class="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-surface-container-high/60">
+        <div class="flex items-center gap-2 text-secondary text-xs">
+            <span class="material-symbols-outlined text-[16px] text-primary">verified_user</span>
+            <span>Draft parameters are validated locally before submission.</span>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <!-- Cancel Button -->
+            <a class="flex-1 sm:flex-none h-11 px-5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-title-md text-[13px] flex items-center justify-center transition-colors shadow-sm" asp-controller="Regions" asp-action="Index">
+                Cancel
+            </a>
+            <!-- Create Region Primary Solid Button -->
+            <button class="flex-1 sm:flex-none h-11 px-6 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-md text-[13px] flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" type="submit" form="createRegionForm" @(Model.MinimumWages == null || !Model.MinimumWages.Any() ? "disabled" : "")>
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                <span>Create Region</span>
+            </button>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        function handleCodeInput(input) {
+            // Force uppercase
+            input.value = input.value.toUpperCase();
+            const count = input.value.length;
+            const counter = document.getElementById('regionCodeCounter');
+            if (counter) counter.innerText = count + ' / 20';
+
+            const checkmark = document.getElementById('codeCheckmark');
+            const previewCode = document.getElementById('badgePreviewCode');
+            if (count > 0) {
+                if (checkmark) checkmark.classList.remove('opacity-0');
+                if (previewCode) previewCode.innerText = input.value;
+            } else {
+                if (checkmark) checkmark.classList.add('opacity-0');
+                if (previewCode) previewCode.innerText = 'REG';
+            }
+        }
+
+        function handleNameInput(input) {
+            const count = input.value.length;
+            const counter = document.getElementById('regionNameCounter');
+            if (counter) counter.innerText = count + ' / 150';
+
+            const checkmark = document.getElementById('nameCheckmark');
+            const previewName = document.getElementById('badgePreviewName');
+            if (count > 0) {
+                if (checkmark) checkmark.classList.remove('opacity-0');
+                if (previewName) previewName.innerText = input.value;
+            } else {
+                if (checkmark) checkmark.classList.add('opacity-0');
+                if (previewName) previewName.innerText = 'Region Name Not Specified';
+            }
+        }
+
+        function handleDescInput(textarea) {
+            const count = textarea.value.length;
+            const counter = document.getElementById('descriptionCounter');
+            if (counter) counter.innerText = count + ' / 500';
+        }
+
+        function applySampleCode(code) {
+            const codeInput = document.getElementById('regionCode');
+            if (codeInput) {
+                codeInput.value = code;
+                handleCodeInput(codeInput);
+                codeInput.focus();
+            }
+        }
+    </script>
+}

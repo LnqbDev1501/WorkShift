@@ -11,6 +11,7 @@ namespace WorkShiftServer.API.Controllers.Accountant;
 public sealed class PayrollPeriodReportController(IPayrollPeriodService service) : ControllerBase
 {
     [HttpGet("{id:int}/report")]
+    [HttpGet("{id:int}/export-excel")]
     public async Task<IActionResult> Export(int id, CancellationToken ct)
     {
         var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");

@@ -5,8 +5,8 @@ namespace WorkShiftManagement.BLL.DTOs.Manager.Request;
 
 public class TerminateEmploymentContractRequest
 {
-    [Required(ErrorMessage = "Lý do chấm dứt hợp đồng là bắt buộc.")]
-    [MaxLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự.")]
+    [Required(ErrorMessage = "A termination reason is required.")]
+    [MaxLength(500, ErrorMessage = "The reason cannot exceed 500 characters.")]
     public string Reason { get; set; } = string.Empty;
 
     /// <summary>

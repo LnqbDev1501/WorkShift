@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace WorkShiftManagement.DAL.Entities;
@@ -36,8 +36,6 @@ public partial class WorkShift
     public DateTime UpdatedAt { get; set; }
 
     public virtual User? CancelledByNavigation { get; set; }
-
-    public virtual ICollection<Checklist> Checklists { get; set; } = new List<Checklist>();
 
     public virtual User CreatedByNavigation { get; set; } = null!;
 

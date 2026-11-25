@@ -1,8 +1,9 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using WorkShiftManagement.DAL.Data;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Manager;
 using WorkShiftManagement.DAL.Models.Admin;
+using WorkShiftManagement.DAL.Security;
 
 namespace WorkShiftManagement.DAL.Repositories.Manager;
 
@@ -20,7 +21,8 @@ public class ManagerStaffRepo : IManagerStaffRepo
         string? search,
         string? status,
         int pageNumber,
-        int pageSize)
+        int pageSize,
+        bool? hasContract = null)
     {
         var query = _context.Users
             .AsNoTracking()
@@ -42,13 +44,35 @@ public class ManagerStaffRepo : IManagerStaffRepo
             var normalizedStatus = status.Trim().ToUpperInvariant();
             if (normalizedStatus == "ACTIVE")
                 query = query.Where(u => u.Status == "ACTIVE" && u.DeletedAt == null);
+            else if (normalizedStatus == "PENDING")
+                query = query.Where(u => u.Status == "PENDING" && u.DeletedAt == null);
             else
                 query = query.Where(u => u.Status == normalizedStatus);
+        }
+
+        if (hasContract == true)
+        {
+            query = query.Where(u => _context.EmploymentContracts.Any(c =>
+                c.UserId == u.UserId &&
+                (c.BranchId == managerBranchId || u.BranchId == managerBranchId) &&
+                (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+                 c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")));
+        }
+        else if (hasContract == false)
+        {
+            query = query.Where(u => !_context.EmploymentContracts.Any(c =>
+                c.UserId == u.UserId &&
+                (c.BranchId == managerBranchId || u.BranchId == managerBranchId) &&
+                (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
+                 c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL")));
         }
 
         var totalCount = await query.CountAsync();
 
         var items = await query
+            .Include(u => u.Role)
+            .Include(u => u.Branch)
+            .Include(u => u.EmploymentContracts)
             .OrderByDescending(u => u.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -92,14 +116,34 @@ public class ManagerStaffRepo : IManagerStaffRepo
     public async Task<bool> ExistsByIdentityNoAsync(string identityNo, Guid? excludeUserId = null)
     {
         var trimmed = identityNo.Trim();
-        var query = _context.Users
-            .AsNoTracking()
-            .Where(u => u.IdentityNo == trimmed && u.DeletedAt == null);
+        var encrypted = IdentityNoEncryption.Protect(trimmed);
 
+        List<int> found;
         if (excludeUserId.HasValue)
-            query = query.Where(u => u.UserId != excludeUserId.Value);
+        {
+            found = await _context.Database
+                .SqlQuery<int>($@"
+                    SELECT 1 AS ""Value""
+                    FROM public.users
+                    WHERE (identity_no = {encrypted} OR identity_no = {trimmed})
+                      AND deleted_at IS NULL
+                      AND user_id <> {excludeUserId.Value}
+                    LIMIT 1")
+                .ToListAsync();
+        }
+        else
+        {
+            found = await _context.Database
+                .SqlQuery<int>($@"
+                    SELECT 1 AS ""Value""
+                    FROM public.users
+                    WHERE (identity_no = {encrypted} OR identity_no = {trimmed})
+                      AND deleted_at IS NULL
+                    LIMIT 1")
+                .ToListAsync();
+        }
 
-        return await query.AnyAsync();
+        return found.Count > 0;
     }
 
     public async Task<User> CreateStaffAsync(User staff, Guid managerId)
@@ -109,7 +153,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
         return staff;
     }
 
-    public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string identityNo, string gender, DateOnly? dateOfBirth, string? address)
+    public async Task<User?> UpdateStaffAsync(Guid staffId, int managerBranchId, string fullName, string phone, string gender, DateOnly? dateOfBirth, string? address)
     {
         var staff = await _context.Users
             .FirstOrDefaultAsync(u =>
@@ -128,10 +172,10 @@ public class ManagerStaffRepo : IManagerStaffRepo
 
         staff.FullName = fullName.Trim();
         staff.Phone = phone.Trim();
-        staff.IdentityNo = identityNo.Trim();
+        // IdentityNo is preserved and not modified by manager
         staff.Gender = gender.Trim().ToUpperInvariant();
         staff.DateOfBirth = dateOfBirth ?? default;
-        staff.Address = address?.Trim();
+        staff.Address = string.IsNullOrWhiteSpace(address) ? string.Empty : address.Trim();
         staff.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -145,7 +189,7 @@ public class ManagerStaffRepo : IManagerStaffRepo
                 u.UserId == staffId &&
                 (u.BranchId == managerBranchId || _context.EmploymentContracts.Any(c => c.UserId == u.UserId && c.BranchId == managerBranchId && c.Status == "ACTIVE")) &&
                 u.Role.RoleName == "STAFF" &&
-                u.Status == "ACTIVE" &&
+                (u.Status == "ACTIVE" || u.Status == "PENDING") &&
                 u.DeletedAt == null);
 
         if (staff == null)
@@ -155,6 +199,16 @@ public class ManagerStaffRepo : IManagerStaffRepo
         staff.Status = "INACTIVE";
         staff.DeletedAt = DateTime.UtcNow;
         staff.UpdatedAt = DateTime.UtcNow;
+
+        // Revoke active biometric face profile upon account deactivation/soft-delete
+        var activeFaceProfiles = await _context.FaceProfiles
+            .Where(f => f.UserId == staffId && f.Status == "ACTIVE")
+            .ToListAsync();
+        foreach (var fp in activeFaceProfiles)
+        {
+            fp.Status = "REVOKED";
+            fp.RevokedAt = DateTime.UtcNow;
+        }
 
         await _context.SaveChangesAsync();
         return true;

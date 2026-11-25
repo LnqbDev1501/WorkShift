@@ -1,0 +1,199 @@
+@model UI_Admin.Models.PayrollDocuments.PayrollCorrectionPreviewResponse
+@using D = UI_Admin.Models.Accountant.PayrollPeriods.PeriodDisplay
+@{
+    var cur = Model.CurrentPayroll;
+    var prev = Model.Preview;
+    ViewData["Title"] = $"Correction Preview — {cur.EmployeeName}";
+
+    string? errorMsg = (TempData["ErrorMessage"] ?? TempData["WorkflowError"]) as string;
+    string? successMsg = (TempData["SuccessMessage"] ?? TempData["WorkflowSuccess"]) as string;
+}
+
+<div class="px-7 py-6 max-w-[1440px] mx-auto space-y-6">
+    <!-- Header Title & Action Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-1.5 text-xs text-indigo-600 font-semibold uppercase tracking-wider mb-1">
+                <span class="material-symbols-outlined text-sm">compare</span>
+                <span>Accountant / Payroll &amp; Compensation</span>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Correction Preview — @cur.EmployeeName</h1>
+            <p class="text-sm text-slate-500 mt-0.5">
+                Comparing Version V@(cur.VersionNo) with recalculated figures (Request #@Model.CorrectionRequestId).
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a asp-action="Review" asp-route-id="@cur.PayrollId"
+               class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 text-sm font-medium transition-all shadow-sm">
+                <span class="material-symbols-outlined text-lg">arrow_back</span>
+                <span>Back to Payroll</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Alert Notifications -->
+    @if (!string.IsNullOrEmpty(successMsg))
+    {
+        <div id="alertSuccessBanner" class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-emerald-600 text-xl shrink-0">check_circle</span>
+                <span class="font-medium">@successMsg</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertSuccessBanner')?.remove()" class="text-emerald-600 hover:text-emerald-950 hover:bg-emerald-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMsg))
+    {
+        <div id="alertErrorBanner" class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center justify-between gap-3 shadow-sm transition-all duration-300">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-rose-600 text-xl shrink-0">error</span>
+                <span class="font-medium">@errorMsg</span>
+            </div>
+            <button type="button" aria-label="Close message" onclick="document.getElementById('alertErrorBanner')?.remove()" class="text-rose-600 hover:text-rose-950 hover:bg-rose-100/70 p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 inline-flex items-center justify-center">
+                <span class="material-symbols-outlined text-lg leading-none block">close</span>
+            </button>
+        </div>
+    }
+
+    <!-- Change Assessment Card -->
+    @if (prev.Status == "CALCULATED" && prev.PayrollId > 0)
+    {
+        <div class="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/20">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-2xl">verified</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Recalculation Succeeded (Version V@(prev.VersionNo))</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Live sources are up-to-date with Version V@(prev.VersionNo). Review the component differences below and complete the correction on the review page.</p>
+                </div>
+            </div>
+            <a asp-action="Review" asp-route-id="@prev.PayrollId" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-sm">done_all</span>
+                <span>Return to Review &amp; Complete</span>
+            </a>
+        </div>
+    }
+    else if (Model.HasChanges)
+    {
+        <div class="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/20">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-2xl">published_with_changes</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Valid Source Changes Detected</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Recalculation will supersede Version V@(cur.VersionNo) and create Version V@(prev.VersionNo).</p>
+                </div>
+            </div>
+            <form asp-action="Recalculate" method="post" class="shrink-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="payrollId" value="@cur.PayrollId" />
+                <input type="hidden" name="correctionRequestId" value="@Model.CorrectionRequestId" />
+                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                    <span class="material-symbols-outlined text-sm">refresh</span>
+                    <span>Confirm &amp; Recalculate (V@(prev.VersionNo))</span>
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="bg-white border border-amber-200 rounded-2xl p-6 shadow-sm flex items-start gap-3 bg-amber-50/20">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">info</span>
+            </div>
+            <div>
+                <h2 class="text-base font-bold text-slate-900">No Calculation Differences Detected</h2>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Live recalculated figures match the current version. If this was an explanation-only response, please accept the explanation on the review page.
+                </p>
+            </div>
+        </div>
+    }
+
+    <!-- Comparison Table Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-indigo-600 text-lg">table_chart</span>
+                <h3 class="text-sm font-bold text-slate-900">Before &amp; After Comparison</h3>
+                <span class="text-xs text-slate-500">Employee: @cur.EmployeeName</span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-6">Component</th>
+                        <th class="py-3 px-6 text-right">Current (V@(cur.VersionNo))</th>
+                        <th class="py-3 px-6 text-right font-bold text-indigo-900">Recalculated (@(prev.Status == "CALCULATED" ? $"Version V{prev.VersionNo}" : $"Preview V{prev.VersionNo}"))</th>
+                        <th class="py-3 px-6 text-right font-bold">Difference</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Total Work Hours</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@cur.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@prev.TotalWorkHours.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) hrs</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold @(prev.TotalWorkHours > cur.TotalWorkHours ? "text-emerald-600" : prev.TotalWorkHours < cur.TotalWorkHours ? "text-rose-600" : "text-slate-500")">
+                            @(prev.TotalWorkHours - cur.TotalWorkHours != 0 ? (prev.TotalWorkHours - cur.TotalWorkHours).ToString("+0.##;-0.##", System.Globalization.CultureInfo.InvariantCulture) + " hrs" : "—")
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Work Pay</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@D.Money(cur.WorkPay)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@D.Money(prev.WorkPay)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold @(prev.WorkPay > cur.WorkPay ? "text-emerald-600" : prev.WorkPay < cur.WorkPay ? "text-rose-600" : "text-slate-500")">
+                            @(prev.WorkPay - cur.WorkPay != 0 ? D.Money(prev.WorkPay - cur.WorkPay) : "—")
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Rewards</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@D.Money(cur.TotalReward)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@D.Money(prev.TotalReward)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold @(prev.TotalReward > cur.TotalReward ? "text-emerald-600" : prev.TotalReward < cur.TotalReward ? "text-rose-600" : "text-slate-500")">
+                            @(prev.TotalReward - cur.TotalReward != 0 ? D.Money(prev.TotalReward - cur.TotalReward) : "—")
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Penalties</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@D.Money(cur.TotalPenalty)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@D.Money(prev.TotalPenalty)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold">
+                            @(prev.TotalPenalty - cur.TotalPenalty != 0 ? D.Money(prev.TotalPenalty - cur.TotalPenalty) : "—")
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Attendance Deductions</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@D.Money(cur.AttendanceDeduction)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@D.Money(prev.AttendanceDeduction)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold">
+                            @(prev.AttendanceDeduction - cur.AttendanceDeduction != 0 ? D.Money(prev.AttendanceDeduction - cur.AttendanceDeduction) : "—")
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="py-3.5 px-6 font-medium text-slate-800">Carry Forward Applied</td>
+                        <td class="py-3.5 px-6 text-right font-mono">@D.Money(cur.CarryForwardDeduction)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold text-indigo-900">@D.Money(prev.CarryForwardDeduction)</td>
+                        <td class="py-3.5 px-6 text-right font-mono font-bold">
+                            @(prev.CarryForwardDeduction - cur.CarryForwardDeduction != 0 ? D.Money(prev.CarryForwardDeduction - cur.CarryForwardDeduction) : "—")
+                        </td>
+                    </tr>
+                    <tr class="bg-indigo-50/40 font-bold">
+                        <td class="py-3.5 px-6 text-indigo-950 uppercase tracking-wider">Net Salary</td>
+                        <td class="py-3.5 px-6 text-right font-mono text-slate-700 text-sm">@D.Money(cur.NetSalary)</td>
+                        <td class="py-3.5 px-6 text-right font-mono text-indigo-900 text-sm font-bold">@D.Money(prev.NetSalary)</td>
+                        <td class="py-3.5 px-6 text-right font-mono text-sm font-bold @(prev.NetSalary > cur.NetSalary ? "text-emerald-600" : prev.NetSalary < cur.NetSalary ? "text-rose-600" : "text-slate-500")">
+                            @(prev.NetSalary - cur.NetSalary != 0 ? D.Money(prev.NetSalary - cur.NetSalary) : "0 ₫")
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

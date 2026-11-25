@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../controllers/available_shifts_controller.dart';
+import '../../../controllers/shifts/available_shifts_controller.dart';
 import '../../../widgets/app_date_filters.dart';
 
 class AvailableShiftFilters extends StatelessWidget {

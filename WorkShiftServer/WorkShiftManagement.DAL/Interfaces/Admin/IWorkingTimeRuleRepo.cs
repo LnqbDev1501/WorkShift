@@ -12,5 +12,5 @@ public interface IWorkingTimeRuleRepo
     Task DeleteDraftAsync(int id, CancellationToken cancellationToken);
     Task<WorkingTimeRule> PublishAsync(int id, Guid actor, CancellationToken cancellationToken);
     Task<WorkingTimeRule> CancelAsync(int id, Guid actor, CancellationToken cancellationToken);
-    Task ActivateDueAsync(CancellationToken cancellationToken);
+    Task<int> ActivateDueAsync(CancellationToken cancellationToken);
 }

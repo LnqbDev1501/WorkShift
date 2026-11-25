@@ -45,8 +45,10 @@ public class ProductService : IProductService
 
         int? categoryId = query.CategoryId is > 0 ? query.CategoryId : null;
 
-        // Managers only see products of their own branch.
-        int? branchId = actor.Role == "MANAGER" ? actor.BranchId : query.BranchId is > 0 ? query.BranchId : null;
+        // Managers, Staff, and Accountants only see products of their own branch.
+        int? branchId = (actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT")
+            ? (actor.BranchId.HasValue ? actor.BranchId.Value : -1)
+            : query.BranchId is > 0 ? query.BranchId : null;
 
         var (items, totalCount) = await _productRepo.GetPagedAsync(query.Search, branchId, categoryId, status, pageNumber, pageSize);
 
@@ -70,7 +72,7 @@ public class ProductService : IProductService
         if (data == null)
             return null;
 
-        if (actor.Role == "MANAGER" && data.BranchId != actor.BranchId)
+        if ((actor.Role is "MANAGER" or "STAFF" or "ACCOUNTANT") && (!actor.BranchId.HasValue || data.BranchId != actor.BranchId.Value))
             return null;
 
         return new ProductDetailResponse
@@ -240,8 +242,8 @@ public class ProductService : IProductService
         if (trimmedName.Length > 150)
             throw new ArgumentException("Product name cannot exceed 150 characters.");
 
-        if (price < 0)
-            throw new ArgumentException("Price cannot be negative.");
+        if (price < 1000m)
+            throw new ArgumentException("Price must be at least 1,000 VND.");
         if (decimal.Round(price, 2) != price)
             throw new ArgumentException("Price cannot have more than 2 decimal places.");
 
@@ -271,6 +273,7 @@ public class ProductService : IProductService
         ProductCode = data.ProductCode,
         ProductName = data.ProductName,
         Price = data.Price,
+        ImageUrl = data.ImageUrl,
         Status = data.Status,
         CreatedAt = data.CreatedAt,
         UpdatedAt = data.UpdatedAt

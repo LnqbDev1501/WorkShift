@@ -1,15 +1,19 @@
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.BLL.Caching;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
 using WorkShiftManagement.BLL.DTOs.Admin.Response;
 using WorkShiftManagement.BLL.Interfaces.Admin;
 using WorkShiftManagement.BLL.Interfaces.Auth;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Realtime;
 using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Admin;
+using WorkShiftManagement.DAL.Security;
 using WorkShiftManagement.BLL.Interfaces.Upload;
 using NotificationEntity = WorkShiftManagement.DAL.Entities.Notification;
 
@@ -34,6 +38,8 @@ public class UserService : IUserService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly IAdminRealtimePublisher _adminRealtimePublisher;
     private readonly INotificationRealtimePublisher _notificationRealtimePublisher;
+    private readonly IAuditLogHelper? _auditLogHelper;
+    private readonly IMemoryCache? _memoryCache;
 
     public UserService(
         IUserRepo userRepo,
@@ -43,7 +49,9 @@ public class UserService : IUserService
         IConfiguration configuration,
         ICloudinaryService cloudinaryService,
         IAdminRealtimePublisher adminRealtimePublisher,
-        INotificationRealtimePublisher notificationRealtimePublisher)
+        INotificationRealtimePublisher notificationRealtimePublisher,
+        IAuditLogHelper? auditLogHelper = null,
+        IMemoryCache? memoryCache = null)
     {
         _userRepo = userRepo;
         _authService = authService;
@@ -55,6 +63,8 @@ public class UserService : IUserService
         _cloudinaryService = cloudinaryService;
         _adminRealtimePublisher = adminRealtimePublisher;
         _notificationRealtimePublisher = notificationRealtimePublisher;
+        _auditLogHelper = auditLogHelper;
+        _memoryCache = memoryCache;
     }
 
     public async Task<AdminUserListResponse> GetAdminUsersAsync(GetAdminUsersRequest request)
@@ -181,10 +191,12 @@ public class UserService : IUserService
         await ValidateIdentityIsAvailableAsync(request.Email, request.Phone, request.IdentityNo);
 
         var authUserId = await _authService.CreateUserAndSendInviteAsync(request.Email);
+        User createdUser;
+        CreateAdminUserResponse response;
         try
         {
             var now = DateTime.UtcNow;
-            var user = new User
+            createdUser = new User
             {
                 UserId = authUserId,
                 RoleId = request.RoleId,
@@ -207,21 +219,21 @@ public class UserService : IUserService
                 UpdatedAt = now
             };
 
-            _userRepo.Create(user);
+            _userRepo.Create(createdUser);
             await _userRepo.SaveChangesAsync();
 
-            return new CreateAdminUserResponse
+            response = new CreateAdminUserResponse
             {
-                UserId = user.UserId,
-                RoleId = user.RoleId,
-                BranchId = user.BranchId.Value,
-                FullName = user.FullName,
-                IdentityNo = user.IdentityNo,
-                Email = user.Email,
-                Phone = user.Phone,
-                Status = user.Status,
-                CreatedAt = ConvertToVietnamTime(user.CreatedAt),
-                UpdatedAt = ConvertToVietnamTime(user.UpdatedAt)
+                UserId = createdUser.UserId,
+                RoleId = createdUser.RoleId,
+                BranchId = createdUser.BranchId.Value,
+                FullName = createdUser.FullName,
+                IdentityNo = createdUser.IdentityNo,
+                Email = createdUser.Email,
+                Phone = createdUser.Phone,
+                Status = createdUser.Status,
+                CreatedAt = ConvertToVietnamTime(createdUser.CreatedAt),
+                UpdatedAt = ConvertToVietnamTime(createdUser.UpdatedAt)
             };
         }
         catch
@@ -237,6 +249,29 @@ public class UserService : IUserService
             }
             throw;
         }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CREATE_ADMIN_USER",
+                tableName: "users",
+                recordId: createdUser.UserId.ToString(),
+                oldValue: null,
+                newValue: new
+                {
+                    createdUser.UserId,
+                    createdUser.FullName,
+                    createdUser.Email,
+                    createdUser.Phone,
+                    IdentityNo = IdentityNoEncryption.Mask(createdUser.IdentityNo),
+                    createdUser.RoleId,
+                    RoleName = role.RoleName,
+                    createdUser.BranchId,
+                    createdUser.Status
+                });
+        }
+
+        return response;
     }
 
     public async Task<UpdateAdminUserResponse> UpdateAdminUserAsync(
@@ -334,6 +369,22 @@ public class UserService : IUserService
         if (emailOwner is not null && emailOwner.UserId != userId)
             throw new InvalidOperationException("Email is already in use by another user.");
 
+        var oldSnapshot = new
+        {
+            user.FullName,
+            user.Phone,
+            IdentityNo = IdentityNoEncryption.Mask(user.IdentityNo),
+            user.Gender,
+            user.DateOfBirth,
+            user.Address,
+            user.Email,
+            user.BranchId,
+            user.RoleId,
+            RoleName = user.Role.RoleName,
+            user.AvatarUrl,
+            user.Status
+        };
+
         var changedFields = new List<string>();
 
         if (!string.Equals(user.FullName?.Trim(), request.FullName.Trim(), StringComparison.Ordinal))
@@ -363,18 +414,18 @@ public class UserService : IUserService
         if (user.RoleId != request.RoleId)
             changedFields.Add("Role");
 
-        if (request.AvatarFile is not null && request.AvatarFile.Length > 0)
-        {
-            user.AvatarUrl = await _cloudinaryService.UploadAvatarAsync(userId, request.AvatarFile);
-            changedFields.Add("Avatar");
-        }
-
         var originalEmail = user.Email;
         var emailChanged = !string.Equals(originalEmail, request.Email, StringComparison.OrdinalIgnoreCase);
+
+        if (emailChanged && user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Email cannot be changed once the account is active.");
+        }
 
         user.FullName = request.FullName;
         user.Phone = request.Phone;
         user.IdentityNo = request.IdentityNo;
+        _userRepo.MarkIdentityNoModified(user);
         user.Gender = request.Gender;
         user.DateOfBirth = request.DateOfBirth!.Value;
         user.Address = request.Address;
@@ -408,10 +459,10 @@ public class UserService : IUserService
                 CreatedAt = now,
                 UpdatedAt = now,
                 IsDeleted = false,
-                TargetType = "Custom",
+                TargetType = isAdmin ? "All" : "Custom",
                 TargetBranchId = null,
                 Channels = new List<string> { "InApp" },
-                TargetRoles = new List<string> { targetRoleName }
+                TargetRoles = isAdmin ? new List<string>() : new List<string> { targetRoleName }
             };
 
             notification.UserNotifications.Add(new UserNotification
@@ -436,6 +487,7 @@ public class UserService : IUserService
             }
 
             await transaction.CommitAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
 
             if (notification is not null)
             {
@@ -484,6 +536,7 @@ public class UserService : IUserService
         {
             await transaction.RollbackAsync();
             var innerMessage = exception.InnerException?.Message ?? "";
+            _logger.LogError(exception, "Database error updating user {UserId}. Inner: {InnerMessage}", userId, innerMessage);
             if (innerMessage.Contains("23503")) // Foreign key violation
             {
                 throw new ArgumentException("The provided BranchId or RoleId does not exist.");
@@ -504,7 +557,11 @@ public class UserService : IUserService
             {
                 throw new InvalidOperationException("Email is already in use by another user.");
             }
-            throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
+            if (innerMessage.Contains("23505")) // PostgreSQL unique_violation
+            {
+                throw new InvalidOperationException("The phone number, identity number, or email is already in use.", exception);
+            }
+            throw new InvalidOperationException($"Unable to update account due to a system constraint: {exception.InnerException?.Message ?? exception.Message}", exception);
         }
         catch (Exception)
         {
@@ -514,6 +571,33 @@ public class UserService : IUserService
 
         // Reload the user with Role and Branch included to get RoleName and BranchName
         await _userRepo.LoadRoleAndBranchAsync(user);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "UPDATE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.FullName,
+                    user.Phone,
+                    IdentityNo = IdentityNoEncryption.Mask(user.IdentityNo),
+                    user.Gender,
+                    user.DateOfBirth,
+                    user.Address,
+                    user.Email,
+                    user.BranchId,
+                    BranchName = user.Branch?.BranchName,
+                    user.RoleId,
+                    RoleName = user.Role.RoleName,
+                    user.AvatarUrl,
+                    user.Status,
+                    ChangedFields = changedFields
+                },
+                actorUserId: adminUserId);
+        }
 
         return new UpdateAdminUserResponse
         {
@@ -586,6 +670,16 @@ public class UserService : IUserService
             }
         }
 
+        var oldSnapshot = new
+        {
+            user.Status,
+            user.PreviousStatus,
+            user.BranchId,
+            user.PreviousBranchId,
+            user.DeletedAt,
+            RoleName = user.Role.RoleName
+        };
+
         if (user.Status.Equals(PendingStatus, StringComparison.OrdinalIgnoreCase) ||
             user.Status.Equals(ActiveStatus, StringComparison.OrdinalIgnoreCase))
         {
@@ -614,6 +708,7 @@ public class UserService : IUserService
             user.DeletedAt = now;
             user.UpdatedAt = now;
             await _userRepo.SaveChangesAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
         }
         catch
         {
@@ -630,6 +725,24 @@ public class UserService : IUserService
             }
 
             throw;
+        }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "DEACTIVATE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.Status,
+                    user.PreviousStatus,
+                    user.BranchId,
+                    user.PreviousBranchId,
+                    user.DeletedAt,
+                    RoleName = roleName
+                });
         }
     }
 
@@ -676,6 +789,16 @@ public class UserService : IUserService
                     : "This branch already has an Accountant.");
         }
 
+        var oldSnapshot = new
+        {
+            user.Status,
+            user.PreviousStatus,
+            user.BranchId,
+            user.PreviousBranchId,
+            user.DeletedAt,
+            RoleName = user.Role.RoleName
+        };
+
         await _authService.UnbanUserAsync(user.UserId);
         try
         {
@@ -686,6 +809,7 @@ public class UserService : IUserService
             user.DeletedAt = null;
             user.UpdatedAt = DateTime.UtcNow;
             await _userRepo.SaveChangesAsync();
+            _memoryCache?.Remove(WorkShiftCacheKeys.UserRole(userId));
         }
         catch (Exception exception)
         {
@@ -709,6 +833,24 @@ public class UserService : IUserService
             }
 
             throw;
+        }
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "RESTORE_ADMIN_USER",
+                tableName: "users",
+                recordId: user.UserId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    user.Status,
+                    user.PreviousStatus,
+                    user.BranchId,
+                    user.PreviousBranchId,
+                    user.DeletedAt,
+                    RoleName = roleName
+                });
         }
     }
 
@@ -780,8 +922,8 @@ public class UserService : IUserService
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
         try { _ = new MailAddress(request.Email); }
         catch (FormatException) { throw new ArgumentException("Email format is invalid."); }
-        if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
-            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
+        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[2689]|07[06-9]|08[1-689]|09[0-46-9])\d{7}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 052, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090-094, 096-099).");
         if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
             throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))
@@ -810,8 +952,8 @@ public class UserService : IUserService
 
         if (request.FullName.Length is 0 or > 150)
             throw new ArgumentException("Full name must contain between 1 and 150 characters.");
-        if (!Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
-            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix.");
+        if (!Regex.IsMatch(request.Phone, @"^(03[2-9]|05[2689]|07[06-9]|08[1-689]|09[0-46-9])\d{7}$"))
+            throw new ArgumentException("Phone number must contain 10 digits and use a valid Vietnamese mobile prefix (032-039, 052, 056, 058, 059, 070, 076-079, 081-086, 088, 089, 090-094, 096-099).");
         if (!Regex.IsMatch(request.IdentityNo, IdentityNoPattern))
             throw new ArgumentException("Identity number is invalid. It must contain 9 or 12 digits starting with a valid Vietnam provincial code.");
         if (request.Gender is not ("MALE" or "FEMALE" or "OTHER"))

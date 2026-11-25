@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WorkShiftManagement.BLL.DTOs.Admin.Request;
@@ -48,7 +49,11 @@ public class AdminNotificationController : ControllerBase
     {
         try
         {
-            return Ok(await _notificationService.BroadcastAsync(request));
+            var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            Guid? senderUserId = Guid.TryParse(subject, out var parsedId) ? parsedId : null;
+            var senderEmail = User.FindFirstValue(ClaimTypes.Email) ?? User.FindFirstValue("email");
+
+            return Ok(await _notificationService.BroadcastAsync(request, senderUserId, senderEmail));
         }
         catch (ArgumentException exception)
         {

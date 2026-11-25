@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using WorkShiftManagement.DAL.Models;
+using WorkShiftManagement.DAL.ReadModels.Staff;
 using WorkShiftManagement.BLL.DTOs.Staff.Timesheet;
+using WorkShiftManagement.BLL.Interfaces.Common;
 using WorkShiftManagement.BLL.Interfaces.Staff;
-using WorkShiftManagement.DAL.Entities;
 using WorkShiftManagement.DAL.Interfaces.Staff;
 
 namespace WorkShiftManagement.BLL.Services.Staff;
@@ -15,13 +18,16 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 {
     private readonly IStaffTimesheetRepo _repo;
     private readonly ILogger<StaffTimesheetService> _logger;
+    private readonly IAuditLogHelper? _auditLogHelper;
 
     public StaffTimesheetService(
         IStaffTimesheetRepo repo,
-        ILogger<StaffTimesheetService> logger)
+        ILogger<StaffTimesheetService> logger,
+        IAuditLogHelper? auditLogHelper = null)
     {
         _repo = repo;
         _logger = logger;
+        _auditLogHelper = auditLogHelper;
     }
 
     public async Task<StaffWeeklyTimesheetResponse?> GetMyWeeklyTimesheetAsync(
@@ -40,28 +46,26 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         int branchId = staff.BranchId
             ?? throw new InvalidOperationException("Staff is not currently assigned to any branch.");
 
-        var availableWeeks = await _repo.GetAvailableWeeksForStaffAsync(branchId, cancellationToken);
+        var availableWeeks = await _repo.GetAvailableWeeksForStaffAsync(branchId, staffId, cancellationToken);
         if (availableWeeks.Count == 0)
         {
             return null;
         }
 
         int targetWeekId;
-        if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0)
+        if (scheduleWeekId.HasValue && scheduleWeekId.Value > 0 && availableWeeks.Any(w => w.ScheduleWeekId == scheduleWeekId.Value))
         {
             targetWeekId = scheduleWeekId.Value;
         }
         else
         {
             // Pick most recent week with generated timesheet for this staff, or fallback to latest week
-            var weekWithTimesheet = availableWeeks.FirstOrDefault(w =>
-                w.PayrollPeriod != null &&
-                w.PayrollPeriod.Timesheets.Any(t => t.UserId == staffId));
+            var weekWithTimesheet = availableWeeks.FirstOrDefault(w => w.HasTimesheet);
 
             targetWeekId = weekWithTimesheet?.ScheduleWeekId ?? availableWeeks[0].ScheduleWeekId;
         }
 
-        var week = await _repo.GetWeeklyScheduleWithStaffShiftsAsync(targetWeekId, branchId, cancellationToken);
+        var week = await _repo.GetWeeklyScheduleWithStaffShiftsAsync(targetWeekId, branchId, staffId, cancellationToken);
         if (week == null)
         {
             return null;
@@ -69,13 +73,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var staffTimesheet = week.PayrollPeriod?.Timesheets.FirstOrDefault(t => t.UserId == staffId);
 
-        var staffAssignments = (week.WorkShifts ?? Enumerable.Empty<WorkShift>())
-            .Where(s => !string.Equals(s.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
-            .SelectMany(s => (s.ShiftAssignments ?? Enumerable.Empty<ShiftAssignment>())
-                .Where(a => a.UserId == staffId && !string.Equals(a.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
-                .Select(a => new { Shift = s, Assignment = a }))
-            .OrderBy(x => x.Shift.ScheduledStartAt)
-            .ToList();
+        var staffAssignments = week.Assignments;
 
         string status;
         string staffReviewStatus;
@@ -101,7 +99,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             totalAssigned = staffTimesheet.TotalAssignedShifts;
             completedShifts = staffTimesheet.CompletedShiftCount;
             absentShifts = staffTimesheet.AbsentShiftCount;
-            incompleteShifts = staffTimesheet.IncompleteShiftCount;
+            incompleteShifts = 0;
             totalWorkMinutes = staffTimesheet.TotalWorkMinutes;
             totalLateMinutes = staffTimesheet.TotalLateMinutes;
             totalEarlyLeaveMinutes = staffTimesheet.TotalEarlyLeaveMinutes;
@@ -145,17 +143,56 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
         var allAdjsByAttendance = staffTimesheet?.TimesheetAdjustmentRequests?
             .GroupBy(r => r.AttendanceId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(r => r.CreatedAt).ToList())
-            ?? new Dictionary<int, List<TimesheetAdjustmentRequest>>();
+            ?? new Dictionary<int, List<StaffTimesheetAdjustmentReadModel>>();
+
+        var activeRule = await _repo.GetActiveAttendanceRuleAsync(cancellationToken);
+        int defaultCheckOutAfterMinutes = activeRule?.CheckOutAfterMinutes ?? 60;
+        var nowUtc = DateTime.UtcNow;
 
         var shiftDtos = staffAssignments.Select(x =>
         {
             var att = x.Assignment.Attendance;
-            string attStatus = att?.Status
-                ?? (DateTime.UtcNow > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED");
+            bool isExcusedLeave = x.Assignment.HasApprovedLeave || string.Equals(att?.Status, "LEAVE", StringComparison.OrdinalIgnoreCase);
+            string? leaveReason = x.Assignment.LeaveReason;
+
+            string attStatus;
+            if (isExcusedLeave)
+            {
+                attStatus = "LEAVE";
+            }
+            else if (att != null)
+            {
+                if (att.CheckInTime.HasValue && att.CheckOutTime.HasValue)
+                {
+                    attStatus = string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase)
+                        ? "ABSENT"
+                        : (att.Status ?? "COMPLETED");
+                }
+                else if (string.Equals(att.Status, "ABSENT", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(att.Status, "INCOMPLETE", StringComparison.OrdinalIgnoreCase))
+                {
+                    attStatus = "ABSENT";
+                }
+                else if (att.CheckInTime.HasValue && !att.CheckOutTime.HasValue)
+                {
+                    var checkOutCutoffUtc = x.Shift.ScheduledEndAt.AddMinutes(GetCheckOutAfterMinutes(att.RuleSnapshotJson, defaultCheckOutAfterMinutes));
+                    attStatus = nowUtc > checkOutCutoffUtc ? "ABSENT" : (att.Status ?? "IN_PROGRESS");
+                }
+                else
+                {
+                    attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : (att.Status ?? "SCHEDULED");
+                }
+            }
+            else
+            {
+                attStatus = nowUtc > x.Shift.ScheduledEndAt ? "ABSENT" : "SCHEDULED";
+            }
+
+            bool isAbsentStatus = !isExcusedLeave && string.Equals(attStatus, "ABSENT", StringComparison.OrdinalIgnoreCase);
 
             var reqList = att != null && allAdjsByAttendance.TryGetValue(att.AttendanceId, out var foundList)
                 ? foundList
-                : new List<TimesheetAdjustmentRequest>();
+                : new List<StaffTimesheetAdjustmentReadModel>();
 
             var adj = reqList.FirstOrDefault();
 
@@ -181,13 +218,6 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
             bool canCancelAdj = hasPending && !isLocked && !isPastDeadline;
 
-            var approvedLeave = x.Assignment.LeaveRequestAssignments
-                ?.Select(l => l.Request)
-                ?.FirstOrDefault(r => r != null && string.Equals(r.Status, "APPROVED", StringComparison.OrdinalIgnoreCase));
-
-            bool isExcusedLeave = approvedLeave != null || string.Equals(attStatus, "LEAVE", StringComparison.OrdinalIgnoreCase);
-            string? leaveReason = approvedLeave?.Reason;
-
             return new StaffShiftAttendanceDto
             {
                 AssignmentId = x.Assignment.AssignmentId,
@@ -198,16 +228,16 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
                 ScheduledEndAt = x.Shift.ScheduledEndAt,
                 CheckInTime = att?.CheckInTime,
                 CheckOutTime = att?.CheckOutTime,
-                ActualWorkingMinutes = att?.ActualWorkingMinutes ?? 0,
-                TotalLateMinutes = att?.TotalLateMinutes ?? 0,
-                ExcusedLateMinutes = att?.ExcusedLateMinutes ?? 0,
-                ChargeableLateMinutes = att?.ChargeableLateMinutes ?? 0,
-                TotalEarlyLeaveMinutes = att?.TotalEarlyLeaveMinutes ?? 0,
-                ExcusedEarlyLeaveMinutes = att?.ExcusedEarlyLeaveMinutes ?? 0,
-                ChargeableEarlyLeaveMinutes = att?.ChargeableEarlyLeaveMinutes ?? 0,
+                ActualWorkingMinutes = isAbsentStatus ? 0 : (att?.ActualWorkingMinutes ?? 0),
+                TotalLateMinutes = isAbsentStatus ? 0 : (att?.TotalLateMinutes ?? 0),
+                ExcusedLateMinutes = isAbsentStatus ? 0 : (att?.ExcusedLateMinutes ?? 0),
+                ChargeableLateMinutes = isAbsentStatus ? 0 : (att?.ChargeableLateMinutes ?? 0),
+                TotalEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.TotalEarlyLeaveMinutes ?? 0),
+                ExcusedEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ExcusedEarlyLeaveMinutes ?? 0),
+                ChargeableEarlyLeaveMinutes = isAbsentStatus ? 0 : (att?.ChargeableEarlyLeaveMinutes ?? 0),
                 HasApprovedLateArrival = att?.LateArrivalRequestId.HasValue ?? false,
                 HasApprovedEarlyLeave = att?.EarlyLeaveRequestId.HasValue ?? false,
-                AttendanceStatus = isExcusedLeave ? "LEAVE" : attStatus,
+                AttendanceStatus = attStatus,
                 AssignmentStatus = x.Assignment.Status,
                 IsExcusedLeave = isExcusedLeave,
                 LeaveReason = leaveReason,
@@ -241,31 +271,28 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         if (staffTimesheet == null)
         {
-            completedShifts = shiftDtos.Count(s => s.AttendanceStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE");
+            completedShifts = shiftDtos.Count(s => s.AttendanceStatus is "COMPLETED" or "PRESENT" or "LATE" or "EARLY_LEAVE" or "LATE_AND_EARLY_LEAVE");
             absentShifts = shiftDtos.Count(s => s.AttendanceStatus == "ABSENT");
-            incompleteShifts = shiftDtos.Count(s => s.AttendanceStatus == "INCOMPLETE");
-            totalWorkMinutes = shiftDtos.Sum(s => s.ActualWorkingMinutes);
-            totalLateMinutes = shiftDtos.Sum(s => s.TotalLateMinutes);
-            totalEarlyLeaveMinutes = shiftDtos.Sum(s => s.TotalEarlyLeaveMinutes);
+            incompleteShifts = 0;
+            totalWorkMinutes = shiftDtos.Where(s => s.AttendanceStatus != "ABSENT").Sum(s => s.ActualWorkingMinutes);
+            totalLateMinutes = shiftDtos.Where(s => s.AttendanceStatus != "ABSENT").Sum(s => s.TotalLateMinutes);
+            totalEarlyLeaveMinutes = shiftDtos.Where(s => s.AttendanceStatus != "ABSENT").Sum(s => s.TotalEarlyLeaveMinutes);
         }
 
         decimal totalWorkHours = Math.Round((decimal)totalWorkMinutes / 60m, 2);
 
         var weekOptions = availableWeeks.Select(w =>
         {
-            var t = w.PayrollPeriod?.Timesheets.FirstOrDefault(ts => ts.UserId == staffId);
             return new StaffTimesheetWeekOptionDto
             {
                 ScheduleWeekId = w.ScheduleWeekId,
                 Period = $"{w.WeekStartDate:dd/MM} - {w.WeekEndDate:dd/MM}",
                 WeekStartDate = w.WeekStartDate,
                 WeekEndDate = w.WeekEndDate,
-                HasTimesheet = t != null,
-                Status = t != null ? (t.Status ?? "GENERATED") : "NOT GENERATED"
+                HasTimesheet = w.HasTimesheet,
+                Status = w.Status
             };
         }).ToList();
-
-        var activeRule = await _repo.GetActiveAttendanceRuleAsync(cancellationToken);
 
         return new StaffWeeklyTimesheetResponse
         {
@@ -276,7 +303,7 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             WeekStartDate = week.WeekStartDate,
             WeekEndDate = week.WeekEndDate,
             BranchId = week.BranchId,
-            BranchName = week.Branch?.BranchName ?? $"Branch {week.BranchId}",
+            BranchName = week.BranchName,
             Status = status,
             StaffReviewStatus = staffReviewStatus,
             CanConfirm = canConfirm,
@@ -324,7 +351,33 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
             throw new KeyNotFoundException("Timesheet record for this week was not found or has not been generated yet.");
         }
 
+        var oldSnapshot = new
+        {
+            timesheet.TimesheetId,
+            timesheet.StaffReviewStatus,
+            timesheet.StaffReviewedAt,
+            timesheet.StaffReviewNote
+        };
+
         await _repo.ConfirmTimesheetAsync(timesheet.TimesheetId, staffId, note, cancellationToken);
+
+        if (_auditLogHelper != null)
+        {
+            await _auditLogHelper.LogAsync(
+                action: "CONFIRM_TIMESHEET",
+                tableName: "timesheets",
+                recordId: timesheet.TimesheetId.ToString(),
+                oldValue: oldSnapshot,
+                newValue: new
+                {
+                    timesheet.TimesheetId,
+                    ScheduleWeekId = scheduleWeekId,
+                    StaffReviewStatus = "CONFIRMED",
+                    StaffReviewNote = note
+                },
+                actorUserId: staffId,
+                cancellationToken: cancellationToken);
+        }
 
         var updated = await GetMyWeeklyTimesheetAsync(staffId, scheduleWeekId, cancellationToken);
         return updated ?? throw new InvalidOperationException("Failed to retrieve timesheet after confirmation.");
@@ -390,5 +443,28 @@ public sealed class StaffTimesheetService : IStaffTimesheetService
 
         var updated = await GetMyWeeklyTimesheetAsync(staffId, scheduleWeekId, cancellationToken);
         return updated ?? throw new InvalidOperationException("Failed to retrieve updated timesheet after cancelling adjustment.");
+    }
+
+    private static int GetCheckOutAfterMinutes(string? ruleSnapshotJson, int fallbackMinutes)
+    {
+        if (!string.IsNullOrWhiteSpace(ruleSnapshotJson))
+        {
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<AttendanceRuleSnapshotRoot>(
+                    ruleSnapshotJson,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (snapshot?.AttendanceRule != null && snapshot.AttendanceRule.CheckOutAfterMinutes > 0)
+                {
+                    return snapshot.AttendanceRule.CheckOutAfterMinutes;
+                }
+            }
+            catch
+            {
+                // Ignore malformed snapshot and fallback to active rule
+            }
+        }
+
+        return fallbackMinutes;
     }
 }
