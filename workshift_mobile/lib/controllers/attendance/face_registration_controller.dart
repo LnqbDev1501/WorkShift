@@ -219,6 +219,14 @@ class FaceRegistrationController extends ChangeNotifier {
         return;
       }
 
+      // if (faces.length > 1) {
+      //   isFaceFramedProperly = false;
+      //   detectionStatus =
+      //       'Multiple faces detected. Only one person is allowed.';
+      //   notifyListeners();
+      //   return;
+      // }
+
       final face = faces.first;
       final rawWidth = inputImage.metadata?.size.width ?? 1.0;
       final rawHeight = inputImage.metadata?.size.height ?? 1.0;
@@ -292,7 +300,10 @@ class FaceRegistrationController extends ChangeNotifier {
           // Score: how closed the eyes are (more closed = more confident blink)
           final closedLeft = 1.0 - leftEye;
           final closedRight = 1.0 - rightEye;
-          challengeConfidence = ((closedLeft + closedRight) / 2).clamp(0.0, 1.0);
+          challengeConfidence = ((closedLeft + closedRight) / 2).clamp(
+            0.0,
+            1.0,
+          );
         } else {
           detectionStatus = 'Please blink your eyes';
         }

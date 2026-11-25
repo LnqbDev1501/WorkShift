@@ -154,7 +154,6 @@ var hangfireConnBuilder = new Npgsql.NpgsqlConnectionStringBuilder(hangfireRaw)
     ConnectionIdleLifetime = 5,
     ConnectionPruningInterval = 2,
     Timeout = 30,
-    CommandTimeout = 30
 };
 var hangfireConnection = hangfireConnBuilder.ToString();
 builder.Services.AddHangfire(configuration => configuration

@@ -176,7 +176,9 @@ class _BiometricConsentDialogState extends State<_BiometricConsentDialog> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withValues(alpha: 0.5),
+                            color: AppColors.primaryLight.withValues(
+                              alpha: 0.5,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.2),
