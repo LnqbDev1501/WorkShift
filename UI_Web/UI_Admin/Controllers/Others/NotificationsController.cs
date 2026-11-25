@@ -9,12 +9,55 @@ namespace UI_Admin.Controllers;
 public sealed class NotificationsController : Controller
 {
     private readonly NotificationApiService _notificationApiService;
+    private readonly PayrollDocumentsApiService _payrollDocumentsApiService;
     private readonly ILogger<NotificationsController> _logger;
 
-    public NotificationsController(NotificationApiService notificationApiService, ILogger<NotificationsController> logger)
+    public NotificationsController(
+        NotificationApiService notificationApiService,
+        PayrollDocumentsApiService payrollDocumentsApiService,
+        ILogger<NotificationsController> logger)
     {
         _notificationApiService = notificationApiService;
+        _payrollDocumentsApiService = payrollDocumentsApiService;
         _logger = logger;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CorrectionAction(int id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var notification = await _notificationApiService.GetMyNotificationByIdAsync(id, cancellationToken);
+            if (notification == null)
+            {
+                return RedirectToAction(nameof(Personal));
+            }
+
+            var text = $"{notification.Title} {notification.Message}";
+            int? requestId = null;
+            var matchRequest = System.Text.RegularExpressions.Regex.Match(text, @"request\s+#(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (matchRequest.Success && int.TryParse(matchRequest.Groups[1].Value, out var parsedRequestId))
+            {
+                requestId = parsedRequestId;
+            }
+
+            if (requestId.HasValue)
+            {
+                var issues = await _payrollDocumentsApiService.AllCorrectionRequestsAsync(null, "ALL", cancellationToken);
+                var target = issues.FirstOrDefault(i => i.CorrectionRequestId == requestId.Value);
+                if (target != null && target.PayrollId > 0)
+                {
+                    return RedirectToAction("Review", "AccountantPayrollRevision", new { id = target.PayrollId, issueId = target.CorrectionRequestId });
+                }
+            }
+
+            return RedirectToAction("Index", "AccountantPayrollFeedback");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error routing CorrectionAction for Notification {Id}", id);
+            return RedirectToAction("Index", "AccountantPayrollFeedback");
+        }
     }
 
     [HttpGet]

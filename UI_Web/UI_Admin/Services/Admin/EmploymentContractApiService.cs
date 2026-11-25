@@ -95,4 +95,29 @@ public class EmploymentContractApiService
 
         return await response.Content.ReadFromJsonAsync<EmploymentContractHistoryViewModel>(cancellationToken: cancellationToken);
     }
+
+    /// <summary>
+    /// GET /api/admin/contracts/{contractId}/pdf or /download — retrieves PDF file stream.
+    /// </summary>
+    public async Task<(byte[] Bytes, string ContentType, string FileName)> GetPdfFileAsync(
+        int contractId,
+        bool isDownload,
+        CancellationToken cancellationToken = default)
+    {
+        var endpoint = isDownload
+            ? $"{_apiBaseUrl}/api/admin/contracts/{contractId}/pdf/download"
+            : $"{_apiBaseUrl}/api/admin/contracts/{contractId}/pdf";
+
+        using var response = await _httpClient.GetAsync(endpoint, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(string.IsNullOrWhiteSpace(err) ? $"Failed to get contract PDF ({response.StatusCode})" : err, null, response.StatusCode);
+        }
+
+        var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/pdf";
+        var fileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? $"Contract_{contractId}.pdf";
+        var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        return (bytes, contentType, fileName);
+    }
 }

@@ -178,7 +178,7 @@
                         <div>
                             <h2 class="text-base font-bold text-slate-900">Source Correction Request #@activeIssue.CorrectionRequestId</h2>
                             <p class="text-xs text-slate-500 mt-0.5">
-                                Created: @activeIssue.CreatedAt.ToString("dd/MM/yyyy HH:mm") • 
+                                Created: <strong class="text-slate-700 font-medium">@D.Time(activeIssue.CreatedAt)</strong> • 
                                 Deadline: <strong class="text-slate-800 font-semibold">@(activeIssue.ResponseDeadlineAt.HasValue ? D.Time(activeIssue.ResponseDeadlineAt) : "—")</strong>
                                 @if (activeIssue.ExpiredAt.HasValue)
                                 {
@@ -327,6 +327,7 @@
                     }
                     else if (activeIssue.ManagerAction == "CORRECT")
                     {
+                        var isRecalculated = (p.Status == "CALCULATED" && p.PreviousPayrollId.HasValue);
                         <!-- CORRECT action: Preview & Recalculate -->
                         <div class="space-y-4 pt-2">
                             <div class="flex flex-wrap gap-3 items-center">
@@ -335,18 +336,21 @@
                                     <span class="material-symbols-outlined text-base">preview</span>
                                     <span>Preview Source Differences</span>
                                 </a>
-                                <form asp-action="Recalculate" method="post" class="inline-block">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="payrollId" value="@p.PayrollId" />
-                                    <input type="hidden" name="correctionRequestId" value="@activeIssue.CorrectionRequestId" />
-                                    <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
-                                        <span class="material-symbols-outlined text-base">refresh</span>
-                                        <span>Recalculate Payroll (V@(p.VersionNo + 1))</span>
-                                    </button>
-                                </form>
+                                @if (!isRecalculated)
+                                {
+                                    <form asp-action="Recalculate" method="post" class="inline-block">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="payrollId" value="@p.PayrollId" />
+                                        <input type="hidden" name="correctionRequestId" value="@activeIssue.CorrectionRequestId" />
+                                        <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
+                                            <span class="material-symbols-outlined text-base">refresh</span>
+                                            <span>Recalculate Payroll (V@(p.VersionNo + 1))</span>
+                                        </button>
+                                    </form>
+                                }
                             </div>
 
-                            @if (p.Status == "CALCULATED" && p.PreviousPayrollId.HasValue)
+                            @if (isRecalculated)
                             {
                                 <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 mt-4 space-y-3">
                                     <div class="flex items-center gap-2 text-emerald-900 font-bold text-sm">

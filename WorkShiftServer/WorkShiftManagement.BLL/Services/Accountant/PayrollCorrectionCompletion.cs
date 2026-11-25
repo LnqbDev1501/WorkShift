@@ -71,6 +71,18 @@ public sealed partial class PayrollFeedbackService
         if (payrollId != original.PayrollId && payrollId != current.PayrollId) throw new InvalidOperationException("Payroll does not belong to this correction request.");
         RequireCorrectResponse(d, r, current);
         var next = PayrollCalculationPolicy.Build(await calculation.GetInputsAsync(d.Period, ct), current.UserId, actor, Now, true);
+        if (current.PayrollId != original.PayrollId && !PayrollPreviewPolicy.Changed(current, next))
+        {
+            // Candidate (e.g. V2) already exists and matches live sources.
+            // Compare original (V1) with current candidate (V2) to show the effect of the correction.
+            return new()
+            {
+                CorrectionRequestId = r.CorrectionRequestId,
+                CurrentPayroll = PayrollCalculationService.Map(original),
+                Preview = PayrollCalculationService.Map(current),
+                HasChanges = PayrollPreviewPolicy.Changed(original, current)
+            };
+        }
         next.PreviousPayrollId = current.PayrollId; next.VersionNo = checked(current.VersionNo + 1); next.CorrectionReason = r.Reason;
         var preview = PayrollCalculationService.Map(next); preview.Status = "PREVIEW"; preview.CalculatedAt = null; preview.CalculatedBy = null;
         return new() { CorrectionRequestId = r.CorrectionRequestId, CurrentPayroll = PayrollCalculationService.Map(current),

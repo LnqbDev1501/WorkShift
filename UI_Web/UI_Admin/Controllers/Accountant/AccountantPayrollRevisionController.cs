@@ -12,7 +12,7 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
     : PayrollDocumentsUiController(logger)
 {
     [HttpGet]
-    public Task<IActionResult> Review(int id, CancellationToken ct) => id <= 0 ? Task.FromResult<IActionResult>(NotFound()) : Read(async () =>
+    public Task<IActionResult> Review(int id, int? issueId = null, CancellationToken ct = default) => id <= 0 ? Task.FromResult<IActionResult>(NotFound()) : Read(async () =>
     {
         var p = await api.Payroll(id, ct);
         var history = await api.Versions(id, ct);
@@ -21,7 +21,8 @@ public sealed class AccountantPayrollRevisionController(PayrollDocumentsApiServi
         {
             Payroll = p,
             History = history,
-            PeriodStatus = periodStatus
+            PeriodStatus = periodStatus,
+            SelectedIssueId = issueId
         };
         try
         {

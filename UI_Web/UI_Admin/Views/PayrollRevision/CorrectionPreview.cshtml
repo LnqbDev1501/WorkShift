@@ -19,7 +19,7 @@
             </div>
             <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Correction Preview — @cur.EmployeeName</h1>
             <p class="text-sm text-slate-500 mt-0.5">
-                Comparing current Version V@(cur.VersionNo) with recalculated figures from live sources (Request #@Model.CorrectionRequestId).
+                Comparing Version V@(cur.VersionNo) with recalculated figures (Request #@Model.CorrectionRequestId).
             </p>
         </div>
         <div class="flex items-center gap-3">
@@ -59,7 +59,25 @@
     }
 
     <!-- Change Assessment Card -->
-    @if (Model.HasChanges)
+    @if (prev.Status == "CALCULATED" && prev.PayrollId > 0)
+    {
+        <div class="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/20">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-2xl">verified</span>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Recalculation Succeeded (Version V@(prev.VersionNo))</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Live sources are up-to-date with Version V@(prev.VersionNo). Review the component differences below and complete the correction on the review page.</p>
+                </div>
+            </div>
+            <a asp-action="Review" asp-route-id="@prev.PayrollId" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-sm">done_all</span>
+                <span>Return to Review &amp; Complete</span>
+            </a>
+        </div>
+    }
+    else if (Model.HasChanges)
     {
         <div class="bg-white border border-emerald-200 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-emerald-50/20">
             <div class="flex items-start gap-3">
@@ -68,7 +86,7 @@
                 </div>
                 <div>
                     <h2 class="text-base font-bold text-slate-900">Valid Source Changes Detected</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Recalculation will supersede Version V@(cur.VersionNo) and create Version V@(cur.VersionNo + 1).</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Recalculation will supersede Version V@(cur.VersionNo) and create Version V@(prev.VersionNo).</p>
                 </div>
             </div>
             <form asp-action="Recalculate" method="post" class="shrink-0">
@@ -77,7 +95,7 @@
                 <input type="hidden" name="correctionRequestId" value="@Model.CorrectionRequestId" />
                 <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all cursor-pointer">
                     <span class="material-symbols-outlined text-sm">refresh</span>
-                    <span>Confirm &amp; Recalculate (V@(cur.VersionNo + 1))</span>
+                    <span>Confirm &amp; Recalculate (V@(prev.VersionNo))</span>
                 </button>
             </form>
         </div>
@@ -113,7 +131,7 @@
                     <tr class="border-b border-slate-150 bg-slate-50/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         <th class="py-3 px-6">Component</th>
                         <th class="py-3 px-6 text-right">Current (V@(cur.VersionNo))</th>
-                        <th class="py-3 px-6 text-right font-bold text-indigo-900">Recalculated (Preview V@(cur.VersionNo + 1))</th>
+                        <th class="py-3 px-6 text-right font-bold text-indigo-900">Recalculated (@(prev.Status == "CALCULATED" ? $"Version V{prev.VersionNo}" : $"Preview V{prev.VersionNo}"))</th>
                         <th class="py-3 px-6 text-right font-bold">Difference</th>
                     </tr>
                 </thead>

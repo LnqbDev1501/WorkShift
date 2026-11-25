@@ -126,13 +126,19 @@
                     <tbody class="divide-y divide-slate-100 text-sm">
                         @foreach (var req in Model)
                         {
-                            var isPending = req.Status is "OPEN" or "RETURNED";
+                            var isPending = req.CanRespond && req.Status == "OPEN";
                             <tr class="hover:bg-slate-50/80 transition-colors">
                                 <!-- Request ID -->
                                 <td class="py-4 px-6 font-semibold text-slate-900">
                                     <span class="inline-flex items-center gap-1 font-mono text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
                                         #@req.CorrectionRequestId
                                     </span>
+                                    @if (req.PreviousRequestId.HasValue)
+                                    {
+                                        <div class="text-[11px] text-slate-500 font-normal mt-1">
+                                            Follow-up of <span class="font-mono">#@req.PreviousRequestId</span>
+                                        </div>
+                                    }
                                 </td>
 
                                 <!-- Employee -->
@@ -165,8 +171,18 @@
                                     <p class="text-slate-800 text-xs font-medium line-clamp-2" title="@req.Reason">
                                         @req.Reason
                                     </p>
-                                    <div class="text-[11px] text-slate-400 mt-1">
-                                        @req.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                    <div class="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                        <span>Requested: <strong class="text-slate-700 font-medium">@req.CreatedAt.ToVnDateTimeString()</strong></span>
+                                        @if (req.RespondedAt.HasValue)
+                                        {
+                                            <span class="text-slate-300">•</span>
+                                            <span class="text-indigo-600">Responded: <strong class="font-medium">@req.RespondedAt.ToVnDateTimeString()</strong></span>
+                                        }
+                                        else if (req.ResponseDeadlineAt.HasValue)
+                                        {
+                                            <span class="text-slate-300">•</span>
+                                            <span class="text-amber-700">Deadline: <strong class="font-medium">@req.ResponseDeadlineAt.ToVnDateTimeString()</strong></span>
+                                        }
                                     </div>
                                 </td>
 
@@ -227,7 +243,7 @@
 <!-- Response Modals for Pending Requests -->
 @foreach (var req in Model)
 {
-    var isPending = req.Status is "OPEN" or "RETURNED";
+    var isPending = req.CanRespond && req.Status == "OPEN";
     if (isPending)
     {
         <div id="modalRespond-@req.CorrectionRequestId" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title-@req.CorrectionRequestId" role="dialog" aria-modal="true">
@@ -255,6 +271,14 @@
                             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs mb-4">
                                 <div class="font-semibold text-slate-700 mb-1">Accountant's Reason:</div>
                                 <div class="text-slate-900 font-medium">@req.Reason</div>
+                                <div class="text-[11px] text-slate-500 mt-2 flex items-center gap-2 flex-wrap pt-2 border-t border-slate-200/60">
+                                    <span>Requested at: <strong class="text-slate-700 font-medium">@req.CreatedAt.ToVnDateTimeString()</strong></span>
+                                    @if (req.ResponseDeadlineAt.HasValue)
+                                    {
+                                        <span class="text-slate-300">•</span>
+                                        <span>Response deadline: <strong class="text-amber-700 font-medium">@req.ResponseDeadlineAt.ToVnDateTimeString()</strong></span>
+                                    }
+                                </div>
                             </div>
 
                             <!-- Action Selection -->
@@ -326,6 +350,9 @@
                             <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
                                 <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Accountant's Reason</span>
                                 <p class="text-slate-800 font-medium">@req.Reason</p>
+                                <div class="text-xs text-slate-500 mt-1.5 pt-1.5 border-t border-slate-200/60">
+                                    Requested at: <strong class="text-slate-700 font-medium">@req.CreatedAt.ToVnDateTimeString()</strong>
+                                </div>
                             </div>
 
                             <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
@@ -338,12 +365,43 @@
                             <div class="p-3 rounded-xl bg-slate-50 border border-slate-100">
                                 <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Manager's Note</span>
                                 <p class="text-slate-800 font-medium">@(req.ResponseNote ?? req.ManagerNote ?? "—")</p>
+                                @if (req.RespondedAt.HasValue)
+                                {
+                                    <div class="text-xs text-slate-500 mt-1.5 pt-1.5 border-t border-slate-200/60">
+                                        Responded at: <strong class="text-indigo-700 font-medium">@req.RespondedAt.ToVnDateTimeString()</strong>
+                                    </div>
+                                }
                             </div>
 
-                            @if (req.RespondedAt.HasValue)
+                            @if (!string.IsNullOrEmpty(req.ReviewNote))
+                            {
+                                <div class="p-3 rounded-xl bg-rose-50 border border-rose-200">
+                                    <span class="text-xs font-semibold text-rose-700 uppercase tracking-wider block mb-1">Accountant's Return / Review Note</span>
+                                    <p class="text-slate-800 font-medium">@req.ReviewNote</p>
+                                    @if (req.ReviewedAt.HasValue)
+                                    {
+                                        <div class="text-xs text-rose-600 mt-1.5 pt-1.5 border-t border-rose-200/60">
+                                            Reviewed at: <strong class="font-medium">@req.ReviewedAt.ToVnDateTimeString()</strong>
+                                        </div>
+                                    }
+                                </div>
+                            }
+
+                            @if (req.Status == "RETURNED")
+                            {
+                                <div class="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 text-xs">
+                                    <div class="flex items-center gap-1.5 font-semibold text-slate-700 mb-1">
+                                        <span class="material-symbols-outlined text-sm text-slate-500">history</span>
+                                        <span>Round Closed (Returned)</span>
+                                    </div>
+                                    <span>This request was returned by the Accountant and superseded by a follow-up request. Please check the active request in the list to submit your next response.</span>
+                                </div>
+                            }
+
+                            @if (req.CompletedAt.HasValue)
                             {
                                 <div class="text-xs text-slate-500">
-                                    Responded at: <strong class="text-slate-700 font-medium">@req.RespondedAt.Value.ToString("dd/MM/yyyy HH:mm")</strong>
+                                    Completed at: <strong class="text-slate-700 font-medium">@req.CompletedAt.ToVnDateTimeString()</strong>
                                 </div>
                             }
 
