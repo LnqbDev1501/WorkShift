@@ -33,6 +33,7 @@ class FaceRegistrationController extends ChangeNotifier {
   FaceRegistrationSessionModel? registrationSession;
   int remainingSeconds = 90;
   Timer? _countdownTimer;
+  Timer? _faceLostTimer;
 
   // Biometrics & Live Challenge Tracking
   int currentChallengeIndex = 0;
@@ -200,6 +201,39 @@ class FaceRegistrationController extends ChangeNotifier {
     }
   }
 
+  /// Helper: Handle face lost or improperly framed.
+  /// If face is continuously absent for > 1.2s while past Step 1, reset to Step 1.
+  void _onFaceLost() {
+    isFaceFramedProperly = false;
+    if (_challengeHoldStartTime != null) {
+      _challengeHoldStartTime = null;
+      challengeHoldProgress = 0.0;
+      remainingHoldSeconds = 2.0;
+    }
+
+    if (currentChallengeIndex > 0 &&
+        (_faceLostTimer == null || !_faceLostTimer!.isActive)) {
+      _faceLostTimer = Timer(const Duration(milliseconds: 1200), () {
+        if (!isDetecting || isSubmitting || isSuccess) return;
+        currentChallengeIndex = 0;
+        _challengeScores.clear();
+        _challengeHoldStartTime = null;
+        challengeHoldProgress = 0.0;
+        remainingHoldSeconds = 2.0;
+        detectionStatus =
+            'Face lost. Progress reset to Step 1. Please align your face.';
+        notifyListeners();
+      });
+    }
+  }
+
+  /// Helper: Handle face properly framed. Cancels any pending reset timer.
+  void _onFaceValid() {
+    _faceLostTimer?.cancel();
+    _faceLostTimer = null;
+    isFaceFramedProperly = true;
+  }
+
   /// Process camera frame through Google ML Kit
   Future<void> _processCameraFrame(CameraImage image) async {
     if (_stepCooldown || _faceDetector == null || selectedCamera == null) {
@@ -213,21 +247,12 @@ class FaceRegistrationController extends ChangeNotifier {
 
       final faces = await _faceDetector!.processImage(inputImage);
       if (faces.isEmpty) {
-        isFaceFramedProperly = false;
+        _onFaceLost();
         detectionStatus = 'No face detected. Please face the camera.';
         notifyListeners();
         return;
       }
 
-      // if (faces.length > 1) {
-      //   isFaceFramedProperly = false;
-      //   detectionStatus =
-      //       'Multiple faces detected. Only one person is allowed.';
-      //   notifyListeners();
-      //   return;
-      // }
-
-      final face = faces.first;
       final rawWidth = inputImage.metadata?.size.width ?? 1.0;
       final rawHeight = inputImage.metadata?.size.height ?? 1.0;
       final isRotated =
@@ -236,20 +261,36 @@ class FaceRegistrationController extends ChangeNotifier {
       final actualWidth = isRotated ? rawHeight : rawWidth;
       final actualHeight = isRotated ? rawWidth : rawHeight;
 
+      // Filter out tiny background faces (width < 10% of frame) to prevent false positives
+      final prominentFaces = faces
+          .where((f) => (f.boundingBox.width / actualWidth) >= 0.10)
+          .toList();
+
+      if (prominentFaces.length > 1) {
+        _onFaceLost();
+        detectionStatus =
+            'Multiple faces detected. Only one person is allowed.';
+        notifyListeners();
+        return;
+      }
+
+      final face =
+          prominentFaces.isNotEmpty ? prominentFaces.first : faces.first;
+
       final centerXRatio = face.boundingBox.center.dx / actualWidth;
       final centerYRatio = face.boundingBox.center.dy / actualHeight;
       final faceWidthRatio = face.boundingBox.width / actualWidth;
 
       // 1. Validate Face Distance
       if (faceWidthRatio < 0.15) {
-        isFaceFramedProperly = false;
+        _onFaceLost();
         detectionStatus = 'Please move closer to the camera';
         notifyListeners();
         return;
       }
 
       if (faceWidthRatio > 0.90) {
-        isFaceFramedProperly = false;
+        _onFaceLost();
         detectionStatus = 'Please step back slightly';
         notifyListeners();
         return;
@@ -260,14 +301,14 @@ class FaceRegistrationController extends ChangeNotifier {
           centerXRatio > 0.85 ||
           centerYRatio < 0.15 ||
           centerYRatio > 0.85) {
-        isFaceFramedProperly = false;
+        _onFaceLost();
         detectionStatus = 'Please align your face inside the oval frame';
         notifyListeners();
         return;
       }
 
       // 3. Face framed properly
-      isFaceFramedProperly = true;
+      _onFaceValid();
       _evaluateChallenge(face);
     } catch (_) {
     } finally {
@@ -425,6 +466,8 @@ class FaceRegistrationController extends ChangeNotifier {
         notifyListeners();
       } else {
         isDetecting = false;
+        _faceLostTimer?.cancel();
+        _faceLostTimer = null;
         detectionStatus = '✓ All steps completed! Capturing photo...';
         notifyListeners();
 
@@ -501,6 +544,8 @@ class FaceRegistrationController extends ChangeNotifier {
   Future<void> createSession() async {
     errorMessage = null;
     _countdownTimer?.cancel();
+    _faceLostTimer?.cancel();
+    _faceLostTimer = null;
     _challengeScores.clear();
     _computedLivenessScore = 0.0;
 
@@ -636,6 +681,7 @@ class FaceRegistrationController extends ChangeNotifier {
   @override
   void dispose() {
     _countdownTimer?.cancel();
+    _faceLostTimer?.cancel();
     if (sessionId != null && !isSuccess) {
       _service.cancelSession(sessionId!);
     }
