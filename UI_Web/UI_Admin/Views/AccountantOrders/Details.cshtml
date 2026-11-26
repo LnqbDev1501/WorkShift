@@ -1,6 +1,6 @@
 @model UI_Admin.Models.Accountant.AccountantOrderDetailViewModel
 @{
-    Layout = "_AccountantLayout";
+    Layout = User.IsInRole("ADMIN") ? "_AdminLayout" : "_AccountantLayout";
     ViewData["Title"] = "Order Details";
 }
 

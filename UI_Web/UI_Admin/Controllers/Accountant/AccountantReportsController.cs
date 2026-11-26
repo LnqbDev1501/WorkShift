@@ -14,15 +14,19 @@ namespace UI_Admin.Controllers;
 public class AccountantReportsController(AccountantOrderApiService api, BranchApiService branchApi) : Controller
 {
     [HttpGet]
-    public async Task<IActionResult> BranchSales(CancellationToken ct = default)
+    public async Task<IActionResult> BranchSales(int? branchId = null, CancellationToken ct = default)
     {
-        var branches = await branchApi.GetActiveBranchesAsync(ct);
-        var model = new BranchSalesReportViewModel
-        {
-            Branches = branches.Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name }).ToList()
-        };
+        var model = new BranchSalesReportViewModel();
 
-        if (!User.IsInRole("ADMIN"))
+        if (User.IsInRole("ADMIN"))
+        {
+            var branches = await branchApi.GetActiveBranchesAsync(ct);
+            model.Branches = branches.Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name }).ToList();
+            model.SelectedBranchId = branchId.HasValue && model.Branches.Any(b => b.Id == branchId.Value)
+                ? branchId
+                : model.Branches.FirstOrDefault()?.Id;
+        }
+        else
         {
             try
             {
@@ -37,7 +41,7 @@ public class AccountantReportsController(AccountantOrderApiService api, BranchAp
             }
         }
 
-        return View(model);
+        return View("~/Views/AccountantReports/BranchSales.cshtml", model);
     }
 
     [HttpGet]
@@ -104,13 +108,13 @@ public class AccountantReportsController(AccountantOrderApiService api, BranchAp
         {
             if (ex.StatusCode == HttpStatusCode.Unauthorized) return await ExpiredAsync();
             TempData["ErrorMessage"] = ex.Message;
-            return RedirectToAction(nameof(BranchSales));
+            return RedirectToAction(nameof(BranchSales), User.IsInRole("ADMIN") ? new { branchId } : null);
         }
     }
 
     private async Task<IActionResult> ExpiredAsync()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(BranchSales), "AccountantReports") });
+        return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(BranchSales)) });
     }
 }
