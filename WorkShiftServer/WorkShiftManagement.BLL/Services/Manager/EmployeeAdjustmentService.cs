@@ -67,7 +67,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             throw new ArgumentException("Amount must be at least 1,000 VND, max 16 integer digits and 2 decimal places.");
     }
     
-    private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, CancellationToken ct)
+    private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, DateOnly date, CancellationToken ct)
     {
         var branchId = Scope(actor);
         var effectiveBranchId = branchId ?? (actor.BranchId ?? 0);
@@ -78,6 +78,10 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         var hasContract = await repo.StaffHasContractAsync(r.UserId, effectiveBranchId, ct);
         if (!hasContract)
             throw new ArgumentException("Reward/penalty can only be created for employees with an active contract.");
+
+        var hasValidShift = await repo.StaffHasValidShiftOnDateAsync(r.UserId, effectiveBranchId, date, ct);
+        if (!hasValidShift)
+            throw new ArgumentException($"Employee does not have a valid work shift on {date:dd/MM/yyyy} (no assigned shift, shift was cancelled, or employee has a leave request).");
 
         if (r.PayrollPeriodId.HasValue && r.PayrollPeriodId.Value > 0)
         {
@@ -147,8 +151,8 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     {
         Type(type); Validate(r);
         await using var tx = await repo.BeginChangeAsync(ct);
-        var actor = await Actor(id, "MANAGER", ct); await Targets(actor, r, ct);
         var date = r.AdjustmentDate ?? GetCurrentWeekBounds().Today;
+        var actor = await Actor(id, "MANAGER", ct); await Targets(actor, r, date, ct);
 
         int? periodId = r.PayrollPeriodId is > 0 ? r.PayrollPeriodId : null;
         if (!periodId.HasValue && actor.BranchId.HasValue)
@@ -181,8 +185,8 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         Type(type); Validate(r);
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "MANAGER", ct); var item = await Item(itemId, type, actor, true, ct);
-        await Pending(item, ct); await Targets(actor, r, ct); var old = Snapshot(item);
         var date = r.AdjustmentDate ?? item.AdjustmentDate ?? GetCurrentWeekBounds().Today;
+        await Pending(item, ct); await Targets(actor, r, date, ct); var old = Snapshot(item);
 
         int? periodId = r.PayrollPeriodId is > 0 ? r.PayrollPeriodId : null;
         if (!periodId.HasValue && actor.BranchId.HasValue)
