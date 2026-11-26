@@ -226,9 +226,10 @@ class FaceRegistrationController extends ChangeNotifier {
         _challengeHoldStartTime = null;
         challengeHoldProgress = 0.0;
         remainingHoldSeconds = 2.0;
-        _resetWarningUntil =
-            DateTime.now().add(const Duration(milliseconds: 2500));
-        detectionStatus = '⚠️ MẤT KHUÔN MẶT! Đã quay lại Bước 1';
+        _resetWarningUntil = DateTime.now().add(
+          const Duration(milliseconds: 2500),
+        );
+        detectionStatus = '⚠️ FACE LOST! Reset to Step 1';
         notifyListeners();
       });
     }
@@ -286,8 +287,9 @@ class FaceRegistrationController extends ChangeNotifier {
         return;
       }
 
-      final face =
-          prominentFaces.isNotEmpty ? prominentFaces.first : faces.first;
+      final face = prominentFaces.isNotEmpty
+          ? prominentFaces.first
+          : faces.first;
 
       final centerXRatio = face.boundingBox.center.dx / actualWidth;
       final centerYRatio = face.boundingBox.center.dy / actualHeight;
