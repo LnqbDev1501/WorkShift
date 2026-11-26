@@ -834,8 +834,10 @@ class _FaceRegistrationModalPopupState extends State<FaceRegistrationModalPopup>
                       Flexible(
                         child: Text(
                           _controller.detectionStatus,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: _controller.detectionStatus.startsWith('⚠️')
+                                ? const Color(0xFFFCA5A5)
+                                : Colors.white,
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),

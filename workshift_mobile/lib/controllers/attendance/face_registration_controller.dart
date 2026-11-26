@@ -34,6 +34,11 @@ class FaceRegistrationController extends ChangeNotifier {
   int remainingSeconds = 90;
   Timer? _countdownTimer;
   Timer? _faceLostTimer;
+  DateTime? _resetWarningUntil;
+
+  bool get _isShowingResetWarning =>
+      _resetWarningUntil != null &&
+      DateTime.now().isBefore(_resetWarningUntil!);
 
   // Biometrics & Live Challenge Tracking
   int currentChallengeIndex = 0;
@@ -202,7 +207,7 @@ class FaceRegistrationController extends ChangeNotifier {
   }
 
   /// Helper: Handle face lost or improperly framed.
-  /// If face is continuously absent for > 1.2s while past Step 1, reset to Step 1.
+  /// If face is continuously absent for > 450ms while past Step 1, reset to Step 1.
   void _onFaceLost() {
     isFaceFramedProperly = false;
     if (_challengeHoldStartTime != null) {
@@ -213,15 +218,17 @@ class FaceRegistrationController extends ChangeNotifier {
 
     if (currentChallengeIndex > 0 &&
         (_faceLostTimer == null || !_faceLostTimer!.isActive)) {
-      _faceLostTimer = Timer(const Duration(milliseconds: 1200), () {
+      _faceLostTimer = Timer(const Duration(milliseconds: 450), () {
         if (!isDetecting || isSubmitting || isSuccess) return;
+        HapticFeedback.heavyImpact();
         currentChallengeIndex = 0;
         _challengeScores.clear();
         _challengeHoldStartTime = null;
         challengeHoldProgress = 0.0;
         remainingHoldSeconds = 2.0;
-        detectionStatus =
-            'Face lost. Progress reset to Step 1. Please align your face.';
+        _resetWarningUntil =
+            DateTime.now().add(const Duration(milliseconds: 2500));
+        detectionStatus = '⚠️ MẤT KHUÔN MẶT! Đã quay lại Bước 1';
         notifyListeners();
       });
     }
@@ -232,6 +239,7 @@ class FaceRegistrationController extends ChangeNotifier {
     _faceLostTimer?.cancel();
     _faceLostTimer = null;
     isFaceFramedProperly = true;
+    _resetWarningUntil = null;
   }
 
   /// Process camera frame through Google ML Kit
@@ -248,7 +256,9 @@ class FaceRegistrationController extends ChangeNotifier {
       final faces = await _faceDetector!.processImage(inputImage);
       if (faces.isEmpty) {
         _onFaceLost();
-        detectionStatus = 'No face detected. Please face the camera.';
+        if (!_isShowingResetWarning) {
+          detectionStatus = 'No face detected. Please face the camera.';
+        }
         notifyListeners();
         return;
       }
@@ -268,8 +278,10 @@ class FaceRegistrationController extends ChangeNotifier {
 
       if (prominentFaces.length > 1) {
         _onFaceLost();
-        detectionStatus =
-            'Multiple faces detected. Only one person is allowed.';
+        if (!_isShowingResetWarning) {
+          detectionStatus =
+              'Multiple faces detected. Only one person is allowed.';
+        }
         notifyListeners();
         return;
       }
@@ -284,14 +296,18 @@ class FaceRegistrationController extends ChangeNotifier {
       // 1. Validate Face Distance
       if (faceWidthRatio < 0.15) {
         _onFaceLost();
-        detectionStatus = 'Please move closer to the camera';
+        if (!_isShowingResetWarning) {
+          detectionStatus = 'Please move closer to the camera';
+        }
         notifyListeners();
         return;
       }
 
       if (faceWidthRatio > 0.90) {
         _onFaceLost();
-        detectionStatus = 'Please step back slightly';
+        if (!_isShowingResetWarning) {
+          detectionStatus = 'Please step back slightly';
+        }
         notifyListeners();
         return;
       }
@@ -302,7 +318,9 @@ class FaceRegistrationController extends ChangeNotifier {
           centerYRatio < 0.15 ||
           centerYRatio > 0.85) {
         _onFaceLost();
-        detectionStatus = 'Please align your face inside the oval frame';
+        if (!_isShowingResetWarning) {
+          detectionStatus = 'Please align your face inside the oval frame';
+        }
         notifyListeners();
         return;
       }
@@ -455,7 +473,7 @@ class FaceRegistrationController extends ChangeNotifier {
     detectionStatus = '✓ $action Completed!';
     notifyListeners();
 
-    Timer(const Duration(milliseconds: 500), () async {
+    Timer(const Duration(milliseconds: 300), () async {
       _stepCooldown = false;
       challengeHoldProgress = 0.0;
       remainingHoldSeconds = 2.0;
