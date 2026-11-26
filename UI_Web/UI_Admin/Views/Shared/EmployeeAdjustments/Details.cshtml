@@ -62,7 +62,10 @@
             <h2 class="text-title-lg font-semibold">Review @labelLower</h2>
             @if (!row.CanApprove)
             {
-                <div role="alert" class="rounded-xl bg-amber-50 text-amber-800 p-unit-3">This @labelLower can no longer be approved (the payroll period is no longer DRAFT/OPEN or the item is linked to payroll).</div>
+                var blockedReason = string.Equals(row.PeriodStatus, "CLOSED", StringComparison.OrdinalIgnoreCase)
+                    ? $"This {labelLower} can no longer be reviewed (the payroll period is CLOSED)."
+                    : $"This {labelLower} can no longer be approved (the payroll period is CLOSED, the item is linked to payroll, or the employee is no longer eligible).";
+                <div role="alert" class="rounded-xl bg-amber-50 text-amber-800 p-unit-3">@blockedReason</div>
             }
 
             <form method="post" id="review-form" class="flex flex-col gap-unit-4">

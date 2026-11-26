@@ -17,6 +17,28 @@ public sealed class EmployeeAdjustmentRepo(AppDbContext db) : IEmployeeAdjustmen
             (c.BranchId == branchId || db.Users.Any(u => u.UserId == userId && u.BranchId == branchId)) &&
             (c.Status == "ACTIVE" || c.Status == "SCHEDULED" ||
              c.Status == "DRAFT" || c.Status == "PENDING_STAFF" || c.Status == "PENDING_MANAGER_APPROVAL"), ct);
+
+    public Task<bool> StaffHasValidShiftOnDateAsync(Guid userId, int branchId, DateOnly date, CancellationToken ct)
+    {
+        var dayStartUtc = DateTime.SpecifyKind(date.ToDateTime(TimeOnly.MinValue).AddHours(-7), DateTimeKind.Utc);
+        var dayEndUtcExclusive = dayStartUtc.AddDays(1);
+
+        return db.ShiftAssignments
+            .AsNoTracking()
+            .AnyAsync(sa =>
+                sa.UserId == userId &&
+                sa.Status != "CANCELLED" &&
+                sa.Shift.Status != "CANCELLED" &&
+                sa.Shift.ScheduleWeek.BranchId == branchId &&
+                sa.Shift.ScheduleWeek.Status != "CANCELLED" &&
+                sa.Shift.ScheduleWeek.Status != "DRAFT" &&
+                sa.Shift.ScheduledStartAt >= dayStartUtc &&
+                sa.Shift.ScheduledStartAt < dayEndUtcExclusive &&
+                !sa.LeaveRequestAssignments.Any(l =>
+                    l.Request.RequestType == "LEAVE" &&
+                    (l.Request.Status == "APPROVED" || l.Request.Status == "PENDING")),
+                ct);
+    }
     public Task<PayrollPeriod?> PeriodAsync(int id, int? branchId, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()
         .SingleOrDefaultAsync(p => p.PayrollPeriodId == id && (!branchId.HasValue || p.BranchId == branchId), ct);
         public Task<PayrollPeriod?> FindPeriodByDateAsync(int branchId, DateOnly date, CancellationToken ct) => db.PayrollPeriods.AsNoTracking()

@@ -41,6 +41,12 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
             dateTo = start.AddDays(6).ToDateTime(TimeOnly.MinValue);
         }
 
+        var branches = User.IsInRole("ADMIN")
+            ? (await branchApi.GetActiveBranchesAsync(cancellationToken))
+                .Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name })
+                .ToList()
+            : [];
+
         var model = new AccountantOrderListViewModel
         {
             PageNumber = page < 1 ? 1 : page,
@@ -51,9 +57,7 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
             PaymentStatusFilter = paymentStatus,
             DateFrom = dateFrom,
             DateTo = dateTo,
-            Branches = (await branchApi.GetActiveBranchesAsync(cancellationToken))
-                .Select(b => new BranchOptionViewModel { Id = b.Id, Name = b.Name })
-                .ToList()
+            Branches = branches
         };
 
         try
@@ -73,7 +77,7 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
             ModelState.AddModelError(string.Empty, "Unable to load orders: " + ex.Message);
         }
 
-        return View(model);
+        return View("~/Views/AccountantOrders/Index.cshtml", model);
     }
 
     [HttpGet]
@@ -83,7 +87,7 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
         try
         {
             var order = await api.GetByIdAsync(id, cancellationToken);
-            return View(order);
+            return View("~/Views/AccountantOrders/Details.cshtml", order);
         }
         catch (HttpRequestException ex)
         {
@@ -100,7 +104,7 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
         try
         {
             var order = await api.GetByIdAsync(id, cancellationToken);
-            return View(order);
+            return View("~/Views/AccountantOrders/Invoice.cshtml", order);
         }
         catch (HttpRequestException ex)
         {
@@ -130,6 +134,6 @@ public class AccountantOrdersController(AccountantOrderApiService api, BranchApi
     private async Task<IActionResult> ExpiredAsync()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(Index), "AccountantOrders") });
+        return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(Index)) });
     }
 }

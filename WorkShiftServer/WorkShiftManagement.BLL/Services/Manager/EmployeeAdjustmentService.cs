@@ -32,6 +32,11 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     private static void CheckPeriod(PayrollPeriod? p)
     { if (p != null && !MutablePeriod(p)) throw new InvalidOperationException("The payroll period is settled/closed or invalid; reward/penalty is read-only."); }
 
+    private static bool ReviewablePeriod(PayrollPeriod? p) =>
+        p == null || !string.Equals(p.Status, "CLOSED", StringComparison.OrdinalIgnoreCase);
+    private static void CheckReviewPeriod(PayrollPeriod? p)
+    { if (p != null && !ReviewablePeriod(p)) throw new InvalidOperationException("The payroll period is CLOSED; reward/penalty can no longer be reviewed."); }
+
     public static (DateOnly WeekStart, DateOnly Today) GetCurrentWeekBounds()
     {
         var todayVn = DateOnly.FromDateTime(DateTime.UtcNow.AddHours(7));
@@ -67,7 +72,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             throw new ArgumentException("Amount must be at least 1,000 VND, max 16 integer digits and 2 decimal places.");
     }
     
-    private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, CancellationToken ct)
+    private async Task Targets(User actor, SaveEmployeeAdjustmentRequest r, DateOnly date, CancellationToken ct)
     {
         var branchId = Scope(actor);
         var effectiveBranchId = branchId ?? (actor.BranchId ?? 0);
@@ -79,6 +84,10 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         if (!hasContract)
             throw new ArgumentException("Reward/penalty can only be created for employees with an active contract.");
 
+        var hasValidShift = await repo.StaffHasValidShiftOnDateAsync(r.UserId, effectiveBranchId, date, ct);
+        if (!hasValidShift)
+            throw new ArgumentException($"Employee does not have a valid work shift on {date:dd/MM/yyyy} (no assigned shift, shift was cancelled, or employee has a leave request).");
+
         if (r.PayrollPeriodId.HasValue && r.PayrollPeriodId.Value > 0)
         {
             var period = await repo.PeriodAsync(r.PayrollPeriodId.Value, actor.BranchId, ct);
@@ -86,9 +95,13 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         }
     }
     
-    private async Task Pending(EmployeeRewardsPenalty item, CancellationToken ct)
+    private async Task Pending(EmployeeRewardsPenalty item, bool forAdminReview, CancellationToken ct)
     {
-        if (item.PayrollPeriod != null) CheckPeriod(item.PayrollPeriod);
+        if (item.PayrollPeriod != null)
+        {
+            if (forAdminReview) CheckReviewPeriod(item.PayrollPeriod);
+            else CheckPeriod(item.PayrollPeriod);
+        }
         if (item.ApprovalStatus != "PENDING") throw new InvalidOperationException("Only PENDING items can be processed; approved/rejected items cannot be edited, deleted, or re-evaluated.");
         if (item.PayrollId != null || await repo.HasPayrollSourceAsync(item.RewardPenaltyId, ct))
             throw new InvalidOperationException("Adjustment item is linked to Payroll data; direct source modification prohibited.");
@@ -100,7 +113,9 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         
     private static EmployeeAdjustmentResponse Map(EmployeeRewardsPenalty a, User actor)
     {
-        var pending = a.ApprovalStatus == "PENDING" && !a.IsDeleted && a.PayrollId == null && a.PayrollDetails.Count == 0 && (a.PayrollPeriod == null || MutablePeriod(a.PayrollPeriod));
+        var isPendingUnlinked = a.ApprovalStatus == "PENDING" && !a.IsDeleted && a.PayrollId == null && a.PayrollDetails.Count == 0;
+        var pendingForManager = isPendingUnlinked && MutablePeriod(a.PayrollPeriod);
+        var pendingForAdmin = isPendingUnlinked && ReviewablePeriod(a.PayrollPeriod);
         var branchId = a.PayrollPeriod?.BranchId ?? a.User?.BranchId ?? actor.BranchId ?? 0;
         var manager = actor.Role.RoleName == "MANAGER" && actor.BranchId == branchId;
         var admin = actor.Role.RoleName == "ADMIN";
@@ -115,10 +130,10 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             CreatedBy = a.CreatedBy, CreatedByName = a.CreatedByNavigation?.FullName, CreatedAt = a.CreatedAt,
             ApprovedBy = a.ApprovedBy, ApprovedByName = a.ApprovedByNavigation?.FullName, ApprovedAt = a.ApprovedAt,
             RejectedBy = a.RejectedBy, RejectedByName = a.RejectedByNavigation?.FullName, RejectedAt = a.RejectedAt, ReviewNote = a.ReviewNote,
-            CanUpdate = pending && manager, CanDelete = pending && manager,
-            CanApprove = pending && admin && a.User != null && a.User.Status == "ACTIVE" && a.User.DeletedAt == null
+            CanUpdate = pendingForManager && manager, CanDelete = pendingForManager && manager,
+            CanApprove = pendingForAdmin && admin && a.User != null && a.User.Status == "ACTIVE" && a.User.DeletedAt == null
                 && (branchId == 0 || a.User.BranchId == branchId) && a.User.Role != null && a.User.Role.RoleName == "STAFF" && a.User.Role.Status == "ACTIVE",
-            CanReject = pending && admin
+            CanReject = pendingForAdmin && admin
         };
     }
     
@@ -147,8 +162,8 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     {
         Type(type); Validate(r);
         await using var tx = await repo.BeginChangeAsync(ct);
-        var actor = await Actor(id, "MANAGER", ct); await Targets(actor, r, ct);
         var date = r.AdjustmentDate ?? GetCurrentWeekBounds().Today;
+        var actor = await Actor(id, "MANAGER", ct); await Targets(actor, r, date, ct);
 
         int? periodId = r.PayrollPeriodId is > 0 ? r.PayrollPeriodId : null;
         if (!periodId.HasValue && actor.BranchId.HasValue)
@@ -181,8 +196,8 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
         Type(type); Validate(r);
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "MANAGER", ct); var item = await Item(itemId, type, actor, true, ct);
-        await Pending(item, ct); await Targets(actor, r, ct); var old = Snapshot(item);
         var date = r.AdjustmentDate ?? item.AdjustmentDate ?? GetCurrentWeekBounds().Today;
+        await Pending(item, forAdminReview: false, ct); await Targets(actor, r, date, ct); var old = Snapshot(item);
 
         int? periodId = r.PayrollPeriodId is > 0 ? r.PayrollPeriodId : null;
         if (!periodId.HasValue && actor.BranchId.HasValue)
@@ -206,7 +221,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
     {
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "MANAGER", ct); var item = await Item(itemId, type, actor, true, ct);
-        await Pending(item, ct); var old = Snapshot(item);
+        await Pending(item, forAdminReview: false, ct); var old = Snapshot(item);
         item.IsDeleted = true; item.DeletedBy = id; item.DeletedAt = DateTime.UtcNow; item.DeletionReason = "Deleted pending item by manager.";
         repo.Audit(id, "DELETE_EMPLOYEE_" + type, item, old); await repo.SaveAsync(ct); await tx.CommitAsync(ct);
     }
@@ -228,7 +243,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
             throw new ArgumentException("Rejection reason is required; review note cannot exceed 1000 characters.");
         await using var tx = await repo.BeginChangeAsync(ct);
         var actor = await Actor(id, "ADMIN", ct); var item = await Item(itemId, type, actor, true, ct);
-        await Pending(item, ct); var old = Snapshot(item); var now = DateTime.UtcNow;
+        await Pending(item, forAdminReview: true, ct); var old = Snapshot(item); var now = DateTime.UtcNow;
         if (approve)
         {
             var staff = item.User;
@@ -247,7 +262,7 @@ public sealed class EmployeeAdjustmentService(IEmployeeAdjustmentRepo repo) : IE
                 var period = item.PayrollPeriod ?? await repo.PeriodAsync(item.PayrollPeriodId.Value, null, ct);
                 if (period != null)
                 {
-                    CheckPeriod(period);
+                    CheckReviewPeriod(period);
                     if (period.BranchId != staffBranchId)
                         throw new ArgumentException("The payroll period does not belong to the employee's branch.");
                 }

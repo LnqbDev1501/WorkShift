@@ -231,6 +231,24 @@
                                         <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Products</span>
                                     </a>
                                 </nav>
+
+                                <nav class="space-y-unit-1">
+                                    <div class="sidebar-category-header px-unit-3 pb-unit-1">
+                                        <span class="font-label-sm text-[#6b7280] uppercase tracking-wider text-[10px] font-semibold">ORDERS</span>
+                                    </div>
+                                    <a asp-controller="AdminOrders" asp-action="Index"
+                                       class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AdminOrders" or "AccountantOrders" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                                       title="Order List">
+                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">receipt_long</span>
+                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Order List</span>
+                                    </a>
+                                    <a asp-controller="AdminReports" asp-action="BranchSales"
+                                       class="sidebar-nav-item flex items-center gap-unit-3 px-unit-3 py-unit-2 rounded-lg @(currentController is "AdminReports" or "AccountantReports" ? "bg-primary-container text-white font-title-md shadow-sm" : "text-[#9ca3af] hover:bg-[#1f2937] hover:text-white") transition-all duration-150"
+                                       title="Branch Sales Report">
+                                        <span class="material-symbols-outlined text-[20px] flex-shrink-0">download</span>
+                                        <span class="sidebar-full-label font-body-md-medium text-[13px] truncate">Branch Sales Report</span>
+                                    </a>
+                                </nav>
                             }
                 else if (User.IsInRole("MANAGER"))
                             {
