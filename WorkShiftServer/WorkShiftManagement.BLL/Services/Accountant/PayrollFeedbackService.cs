@@ -569,16 +569,36 @@ public sealed partial class PayrollFeedbackService(IPayrollFeedbackRepo repo, IP
             {
                 await using var tx = await calculation.BeginCalculationAsync(ct);
                 var data = await repo.LoadAsync(id, ct);
+                List<int> expiredFeedbackIds = [];
                 if (data != null)
                 {
+                    if (PayrollPreviewPolicy.Mutable(data.Period))
+                    {
+                        var expiredReviews = data.Reviews.Where(f => f.ReviewStatus == "PENDING"
+                            && f.ReviewDeadlineAt <= Now
+                            && PayrollPreviewPolicy.Leaf(data, f)
+                            && !data.Corrections.Any(r => r.Payroll.UserId == f.EmployeeId && r.Status is "OPEN" or "RESPONDED")).ToList();
+                        expiredFeedbackIds = expiredReviews.Select(f => f.FeedbackId).ToList();
+                    }
                     Expire(data);
                     RefreshPeriod(data, Now);
                     await calculation.SaveAsync(ct);
                 }
                 await tx.CommitAsync(ct);
-                if (data != null && adminRealtimePublisher != null)
+                if (data != null && expiredFeedbackIds.Count > 0 && adminRealtimePublisher != null)
+                {
                     await adminRealtimePublisher.PublishDataChangedAsync(AdminRealtimeEvents.DataChanged,
-                        new { resource = "PayrollReviews", action = "EXPIRED" });
+                        new
+                        {
+                            resource = "PayrollReviews",
+                            action = "EXPIRED",
+                            eventType = "STAFF_PREVIEW_EXPIRED",
+                            periodId = data.Period.PayrollPeriodId,
+                            branchId = data.Period.BranchId,
+                            changedFeedbackRoundIds = expiredFeedbackIds,
+                            expiredFeedbackIds = expiredFeedbackIds
+                        });
+                }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
