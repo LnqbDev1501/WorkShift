@@ -95,7 +95,15 @@
             if (pending) refresh();
         });
     });
-    connection.on('AdminDataChanged', invalidate);
+    connection.on('AdminDataChanged', (data) => {
+        const customEvent = new CustomEvent('workshift:admin-data-changed', {
+            detail: data,
+            cancelable: true
+        });
+        const defaultPrevented = !window.dispatchEvent(customEvent);
+        if (defaultPrevented) return;
+        invalidate();
+    });
     connection.onreconnected(invalidate);
 
     function scheduleRetry() {

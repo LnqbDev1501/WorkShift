@@ -225,23 +225,25 @@
                 <span class="material-symbols-outlined text-base">send</span>
                 <span>Send Payroll Previews</span>
             </button>
-            @if (isEligibleToSubmit)
-            {
-                <button type="button" onclick="openModal('modalSubmitPeriod')"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-all cursor-pointer">
-                    <span class="material-symbols-outlined text-base">publish</span>
-                    <span>Submit to Admin</span>
-                </button>
-            }
-            else
-            {
-                <button type="button" disabled
-                        class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm transition-all"
-                        title="Cannot submit: required staff previews, employee reviews, or manager corrections remain incomplete">
-                    <span class="material-symbols-outlined text-base">publish</span>
-                    <span>Submit to Admin</span>
-                </button>
-            }
+            <div id="period-submit-button-container" class="inline-flex">
+                @if (isEligibleToSubmit)
+                {
+                    <button type="button" onclick="openModal('modalSubmitPeriod')"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm text-sm transition-all cursor-pointer">
+                        <span class="material-symbols-outlined text-base">publish</span>
+                        <span>Submit to Admin</span>
+                    </button>
+                }
+                else
+                {
+                    <button type="button" disabled
+                            class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed text-sm transition-all"
+                            title="Cannot submit: required staff previews, employee reviews, or manager corrections remain incomplete">
+                        <span class="material-symbols-outlined text-base">publish</span>
+                        <span>Submit to Admin</span>
+                    </button>
+                }
+            </div>
         }
         @if (isApproved || isPaid || isClosed)
         {
@@ -263,49 +265,51 @@
         }
     </div>
 
-    @if ((isCalculated || isRevisionRequired) && !isEligibleToSubmit)
-    {
-        <div class="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-150 text-slate-800 text-xs flex items-start gap-3 shadow-xs">
-            <span class="material-symbols-outlined text-indigo-600 text-lg shrink-0 mt-0.5">info</span>
-            <div>
-                <strong class="font-bold text-slate-900">Submission Checklist (Required before submitting to Admin):</strong>
-                <ul class="list-disc pl-4 mt-1 space-y-0.5 text-slate-600">
-                    @if (currentPayrolls.Count == 0)
-                    {
-                        <li>No payroll records available for calculation or submission.</li>
-                    }
-                    @if (feedbacks.Count == 0)
-                    {
-                        <li>Current payroll version has not been sent for review.</li>
-                    }
-                    else if (unreviewedStaffCount > 0)
-                    {
-                        <li><strong>@unreviewedStaffCount</strong> employee(s) do not have a valid preview for the current payroll version.</li>
-                    }
-                    @if (pendingReviews > 0)
-                    {
-                        <li><strong>@pendingReviews</strong> employee(s) are awaiting payroll review.</li>
-                    }
-                    @if (feedbackPendingReviews > 0)
-                    {
-                        <li><strong>@feedbackPendingReviews</strong> employee review(s) have pending feedback to resolve.</li>
-                    }
-                    @if (openIssues > 0)
-                    {
-                        <li><strong>@openIssues</strong> correction request(s) are still open.</li>
-                    }
-                    @if (expiredIssues > 0)
-                    {
-                        <li class="text-rose-700 font-semibold"><strong>@expiredIssues</strong> correction request(s) have expired and must be resent.</li>
-                    }
-                    @if (Model.RejectedPayrollCount > 0)
-                    {
-                        <li class="text-rose-700 font-semibold"><strong>@Model.RejectedPayrollCount</strong> rejected payroll record(s) require correction and recalculation.</li>
-                    }
-                </ul>
+    <div id="period-submission-checklist-container">
+        @if ((isCalculated || isRevisionRequired) && !isEligibleToSubmit)
+        {
+            <div class="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-150 text-slate-800 text-xs flex items-start gap-3 shadow-xs">
+                <span class="material-symbols-outlined text-indigo-600 text-lg shrink-0 mt-0.5">info</span>
+                <div>
+                    <strong class="font-bold text-slate-900">Submission Checklist (Required before submitting to Admin):</strong>
+                    <ul class="list-disc pl-4 mt-1 space-y-0.5 text-slate-600">
+                        @if (currentPayrolls.Count == 0)
+                        {
+                            <li>No payroll records available for calculation or submission.</li>
+                        }
+                        @if (feedbacks.Count == 0)
+                        {
+                            <li>Current payroll version has not been sent for review.</li>
+                        }
+                        else if (unreviewedStaffCount > 0)
+                        {
+                            <li><strong>@unreviewedStaffCount</strong> employee(s) do not have a valid preview for the current payroll version.</li>
+                        }
+                        @if (pendingReviews > 0)
+                        {
+                            <li><strong>@pendingReviews</strong> employee(s) are awaiting payroll review.</li>
+                        }
+                        @if (feedbackPendingReviews > 0)
+                        {
+                            <li><strong>@feedbackPendingReviews</strong> employee review(s) have pending feedback to resolve.</li>
+                        }
+                        @if (openIssues > 0)
+                        {
+                            <li><strong>@openIssues</strong> correction request(s) are still open.</li>
+                        }
+                        @if (expiredIssues > 0)
+                        {
+                            <li class="text-rose-700 font-semibold"><strong>@expiredIssues</strong> correction request(s) have expired and must be resent.</li>
+                        }
+                        @if (Model.RejectedPayrollCount > 0)
+                        {
+                            <li class="text-rose-700 font-semibold"><strong>@Model.RejectedPayrollCount</strong> rejected payroll record(s) require correction and recalculation.</li>
+                        }
+                    </ul>
+                </div>
             </div>
-        </div>
-    }
+        }
+    </div>
 
     <!-- Alert Messages -->
     @if (TempData["PeriodError"] is string error)
@@ -437,13 +441,13 @@
                     <span class="material-symbols-outlined text-indigo-600 text-lg">rate_review</span>
                     <h2 class="text-xs font-bold text-slate-900 uppercase tracking-wider">2. Staff Review &amp; Corrections</h2>
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold @(isEligibleToSubmit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200")">
+                <span id="staff-review-card-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold @(isEligibleToSubmit ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200")">
                     @(isEligibleToSubmit ? "Eligible for Admin Submission" : "Pending Requirements")
                 </span>
             </div>
 
             <div class="grid grid-cols-2 gap-3 text-xs">
-                <div class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
+                <div id="staff-previews-summary" class="bg-slate-50/70 p-3 rounded-xl border border-slate-100">
                     <span class="text-slate-500 block mb-1">Staff Previews</span>
                     <strong class="text-xs font-bold text-slate-800">
                         <span class="text-emerald-700">@confirmedReviews Confirmed</span> · <span class="text-slate-600">@pendingReviews Pending</span>
@@ -493,7 +497,7 @@
             <button type="button" onclick="switchPeriodTab('tab-feedbacks', this)"
                     class="tab-btn pb-3 text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-2 cursor-pointer transition-all">
                 <span>Staff Previews &amp; Feedback</span>
-                <span class="px-2 py-0.5 rounded-full text-xs @(pendingReviews > 0 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-slate-100 text-slate-600") font-bold">
+                <span id="tab-feedbacks-badge" class="px-2 py-0.5 rounded-full text-xs @(pendingReviews > 0 ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-slate-100 text-slate-600") font-bold">
                     @(Model.Feedbacks?.Count ?? 0) @(pendingReviews > 0 ? $"({pendingReviews} pending)" : "")
                 </span>
             </button>
@@ -825,7 +829,7 @@
                         <tbody class="divide-y divide-slate-100 text-sm">
                             @foreach (var fb in Model.Feedbacks)
                             {
-                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                <tr data-feedback-id="@fb.FeedbackId" class="hover:bg-slate-50/80 transition-colors">
                                     <td class="py-4 px-6 font-semibold text-slate-900">
                                         <span class="inline-flex items-center gap-1 font-mono text-xs text-slate-700 bg-slate-100 px-2 py-1 rounded-lg">
                                             #@fb.FeedbackId
@@ -835,7 +839,7 @@
                                     <td class="py-4 px-6 font-semibold text-slate-900">
                                         @fb.EmployeeName
                                     </td>
-                                    <td class="py-4 px-6">
+                                    <td data-cell="review-status" class="py-4 px-6">
                                         @if (fb.ReviewStatus == "PENDING")
                                         {
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -1114,5 +1118,107 @@
             btn.classList.add('border-indigo-600', 'text-indigo-600');
             btn.classList.remove('border-transparent', 'text-slate-500');
         }
+
+        (function initPayrollReviewRealtime() {
+            const currentPeriodId = @Model.PayrollPeriodId;
+            const currentBranchId = @Model.BranchId;
+
+            window.addEventListener('workshift:admin-data-changed', async function (e) {
+                const data = e.detail;
+                if (!data) return;
+
+                const isExpiredEvent = data.eventType === 'STAFF_PREVIEW_EXPIRED' ||
+                    (data.resource === 'PayrollReviews' && data.action === 'EXPIRED');
+
+                if (!isExpiredEvent) return;
+
+                // Always cancel full-page reload on this Details view for payroll review expiry events
+                e.preventDefault();
+
+                // Check branch and period match to prevent cross-branch and cross-period updates
+                if (data.periodId && Number(data.periodId) !== currentPeriodId) return;
+                if (data.branchId && Number(data.branchId) !== currentBranchId) return;
+
+                // Step 1: Immediate in-place patch of the affected row's review status
+                const expiredIds = data.changedFeedbackRoundIds || data.expiredFeedbackIds || [];
+                if (Array.isArray(expiredIds)) {
+                    expiredIds.forEach(id => {
+                        const tr = document.querySelector(`tr[data-feedback-id="${id}"]`);
+                        if (tr) {
+                            const statusTd = tr.querySelector('[data-cell="review-status"]');
+                            if (statusTd) {
+                                statusTd.innerHTML = `
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                        EXPIRED
+                                    </span>
+                                    <span class="text-[10px] text-slate-400 block mt-0.5">Deemed agreed</span>
+                                `;
+                            }
+                        }
+                    });
+                }
+
+                // Step 2: Fetch updated page content in background to accurately sync:
+                // - Staff Previews & Feedback tab table (without altering which tab is currently active)
+                // - Summary counters (Confirmed, Pending, Expired)
+                // - Card status badge
+                // - Tab button pending badge
+                // - Submit to Admin action button & Submission checklist
+                try {
+                    const response = await fetch(window.location.href, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!response.ok) return;
+                    const html = await response.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+                    // 1. Update Tab 3 inner content (tab-feedbacks) while preserving active tab state
+                    const currentTabFeedbacks = document.getElementById('tab-feedbacks');
+                    const newTabFeedbacks = doc.getElementById('tab-feedbacks');
+                    if (currentTabFeedbacks && newTabFeedbacks) {
+                        currentTabFeedbacks.innerHTML = newTabFeedbacks.innerHTML;
+                    }
+
+                    // 2. Update Staff Previews summary counter
+                    const currentSummary = document.getElementById('staff-previews-summary');
+                    const newSummary = doc.getElementById('staff-previews-summary');
+                    if (currentSummary && newSummary) {
+                        currentSummary.innerHTML = newSummary.innerHTML;
+                    }
+
+                    // 3. Update Card 2 badge
+                    const currentCardBadge = document.getElementById('staff-review-card-badge');
+                    const newCardBadge = doc.getElementById('staff-review-card-badge');
+                    if (currentCardBadge && newCardBadge) {
+                        currentCardBadge.className = newCardBadge.className;
+                        currentCardBadge.innerHTML = newCardBadge.innerHTML;
+                    }
+
+                    // 4. Update Tab 3 button pending badge
+                    const currentTabBadge = document.getElementById('tab-feedbacks-badge');
+                    const newTabBadge = doc.getElementById('tab-feedbacks-badge');
+                    if (currentTabBadge && newTabBadge) {
+                        currentTabBadge.className = newTabBadge.className;
+                        currentTabBadge.innerHTML = newTabBadge.innerHTML;
+                    }
+
+                    // 5. Update Submit to Admin button container
+                    const currentSubmitBtn = document.getElementById('period-submit-button-container');
+                    const newSubmitBtn = doc.getElementById('period-submit-button-container');
+                    if (currentSubmitBtn && newSubmitBtn) {
+                        currentSubmitBtn.innerHTML = newSubmitBtn.innerHTML;
+                    }
+
+                    // 6. Update Submission Checklist container
+                    const currentChecklist = document.getElementById('period-submission-checklist-container');
+                    const newChecklist = doc.getElementById('period-submission-checklist-container');
+                    if (currentChecklist && newChecklist) {
+                        currentChecklist.innerHTML = newChecklist.innerHTML;
+                    }
+                } catch (err) {
+                    console.warn('[WorkShift Realtime] Background sync failed:', err);
+                }
+            });
+        })();
     </script>
 }
