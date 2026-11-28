@@ -1,6 +1,7 @@
 @model UI_Admin.Models.EmployeeRequests.AdminEmployeeRequestDetailViewModel
 @using UI_Admin.Helpers
 
+@* Admin Employee Request Details View *@
 @{
     ViewData["Title"] = $"Request Details REQ-{Model.RequestId}";
     var reqType = Model.RequestType?.ToUpperInvariant() ?? "";
