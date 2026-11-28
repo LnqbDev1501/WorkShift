@@ -16,14 +16,14 @@ class ApiClient {
     'API_BASE_URL',
   );
 
-  // static String get defaultBaseUrl {
-  //   if (_configuredBaseUrl.trim().isNotEmpty) {
-  //     return _normalizeBaseUrl(_configuredBaseUrl);
-  //   }
-  //   return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-  //       ? 'http://10.0.2.2:5267'
-  //       : 'http://localhost:5267';
-  // }
+  static String get defaultBaseUrl {
+    if (_configuredBaseUrl.trim().isNotEmpty) {
+      return _normalizeBaseUrl(_configuredBaseUrl);
+    }
+    return !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+        ? 'http://10.0.2.2:5267'
+        : 'http://localhost:5267';
+  }
 
   // static String get defaultBaseUrl {
   //   if (_configuredBaseUrl.trim().isNotEmpty) {
@@ -32,13 +32,13 @@ class ApiClient {
 
   //   return 'https://linguini-unselect-science.ngrok-free.dev';
   // }
-  static String get defaultBaseUrl {
-    if (_configuredBaseUrl.trim().isNotEmpty) {
-      return _normalizeBaseUrl(_configuredBaseUrl);
-    }
+  // static String get defaultBaseUrl {
+  //   if (_configuredBaseUrl.trim().isNotEmpty) {
+  //     return _normalizeBaseUrl(_configuredBaseUrl);
+  //   }
 
-    return 'https://munificent-undisconnectedly-adrianne.ngrok-free.dev';
-  }
+  //   return 'https://munificent-undisconnectedly-adrianne.ngrok-free.dev';
+  // }
 
   static String _normalizeBaseUrl(String value) {
     final normalized = value.trim().replaceFirst(RegExp(r'/+$'), '');
